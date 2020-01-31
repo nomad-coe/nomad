@@ -434,6 +434,8 @@ def test_2d_structure_structure_at_cell_boundary():
 
 def test_method_metainfo(single_point):
     enc = single_point.get_mi2_section(Encyclopedia.m_def)
+    assert enc.calculation.basis_set_type == "Numeric AOs"
+    assert enc.calculation.core_electron_treatment == "full all electron"
     assert enc.calculation.code_name == "FHI-aims"
     assert enc.calculation.code_version == "010314"
     assert enc.calculation.mainfile_uri == "nmd://Rtest_upload_id/data/test/mainfile.txt"

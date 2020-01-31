@@ -216,6 +216,12 @@ class Calculation(MSection):
         Atomic density of the material (atoms/volume)."
         """
     )
+    basis_set_type = Quantity(
+        type=MEnum("Numeric AOs", "Gaussians", "(L)APW+lo", "FLAPW (full-potential linearized augmented planewave)", "Plane waves", "Real-space grid", "Local-orbital minimum-basis"),
+        description="""
+        Basic type of the used basis set.
+        """
+    )
     cell_angles_string = Quantity(
         type=str,
         description="""
@@ -241,6 +247,12 @@ class Calculation(MSection):
         type=str,
         description="""
         Version of the code used for the calculation.
+        """
+    )
+    core_electron_treatment = Quantity(
+        type=MEnum("full all electron", "all electron frozen core", "pseudopotential", "unavailable"),
+        description="""
+        How the core electrons are described.
         """
     )
     functional_long_name = Quantity(

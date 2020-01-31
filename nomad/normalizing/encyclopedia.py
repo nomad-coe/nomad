@@ -1082,11 +1082,45 @@ class MethodDFT(Method):
     def basis_set_short_name(self) -> None:
         pass
 
-    def basis_set_type(self) -> None:
-        pass
+    def basis_set_type(self, calculation: Calculation) -> None:
+        """Type of basis set used by the code"""
+        basis_set_type = config.services.unavailable_value
+        archive_basis_set = self.backend["program_basis_set_type"]
+        # TODO: this translation should not be necessary if parsers did their
+        # work correctly (using the metainfo doc as reference) until then we
+        # keep this plus the warning - also as help for finding problematic
+        # parsers
+        basis_set_type_ambiguity = {
+            "numeric AOs": "Numeric AOs",
+            "gaussians": "Gaussians",
+            "plane waves": "Plane waves",
+            "real-space grid": "Real-space grid"
+        }
+        if archive_basis_set in basis_set_type_ambiguity:
+            self.logger.warning(
+                "Basis set type '{}' does not correspond to valid options in "
+                "metainfo documentation and was corrected."
+                .format(basis_set_type)
+            )
+            archive_basis_set = basis_set_type_ambiguity[archive_basis_set]
 
-    def core_electron_treatment(self) -> None:
-        pass
+        if archive_basis_set is not None:
+            basis_set_type = archive_basis_set
+
+        calculation.basis_set_type = basis_set_type
+
+    def core_electron_treatment(self, calculation: Calculation) -> None:
+        treatment = config.services.unavailable_value
+        code_name = calculation.code_name
+        if code_name is not None:
+            core_electron_treatments = {
+                'VASP': 'pseudopotential',
+                'FHI-aims': 'full all electron',
+                'exciting': 'full all electron',
+                'quantum espresso': 'pseudopotential'
+            }
+            treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
+        calculation.core_electron_treatment = treatment
 
     def functional_long_name(self, calculation: Calculation) -> None:
         """'Long' form of exchange-correlation functional, list of components
@@ -1178,12 +1212,10 @@ class MethodDFT(Method):
         hash_dict: OrderedDict = OrderedDict()
         hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(calculation)
         hash_dict['settings_basis_set'] = settings_basis_set
-        try:
-            conv_thr = repr_method['scf_threshold_energy_change']
-        except Exception:
-            pass
-        else:
-            hash_dict['scf_threshold_energy_change'] = '%.13f' % (conv_thr * J_to_Ry)
+        conv_thr = repr_method.get('scf_threshold_energy_change', None)
+        if conv_thr is not None:
+            conv_thr = '%.13f' % (conv_thr * J_to_Ry)
+        hash_dict['scf_threshold_energy_change'] = conv_thr
 
         return hash_dict
 
@@ -1199,17 +1231,16 @@ class MethodDFT(Method):
         #   - k point grids
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
-        try:
-            conv_thr = repr_method['scf_threshold_energy_change']
-        except KeyError:
-            pass
-        else:
-            hash_dict['scf_threshold_energy_change'] = '%.13f' % (conv_thr * J_to_Ry)
+        conv_thr = repr_method.get('scf_threshold_energy_change', None)
+        if conv_thr is not None:
+            conv_thr = '%.13f' % (conv_thr * J_to_Ry)
+        hash_dict['scf_threshold_energy_change'] = conv_thr
 
         # Pseudopotentials are kept constant, if applicable
         if settings_basis_set is not None:
-            if 'atoms_pseudopotentials' in settings_basis_set:
-                hash_dict['atoms_pseudopotentials'] = settings_basis_set['atoms_pseudopotentials']
+            hash_dict['atoms_pseudopotentials'] = settings_basis_set.get('atoms_pseudopotentials', None)
+        else:
+            hash_dict['atoms_pseudopotentials'] = None
 
         return hash_dict
 
@@ -1219,23 +1250,24 @@ class MethodDFT(Method):
         result: OrderedDict = OrderedDict()
 
         # Add electronic smearing settings if present
-        if calculation.smearing_kind is not None:
-            result['smearing_kind'] = calculation.smearing_kind
-            if calculation.smearing_parameter is not None:
-                result['smearing_parameter'] = '%.4f' % (calculation.smearing_parameter * J_to_Ry)
-            elif result['smearing_kind'] not in ('empty', 'tetrahedra'):
-                result['smearing_parameter'] = None
+        result['smearing_kind'] = calculation.smearing_kind
+        smearing_parameter = calculation.smearing_parameter
+        if smearing_parameter is not None:
+            smearing_parameter = '%.4f' % (smearing_parameter * J_to_Ry)
+        result['smearing_parameter'] = smearing_parameter
 
         # Add number of kpoints as detected from eigenvalues. TODO: we would
         # like to have info on the _reducible_ k-point-mesh:
         #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
-        # eigenvalues = self.calc.get_by_name('eigenvalues')
-        # result['number_of_eigenvalues_kpoints'] = None
-        # if eigenvalues is not None:
-            # kpt = eigenvalues[-1].get('eigenvalues_kpoints')
-            # if kpt is not None:
-                # result['number_of_eigenvalues_kpoints'] = str(len(kpt))
+        try:
+            scc = self.backend[s_scc][-1]
+            eigenvalues = scc['eigenvalues']
+            kpt = eigenvalues[-1]['eigenvalues_kpoints']
+        except (KeyError, IndexError):
+            result['number_of_eigenvalues_kpoints'] = None
+        else:
+            result['number_of_eigenvalues_kpoints'] = str(len(kpt))
 
         return result
 
@@ -1306,8 +1338,10 @@ class MethodDFT(Method):
         settings_basis_set = self.settings_basis_set(calculation)
 
         # Fill metainfo
+        self.basis_set_type(calculation)
         self.code_name(calculation)
         self.code_version(calculation)
+        self.core_electron_treatment(calculation)
         self.functional_long_name(calculation)
         self.functional_type(calculation, ctx.method_type)
         self.smearing_kind(calculation, repr_method)
@@ -1318,8 +1352,8 @@ class MethodDFT(Method):
 
 
 class Properties():
-    """A base class that is used for processing information that is specific to
-    a type of calculation.
+    """A base class that is used for processing calculated quantities that
+    should be extracted to Encyclopedia.
     """
     def __init__(self, backend, logger):
         self.backend = backend
@@ -1334,76 +1368,81 @@ class Properties():
     def band_gap_type(self) -> None:
         pass
 
-    def band_structure(self) -> None:
+    def band_structure(self, run_type: str) -> None:
         """Band structure data following arbitrary path.
 
         Currently this function is only taking into account the normalized band
         structures, and if they have a k-point that is labeled as '?', the
         whole band strcture will be ignored.
         """
+        # Band structure data is exctracted only from single point calculations
+        if run_type != Calculation.run_type.type.single_point:
+            return
+
         # Try to find an SCC with band structure data. Only take data from the
-        # last calculation found.
+        # last (and only) calculation.
         band_segments = config.services.unavailable_value
-        for scc in reversed(self.backend[s_scc]):
+        scc = self.backend[-1]
 
-            # Give priority to normalized data
-            for src_name in ["k_band_normalized", "k_band", "x_exciting_section_GW"]:
-                try:
-                    bs_data = scc[src_name]
-                except KeyError:
-                    continue
+        # Give priority to normalized data
+        for src_name in ["k_band_normalized", "k_band"]:
+            try:
+                bs_data = scc[src_name]
+            except KeyError:
+                continue
 
-                if src_name == "k_band_normalized":
-                    norm = "_normalized"
-                else:
-                    norm = ""
+            if src_name == "k_band_normalized":
+                norm = "_normalized"
+            else:
+                norm = ""
 
-                # Get band segments
-                band_segments = []
-                emptylabels = np.array(["?", "?"])
+            # Get band segments
+            band_segments = []
+            emptylabels = np.array(["?", "?"])
 
-                def get_band_data(bs_data):
-                    segment = {}
-                    for segment_src in bs_data[
-                            'section_k_band_segment' + norm]:
-                        # Extract only those values we are interested in
-                        try:
-                            band_k_points = segment_src["band_k_points" + norm]
-                            band_energies = segment_src["band_energies" + norm]
-                        except KeyError:
-                            return False, None
-                        else:
-                            # non-normalized data has no labels, so we introduce '?'
-                            # attention: '?' can also come from certain norm. calcs
-                            band_labels = segment_src.get('band_segm_labels' + norm, emptylabels)
-                            # Currently we don't ingest band structures without valid labels
-                            if "?" in band_labels:
-                                return False, None
-
-                            band_k_points = band_k_points
-                            band_energies = band_energies
-                            if band_labels is not None:
-                                band_labels = band_labels
-                            segment['band_k_points'] = band_k_points
-                            segment['band_energies'] = band_energies
-                            segment['band_segm_labels'] = band_labels
-                            band_segments.append(segment)
-                    return True, band_segments
-
-                # See if the band structure is valid. If even one part is not,
-                # it is not processed.
-                valid_segments = True
-                for i in range(len(bs_data)):
-                    valid, band_data = get_band_data(bs_data[i])
-                    if valid is False:
-                        valid_segments = False
-                        break
+            def get_band_data(bs_data):
+                segment = {}
+                for segment_src in bs_data[
+                        'section_k_band_segment' + norm]:
+                    # Extract only those values we are interested in
+                    try:
+                        band_k_points = segment_src["band_k_points" + norm]
+                        band_energies = segment_src["band_energies" + norm]
+                    except KeyError:
+                        return False, None
                     else:
-                        band_segments.append(band_data)
+                        # Non-normalized data has no labels, so we introduce '?'
+                        # attention: '?' can also come from certain norm. calcs
+                        band_labels = segment_src.get('band_segm_labels' + norm, emptylabels)
 
-                # We only return the last valid band structure that is found
-                if valid_segments:
-                    return band_segments
+                        # Currently we don't ingest band structures without valid labels
+                        if "?" in band_labels:
+                            return False, None
+
+                        band_k_points = band_k_points
+                        band_energies = band_energies
+                        if band_labels is not None:
+                            band_labels = band_labels
+                        segment['band_k_points'] = band_k_points
+                        segment['band_energies'] = band_energies
+                        segment['band_segm_labels'] = band_labels
+                        band_segments.append(segment)
+                return True, band_segments
+
+            # See if the band structure is valid. If even one part is not,
+            # it is not processed.
+            valid_segments = True
+            for i in range(len(bs_data)):
+                valid, band_data = get_band_data(bs_data[i])
+                if valid is False:
+                    valid_segments = False
+                    break
+                else:
+                    band_segments.append(band_data)
+
+            # We only return the last valid band structure that is found
+            if valid_segments:
+                return band_segments
 
         return band_segments
 
@@ -1462,5 +1501,5 @@ class Properties():
         pass
 
     @abstractmethod
-    def fill(self, sec_system) -> None:
-        pass
+    def fill(self, ctx: Context) -> None:
+        self.band_structure(ctx.run_type)
