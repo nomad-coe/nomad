@@ -84,6 +84,7 @@ class Entry(Document, metaclass=WithDomain):
 
     upload_id = Keyword()
     upload_time = Date()
+    upload_name = Keyword()
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
@@ -116,6 +117,7 @@ class Entry(Document, metaclass=WithDomain):
     def update(self, source: datamodel.CalcWithMetadata) -> None:
         self.upload_id = source.upload_id
         self.upload_time = source.upload_time
+        self.upload_name = source.upload_name
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)

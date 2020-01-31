@@ -148,6 +148,10 @@ class UploadListUnstyled extends React.Component {
       label: 'Upload time',
       render: (upload) => new Date(upload.example.upload_time).toLocaleString()
     },
+    upload_name: {
+      label: 'Name',
+      render: (upload) => upload.example.upload_name || ''
+    },
     upload_id: {
       label: 'Id',
       render: (upload) => <UploadId uploadId={upload.example.upload_id} />
@@ -213,7 +217,7 @@ class UploadListUnstyled extends React.Component {
       id={row => row.id}
       total={total}
       columns={this.columns}
-      selectedColumns={['upload_time', 'upload_name', 'upload_id', 'entries', 'published']}
+      selectedColumns={['upload_time', 'upload_id', 'entries', 'published']}
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}

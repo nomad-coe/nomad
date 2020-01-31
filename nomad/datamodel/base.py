@@ -90,6 +90,7 @@ class CalcWithMetadata(Mapping):
 
         # basic upload and processing related metadata
         self.upload_time: datetime.datetime = None
+        self.upload_name: str = None
         self.files: List[str] = None
         self.uploader: str = None
         self.processed: bool = False
