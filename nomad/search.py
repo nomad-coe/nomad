@@ -523,7 +523,7 @@ class SearchRequest:
         if order_by is None:
             composite = dict(sources={name: terms}, size=size)
         else:
-            sort_terms = A('terms', field=order_by)
+            sort_terms = A('terms', field=order_by, order=order)
             composite = dict(sources=[{order_by: sort_terms}, {name: terms}], size=size)
         if after is not None:
             if order_by is None:
