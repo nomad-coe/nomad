@@ -1117,10 +1117,11 @@ class MethodDFT(Method):
             "numeric AOs": "Numeric AOs",
             "gaussians": "Gaussians",
             "plane waves": "Plane waves",
+            "plane_waves": "Plane waves",
             "real-space grid": "Real-space grid"
         }
         if archive_basis_set in basis_set_type_ambiguity:
-            self.logger.warning(
+            self.logger.info(
                 "Basis set type '{}' does not correspond to valid options in "
                 "metainfo documentation and was corrected."
                 .format(basis_set_type)
