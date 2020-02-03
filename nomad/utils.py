@@ -144,6 +144,9 @@ class LogstashHandler(logstash.TCPLogstashHandler):
     legacy_logger = None
 
     def filter(self, record):
+        if record.name == 'gunicorn.access' and 'alive' in record.args.get('r', ''):
+            return False
+
         if super().filter(record):
             is_structlog = False
             if isinstance(record.msg, str):
