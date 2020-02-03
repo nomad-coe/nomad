@@ -638,7 +638,7 @@ class LoginRequiredUnstyled extends React.Component {
     let loginMessage = ''
     if (message) {
       loginMessage = <Typography>
-        {this.props.message} If you do not have a NOMAD Repository account, register <Link href='http://nomad-coe.eu:8080/NomadRepository-1.1/register/'>here</Link>.
+        {this.props.message} If you do not have a NOMAD Repository account, you can register.
       </Typography>
     }
 
