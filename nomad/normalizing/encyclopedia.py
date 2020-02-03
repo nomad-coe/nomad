@@ -1065,7 +1065,7 @@ class Method():
         """
         nones = self.find_nones(src_dict)
         if len(nones) > 0:
-            self.logger.warning(
+            self.logger.info(
                 '%s: missing data for hash: %s',
                 name, ', '.join(sorted(nones))
             )
@@ -1353,7 +1353,7 @@ class MethodDFT(Method):
                 shortname = "hybrid-GGA"
 
         if shortname is None:
-            self.logger.warning(
+            self.logger.info(
                 "Could not find a functional shortname for xc_functional {}."
                 .format(xc_longname)
             )
