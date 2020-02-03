@@ -129,7 +129,7 @@ mail:
   enabled: "false"
   host: 'localhost'
   port: 25
-  from: 'webmaster@nomad-repository.eu'
+  from: 'webmaster@nomad-coe.eu'
 
 keycloak:
   serverExternalUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"

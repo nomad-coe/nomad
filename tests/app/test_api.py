@@ -259,6 +259,7 @@ class TestUploads:
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
+        assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
         upload_with_metadata = upload_proc.to_upload_with_metadata()
 
         assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
@@ -790,7 +791,9 @@ class TestRepo():
         uploads = data.get('uploads', None)
         assert uploads is not None
         values = uploads['values']
-        assert values['example_upload_id']['total'] == 4
+        # the 4 uploads have "example upload id", but 3 have newer upload time. Therefore,
+        # only 3 calc will be in the last (and therefore used) bucket of 'example_upload_id'.
+        assert values['example_upload_id']['total'] == 3
         assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
         assert 'after' in uploads
         assert 'uploads' in data['statistics']['total']['all']

@@ -18,9 +18,7 @@ data:
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
-        proxy_send_timeout {{ .Values.proxy.timeout }};
         proxy_read_timeout {{ .Values.proxy.timeout }};
-        send_timeout {{ .Values.proxy.timeout }};
       }
 
       location {{ .Values.proxy.external.path }}/gui {
@@ -56,6 +54,7 @@ data:
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_send_timeout {{ .Values.proxy.timeout }};
       }
 
       location {{ .Values.proxy.external.path }}/api/raw {
@@ -64,6 +63,7 @@ data:
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_read_timeout {{ .Values.proxy.timeout }};
       }
 
       location {{ .Values.proxy.external.path }}/api/mirror {
@@ -72,6 +72,7 @@ data:
         proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
         proxy_connect_timeout {{ .Values.proxy.timeout }};
+        proxy_read_timeout {{ .Values.proxy.timeout }};
       }
     }
   env.js: |

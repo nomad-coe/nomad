@@ -67,6 +67,7 @@ calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
 })
 
 upload_metadata_model = api.inherit('UploadMetaData', metadata_model, {
+    'embargo_length': fields.Integer(description='Length of the requested embargo in months.'),
     'calculations': fields.List(fields.Nested(model=calc_metadata_model, skip_none=True), description='Specific per calculation data that will override the upload data.')
 })
 

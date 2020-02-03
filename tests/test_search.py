@@ -137,7 +137,11 @@ def test_search_totals(elastic, example_search_data):
     assert 'quantities' not in results
 
 
-def test_search_quantity(elastic, normalized: parsing.LocalBackend, test_user: datamodel.User, other_test_user: datamodel.User):
+@pytest.mark.parametrize("order_by", [None, 'upload_id'])
+def test_search_quantity(
+        elastic, normalized: parsing.LocalBackend, test_user: datamodel.User,
+        other_test_user: datamodel.User, order_by: str):
+
     calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.user_id
@@ -148,12 +152,17 @@ def test_search_quantity(elastic, normalized: parsing.LocalBackend, test_user: d
     create_entry(calc_with_metadata)
     refresh_index()
 
-    request = SearchRequest().quantity(name='authors', size=1, examples=1)
+    request = SearchRequest().quantity(
+        name='authors', size=1, examples=1, order_by=order_by)
     results = request.execute()
     assert len(results['quantities']['authors']['values'].keys()) == 1
     name = list(results['quantities']['authors']['values'].keys())[0]
     assert len(results['quantities']['authors']['values'][name]['examples']) == 1
-    assert results['quantities']['authors']['after'] == name
+    if order_by is None:
+        assert results['quantities']['authors']['after'] == name
+    else:
+        assert results['quantities']['authors']['after'] == \
+            results['quantities']['authors']['values'][name]['examples'][0][order_by]
 
 
 def refresh_index():

@@ -25,7 +25,7 @@ calculations, and files
 """
 
 from typing import cast, List, Any, ContextManager, Tuple, Generator, Dict, cast
-from mongoengine import StringField, DateTimeField, DictField, BooleanField
+from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -212,6 +212,7 @@ class Calc(Proc):
             calc_with_metadata.published = False
             calc_with_metadata.uploader = self.upload.user_id
             calc_with_metadata.upload_time = self.upload.upload_time
+            calc_with_metadata.upload_name = self.upload.name
             calc_with_metadata.nomad_version = config.version
             calc_with_metadata.nomad_commit = config.commit
             calc_with_metadata.last_processing = datetime.utcnow()
@@ -440,6 +441,7 @@ class Upload(Proc):
     upload_id = StringField(primary_key=True)
     upload_path = StringField(default=None)
     temporary = BooleanField(default=False)
+    embargo_length = IntField(default=36)
 
     name = StringField(default=None)
     upload_time = DateTimeField()
@@ -989,6 +991,7 @@ class Upload(Proc):
                 calc_metadatas[calc['mainfile']] = calc
 
             user_upload_time = upload_metadata.get('_upload_time', None)
+            user_upload_name = upload_metadata.get('_upload_name', None)
 
             def get_metadata(calc: Calc):
                 """
@@ -1002,6 +1005,8 @@ class Upload(Proc):
                 calc_with_metadata.apply_user_metadata(calc_metadata)
                 if calc_with_metadata.upload_time is None:
                     calc_with_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
+                if calc_with_metadata.upload_name is None:
+                    calc_with_metadata.upload_name = self.name if user_upload_name is None else user_upload_name
 
                 return calc_with_metadata
         else:
@@ -1010,6 +1015,7 @@ class Upload(Proc):
             def get_metadata(calc: Calc):
                 calc_with_metadata = datamodel.CalcWithMetadata(**calc.metadata)
                 calc_with_metadata.upload_time = self.upload_time
+                calc_with_metadata.upload_name = self.name
 
                 return calc_with_metadata
 
@@ -1029,6 +1035,8 @@ class Upload(Proc):
         for the upload and for each calculation. This method will try to move same values
         from the calculation to the upload to "compress" the data.
         """
+        self.embargo_length = min(metadata.get('embargo_length', 36), 36)
+
         compressed = {
             key: value for key, value in metadata.items() if key != 'calculations'}
         calculations: List[Dict[str, Any]] = []

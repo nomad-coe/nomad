@@ -51,7 +51,7 @@ mail:
   enabled: "true"
   host: 'mailrelay.mpcdf.mpg.de'
   port: 25
-  from: 'webmaster@nomad-repository.eu'
+  from: 'webmaster@nomad-coe.eu'
 
 datacite:
   secret: 'nomad-datacite'

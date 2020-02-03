@@ -226,6 +226,7 @@ export default class MetaInfoRepository {
 
       if (isSection) {
         definition.mType = schema.section
+        definition.features = []
       } else if (isCategory) {
         definition.mType = schema.category
       } else if (isValue) {

@@ -2,8 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
   ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
-  IconButton, DialogTitle, DialogContent, FormGroup, Checkbox, Button, Dialog, FormLabel,
-  DialogActions} from '@material-ui/core'
+  IconButton, DialogTitle, DialogContent, Button, Dialog, DialogActions, FormControl,
+  Select, InputLabel, Input, MenuItem, FormHelperText} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
@@ -14,11 +14,14 @@ import EntryList, { EntryListUnstyled } from '../search/EntryList'
 import { withDomain } from '../domains'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
-import PublishedIcon from '@material-ui/icons/Visibility'
-import UnPublishedIcon from '@material-ui/icons/Lock'
+import PublishedIcon from '@material-ui/icons/Public'
+import UnPublishedIcon from '@material-ui/icons/AccountCircle'
+import DecideIcon from '@material-ui/icons/Help'
 import { withApi } from '../api'
 import Markdown from '../Markdown'
 import ConfirmDialog from './ConfirmDialog'
+import ClipboardIcon from '@material-ui/icons/Assignment'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 
 class PublishConfirmDialog extends React.Component {
   static propTypes = {
@@ -28,12 +31,12 @@ class PublishConfirmDialog extends React.Component {
   }
 
   state = {
-    withEmbargo: false
+    embargoLength: 0
   }
 
   render() {
     const { onPublish, onClose, open } = this.props
-    const { withEmbargo } = this.state
+    const { embargoLength } = this.state
     return (
       <div>
         <Dialog
@@ -55,20 +58,36 @@ class PublishConfirmDialog extends React.Component {
               entries at any time. This functionality is part of editing entries.
             `}</Markdown>
 
-            <FormGroup row style={{alignItems: 'center'}}>
-              <Checkbox
-                checked={!withEmbargo}
-                onChange={() => this.setState({withEmbargo: !withEmbargo})}
-              />
-              <FormLabel>publish without embargo</FormLabel>
-            </FormGroup>
+            <FormControl style={{width: '100%', marginTop: 24}}>
+              <InputLabel shrink htmlFor="embargo-label-placeholder">
+                Embargo period
+              </InputLabel>
+              <Select
+                value={embargoLength}
+                onChange={e => this.setState({embargoLength: e.target.value})}
+                input={<Input name="embargo" id="embargo-label-placeholder" />}
+                displayEmpty
+                name="embargo"
+                // className={classes.selectEmpty}
+              >
+                <MenuItem value={0}>
+                  <em>No embargo</em>
+                </MenuItem>
+                <MenuItem value={3}>3</MenuItem>
+                <MenuItem value={6}>6</MenuItem>
+                <MenuItem value={12}>12</MenuItem>
+                <MenuItem value={24}>24</MenuItem>
+                <MenuItem value={36}>36</MenuItem>
+              </Select>
+              <FormHelperText>{embargoLength > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
+            </FormControl>
           </DialogContent>
           <DialogActions>
             <Button onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={() => onPublish(withEmbargo)} color="primary" autoFocus>
-              {withEmbargo ? 'Publish with embargo' : 'Publish'}
+            <Button onClick={() => onPublish(embargoLength)} color="primary" autoFocus>
+              {embargoLength > 0 ? 'Publish with embargo' : 'Publish'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -143,6 +162,9 @@ class Upload extends React.Component {
     },
     clickableRow: {
       cursor: 'pointer'
+    },
+    decideIcon: {
+      color: theme.palette.secondary.main
     }
   })
 
@@ -324,9 +346,9 @@ class Upload extends React.Component {
     this.setState({showPublishDialog: true})
   }
 
-  handlePublishSubmit(withEmbargo) {
+  handlePublishSubmit(embargoLength) {
     const { api, upload } = this.props
-    api.publishUpload(upload.upload_id, withEmbargo)
+    api.publishUpload(upload.upload_id, embargoLength)
       .then(() => {
         this.setState({showPublishDialog: false})
         this.update()
@@ -348,11 +370,20 @@ class Upload extends React.Component {
 
   renderTitle() {
     const { classes } = this.props
-    const { name, create_time } = this.state.upload
+    const { name, create_time, upload_id } = this.state.upload
 
     return (
       <div className={classes.titleContainer}>
         <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
+          <CopyToClipboard
+            text={upload_id} onCopy={() => null}
+          >
+            <Tooltip title={`Copy the upload id to clipboard`} onClick={e => e.stopPropagation()}>
+              <IconButton style={{margin: 3, marginRight: 0, padding: 4}}>
+                <ClipboardIcon style={{fontSize: 16}} />
+              </IconButton>
+            </Tooltip>
+          </CopyToClipboard>
           {name || new Date(Date.parse(create_time)).toLocaleString()}
         </Typography>
         {name
@@ -464,6 +495,7 @@ class Upload extends React.Component {
           props.children = 'published'
         } else {
           props.children = 'inspect'
+          props.StepIconProps = undefined
 
           if (process_running) {
             if (current_process === 'publish_upload') {
@@ -474,6 +506,11 @@ class Upload extends React.Component {
               props.optional = <Typography variant="caption">deleting data ...</Typography>
             }
           } else {
+            if (stepIndex === 2) {
+              props.StepIconProps = {
+                icon: <DecideIcon classes={{root: classes.decideIcon}}/>
+              }
+            }
             props.optional = <Typography variant="caption">publish or delete</Typography>
           }
         }
@@ -506,16 +543,19 @@ class Upload extends React.Component {
     const { classes } = this.props
     const { columns, upload } = this.state
     const { calcs, tasks_status, waiting } = this.state.upload
+
+    if (!calcs) {
+      return (
+        <Typography className={classes.detailsContent}>
+          Loading ...
+        </Typography>
+      )
+    }
+
     const { pagination } = calcs
 
     if (pagination.total === 0 && tasks_status !== 'SUCCESS') {
-      if (!this.state.upload.tasks_running) {
-        return (
-          <Typography className={classes.detailsContent}>
-            No calculations to show.
-          </Typography>
-        )
-      } else {
+      if (this.state.upload.tasks_running) {
         if (waiting) {
           return (
             <Typography className={classes.detailsContent}>
@@ -617,7 +657,7 @@ class Upload extends React.Component {
                   Upload processing has errors: {errors.join(', ')}
                 </Typography> : ''
               }
-              {upload.calcs ? this.renderCalcTable() : ''}
+              {this.renderCalcTable()}
               {debug
                 ? <div className={classes.detailsContent}>
                   <ReactJson src={upload} enableClipboard={false} collapsed={0} />
