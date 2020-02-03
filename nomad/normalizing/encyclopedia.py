@@ -161,8 +161,8 @@ class EncyclopediaNormalizer(Normalizer):
         n_methods = len(methods)
 
         if n_methods == 1:
-            method = methods[0]
-            method_id = method.get("electronic_structure_method", config.services.unavailable_value)
+            repr_method = methods[0]
+            method_id = repr_method.get("electronic_structure_method", config.services.unavailable_value)
         elif n_methods > 1:
             for sec_method in self._backend[s_method]:
                 # GW
@@ -1150,8 +1150,7 @@ class MethodDFT(Method):
         and parameters as a string: see
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
-        method = repr_method
-        xc_functional = MethodDFT.functional_long_name_from_method(method, self.backend[s_method])
+        xc_functional = MethodDFT.functional_long_name_from_method(repr_method, self.backend[s_method])
         if xc_functional is config.services.unavailable_value:
             self.logger.error(
                 "Metainfo for 'XC_functional' not found, and could not "
