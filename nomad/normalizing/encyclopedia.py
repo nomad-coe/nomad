@@ -25,7 +25,7 @@ import numpy as np
 from matid import SymmetryAnalyzer
 import matid.geometry
 
-from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames, r_scc_to_method
+from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
 from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
 from nomad.normalizing import structure
 from nomad.utils import hash
