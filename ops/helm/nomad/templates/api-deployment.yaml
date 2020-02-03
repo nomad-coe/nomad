@@ -38,19 +38,22 @@ data:
     args=(sys.stdout, )
 
     [handler_access]
-    class=StreamHandler
-    formatter=generic
-    args=(sys.stdout, )
+    class=logstash.TCPLogstashHandler
+    formatter=json
+    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
 
     [handler_error]
-    class=StreamHandler
-    formatter=generic
-    args=(sys.stdout, )
+    class=logstash.TCPLogstashHandler
+    formatter=json
+    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
 
     [formatter_generic]
     format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
     datefmt=%Y-%m-%d %H:%M:%S
     class=logging.Formatter
+
+    [formatter_json]
+    class=pythonjsonlogger.jsonlogger.JsonFormatter
 ---
 apiVersion: v1
 kind: ConfigMap
