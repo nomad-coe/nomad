@@ -24,13 +24,10 @@ for c in metainfo.calcs:
 """
 
 import requests
-import json
+import os.path
 
-from nomad.app.api.common import query_api_url
+from nomad import config
 from nomad.archive_library.metainfo import ArchiveMetainfo
-from nomad.archive_library.filedb import ArchiveFileDB
-from nomad.files import UploadFiles
-from nomad.app.api.auth import create_authorization_predicate
 
 
 class ArchiveQuery:
@@ -71,8 +68,7 @@ class ArchiveQuery:
         in_dict[name] = value
 
     def _api_query(self):
-        url = query_api_url(self._archive_path, self._query_path)
-
+        url = os.path.join(config.api_url(False), self._archive_path, self._query_path)
         data = self._query_params
         if not isinstance(self._archive_schema, list):
             data['results'] = [self._archive_schema]
@@ -83,8 +79,7 @@ class ArchiveQuery:
         if self._scroll_id is not None:
             self._set_value('scroll_id', self._scroll_id, data)
 
-        response = requests.post(
-            url, headers=self._authentication, content_type='application/json', data=json.dumps(data))
+        response = requests.post(url, headers=self._authentication, json=data)
         if response.status_code != 200:
             raise Exception('Query returned %s' % response.status_code)
 
@@ -117,19 +112,3 @@ class ArchiveQuery:
         if self._archive_data:
             metainfo = ArchiveMetainfo(archive_data=self._archive_data, archive_schema=self._archive_schema)
             return metainfo
-
-
-class ArchiveFileDBs:
-    def __init__(self, upload_id):
-        self.upload_id = upload_id
-
-    def get_dbs(self):
-        upload_files = UploadFiles.get(
-            self.upload_id, create_authorization_predicate(self.upload_id))
-
-        if upload_files is None:
-            return []
-
-        files = upload_files.archive_file_msg('X')
-        msgdbs = [ArchiveFileDB(f) for f in files if f is not None]
-        return msgdbs

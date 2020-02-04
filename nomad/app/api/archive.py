@@ -30,7 +30,7 @@ import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
 from nomad import utils, search, config
-from nomad.archive_library.query import ArchiveFileDBs
+from nomad.archive_library.utils import get_dbs
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -312,8 +312,7 @@ class ArchiveQueryResource(Resource):
                 upload_id = entry['upload_id']
                 calc_id = entry['calc_id']
                 if msgdbs is None or msgdbs.upload_id != upload_id:
-
-                    msgdbs = ArchiveFileDBs(upload_id).get_dbs()
+                    msgdbs = get_dbs(upload_id)
 
                 for msgdb in msgdbs:
                     data.append(msgdb.query({calc_id: qschema}))
