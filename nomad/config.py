@@ -118,8 +118,8 @@ keycloak = NomadConfig(
     username='admin',
     password='password',
     client_id='nomad_api_dev',
-    client_secret='**********'
-)
+    client_secret='**********',
+    public_client_id='nomad_public')
 
 mongo = NomadConfig(
     host='localhost',
