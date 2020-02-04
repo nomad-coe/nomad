@@ -25,7 +25,7 @@ from urllib.parse import urlencode
 import base64
 import itertools
 
-from nomad.app.utils import rfc3339DateTime
+from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles

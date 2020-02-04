@@ -29,7 +29,8 @@ import urllib.parse
 import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
-from nomad import utils, search, config
+from nomad import search, config
+from nomad.app import common
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -168,7 +169,7 @@ class ArchiveDownloadResource(Resource):
                             upload_id, create_authorization_predicate(upload_id))
 
                         if upload_files is None:
-                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            common.logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
                         upload_files.open_zipfile_cache()
@@ -192,7 +193,7 @@ class ArchiveDownloadResource(Resource):
                 except Exception as e:
                     manifest_contents = json.dumps(
                         dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    utils.get_logger(__name__).error(
+                    common.logger.error(
                         'could not create raw query manifest', exc_info=e)
 
                 yield (
@@ -201,7 +202,7 @@ class ArchiveDownloadResource(Resource):
                     lambda *args: len(manifest_contents))
 
             except Exception as e:
-                utils.get_logger(__name__).warning(
+                common.logger.warning(
                     'unexpected error while streaming raw data from query',
                     exc_info=e,
                     query=urllib.parse.urlencode(request.args, doseq=True))

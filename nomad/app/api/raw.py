@@ -31,6 +31,7 @@ import urllib.parse
 from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
+from nomad.app import common
 
 from .api import api
 from .auth import authenticate, create_authorization_predicate
@@ -401,8 +402,7 @@ class RawFileQueryResource(Resource):
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
         """
-        logger = utils.get_logger(__name__)
-        logger = logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
+        logger = common.logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
 
         patterns: List[str] = None
         try:
@@ -458,7 +458,7 @@ class RawFileQueryResource(Resource):
                             upload_id, create_authorization_predicate(upload_id))
 
                         if upload_files is None:
-                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
                         upload_files.open_zipfile_cache()
@@ -502,8 +502,7 @@ class RawFileQueryResource(Resource):
                 except Exception as e:
                     manifest_contents = json.dumps(
                         dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    utils.get_logger(__name__).error(
-                        'could not create raw query manifest', exc_info=e)
+                    logger.error('could not create raw query manifest', exc_info=e)
 
                 yield (
                     'manifest.json', 'manifest',

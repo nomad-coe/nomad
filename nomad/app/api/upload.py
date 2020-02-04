@@ -29,8 +29,9 @@ from functools import wraps
 from nomad import config, utils, files, search, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
+from nomad.app import common
+from nomad.app.common import RFC3339DateTime
 
-from nomad.app.utils import with_logger, RFC3339DateTime
 from .api import api
 from .auth import authenticate, generate_upload_token
 from .common import pagination_request_parser, pagination_model, upload_route, metadata_model
@@ -218,8 +219,7 @@ class UploadListResource(Resource):
     @api.response(400, 'To many uploads')
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @authenticate(required=True, upload_token=True)
-    @with_logger
-    def put(self, logger):
+    def put(self):
         """
         Upload a file and automatically create a new upload in the process.
         Can be used to upload files via browser or other http clients like curl.
@@ -252,7 +252,7 @@ class UploadListResource(Resource):
         upload_name = request.args.get('name')
         upload_id = utils.create_uuid()
 
-        logger = logger.bind(upload_id=upload_id, upload_name=upload_name)
+        logger = common.logger.bind(upload_id=upload_id, upload_name=upload_name)
         logger.info('upload created', )
 
         try:
@@ -397,8 +397,7 @@ class UploadResource(Resource):
     @api.response(400, 'The upload is still/already processed')
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
     @authenticate(required=True)
-    @with_logger
-    def delete(self, upload_id: str, logger):
+    def delete(self, upload_id: str):
         """
         Delete an existing upload.
 
@@ -424,7 +423,7 @@ class UploadResource(Resource):
         except ProcessAlreadyRunning:
             abort(400, message='The upload is still processed')
         except Exception as e:
-            logger.error('could not delete processing upload', exc_info=e)
+            common.logger.error('could not delete processing upload', exc_info=e)
             raise e
 
         return upload, 200

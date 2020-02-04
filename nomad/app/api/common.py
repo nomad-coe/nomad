@@ -26,7 +26,7 @@ import os.path
 
 from nomad import search, config
 from nomad.app.optimade import filterparser
-from nomad.app.utils import RFC3339DateTime, rfc3339DateTime
+from nomad.app.common import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
 
 from .api import api

@@ -24,3 +24,9 @@ api = Api(
     description='Official NOMAD API',
     validate=True)
 """ Provides the flask restplus api instance for the regular NOMAD api"""
+
+# For some unknown reason it is necessary for each fr api to have a handler.
+# Otherwise the global app error handler won't be called.
+@api.errorhandler(Exception)
+def errorhandler(error):
+    return str(error)

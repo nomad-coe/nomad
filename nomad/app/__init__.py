@@ -31,12 +31,7 @@ from nomad import config, utils as nomad_utils
 from .api import blueprint as api
 from .optimade import blueprint as optimade
 from .docs import blueprint as docs
-
-logger: BoundLogger = None
-""" A logger pre configured with information about the current request. """
-
-base_path = config.services.api_base_path
-""" Provides the root path of the nomad APIs. """
+from . import common
 
 
 @property  # type: ignore
@@ -56,7 +51,7 @@ if config.services.https:
 app = Flask(__name__)
 """ The Flask app that serves all APIs. """
 
-app.config.APPLICATION_ROOT = base_path  # type: ignore
+app.config.APPLICATION_ROOT = common.base_path  # type: ignore
 app.config.RESTPLUS_MASK_HEADER = False  # type: ignore
 app.config.RESTPLUS_MASK_SWAGGER = False  # type: ignore
 app.config.SWAGGER_UI_OPERATION_ID = True  # type: ignore
@@ -97,7 +92,7 @@ def handle(error: Exception):
     response = jsonify(data)
     response.status_code = status_code
     if status_code == 500:
-        local_logger = logger
+        local_logger = common.logger
         # the logger is created in before_request, if the error was created before that
         # logger can be None
         if local_logger is None:
@@ -117,14 +112,22 @@ def alive():
 @app.before_request
 def before_request():
     # api logger
-    global logger
-    logger = nomad_utils.get_logger(
-        __name__,
+    args = getattr(request, 'view_args')
+    if args is None:
+        args = {}
+    else:
+        args = dict(**args)
+
+    args.update(
+        name=__name__,
         blueprint=str(request.blueprint),
         endpoint=request.endpoint,
         method=request.method,
+        url=request.url,
         json=request.json,
         args=request.args)
+
+    common.logger = nomad_utils.get_logger(**args)
 
     # chaos monkey
     if config.services.api_chaos > 0:
