@@ -312,10 +312,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             None: The method should write symmetry variables
             to the backend which is member of this class.
         """
-        # Try to use Matid's symmetry analyzer to anlyze the ASE object.
-        # TODO: dts, find out what the symmetry_tol does.
+        # Try to use Matid's symmetry analyzer to analyze the ASE object.
         try:
-            symm = SymmetryAnalyzer(atoms, symmetry_tol=0.1)
+            symm = SymmetryAnalyzer(atoms, symmetry_tol=config.normalize.symmetry_tolerance)
 
             space_group_number = symm.get_space_group_number()
 
@@ -354,6 +353,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         except Exception as e:
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return
+
+        raise Exception(conv_wyckoff)
 
         # Write data extracted from Matid symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')

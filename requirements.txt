@@ -71,3 +71,5 @@ mongomock==3.17.0
 names
 essential_generators
 jinja2
+bs4
+html5lib
