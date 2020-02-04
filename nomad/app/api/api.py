@@ -29,4 +29,5 @@ api = Api(
 # Otherwise the global app error handler won't be called.
 @api.errorhandler(Exception)
 def errorhandler(error):
+    '''When an internal server error is caused by an unexpected exception.'''
     return str(error)
