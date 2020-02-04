@@ -92,6 +92,7 @@ class InfoResource(Resource):
             'git': {
                 'ref': gitinfo.ref,
                 'version': gitinfo.version,
+                'commit': gitinfo.commit,
                 'log': gitinfo.log
             }
         }, 200
