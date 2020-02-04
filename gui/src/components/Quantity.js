@@ -77,7 +77,7 @@ class Quantity extends React.Component {
     if (noWrap && ellipsisFront) {
       valueClassName = `${valueClassName} ${classes.ellipsisFront}`
     }
-    console.log(valueClassName)
+
     if (!loading) {
       if (!(data && quantity && !data[quantity])) {
         if (!children || children.length === 0) {

@@ -13,6 +13,7 @@ import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import { Published } from './EntryList'
 
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
@@ -148,6 +149,10 @@ class UploadListUnstyled extends React.Component {
       label: 'Upload time',
       render: (upload) => new Date(upload.example.upload_time).toLocaleString()
     },
+    upload_name: {
+      label: 'Name',
+      render: (upload) => upload.example.upload_name || ''
+    },
     upload_id: {
       label: 'Id',
       render: (upload) => <UploadId uploadId={upload.example.upload_id} />
@@ -166,7 +171,8 @@ class UploadListUnstyled extends React.Component {
     },
     published: {
       label: 'Published',
-      render: (upload) => upload.example.published ? 'Yes' : 'No'
+      align: 'center',
+      render: upload => <Published entry={upload.example} />
     }
   }
 
@@ -213,7 +219,7 @@ class UploadListUnstyled extends React.Component {
       id={row => row.id}
       total={total}
       columns={this.columns}
-      selectedColumns={['upload_time', 'upload_name', 'upload_id', 'entries', 'published']}
+      selectedColumns={['upload_time', 'upload_id', 'entries', 'published']}
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}

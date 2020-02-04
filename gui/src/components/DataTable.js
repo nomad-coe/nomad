@@ -483,9 +483,6 @@ class DataTableUnStyled extends React.Component {
                       </TableCell> : <React.Fragment/> }
                       {Object.keys(columns).filter(key => selectedColumns.indexOf(key) !== -1).map((key, i) => {
                         const column = columns[key]
-                        if (column.ellipsisFront) {
-                          console.log('####################')
-                        }
                         return (
                           <TableCell
                             className={clsx([classes.cell, column.ellipsisFront && classes.ellipsisFront, (selectedEntry === rowId) && classes.selectedEntryCell])}

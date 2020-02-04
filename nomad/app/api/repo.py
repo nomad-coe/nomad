@@ -26,8 +26,9 @@ import elasticsearch.helpers
 from datetime import datetime
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure
-from nomad.app.utils import RFC3339DateTime, with_logger
 from nomad.datamodel import UserMetadata, Dataset, User
+from nomad.app import common
+from nomad.app.common import RFC3339DateTime
 
 from .api import api
 from .auth import authenticate
@@ -208,9 +209,13 @@ class RepoCalcsResource(Resource):
             else:
                 for group_name, (group_quantity, _) in search.groups.items():
                     if args.get(group_name, False):
+                        kwargs: Dict[str, Any] = {}
+                        if group_name == 'uploads':
+                            kwargs.update(order_by='upload_time', order='desc')
                         search_request.quantity(
                             group_quantity, size=per_page, examples=1,
-                            after=request.args.get('%s_after' % group_name, None))
+                            after=request.args.get('%s_after' % group_name, None),
+                            **kwargs)
 
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order=order, order_by=order_by)
@@ -289,9 +294,9 @@ _repo_edit_model = api.model('RepoEdit', {
 })
 
 
-def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
+def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
     # get all calculations that have to change
-    with utils.timer(logger, 'edit query executed'):
+    with utils.timer(common.logger, 'edit query executed'):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, parsed_query)
         upload_ids = set()
@@ -301,14 +306,14 @@ def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = No
             upload_ids.add(hit['upload_id'])
 
     # perform the update on the mongo db
-    with utils.timer(logger, 'edit mongo update executed', size=len(calc_ids)):
+    with utils.timer(common.logger, 'edit mongo update executed', size=len(calc_ids)):
         if mongo_update is not None:
             n_updated = proc.Calc.objects(calc_id__in=calc_ids).update(multi=True, **mongo_update)
             if n_updated != len(calc_ids):
-                logger.error('edit repo did not update all entries', payload=mongo_update)
+                common.logger.error('edit repo did not update all entries', payload=mongo_update)
 
     # re-index the affected entries in elastic search
-    with utils.timer(logger, 'edit elastic update executed', size=len(calc_ids)):
+    with utils.timer(common.logger, 'edit elastic update executed', size=len(calc_ids)):
         if re_index:
             def elastic_updates():
                 for calc in proc.Calc.objects(calc_id__in=calc_ids):
@@ -322,7 +327,7 @@ def edit(parsed_query: Dict[str, Any], logger, mongo_update: Dict[str, Any] = No
                 infrastructure.elastic_client, elastic_updates(), stats_only=True)
             search.refresh()
             if failed > 0:
-                logger.error(
+                common.logger.error(
                     'edit repo with failed elastic updates',
                     payload=mongo_update, nfailed=len(failed))
 
@@ -344,8 +349,7 @@ class EditRepoCalcsResource(Resource):
     @api.expect(_repo_edit_model)
     @api.marshal_with(_repo_edit_model, skip_none=True, code=200, description='Edit verified/performed')
     @authenticate()
-    @with_logger
-    def post(self, logger):
+    def post(self):
         """ Edit repository metadata. """
 
         # basic body parsing and some semantic checks
@@ -381,7 +385,7 @@ class EditRepoCalcsResource(Resource):
         lift_embargo = False
         removed_datasets = None
 
-        with utils.timer(logger, 'edit verified'):
+        with utils.timer(common.logger, 'edit verified'):
             for action_quantity_name, quantity_actions in actions.items():
                 quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
                 if quantity is None:
@@ -507,7 +511,7 @@ class EditRepoCalcsResource(Resource):
 
         # perform the change
         mongo_update['metadata__last_edit'] = datetime.utcnow()
-        upload_ids = edit(parsed_query, logger, mongo_update, True)
+        upload_ids = edit(parsed_query, mongo_update, True)
 
         # lift embargo
         if lift_embargo:
@@ -701,7 +705,7 @@ class RepoPidResource(Resource):
             abort(404, 'Entry with PID %s does not exist' % pid)
 
         if total > 1:
-            utils.get_logger(__name__).error('Two entries for the same pid', pid=pid_int)
+            common.logger.error('Two entries for the same pid', pid=pid_int)
 
         result = results[0]
         return dict(

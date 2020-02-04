@@ -17,10 +17,10 @@ from flask_restplus import Resource, fields, abort
 import re
 
 from nomad import utils, processing as proc
-from nomad.app.utils import with_logger
 from nomad.datamodel import Dataset
 from nomad.metainfo.flask_restplus import generate_flask_restplus_model
 from nomad.doi import DOI
+from nomad.app import common
 
 from .api import api
 from .auth import authenticate
@@ -125,8 +125,7 @@ class DatasetResource(Resource):
     @api.response(400, 'The dataset already has a DOI')
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='DOI assigned')
     @authenticate(required=True)
-    @with_logger
-    def post(self, name: str, logger):
+    def post(self, name: str):
         """ Assign a DOI to the dataset. """
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
@@ -154,12 +153,12 @@ class DatasetResource(Resource):
 
         result.m_x('me').save()
         if doi.state != 'findable':
-            logger.warning(
+            common.logger.warning(
                 'doi was created, but is not findable', doi=doi.doi, doi_state=doi.state,
                 dataset=result.dataset_id)
 
         # update all affected calcs in the search index
-        edit(dict(dataset_id=result.dataset_id), logger)
+        edit(dict(dataset_id=result.dataset_id))
 
         return result
 
@@ -168,8 +167,7 @@ class DatasetResource(Resource):
     @api.response(400, 'The dataset has a DOI and cannot be deleted')
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='Dateset deleted')
     @authenticate(required=True)
-    @with_logger
-    def delete(self, name: str, logger):
+    def delete(self, name: str):
         """ Delete the dataset. """
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
@@ -182,7 +180,6 @@ class DatasetResource(Resource):
         # edit all affected entries
         edit(
             dict(dataset_id=result.dataset_id),
-            logger,
             {'__raw__': {'$pull': {'metadata.datasets': result.dataset_id}}})
 
         # delete the dataset

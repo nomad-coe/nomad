@@ -125,7 +125,7 @@ class Keycloak():
     def _oidc_client(self):
         if self.__oidc_client is None:
             self.__oidc_client = KeycloakOpenID(
-                server_url=config.keycloak.server_url,
+                server_url=config.keycloak.server_external_url,
                 client_id=config.keycloak.client_id,
                 realm_name=config.keycloak.realm_name,
                 client_secret_key=config.keycloak.client_secret)
@@ -460,12 +460,12 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'The NOMAD team <%s>' % config.mail.from_address
+    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
     msg['To'] = name
     to_addrs = [email]
 
     if config.mail.cc_address is not None:
-        msg['Cc'] = 'The NOMAD team <%s>' % config.mail.cc_address
+        msg['Cc'] = 'The nomad team <%s>' % config.mail.cc_address
         to_addrs.append(config.mail.cc_address)
 
     try:

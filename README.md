@@ -29,6 +29,18 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.7.5
+- optimized API logs
+- minor bugfixes
+
+### v0.7.3
+- fixed aborted raw-file downloads
+- improved representation of data availability (staging, embargo, public) in GUI
+- user data uploads ordered by upload time
+- user data shows uploads with name
+- configurable embargo period length
+- minor bugfixes
+
 ### v0.7.2
 - API curl, Python, and results for entries and search queries shown in the GUI
 - minor bugfixes

@@ -84,6 +84,7 @@ class Entry(Document, metaclass=WithDomain):
 
     upload_id = Keyword()
     upload_time = Date()
+    upload_name = Keyword()
     calc_id = Keyword()
     calc_hash = Keyword()
     pid = Keyword()
@@ -116,6 +117,7 @@ class Entry(Document, metaclass=WithDomain):
     def update(self, source: datamodel.CalcWithMetadata) -> None:
         self.upload_id = source.upload_id
         self.upload_time = source.upload_time
+        self.upload_name = source.upload_name
         self.calc_id = source.calc_id
         self.calc_hash = source.calc_hash
         self.pid = None if source.pid is None else str(source.pid)
@@ -477,7 +479,9 @@ class SearchRequest:
 
         return self
 
-    def quantity(self, name, size=100, after=None, examples=0, examples_source=None):
+    def quantity(
+            self, name, size=100, after=None, examples=0, examples_source=None,
+            order_by: str = None, order: str = 'desc'):
         """
         Adds a requests for values of the given quantity.
         It allows to scroll through all values via elasticsearch's
@@ -501,6 +505,13 @@ class SearchRequest:
             size:
                 The size gives the ammount of maximum values in the next scroll window.
                 If the size is None, a maximum of 100 quantity values will be requested.
+            examples:
+                Number of results to return that has each value
+            order_by:
+                A sortable quantity that should be used to order. The max of each
+                value bucket is used.
+            order:
+                "desc" or "asc"
         """
         if size is None:
             size = 100
@@ -511,17 +522,25 @@ class SearchRequest:
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
         # 'after' feature that allows to scan through all aggregation values.
-        composite = dict(sources={name: terms}, size=size)
+        if order_by is None:
+            composite = dict(sources={name: terms}, size=size)
+        else:
+            sort_terms = A('terms', field=order_by, order=order)
+            composite = dict(sources=[{order_by: sort_terms}, {name: terms}], size=size)
         if after is not None:
-            composite['after'] = {name: after}
+            if order_by is None:
+                composite['after'] = {name: after}
+            else:
+                composite['after'] = {order_by: after, name: ''}
 
-        composite = self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
+        composite_agg = self._search.aggs.bucket('quantity:%s' % name, 'composite', **composite)
+
         if examples > 0:
-            kwargs = {}
+            kwargs: Dict[str, Any] = {}
             if examples_source is not None:
                 kwargs.update(_source=dict(includes=examples_source))
 
-            composite.metric('examples', A('top_hits', size=examples, **kwargs))
+            composite_agg.metric('examples', A('top_hits', size=examples, **kwargs))
 
         return self
 
@@ -549,6 +568,8 @@ class SearchRequest:
                 search = search.sort(order_by_quantity.elastic_field)
             else:
                 search = search.sort('-%s' % order_by_quantity.elastic_field)
+
+            search = search.params(preserve_order=True)
 
         for hit in search.params(**kwargs).scan():
             yield hit.to_dict()
@@ -696,7 +717,14 @@ class SearchRequest:
 
             result = dict(values=values)
             if 'after_key' in quantity:
-                result.update(after=quantity['after_key'][quantity_name])
+                after = quantity['after_key']
+                if len(after) == 1:
+                    result.update(after=after[quantity_name])
+                else:
+                    for key in after:
+                        if key != quantity_name:
+                            result.update(after=after[key])
+                            break
 
             return result
 

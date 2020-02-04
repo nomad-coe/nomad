@@ -127,7 +127,7 @@ class DefinitionCardUnstyled extends React.Component {
   }
 
   renderDescription(description) {
-    description = description.replace(/(([A-Za-z0-9]+_)+[A-Za-z0-9]+)/g, '`$1`')
+    description = description.replace(/[^([A-Za-z0-9](([A-Za-z0-9]+_)+[A-Za-z0-9]+)[^)[A-Za-z0-9]/g, '`$1`')
     return (
       <Markdown>{description}</Markdown>
     )

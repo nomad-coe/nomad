@@ -31,6 +31,7 @@ import urllib.parse
 from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
+from nomad.app import common
 
 from .api import api
 from .auth import authenticate, create_authorization_predicate
@@ -401,6 +402,8 @@ class RawFileQueryResource(Resource):
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
         """
+        logger = common.logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
+
         patterns: List[str] = None
         try:
             args = _raw_file_from_query_parser.parse_args()
@@ -439,12 +442,15 @@ class RawFileQueryResource(Resource):
         def generator():
             try:
                 manifest = {}
+                directories = set()
                 upload_files = None
+                streamed, skipped = 0, 0
 
                 for entry in calcs:
                     upload_id = entry['upload_id']
                     mainfile = entry['mainfile']
                     if upload_files is None or upload_files.upload_id != upload_id:
+                        logger.info('opening next upload for raw file streaming', upload_id=upload_id)
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
@@ -452,40 +458,51 @@ class RawFileQueryResource(Resource):
                             upload_id, create_authorization_predicate(upload_id))
 
                         if upload_files is None:
-                            utils.get_logger(__name__).error('upload files do not exist', upload_id=upload_id)
+                            logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
                         upload_files.open_zipfile_cache()
 
-                    filenames = upload_files.raw_file_manifest(path_prefix=os.path.dirname(mainfile))
-                    for filename in filenames:
-                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                        if len(patterns) == 0 or any(
-                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                for pattern in patterns):
+                        def open_file(upload_filename):
+                            return upload_files.raw_file(upload_filename, 'rb')
 
-                            yield (
-                                filename_wo_prefix, filename,
-                                lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
-                                lambda upload_filename: upload_files.raw_file_size(upload_filename))
+                    directory = os.path.dirname(mainfile)
+                    directory_w_upload = os.path.join(upload_files.upload_id, directory)
+                    if directory_w_upload not in directories:
+                        streamed += 1
+                        directories.add(directory_w_upload)
+                        for filename, file_size in upload_files.raw_file_list(directory=directory):
+                            filename = os.path.join(directory, filename)
+                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                            if len(patterns) == 0 or any(
+                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                    for pattern in patterns):
+                                yield (
+                                    filename_wo_prefix, filename, open_file,
+                                    lambda *args, **kwargs: file_size)
+                    else:
+                        skipped += 1
 
-                            manifest[path(entry)] = {
-                                key: entry[key]
-                                for key in RawFileQueryResource.manifest_quantities
-                                if entry.get(key) is not None
-                            }
+                    if (streamed + skipped) % 10000 == 0:
+                        logger.info('streaming raw files', streamed=streamed, skipped=skipped)
+
+                    manifest[path(entry)] = {
+                        key: entry[key]
+                        for key in RawFileQueryResource.manifest_quantities
+                        if entry.get(key) is not None
+                    }
 
                 if upload_files is not None:
                     upload_files.close_zipfile_cache()
 
+                logger.info('streaming raw file manifest')
                 try:
                     manifest_contents = json.dumps(manifest).encode('utf-8')
                 except Exception as e:
                     manifest_contents = json.dumps(
                         dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    utils.get_logger(__name__).error(
-                        'could not create raw query manifest', exc_info=e)
+                    logger.error('could not create raw query manifest', exc_info=e)
 
                 yield (
                     'manifest.json', 'manifest',
@@ -493,11 +510,10 @@ class RawFileQueryResource(Resource):
                     lambda *args: len(manifest_contents))
 
             except Exception as e:
-                utils.get_logger(__name__).warning(
-                    'unexpected error while streaming raw data from query',
-                    exc_info=e,
-                    query=urllib.parse.urlencode(request.args, doseq=True))
+                logger.warning(
+                    'unexpected error while streaming raw data from query', exc_info=e)
 
+        logger.info('start streaming raw files')
         return streamed_zipfile(
             generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
 

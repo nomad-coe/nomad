@@ -299,7 +299,7 @@ class TestClient:
 
         assert result.exit_code == 0, result.output
         assert 'Calculations, e.g. total energies' in result.output
-        assert 'Unique geometries' in result.output
+        assert 'Geometries' in result.output
         assert 'Bulk crystals' in result.output
         assert '2D / Surfaces' in result.output
         assert 'Atoms / Molecules' in result.output

@@ -36,7 +36,7 @@ class About extends React.Component {
 
           ### Getting Help
           If you encounter any difficulties, please write to
-          [webmaster@nomad-repository.eu](mailto:webmaster@nomad-repository.eu). If you think
+          [webmaster@nomad-coe.eu](mailto:webmaster@nomad-coe.eu). If you think
           that this web-page is not working as expected, or if you want to start a discussion
           about possible features, feel free to open an issue on our [issue tracking
           system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
@@ -85,8 +85,8 @@ class About extends React.Component {
           ` : ''}
 
           ### About this version
-          - version (API): \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
-          - version (GUI): \`${packageJson.version}\`
+          - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`
+          - version (GUI): \`${packageJson.version}/${packageJson.commit}\`
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*
