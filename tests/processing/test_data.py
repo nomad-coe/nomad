@@ -90,7 +90,13 @@ def assert_processing(upload: Upload, published: bool = False):
         assert 'section_entry_info' in archive
 
         with upload_files.archive_log_file(calc.calc_id, 'rt') as f:
-            assert 'a test' in f.read()
+            has_test_event = False
+            for line in f.readlines():
+                log_data = json.loads(line)
+                for key in ['event', 'calc_id', 'level']:
+                    key in log_data
+                has_test_event = has_test_event or log_data['event'] == 'a test log entry'
+            assert has_test_event
         assert len(calc.errors) == 0
 
         with upload_files.raw_file(calc.mainfile) as f:
