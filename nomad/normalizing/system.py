@@ -354,8 +354,6 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return
 
-        raise Exception(conv_wyckoff)
-
         # Write data extracted from Matid symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')
         # TODO: @dts, should we change the symmetry_method to MATID?
