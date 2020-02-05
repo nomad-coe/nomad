@@ -21,7 +21,7 @@ from typing import Dict, Any
 from io import BytesIO
 import os.path
 from flask import send_file, request
-from flask_restplus import abort, Resource, fields
+from flask_restplus import abort, Resource
 import json
 import importlib
 import urllib.parse
@@ -37,8 +37,7 @@ from nomad.app import common
 from .auth import authenticate, create_authorization_predicate
 from .api import api
 from .common import calc_route, streamed_zipfile, search_model, add_pagination_parameters,\
-    add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl
+    add_scroll_parameters, add_search_parameters, apply_search_parameters
 
 ns = api.namespace(
     'archive',
@@ -222,13 +221,7 @@ _archive_query_parser.add_argument(
 _archive_query_parser.add_argument(
     'qschema', type=str, help='Serialized archive dict with null values as placeholder for data.')
 
-_archive_query_model_fields = {
-    'python': fields.String(allow_null=True, skip_none=True, description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(allow_null=True, skip_none=True, description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
-}
-_archive_query_model = api.clone('ArchiveCalculations', search_model, _archive_query_model_fields)
+_archive_query_model = api.clone('ArchiveCalculations', search_model)
 # scroll model should be capitalized to prevent ambiguity with scroll flag
 _archive_query_model['Scroll'] = _archive_query_model.pop('scroll')
 _archive_query_model['Pagination'] = _archive_query_model.pop('pagination')
@@ -328,16 +321,14 @@ class ArchiveQueryResource(Resource):
         # assign archive data to results
         results['results'] = data
 
-        # build python code and curl snippet
-        if 'python' in data_in:
-            results['python'] = query_api_python('archive', 'query', query_string=request.args)
-        if 'curl' in data_in:
-            results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
-
         # for compatibility with archive model
         # TODO should be changed in search
-        results['Scroll'] = results.pop('scroll', None)
-        results['Pagination'] = results.pop('pagination', None)
+        Scroll = results.pop('scroll', None)
+        if Scroll:
+            results['Scroll'] = Scroll
+        Pagination = results.pop('pagination', None)
+        if Pagination:
+            results['Pagination'] = Pagination
 
         return results, 200
 

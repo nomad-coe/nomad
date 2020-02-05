@@ -118,7 +118,7 @@ class TestArchiveQuery:
 
     def test_query_from_json(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.archive_library.query.requests', api)
-        q_params = {'pagination': {'order': 1, 'per_page': 5}}
+        q_params = {'Pagination': {'order': 1, 'per_page': 5}}
         q_schema = {'section_entry_info': None}
         q = ArchiveQuery(q_params, archive_data=q_schema, authentication=other_test_user_auth)
         metainfo = q.query()
