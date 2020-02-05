@@ -72,6 +72,8 @@ class ArchiveQuery:
         data = self._query_params
         if not isinstance(self._archive_schema, list):
             data['results'] = [self._archive_schema]
+        else:
+            data['results'] = self._archive_schema
 
         if self._page is not None:
             # increment the page number

@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from nomad.archive_library.filedb import ArchiveFileDB
+from nomad.archive_library.filedb import ArchiveFileDB, _PLACEHOLDER
 from nomad.archive_library.metainfo import ArchiveMetainfo
 from nomad.archive_library.query import ArchiveQuery
 from tests.app.test_app import BlueprintClient
@@ -30,7 +30,7 @@ class TestArchiveFileDB:
             return self.get_value(v, key)
 
     def get_keys(self, data, key=''):
-        if data is None:
+        if data == _PLACEHOLDER:
             return [key]
         keys = []
         for k, v in data.items():
@@ -48,9 +48,9 @@ class TestArchiveFileDB:
         assert fo is not None
 
     @pytest.mark.parametrize('schema, dtype', [
-        ({'secA': {'subsecA1[0]': {'propA1a': None}}}, {'propA1a': float}),
-        ({'secB': {'propB1a': None}}, {'propB1a': list}),
-        ({'secA': {'subsecA1[-1:]': {'propA1a': None}}}, {'propA1a': list})])
+        ({'secA': {'subsecA1[0]': {'propA1a': _PLACEHOLDER}}}, {'propA1a': float}),
+        ({'secB': {'propB1a': _PLACEHOLDER}}, {'propB1a': list}),
+        ({'secA': {'subsecA1[-1:]': {'propA1a': _PLACEHOLDER}}}, {'propA1a': list})])
     def test_query(self, example_msgdb, schema, dtype):
         payload = [
             {'calc1': {
@@ -75,15 +75,15 @@ class TestArchiveFileDB:
         payload = [{'calc_%d' % i: {'section_run': {'section_system': vals[i]}}} for i in range(len(vals))]
         msgdb = example_msgdb(payload)
         # invalid key
-        qs = {'calc_%d' % i: {'sction_run': {'section_system[:]': {'atom_labels': None}}} for i in range(len(vals))}
+        qs = {'calc_%d' % i: {'sction_run': {'section_system[:]': {'atom_labels': _PLACEHOLDER}}} for i in range(len(vals))}
         results = msgdb.query(qs)
         assert results == qs
         # invalid index
-        qs = {'calc_0': {'section_run': {'section_system[-3:-1]': None}}}
+        qs = {'calc_0': {'section_run': {'section_system[-3:-1]': _PLACEHOLDER}}}
         results = msgdb.query(qs)
         assert results == qs
         # invalid calculation
-        qs = {'calc_100': None}
+        qs = {'calc_100': _PLACEHOLDER}
         results = msgdb.query(qs)
         assert results == {}
 
@@ -97,8 +97,8 @@ class TestArchiveMetainfo:
 
     def assert_metainfo(self, metainfo):
         for calc in metainfo.calcs:
-            assert calc.secA({'propA': None}) is not None
-            assert calc({'secA': {'propA': None, 'propB': None}}) is not None
+            assert calc.secA({'propA': _PLACEHOLDER}) is not None
+            assert calc({'secA': {'propA': _PLACEHOLDER, 'propB': _PLACEHOLDER}}) is not None
 
     def test_query_from_file(self, data, example_msgdb):
         _ = example_msgdb(data)
@@ -119,7 +119,7 @@ class TestArchiveQuery:
     def test_query_from_json(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.archive_library.query.requests', api)
         q_params = {'Pagination': {'order': 1, 'per_page': 5}}
-        q_schema = {'section_entry_info': None}
+        q_schema = {'section_entry_info': _PLACEHOLDER}
         q = ArchiveQuery(q_params, archive_data=q_schema, authentication=other_test_user_auth)
         metainfo = q.query()
         for calc in metainfo:
@@ -127,7 +127,7 @@ class TestArchiveQuery:
 
     def test_query_from_kwargs(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.archive_library.query.requests', api)
-        q_schema = {'section_entry_info': None}
+        q_schema = {'section_entry_info': _PLACEHOLDER}
         q = ArchiveQuery(order=1, per_page=5, scroll=True, archive_data=q_schema, authentication=other_test_user_auth)
         metainfo = q.query()
         for calc in metainfo:

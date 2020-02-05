@@ -42,6 +42,9 @@ import os
 from io import StringIO, BufferedWriter, BufferedReader, BytesIO
 
 
+_PLACEHOLDER = '*'
+
+
 class JSONdata:
     """
     Provides a graphQL-style query for a given json data and query schema.
@@ -107,8 +110,10 @@ class JSONdata:
                 with null value to be filled with the desired value.
         """
         data = {}
-        if entry is None:
+        if not isinstance(entry, dict):
             v = self._get_data(root, self.data)
+            if v is None:
+                v = entry
             return v
         else:
             for key, val in entry.items():
@@ -300,8 +305,8 @@ class ArchiveFileDB:
         self._data = {}
 
     def _reduce_to_section(self, entry, cur_lfragment=0):
-        if entry is None:
-            return
+        if not isinstance(entry, dict):
+            return entry
         cur_lfragment += 1
         if cur_lfragment > self.max_lfragment:
             return
@@ -315,7 +320,7 @@ class ArchiveFileDB:
 
     @staticmethod
     def to_list_path_str(entries, root='', paths=[]):
-        if entries is None:
+        if not isinstance(entries, dict):
             return
         if len(paths) > 0:
             paths.remove(root)
@@ -330,7 +335,7 @@ class ArchiveFileDB:
         if isinstance(path_str, str):
             path_str = path_str.split('/')
         if len(path_str) == 1:
-            return {path_str[0]: None}
+            return {path_str[0]: _PLACEHOLDER}
         else:
             pdict = {}
             pdict[path_str[0]] = ArchiveFileDB.to_nested_dict(path_str[1:])
@@ -339,7 +344,7 @@ class ArchiveFileDB:
     @staticmethod
     def append_data(entry, val):
         for k, v in entry.items():
-            if v is None:
+            if v == _PLACEHOLDER:
                 entry[k] = val
             else:
                 entry[k] = ArchiveFileDB.append_data(v, val)

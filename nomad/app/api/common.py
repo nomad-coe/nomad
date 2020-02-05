@@ -67,9 +67,9 @@ scroll_model = api.model('Scroll', {
 search_model_fields = {
     'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
     'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
-    'results': fields.List(fields.Raw, description=(
+    'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
-        'values as values')),
+        'values as values'), allow_null=True, skip_none=True),
     'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
     'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True),
