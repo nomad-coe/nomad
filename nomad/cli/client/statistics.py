@@ -360,6 +360,11 @@ def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power,
 @click.option('--html', is_flag=True, help='Output HTML instead of plain text table.')
 @click.option('--geometries', is_flag=True, help='Use geometries not unique geometries.')
 def statistics_table(html, geometries):
+    # get more stats for files
+    # uploads: find . -maxdepth 2 | wc -l
+    # public archive: find . -regex '.*archive.*public.*zip' -type f -print0 | du --files0-from=- -ch | grep total$
+    # public raw: find . -regex '.*raw.*public.*zip' -type f -print0 | du --files0-from=- -ch | grep total$
+
     def get_statistic(response, quantity, value, metric):
         quantity_data = response.statistics.get(quantity)
         if quantity_data is None:
@@ -389,7 +394,7 @@ def statistics_table(html, geometries):
     calculations_2d = get_statistic(data_all, 'system', '2D / surface', 'calculations')
     calculations_3d = get_statistic(data_all, 'system', 'bulk', 'calculations')
 
-    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric]).response().result
+    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'quantities']).response().result
     geometries = get_statistic(metrics_all, 'total', 'all', geometry_metric)
     quantities = get_statistic(metrics_all, 'total', 'all', 'quantities')
 
@@ -409,15 +414,15 @@ def statistics_table(html, geometries):
 
     if not html:
         print('''
-            Entries: {:,},
-            Calculations, e.g. total energies: {:,},
-            Unique geometries: {:,},
-            Bulk crystals: {:,},
-            2D / Surfaces: {:,},
-            Atoms / Molecules: {:,},
-            DOS: {:,},
-            Band structures: {:,}
-            Total parsed quantities: {:,}
+            Entries: {:,.0f},
+            Calculations, e.g. total energies: {:,.0f},
+            Geometries: {:,.0f},
+            Bulk crystals: {:,.0f},
+            2D / Surfaces: {:,.0f},
+            Atoms / Molecules: {:,.0f},
+            DOS: {:,.0f},
+            Band structures: {:,.0f}
+            Total parsed quantities: {:,.0f}
         '''.format(
             entries,
             calculations,
@@ -433,11 +438,12 @@ def statistics_table(html, geometries):
     else:
         print('''
             <div class="container">
-                <p>The <i>NOMAD Archive</i> stores in a code-independent format calculations performed
-                with all the most important and widely used electronic-structure and force-field codes.
+                <p>The <i>NOMAD Archive</i> stores calculations performed
+                with all the most important and widely used electronic-structure and force-field codes
+                in a code-independent format.
                 </p>
                 <p>Summary statistics of the Archive content (last update in {}):</p>
-                <table class="table">
+                <table class="table" style="text-align: left; max-width: 700px;">
                     <thead>
                         <tr>
                         <th scope="col">Metric</th>
@@ -446,44 +452,44 @@ def statistics_table(html, geometries):
                     </thead>
                     <tbody>
                         <tr>
-                        <th scope="row">Entries, i.e. code runs</th>
-                        <td>{:,}</td>
+                        <td scope="row">Entries, i.e. code runs</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Calculations, e.g. total energies</th>
-                        <td>{:,}</td>
+                        <td scope="row">Calculations, e.g. total energies</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Unique geometries</th>
-                        <td>{:,}</td>
+                        <td scope="row">Geometries</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Bulk Crystals</th>
-                        <td>{:,}</td>
+                        <td scope="row">Bulk Crystals</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Surfaces</th>
-                        <td>{:,}</td>
+                        <td scope="row">Surfaces</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Molecules/Clusters</th>
-                        <td>{:,}</td>
+                        <td scope="row">Molecules/Clusters</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">DOS</th>
-                        <td>{:,}</td>
+                        <td scope="row">DOS</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Band Structures</th>
-                        <td>{:,}</td>
+                        <td scope="row">Band Structures</td>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Phonon Calculations</th>
-                        <td>{:,}</td>
+                        <td scope="row">Phonon Calculations</th>
+                        <td>{:,.0f}</td>
                         </tr>
                         <tr>
-                        <th scope="row">Overall parsed quantities</th>
-                        <td>{:,}</td>
+                        <td scope="row">Overall parsed quantities</td>
+                        <td>{:,.0f}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -491,11 +497,14 @@ def statistics_table(html, geometries):
                     Furthermore:
                 </p>
                 <ul>
-                    <li><b>9,274</b> Zip Archives for parsing: <b>16.5 TB</b> of data (compressed)</li>
-                    <li>Data extracted with parsing: <b>5.6 TB</b> of HDF5 files (compressed)</li>
+                    <li><b>5,053</b> Uploads with <b>41 TB</b> of raw data</li>
+                    <li><b>15 TB</b> of archive data</li>
                     <li>Data classified using <b>168</b> public metadata of the NOMAD Meta Info and <b>2,360</b> code-specific metadata</li>
-                    <li>Number of parsed quantities <b>871,497,996</b></li>
                 </ul>
+                <p>
+                    For more and interactive statistics, use the <i>metadata</i> view of
+                    the <a href="https://repository.nomad-coe.eu/app/gui/search">NOMAD Repository and Archvi search</a>.
+                </p>
                 <p>
                     90% of VASP calculations are provided by
                         <a href="http://aflowlib.org">AFLOWlib</a> (S. Curtarolo),
@@ -532,7 +541,7 @@ def statistics_table(html, geometries):
                 </p>
             </div>
         '''.format(
-            datetime.now().strftime('%b %y'),
+            datetime.now().strftime('%b %Y'),
             entries,
             calculations,
             geometries,

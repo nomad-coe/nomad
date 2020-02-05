@@ -51,6 +51,7 @@ basicauth
 inflection
 docstring-parser
 unidecode
+python-json-logger
 
 # dev/ops related
 setuptools

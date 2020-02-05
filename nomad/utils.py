@@ -144,6 +144,9 @@ class LogstashHandler(logstash.TCPLogstashHandler):
     legacy_logger = None
 
     def filter(self, record):
+        if record.name == 'gunicorn.access' and 'alive' in record.args.get('r', ''):
+            return False
+
         if super().filter(record):
             is_structlog = False
             if isinstance(record.msg, str):
@@ -165,6 +168,20 @@ class LogstashHandler(logstash.TCPLogstashHandler):
         return False
 
 
+_gunicorn_pattern_parts = [
+    r'(?P<host>\S+)',  # host %h
+    r'\S+',  # indent %l (unused)
+    r'(?P<user>\S+)',  # user %u
+    r'\[(?P<time>.+)\]',  # time %t
+    r'"(?P<request>.+)"',  # request "%r"
+    r'(?P<status>[0-9]+)',  # status %>s
+    r'(?P<size>\S+)',  # size %b (careful, can be '-')
+    r'"(?P<referer>.*)"',  # referer "%{Referer}i"
+    r'"(?P<agent>.*)"',  # user agent "%{User-agent}i"
+]
+_gunicorn_pattern = re.compile(r'\s+'.join(_gunicorn_pattern_parts) + r'\s*\Z')
+
+
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
     def format(self, record):
@@ -178,7 +195,6 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             '@timestamp': self.format_timestamp(record.created),
             '@version': '1',
             'event': structlog['event'],
-            'message': structlog['event'],
             'host': self.host,
             'path': record.pathname,
             'tags': self.tags,
@@ -207,6 +223,27 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             structlog['nomad.service'] = config.service
             structlog['nomad.release'] = config.release
             message.update(structlog)
+
+        # Handle gunicorn access events
+        if record.name == 'gunicorn.access':
+            gunicorn_message = structlog['event']
+            gunicorn_record = _gunicorn_pattern.match(gunicorn_message).groupdict()
+
+            if gunicorn_record['user'] == '-':
+                gunicorn_record['user'] = None
+
+            gunicorn_record['status'] = int(gunicorn_record['status'])
+
+            if gunicorn_record['size'] == '-':
+                gunicorn_record['size'] = 0
+            else:
+                gunicorn_record['size'] = int(gunicorn_record['size'])
+
+            if gunicorn_record['referer'] == '-':
+                gunicorn_record['referer'] = None
+
+            message.update({'gunicorn.%s' % key: value for key, value in gunicorn_record.items()})
+            message['event'] = gunicorn_record['request']
 
         # Add extra fields
         message.update(self.get_extra_fields(record))

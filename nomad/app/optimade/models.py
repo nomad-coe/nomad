@@ -22,7 +22,7 @@ import datetime
 import math
 
 from nomad import config
-from nomad.app.utils import RFC3339DateTime
+from nomad.app.common import RFC3339DateTime
 from nomad.datamodel import CalcWithMetadata
 
 from .api import api, base_url, url

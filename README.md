@@ -29,6 +29,10 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.7.5
+- optimized API logs
+- minor bugfixes
+
 ### v0.7.3
 - fixed aborted raw-file downloads
 - improved representation of data availability (staging, embargo, public) in GUI

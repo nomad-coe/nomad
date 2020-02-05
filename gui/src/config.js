@@ -13,6 +13,7 @@ export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
 export const sendTrackingData = window.nomadEnv.sendTrackingData
 export const email = 'webmaster@nomad-coe.eu'
+export const maxLogsToShow = 50
 
 export const consent = `
 By using this web-site and by uploading and downloading data, you agree to the

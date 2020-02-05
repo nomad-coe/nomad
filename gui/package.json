@@ -1,6 +1,7 @@
 {
   "name": "nomad-fair-gui",
-  "version": "nomad-gui-version-placeholder",
+  "version": "0.7.5",
+  "commit": "nomad-gui-commit-placeholder",
   "private": true,
   "dependencies": {
     "@material-ui/core": "^3.9.3",
