@@ -173,6 +173,6 @@ def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **
             backend.write_json(sys.stdout, pretty=True)
 
         if show_metadata:
-            metadata = CalcWithMetadata()
+            metadata = CalcWithMetadata(domain=local.parser.domain)
             metadata.apply_domain_metadata(backend)
             ujson.dump(metadata.to_dict(), sys.stdout, indent=4)

@@ -64,6 +64,3 @@ from nomad.datamodel import ems, dft
 from nomad.datamodel.dft import DFTCalcWithMetadata
 from nomad.datamodel.ems import EMSEntryWithMetadata
 from nomad.datamodel.metainfo import Dataset, User, UserMetadata
-
-# Override the CalcWithMetadata with the domain specific decendant
-setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)

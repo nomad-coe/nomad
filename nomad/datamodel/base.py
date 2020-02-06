@@ -57,6 +57,8 @@ class CalcWithMetadata(Mapping):
     to fill these attributes from processed entries, i.e. instance of :class:`nomad.parsing.LocalBackend`.
 
     Attributes:
+        domain: Must be the key for a registered domain. This determines which actual
+            subclass is instantiated.
         upload_id: The ``upload_id`` of the calculations upload (random UUID).
         calc_id: The unique mainfile based calculation id.
         calc_hash: The raw file content based checksum/hash of this calculation.
@@ -79,7 +81,18 @@ class CalcWithMetadata(Mapping):
         references: Objects describing user provided references, keys are ``id`` and ``value``.
         datasets: A list of dataset ids. The corresponding :class:`Dataset`s must exist.
     """
-    def __init__(self, **kwargs):
+
+    def __new__(cls, domain: str = None, **kwargs):
+        if domain is not None:
+            domain_obj = Domain.instances.get(domain)
+            assert domain_obj is not None
+            return super().__new__(domain_obj.domain_entry_class)
+        else:
+            return super().__new__(cls)
+
+    def __init__(self, domain: str = None, **kwargs):
+        self.domain = domain
+
         # id relevant metadata
         self.upload_id: str = None
         self.calc_id: str = None
@@ -226,6 +239,7 @@ class DomainQuantity:
             elastic_value: Callable[[Any], Any] = None,
             argparse_action: str = 'append'):
 
+        self.domain: str = None
         self._name: str = None
         self.description = description
         self.multi = multi
@@ -248,7 +262,10 @@ class DomainQuantity:
 
     @property
     def name(self) -> str:
-        return self._name
+        if self.domain is not None:
+            return '%s.%s' % (self.domain, self._name)
+        else:
+            return self._name
 
     @name.setter
     def name(self, name: str) -> None:
@@ -256,7 +273,7 @@ class DomainQuantity:
         if self.metadata_field is None:
             self.metadata_field = name
         if self.elastic_field is None:
-            self.elastic_field = name
+            self.elastic_field = self.name
 
 
 class Domain:
@@ -288,7 +305,6 @@ class Domain:
         root_sections: The name of the possible root sections for this domain.
         metainfo_all_package: The name of the full metainfo package for this domain.
     """
-    instance: 'Domain' = None
     instances: Dict[str, 'Domain'] = {}
 
     base_quantities = dict(
@@ -362,13 +378,12 @@ class Domain:
             root_sections=['section_run', 'section_entry_info'],
             metainfo_all_package='all.nomadmetainfo.json') -> None:
 
+        for quantity in quantities.values():
+            quantity.domain = name
+
         domain_quantities = quantities
         domain_metrics = metrics
         domain_groups = groups
-
-        if name == config.domain:
-            assert Domain.instance is None, 'you can only define one domain.'
-            Domain.instance = self
 
         Domain.instances[name] = self
 
@@ -379,8 +394,8 @@ class Domain:
         self.metainfo_all_package = metainfo_all_package
         self.default_statistics = default_statistics
 
-        reference_domain_calc = domain_entry_class()
-        reference_general_calc = CalcWithMetadata()
+        reference_domain_calc = CalcWithMetadata(domain=name)
+        reference_general_calc = CalcWithMetadata(domain=None)
 
         # add non specified quantities from additional metadata class fields
         for quantity_name in reference_domain_calc.__dict__.keys():
@@ -439,6 +454,14 @@ class Domain:
     def aggregations_names(self) -> Iterable[str]:
         """ Just the names of all metrics. """
         return list(self.aggregations.keys())
+
+    @property
+    def order_default_quantity(self) -> str:
+        for quantity in self.quantities.values():
+            if quantity.order_default:
+                return quantity.name
+
+        assert False, 'each domain must defina an order_default quantity'
 
 
 def get_optional_backend_value(backend, key, section, unavailable_value=None, logger=None):

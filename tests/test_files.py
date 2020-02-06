@@ -126,7 +126,7 @@ def generate_example_calc(
         **kwargs) -> CalcWithFiles:
     """ Generate an example calc with :class:`CalcWithMetadata` and rawfile. """
 
-    example_calc = CalcWithMetadata(calc_id=str(calc_id))
+    example_calc = CalcWithMetadata(domain='dft', calc_id=str(calc_id))
 
     if with_mainfile_prefix:
         mainfile = '%d.template.json' % calc_id

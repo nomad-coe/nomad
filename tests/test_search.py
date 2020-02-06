@@ -25,26 +25,36 @@ def test_init_mapping(elastic):
 
 
 def test_index_skeleton_calc(elastic):
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test_upload', calc_id='test_calc')
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='dft', upload_id='test_upload', calc_id='test_calc')
 
     create_entry(calc_with_metadata)
 
 
 def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='dft', upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
 
-    create_entry(calc_with_metadata)
+    entry = create_entry(calc_with_metadata)
+
+    assert getattr(entry, 'calc_id') is not None
+    assert getattr(entry, 'dft.atoms') is not None
+    assert getattr(entry, 'dft.code_name') is not None
 
 
 def test_index_normalized_calc_with_metadata(
         elastic, normalized: parsing.LocalBackend, example_user_metadata: dict):
 
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='dft', upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.apply_user_metadata(example_user_metadata)
 
-    create_entry(calc_with_metadata)
+    entry = create_entry(calc_with_metadata)
+
+    assert getattr(entry, 'with_embargo') == example_user_metadata['with_embargo']
+    assert getattr(entry, 'comment') == example_user_metadata['comment']
 
 
 def test_index_upload(elastic, processed: processing.Upload):
@@ -53,7 +63,8 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 @pytest.fixture()
 def example_search_data(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='dft', upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     create_entry(calc_with_metadata)
     refresh_index()
@@ -62,17 +73,17 @@ def example_search_data(elastic, normalized: parsing.LocalBackend):
 
 
 def test_search_entry(example_search_data):
-    results = SearchRequest().execute()
+    results = SearchRequest(domain='dft').execute()
     assert results['total'] > 0
 
 
 def test_search_scan(elastic, example_search_data):
-    results = list(SearchRequest().execute_scan())
+    results = list(SearchRequest(domain='dft').execute_scan())
     assert len(results) > 0
 
 
 def test_search_paginated(elastic, example_search_data):
-    results = SearchRequest().execute_paginated()
+    results = SearchRequest(domain='dft').execute_paginated()
     assert results['total'] > 0
     assert len(results['results']) > 0
     pagination = results['pagination']
@@ -82,7 +93,7 @@ def test_search_paginated(elastic, example_search_data):
 
 
 def test_search_scroll(elastic, example_search_data):
-    request = SearchRequest()
+    request = SearchRequest(domain='dft')
     results = request.execute_scrolled()
     scroll_id = results['scroll']['scroll_id']
     assert results['scroll']['total'] == 1
@@ -108,14 +119,15 @@ def test_search_statistics(elastic, example_search_data):
 
     use_metrics = search.metrics_names
 
-    request = SearchRequest().statistic('system', size=10, metrics_to_use=use_metrics).date_histogram()
+    request = SearchRequest(domain='dft').statistic(
+        'dft.system', size=10, metrics_to_use=use_metrics).date_histogram()
     results = request.execute()
 
     statistics = results['statistics']
     assert 'results' not in results
-    assert 'bulk' in statistics['system']
+    assert 'bulk' in statistics['dft.system']
 
-    example_statistic = statistics['system']['bulk']
+    example_statistic = statistics['dft.system']['bulk']
     assert_metrics(example_statistic, use_metrics)
     assert_metrics(statistics['total']['all'], [])
 
@@ -125,7 +137,7 @@ def test_search_statistics(elastic, example_search_data):
 def test_search_totals(elastic, example_search_data):
     use_metrics = search.metrics_names
 
-    request = SearchRequest().totals(metrics_to_use=use_metrics)
+    request = SearchRequest(domain='dft').totals(metrics_to_use=use_metrics)
     results = request.execute()
 
     statistics = results['statistics']
@@ -142,7 +154,8 @@ def test_search_quantity(
         elastic, normalized: parsing.LocalBackend, test_user: datamodel.User,
         other_test_user: datamodel.User, order_by: str):
 
-    calc_with_metadata = datamodel.CalcWithMetadata(upload_id='test upload id', calc_id='test id')
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='dft', upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
     calc_with_metadata.uploader = test_user.user_id
     create_entry(calc_with_metadata)
@@ -152,7 +165,7 @@ def test_search_quantity(
     create_entry(calc_with_metadata)
     refresh_index()
 
-    request = SearchRequest().quantity(
+    request = SearchRequest(domain='dft').quantity(
         name='authors', size=1, examples=1, order_by=order_by)
     results = request.execute()
     assert len(results['quantities']['authors']['values'].keys()) == 1
@@ -173,6 +186,7 @@ def create_entry(calc_with_metadata: datamodel.CalcWithMetadata):
     entry = search.Entry.from_calc_with_metadata(calc_with_metadata)
     entry.save()
     assert_entry(calc_with_metadata.calc_id)
+    return entry
 
 
 def assert_entry(calc_id):
@@ -194,6 +208,7 @@ def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: 
     if search.count() > 0:
         for hit in search:
             hit = hit.to_dict()
+
             for key, value in kwargs.items():
                 assert hit.get(key, None) == value
 
@@ -204,6 +219,7 @@ def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: 
                 assert key in hit
 
             for key in additional_keys:
+                print(hit.keys())
                 assert key in hit
                 assert hit[key] != config.services.unavailable_value
 

@@ -573,7 +573,12 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         # TODO the root sections should be determined programatically
         for root_section in root_sections:
             json_writer.key(root_section)
-            self._write(json_writer, self._delegate.results[root_section], filter=filter)
+            try:
+                self._write(json_writer, self._delegate.results[root_section], filter=filter)
+            except LookupError:
+                # not all root_sections might be part of the backend
+                self._write(json_writer, {})
+                pass
 
         for name, section in self.mi2_data.items():
             json_writer.key_value(name, section.m_to_dict())

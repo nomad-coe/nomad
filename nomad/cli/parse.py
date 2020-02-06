@@ -129,6 +129,6 @@ def _parse(
     if show_backend:
         backend.write_json(sys.stdout, pretty=True)
     if show_metadata:
-        metadata = CalcWithMetadata()
+        metadata = CalcWithMetadata(domain='dft')  # TODO take domain from matched parser
         metadata.apply_domain_metadata(backend)
         json.dump(metadata.to_dict(), sys.stdout, indent=4)

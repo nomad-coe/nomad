@@ -379,8 +379,8 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
 
 
 def test_ems_data(proc_infra, test_user, monkeypatch):
-    monkeypatch.setattr('nomad.config.domain', 'EMS')
-    monkeypatch.setattr('nomad.datamodel.Domain.instance', datamodel.Domain.instances['EMS'])
+    monkeypatch.setattr('nomad.config.domain', 'ems')
+    monkeypatch.setattr('nomad.datamodel.Domain.instance', datamodel.Domain.instances['ems'])
     monkeypatch.setattr('nomad.datamodel.CalcWithMetadata', datamodel.Domain.instance.domain_entry_class)
 
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)

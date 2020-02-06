@@ -81,7 +81,7 @@ _search_request_parser.add_argument(
 _search_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
+        'Possible values are %s.' % ', '.join(search.metrics_names)))
 _search_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
 for group_name in search.groups:
@@ -96,7 +96,7 @@ _repo_calcs_model_fields = {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names))),
+        ' metrics over all results. ' % ', '.join(search.metrics_names))),
     'python': fields.String(description=(
         'A string of python code snippet which can be executed to reproduce the api result.')),
     'curl': fields.String(description=(

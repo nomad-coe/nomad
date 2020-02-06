@@ -72,8 +72,10 @@ class Dataset(InnerDoc):
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for quantity in datamodel.Domain.instance.domain_quantities.values():
-            attrs[quantity.name] = quantity.elastic_mapping
+        for domain in datamodel.Domain.instances.values():
+            for quantity in domain.domain_quantities.values():
+                attrs[quantity.elastic_field] = quantity.elastic_mapping
+
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
 
@@ -82,6 +84,7 @@ class Entry(Document, metaclass=WithDomain):
     class Index:
         name = config.elastic.index_name
 
+    domain = Keyword()
     upload_id = Keyword()
     upload_time = Date()
     upload_name = Keyword()
@@ -115,6 +118,7 @@ class Entry(Document, metaclass=WithDomain):
         return entry
 
     def update(self, source: datamodel.CalcWithMetadata) -> None:
+        self.domain = source.domain
         self.upload_id = source.upload_id
         self.upload_time = source.upload_time
         self.upload_name = source.upload_name
@@ -157,10 +161,11 @@ class Entry(Document, metaclass=WithDomain):
         self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
         self.external_id = source.external_id
 
-        for quantity in datamodel.Domain.instance.domain_quantities.values():
-            setattr(
-                self, quantity.name,
-                quantity.elastic_value(getattr(source, quantity.metadata_field)))
+        if self.domain is not None:
+            for quantity in datamodel.Domain.instances[self.domain].domain_quantities.values():
+                setattr(
+                    self, quantity.name,
+                    quantity.elastic_value(getattr(source, quantity.metadata_field)))
 
 
 def delete_upload(upload_id):
@@ -217,26 +222,40 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-quantities = datamodel.Domain.instance.quantities
+quantities = {
+    quantity_name: quantity
+    for domain in datamodel.Domain.instances.values()
+    for quantity_name, quantity in domain.quantities.items()}
 """The available search quantities """
 
-metrics = datamodel.Domain.instance.metrics
+metrics = {
+    metric_name: metric
+    for domain in datamodel.Domain.instances.values()
+    for metric_name, metric in domain.metrics.items()}
 """
 The available search metrics. Metrics are integer values given for each entry that can
 be used in statistics (aggregations), e.g. the sum of all total energy calculations or cardinality of
 all unique geometries.
 """
 
-metrics_names = datamodel.Domain.instance.metrics_names
+metrics_names = [metric_name for domain in datamodel.Domain.instances.values() for metric_name in domain.metrics_names]
 """ Names of all available metrics """
 
-groups = datamodel.Domain.instance.groups
+groups = {
+    key: value
+    for domain in datamodel.Domain.instances.values()
+    for key, value in domain.groups.items()}
 """The available groupable quantities"""
 
-order_default_quantity = None
-for quantity in datamodel.Domain.instance.quantities.values():
-    if quantity.order_default:
-        order_default_quantity = quantity.name
+order_default_quantities = {
+    domain_name: domain.order_default_quantity
+    for domain_name, domain in datamodel.Domain.instances.items()
+}
+
+default_statistics = {
+    domain_name: domain.default_statistics
+    for domain_name, domain in datamodel.Domain.instances.items()
+}
 
 
 class SearchRequest:
@@ -268,7 +287,8 @@ class SearchRequest:
     There is also scrolling for quantities to go through all quantity values. There is no
     paging for aggregations.
     '''
-    def __init__(self, query=None):
+    def __init__(self, domain: str, query=None):
+        self._domain = domain
         self._query = query
         self._search = Search(index=config.elastic.index_name)
 
@@ -407,7 +427,7 @@ class SearchRequest:
         """
         Configures the domain's default statistics.
         """
-        for name in datamodel.Domain.instance.default_statistics:
+        for name in default_statistics[self._domain]:
             self.statistic(
                 name,
                 quantities[name].aggregations,
@@ -575,7 +595,7 @@ class SearchRequest:
             yield hit.to_dict()
 
     def execute_paginated(
-            self, page: int = 1, per_page=10, order_by: str = order_default_quantity,
+            self, page: int = 1, per_page=10, order_by: str = None,
             order: int = -1):
         """
         Executes the search and returns paginated results. Those are sorted.
@@ -586,6 +606,9 @@ class SearchRequest:
             order_by: The quantity to order by.
             order: -1 or 1 for descending or ascending order.
         """
+        if order_by is None:
+            order_by = order_default_quantities[self._domain]
+
         search = self._search.query(self.q)
 
         if order_by not in quantities:

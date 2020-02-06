@@ -112,7 +112,7 @@ class EMSEntryWithMetadata(CalcWithMetadata):
 
 
 Domain(
-    'EMS', EMSEntryWithMetadata,
+    'ems', EMSEntryWithMetadata,
     root_sections=['section_experiment', 'section_entry_info'],
     metainfo_all_package='all.experimental.nomadmetainfo.json',
     quantities=dict(

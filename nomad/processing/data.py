@@ -40,7 +40,7 @@ from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagi
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
-from nomad.datamodel import UploadWithMetadata, Domain
+from nomad.datamodel import UploadWithMetadata
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -64,6 +64,12 @@ _log_processors = [
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
     JSONRenderer(sort_keys=True)]
+
+
+_all_root_sections = []
+for domain in datamodel.Domain.instances.values():
+    for root_section in domain.root_sections:
+        _all_root_sections.append(root_section)
 
 
 class Calc(Proc):
@@ -226,6 +232,7 @@ class Calc(Proc):
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
             calc_with_metadata = datamodel.CalcWithMetadata(
+                domain=parser_dict[self.parser].domain,
                 upload_id=self.upload_id,
                 calc_id=self.calc_id,
                 calc_hash=self.upload_files.calc_hash(self.mainfile),
@@ -367,7 +374,7 @@ class Calc(Proc):
     def normalizing(self):
         """ The *task* that encapsulates all normalizing related actions. """
         for normalizer in normalizers:
-            if normalizer.domain != config.domain:
+            if normalizer.domain != parser_dict[self.parser].domain:
                 continue
 
             normalizer_name = normalizer.__name__
@@ -415,7 +422,7 @@ class Calc(Proc):
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
-                self._parser_backend.write_json(out, pretty=True, root_sections=Domain.instance.root_sections)
+                self._parser_backend.write_json(out, pretty=True, root_sections=_all_root_sections)
 
             log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 

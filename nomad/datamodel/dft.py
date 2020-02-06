@@ -194,7 +194,7 @@ def only_atoms(atoms):
 
 
 Domain(
-    'DFT', DFTCalcWithMetadata,
+    'dft', DFTCalcWithMetadata,
     quantities=dict(
         formula=DomainQuantity(
             'The chemical (hill) formula of the simulated system.',

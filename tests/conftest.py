@@ -167,21 +167,21 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     """ Provides elastic infrastructure to the session """
-    monkeysession.setattr('nomad.config.elastic.index_name', 'test_nomad_fairdi_0_6')
+    monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_test')
     try:
         return infrastructure.setup_elastic()
     except Exception:
         # try to delete index, error might be caused by changed mapping
         from elasticsearch_dsl import connections
         connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
-            .indices.delete(index='test_nomad_fairdi_0_6')
+            .indices.delete(index='nomad_fairdi_test')
         return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic):
     try:
         elastic.delete_by_query(
-            index='test_nomad_fairdi_0_6', body=dict(query=dict(match_all={})),
+            index='nomad_fairdi_test', body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests
@@ -658,8 +658,8 @@ def create_test_structure(
 
     backend = run_normalize(backend)
     calc = CalcWithMetadata(
-        upload_id='test_uload_id', calc_id='test_calc_id_%d' % id, mainfile='test_mainfile',
-        published=True, with_embargo=False)
+        domain='dft', upload_id='test_uload_id', calc_id='test_calc_id_%d' % id,
+        mainfile='test_mainfile', published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
     if metadata is not None:
         calc.update(**metadata)

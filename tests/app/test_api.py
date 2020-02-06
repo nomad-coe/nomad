@@ -60,7 +60,7 @@ def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
     """ Create a :class:`UploadWithMetadata` from a API upload json record. """
     return UploadWithMetadata(
         upload_id=upload['upload_id'], calcs=[
-            CalcWithMetadata(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
+            CalcWithMetadata(domain='dft', calc_id=calc['calc_id'], mainfile=calc['mainfile'])
             for calc in upload['calcs']['results']])
 
 
@@ -222,6 +222,12 @@ class TestUploads:
             assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
+
+            print('##########')
+            for key, value in calc['metadata'].items():
+                print(key, value)
+            print('##########')
+            assert 'dft.atoms' in calc['metadata']
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
@@ -232,7 +238,7 @@ class TestUploads:
 
         upload_with_metadata = get_upload_with_metadata(upload)
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
-        assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
+        assert_search_upload(upload_with_metadata, additional_keys=['dft.atoms', 'dft.system'])
 
     def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
@@ -691,7 +697,7 @@ class TestRepo():
         example_dataset.m_x('me').create()
 
         calc_with_metadata = CalcWithMetadata(
-            upload_id='example_upload_id', calc_id='0', upload_time=today)
+            domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today)
         calc_with_metadata.files = ['test/mainfile.txt']
         calc_with_metadata.apply_domain_metadata(normalized)
 
@@ -1699,7 +1705,8 @@ class TestDataset:
     @pytest.fixture()
     def example_dataset_with_entry(self, mongo, elastic, example_datasets):
         calc = CalcWithMetadata(
-            calc_id='1', upload_id='1', published=True, with_embargo=False, datasets=['1'])
+            domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
+            datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
             metadata=calc.to_dict()).save()
@@ -1731,7 +1738,8 @@ class TestDataset:
 
     def test_assign_doi_unpublished(self, api, test_user_auth, example_datasets):
         calc = CalcWithMetadata(
-            calc_id='1', upload_id='1', published=False, with_embargo=False, datasets=['1'])
+            domain='dft', calc_id='1', upload_id='1', published=False, with_embargo=False,
+            datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
             metadata=calc.to_dict()).save()

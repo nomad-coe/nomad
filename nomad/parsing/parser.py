@@ -35,7 +35,7 @@ class Parser(metaclass=ABCMeta):
     """
 
     def __init__(self):
-        self.domain = 'DFT'
+        self.domain = 'dft'
 
     @abstractmethod
     def is_mainfile(
@@ -105,7 +105,7 @@ class MatchingParser(Parser):
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
-        domain: The domain that this parser should be used for. Default is 'DFT'.
+        domain: The domain that this parser should be used for. Default is 'dft'.
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     """
     def __init__(
@@ -114,7 +114,7 @@ class MatchingParser(Parser):
             mainfile_binary_header: bytes = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
-            domain='DFT',
+            domain='dft',
             supported_compressions: List[str] = []) -> None:
 
         super().__init__()
