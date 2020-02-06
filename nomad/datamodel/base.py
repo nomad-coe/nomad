@@ -18,8 +18,7 @@ from elasticsearch_dsl import Keyword
 from collections.abc import Mapping
 import numpy as np
 
-from nomad import utils, config
-from nomad.metainfo import MSection
+from nomad import config
 from nomad import utils, config
 
 from .metainfo import Dataset, User
@@ -120,9 +119,6 @@ class CalcWithMetadata(Mapping):
         if value is None or key in ['backend']:
             raise KeyError()
 
-        if isinstance(value, MSection):
-            value = value.m_to_dict()
-
         return value
 
     def __iter__(self):
@@ -151,15 +147,6 @@ class CalcWithMetadata(Mapping):
         for key, value in kwargs.items():
             if value is None:
                 continue
-
-            if isinstance(value, list):
-                if len(value) == 0:
-                    continue
-
-                if len(value) > 0 and isinstance(value[0], dict) and not isinstance(value[0], utils.POPO):
-                    value = list(utils.POPO(**item) for item in value)
-            if isinstance(value, dict) and not isinstance(value, utils.POPO):
-                value = utils.POPO(**value)
 
             setattr(self, key, value)
 

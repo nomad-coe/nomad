@@ -86,7 +86,6 @@ class TestAdmin:
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False, obj=utils.POPO())
 
-        print(result.output)
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
