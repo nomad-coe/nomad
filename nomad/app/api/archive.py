@@ -303,11 +303,13 @@ class ArchiveQueryResource(Resource):
         calcs = results['results']
         try:
             msgdbs = None
+            cur_upload_id = None
             for entry in calcs:
                 upload_id = entry['upload_id']
                 calc_id = entry['calc_id']
-                if msgdbs is None or msgdbs.upload_id != upload_id:
+                if msgdbs is None or cur_upload_id != upload_id:
                     msgdbs = get_dbs(upload_id)
+                    cur_upload_id = upload_id
 
                 for msgdb in msgdbs:
                     data.append(msgdb.query({calc_id: qschema}))
