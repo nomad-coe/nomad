@@ -277,7 +277,7 @@ class TestClient:
 
         new_search_results = new_search['results'][0]
         for key in new_search_results.keys():
-            if key not in ['upload_time']:  # There is a sub second change due to date conversions (?)
+            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         published.upload_files.exists

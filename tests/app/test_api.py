@@ -1603,8 +1603,7 @@ class TestMirror:
 
         data = json.loads(rv.data)
         assert data['upload_id'] == published.upload_id
-        assert json.loads(data['upload'])['_id'] == published.upload_id
-        assert Upload.from_json(data['upload']).upload_id == published.upload_id
+        assert data['upload']['_id'] == published.upload_id
         assert len(data['calcs']) == len(published.calcs)
         assert data['upload_files_path'] == published.upload_files.os_path
 
