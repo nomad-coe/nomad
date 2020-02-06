@@ -11,17 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
-import re
 import functools
 import fractions
-import json
-import uuid
 from typing import Dict
 
-from matid import SymmetryAnalyzer
 import numpy as np
-from ase import Atoms
 from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
 from nomad import config
 
@@ -136,100 +130,3 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
             structure_type_info = type_description
             break
     return structure_type_info
-
-
-def update_aflow_prototype_information(filepath: str) -> None:
-    """Used to update the AFLOW prototype information. Creates a new python
-    module with updated symmetry tolerance parameter and the wyckoff positions
-    as detected by MatID.
-
-    This function is relatively heavy and should only be run if the symmetry
-    tolerance has been changed or the symmetry detection routine has been
-    updated.
-
-    Args:
-        filepath: Path to the python file in which the new symmetry information
-        will be written.
-    """
-    class NoIndent(object):
-        def __init__(self, value):
-            self.value = value
-
-    class NoIndentEncoder(json.JSONEncoder):
-        """A custom JSON encoder that can pretty-print objects wrapped in the
-        NoIndent class.
-        """
-        def __init__(self, *args, **kwargs):
-            super(NoIndentEncoder, self).__init__(*args, **kwargs)
-            self.kwargs = dict(kwargs)
-            del self.kwargs['indent']
-            self._replacement_map = {}
-
-        def default(self, o):  # pylint: disable=E0202
-            if isinstance(o, NoIndent):
-                key = uuid.uuid4().hex
-                self._replacement_map[key] = json.dumps(o.value, **self.kwargs)
-                return "@@%s@@" % (key,)
-            else:
-                return super(NoIndentEncoder, self).default(o)
-
-        def encode(self, o):
-            result = super(NoIndentEncoder, self).encode(o)
-            for k, v in self._replacement_map.items():
-                result = result.replace('"@@%s@@"' % (k,), v)
-            return result
-
-    n_prototypes = 0
-    n_failed = 0
-    n_unmatched = 0
-    prototype_dict = aflow_prototypes["prototypes_by_spacegroup"]
-    for aflow_spg_number, prototypes in prototype_dict.items():
-        n_prototypes += len(prototypes)
-        for prototype in prototypes:
-
-            # Read prototype structure
-            pos = np.array(prototype["atom_positions"]) * 1E10
-            labels = prototype["atom_labels"]
-            cell = np.array(prototype["lattice_vectors"]) * 1E10
-            atoms = Atoms(
-                symbols=labels,
-                positions=pos,
-                cell=cell,
-                pbc=True
-            )
-
-            # Try to first see if the space group can be matched with the one in AFLOW
-            tolerance = config.normalize.symmetry_tolerance
-            try:
-                symm = SymmetryAnalyzer(atoms, tolerance)
-                spg_number = symm.get_space_group_number()
-                wyckoff_matid = symm.get_wyckoff_letters_conventional()
-                norm_system = symm.get_conventional_system()
-            except Exception:
-                n_failed += 1
-            else:
-                # If the space group is matched, add the MatID normalized Wyckoff
-                # letters to the data.
-                if spg_number == aflow_spg_number:
-                    atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
-                    prototype["normalized_wyckoff_matid"] = NoIndent(normalized_wyckoff_matid)
-                else:
-                    n_unmatched += 1
-
-            # Save the information back in a prettified form
-            prototype["atom_positions"] = NoIndent(prototype["atom_positions"])
-            prototype["atom_labels"] = NoIndent(prototype["atom_labels"])
-            prototype["lattice_vectors"] = NoIndent(prototype["lattice_vectors"])
-            try:
-                prototype["normalized_wyckoff"] = NoIndent(prototype["normalized_wyckoff"])
-            except KeyError:
-                pass
-
-    print(f"Updated AFLOW prototype library. Total number of prototypes: {n_prototypes}, unmatched: {n_unmatched}, failed: {n_failed}")
-
-    # Save the updated data
-    with io.open(filepath, "w", encoding="utf8") as f:
-        json_dump = json.dumps(aflow_prototypes, ensure_ascii=False, indent=4, sort_keys=True, cls=NoIndentEncoder)
-        json_dump = re.sub(r"\"(-?\d+(?:[\.,]\d+)?)\"", r'\1', json_dump)  # Removes quotes around numbers
-        f.write("# -*- coding: utf-8 -*-\naflow_prototypes = {}\n".format(json_dump))
