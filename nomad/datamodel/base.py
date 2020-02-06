@@ -19,7 +19,6 @@ from collections.abc import Mapping
 import numpy as np
 
 from nomad import config
-from nomad import utils, config
 
 from .metainfo import Dataset, User
 
