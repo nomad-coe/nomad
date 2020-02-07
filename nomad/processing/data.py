@@ -33,7 +33,8 @@ import os.path
 from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
-from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
+from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
+import json
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
@@ -62,8 +63,7 @@ _log_processors = [
     StackInfoRenderer(),
     _pack_log_event,
     format_exc_info,
-    TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
-    JSONRenderer(sort_keys=True)]
+    TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
 
 
 class Calc(Proc):
@@ -168,7 +168,9 @@ class Calc(Proc):
             def save_to_calc_log(logger, method_name, event_dict):
                 if self._calc_proc_logwriter is not None:
                     try:
-                        self._calc_proc_logwriter.write(event_dict)
+                        dump_dict = dict(event_dict)
+                        dump_dict.update(level=method_name.upper())
+                        json.dump(dump_dict, self._calc_proc_logwriter, sort_keys=True)
                         self._calc_proc_logwriter.write('\n')
 
                     except Exception:
