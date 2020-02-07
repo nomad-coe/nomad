@@ -130,6 +130,10 @@ class Upload extends React.Component {
       width: 350,
       overflowX: 'hidden'
     },
+    titleRow: {
+      display: 'flex',
+      flexDirection: 'row'
+    },
     shortTitle: {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -374,7 +378,10 @@ class Upload extends React.Component {
 
     return (
       <div className={classes.titleContainer}>
-        <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
+        <div className={classes.titleRow}>
+          <Typography variant="h6" className={name ? classes.shortTitle : classes.title}>
+            {name || new Date(Date.parse(create_time)).toLocaleString()}
+          </Typography>
           <CopyToClipboard
             text={upload_id} onCopy={() => null}
           >
@@ -384,8 +391,7 @@ class Upload extends React.Component {
               </IconButton>
             </Tooltip>
           </CopyToClipboard>
-          {name || new Date(Date.parse(create_time)).toLocaleString()}
-        </Typography>
+        </div>
         {name
           ? <Typography variant="subtitle1">
             {new Date(Date.parse(create_time)).toLocaleString()}

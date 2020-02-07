@@ -31,7 +31,7 @@ ns = api.namespace('mirror', description='Export upload (and all calc) metadata.
 mirror_upload_model = api.model('MirrorUpload', {
     'upload_id': fields.String(description='The id of the exported upload'),
     'upload': fields.String(description='The upload metadata as mongoengine json string'),
-    'calcs': fields.List(fields.String, description='All upload calculation metadata as mongoengine json strings'),
+    'calcs': fields.List(fields.Raw, description='All upload calculation metadata as mongo SON'),
     'upload_files_path': fields.String(description='The path to the local uploads file folder')
 })
 
@@ -88,8 +88,8 @@ class MirrorUploadResource(Resource):
             abort(400, message='Only non processing uploads can be exported')
 
         return {
-            'upload_id': upload.upload_id,
+            'upload_id': upload_id,
             'upload': upload.to_json(),
-            'calcs': [calc.to_json() for calc in proc.Calc.objects(upload_id=upload.upload_id)],
+            'calcs': [calc for calc in proc.Calc._get_collection().find(dict(upload_id=upload_id))],
             'upload_files_path': upload.upload_files.os_path
         }, 200

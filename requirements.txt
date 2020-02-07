@@ -18,6 +18,7 @@ requests
 celery[redis]
 elasticsearch-dsl>=6.0.0,<7.0.0
 mongoengine==0.18.2
+Werkzeug==0.16.1
 flask
 flask-restplus
 flask-cors
@@ -51,6 +52,7 @@ basicauth
 inflection
 docstring-parser
 unidecode
+python-json-logger
 
 # dev/ops related
 setuptools
@@ -71,3 +73,5 @@ mongomock==3.17.0
 names
 essential_generators
 jinja2
+bs4
+html5lib

@@ -44,3 +44,11 @@ api = Api(
     description='NOMAD\'s OPTiMaDe API implementation, version 0.10.0.',
     validate=True)
 """ Provides the flask restplust api instance for the optimade api"""
+
+
+# For some unknown reason it is necessary for each fr api to have a handler.
+# Otherwise the global app error handler won't be called.
+@api.errorhandler(Exception)
+def errorhandler(error):
+    '''When an internal server error is caused by an unexpected exception.'''
+    return str(error)

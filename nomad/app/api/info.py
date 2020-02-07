@@ -48,6 +48,7 @@ domain_model = api.model('Domain', {
 git_info_model = api.model('GitInfo', {
     'ref': fields.String,
     'version': fields.String,
+    'commit': fields.String,
     'log': fields.String
 })
 
@@ -92,6 +93,7 @@ class InfoResource(Resource):
             'git': {
                 'ref': gitinfo.ref,
                 'version': gitinfo.version,
+                'commit': gitinfo.commit,
                 'log': gitinfo.log
             }
         }, 200

@@ -33,6 +33,8 @@ import os.path
 from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
+from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
+import json
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
@@ -40,6 +42,28 @@ from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, LocalBackend
 from nomad.normalizing import normalizers
 from nomad.datamodel import UploadWithMetadata, Domain
+
+
+def _pack_log_event(logger, method_name, event_dict):
+    try:
+        log_data = dict(event_dict)
+        log_data.update(**{
+            key: value
+            for key, value in getattr(logger, '_context', {}).items()
+            if key not in ['service', 'release', 'upload_id', 'calc_id', 'mainfile', 'process_status']})
+        log_data.update(level=method_name.upper(), logger=logger.name)
+
+        return log_data
+    except Exception:
+        # raising an exception would cause an indefinite loop
+        return event_dict
+
+
+_log_processors = [
+    StackInfoRenderer(),
+    _pack_log_event,
+    format_exc_info,
+    TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
 
 
 class Calc(Proc):
@@ -143,20 +167,19 @@ class Calc(Proc):
         else:
             def save_to_calc_log(logger, method_name, event_dict):
                 if self._calc_proc_logwriter is not None:
-                    program = event_dict.get('normalizer', 'parser')
-                    event = event_dict.get('event', '')
+                    try:
+                        dump_dict = dict(event_dict)
+                        dump_dict.update(level=method_name.upper())
+                        json.dump(dump_dict, self._calc_proc_logwriter, sort_keys=True)
+                        self._calc_proc_logwriter.write('\n')
 
-                    entry = '[%s] %s, %s: %s' % (method_name, datetime.utcnow().isoformat(), program, event)
-                    if len(entry) > 140:
-                        self._calc_proc_logwriter.write(entry[:140])
-                        self._calc_proc_logwriter.write('...')
-                    else:
-                        self._calc_proc_logwriter.write(entry)
-                    self._calc_proc_logwriter.write('\n')
+                    except Exception:
+                        # Exceptions here will cause indefinite loop
+                        pass
 
                 return event_dict
 
-            return wrap_logger(logger, processors=[save_to_calc_log])
+            return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
     @process
     def re_process_calc(self):
@@ -285,14 +308,10 @@ class Calc(Proc):
                 self._parser_backend = parser.run(
                     self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
             except Exception as e:
-                self.fail(
-                    'parser failed with exception', level=logging.ERROR,
-                    exc_info=e, error=str(e), **context)
+                self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
                 return
             except SystemExit:
-                self.fail(
-                    'parser raised system exit', level=logging.ERROR,
-                    error='system exit', **context)
+                self.fail('parser raised system exit', error='system exit', **context)
                 return
 
         # add the non code specific calc metadata to the backend
@@ -317,9 +336,8 @@ class Calc(Proc):
         self.add_processor_info(self.parser)
 
         if self._parser_backend.status[0] != 'ParseSuccess':
-            logger.error(self._parser_backend.status[1])
             error = self._parser_backend.status[1]
-            self.fail(error, level=logging.INFO, **context)
+            self.fail('parser failed', error=error, **context)
 
     @contextmanager
     def use_parser_backend(self, processor_name):
@@ -364,20 +382,18 @@ class Calc(Proc):
                     try:
                         normalizer(backend).normalize(logger=logger)
                     except Exception as e:
+                        self._parser_backend.finishedParsingSession('ParseFailure', [str(e)])
                         self.fail(
-                            'normalizer failed with exception', level=logging.ERROR,
-                            exc_info=e, error=str(e), **context)
-                        self._parser_backend.status = ['ParseFailure', str(e)]
-
-            failed = self._parser_backend.status[0] != 'ParseSuccess'
-            if failed:
-                logger.error(self._parser_backend.status[1])
-                error = self._parser_backend.status[1]
-                self.fail(error, level=logging.WARNING, error=error, **context)
-                break
-            else:
-                logger.debug(
-                    'completed normalizer successfully', normalizer=normalizer_name)
+                            'normalizer failed with exception', exc_info=e, error=str(e), **context)
+                        break
+                    else:
+                        if self._parser_backend.status[0] != 'ParseSuccess':
+                            error = self._parser_backend.status[1]
+                            self.fail('normalizer failed', error=error, **context)
+                            break
+                        else:
+                            logger.debug(
+                                'completed normalizer successfully', normalizer=normalizer_name)
 
     @task
     def archiving(self):

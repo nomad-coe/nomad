@@ -187,7 +187,7 @@ class NavigationUnstyled extends React.Component {
       }
     }).then((response) => response.json())
       .then((meta) => {
-        if (meta.version !== packageJson.version) {
+        if (meta.commit !== packageJson.commit) {
           console.log('GUI API version mismatch')
           this.setState({showReloadSnack: true})
         }

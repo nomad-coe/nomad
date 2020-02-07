@@ -26,13 +26,13 @@ from .client import client
 
 
 def stream_upload_with_client(client, stream, name=None):
-    user = client.auth.get_user().response().result
-    token = user.token
+    user = client.auth.get_auth().response().result
+    token = user.access_token
     url = config.client.url + '/uploads/'
     if name is not None:
         url += '?name=%s' % urllib.parse.quote(name)
 
-    response = requests.put(url, headers={'X-Token': token}, data=stream)
+    response = requests.put(url, headers={'Authorization': 'Bearer %s' % token}, data=stream)
     if response.status_code != 200:
         raise Exception('nomad return status %d' % response.status_code)
     upload_id = response.json()['upload_id']

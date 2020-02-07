@@ -1,4 +1,4 @@
 #!/bin/sh
-version=`git describe --tags`
-sed -i -e "s/nomad-gui-version-placeholder/$version/g" package.json
+commit=`git rev-parse --short --verify HEAD`
+sed -i -e "s/nomad-gui-commit-placeholder/$commit/g" package.json
 rm -f package.json-e

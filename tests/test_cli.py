@@ -86,7 +86,6 @@ class TestAdmin:
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False, obj=utils.POPO())
 
-        print(result.output)
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
@@ -181,6 +180,37 @@ class TestAdminUploads:
             with upload_files.archive_file(calc.calc_id) as f:
                 f.read()
 
+    def test_chown(self, published, test_user, other_test_user):
+        upload_id = published.upload_id
+        calc = Calc.objects(upload_id=upload_id).first()
+        assert calc.metadata['uploader'] == other_test_user.user_id
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'chown', test_user.username, upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert 'changing' in result.stdout
+
+        upload = Upload.objects(upload_id=upload_id).first()
+        calc.reload()
+
+        assert upload.user_id == test_user.user_id
+        assert calc.metadata['uploader'] == test_user.user_id
+
+    def test_reset(self, non_empty_processed):
+        upload_id = non_empty_processed.upload_id
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'reset', '--with-calcs', upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert 'reset' in result.stdout
+        upload = Upload.objects(upload_id=upload_id).first()
+        calc = Calc.objects(upload_id=upload_id).first()
+
+        assert upload.tasks_status == proc.PENDING
+        assert calc.tasks_status == proc.PENDING
+
 
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
@@ -247,7 +277,7 @@ class TestClient:
 
         new_search_results = new_search['results'][0]
         for key in new_search_results.keys():
-            if key not in ['upload_time']:  # There is a sub second change due to date conversions (?)
+            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         published.upload_files.exists
@@ -297,7 +327,7 @@ class TestClient:
 
         assert result.exit_code == 0, result.output
         assert 'Calculations, e.g. total energies' in result.output
-        assert 'Unique geometries' in result.output
+        assert 'Geometries' in result.output
         assert 'Bulk crystals' in result.output
         assert '2D / Surfaces' in result.output
         assert 'Atoms / Molecules' in result.output

@@ -118,8 +118,8 @@ keycloak = NomadConfig(
     username='admin',
     password='password',
     client_id='nomad_api_dev',
-    client_secret='**********'
-)
+    client_secret='**********',
+    public_client_id='nomad_public')
 
 mongo = NomadConfig(
     host='localhost',
@@ -208,7 +208,7 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.3'
+version = '0.7.5'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
