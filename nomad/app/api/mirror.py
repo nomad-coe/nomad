@@ -90,6 +90,6 @@ class MirrorUploadResource(Resource):
         return {
             'upload_id': upload_id,
             'upload': upload.to_json(),
-            'calcs': proc.Calc._collection.find(dict(upload_id=upload_id)),
+            'calcs': proc.Calc._get_collection().find(dict(upload_id=upload_id)),
             'upload_files_path': upload.upload_files.os_path
         }, 200

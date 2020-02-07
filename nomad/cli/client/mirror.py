@@ -302,7 +302,7 @@ def mirror(
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
             for calc in upload_data.calcs:
                 fix_time(calc['metadata'])
-            proc.Calc._collection.insert(upload_data.calcs)
+            proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
             search.index_all(upload.to_upload_with_metadata().calcs)
