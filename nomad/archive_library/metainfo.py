@@ -66,6 +66,8 @@ class ArchiveMetainfo:
                     db.add_data({calc_id: run})
             elif isinstance(self._archive_data, list):
                 for entry in self._archive_data:
+                    if not entry:
+                        continue
                     db.add_data(entry)
             db.create_db()
             self._archive_db = db

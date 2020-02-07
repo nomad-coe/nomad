@@ -54,75 +54,53 @@ class JSONdata:
     def __init__(self, data):
         self.data = data
 
-    def _get_data(self, key, val):
-        if isinstance(key, str):
-            key = key.split('/')
-
-        index = None
-        bn0 = key[0].find('[')
-        if bn0 > 0:
-            bn1 = key[0].find(']')
-            index = key[0][bn0 + 1:bn1]
-            key[0] = key[0].replace(key[0][bn0:bn1 + 1], '')
-            if ':' in index:
-                v = val[key[0]]
-                lo, hi = index.split(':')
-                lo = int(lo) if lo else 0
-                hi = int(hi) if hi else 0
-                lo = len(v) + lo if lo < 0 else lo
-                hi = len(v) + hi if hi <= 0 else hi
-                if hi > len(v):
-                    hi = len(v)
-                if lo > hi or lo < 0 or hi < 0:
-                    return
-                index = list(range(lo, hi))
-            else:
-                index = int(index)
-
-        if not key[0] in val:
-            return
-
-        v = val[key[0]]
-        if isinstance(index, int):
-            try:
-                v = v[index]
-            except (IndexError, KeyError, TypeError):
+    def _get_index(self, str_index, nval_ref):
+        str_index = str_index.strip().lstrip('[').rstrip(']')
+        if ':' in str_index:
+            lo, hi = str_index.split(':')
+            lo = int(lo) if lo else 0
+            hi = int(hi) if hi else 0
+            lo = nval_ref + lo if lo < 0 else lo
+            hi = nval_ref + hi if hi <= 0 else hi
+            if hi > nval_ref:
+                hi = nval_ref
+            if lo > hi or lo < 0 or hi < 0:
                 return
-        elif isinstance(index, list):
-            try:
-                v = [v[i] for i in index]
-            except (IndexError, KeyError, TypeError):
+            if lo > hi or lo < 0 or hi < 0:
                 return
-        if len(key) > 1:
-            if isinstance(v, list):
-                return [self._get_data(key[1:], vi) for vi in v]
-            else:
-                return self._get_data(key[1:], v)
+            index = list(range(lo, hi))
         else:
-            return v
+            index = [int(str_index)]
+        return index
 
-    def get_data(self, entry, root=None):
-        """
-        Recursively searches the json data to fill in the null values
-        in the given schema.
-        Arguments:
-            entry: a dict with a structure similar to the json data but
-                with null value to be filled with the desired value.
-        """
-        data = {}
+    def get_data(self, entry, ref=None):
+        out_data = {}
+        if ref is None:
+            ref = self.data
+
         if not isinstance(entry, dict):
-            v = self._get_data(root, self.data)
-            if v is None:
-                v = entry
-            return v
-        else:
-            for key, val in entry.items():
-                if root is not None:
-                    k = os.path.join(root, key)
-                else:
-                    k = key
-                data[key] = self.get_data(val, k)
-            return data
+            return ref
+
+        for key, val in entry.items():
+            bracket = key.find('[')
+            index = None
+            if bracket > 0:
+                str_index = key[bracket:]
+                key = key[:bracket]
+                index = self._get_index(str_index, len(ref[key]))
+
+            if key not in ref:
+                continue
+
+            if index is None:
+                out_data[key] = self.get_data(val, ref[key])
+            else:
+                try:
+                    out_data[key] = [self.get_data(val, ref[key][n]) for n in index]
+                except Exception:
+                    continue
+
+        return out_data
 
 
 class ArchiveFileDB:
@@ -344,7 +322,7 @@ class ArchiveFileDB:
     @staticmethod
     def append_data(entry, val):
         for k, v in entry.items():
-            if v == _PLACEHOLDER:
+            if v == _PLACEHOLDER or v is None:
                 entry[k] = val
             else:
                 entry[k] = ArchiveFileDB.append_data(v, val)

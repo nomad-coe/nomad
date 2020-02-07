@@ -311,8 +311,18 @@ class ArchiveQueryResource(Resource):
                     msgdbs = get_dbs(upload_id)
                     cur_upload_id = upload_id
 
+                if len(msgdbs) == 0:
+                    raise KeyError
+
+                calc_data = None
                 for msgdb in msgdbs:
-                    data.append(msgdb.query({calc_id: qschema}))
+                    calc_data = msgdb.query({calc_id: qschema})
+                    if calc_data:
+                        data.append(calc_data)
+                        break
+
+                if calc_data is None:
+                    raise Restricted
 
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
@@ -325,12 +335,10 @@ class ArchiveQueryResource(Resource):
 
         # for compatibility with archive model
         # TODO should be changed in search
-        Scroll = results.pop('scroll', None)
-        if Scroll:
-            results['Scroll'] = Scroll
-        Pagination = results.pop('pagination', None)
-        if Pagination:
-            results['Pagination'] = Pagination
+        if scroll:
+            results['Scroll'] = results.pop('scroll', None)
+        if pagination:
+            results['Pagination'] = results.pop('pagination', None)
 
         return results, 200
 

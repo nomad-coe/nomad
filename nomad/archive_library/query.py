@@ -26,15 +26,16 @@ for c in metainfo.calcs:
 import requests
 import os.path
 
-from nomad import config
+from nomad import config as nomad_config
 from nomad.archive_library.metainfo import ArchiveMetainfo
+from nomad.cli.client.client import KeycloakAuthenticator
 
 
 class ArchiveQuery:
     def __init__(self, *args, **kwargs):
         self._archive_path = 'archive'
         self._query_path = 'query'
-        self._archive_data = []
+        self.archive_data = []
         self._scroll_id = None
         self._page = None
         self._query_params = {}
@@ -43,8 +44,19 @@ class ArchiveQuery:
         if kwargs:
             self._query_params.update(kwargs)
         self._archive_schema = self._query_params.pop('archive_data', None)
+        if not isinstance(self._archive_schema, list):
+            self._archive_schema = [self._archive_schema]
+        self._max_n_pages = self._query_params.pop('max_n_pages', 100000)
         self._authentication = self._query_params.pop('authentication', None)
-        self._max_n_pages = self._query_params.pop('max_n_pages', 3)
+        self._url = self._query_params.pop('rul', None)
+        self._user = self._query_params.pop('user', None)
+        self._password = self._query_params.pop('password', None)
+        if self._url:
+            nomad_config.client.url = self._url
+        if self._user:
+            nomad_config.client.user = self._user
+        if self._password:
+            nomad_config.client.password = self._password
 
     def _get_value(self, name, in_dict):
         if not isinstance(in_dict, dict):
@@ -67,13 +79,23 @@ class ArchiveQuery:
                 self._set_value(name, value, val)
         in_dict[name] = value
 
-    def _api_query(self):
-        url = os.path.join(config.api_url(False), self._archive_path, self._query_path)
-        data = self._query_params
-        if not isinstance(self._archive_schema, list):
-            data['results'] = [self._archive_schema]
+    def _get_authentication(self):
+        if self._authentication is None:
+            self._authentication = KeycloakAuthenticator(
+                user=nomad_config.client.user,
+                password=nomad_config.client.password,
+                server_url=nomad_config.keycloak.server_external_url,
+                realm_name=nomad_config.keycloak.realm_name,
+                client_id=nomad_config.keycloak.public_client_id)
+        if isinstance(self._authentication, KeycloakAuthenticator):
+            return self._authentication.apply()
         else:
-            data['results'] = self._archive_schema
+            return self._authentication
+
+    def _api_query(self):
+        url = os.path.join(nomad_config.client.url, self._archive_path, self._query_path)
+        data = self._query_params
+        data['results'] = self._archive_schema
 
         if self._page is not None:
             # increment the page number
@@ -81,7 +103,7 @@ class ArchiveQuery:
         if self._scroll_id is not None:
             self._set_value('scroll_id', self._scroll_id, data)
 
-        response = requests.post(url, headers=self._authentication, json=data)
+        response = requests.post(url, headers=self._get_authentication(), json=data)
         if response.status_code != 200:
             raise Exception('Query returned %s' % response.status_code)
 
@@ -89,28 +111,28 @@ class ArchiveQuery:
         if not isinstance(data, dict):
             data = data()
 
-        results = data.get('results', None)
-        scroll = data.get('scroll', None)
+        results = data.get('results', [])
+        scroll = data.get('Scroll', None)
         if scroll:
             self._scroll_id = scroll.get('scroll_id', None)
-        pagination = data.get('pagination', None)
+        pagination = data.get('Pagination', None)
         if pagination:
             self._page = pagination.get('page', None)
 
         return results
 
     def _get_archive_data(self):
-        results = self._api_query()
         n_page = 0
-        while results:
-            self._archive_data += results
+        while True:
             results = self._api_query()
+            self.archive_data += results
             n_page += 1
             if n_page >= self._max_n_pages:
+                break
+            if len(results) == 0:
                 break
 
     def query(self):
         self._get_archive_data()
-        if self._archive_data:
-            metainfo = ArchiveMetainfo(archive_data=self._archive_data, archive_schema=self._archive_schema)
-            return metainfo
+        if self.archive_data:
+            self.metainfo = ArchiveMetainfo(archive_data=self.archive_data, archive_schema='*')
