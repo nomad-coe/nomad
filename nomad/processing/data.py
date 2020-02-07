@@ -51,7 +51,7 @@ def _pack_log_event(logger, method_name, event_dict):
             key: value
             for key, value in getattr(logger, '_context', {}).items()
             if key not in ['service', 'release', 'upload_id', 'calc_id', 'mainfile', 'process_status']})
-        log_data.update(level=method_name.upper(), logger=logger.name)
+        log_data.update(logger=logger.name)
 
         return log_data
     except Exception:
