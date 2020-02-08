@@ -239,14 +239,17 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.tasks_status = FAILURE
 
         logger = self.get_logger(**kwargs)
+        self.errors = []
         for error in errors:
             if isinstance(error, Exception):
                 failed_with_exception = True
+                self.errors.append('%s: %s' % (error.__class__.__name__, str(error)))
                 Proc.log(
                     logger, log_level, 'task failed with exception',
                     exc_info=error, error=str(error))
+            else:
+                self.errors.append(str(error))
 
-        self.errors = [str(error) for error in errors]
         self.complete_time = datetime.utcnow()
 
         if not failed_with_exception:
