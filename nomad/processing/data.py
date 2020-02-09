@@ -536,7 +536,8 @@ class Upload(Proc):
 
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        kwargs.update(user_id=user.user_id)
+        # We are not using 'user_id' because logstash (?) will filter these entries ?!
+        kwargs.update(user=user.user_id)
         self = super().create(**kwargs)
 
         self._continue_with('uploading')
@@ -647,6 +648,8 @@ class Upload(Proc):
 
         logger = self.get_logger()
         logger.info('started to re-process')
+        logger.error('WHAAATTT')
+        raise Exception('break')
 
         # mock the steps of actual processing
         self._continue_with('uploading')
