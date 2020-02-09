@@ -198,6 +198,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         assert not self.process_running
 
         self.current_task = None
+        self.process_status = None
         self.tasks_status = PENDING
         self.errors = []
         self.warnings = []
@@ -207,7 +208,7 @@ class Proc(Document, metaclass=ProcMetaclass):
     def reset_pymongo_update(cls, worker_hostname: str = None):
         """ Returns a pymongo update dict part to reset calculations. """
         return dict(
-            current_task=None, tasks_status=PENDING, errors=[], warnings=[],
+            current_task=None, process_status=None, tasks_status=PENDING, errors=[], warnings=[],
             worker_hostname=worker_hostname)
 
     @classmethod

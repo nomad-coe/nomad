@@ -190,6 +190,17 @@ class Calc(Proc):
         """
         logger = self.get_logger()
 
+        parser = match_parser(self.mainfile, self.upload_files, strict=False)
+        if parser is None:
+            logger.error(
+                'no parser matches during re-process, use the old parser',
+                calc_id=self.calc_id)
+        elif self.parser != parser.name:
+            self.parser = parser.name
+            logger.info(
+                'different parser matches during re-process, use new parser',
+                calc_id=self.calc_id, parser=parser.name)
+
         try:
             calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
             calc_with_metadata.upload_id = self.upload_id
@@ -660,33 +671,21 @@ class Upload(Proc):
         self._continue_with('parse_all')
         try:
             # check if a calc is already/still processing
-            for calc in Calc.objects(
-                    upload_id=self.upload_id,
-                    **Calc.process_running_mongoengine_query()).exclude('metadata'):
-                logger.warn('a process is already running on calc', calc_id=calc.calc_id)
+            processing = Calc.objects(
+                upload_id=self.upload_id,
+                **Calc.process_running_mongoengine_query()).count()
+
+            if processing > 0:
+                logger.warn(
+                    'processes are still/already running on calc, they will be resetted',
+                    count=processing)
 
             # reset all calcs
             Calc._get_collection().update_many(
                 dict(upload_id=self.upload_id),
                 {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-            # match and call calc processings
-            # we use a copy of the mongo queryset; reasons are cursor timeouts and
-            # changing results on modifying the calc entries
-            calcs = list(Calc.objects(upload_id=self.upload_id).exclude('metadata'))
-            for calc in calcs:
-                parser = match_parser(calc.mainfile, staging_upload_files, strict=False)
-                if parser is None:
-                    logger.error(
-                        'no parser matches during re-process, use the old parser',
-                        calc_id=calc.calc_id)
-                elif calc.parser != parser.name:
-                    calc.parser = parser.name
-                    calc.save()
-                    logger.info(
-                        'different parser matches during re-process, use new parser',
-                        calc_id=calc.calc_id, parser=parser.name)
-
+            # process call calcs
             Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
 
             logger.info('completed to trigger re-process of all calcs')
