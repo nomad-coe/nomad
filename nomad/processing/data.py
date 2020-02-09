@@ -658,20 +658,22 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
+            # check if a calc is already/still processing
+            for calc in Calc.objects(
+                    upload_id=self.upload_id,
+                    **Calc.process_running_mongoengine_query()).exclude('metadata'):
+                logger.warn('a process is already running on calc', calc_id=calc.calc_id)
+
+            # reset all calcs
+            Calc._get_collection().update(
+                dict(upload_id=self.upload_id),
+                {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
+
+            # match and call calc processings
             # we use a copy of the mongo queryset; reasons are cursor timeouts and
             # changing results on modifying the calc entries
-            calcs = list(Calc.objects(upload_id=self.upload_id))
+            calcs = list(Calc.objects(upload_id=self.upload_id).exclude('metadata'))
             for calc in calcs:
-                if calc.process_running:
-                    if calc.current_process == 're_process_calc':
-                        logger.warn('re_process_calc is already running', calc_id=calc.calc_id)
-                    else:
-                        logger.warn('a process is already running on calc', calc_id=calc.calc_id)
-
-                    continue
-
-                calc.reset(worker_hostname=self.worker_hostname)
-
                 parser = match_parser(calc.mainfile, staging_upload_files, strict=False)
                 if parser is None:
                     logger.error(
@@ -683,8 +685,12 @@ class Upload(Proc):
                         'different parser matches during re-process, use new parser',
                         calc_id=calc.calc_id, parser=parser.name)
                 calc.re_process_calc()
+
+                logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
             # try to remove the staging copy in failure case
+            logger.error('failed to trigger re-process of all calcs', exc_info=e)
+
             if staging_upload_files is not None and staging_upload_files.exists():
                 staging_upload_files.delete()
 
