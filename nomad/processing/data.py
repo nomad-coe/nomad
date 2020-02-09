@@ -682,12 +682,14 @@ class Upload(Proc):
                         calc_id=calc.calc_id)
                 elif calc.parser != parser.name:
                     calc.parser = parser.name
+                    calc.save()
                     logger.info(
                         'different parser matches during re-process, use new parser',
                         calc_id=calc.calc_id, parser=parser.name)
-                calc.re_process_calc()
 
-                logger.info('completed to trigger re-process of all calcs')
+            Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+
+            logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to trigger re-process of all calcs', exc_info=e)
