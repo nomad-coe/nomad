@@ -166,8 +166,8 @@ class Proc(Document, metaclass=ProcMetaclass):
         """ Returns True of an asynchrounous process is currently running. """
         return self.process_status is not None and self.process_status != PROCESS_COMPLETED
 
-    @staticmethod
-    def process_running_mongoengine_query():
+    @classmethod
+    def process_running_mongoengine_query(cls):
         """ Returns a mongoengine query dict (to be used in objects) to find running processes. """
         return dict(process_status__in=[PROCESS_CALLED, PROCESS_RUNNING])
 
@@ -203,8 +203,8 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.warnings = []
         self.worker_hostname = worker_hostname
 
-    @staticmethod
-    def reset_pymongo_update(worker_hostname: str = None):
+    @classmethod
+    def reset_pymongo_update(cls, worker_hostname: str = None):
         """ Returns a pymongo update dict part to reset calculations. """
         return dict(
             current_task=None, tasks_status=PENDING, errors=[], warnings=[],

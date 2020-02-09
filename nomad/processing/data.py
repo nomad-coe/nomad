@@ -515,9 +515,10 @@ class Upload(Proc):
         logger = super().get_logger()
         user = self.uploader
         user_name = '%s %s' % (user.first_name, user.last_name)
+        # We are not using 'user_id' because logstash (?) will filter these entries ?!
         logger = logger.bind(
             upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
-            user_id=user.user_id, **kwargs)
+            user=user.user_id, **kwargs)
         return logger
 
     @classmethod
@@ -536,8 +537,7 @@ class Upload(Proc):
 
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        # We are not using 'user_id' because logstash (?) will filter these entries ?!
-        kwargs.update(user=user.user_id)
+        kwargs.update(user_id=user.user_id)
         self = super().create(**kwargs)
 
         self._continue_with('uploading')
@@ -648,8 +648,6 @@ class Upload(Proc):
 
         logger = self.get_logger()
         logger.info('started to re-process')
-        logger.error('WHAAATTT')
-        raise Exception('break')
 
         # mock the steps of actual processing
         self._continue_with('uploading')
@@ -668,7 +666,7 @@ class Upload(Proc):
                 logger.warn('a process is already running on calc', calc_id=calc.calc_id)
 
             # reset all calcs
-            Calc._get_collection().update(
+            Calc._get_collection().update_many(
                 dict(upload_id=self.upload_id),
                 {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
@@ -885,6 +883,12 @@ class Upload(Proc):
     def reset(self):
         self.joined = False
         super().reset()
+
+    @classmethod
+    def reset_pymongo_update(cls, worker_hostname: str = None):
+        update = super().reset_pymongo_update()
+        update.update(joined=False)
+        return update
 
     def _cleanup_after_processing(self):
         # send email about process finish

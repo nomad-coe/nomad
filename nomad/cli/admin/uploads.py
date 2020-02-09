@@ -162,10 +162,9 @@ def reset(ctx, uploads, with_calcs):
 
     i = 0
     for upload in uploads:
-        if with_calcs:
-            for calc in proc.Calc.objects(upload_id=upload.upload_id):
-                calc.reset()
-                calc.save()
+        proc.Calc._get_collection().update_many(
+            dict(upload_id=upload.upload_id),
+            {'$set': proc.Calc.reset_pymongo_update()})
 
         upload.reset()
         upload.save()
