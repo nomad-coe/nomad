@@ -544,8 +544,13 @@ class SearchRequest:
         return self
 
     def exclude(self, *args):
-        """ Exclude certain elastic keys from the search results. """
+        """ Exclude certain elastic fields from the search results. """
         self._search = self._search.source(excludes=args)
+        return self
+
+    def include(self, *args):
+        """ Include only the given fields in the search results. """
+        self._search = self._search.source(includes=args)
         return self
 
     def execute(self):

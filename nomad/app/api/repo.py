@@ -206,7 +206,9 @@ class RepoCalcsResource(Resource):
             search_request.totals(metrics_to_use=metrics)
 
         if 'exclude' in parsed_args:
-            search_request.exclude(*parsed_args['exclude'])
+            excludes = parsed_args['exclude']
+            if excludes is not None:
+                search_request.exclude(*excludes)
 
         try:
             if scroll:
@@ -303,7 +305,7 @@ _repo_edit_model = api.model('RepoEdit', {
 def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
     # get all calculations that have to change
     with utils.timer(common.logger, 'edit query executed'):
-        search_request = search.SearchRequest()
+        search_request = search.SearchRequest().include('calc_id', 'upload_id')
         apply_search_parameters(search_request, parsed_query)
         upload_ids = set()
         calc_ids = []
@@ -695,7 +697,7 @@ class RepoPidResource(Resource):
             except ValueError:
                 abort(400, 'Wrong PID format')
 
-        search_request = search.SearchRequest()
+        search_request = search.SearchRequest().include('upload_id', 'calc_id')
 
         if g.user is not None:
             search_request.owner('all', user_id=g.user.user_id)

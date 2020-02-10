@@ -65,7 +65,7 @@ class CalculationList(Resource):
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
 
-        search_request = base_search_request()
+        search_request = base_search_request().include('calc_id')
 
         if filter is not None:
             try:
