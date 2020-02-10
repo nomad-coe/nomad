@@ -1078,9 +1078,9 @@ class TestRepo():
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
-    def test_label(self, api, non_empty_processed, test_user_auth):
+    def test_labels(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
-            '/repo/?%s' % urlencode(dict(owner='all', label=['oxide', 'metal']), doseq=True),
+            '/repo/?%s' % urlencode(dict(owner='all', labels=['nonmetal', 'semiconductor']), doseq=True),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)

@@ -158,9 +158,8 @@ class Entry(Document, metaclass=WithDomain):
         self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():
-            setattr(
-                self, quantity.name,
-                quantity.elastic_value(getattr(source, quantity.metadata_field)))
+            quantity_value = quantity.elastic_value(getattr(source, quantity.metadata_field))
+            setattr(self, quantity.name, quantity_value)
 
 
 def delete_upload(upload_id):
