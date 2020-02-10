@@ -239,7 +239,7 @@ class KeycloakMock:
             for user_id, user_values in self.users.items():
                 if user_values['username'] == username:
                     return User(**user_values)
-            raise KeyError('Only test user emails are recognized')
+            raise KeyError('Only test user usernames are recognized')
         else:
             assert False, 'no token based get_user during tests'
 

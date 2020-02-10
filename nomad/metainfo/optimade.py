@@ -2,7 +2,8 @@ from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
 import numpy as np
 
-from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, units
+from . import MSection, Section, Quantity, SubSection, MEnum, units
+from .elastic import elastic_mapping
 
 
 def optimade_links(section: str):
@@ -231,40 +232,6 @@ class OptimadeEntry(MSection):
         ''')
 
     species = SubSection(sub_section=Species.m_def, repeats=True)
-
-
-def elastic_mapping(section: Section, base_cls: type) -> type:
-    """ Creates an elasticsearch_dsl document class from a section definition. """
-
-    dct = {
-        name: quantity.m_annotations['elastic']['type']()
-        for name, quantity in section.all_quantities.items()
-        if 'elastic' in quantity.m_annotations}
-
-    return type(section.name, (base_cls,), dct)
-
-
-def elastic_obj(source: MSection, target_cls: type):
-    if source is None:
-        return None
-
-    assert isinstance(source, MSection)
-
-    target = target_cls()
-
-    for name, quantity in source.m_def.all_quantities.items():
-        elastic_annotation = quantity.m_annotations.get('elastic')
-        if elastic_annotation is None:
-            continue
-
-        if 'mapping' in elastic_annotation:
-            value = elastic_annotation['mapping'](source)
-        else:
-            value = getattr(source, name)
-
-        setattr(target, name, value)
-
-    return target
 
 
 ESOptimadeEntry = elastic_mapping(OptimadeEntry.m_def, InnerDoc)

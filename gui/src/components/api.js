@@ -4,7 +4,7 @@ import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
 import Swagger from 'swagger-client'
 import { apiBase } from '../config'
-import { Typography, withStyles, Link } from '@material-ui/core'
+import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
@@ -384,7 +384,9 @@ class Api {
   async search(search) {
     this.onStartLoading()
     return this.swagger()
-      .then(client => client.apis.repo.search(search))
+      .then(client => client.apis.repo.search({
+        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        ...search}))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)

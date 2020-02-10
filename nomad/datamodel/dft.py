@@ -18,13 +18,14 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer, Object
+from elasticsearch_dsl import Integer, Object, InnerDoc, Keyword
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
-from nomad.metainfo import optimade
+from nomad.metainfo import optimade, MSection, Section, Quantity, MEnum
+from nomad.metainfo.elastic import elastic_mapping, elastic_obj
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
 
@@ -69,6 +70,32 @@ def simplify_version(version):
         return match.group(0)
 
 
+class Label(MSection):
+    """
+    Label that further classify a structure.
+
+    Attributes:
+        label: The label as a string
+        type: The type of the label
+        source: The source that this label was taken from.
+    """
+
+    m_def = Section(a_elastic=dict(type=InnerDoc))
+
+    label = Quantity(type=str, a_elastic=dict(type=Keyword))
+
+    type = Quantity(type=MEnum(
+        'compound_class', 'classification', 'prototype', 'prototype_id'),
+        a_elastic=dict(type=Keyword))
+
+    source = Quantity(
+        type=MEnum('springer', 'aflow_prototype_library'),
+        a_elastic=dict(type=Keyword))
+
+
+ESLabel = elastic_mapping(Label.m_def, InnerDoc)
+
+
 class DFTCalcWithMetadata(CalcWithMetadata):
 
     def __init__(self, **kwargs):
@@ -92,6 +119,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.geometries = []
         self.group_hash: str = None
 
+        self.labels: List[Label] = []
         self.optimade: optimade.OptimadeEntry = None
 
         super().__init__(**kwargs)
@@ -99,8 +127,22 @@ class DFTCalcWithMetadata(CalcWithMetadata):
     def update(self, **kwargs):
         super().update(**kwargs)
 
+        if len(self.labels) > 0:
+            self.labels = [Label.m_from_dict(label) for label in self.labels]
+
         if self.optimade is not None and isinstance(self.optimade, dict):
             self.optimade = optimade.OptimadeEntry.m_from_dict(self.optimade)
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+
+        if key == 'labels':
+            return [item.m_to_dict() for item in value]
+
+        if key == 'optimade':
+            return value.m_to_dict()
+
+        return value
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
@@ -108,6 +150,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         logger = utils.get_logger(__name__).bind(
             upload_id=self.upload_id, calc_id=self.calc_id, mainfile=self.mainfile)
 
+        # code and code specific ids
         self.code_name = backend.get_value('program_name', 0)
         try:
             self.code_version = simplify_version(backend.get_value('program_version', 0))
@@ -116,6 +159,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
 
         self.raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', 0)
 
+        # metadata (system, method, chemistry)
         self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
         if hasattr(self.atoms, 'tolist'):
             self.atoms = self.atoms.tolist()
@@ -138,6 +182,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.xc_functional = map_functional_name_to_xc_treatment(
             get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
 
+        # grouping
         self.group_hash = utils.hash(
             self.formula,
             self.spacegroup,
@@ -151,6 +196,7 @@ class DFTCalcWithMetadata(CalcWithMetadata):
             self.uploader,
             self.coauthors)
 
+        # metrics and quantities
         quantities = set()
         geometries = set()
         n_quantities = 0
@@ -184,6 +230,26 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
 
+        # labels
+        compounds = set()
+        classifications = set()
+        for index in backend.get_sections('section_springer_material'):
+            compounds.update(backend.get_value('springer_compound_class', index))
+            classifications.update(backend.get_value('springer_classification', index))
+
+        for compound in compounds:
+            self.labels.append(Label(label=compound, type='compound_class', source='springer'))
+        for classification in classifications:
+            self.labels.append(Label(label=classification, type='classification', source='springer'))
+
+        aflow_id = get_optional_backend_value(backend, 'prototype_aflow_id', 'section_prototype')
+        aflow_label = get_optional_backend_value(backend, 'prototype_label', 'section_prototype')
+
+        if aflow_id is not None and aflow_label is not None:
+            self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
+            self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
+
+        # optimade
         self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
 
 
@@ -191,6 +257,13 @@ def only_atoms(atoms):
     numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
     only_atoms = [ase.data.chemical_symbols[number] for number in sorted(numbers)]
     return ''.join(only_atoms)
+
+
+def _elastic_label_value(label):
+    if isinstance(label, str):
+        return label
+    else:
+        return elastic_obj(label, ESLabel)
 
 
 Domain(
@@ -240,10 +313,16 @@ Domain(
         n_atoms=DomainQuantity(
             'Number of atoms in the simulated system',
             elastic_mapping=Integer()),
+        labels=DomainQuantity(
+            'Search based for springer classification and aflow prototypes',
+            elastic_field='labels.label',
+            elastic_mapping=Object(ESLabel),
+            elastic_value=lambda labels: [_elastic_label_value(label) for label in labels],
+            multi=True),
         optimade=DomainQuantity(
             'Search based on optimade\'s filter query language',
             elastic_mapping=Object(optimade.ESOptimadeEntry),
-            elastic_value=lambda entry: optimade.elastic_obj(entry, optimade.ESOptimadeEntry)
+            elastic_value=lambda entry: elastic_obj(entry, optimade.ESOptimadeEntry)
         )),
     metrics=dict(
         total_energies=('n_total_energies', 'sum'),

@@ -1,10 +1,66 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Typography } from '@material-ui/core'
+import { withStyles, Fab, Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi } from '../api'
 import Download from './Download'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import ReactJson from 'react-json-view'
+import { amber } from '@material-ui/core/colors'
+import { maxLogsToShow } from '../../config'
+
+class LogEntryUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    entry: PropTypes.string.isRequired
+  }
+
+  static styles = theme => ({
+    warning: {
+      color: amber[700]
+    },
+    exception: {
+      overflowX: 'scroll',
+      margin: 0
+    }
+  })
+
+  render() {
+    const { classes, entry } = this.props
+    let data
+    try {
+      data = JSON.parse(entry)
+    } catch (e) {
+      return <ExpansionPanelSummary>
+        <Typography>{entry}</Typography>
+      </ExpansionPanelSummary>
+    }
+    const summaryProps = {}
+    if (data.level === 'ERROR' || data.level === 'CRITICAL') {
+      summaryProps.color = 'error'
+    } else if (data.level === 'WARNING') {
+      summaryProps.classes = {root: classes.warning}
+    }
+    return (
+      <ExpansionPanel>
+        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography {...summaryProps}>{data.level}: {data.event} {(data.parser || data.normalizer) ? `(${data.parser || data.normalizer})` : ''}</Typography>
+        </ExpansionPanelSummary>
+        <ExpansionPanelDetails>
+          <ReactJson
+            src={data}
+            enableClipboard={false}
+            displayObjectSize={false} />
+        </ExpansionPanelDetails>
+        {data.exception && <ExpansionPanelDetails>
+          <pre className={classes.exception}>{data.exception}</pre>
+        </ExpansionPanelDetails>}
+      </ExpansionPanel>)
+  }
+}
+
+const LogEntry = withStyles(LogEntryUnstyled.styles)(LogEntryUnstyled)
 
 class ArchiveLogView extends React.Component {
   static propTypes = {
@@ -17,11 +73,9 @@ class ArchiveLogView extends React.Component {
 
   static styles = theme => ({
     root: {
-      '& pre': {
-        overflowX: 'auto'
-      }
+      marginTop: theme.spacing.unit * 2
     },
-    error: {
+    moreLogs: {
       marginTop: theme.spacing.unit * 2
     },
     downloadFab: {
@@ -33,9 +87,9 @@ class ArchiveLogView extends React.Component {
   });
 
   static defaultState = {
-      data: null,
-      doesNotExist: false
-    }
+    data: null,
+    doesNotExist: false
+  }
 
   state = {...ArchiveLogView.defaultState}
 
@@ -72,20 +126,32 @@ class ArchiveLogView extends React.Component {
 
     if (doesNotExist) {
       return (
-        <Typography className={classes.error}>
+        <Typography>
           No archive log does exist for this entry. Most likely the entry itself does not
           exist.
         </Typography>
       )
     }
 
+    let content = 'loading ...'
+    if (data) {
+      const lines = data.split('\n')
+      content = <div>
+        {lines.slice(0, maxLogsToShow).map((entry, i) => <LogEntry key={i} entry={entry}/>)}
+        {lines.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
+          There are {lines.length - maxLogsToShow} more log entries. Download the log to see all of them.
+        </Typography>}
+      </div>
+    }
+
     return (
       <div className={classes.root}>
-        <pre>{data || 'loading ...'}</pre>
+        {content}
 
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
           component={Fab} className={classes.downloadFab} size="medium"
+          color="primary"
           url={`archive/logs/${uploadId}/${calcId}`} fileName={`${calcId}.log`}
         >
           <DownloadIcon />

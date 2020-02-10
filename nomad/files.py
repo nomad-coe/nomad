@@ -207,7 +207,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         super().__init__(bucket, upload_id, create=create, prefix=True)
 
         if not create and not self.exists():
-            raise KeyError()
+            raise KeyError(upload_id)
 
         self.upload_id = upload_id
         self._is_authorized = is_authorized
@@ -348,9 +348,9 @@ class StagingUploadFiles(UploadFiles):
         try:
             return open(path_object.os_path, *args, **kwargs)
         except FileNotFoundError:
-            raise KeyError()
+            raise KeyError(path_object.os_path)
         except IsADirectoryError:
-            raise KeyError()
+            raise KeyError(path_object.os_path)
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
@@ -610,7 +610,7 @@ class StagingUploadFiles(UploadFiles):
         """
         mainfile_object = self._raw_dir.join_file(mainfile)
         if not mainfile_object.exists():
-            raise KeyError()
+            raise KeyError(mainfile)
 
         mainfile_basename = os.path.basename(mainfile)
         calc_dir = os.path.dirname(mainfile_object.os_path)
@@ -802,7 +802,7 @@ class PublicUploadFiles(UploadFiles):
             except KeyError:
                 pass
 
-        raise KeyError()
+        raise KeyError(path)
 
     def _file_msg(self, prefix: str, ext: str, path: str, *args, **kwargs) -> List[IO]:
         f = []
@@ -854,7 +854,7 @@ class PublicUploadFiles(UploadFiles):
             except KeyError:
                 pass
 
-        raise KeyError()
+        raise KeyError(file_path)
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         for access in ['public', 'restricted']:

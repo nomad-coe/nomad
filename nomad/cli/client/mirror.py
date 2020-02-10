@@ -19,6 +19,7 @@ import json
 import os
 import os.path
 from bravado.exception import HTTPBadRequest
+import datetime
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
 from nomad.datamodel import Dataset, User
@@ -32,6 +33,13 @@ __in_test = False
 
 __Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
+
+
+def fix_time(data):
+    for key in ['upload_time', 'last_processing']:
+        time = data.get(key)
+        if isinstance(time, int):
+            data[key] = datetime.datetime.utcfromtimestamp(time)
 
 
 def tarnsform_user_id(source_user_id):
@@ -292,8 +300,9 @@ def mirror(
         if not files_only:
             # create mongo
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            for calc_data in upload_data.calcs:
-                proc.Calc.from_json(calc_data, created=True).save()
+            for calc in upload_data.calcs:
+                fix_time(calc['metadata'])
+            proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
             search.index_all(upload.to_upload_with_metadata().calcs)

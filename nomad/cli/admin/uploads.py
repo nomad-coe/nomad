@@ -121,15 +121,15 @@ def ls(ctx, uploads, calculations, ids, json):
 
 
 @uploads.command(help='Change the owner of the upload and all its calcs.')
-@click.argument('EMAIL', nargs=1)
+@click.argument('USERNAME', nargs=1)
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
-def chown(ctx, email, uploads):
+def chown(ctx, username, uploads):
     _, uploads = query_uploads(ctx, uploads)
 
     print('%d uploads selected, changing its owner ...' % uploads.count())
 
-    user = datamodel.User.get(email=email)
+    user = datamodel.User.get(username=username)
 
     for upload in uploads:
         upload.user_id = user.user_id
@@ -139,14 +139,37 @@ def chown(ctx, email, uploads):
         def create_update(calc):
             return UpdateOne(
                 {'_id': calc.calc_id},
-                {'$set': {'metadata.uploader': user.to_popo()}})
+                {'$set': {'metadata.uploader': user.user_id}})
 
         proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
         upload.save()
 
         upload_with_metadata = upload.to_upload_with_metadata()
         calcs = upload_with_metadata.calcs
-        search.publish(calcs)
+        search.index_all(calcs, do_refresh=False)
+        search.refresh()
+
+
+@uploads.command(help='Change the owner of the upload and all its calcs.')
+@click.argument('UPLOADS', nargs=-1)
+@click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
+@click.pass_context
+def reset(ctx, uploads, with_calcs):
+    _, uploads = query_uploads(ctx, uploads)
+    uploads_count = uploads.count()
+
+    print('%d uploads selected, resetting their processing ...' % uploads_count)
+
+    i = 0
+    for upload in uploads:
+        proc.Calc._get_collection().update_many(
+            dict(upload_id=upload.upload_id),
+            {'$set': proc.Calc.reset_pymongo_update()})
+
+        upload.reset()
+        upload.save()
+        i += 1
+        print('resetted %d of %d uploads' % (i, uploads_count))
 
 
 @uploads.command(help='(Re-)index all calcs of the given uploads.')

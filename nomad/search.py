@@ -158,9 +158,8 @@ class Entry(Document, metaclass=WithDomain):
         self.external_id = source.external_id
 
         for quantity in datamodel.Domain.instance.domain_quantities.values():
-            setattr(
-                self, quantity.name,
-                quantity.elastic_value(getattr(source, quantity.metadata_field)))
+            quantity_value = quantity.elastic_value(getattr(source, quantity.metadata_field))
+            setattr(self, quantity.name, quantity_value)
 
 
 def delete_upload(upload_id):
@@ -542,6 +541,11 @@ class SearchRequest:
 
             composite_agg.metric('examples', A('top_hits', size=examples, **kwargs))
 
+        return self
+
+    def exclude(self, *args):
+        """ Exclude certain elastic keys from the search results. """
+        self._search = self._search.source(excludes=args)
         return self
 
     def execute(self):

@@ -113,7 +113,8 @@ class DomainProviderBase extends React.Component {
         optimade: {},
         quantities: {},
         spacegroup: {},
-        specegroup_symbol: {}
+        specegroup_symbol: {},
+        labels: {}
       },
       /**
        * An dict where each object represents a column. Possible keys are label, render.

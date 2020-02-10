@@ -883,6 +883,14 @@ class TestRepo():
             assert len(statistics['system']) == 1
             assert value in statistics['system']
 
+    def test_search_exclude(self, api, example_elastic_calcs, no_warn):
+        rv = api.get('/repo/?exclude=atoms,only_atoms')
+        assert rv.status_code == 200
+        result = json.loads(rv.data)['results'][0]
+        assert 'atoms' not in result
+        assert 'only_atoms' not in result
+        assert 'basis_set' in result
+
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
@@ -1075,6 +1083,14 @@ class TestRepo():
     def test_optimade(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
             '/repo/?%s' % urlencode(dict(owner='all', optimade='nelements >= 1')),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] > 0
+
+    def test_labels(self, api, non_empty_processed, test_user_auth):
+        rv = api.get(
+            '/repo/?%s' % urlencode(dict(owner='all', labels=['nonmetal', 'semiconductor']), doseq=True),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1598,7 +1614,6 @@ class TestMirror:
         data = json.loads(rv.data)
         assert data['upload_id'] == published.upload_id
         assert json.loads(data['upload'])['_id'] == published.upload_id
-        assert Upload.from_json(data['upload']).upload_id == published.upload_id
         assert len(data['calcs']) == len(published.calcs)
         assert data['upload_files_path'] == published.upload_files.os_path
 

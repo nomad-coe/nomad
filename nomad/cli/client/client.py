@@ -27,8 +27,8 @@ from nomad.cli.cli import cli
 
 
 class KeycloakAuthenticator(Authenticator):
-    def __init__(self, user, password, **kwargs):
-        super().__init__(host=urlparse(nomad_config.client.url).netloc.split(':')[0])
+    def __init__(self, host, user, password, **kwargs):
+        super().__init__(host=host)
         self.user = user
         self.password = password
         self.token = None
@@ -79,12 +79,20 @@ def __create_client(
     utils.get_logger(__name__).info('created bravado client', user=user)
 
     if user is not None:
-        http_client.authenticator = KeycloakAuthenticator(
-            user=user,
-            password=password,
-            server_url=nomad_config.keycloak.server_external_url,
-            realm_name=nomad_config.keycloak.realm_name,
-            client_id=nomad_config.keycloak.public_client_id)
+        host = urlparse(nomad_config.client.url).netloc.split(':')[0]
+        if use_token:
+            http_client.authenticator = KeycloakAuthenticator(
+                host=host,
+                user=user,
+                password=password,
+                server_url=nomad_config.keycloak.server_external_url,
+                realm_name=nomad_config.keycloak.realm_name,
+                client_id=nomad_config.keycloak.public_client_id)
+        else:
+            http_client.set_basic_auth(
+                host=host,
+                username=user,
+                password=password)
 
         utils.get_logger(__name__).info('set bravado client authentication', user=user)
 
