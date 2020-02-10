@@ -543,6 +543,11 @@ class SearchRequest:
 
         return self
 
+    def exclude(self, *args):
+        """ Exclude certain elastic keys from the search results. """
+        self._search = self._search.source(excludes=args)
+        return self
+
     def execute(self):
         """
         Exectutes without returning actual results. Only makes sense if the request

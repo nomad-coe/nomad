@@ -137,6 +137,14 @@ def test_search_totals(elastic, example_search_data):
     assert 'quantities' not in results
 
 
+def test_search_excludes(elastic, example_search_data):
+    for item in SearchRequest().execute_paginated()['results']:
+        assert 'atoms' in item
+
+    for item in SearchRequest().exclude('atoms').execute_paginated()['results']:
+        assert 'atoms' not in item
+
+
 @pytest.mark.parametrize("order_by", [None, 'upload_id'])
 def test_search_quantity(
         elastic, normalized: parsing.LocalBackend, test_user: datamodel.User,

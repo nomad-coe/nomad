@@ -384,7 +384,9 @@ class Api {
   async search(search) {
     this.onStartLoading()
     return this.swagger()
-      .then(client => client.apis.repo.search(search))
+      .then(client => client.apis.repo.search({
+        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        ...search}))
       .catch(handleApiError)
       .then(response => response.body)
       .finally(this.onFinishLoading)

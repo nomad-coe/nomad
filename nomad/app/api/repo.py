@@ -84,6 +84,8 @@ _search_request_parser.add_argument(
         'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
 _search_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
+_search_request_parser.add_argument(
+    'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search.groups:
     _search_request_parser.add_argument(
         group_name, type=bool, help=('Return %s group data.' % group_name))
@@ -150,8 +152,9 @@ class RepoCalcsResource(Resource):
         """
 
         try:
+            parsed_args = _search_request_parser.parse_args()
             args = {
-                key: value for key, value in _search_request_parser.parse_args().items()
+                key: value for key, value in parsed_args.items()
                 if value is not None}
 
             scroll = args.get('scroll', False)
@@ -201,6 +204,9 @@ class RepoCalcsResource(Resource):
             search_request.statistic('authors', 1000)
         elif len(metrics) > 0:
             search_request.totals(metrics_to_use=metrics)
+
+        if 'exclude' in parsed_args:
+            search_request.exclude(*parsed_args['exclude'])
 
         try:
             if scroll:

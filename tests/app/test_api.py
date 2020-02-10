@@ -881,6 +881,14 @@ class TestRepo():
             assert len(statistics['system']) == 1
             assert value in statistics['system']
 
+    def test_search_exclude(self, api, example_elastic_calcs, no_warn):
+        rv = api.get('/repo/?exclude=atoms,only_atoms')
+        assert rv.status_code == 200
+        result = json.loads(rv.data)['results'][0]
+        assert 'atoms' not in result
+        assert 'only_atoms' not in result
+        assert 'basis_set' in result
+
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
