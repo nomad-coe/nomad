@@ -421,6 +421,7 @@ class RawFileQueryResource(Resource):
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, _raw_file_from_query_parser.parse_args())
+        search_request.include('calc_id', 'upload_id', 'mainfile')
 
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])
