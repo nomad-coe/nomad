@@ -274,7 +274,7 @@ Domain(
             order_default=True),
         atoms=DomainQuantity(
             'The atom labels of all atoms in the simulated system.',
-            aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
+            aggregations=len(ase.data.chemical_symbols), multi=True),
         only_atoms=DomainQuantity(
             'The atom labels concatenated in species-number order. Used with keyword search '
             'to facilitate exclusive searches.',
