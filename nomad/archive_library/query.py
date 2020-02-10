@@ -25,6 +25,7 @@ for c in metainfo.calcs:
 
 import requests
 import os.path
+from urllib.parse import urlparse
 
 from nomad import config as nomad_config
 from nomad.archive_library.metainfo import ArchiveMetainfo
@@ -48,7 +49,7 @@ class ArchiveQuery:
             self._archive_schema = [self._archive_schema]
         self._max_n_pages = self._query_params.pop('max_n_pages', 100000)
         self._authentication = self._query_params.pop('authentication', None)
-        self._url = self._query_params.pop('rul', None)
+        self._url = self._query_params.pop('url', None)
         self._user = self._query_params.pop('user', None)
         self._password = self._query_params.pop('password', None)
         if self._url:
@@ -81,7 +82,9 @@ class ArchiveQuery:
 
     def _get_authentication(self):
         if self._authentication is None:
+            host = urlparse(nomad_config.client.url).netloc.split(':')[0]
             self._authentication = KeycloakAuthenticator(
+                host=host,
                 user=nomad_config.client.user,
                 password=nomad_config.client.password,
                 server_url=nomad_config.keycloak.server_external_url,
