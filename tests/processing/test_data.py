@@ -90,7 +90,13 @@ def assert_processing(upload: Upload, published: bool = False):
         assert 'section_entry_info' in archive
 
         with upload_files.archive_log_file(calc.calc_id, 'rt') as f:
-            assert 'a test' in f.read()
+            has_test_event = False
+            for line in f.readlines():
+                log_data = json.loads(line)
+                for key in ['event', 'calc_id', 'level']:
+                    key in log_data
+                has_test_event = has_test_event or log_data['event'] == 'a test log entry'
+            assert has_test_event
         assert len(calc.errors) == 0
 
         with upload_files.raw_file(calc.mainfile) as f:
@@ -219,7 +225,7 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
 
     if not with_failure:
         with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-            old_log_line = f.readline()
+            old_log_lines = f.readlines()
     old_archive_files = list(
         archive_file
         for archive_file in os.listdir(published.upload_files.os_path)
@@ -266,8 +272,8 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     # assert changed archive log files
     if not with_failure:
         with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-            new_log_line = f.readline()
-        assert old_log_line != new_log_line
+            new_log_lines = f.readlines()
+        assert old_log_lines != new_log_lines
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(upload, PublicUploadFiles, published=True)

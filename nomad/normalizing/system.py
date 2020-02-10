@@ -307,10 +307,9 @@ class SystemNormalizer(SystemBasedNormalizer):
         Args:
             atoms: The atomistic structure to analyze.
         """
-        # Try to use MatID's symmetry analyzer to analyze the ASE object.
-        # TODO: dts, find out what the symmetry_tol does.
+        # Try to use Matid's symmetry analyzer to analyze the ASE object.
         try:
-            symm = SymmetryAnalyzer(atoms, config.normalize.symmetry_tolerance)
+            symm = SymmetryAnalyzer(atoms, symmetry_tol=config.normalize.symmetry_tolerance)
 
             space_group_number = symm.get_space_group_number()
 

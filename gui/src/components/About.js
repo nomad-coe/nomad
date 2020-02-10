@@ -85,8 +85,8 @@ class About extends React.Component {
           ` : ''}
 
           ### About this version
-          - version (API): \`${info ? info.version : 'loading'}/${info ? info.release : 'loading'}\`
-          - version (GUI): \`${packageJson.version}\`
+          - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`
+          - version (GUI): \`${packageJson.version}/${packageJson.commit}\`
           - domain: ${info ? info.domain.name : 'loading'}
           - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
           - last commit message: *${info ? info.git.log : 'loading'}*

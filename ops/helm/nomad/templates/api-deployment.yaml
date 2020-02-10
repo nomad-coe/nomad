@@ -38,19 +38,22 @@ data:
     args=(sys.stdout, )
 
     [handler_access]
-    class=StreamHandler
-    formatter=generic
-    args=(sys.stdout, )
+    class=logstash.TCPLogstashHandler
+    formatter=json
+    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
 
     [handler_error]
-    class=StreamHandler
-    formatter=generic
-    args=(sys.stdout, )
+    class=logstash.TCPLogstashHandler
+    formatter=json
+    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
 
     [formatter_generic]
     format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
     datefmt=%Y-%m-%d %H:%M:%S
     class=logging.Formatter
+
+    [formatter_json]
+    class=pythonjsonlogger.jsonlogger.JsonFormatter
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -65,8 +68,8 @@ data:
   gunicorn.conf: |
     secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
     {{ if ne .Values.app.workerClass "sync" }}
-        worker_class = '{{ .Values.app.workerClass }}'
-        threads = {{ .Values.app.threads }}
+    worker_class = '{{ .Values.app.workerClass }}'
+    threads = {{ .Values.app.threads }}
     {{ end }}
     worker_connections = 1000
     workers = {{ .Values.app.worker }}

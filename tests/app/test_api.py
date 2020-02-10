@@ -25,7 +25,7 @@ from urllib.parse import urlencode
 import base64
 import itertools
 
-from nomad.app.utils import rfc3339DateTime
+from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
@@ -1078,6 +1078,14 @@ class TestRepo():
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
+    def test_label(self, api, non_empty_processed, test_user_auth):
+        rv = api.get(
+            '/repo/?%s' % urlencode(dict(owner='all', label=['oxide', 'metal']), doseq=True),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] > 0
+
     def test_get_code_from_query(self, api, example_elastic_calcs, test_user_auth):
         rv = api.get('/repo/?code_name=VASP', headers=test_user_auth)
         assert rv.status_code == 200
@@ -1596,7 +1604,6 @@ class TestMirror:
         data = json.loads(rv.data)
         assert data['upload_id'] == published.upload_id
         assert json.loads(data['upload'])['_id'] == published.upload_id
-        assert Upload.from_json(data['upload']).upload_id == published.upload_id
         assert len(data['calcs']) == len(published.calcs)
         assert data['upload_files_path'] == published.upload_files.os_path
 

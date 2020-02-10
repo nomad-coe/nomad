@@ -253,7 +253,7 @@ def test_aflow_prototypes():
     assert prototype_aflow_id == "AB_cF8_225_a_b"
 
     # Zincblende
-    zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42)
+    zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42, cubic=True)
     backend = run_normalize_for_structure(zincblende)
     prototype_aflow_id = backend.get_value("prototype_aflow_id")
     assert prototype_aflow_id == "AB_cF8_216_c_a"

@@ -1,10 +1,10 @@
 const fs = require('fs')
 const packageJson = require('./package.json')
 
-const appVersion = packageJson.version
+const appCommit = packageJson.commit
 
 const jsonData = {
-  version: appVersion
+  commit: appCommit
 }
 
 var jsonContent = JSON.stringify(jsonData)

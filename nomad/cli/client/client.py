@@ -15,13 +15,40 @@
 import sys
 import requests
 import click
-from bravado.requests_client import RequestsClient
+from bravado.requests_client import RequestsClient, Authenticator
 from bravado.client import SwaggerClient
 from urllib.parse import urlparse
+from keycloak import KeycloakOpenID
+from time import time
 
 from nomad import config as nomad_config
 from nomad import utils
 from nomad.cli.cli import cli
+
+
+class KeycloakAuthenticator(Authenticator):
+    def __init__(self, host, user, password, **kwargs):
+        super().__init__(host=host)
+        self.user = user
+        self.password = password
+        self.token = None
+        self.__oidc = KeycloakOpenID(**kwargs)
+
+    def apply(self, request):
+        if self.token is None:
+            self.token = self.__oidc.token(username=self.user, password=self.password)
+            self.token['time'] = time()
+        elif self.token['expires_in'] < int(time()) - self.token['time'] + 10:
+            try:
+                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
+                self.token['time'] = time()
+            except Exception:
+                self.token = self.__oidc.token(username=self.user, password=self.password)
+                self.token['time'] = time()
+
+        request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
+
+        return request
 
 
 def create_client():
@@ -37,8 +64,6 @@ def __create_client(
         password: str = nomad_config.client.password,
         ssl_verify: bool = True, use_token: bool = True):
     """ A factory method to create the client. """
-    host = urlparse(nomad_config.client.url).netloc.split(':')[0]
-
     if not ssl_verify:
         import warnings
         warnings.filterwarnings("ignore")
@@ -52,11 +77,21 @@ def __create_client(
     utils.get_logger(__name__).info('created bravado client', user=user)
 
     if user is not None:
-        http_client.set_basic_auth(host, user, password)
+        host = urlparse(nomad_config.client.url).netloc.split(':')[0]
         if use_token:
-            token = client.auth.get_auth().response().result.access_token
-            http_client.set_api_key(
-                host, 'Bearer %s' % token, param_name='Authorization', param_in='header')
+            http_client.authenticator = KeycloakAuthenticator(
+                host=host,
+                user=user,
+                password=password,
+                server_url=nomad_config.keycloak.server_external_url,
+                realm_name=nomad_config.keycloak.realm_name,
+                client_id=nomad_config.keycloak.public_client_id)
+        else:
+            http_client.set_basic_auth(
+                host=host,
+                username=user,
+                password=password)
+
         utils.get_logger(__name__).info('set bravado client authentication', user=user)
 
     return client
