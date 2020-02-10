@@ -17,6 +17,7 @@ from math import gcd as gcd
 from functools import reduce
 from abc import abstractmethod
 from collections import OrderedDict
+import re
 import json
 import ase
 import ase.data
@@ -549,26 +550,29 @@ class StructureBulk(Structure):
         # Only relevant information hidden in "notes" is handed over TODO:
         # review and eventually add more ****ites which are commonly used
         # (see wurzite)
-        if notes in {
-           'perovskite',
-           '4-member ring',
-           'fct',
-           'bct',
-           'bct5',
-           'wurtzite',
-           'hcp',
-           'half-Heusler',
-           'zincblende',
-           'cubic perovskite',
-           'simple cubic',
-           'clathrate',
-           'cuprite',
-           'Heusler',
-           'rock salt',
-           'fcc',
-           'diamond',
-           'bcc'}:
-            material.structure_type = notes
+        note_map = {
+            "CaTiO<sub>3</sub> Pnma Perovskite Structure": "perovskite",
+            "Hypothetical Tetrahedrally Bonded Carbon with 4&ndash;Member Rings": "4-member ring",
+            "In (A6) Structure": "fct",
+            "$\\alpha$&ndash;Pa (A<sub>a</sub>) Structure": "bct",
+            "Hypothetical BCT5 Si Structure": "bct5",
+            "Wurtzite (ZnS, B4) Structure": "wurtzite",
+            "Hexagonal Close Packed (Mg, A3) Structure": "hcp",
+            "Half&ndash;Heusler (C1<sub>b</sub>) Structure": "half-Heusler",
+            "Zincblende (ZnS, B3) Structure": "zincblende",
+            "Cubic Perovskite (CaTiO<sub>3</sub>, E2<sub>1</sub>) Structure": "cubic perovskite",
+            "$\\alpha$&ndash;Po (A<sub>h</sub>) Structure": "simple cubic",
+            "Si<sub>46</sub> Clathrate Structure": "clathrate",
+            "Cuprite (Cu<sub>2</sub>O, C3) Structure": "cuprite",
+            "Heusler (L2<sub>1</sub>) Structure": "Heusler",
+            "Rock Salt (NaCl, B1) Structure": "rock salt",
+            "Face&ndash;Centered Cubic (Cu, A1) Structure": "fcc",
+            "Diamond (A4) Structure": "diamond",
+            "Body&ndash;Centered Cubic (W, A2) Structure": "bcc",
+        }
+        enc_note = note_map.get(notes, None)
+        if enc_note is not None:
+            material.structure_type = enc_note
 
     def structure_prototype(self, material: Material, section_system) -> None:
         try:
@@ -586,6 +590,8 @@ class StructureBulk(Structure):
         except Exception:
             return
 
+        # In the current GUI we replace LaTeX with plain text
+        strukturbericht = re.sub('[$_{}]', '', strukturbericht)
         material.strukturbericht_designation = strukturbericht
 
     def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
