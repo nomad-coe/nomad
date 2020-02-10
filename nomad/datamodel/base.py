@@ -193,8 +193,6 @@ class DomainQuantity:
             0 (the default) means no aggregations.
         metric: Indicates that this quantity should be used as search metric. Values need
             to be tuples with metric name and elastic aggregation (e.g. sum, cardinality)
-        zero_aggs: Return aggregation values for values with zero hits in the search. Default
-            is with zero aggregations.
         elastic_mapping: An optional elasticsearch_dsl mapping. Default is ``Keyword``.
         elastic_search_type: An optional elasticsearch search type. Default is ``term``.
         elastic_field: An optional elasticsearch key. Default is the name of the quantity.
@@ -206,8 +204,7 @@ class DomainQuantity:
     def __init__(
             self, description: str = None, multi: bool = False, aggregations: int = 0,
             order_default: bool = False, metric: Tuple[str, str] = None,
-            zero_aggs: bool = True, metadata_field: str = None,
-            elastic_mapping: type = None,
+            metadata_field: str = None, elastic_mapping: type = None,
             elastic_search_type: str = 'term', elastic_field: str = None,
             elastic_value: Callable[[Any], Any] = None,
             argparse_action: str = 'append'):
@@ -218,7 +215,6 @@ class DomainQuantity:
         self.order_default = order_default
         self.aggregations = aggregations
         self.metric = metric
-        self.zero_aggs = zero_aggs
         self.elastic_mapping = elastic_mapping
         self.elastic_search_type = elastic_search_type
         self.metadata_field = metadata_field
