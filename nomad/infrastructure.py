@@ -55,7 +55,6 @@ def setup():
     Will create client instances for the databases and has to be called before they
     can be used.
     """
-    global elastic_client
     setup_logging()
     setup_mongo()
     setup_elastic()
