@@ -199,14 +199,18 @@ class ArchiveFileDB:
             key = os.path.basename(data)
             if data.endswith('json'):
                 key = key.split('.')[0]
-                self._data[key] = json.load(open(data))
+                val = json.load(open(data))
+                if val:
+                    self._data[key] = val
             else:
                 key = key.replace('.', '_')
-                self._data[key] = open(data).read()
+                val = open(data).read()
+                if val:
+                    self._data[key] = val
         elif isinstance(data, dict):
-            key = list(data.keys())
-            assert len(key) == 1
-            self._data[key[-1]] = data[key[-1]]
+            for key, val in data.items():
+                if val:
+                    self._data[key] = val
         elif isinstance(data, list):
             for i in range(len(data)):
                 self.add_data(data[i])
@@ -237,8 +241,11 @@ class ArchiveFileDB:
         The database consists of the list of the fragmented data
         and the list of footers such as the ids of the data.
         """
+        # data to be added in memory
         data = self._data
+        # segment the data, each entry is a dict with 'path' and 'data' values
         entries = self._fragment_json(data)
+
         # save the data in a separate list everytime function is called
         # last list reserved for IDs
         if '+' in self._mode:
@@ -253,6 +260,7 @@ class ArchiveFileDB:
             last_index += len(data_to_write[i]) / 2
         last_index = int(last_index)
 
+        # add data in list, second to the last
         for i in range(len(entries)):
             sep = '%s_%d' % (self._sep, i + last_index)
             data_to_write[-2].append(sep)
@@ -265,6 +273,8 @@ class ArchiveFileDB:
             hi = data_to_write[-1].index(sep.encode()) + 1
             head = data_to_write[-1][hi]
             data_to_write[-1] = []
+
+        # add fragmentation info
         sep = '%s_MAX_LFRAGMENT' % (self._sep)
         data_to_write[-1].append(sep)
         data_to_write[-1].append(self.max_lfragment)
@@ -273,7 +283,8 @@ class ArchiveFileDB:
         for i in range(len(entries)):
             sep = '%s_%d' % (self._sep, i + last_index)
             index = data_str.index(sep.encode(), start_index) + len(sep)
-            head[entries[i]['path']] = index
+            pre_index = head.get(('%s' % entries[i]['path']).encode(), [])
+            head[(entries[i]['path']).encode()] = pre_index + [index]
             start_index = index
         sep = '%s_IDS' % (self._sep)
         data_to_write[-1].append(sep)
@@ -330,6 +341,8 @@ class ArchiveFileDB:
 
     @staticmethod
     def merge_dict(dict0, dict1):
+        if not isinstance(dict1, dict) or not isinstance(dict0, dict):
+            return
         for k, v in dict1.items():
             if k in dict0:
                 ArchiveFileDB.merge_dict(dict0[k], v)
@@ -350,6 +363,7 @@ class ArchiveFileDB:
         self._mode = m
         if self._fileobj and not isinstance(self._fileobj, BytesIO):
             self._fileobj.close()
+            self._fileobj = None
 
     @property
     def fileobj(self):
@@ -365,7 +379,6 @@ class ArchiveFileDB:
             offset: str to indicate the offset for unpacking the
                 msgpack file or a string corresponding to the id of the entry
         """
-        unpacker = msgpack.Unpacker(self.fileobj, raw=False)
         if isinstance(offset, str):
             self.fileobj.seek(0)
             sep = '%s_%s' % (self._sep, offset)
@@ -374,6 +387,7 @@ class ArchiveFileDB:
                 return
             offset += len(sep)
         self.fileobj.seek(offset)
+        unpacker = msgpack.Unpacker(self.fileobj, raw=False)
         res = unpacker.unpack()
         return res
 
@@ -383,13 +397,10 @@ class ArchiveFileDB:
             self._ids = self.get_docs('IDS')
         return self._ids
 
-    def _query(self, path_str):
-        if path_str not in self.ids:
-            return
-        path_index = self.ids[path_str]
+    def _query_path(self, path_str, path_index):
         data = self.get_docs(path_index)
-        entry = ArchiveFileDB.to_nested_dict(path_str)
         if isinstance(data, dict):
+            entry = ArchiveFileDB.to_nested_dict(path_str)
             data = ArchiveFileDB.append_data(entry, list(data.values())[0])
             return data
         elif isinstance(data, list):
@@ -397,6 +408,18 @@ class ArchiveFileDB:
             for p in data:
                 d = ArchiveFileDB.merge_dict(d, self._query(p))
             return d
+
+    def _query(self, path_str):
+        if path_str not in self.ids:
+            return
+        path_indexes = self.ids[path_str]
+        if isinstance(path_indexes, int):
+            path_indexes = [path_indexes]
+        data = {}
+        for path_index in path_indexes:
+            datai = self._query_path(path_str, path_index)
+            data = ArchiveFileDB.merge_dict(data, datai)
+        return data
 
     def query(self, entries, dtype='dict'):
         """
