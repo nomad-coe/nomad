@@ -207,6 +207,8 @@ class Api {
     this.onStartLoading = () => null
     this.onFinishLoading = () => null
 
+    this.statistics = {}
+
     this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
 
@@ -384,9 +386,34 @@ class Api {
   async search(search) {
     this.onStartLoading()
     return this.swagger()
-      .then(client => client.apis.repo.search(search))
+      .then(client => client.apis.repo.search({
+        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        ...search}))
       .catch(handleApiError)
       .then(response => response.body)
+      .then(response => {
+        // fill absent statistics values with values from prior searches
+        // this helps to keep consistent values, e.g. in the metadata search view
+        if (response.statistics) {
+          const empty = {}
+          Object.keys(response.statistics.total.all).forEach(metric => empty[metric] = 0)
+          Object.keys(response.statistics)
+            .filter(key => !['total', 'authors', 'atoms'].includes(key))
+            .forEach(key => {
+              if (!this.statistics[key]) {
+                this.statistics[key] = new Set()
+              }
+              const values = this.statistics[key]
+              Object.keys(response.statistics[key]).forEach(value => values.add(value))
+              values.forEach(value => {
+                if (!response.statistics[key][value]) {
+                  response.statistics[key][value] = empty
+                }
+              })
+            })
+        }
+        return response
+      })
       .finally(this.onFinishLoading)
   }
 

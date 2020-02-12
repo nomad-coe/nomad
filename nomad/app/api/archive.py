@@ -147,6 +147,7 @@ class ArchiveDownloadResource(Resource):
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
+        search_request.include('calc_id', 'upload_id', 'mainfile')
 
         calcs = search_request.execute_scan(
             order_by='upload_id',
@@ -273,6 +274,7 @@ class ArchiveQueryResource(Resource):
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
+        search_request.include('calc_id', 'upload_id', 'mainfile')
 
         try:
             if scroll:

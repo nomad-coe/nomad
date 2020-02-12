@@ -18,7 +18,7 @@ DFT specific metadata
 
 from typing import List
 import re
-from elasticsearch_dsl import Integer, Object, InnerDoc
+from elasticsearch_dsl import Integer, Object, InnerDoc, Keyword
 import ase.data
 
 from nomadcore.local_backend import ParserEvent
@@ -82,9 +82,15 @@ class Label(MSection):
 
     m_def = Section(a_elastic=dict(type=InnerDoc))
 
-    label = Quantity(type=str)
-    type = Quantity(type=MEnum('compound_class', 'classification', 'prototype', 'prototype_id'))
-    source = Quantity(type=MEnum('springer', 'aflow_prototype_library'))
+    label = Quantity(type=str, a_elastic=dict(type=Keyword))
+
+    type = Quantity(type=MEnum(
+        'compound_class', 'classification', 'prototype', 'prototype_id'),
+        a_elastic=dict(type=Keyword))
+
+    source = Quantity(
+        type=MEnum('springer', 'aflow_prototype_library'),
+        a_elastic=dict(type=Keyword))
 
 
 ESLabel = elastic_mapping(Label.m_def, InnerDoc)
@@ -253,6 +259,13 @@ def only_atoms(atoms):
     return ''.join(only_atoms)
 
 
+def _elastic_label_value(label):
+    if isinstance(label, str):
+        return label
+    else:
+        return elastic_obj(label, ESLabel)
+
+
 Domain(
     'DFT', DFTCalcWithMetadata,
     quantities=dict(
@@ -261,7 +274,7 @@ Domain(
             order_default=True),
         atoms=DomainQuantity(
             'The atom labels of all atoms in the simulated system.',
-            aggregations=len(ase.data.chemical_symbols), multi=True, zero_aggs=False),
+            aggregations=len(ase.data.chemical_symbols), multi=True),
         only_atoms=DomainQuantity(
             'The atom labels concatenated in species-number order. Used with keyword search '
             'to facilitate exclusive searches.',
@@ -304,7 +317,7 @@ Domain(
             'Search based for springer classification and aflow prototypes',
             elastic_field='labels.label',
             elastic_mapping=Object(ESLabel),
-            elastic_value=lambda labels: [elastic_obj(label, ESLabel) for label in labels],
+            elastic_value=lambda labels: [_elastic_label_value(label) for label in labels],
             multi=True),
         optimade=DomainQuantity(
             'Search based on optimade\'s filter query language',
