@@ -299,6 +299,9 @@ class Domain:
             multi=True, argparse_action='split', elastic_search_type='terms'),
         upload_time=DomainQuantity(
             description='Search for the exact upload time.', elastic_search_type='terms'),
+        upload_name=DomainQuantity(
+            description='Search for the upload_name.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
         calc_id=DomainQuantity(
             description='Search for the calc_id.',
             multi=True, argparse_action='split', elastic_search_type='terms'),
