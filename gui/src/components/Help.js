@@ -3,6 +3,8 @@ import { withStyles, Button, IconButton, Dialog, DialogTitle, DialogContent, Dia
 import Markdown from './Markdown'
 import PropTypes from 'prop-types'
 import HelpIcon from '@material-ui/icons/Help'
+import { compose } from 'recompose'
+import { withDomain } from './domains'
 
 export const HelpContext = React.createContext()
 
@@ -10,9 +12,10 @@ class HelpDialogUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     title: PropTypes.string,
-    content: PropTypes.string.isRequired,
+    content: PropTypes.func.isRequired,
     icon: PropTypes.node,
-    maxWidth: PropTypes.string
+    maxWidth: PropTypes.string,
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -38,7 +41,7 @@ class HelpDialogUnstyled extends React.Component {
   }
 
   render() {
-    const {classes, title, content, icon, maxWidth, ...rest} = this.props
+    const {classes, title, content, icon, maxWidth, domain, ...rest} = this.props
     return (
       <div className={classes.root}>
         <Tooltip title={title}>
@@ -53,7 +56,7 @@ class HelpDialogUnstyled extends React.Component {
         >
           <DialogTitle>{title || 'Help'}</DialogTitle>
           <DialogContent>
-            <Markdown>{content}</Markdown>
+            <Markdown>{content(domain)}</Markdown>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => this.handleClose()} color="primary">
@@ -66,4 +69,4 @@ class HelpDialogUnstyled extends React.Component {
   }
 }
 
-export default withStyles(HelpDialogUnstyled.styles)(HelpDialogUnstyled)
+export default compose(withDomain, withStyles(HelpDialogUnstyled.styles))(HelpDialogUnstyled)

@@ -3,7 +3,7 @@ import { withApi } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
 
-export const help = `
+export const help = domain => `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
 *search page*, but it will only show data that was uploaded by you or is shared with you.
 
