@@ -461,6 +461,9 @@ class NomadCeleryRequest(Request):
 
     def on_failure(self, exc_info, send_failed_event=True, return_ok=False):
         if isinstance(exc_info.exception, WorkerLostError):
+            infrastructure.setup()
+            utils.get_logger(__name__).error(
+                'detected WorkerLostError', exc_info=exc_info.exception)
             self._fail(
                 'task failed due to worker lost: %s' % str(exc_info.exception),
                 exc_info=exc_info)
