@@ -496,15 +496,15 @@ class StagingUploadFiles(UploadFiles):
 
         # zip archives
         if not skip_archive:
-            self._pack_archive_files(upload, create_zipfile)
-            self._pack_archive_files(upload, create_msgfile)
-        self.logger.info('packed archives')
+            with utils.timer(self.logger, 'packed zip json archive'):
+                self._pack_archive_files(upload, create_zipfile)
+            with utils.timer(self.logger, 'packed msgpack archive'):
+                self._pack_archive_files(upload, create_msgfile)
 
         # zip raw files
         if not skip_raw:
-            self._pack_raw_files(upload, create_zipfile)
-
-        self.logger.info('packed raw files')
+            with utils.timer(self.logger, 'packed raw files'):
+                self._pack_raw_files(upload, create_zipfile)
 
     def _pack_archive_files(self, upload: UploadWithMetadata, create_zipfile):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
