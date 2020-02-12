@@ -308,7 +308,7 @@ class UploadPage extends React.Component {
             </Tooltip>
             {/* <button>Copy to clipboard with button</button> */}
           </CopyToClipboard>
-          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
+          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={domain => `
             As an experienced shell and *curl* user, you can modify the commands to
             your liking.
 
