@@ -35,10 +35,10 @@ To query the database,
     db.query({'idX':{'sectionX':{'propertyX':None}}})
     db.close()
 """
-
 import msgpack
 import json
 import os
+import re
 from io import StringIO, BufferedWriter, BufferedReader, BytesIO
 
 
@@ -52,7 +52,30 @@ class JSONdata:
         data: The json data to be queried
     """
     def __init__(self, data):
-        self.data = data
+        self.data = self._merge_list(data)
+
+    def _merge_list(self, data):
+        if not isinstance(data, dict):
+            return data
+        merged = {}
+        main_keys = []
+        for key, val in data.items():
+            bracket = key.find('[')
+            val = self._merge_list(val)
+            if bracket > 0:
+                index = key[bracket + 1:]
+                index = int(index.strip().rstrip(']'))
+                main_key = key[:bracket]
+                if main_key not in merged:
+                    main_keys.append(main_key)
+                    merged[main_key] = {}
+                merged[main_key][index] = val
+            else:
+                merged[key] = val
+
+        for key in main_keys:
+            merged[key] = [merged[key][n] for n in sorted(merged[key].keys())]
+        return merged
 
     def _get_index(self, str_index, nval_ref):
         str_index = str_index.strip().lstrip('[').rstrip(']')
@@ -82,8 +105,8 @@ class JSONdata:
             return ref
 
         for key, val in entry.items():
-            bracket = key.find('[')
             index = None
+            bracket = key.find('[')
             if bracket > 0:
                 str_index = key[bracket:]
                 key = key[:bracket]
@@ -99,6 +122,8 @@ class JSONdata:
                     out_data[key] = [self.get_data(val, ref[key][n]) for n in index]
                 except Exception:
                     continue
+
+        out_data = self._merge_list(out_data)
 
         return out_data
 
@@ -149,17 +174,30 @@ class ArchiveFileDB:
         return self._max_lfragment
 
     def _fragment_json(self, data, key='', cur_lfragment=0):
-        if cur_lfragment >= self.max_lfragment or not isinstance(data, dict):
-            return [dict(path=key, data={os.path.basename(key): data})]
-        res = []
-        cur_lfragment += 1
-        main = dict(path=key, data=[])
-        for k, v in data.items():
-            p = os.path.join(key, k)
-            res += self._fragment_json(v, p, cur_lfragment)
-            main['data'].append(p)
-        res += [main]
-        return res
+        if cur_lfragment >= self.max_lfragment:
+            pass
+        elif isinstance(data, list):
+            res = []
+            main = dict(path=key, data=[])
+            for i in range(len(data)):
+                if not isinstance(data[i], dict):
+                    break
+                p = '%s[%d]' % (key, i)
+                res += self._fragment_json(data[i], p, cur_lfragment)
+                main['data'].append(p)
+            res += [main]
+            return res
+        elif isinstance(data, dict):
+            res = []
+            cur_lfragment += 1
+            main = dict(path=key, data=[])
+            for k, v in data.items():
+                p = os.path.join(key, k)
+                res += self._fragment_json(v, p, cur_lfragment)
+                main['data'].append(p)
+            res += [main]
+            return res
+        return [dict(path=key, data={os.path.basename(key): data})]
 
     def write(self, abspath, relpath):
         """
@@ -298,11 +336,9 @@ class ArchiveFileDB:
             return entry
         cur_lfragment += 1
         if cur_lfragment > self.max_lfragment:
-            return
+            return _PLACEHOLDER
         new_dict = {}
         for key, val in entry.items():
-            if '[' in key and ']' in key:
-                key = key.split('[')[0]
             v = self._reduce_to_section(val, cur_lfragment)
             new_dict[key] = v
         return new_dict
@@ -342,10 +378,10 @@ class ArchiveFileDB:
     @staticmethod
     def merge_dict(dict0, dict1):
         if not isinstance(dict1, dict) or not isinstance(dict0, dict):
-            return
+            return dict1
         for k, v in dict1.items():
             if k in dict0:
-                ArchiveFileDB.merge_dict(dict0[k], v)
+                dict0[k] = ArchiveFileDB.merge_dict(dict0[k], v)
             else:
                 dict0[k] = v
         return dict0
@@ -410,12 +446,21 @@ class ArchiveFileDB:
             return d
 
     def _query(self, path_str):
-        if path_str not in self.ids:
+        data = {}
+        if "[:]" in path_str:
+            # if path_str contains a wildcard, get all
+            path_re = path_str.replace('[:]', '...')
+            for path in self.ids:
+                if not re.search(path_re, path):
+                    continue
+                data = ArchiveFileDB.merge_dict(data, self._query(path))
+            return data
+        else:
+            path_indexes = self.ids.get(path_str, [])
+        if len(path_indexes) == 0:
             return
-        path_indexes = self.ids[path_str]
         if isinstance(path_indexes, int):
             path_indexes = [path_indexes]
-        data = {}
         for path_index in path_indexes:
             datai = self._query_path(path_str, path_index)
             data = ArchiveFileDB.merge_dict(data, datai)
@@ -432,19 +477,19 @@ class ArchiveFileDB:
         """
         reduced_entries = self._reduce_to_section(entries)
         path_strs = ArchiveFileDB.to_list_path_str(reduced_entries, root='', paths=[])
-        data = {}
+        data_to_query = {}
         for path_str in path_strs:
-            d = self._query(path_str)
-            if d:
-                data.update(d)
-        res = {}
-        if data:
-            jdata = JSONdata(data)
-            res = jdata.get_data(entries)
+            data_entry = self._query(path_str)
+            if data_entry:
+                data_to_query = ArchiveFileDB.merge_dict(data_to_query, data_entry)
+        result = {}
+        if data_to_query:
+            jdata = JSONdata(data_to_query)
+            result = jdata.get_data(entries)
         if dtype == 'file':
-            res = StringIO(json.dumps(res, indent=4))
+            result = StringIO(json.dumps(result, indent=4))
         elif dtype == 'string':
-            res = json.dumps(res)
+            result = json.dumps(result)
         else:
             pass
-        return res
+        return result
