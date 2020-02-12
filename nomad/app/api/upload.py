@@ -315,7 +315,7 @@ class UploadListResource(Resource):
         upload.process_upload()
         logger.info('initiated processing')
 
-        if bool(request.args.get('token', False)):
+        if bool(request.args.get('token', False)) and request.headers.get('Accept', '') != 'application/json':
             raise DisableMarshalling(
                 '''
 Thanks for uploading your data to nomad.
