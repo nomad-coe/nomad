@@ -7,8 +7,9 @@ import { withApi } from '../api'
 import Search from './Search'
 import SearchContext from './SearchContext'
 import qs from 'qs'
+import { withDomain } from '../domains'
 
-export const help = `
+export const help = domain => `
 This page allows you to **search** in NOMAD's data. The upper part of this page
 gives you various options to enter and configure your search. The lower part
 shows all data that fulfills your search criteria.
@@ -28,6 +29,11 @@ visualization elements to filter for respective quantities.
 The visual representations show metrics for all data that fit your criteria.
 You can display *entries* (i.e. code runs), *unique entries*, and *datasets*.
 Other more specific metrics might be available.
+
+Some quantities have no autocompletion for their values. You can still search for them,
+if you know exactly what you are looking for. To search for a particular entry by its id
+for example, type \`calc_id=<the_id>\` and press entry (or select the respective item from the menu).
+The usable *hidden* quantities are: ${Object.keys(domain.additionalSearchKeys).map(key => `\`${key}\``).join(', ')}.
 
 The results tabs gives you a quick overview of all entries and datasets that fit your search.
 You can click entries to see more details, download data, see the archive, etc. The *entries*
@@ -53,7 +59,8 @@ class SearchPage extends React.Component {
     user: PropTypes.object,
     location: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
-    update: PropTypes.number
+    update: PropTypes.number,
+    domain: PropTypes.object
   }
 
   static styles = theme => ({
@@ -93,4 +100,4 @@ class SearchPage extends React.Component {
   }
 }
 
-export default compose(withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)
+export default compose(withDomain, withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)

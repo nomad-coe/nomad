@@ -35,8 +35,8 @@ __Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
 
 
-def fix_time(data):
-    for key in ['upload_time', 'last_processing']:
+def fix_time(data, keys):
+    for key in keys:
         time = data.get(key)
         if isinstance(time, int):
             data[key] = datetime.datetime.utcfromtimestamp(time)
@@ -301,7 +301,8 @@ def mirror(
             # create mongo
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
             for calc in upload_data.calcs:
-                fix_time(calc['metadata'])
+                fix_time(calc, ['create_time', 'complete_time'])
+                fix_time(calc['metadata'], ['upload_time', 'last_processing'])
             proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es

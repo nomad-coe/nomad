@@ -132,6 +132,10 @@ class DOI(Document):
                 status_code=response.status_code, body=response.content,
                 doi=self.doi)
 
+            return False
+        else:
+            return True
+
     def create_draft(self):
         if config.datacite.enabled:
             assert self.state == 'created', 'can only create a draft for created DOIs'
@@ -140,9 +144,9 @@ class DOI(Document):
                 headers={'Content-Type': 'application/xml;charset=UTF-8'},
                 data=self.metadata_xml, **_requests_args())
 
-            self.__handle_datacite_errors(response, 'create draft DOI')
-            self.state = 'draft'
-            self.save()
+            if self.__handle_datacite_errors(response, 'create draft DOI'):
+                self.state = 'draft'
+                self.save()
 
     def delete(self, *args, **kwargs):
         if config.datacite.enabled:
@@ -156,10 +160,11 @@ class DOI(Document):
     def make_findable(self):
         if config.datacite.enabled:
             assert self.state == 'draft', 'can only make drafts findable'
-            body = ('doi= %s\nurl= %s' % (self.doi, self.url)).encode('utf-8')
-            requests.post(
+            body = ('doi=%s\nurl=%s' % (self.doi, self.url)).encode('utf-8')
+            response = requests.put(
                 self.doi_url, **_requests_args(),
                 headers={'Content-Type': 'text/plain;charset=UTF-8'}, data=body)
 
-            self.state = 'findable'
-            self.save()
+            if self.__handle_datacite_errors(response, 'make DOI findable'):
+                self.state = 'findable'
+                self.save()

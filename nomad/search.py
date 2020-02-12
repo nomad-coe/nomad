@@ -440,10 +440,7 @@ class SearchRequest:
                 The basic doc_count metric ``code_runs`` is always given.
         """
         quantity = quantities[quantity_name]
-        min_doc_count = 0 if quantity.zero_aggs else 1
-        terms = A(
-            'terms', field=quantity.elastic_field, size=size, min_doc_count=min_doc_count,
-            order=dict(_key='asc'))
+        terms = A('terms', field=quantity.elastic_field, size=size, order=dict(_key='asc'))
 
         buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
         self._add_metrics(buckets, metrics_to_use)
