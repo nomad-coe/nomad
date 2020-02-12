@@ -502,5 +502,5 @@ class SystemNormalizer(SystemBasedNormalizer):
             self._backend.addValue("prototype_label", prototype_label)
             self._backend.addValue("prototype_aflow_id", aflow_prototype_id)
             self._backend.addValue("prototype_aflow_url", aflow_prototype_url)
-            self._backend.addValue("prototype_assignement_method", "normalized-wyckoff")
+            self._backend.addValue("prototype_assignment_method", "normalized-wyckoff")
             self._backend.closeSection("section_prototype", pSect)
