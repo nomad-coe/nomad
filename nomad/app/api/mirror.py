@@ -103,7 +103,9 @@ class MirrorUploadResource(Resource):
                     datasets[dataset] = _Dataset._get_collection().find_one(dict(_id=dataset))
                     doi = datasets[dataset].get('doi', None)
                     if doi is not None:
-                        dois[doi] = DOI._get_collection().find_one(dict(_id=doi))
+                        doi_obj = DOI._get_collection().find_one(dict(_id=doi))
+                        if doi_obj is not None:
+                            dois[doi] = doi_obj
 
         return {
             'upload_id': upload_id,
