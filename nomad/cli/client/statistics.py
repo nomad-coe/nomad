@@ -395,6 +395,8 @@ def statistics_table(html, geometries, public_path):
         + get_statistic(data_all, 'system', 'molecule / cluster', 'calculations')
 
     calculations_2d = get_statistic(data_all, 'system', '2D / surface', 'calculations')
+    calculations_2d += get_statistic(data_all, 'system', '2D', 'calculations')
+    calculations_2d += get_statistic(data_all, 'system', 'surface', 'calculations')
     calculations_3d = get_statistic(data_all, 'system', 'bulk', 'calculations')
 
     metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'quantities']).response().result
@@ -421,8 +423,8 @@ def statistics_table(html, geometries, public_path):
         out = process.stdout.decode('utf-8')
         if process.stderr is not None:
             err = process.stderr.decode('utf-8')
-            print('There is an error: %s' % str(err))
-        return out
+            print('There is an error: %s' % str(err.strip()))
+        return out.split('\t')[0].strip()
 
     archive_data = run_shell_command((
         'find %s -regex \'.*archive.*public.*zip\' '
@@ -449,8 +451,8 @@ def statistics_table(html, geometries, public_path):
             DOS: {:,.0f}
             Band structures: {:,.0f}
             Total parsed quantities: {:,.0f}
-            Public raw data: {}
-            Public archive data: {}
+            Public raw data: {}B
+            Public archive data: {}B
             Number of uploads: {}
         '''.format(
             entries,
