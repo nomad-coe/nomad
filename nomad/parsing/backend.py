@@ -450,6 +450,12 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
     def __getitem__(self, metaname):
         return self.data[metaname]
 
+    def get(self, metaname, default=None):
+        try:
+            return self.data[metaname]
+        except KeyError:
+            return default
+
     def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
         manager = self.sectionManagers[section_name]
         if index == -1:

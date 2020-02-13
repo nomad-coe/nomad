@@ -17,7 +17,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase } from '../../config'
 import qs from 'qs'
 
-export const help = `
+export const help = domain => `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
 identify the main output files of [supported codes](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-howtoupload)
 and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
@@ -308,7 +308,7 @@ class UploadPage extends React.Component {
             </Tooltip>
             {/* <button>Copy to clipboard with button</button> */}
           </CopyToClipboard>
-          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
+          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={domain => `
             As an experienced shell and *curl* user, you can modify the commands to
             your liking.
 

@@ -11,6 +11,14 @@ class Material(MSection):
         Section for storing the data that links this entry into a specific material.
         """
     )
+
+    # Material-specific
+    system_type = Quantity(
+        type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
+        description="""
+        "Character of physical system's geometry, e.g. bulk, surface... ",
+        """
+    )
     material_hash = Quantity(
         type=str,
         description="""
@@ -18,30 +26,10 @@ class Material(MSection):
         digest.
         """
     )
-    system_type = Quantity(
-        type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
-        description="""
-        "Character of physical system's geometry, e.g. bulk, surface... ",
-        """
-    )
     number_of_atoms = Quantity(
         type=int,
         description="""
         Number of atoms in the bravais cell."
-        """
-    )
-    atom_labels = Quantity(
-        type=str,
-        shape=['1..*'],
-        description="""
-        Type (element, species) of each atom,
-        """
-    )
-    atom_positions = Quantity(
-        type=np.dtype('f8'),
-        shape=['number_of_atoms', 3],
-        description="""
-        Position of each atom, given in relative coordinates.
         """
     )
     bravais_lattice = Quantity(
@@ -68,24 +56,6 @@ class Material(MSection):
         I = Body centered
         R = Rhombohedral centring
         F = All faces centred
-        """
-    )
-    cell_normalized = Quantity(
-        type=np.dtype('f8'),
-        shape=[3, 3],
-        description="""
-        Unit cell in normalized form, meaning the bravais cell. This cell is
-        representative and is idealized to match the detected symmetry
-        properties.
-        """
-    )
-    cell_primitive = Quantity(
-        type=np.dtype('f8'),
-        shape=[3, 3],
-        description="""
-        Definition of the primitive unit cell in a form to be visualized well
-        within the normalized cell. This cell is representative and is
-        idealized to match the detected symmemtry properties.
         """
     )
     crystal_system = Quantity(
@@ -176,6 +146,40 @@ class Material(MSection):
         Classification of the material according to the historically grown "strukturbericht".
         """
     )
+
+    # Calculation-specific
+    atom_labels = Quantity(
+        type=str,
+        shape=['1..*'],
+        description="""
+        Type (element, species) of each atom,
+        """
+    )
+    atom_positions = Quantity(
+        type=np.dtype('f8'),
+        shape=['number_of_atoms', 3],
+        description="""
+        Position of each atom, given in relative coordinates.
+        """
+    )
+    cell_normalized = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Unit cell in normalized form, meaning the bravais cell. This cell is
+        representative and is idealized to match the detected symmetry
+        properties.
+        """
+    )
+    cell_primitive = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Definition of the primitive unit cell in a form to be visualized well
+        within the normalized cell. This cell is representative and is
+        idealized to match the detected symmemtry properties.
+        """
+    )
     wyckoff_groups = Quantity(
         type=str,
         description="""
@@ -198,30 +202,6 @@ class Material(MSection):
             ]
         """
     )
-
-
-class Calculation(MSection):
-    m_def = Section(
-        a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
-        description="""
-        Section for storing data related to a calculation that is identified
-        from this entry.
-        """
-    )
-    atomic_density = Quantity(
-        type=float,
-        unit=units.m**(-3),
-        description="""
-        Atomic density of the material (atoms/volume)."
-        """
-    )
-    basis_set_type = Quantity(
-        type=MEnum("Numeric AOs", "Gaussians", "(L)APW+lo", "FLAPW (full-potential linearized augmented planewave)", "Plane waves", "Real-space grid", "Local-orbital minimum-basis"),
-        description="""
-        Basic type of the used basis set.
-        """
-    )
     cell_angles_string = Quantity(
         type=str,
         description="""
@@ -235,6 +215,39 @@ class Calculation(MSection):
         reported consistently after normalization. Thus it corresponds to the
         normalized cell that is idealized to fit the detected symmetry and may
         not perfectly correspond to the original simulation cell.
+        """
+    )
+    lattice_parameters = Quantity(
+        type=np.dtype('f8'),
+        shape=[6],
+        description="""
+        Lattice parameters of a specific calculation. The lattice parameters
+        can only be reported consistently after normalization. Thus they
+        correspond to the normalized cell that is idealized to fit the detected
+        symmetry and may not perfectly correspond to the original simulation
+        cell.
+        """
+    )
+
+
+class Method(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing Encyclopedia-specific method information.
+        """
+    )
+    method_type = Quantity(
+        type=str,
+        description="""
+        Generic name for the used methodology.
+        """
+    )
+    basis_set_type = Quantity(
+        type=MEnum("Numeric AOs", "Gaussians", "(L)APW+lo", "FLAPW (full-potential linearized augmented planewave)", "Plane waves", "Real-space grid", "Local-orbital minimum-basis"),
+        description="""
+        Basic type of the used basis set.
         """
     )
     code_name = Quantity(
@@ -265,30 +278,6 @@ class Calculation(MSection):
         type=str,
         description="""
         Basic type of the used exchange-correlation functional.
-        """
-    )
-    lattice_parameters = Quantity(
-        type=np.dtype('f8'),
-        shape=[6],
-        description="""
-        Lattice parameters of a specific calculation. The lattice parameters
-        can only be reported consistently after normalization. Thus they
-        correspond to the normalized cell that is idealized to fit the detected
-        symmetry and may not perfectly correspond to the original simulation
-        cell.
-        """
-    )
-    mainfile_uri = Quantity(
-        type=str,
-        description="""
-        Path of the main file.
-        """
-    )
-    mass_density = Quantity(
-        type=float,
-        unit=units.kg / units.m**3,
-        description="""
-        Mass density of the material based on the structural information.
         """
     )
     method_hash = Quantity(
@@ -327,20 +316,10 @@ class Calculation(MSection):
         Basic type of GW calculation.
         """
     )
-    run_type = Quantity(
-        type=MEnum(
-            single_point="single point",
-            geometry_optimization="geometry optimization",
-            molecular_dynamics="molecular dynamics",
-            phonon_calculation="phonon calculation",
-            elastic_constants="elastic constants",
-            qha_calculation="QHA calculation",
-            qw_calculation="GW calculation",
-            equation_of_state="equation of state",
-            parameter_variation="parameter variation",
-            unavailable="unavailable"),
+    settings_basis_set = Quantity(
+        type=str,
         description="""
-        Defines the type of run identified for this entry.
+        Basis set settings in JSON format.
         """
     )
     smearing_kind = Quantity(
@@ -357,11 +336,69 @@ class Calculation(MSection):
     )
 
 
+class RunType(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing Encyclopedia-specific run type information.
+        """
+    )
+    run_type = Quantity(
+        type=MEnum(
+            single_point="single point",
+            geometry_optimization="geometry optimization",
+            molecular_dynamics="molecular dynamics",
+            phonon_calculation="phonon calculation",
+            elastic_constants="elastic constants",
+            qha_calculation="QHA calculation",
+            gw_calculation="GW calculation",
+            equation_of_state="equation of state",
+            parameter_variation="parameter variation",
+            unavailable="unavailable"),
+        description="""
+        Defines the type of run identified for this entry.
+        """
+    )
+
+
+class Properties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing Encyclopedia-specific properties.
+        """
+    )
+    atomic_density = Quantity(
+        type=float,
+        unit=units.m**(-3),
+        description="""
+        Atomic density of the material (atoms/volume)."
+        """
+    )
+    mass_density = Quantity(
+        type=float,
+        unit=units.kg / units.m**3,
+        description="""
+        Mass density of the material based on the structural information.
+        """
+    )
+
+
 class Encyclopedia(MSection):
     m_def = Section(
         name="encyclopedia",
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc)
     )
+    mainfile_uri = Quantity(
+        type=str,
+        description="""
+        Path of the main file.
+        """
+    )
     material = SubSection(sub_section=Material.m_def, repeats=False)
-    calculation = SubSection(sub_section=Calculation.m_def, repeats=False)
+    method = SubSection(sub_section=Method.m_def, repeats=False)
+    properties = SubSection(sub_section=Properties.m_def, repeats=False)
+    run_type = SubSection(sub_section=RunType.m_def, repeats=False)

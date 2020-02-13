@@ -285,7 +285,7 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     if not with_failure:
         assert first_calc.metadata['atoms'][0] == 'H'
     else:
-        assert first_calc.metadata['atoms'][0] == 'Br'
+        assert first_calc.metadata['atoms'][0] == 'Si'
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

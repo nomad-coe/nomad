@@ -27,9 +27,10 @@ from matid import SymmetryAnalyzer
 import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Calculation
+from nomad.normalizing.settingsbasisset import SettingsBasisSet
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType
 from nomad.normalizing import structure
-from nomad.utils import hash
+from nomad.utils import hash, NumpyEncoder
 from nomad import config
 
 J_to_Ry = 4.587425e+17
@@ -63,11 +64,11 @@ class EncyclopediaNormalizer(Normalizer):
     def __init__(self, backend):
         super().__init__(backend)
 
-    def run_type(self, calculation) -> str:
+    def run_type(self, run_type_sec: RunType) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
         """
-        run_enums = Calculation.run_type.type
+        run_enums = RunType.run_type.type
         run_type = run_enums.unavailable
 
         try:
@@ -129,10 +130,10 @@ class EncyclopediaNormalizer(Normalizer):
             if sampling_method == "taylor_expansion":
                 run_type = run_enums.phonon_calculation
 
-        calculation.run_type = run_type
+        run_type_sec.run_type = run_type
         return run_type
 
-    def system_type(self, material: Material, calculation: Calculation) -> tuple:
+    def system_type(self, material: Material) -> tuple:
         # Try to fetch representative system
         system = None
         system_type = config.services.unavailable_value
@@ -155,7 +156,7 @@ class EncyclopediaNormalizer(Normalizer):
         material.system_type = system_type
         return system, system_type
 
-    def method_type(self) -> tuple:
+    def method_type(self, method: Method) -> tuple:
         repr_method = None
         method_id = config.services.unavailable_value
         methods = self._backend[s_method]
@@ -188,23 +189,24 @@ class EncyclopediaNormalizer(Normalizer):
                         if method_to_method_kind == "core_settings":
                             linked_methods.append(methods[method_to_method_ref])
 
-                    for method in linked_methods:
+                    for i_method in linked_methods:
                         try:
-                            electronic_structure_method = method["electronic_structure_method"]
+                            electronic_structure_method = i_method["electronic_structure_method"]
                         except KeyError:
                             pass
                         else:
                             repr_method = sec_method
                             method_id = electronic_structure_method
 
+        method.method_type = method_id
         return repr_method, method_id
 
-    def mainfile_uri(self, calculation: Calculation):
+    def mainfile_uri(self, encyclopedia: Encyclopedia):
         entry_info = self._backend["section_entry_info"][0]
         upload_id = entry_info["upload_id"]
         mainfile_path = entry_info["mainfile"]
         uri = f"nmd://R{upload_id}/data/{mainfile_path}"
-        calculation.mainfile_uri = uri
+        encyclopedia.mainfile_uri = uri
 
     # def similar_materials(self) -> None:
         # pass
@@ -234,22 +236,22 @@ class EncyclopediaNormalizer(Normalizer):
         # Fill structure related metainfo
         struct = None
         if ctx.system_type == Material.system_type.type.bulk:
-            struct = StructureBulk(self._backend, self.logger)
+            struct = MaterialBulkNormalizer(self._backend, self.logger)
         elif ctx.system_type == Material.system_type.type.two_d:
-            struct = Structure2D(self._backend, self.logger)
+            struct = Material2DNormalizer(self._backend, self.logger)
         elif ctx.system_type == Material.system_type.type.one_d:
-            struct = Structure1D(self._backend, self.logger)
+            struct = Material1DNormalizer(self._backend, self.logger)
         if struct is not None:
-            struct.fill(ctx)
+            struct.normalize(ctx)
 
         # Fill method related metainfo
         method = None
         if ctx.method_type == "DFT":
-            method = MethodDFT(self._backend, self.logger)
+            method = MethodDFTNormalizer(self._backend, self.logger)
         elif ctx.method_type in {"G0W0", "scGW"}:
-            method = MethodGW(self._backend, self.logger)
+            method = MethodGWNormalizer(self._backend, self.logger)
         if method is not None:
-            method.fill(ctx)
+            method.normalize(ctx)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -258,25 +260,27 @@ class EncyclopediaNormalizer(Normalizer):
         # Initialise metainfo structure
         sec_enc = Encyclopedia()
         material = sec_enc.m_create(Material)
-        calculation = sec_enc.m_create(Calculation)
+        method = sec_enc.m_create(Method)
+        sec_enc.m_create(Properties)
+        run_type = sec_enc.m_create(RunType)
 
         # Get generic data
-        self.mainfile_uri(calculation)
+        self.mainfile_uri(sec_enc)
 
         # Determine run type, stop if unknown
-        run_type = self.run_type(calculation)
-        if run_type == config.services.unavailable_value:
+        run_type_name = self.run_type(run_type)
+        if run_type_name == config.services.unavailable_value:
             self.logger.info("unknown run type for encyclopedia")
             return
 
         # Get the system type, stop if unknown
-        representative_system, system_type = self.system_type(material, calculation)
+        representative_system, system_type = self.system_type(material)
         if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
             self.logger.info("unknown system type for encyclopedia")
             return
 
         # Get the method type
-        representative_method, method_type = self.method_type()
+        representative_method, method_type = self.method_type(method)
 
         # Process all present properties
         # TODO
@@ -285,7 +289,7 @@ class EncyclopediaNormalizer(Normalizer):
         context = Context(
             system_type=system_type,
             method_type=method_type,
-            run_type=run_type,
+            run_type=run_type_name,
             representative_system=representative_system,
             representative_method=representative_method,
         )
@@ -295,7 +299,7 @@ class EncyclopediaNormalizer(Normalizer):
         self.fill(context)
 
 
-class Structure():
+class MaterialNormalizer():
     """A base class that is used for processing structure related information
     in the Encylopedia.
     """
@@ -317,8 +321,8 @@ class Structure():
     def cell_primitive(self, material: Material, std_atoms: ase.Atoms) -> None:
         pass
 
-    def cell_volume(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
-        calculation.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
+    def cell_volume(self, material: Material, std_atoms: ase.Atoms) -> None:
+        material.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
 
     def formula(self, material: Material, names: List[str], counts: List[int]) -> None:
         formula = structure.get_formula_string(names, counts)
@@ -340,17 +344,17 @@ class Structure():
         material.number_of_atoms = len(std_atoms)
 
     @abstractmethod
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         pass
 
 
-class StructureBulk(Structure):
+class MaterialBulkNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia bulk structures.
     """
-    def atomic_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+    def atomic_density(self, properties: Properties, repr_system: ase.Atoms) -> None:
         orig_n_atoms = len(repr_system)
         orig_volume = repr_system.get_volume() * (1e-10)**3
-        calculation.atomic_density = float(orig_n_atoms / orig_volume)
+        properties.atomic_density = float(orig_n_atoms / orig_volume)
 
     def bravais_lattice(self, material: Material, section_symmetry: Dict) -> None:
         bravais_lattice = section_symmetry["bravais_lattice"]
@@ -373,14 +377,14 @@ class StructureBulk(Structure):
         has_free_param = symmetry_analyzer.get_has_free_wyckoff_parameters()
         material.has_free_wyckoff_parameters = has_free_param
 
-    def lattice_parameters(self, calculation: Calculation, std_atoms: ase.Atoms) -> None:
-        cell_normalized = std_atoms.get_cell()
-        calculation.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
+    def lattice_parameters(self, material: Material, std_atoms: ase.Atoms) -> None:
+        cell_normalized = std_atoms.get_cell() * 1E-10
+        material.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
 
-    def mass_density(self, calculation: Calculation, repr_system: ase.Atoms) -> None:
+    def mass_density(self, properties: Properties, repr_system: ase.Atoms) -> None:
         mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
         orig_volume = repr_system.get_volume() * (1e-10)**3
-        calculation.mass_density = float(mass / orig_volume)
+        properties.mass_density = float(mass / orig_volume)
 
     def material_name(self, material: Material, symbols: list, numbers: list) -> None:
         # Systems with one element are named after it
@@ -610,12 +614,12 @@ class StructureBulk(Structure):
             wyckoff_list.append(data)
         material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
 
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         sec_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
-        calculation = sec_enc.calculation
+        properties = sec_enc.properties
         sec_symmetry = sec_system["section_symmetry"][0]
         symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
         std_atoms = symmetry_analyzer.get_conventional_system()
@@ -627,21 +631,21 @@ class StructureBulk(Structure):
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill structural information
-        self.mass_density(calculation, repr_atoms)
+        self.mass_density(properties, repr_atoms)
         self.material_hash(material, symmetry_analyzer)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
         self.atom_positions(material, std_atoms)
-        self.atomic_density(calculation, repr_atoms)
+        self.atomic_density(properties, repr_atoms)
         self.bravais_lattice(material, sec_symmetry)
         self.cell_normalized(material, std_atoms)
-        self.cell_volume(calculation, std_atoms)
+        self.cell_volume(material, std_atoms)
         self.crystal_system(material, sec_symmetry)
         self.cell_primitive(material, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
         self.has_free_wyckoff_parameters(material, symmetry_analyzer)
-        self.lattice_parameters(calculation, std_atoms)
+        self.lattice_parameters(material, std_atoms)
         self.material_name(material, names, reduced_counts)
         self.material_classification(material, sec_system)
         self.periodicity(material)
@@ -654,7 +658,7 @@ class StructureBulk(Structure):
         self.wyckoff_groups(material, wyckoff_sets)
 
 
-class Structure2D(Structure):
+class Material2DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 2D structures.
     """
     def cell_normalized(self, material: Material, std_atoms: ase.Atoms) -> None:
@@ -667,7 +671,7 @@ class Structure2D(Structure):
         cell_prim *= 1e-10
         material.cell_primitive = cell_prim
 
-    def lattice_parameters(self, calculation: Calculation, std_atoms: Atoms, periodic_indices: np.array) -> None:
+    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodic_indices: np.array) -> None:
         # 2D systems only have three lattice parameter: two length and angle between them
         cell = std_atoms.get_cell()
         a_vec = cell[periodic_indices[0], :] * 1e-10
@@ -676,7 +680,7 @@ class Structure2D(Structure):
         b = np.linalg.norm(b_vec)
         alpha = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
         alpha = np.arccos(alpha)
-        calculation.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
+        material.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
 
     def periodicity(self, material: Material, std_atoms: Atoms) -> None:
         # Determine the periodicity by examining vacuum gaps
@@ -727,7 +731,7 @@ class Structure2D(Structure):
         )
         return symmetry_analyzer
 
-    def fill(self, ctx: Context) -> None:
+    def normalizer(self, ctx: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
@@ -754,7 +758,7 @@ class Structure2D(Structure):
         self.lattice_parameters(calculation, std_atoms, material.periodicity)
 
 
-class Structure1D(Structure):
+class Material1DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 1D structures.
     """
     def material_hash(self, material: Material, prim_atoms: Atoms) -> None:
@@ -776,11 +780,11 @@ class Structure1D(Structure):
         cell_normalized *= 1e-10
         material.cell_normalized = cell_normalized
 
-    def lattice_parameters(self, calculation: Calculation, std_atoms: Atoms, periodic_indices: np.array) -> None:
+    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodic_indices: np.array) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
-        calculation.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
+        material.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def periodicity(self, material: Material, prim_atoms: Atoms) -> None:
         # Determine the periodicity by examining vacuum gaps
@@ -941,12 +945,11 @@ class Structure1D(Structure):
 
         return std_atoms
 
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         sec_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
-        calculation = sec_enc.calculation
         repr_atoms = sec_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
         prim_atoms = symmetry_analyzer.get_primitive_system()
@@ -965,10 +968,10 @@ class Structure1D(Structure):
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
         self.material_hash(material, std_atoms)
-        self.lattice_parameters(calculation, std_atoms, material.periodicity)
+        self.lattice_parameters(material, std_atoms, material.periodicity)
 
 
-class Method():
+class MethodNormalizer():
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
@@ -976,29 +979,29 @@ class Method():
         self.backend = backend
         self.logger = logger
 
-    def code_name(self, calculation: Calculation) -> None:
-        calculation.code_name = self.backend["program_name"]
+    def code_name(self, method: Method) -> None:
+        method.code_name = self.backend["program_name"]
 
-    def code_version(self, calculation: Calculation) -> None:
-        calculation.code_version = self.backend["program_version"]
+    def code_version(self, method: Method) -> None:
+        method.code_version = self.backend["program_version"]
 
-    def method_hash(self, calculation: Calculation):
+    def method_hash(self, method: Method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing. Not all the settings are set for this
         # calculation, in which case they will be simply set as None.
         hash_dict: OrderedDict = OrderedDict()
-        hash_dict['program_name'] = calculation.code_name
-        hash_dict['program_version'] = calculation.code_version
+        hash_dict['program_name'] = method.code_name
+        hash_dict['program_version'] = method.code_version
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.method_hash_dict(calculation))
+        hash_dict.update(self.method_hash_dict(method))
 
         # Form a hash from the dictionary
         method_hash = self.group_dict_to_hash("method_hash", hash_dict)
-        calculation.method_hash = method_hash
+        method.method_hash = method_hash
 
-    def group_eos_hash(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
+    def group_eos_hash(self, method: Method, settings_basis_set: OrderedDict, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
@@ -1006,13 +1009,13 @@ class Method():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.group_eos_hash_dict(calculation, settings_basis_set, repr_method))
+        hash_dict.update(self.group_eos_hash_dict(method, settings_basis_set, repr_method))
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
-        calculation.group_eos_hash = group_eos_hash
+        method.group_eos_hash = group_eos_hash
 
-    def group_parametervariation_hash(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_system, repr_method):
+    def group_parametervariation_hash(self, method: Method, settings_basis_set: OrderedDict, repr_system, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
@@ -1041,11 +1044,11 @@ class Method():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.group_parametervariation_hash_dict(calculation, settings_basis_set, repr_method))
+        hash_dict.update(self.group_parametervariation_hash_dict(method, settings_basis_set, repr_method))
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
-        calculation.group_parametervariation_hash = group_eos_hash
+        method.group_parametervariation_hash = group_eos_hash
 
     def group_e_min(self) -> None:
         pass
@@ -1054,15 +1057,15 @@ class Method():
         pass
 
     @abstractmethod
-    def method_hash_dict(self, calculation: Calculation):
+    def method_hash_dict(self, method: Method):
         return OrderedDict()
 
     @abstractmethod
-    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
+    def group_eos_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method):
         return OrderedDict()
 
     @abstractmethod
-    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
+    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method):
         return OrderedDict()
 
     def group_dict_to_hash(self, name, src_dict: OrderedDict):
@@ -1096,22 +1099,22 @@ class Method():
                 result += self.find_nones(data[i], "%s[%d]" % (parent, i))
         return result
 
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
-        calculation = sec_enc.calculation
+        method = sec_enc.method
 
         # Fill metainfo
-        self.code_name(calculation)
-        self.code_version(calculation)
-        self.method_hash(calculation)
+        self.code_name(method)
+        self.code_version(method)
+        self.method_hash(method)
 
 
-class MethodDFT(Method):
+class MethodDFTNormalizer(MethodNormalizer):
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
-    def basis_set_type(self, calculation: Calculation) -> None:
+    def basis_set_type(self, method: Method) -> None:
         """Type of basis set used by the code"""
         basis_set_type = config.services.unavailable_value
         archive_basis_set = self.backend["program_basis_set_type"]
@@ -1137,11 +1140,11 @@ class MethodDFT(Method):
         if archive_basis_set is not None:
             basis_set_type = archive_basis_set
 
-        calculation.basis_set_type = basis_set_type
+        method.basis_set_type = basis_set_type
 
-    def core_electron_treatment(self, calculation: Calculation) -> None:
+    def core_electron_treatment(self, method: Method) -> None:
         treatment = config.services.unavailable_value
-        code_name = calculation.code_name
+        code_name = method.code_name
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -1150,20 +1153,20 @@ class MethodDFT(Method):
                 'quantum espresso': 'pseudopotential'
             }
             treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
-        calculation.core_electron_treatment = treatment
+        method.core_electron_treatment = treatment
 
-    def functional_long_name(self, calculation: Calculation, repr_method) -> None:
+    def functional_long_name(self, method: Method, repr_method) -> None:
         """'Long' form of exchange-correlation functional, list of components
         and parameters as a string: see
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
-        xc_functional = MethodDFT.functional_long_name_from_method(repr_method, self.backend[s_method])
+        xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.backend[s_method])
         if xc_functional is config.services.unavailable_value:
             self.logger.error(
                 "Metainfo for 'XC_functional' not found, and could not "
                 "compose name from 'section_XC_functionals'."
             )
-        calculation.functional_long_name = xc_functional
+        method.functional_long_name = xc_functional
 
     @staticmethod
     def functional_long_name_from_method(repr_method, methods):
@@ -1210,44 +1213,44 @@ class MethodDFT(Method):
 
         return xc_functional
 
-    def functional_type(self, calculation: Calculation, method_type) -> None:
+    def functional_type(self, method: Method, method_type) -> None:
         if method_type == "GW":
-            calculation.functional_type = "GW"
+            method.functional_type = "GW"
         else:
-            long_name = calculation.functional_long_name
+            long_name = method.functional_long_name
             if long_name is not None:
                 short_name = self.create_xc_functional_shortname(long_name)
-                calculation.functional_type = short_name
+                method.functional_type = short_name
 
-    def smearing_kind(self, calculation: Calculation, representative_method) -> None:
+    def smearing_kind(self, method: Method, representative_method) -> None:
         try:
             smearing_kind = representative_method['smearing_kind']
         except KeyError:
             pass
         else:
-            calculation.smearing_kind = smearing_kind
+            method.smearing_kind = smearing_kind
 
-    def smearing_parameter(self, calculation: Calculation, representative_method) -> None:
+    def smearing_parameter(self, method: Method, representative_method) -> None:
         try:
             smearing_width = representative_method['smearing_width']
         except KeyError:
             pass
         else:
-            calculation.smearing_parameter = smearing_width
+            method.smearing_parameter = smearing_width
 
-    def method_hash_dict(self, calculation: Calculation) -> OrderedDict:
+    def method_hash_dict(self, method: Method) -> OrderedDict:
         # Extend by numerical settings TODO: maybe add basis set parameters /
         # other computational parameters
         hash_dict: OrderedDict = OrderedDict()
-        hash_dict['functional_long_name'] = calculation.functional_long_name
+        hash_dict['functional_long_name'] = method.functional_long_name
 
         return hash_dict
 
-    def group_eos_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method) -> OrderedDict:
+    def group_eos_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method) -> OrderedDict:
         # Extend by numerical settings TODO: maybe add basis set parameters /
         # other computational parameters
         hash_dict: OrderedDict = OrderedDict()
-        hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(calculation)
+        hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(method)
         hash_dict['settings_basis_set'] = settings_basis_set
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
@@ -1256,7 +1259,7 @@ class MethodDFT(Method):
 
         return hash_dict
 
-    def group_parametervariation_hash_dict(self, calculation: Calculation, settings_basis_set: OrderedDict, repr_method):
+    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method):
         """Dictionary containing the parameters used for convergence test
         grouping
         This is the source for generating the related hash."""
@@ -1281,14 +1284,14 @@ class MethodDFT(Method):
 
         return hash_dict
 
-    def settings_k_point_sampling(self, calculation: Calculation) -> OrderedDict:
+    def settings_k_point_sampling(self, method: Method) -> OrderedDict:
         """Gather 1BZ integration information (k-points and interpolation).
         """
         result: OrderedDict = OrderedDict()
 
         # Add electronic smearing settings if present
-        result['smearing_kind'] = calculation.smearing_kind
-        smearing_parameter = calculation.smearing_parameter
+        result['smearing_kind'] = method.smearing_kind
+        smearing_parameter = method.smearing_parameter
         if smearing_parameter is not None:
             smearing_parameter = '%.4f' % (smearing_parameter * J_to_Ry)
         result['smearing_parameter'] = smearing_parameter
@@ -1308,11 +1311,22 @@ class MethodDFT(Method):
 
         return result
 
-    def settings_basis_set(self, calculation: Calculation) -> OrderedDict:
+    def settings_basis_set(self, method: Method, ctx: Context) -> OrderedDict:
         """Settings that encode the used basis set. Depends on the used basis
         set and code.
         """
         result: OrderedDict = OrderedDict()
+        try:
+            settings_basis = SettingsBasisSet.factory(ctx, self.backend, self.logger)
+        except ValueError as e:
+            self.logger.warning(str(e))
+        else:
+            result = settings_basis.to_dict()
+
+        # Save as JSON in metainfo
+        settings_basis_set_json = json.dumps(result, cls=NumpyEncoder, sort_keys=True)
+        method.settings_basis_set = settings_basis_set_json
+
         return result
 
     def create_xc_functional_shortname(self, xc_longname):
@@ -1366,32 +1380,32 @@ class MethodDFT(Method):
 
         return shortname
 
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         repr_method = ctx.representative_method
         repr_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
-        calculation = sec_enc.calculation
-        settings_basis_set = self.settings_basis_set(calculation)
+        method = sec_enc.method
+        settings_basis_set = self.settings_basis_set(method, ctx)
 
         # Fill metainfo
-        self.basis_set_type(calculation)
-        self.code_name(calculation)
-        self.code_version(calculation)
-        self.core_electron_treatment(calculation)
-        self.functional_long_name(calculation, repr_method)
-        self.functional_type(calculation, ctx.method_type)
-        self.smearing_kind(calculation, repr_method)
-        self.smearing_parameter(calculation, repr_method)
-        self.method_hash(calculation)
-        self.group_eos_hash(calculation, settings_basis_set, repr_method)
-        self.group_parametervariation_hash(calculation, settings_basis_set, repr_system, repr_method)
+        self.basis_set_type(method)
+        self.code_name(method)
+        self.code_version(method)
+        self.core_electron_treatment(method)
+        self.functional_long_name(method, repr_method)
+        self.functional_type(method, ctx.method_type)
+        self.smearing_kind(method, repr_method)
+        self.smearing_parameter(method, repr_method)
+        self.method_hash(method)
+        self.group_eos_hash(method, settings_basis_set, repr_method)
+        self.group_parametervariation_hash(method, settings_basis_set, repr_system, repr_method)
 
 
-class MethodGW(MethodDFT):
+class MethodGWNormalizer(MethodDFTNormalizer):
     """A base class that is used for processing GW calculations.
     """
-    def gw_starting_point(self, calculation: Calculation, repr_method) -> None:
+    def gw_starting_point(self, method: Method, repr_method) -> None:
         try:
             ref = repr_method["section_method_to_method_refs"][0]
             method_to_method_kind = ref["method_to_method_kind"]
@@ -1402,26 +1416,26 @@ class MethodGW(MethodDFT):
             if method_to_method_kind == "starting_point":
                 methods = self.backend[s_method]
                 start_method = methods[method_to_method_ref]
-                xc_functional = MethodDFT.functional_long_name_from_method(start_method, methods)
-                calculation.gw_starting_point = xc_functional
+                xc_functional = MethodDFTNormalizer.functional_long_name_from_method(start_method, methods)
+                method.gw_starting_point = xc_functional
 
-    def gw_type(self, calculation: Calculation, method_type: str) -> None:
-        calculation.gw_type = method_type
+    def gw_type(self, method: Method, method_type: str) -> None:
+        method.gw_type = method_type
 
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         repr_method = ctx.representative_method
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
-        calculation = sec_enc.calculation
+        method = sec_enc.method
 
         # Fill metainfo
-        self.code_name(calculation)
-        self.code_version(calculation)
-        self.gw_type(calculation, ctx.method_type)
-        self.gw_starting_point(calculation, repr_method)
+        self.code_name(method)
+        self.code_version(method)
+        self.gw_type(method, ctx.method_type)
+        self.gw_starting_point(method, repr_method)
 
 
-class Properties():
+class PropertiesNormalizer():
     """A base class that is used for processing calculated quantities that
     should be extracted to Encyclopedia.
     """
@@ -1446,7 +1460,7 @@ class Properties():
         whole band strcture will be ignored.
         """
         # Band structure data is exctracted only from single point calculations
-        if run_type != Calculation.run_type.type.single_point:
+        if run_type != RunType.run_type.type.single_point:
             return
 
         # Try to find an SCC with band structure data. Only take data from the
@@ -1571,5 +1585,5 @@ class Properties():
         pass
 
     @abstractmethod
-    def fill(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         self.band_structure(ctx.run_type)

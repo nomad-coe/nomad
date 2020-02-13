@@ -45,6 +45,7 @@ import json
 import uuid
 import time
 import re
+import numpy as np
 from werkzeug.exceptions import HTTPException
 import hashlib
 import sys
@@ -539,3 +540,20 @@ def common_prefix(paths):
         common_prefix = ''
 
     return common_prefix
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """Custom encoder for JSON that transforms numpy datatypes to python data
+    structures.
+    """
+    def default(self, obj):   # pylint: disable=E0202
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NumpyEncoder, self).default(obj)
