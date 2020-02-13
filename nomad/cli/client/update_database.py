@@ -80,6 +80,8 @@ class DbUpdater:
     def _set_db(self):
         if self.db_name.lower() == 'aflowlib':
             self.max_depth = 4
+            if 'LIB6_LIB' in self.root_url:
+                self.max_depth = 5
         else:
             raise NotImplementedError('%s not yet supported.' % self.db_name)
 
@@ -172,13 +174,12 @@ class DbUpdater:
         self.db_files = []
         todo = self.get_paths(self.root_url)
         while len(todo) > 0:
-            cur = todo[-1]
+            cur = todo.pop(-1)
             if self._rules_ok(cur):
                 self.db_files.append(cur)
             elif self._is_dir(cur):
                 add = self.get_paths(cur)
                 todo = add + todo
-            todo.pop(-1)
         if self.dbfile is not None:
             self._write_to_file(self.db_files, self.dbfile)
 

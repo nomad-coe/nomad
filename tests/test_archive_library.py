@@ -65,6 +65,7 @@ class TestArchiveFileDB:
         calc_ids = msgdb.ids.keys()
         calc_ids = [c for c in calc_ids if not os.path.dirname(c)]
         calc_ids = [c for c in calc_ids if not c.endswith('log') and c]
+        calc_ids = [c for c in calc_ids if c not in ['ids', 'max_lfragment']]
         qs = {calc_id: schema for calc_id in calc_ids}
         results = msgdb.query(qs)
         assert len(results) == len(calc_ids)

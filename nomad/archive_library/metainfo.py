@@ -158,6 +158,7 @@ class ArchiveMetainfo:
         if not self._calc_ids:
             ids = self._archive_db.ids
             ids = [idx for idx in ids if '/' not in idx and idx]
+            ids = [idx for idx in ids if idx not in ['ids', 'max_lfragment']]
             self._calc_ids = ids
         return self._calc_ids
 
