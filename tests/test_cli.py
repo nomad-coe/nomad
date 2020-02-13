@@ -22,6 +22,8 @@ from nomad import utils, search, processing as proc, files, infrastructure
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
+from tests.app.test_app import BlueprintClient
+
 # TODO there is much more to test
 
 
@@ -323,6 +325,35 @@ class TestClient:
         assert published.upload_files.os_path in result.output
 
         published.upload_files.exists
+
+    def test_mirror_datasets(self, client, published_wo_user_metadata, test_user_auth, admin_user_bravado_client, monkeypatch):
+        # use the API to create dataset and DOI
+        api = BlueprintClient(client, '/api')
+        rv = api.post(
+            '/repo/edit', headers=test_user_auth, content_type='application/json',
+            data=json.dumps({
+                'actions': {
+                    'datasets': [{
+                        'value': 'test_dataset'
+                    }]
+                }
+            }))
+        assert rv.status_code == 200
+
+        rv = api.post('/datasets/test_dataset', headers=test_user_auth)
+        assert rv.status_code == 200
+
+        # perform the mirror
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0, result.output
+        assert published_wo_user_metadata.upload_id in result.output
+        assert published_wo_user_metadata.upload_files.os_path in result.output
+
+        published_wo_user_metadata.upload_files.exists
 
     def test_statistics(self, client, proc_infra, admin_user_bravado_client):
 
