@@ -306,11 +306,12 @@ def mirror(
             if upload_data.datasets is not None:
                 for dataset in upload_data.datasets.values():
                     fix_time(dataset, ['created'])
-                    _Dataset._get_collection().insert(dataset)
+                    _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
             if upload_data.dois is not None:
                 for doi in upload_data.dois.values():
-                    fix_time(doi, ['create_time'])
-                    DOI._get_collection().insert(doi)
+                    if doi is not None and DOI.objects(doi=doi).first() is None:
+                        fix_time(doi, ['create_time'])
+                        DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
             for calc in upload_data.calcs:
                 fix_time(calc, ['create_time', 'complete_time'])
                 fix_time(calc['metadata'], ['upload_time', 'last_processing'])
