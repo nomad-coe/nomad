@@ -43,44 +43,46 @@ def fix_time(data, keys):
             data[key] = datetime.datetime.utcfromtimestamp(time)
 
 
-def v0Dot6(upload_data):
-    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+def tarnsform_user_id(source_user_id):
+    target_user = User.repo_users().get(str(source_user_id))
+    if target_user is None:
+        __logger.error('user does not exist in target', source_user_id=source_user_id)
+        raise KeyError
 
-    def tarnsform_user_id(source_user_id):
-        target_user = User.repo_users().get(str(source_user_id))
-        if target_user is None:
-            __logger.error('user does not exist in target', source_user_id=source_user_id)
-            raise KeyError
+    return target_user.user_id
 
-        return target_user.user_id
 
-    def transform_dataset(source_dataset):
-        pid = str(source_dataset['id'])
-        target_dataset = _Dataset.objects(pid=pid).first()
-        if target_dataset is not None:
-            return target_dataset.dataset_id
-
-        target_dataset = _Dataset(
-            dataset_id=utils.create_uuid(),
-            pid=pid,
-            name=source_dataset['name'])
-
-        if 'doi' in source_dataset and source_dataset['doi'] is not None:
-            source_doi = source_dataset['doi']
-
-            if isinstance(source_doi, dict):
-                source_doi = source_doi['value']
-
-            if source_doi is not None:
-                target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
-
-        target_dataset.save()
-
+def transform_dataset(source_dataset):
+    pid = str(source_dataset['id'])
+    target_dataset = _Dataset.objects(pid=pid).first()
+    if target_dataset is not None:
         return target_dataset.dataset_id
 
-    def transform_reference(reference):
-        return reference['value']
+    target_dataset = _Dataset(
+        dataset_id=utils.create_uuid(),
+        pid=pid,
+        name=source_dataset['name'])
 
+    if 'doi' in source_dataset and source_dataset['doi'] is not None:
+        source_doi = source_dataset['doi']
+
+        if isinstance(source_doi, dict):
+            source_doi = source_doi['value']
+
+        if source_doi is not None:
+            target_dataset.doi = source_doi.replace('http://dx.doi.org/', '')
+
+    target_dataset.save()
+
+    return target_dataset.dataset_id
+
+
+def transform_reference(reference):
+    return reference['value']
+
+
+def v0Dot6(upload_data):
+    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)
@@ -301,12 +303,14 @@ def mirror(
         if not files_only:
             # create mongo
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            for dataset in upload_data.datasets.values():
-                fix_time(dataset, ['created'])
-                _Dataset._get_collection().insert(dataset)
-            for doi in upload_data.dois.values():
-                fix_time(doi, ['create_time'])
-                DOI._get_collection().insert(doi)
+            if upload_data.datasets is not None:
+                for dataset in upload_data.datasets.values():
+                    fix_time(dataset, ['created'])
+                    _Dataset._get_collection().insert(dataset)
+            if upload_data.dois is not None:
+                for doi in upload_data.dois.values():
+                    fix_time(doi, ['create_time'])
+                    DOI._get_collection().insert(doi)
             for calc in upload_data.calcs:
                 fix_time(calc, ['create_time', 'complete_time'])
                 fix_time(calc['metadata'], ['upload_time', 'last_processing'])
