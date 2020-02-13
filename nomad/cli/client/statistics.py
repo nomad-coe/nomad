@@ -24,7 +24,9 @@ import numpy as np
 import click
 import json
 from datetime import datetime
+import subprocess
 
+from nomad import config
 from .client import client
 
 
@@ -359,7 +361,8 @@ def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power,
 @client.command(help='Generate table with basic statistics summary.')
 @click.option('--html', is_flag=True, help='Output HTML instead of plain text table.')
 @click.option('--geometries', is_flag=True, help='Use geometries not unique geometries.')
-def statistics_table(html, geometries):
+@click.option('--public-path', type=str, default=config.fs.public, help='The path to the public data. Default is %s.' % config.fs.public)
+def statistics_table(html, geometries, public_path):
     # get more stats for files
     # uploads: find . -maxdepth 2 | wc -l
     # public archive: find . -regex '.*archive.*public.*zip' -type f -print0 | du --files0-from=- -ch | grep total$
@@ -412,17 +415,43 @@ def statistics_table(html, geometries):
         client.repo.search(per_page=1, code_name='Phonopy').response().result,
         'total', 'all', 'code_runs')
 
+    # files and sized
+    def run_shell_command(command):
+        process = subprocess.run(['bash', '-c', command], stdout=subprocess.PIPE)
+        out = process.stdout.decode('utf-8')
+        if process.stderr is not None:
+            err = process.stderr.decode('utf-8')
+            print('There is an error: %s' % str(err))
+        return out
+
+    archive_data = run_shell_command((
+        'find %s -regex \'.*archive.*public.*zip\' '
+        '-type f -print0 | du --files0-from=- -ch | grep total$') % public_path)
+    raw_data = run_shell_command((
+        'find %s -regex \'.*raw.*public.*zip\' '
+        '-type f -print0 | du --files0-from=- -ch | grep total$') % public_path)
+    n_uploads = run_shell_command(
+        'find %s -regex \'.*raw.*public.*zip\' -type f | wc -l' % public_path)
+
+    try:
+        n_uploads = '{:,}'.format(int(n_uploads))
+    except Exception:
+        pass
+
     if not html:
         print('''
-            Entries: {:,.0f},
-            Calculations, e.g. total energies: {:,.0f},
-            Geometries: {:,.0f},
-            Bulk crystals: {:,.0f},
-            2D / Surfaces: {:,.0f},
-            Atoms / Molecules: {:,.0f},
-            DOS: {:,.0f},
+            Entries: {:,.0f}
+            Calculations, e.g. total energies: {:,.0f}
+            Geometries: {:,.0f}
+            Bulk crystals: {:,.0f}
+            2D / Surfaces: {:,.0f}
+            Atoms / Molecules: {:,.0f}
+            DOS: {:,.0f}
             Band structures: {:,.0f}
             Total parsed quantities: {:,.0f}
+            Public raw data: {}
+            Public archive data: {}
+            Number of uploads: {}
         '''.format(
             entries,
             calculations,
@@ -432,7 +461,10 @@ def statistics_table(html, geometries):
             calculations_1d,
             dos,
             band_structures,
-            quantities
+            quantities,
+            raw_data,
+            archive_data,
+            n_uploads
         ))
 
     else:
@@ -497,8 +529,8 @@ def statistics_table(html, geometries):
                     Furthermore:
                 </p>
                 <ul>
-                    <li><b>5,053</b> Uploads with <b>41 TB</b> of raw data</li>
-                    <li><b>15 TB</b> of archive data</li>
+                    <li><b>{}</b> Uploads with <b>{}B</b> of raw data</li>
+                    <li><b>{}B</b> of archive data</li>
                     <li>Data classified using <b>168</b> public metadata of the NOMAD Meta Info and <b>2,360</b> code-specific metadata</li>
                 </ul>
                 <p>
@@ -551,5 +583,8 @@ def statistics_table(html, geometries):
             dos,
             band_structures,
             phonons,
-            quantities
+            quantities,
+            n_uploads,
+            raw_data,
+            archive_data
         ))
