@@ -61,31 +61,37 @@ def test_1d_metainfo(one_d: LocalBackend):
     """Tests that metainfo for 1D systems is correctly processed.
     """
     enc = one_d.get_mi2_section(Encyclopedia.m_def)
+    # Material
     assert enc.material.system_type == "1D"
+    assert enc.material.formula == "C6H4"
+    assert enc.material.formula_reduced == "C3H2"
+    assert np.array_equal(enc.material.periodicity, [True, False, False])
+
+    # Representative system
     assert enc.material.number_of_atoms == 10
     assert enc.material.atom_labels == ["C", "C", "C", "C", "C", "C", "H", "H", "H", "H"]
     assert enc.material.atom_positions is not None
     assert enc.material.cell_normalized is not None
-    assert enc.material.formula == "C6H4"
-    assert enc.material.formula_reduced == "C3H2"
-    assert np.allclose(enc.calculation.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
-    assert np.array_equal(enc.material.periodicity, [0])
+    assert np.allclose(enc.material.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
 
 
 def test_2d_metainfo(two_d: LocalBackend):
     """Tests that metainfo for 2D systems is correctly processed.
     """
     enc = two_d.get_mi2_section(Encyclopedia.m_def)
+    # Material
     assert enc.material.system_type == "2D"
+    assert enc.material.formula == "C2"
+    assert enc.material.formula_reduced == "C"
+    assert np.array_equal(enc.material.periodicity, [True, True, False])
+
+    # Representative system
     assert enc.material.number_of_atoms == 2
     assert enc.material.atom_labels == ["C", "C"]
     assert enc.material.atom_positions is not None
     assert enc.material.cell_normalized is not None
     assert enc.material.cell_primitive is not None
-    assert enc.material.formula == "C2"
-    assert enc.material.formula_reduced == "C"
-    assert np.allclose(enc.calculation.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
-    assert np.array_equal(enc.material.periodicity, [0, 1])
+    assert np.allclose(enc.material.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
 
 
 def test_bulk_metainfo(bulk: LocalBackend):
@@ -106,7 +112,7 @@ def test_bulk_metainfo(bulk: LocalBackend):
     assert enc.material.bravais_lattice == "cF"
     assert enc.material.has_free_wyckoff_parameters is False
     assert enc.material.point_group == "m-3m"
-    assert enc.material.wyckoff_groups is not None
+    assert enc.material.wyckoff_sets is not None
     assert enc.material.space_group_number == 227
     assert enc.material.space_group_international_short_symbol == "Fd-3m"
 
@@ -116,13 +122,13 @@ def test_bulk_metainfo(bulk: LocalBackend):
     assert enc.material.atom_positions is not None
     assert enc.material.cell_normalized is not None
     assert enc.material.cell_primitive is not None
-    assert np.array_equal(enc.material.periodicity, [0, 1, 2])
+    assert np.array_equal(enc.material.periodicity, [True, True, True])
+    assert enc.material.lattice_parameters is not None
+    assert enc.material.cell_volume == pytest.approx(5.431**3 * 1e-30)
 
     # Calculation
-    assert enc.calculation.atomic_density == pytest.approx(4.99402346512432e+28)
-    assert enc.calculation.lattice_parameters is not None
-    assert enc.calculation.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
-    assert enc.calculation.cell_volume == pytest.approx(5.431**3 * 1e-30)
+    assert enc.properties.atomic_density == pytest.approx(4.99402346512432e+28)
+    assert enc.properties.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
 
 
 def test_1d_material_identification():

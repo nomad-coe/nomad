@@ -28,9 +28,9 @@ import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet
 from nomad.normalizing import structure
-from nomad.utils import hash, NumpyEncoder
+from nomad.utils import hash
 from nomad import config
 
 J_to_Ry = 4.587425e+17
@@ -508,7 +508,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
             material.material_name = name
 
     def periodicity(self, material: Material) -> None:
-        material.periodicity = np.array([0, 1, 2], dtype=np.int8)
+        material.periodicity = np.array([True, True, True], dtype=np.bool)
 
     def point_group(self, material: Material, section_symmetry: Dict) -> None:
         point_group = section_symmetry["point_group"]
@@ -598,21 +598,18 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         strukturbericht = re.sub('[$_{}]', '', strukturbericht)
         material.strukturbericht_designation = strukturbericht
 
-    def wyckoff_groups(self, material: Material, wyckoff_sets: Dict) -> None:
-        wyckoff_list = []
+    def wyckoff_sets(self, material: Material, wyckoff_sets: Dict) -> None:
         for group in wyckoff_sets:
-            data = {
-                "wyckoff_letter": group.wyckoff_letter,
-                "element": group.element,
-                "indices": group.indices,
-                "variables": {
-                    "x": group.x,
-                    "y": group.y,
-                    "z": group.z,
-                },
-            }
-            wyckoff_list.append(data)
-        material.wyckoff_groups = json.dumps(wyckoff_list, sort_keys=True)
+            wset = material.m_create(WyckoffSet)
+            if group.x is not None:
+                wset.x = group.x
+            if group.y is not None:
+                wset.y = group.y
+            if group.z is not None:
+                wset.z = group.z
+            wset.indices = group.indices
+            wset.element = group.element
+            wset.wyckoff_letter = group.wyckoff_letter
 
     def normalize(self, ctx: Context) -> None:
         # Fetch resources
@@ -655,7 +652,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.structure_type(material, sec_system)
         self.structure_prototype(material, sec_system)
         self.strukturbericht_designation(material, sec_system)
-        self.wyckoff_groups(material, wyckoff_sets)
+        self.wyckoff_sets(material, wyckoff_sets)
 
 
 class Material2DNormalizer(MaterialNormalizer):
@@ -671,8 +668,9 @@ class Material2DNormalizer(MaterialNormalizer):
         cell_prim *= 1e-10
         material.cell_primitive = cell_prim
 
-    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodic_indices: np.array) -> None:
+    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodicity: np.array) -> None:
         # 2D systems only have three lattice parameter: two length and angle between them
+        periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a_vec = cell[periodic_indices[0], :] * 1e-10
         b_vec = cell[periodic_indices[1], :] * 1e-10
@@ -694,8 +692,7 @@ class Material2DNormalizer(MaterialNormalizer):
         if sum(vacuum_directions) != 1:
             raise ValueError("Could not detect the periodic dimensions in a 2D system.")
 
-        periodic_indices = np.where(vacuum_directions == False)[0]  # noqa: E712
-        material.periodicity = np.sort(np.array(periodic_indices, dtype=np.int8))
+        material.periodicity = np.invert(vacuum_directions)
 
     def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
         # Determine the periodicity by examining vacuum gaps
@@ -731,11 +728,10 @@ class Material2DNormalizer(MaterialNormalizer):
         )
         return symmetry_analyzer
 
-    def normalizer(self, ctx: Context) -> None:
+    def normalize(self, ctx: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
-        calculation = sec_enc.calculation
         repr_atoms = ctx.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
         std_atoms = symmetry_analyzer.get_conventional_system()
@@ -743,7 +739,6 @@ class Material2DNormalizer(MaterialNormalizer):
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         reduced_counts = np.array(counts) / greatest_common_divisor
-        # non_periodic_index_std = self.get_non_periodic_index_std(symmetry_analyzer)
 
         # Fill metainfo
         self.periodicity(material, std_atoms)
@@ -755,7 +750,7 @@ class Material2DNormalizer(MaterialNormalizer):
         self.cell_primitive(material, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.lattice_parameters(calculation, std_atoms, material.periodicity)
+        self.lattice_parameters(material, std_atoms, material.periodicity)
 
 
 class Material1DNormalizer(MaterialNormalizer):
@@ -780,8 +775,9 @@ class Material1DNormalizer(MaterialNormalizer):
         cell_normalized *= 1e-10
         material.cell_normalized = cell_normalized
 
-    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodic_indices: np.array) -> None:
+    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodicity: np.array) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
+        periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
         material.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -798,8 +794,7 @@ class Material1DNormalizer(MaterialNormalizer):
         if sum(vacuum_directions) != 2:
             raise ValueError("Could not detect the periodic dimensions in a 1D system.")
 
-        periodic_indices = np.where(vacuum_directions == False)[0]  # noqa: E712
-        material.periodicity = np.sort(np.array(periodic_indices, dtype=np.int8))
+        material.periodicity = np.invert(vacuum_directions)
 
     def get_structure_fingerprint(self, prim_atoms: Atoms) -> str:
         """Calculates a numeric fingerprint that coarsely encodes the atomic
@@ -928,18 +923,16 @@ class Material1DNormalizer(MaterialNormalizer):
         std_atoms.wrap()
 
         # Reduce cell size to just fit the system in the non-periodic dimensions.
-        indices = [0, 1, 2]
-        for idx in periodicity:
-            del indices[idx]
         pos = std_atoms.get_scaled_positions(wrap=False)
         cell = std_atoms.get_cell()
         new_cell = np.array(cell)
         translation = np.zeros(3)
-        for index in indices:
-            imin = np.min(pos[:, index])
-            imax = np.max(pos[:, index])
-            translation -= cell[index, :] * imin
-            new_cell[index] = cell[index, :] * (imax - imin)
+        for index, periodic in enumerate(periodicity):
+            if not periodic:
+                imin = np.min(pos[:, index])
+                imax = np.max(pos[:, index])
+                translation -= cell[index, :] * imin
+                new_cell[index] = cell[index, :] * (imax - imin)
         std_atoms.translate(translation)
         std_atoms.set_cell(new_cell)
 
@@ -1324,8 +1317,7 @@ class MethodDFTNormalizer(MethodNormalizer):
             result = settings_basis.to_dict()
 
         # Save as JSON in metainfo
-        settings_basis_set_json = json.dumps(result, cls=NumpyEncoder, sort_keys=True)
-        method.settings_basis_set = settings_basis_set_json
+        # method.settings_basis_set = result
 
         return result
 

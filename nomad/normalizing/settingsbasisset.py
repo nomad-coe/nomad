@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from abc import ABC, abstractmethod
+from nomad.parsing.backend import Section
 import re
 import numpy
 
@@ -263,7 +264,7 @@ class SettingsBasisSetCodeDependentFhiAims(
         result = None
         if data is None:
             return None
-        elif isinstance(data, (dict)):
+        elif isinstance(data, (Section, dict)):
             result = OrderedDict()
             for k in sorted(cls._filtered_section_keys(data)):
                 v = data.get(k, None)

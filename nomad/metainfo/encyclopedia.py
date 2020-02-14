@@ -3,6 +3,53 @@ from elasticsearch_dsl import InnerDoc
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, units
 
 
+class WyckoffSet(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing Wyckoff set information.
+        """
+    )
+    wyckoff_letter = Quantity(
+        type=str,
+        description="""
+        The Wyckoff letter for this set.
+        """
+    )
+    x = Quantity(
+        type=float,
+        description="""
+        The x variable if present.
+        """
+    )
+    y = Quantity(
+        type=float,
+        description="""
+        The y variable if present.
+        """
+    )
+    z = Quantity(
+        type=float,
+        description="""
+        The z variable if present.
+        """
+    )
+    indices = Quantity(
+        type=np.dtype('i4'),
+        shape=["1..*"],
+        description="""
+        Indices of the atoms belonging to this group.
+        """
+    )
+    element = Quantity(
+        type=str,
+        description="""
+        Chemical element at this Wyckoff position.
+        """
+    )
+
+
 class Material(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -102,10 +149,10 @@ class Material(MSection):
         """
     )
     periodicity = Quantity(
-        type=np.dtype('i1'),
-        shape=["1..*"],
+        type=np.bool,
+        shape=[3],
         description="""
-        The indices of the periodic dimensions.
+        Periodicity of each lattice direction.
         """
     )
     point_group = Quantity(
@@ -180,28 +227,9 @@ class Material(MSection):
         idealized to match the detected symmemtry properties.
         """
     )
-    wyckoff_groups = Quantity(
-        type=str,
-        description="""
-        Returns a list of information about the Wyckoff groups in the JSON format.
 
-        An example of the output:
-            [
-                {
-                    'wyckoff_letter': 'a',
-                    'variables': {'z': 0.0},
-                    'indices': [0, 6, 12],
-                    'element': 'Bi'
-                },
-                {
-                    'wyckoff_letter': 'b',
-                    'variables': {'x': 0.50155295, 'z': 0.87461175999999996},
-                    'indices': [1, 3, 4, 7, 9, 10, 13, 15, 16],
-                    'element': 'Ga'
-                }, ...
-            ]
-        """
-    )
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
+
     cell_angles_string = Quantity(
         type=str,
         description="""
@@ -314,12 +342,6 @@ class Method(MSection):
         type=MEnum("G0W0", "scGW"),
         description="""
         Basic type of GW calculation.
-        """
-    )
-    settings_basis_set = Quantity(
-        type=str,
-        description="""
-        Basis set settings in JSON format.
         """
     )
     smearing_kind = Quantity(
