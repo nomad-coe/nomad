@@ -212,7 +212,7 @@ class ArchiveFileDB:
         """
         if 'w' in self._mode:
             self.create_db()
-        if self._fileobj:
+        if self._fileobj and save:
             self._fileobj.close()
             self._fileobj = None
 
