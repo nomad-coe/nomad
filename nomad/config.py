@@ -211,6 +211,7 @@ datacite = NomadConfig(
 version = '0.7.6'
 commit = gitinfo.commit
 release = 'devel'
+default_domain = 'dft'
 service = 'unknown nomad service'
 auxfile_cutoff = 100
 parser_matching_size = 9128

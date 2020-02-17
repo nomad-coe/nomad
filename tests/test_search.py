@@ -151,18 +151,18 @@ def test_search_totals(elastic, example_search_data):
 
 def test_search_exclude(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in item
+        assert 'dft.atoms' in item
 
-    for item in SearchRequest().exclude('atoms').execute_paginated()['results']:
-        assert 'atoms' not in item
+    for item in SearchRequest().exclude('dft.atoms').execute_paginated()['results']:
+        assert 'dft.atoms' not in item
 
 
 def test_search_include(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in item
+        assert 'dft.atoms' in item
 
     for item in SearchRequest().include('calc_id').execute_paginated()['results']:
-        assert 'atoms' not in item
+        assert 'dft.atoms' not in item
         assert 'calc_id' in item
 
 
@@ -236,7 +236,6 @@ def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: 
                 assert key in hit
 
             for key in additional_keys:
-                print(hit.keys())
                 assert key in hit
                 assert hit[key] != config.services.unavailable_value
 

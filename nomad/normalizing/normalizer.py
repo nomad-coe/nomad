@@ -18,12 +18,6 @@ from typing import List
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
 
-s_system = 'section_system'
-s_scc = 'section_single_configuration_calculation'
-s_frame_sequence = 'section_frame_sequence'
-r_scc_to_system = 'single_configuration_calculation_to_system_ref'
-r_frame_sequence_local_frames = 'frame_sequence_local_frames_ref'
-
 
 class Normalizer(metaclass=ABCMeta):
     """
@@ -34,7 +28,7 @@ class Normalizer(metaclass=ABCMeta):
         backend: The backend used to read and write data from and to.
     """
 
-    domain = 'DFT'
+    domain = 'dft'
     """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
 
     def __init__(self, backend: AbstractParserBackend) -> None:
@@ -93,50 +87,40 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         Attempt to find a single section_system that is representative for the
         entry. The selection depends on the type of calculation.
         """
-        system_idx = None
-
         # Try to find a frame sequence, only first found is considered
         try:
-            frame_seqs = self._backend[s_frame_sequence]
-            frame_seq = frame_seqs[0]
-            sampling_method_idx = frame_seq["frame_sequence_to_sampling_ref"]
-            sec_sampling_method = self._backend["section_sampling_method"][sampling_method_idx]
-            sampling_method = sec_sampling_method["sampling_method"]
-            frames = frame_seq["frame_sequence_local_frames_ref"]
-            if sampling_method == "molecular_dynamics":
+            frame_seq = self._backend['section_frame_sequence'][0]
+            sampling_method_idx = frame_seq['frame_sequence_to_sampling_ref']
+            sec_sampling_method = self._backend['section_sampling_method'][sampling_method_idx]
+            sampling_method = sec_sampling_method['sampling_method']
+            frames = frame_seq['frame_sequence_local_frames_ref']
+            if sampling_method == 'molecular_dynamics':
                 scc_idx = frames[0]
             else:
                 scc_idx = frames[-1]
-            scc = self._backend[s_scc][scc_idx]
-            system_idx = scc["single_configuration_calculation_to_system_ref"]
+            scc = self._backend['section_single_configuration_calculation'][scc_idx]
+            return scc['single_configuration_calculation_to_system_ref']
         except Exception:
-            frame_seqs = []
+            pass
 
         # If no frame sequences detected, try to find scc
-        if len(frame_seqs) == 0:
-            try:
-                sccs = self._backend[s_scc]
-                scc = sccs[-1]
-                system_idx = scc["single_configuration_calculation_to_system_ref"]
-            except Exception:
-                sccs = []
+        try:
+            sccs = self._backend['section_single_configuration_calculation']
+            scc = sccs[-1]
+            return scc['single_configuration_calculation_to_system_ref']
+        except Exception:
+            pass
 
-            # If no sccs exist, try to find systems
-            if len(sccs) == 0:
-                try:
-                    systems = self._backend.get_sections(s_system)
-                    system_idx = systems[-1]
-                except Exception:
-                    sccs = []
+        # If no sccs exist, try to find systems
+        try:
+            systems = self._backend.get_sections('section_system')
+            return systems[-1]
+        except Exception:
+            pass
 
-            if system_idx is None:
-                self.logger.error('no "representative" section system found')
-            else:
-                self.logger.info(
-                    'chose "representative" system for normalization',
-                )
+        self.logger.error('no "representative" section system found')
 
-        return system_idx
+        return None
 
     def __normalize_system(self, g_index, representative, logger=None) -> bool:
         try:
@@ -157,11 +141,12 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
-        all_systems = self._backend.get_sections(s_system)
+        all_systems = self._backend.get_sections('section_system')
 
         # Process representative system first
         representative_system_idx = self.__representative_system()
         if representative_system_idx is not None:
+            self.logger.info('chose "representative" section system')
             self.__normalize_system(representative_system_idx, True, logger)
 
         # All the rest if requested

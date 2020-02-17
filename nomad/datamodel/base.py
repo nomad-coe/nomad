@@ -388,7 +388,9 @@ class Domain:
                 quantity = domain_quantities.get(quantity_name, None)
 
                 if quantity is None:
-                    domain_quantities[quantity_name] = DomainQuantity()
+                    quantity = DomainQuantity()
+                    quantity.domain = name
+                    domain_quantities[quantity_name] = quantity
 
         # add all domain quantities
         for quantity_name, quantity in domain_quantities.items():

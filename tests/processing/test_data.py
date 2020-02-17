@@ -20,7 +20,7 @@ import json
 import re
 import shutil
 
-from nomad import utils, infrastructure, config, datamodel
+from nomad import utils, infrastructure, config
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -105,6 +105,10 @@ def assert_processing(upload: Upload, published: bool = False):
         for path in calc.metadata['files']:
             with upload_files.raw_file(path) as f:
                 f.read()
+
+        # check some domain metadata
+        assert calc.metadata['n_atoms'] > 0
+        assert len(calc.metadata['atoms']) > 0
 
         assert upload.get_calc(calc.calc_id).metadata is not None
 
@@ -378,14 +382,14 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
     assert len(calc.errors) == 1
 
 
-def test_ems_data(proc_infra, test_user, monkeypatch):
-    monkeypatch.setattr('nomad.config.domain', 'ems')
-    monkeypatch.setattr('nomad.datamodel.Domain.instance', datamodel.Domain.instances['ems'])
-    monkeypatch.setattr('nomad.datamodel.CalcWithMetadata', datamodel.Domain.instance.domain_entry_class)
+def test_ems_data(proc_infra, test_user):
+
 
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
 
-    additional_keys = ['method', 'experiment_location', 'experiment_time', 'formula', 'chemical']
+    additional_keys = [
+        'ems.method', 'ems.experiment_location', 'ems.experiment_time', 'ems.formula',
+        'ems.chemical']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
