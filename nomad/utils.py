@@ -203,6 +203,10 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             # Extra Fields
             'level': record.levelname,
             'logger_name': record.name,
+
+            # Nomad specific
+            'nomad.service': config.service,
+            'nomad.release': config.release
         }
 
         if record.name.startswith('nomad'):
@@ -211,17 +215,13 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                     continue
                 elif key == 'exception':
                     message['digest'] = str(value)[-256:]
-                elif key in (
-                        'upload_id', 'calc_id', 'mainfile',
-                        'service', 'release'):
+                elif key in ['upload_id', 'calc_id', 'mainfile']:
                     key = 'nomad.%s' % key
                 else:
                     key = '%s.%s' % (record.name, key)
 
                 message[key] = value
         else:
-            structlog['nomad.service'] = config.service
-            structlog['nomad.release'] = config.release
             message.update(structlog)
 
         # Handle gunicorn access events
@@ -352,7 +352,7 @@ def get_logger(name, **kwargs):
     if name.startswith('nomad.'):
         name = '.'.join(name.split('.')[:2])
 
-    logger = structlog.get_logger(name, service=config.service, release=config.release, **kwargs)
+    logger = structlog.get_logger(name, **kwargs)
     return logger
 
 

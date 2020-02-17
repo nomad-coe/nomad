@@ -19,9 +19,11 @@ import json
 import os
 import os.path
 from bravado.exception import HTTPBadRequest
+import datetime
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
 from nomad.datamodel import Dataset, User
+from nomad.doi import DOI
 from nomad.cli.admin.uploads import delete_upload
 
 from .client import client
@@ -30,8 +32,15 @@ from .client import client
 __in_test = False
 """ Will be monkeypatched by tests to alter behavior for testing. """
 
-__Dataset = Dataset.m_def.m_x('me').me_cls
+_Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
+
+
+def fix_time(data, keys):
+    for key in keys:
+        time = data.get(key)
+        if isinstance(time, int):
+            data[key] = datetime.datetime.utcfromtimestamp(time)
 
 
 def tarnsform_user_id(source_user_id):
@@ -45,11 +54,11 @@ def tarnsform_user_id(source_user_id):
 
 def transform_dataset(source_dataset):
     pid = str(source_dataset['id'])
-    target_dataset = __Dataset.objects(pid=pid).first()
+    target_dataset = _Dataset.objects(pid=pid).first()
     if target_dataset is not None:
         return target_dataset.dataset_id
 
-    target_dataset = __Dataset(
+    target_dataset = _Dataset(
         dataset_id=utils.create_uuid(),
         pid=pid,
         name=source_dataset['name'])
@@ -240,6 +249,8 @@ def mirror(
                 # In tests, we mirror from our selves, remove it so it is not there for import
                 proc.Calc.objects(upload_id=upload_id).delete()
                 proc.Upload.objects(upload_id=upload_id).delete()
+                _Dataset.objects().delete()
+                DOI.objects().delete()
                 search.delete_upload(upload_id)
         else:
             n_calcs = 0
@@ -292,8 +303,19 @@ def mirror(
         if not files_only:
             # create mongo
             upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            for calc_data in upload_data.calcs:
-                proc.Calc.from_json(calc_data, created=True).save()
+            if upload_data.datasets is not None:
+                for dataset in upload_data.datasets.values():
+                    fix_time(dataset, ['created'])
+                    _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
+            if upload_data.dois is not None:
+                for doi in upload_data.dois.values():
+                    if doi is not None and DOI.objects(doi=doi).first() is None:
+                        fix_time(doi, ['create_time'])
+                        DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
+            for calc in upload_data.calcs:
+                fix_time(calc, ['create_time', 'complete_time'])
+                fix_time(calc['metadata'], ['upload_time', 'last_processing'])
+            proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
             search.index_all(upload.to_upload_with_metadata().calcs)

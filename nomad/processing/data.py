@@ -33,7 +33,8 @@ import os.path
 from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
-from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
+from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
+import json
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
@@ -50,7 +51,7 @@ def _pack_log_event(logger, method_name, event_dict):
             key: value
             for key, value in getattr(logger, '_context', {}).items()
             if key not in ['service', 'release', 'upload_id', 'calc_id', 'mainfile', 'process_status']})
-        log_data.update(level=method_name.upper(), logger=logger.name)
+        log_data.update(logger=logger.name)
 
         return log_data
     except Exception:
@@ -62,8 +63,7 @@ _log_processors = [
     StackInfoRenderer(),
     _pack_log_event,
     format_exc_info,
-    TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False),
-    JSONRenderer(sort_keys=True)]
+    TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
 
 
 _all_root_sections = []
@@ -174,7 +174,9 @@ class Calc(Proc):
             def save_to_calc_log(logger, method_name, event_dict):
                 if self._calc_proc_logwriter is not None:
                     try:
-                        self._calc_proc_logwriter.write(event_dict)
+                        dump_dict = dict(event_dict)
+                        dump_dict.update(level=method_name.upper())
+                        json.dump(dump_dict, self._calc_proc_logwriter, sort_keys=True)
                         self._calc_proc_logwriter.write('\n')
 
                     except Exception:
@@ -193,6 +195,17 @@ class Calc(Proc):
         records.
         """
         logger = self.get_logger()
+
+        parser = match_parser(self.mainfile, self.upload_files, strict=False)
+        if parser is None:
+            logger.error(
+                'no parser matches during re-process, use the old parser',
+                calc_id=self.calc_id)
+        elif self.parser != parser.name:
+            self.parser = parser.name
+            logger.info(
+                'different parser matches during re-process, use new parser',
+                calc_id=self.calc_id, parser=parser.name)
 
         try:
             calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)
@@ -520,9 +533,10 @@ class Upload(Proc):
         logger = super().get_logger()
         user = self.uploader
         user_name = '%s %s' % (user.first_name, user.last_name)
+        # We are not using 'user_id' because logstash (?) will filter these entries ?!
         logger = logger.bind(
             upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
-            user_id=user.user_id, **kwargs)
+            user=user.user_id, **kwargs)
         return logger
 
     @classmethod
@@ -663,33 +677,29 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
-            # we use a copy of the mongo queryset; reasons are cursor timeouts and
-            # changing results on modifying the calc entries
-            calcs = list(Calc.objects(upload_id=self.upload_id))
-            for calc in calcs:
-                if calc.process_running:
-                    if calc.current_process == 're_process_calc':
-                        logger.warn('re_process_calc is already running', calc_id=calc.calc_id)
-                    else:
-                        logger.warn('a process is already running on calc', calc_id=calc.calc_id)
+            # check if a calc is already/still processing
+            processing = Calc.objects(
+                upload_id=self.upload_id,
+                **Calc.process_running_mongoengine_query()).count()
 
-                    continue
+            if processing > 0:
+                logger.warn(
+                    'processes are still/already running on calc, they will be resetted',
+                    count=processing)
 
-                calc.reset(worker_hostname=self.worker_hostname)
+            # reset all calcs
+            Calc._get_collection().update_many(
+                dict(upload_id=self.upload_id),
+                {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-                parser = match_parser(calc.mainfile, staging_upload_files, strict=False)
-                if parser is None:
-                    logger.error(
-                        'no parser matches during re-process, use the old parser',
-                        calc_id=calc.calc_id)
-                elif calc.parser != parser.name:
-                    calc.parser = parser.name
-                    logger.info(
-                        'different parser matches during re-process, use new parser',
-                        calc_id=calc.calc_id, parser=parser.name)
-                calc.re_process_calc()
+            # process call calcs
+            Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+
+            logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
             # try to remove the staging copy in failure case
+            logger.error('failed to trigger re-process of all calcs', exc_info=e)
+
             if staging_upload_files is not None and staging_upload_files.exists():
                 staging_upload_files.delete()
 
@@ -881,6 +891,12 @@ class Upload(Proc):
     def reset(self):
         self.joined = False
         super().reset()
+
+    @classmethod
+    def reset_pymongo_update(cls, worker_hostname: str = None):
+        update = super().reset_pymongo_update()
+        update.update(joined=False)
+        return update
 
     def _cleanup_after_processing(self):
         # send email about process finish

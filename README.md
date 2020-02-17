@@ -31,6 +31,8 @@ Omitted versions are plain bugfix releases with only minor changes and fixes.
 
 ### v0.7.5
 - AFLOWLIB prototypes (archive)
+- primitive label search
+- improved search performance based on excluded fields
 - improved logs
 - minor bugfixes
 

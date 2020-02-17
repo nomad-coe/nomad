@@ -102,10 +102,10 @@ class DomainProviderBase extends React.Component {
       defaultSearchMetric: 'code_runs',
       additionalSearchKeys: {
         raw_id: {},
+        external_id: {},
         upload_id: {},
         calc_id: {},
         paths: {},
-        external_id: {},
         pid: {},
         mainfile: {},
         calc_hash: {},
@@ -113,7 +113,9 @@ class DomainProviderBase extends React.Component {
         optimade: {},
         quantities: {},
         spacegroup: {},
-        specegroup_symbol: {}
+        spacegroup_symbol: {},
+        labels: {},
+        upload_name: {}
       },
       /**
        * An dict where each object represents a column. Possible keys are label, render.

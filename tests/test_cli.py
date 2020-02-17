@@ -22,6 +22,8 @@ from nomad import utils, search, processing as proc, files
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
+from tests.app.test_app import BlueprintClient
+
 # TODO there is much more to test
 
 
@@ -86,7 +88,6 @@ class TestAdmin:
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False, obj=utils.POPO())
 
-        print(result.output)
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
@@ -278,7 +279,9 @@ class TestClient:
 
         new_search_results = new_search['results'][0]
         for key in new_search_results.keys():
-            if key not in ['upload_time']:  # There is a sub second change due to date conversions (?)
+            if key not in ['upload_time', 'last_processing', 'labels']:
+                # There is a sub second change due to date conversions (?).
+                # Labels have arbitrary order.
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         published.upload_files.exists
@@ -320,6 +323,35 @@ class TestClient:
         assert published.upload_files.os_path in result.output
 
         published.upload_files.exists
+
+    def test_mirror_datasets(self, client, published_wo_user_metadata, test_user_auth, admin_user_bravado_client, monkeypatch):
+        # use the API to create dataset and DOI
+        api = BlueprintClient(client, '/api')
+        rv = api.post(
+            '/repo/edit', headers=test_user_auth, content_type='application/json',
+            data=json.dumps({
+                'actions': {
+                    'datasets': [{
+                        'value': 'test_dataset'
+                    }]
+                }
+            }))
+        assert rv.status_code == 200
+
+        rv = api.post('/datasets/test_dataset', headers=test_user_auth)
+        assert rv.status_code == 200
+
+        # perform the mirror
+        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0, result.output
+        assert published_wo_user_metadata.upload_id in result.output
+        assert published_wo_user_metadata.upload_files.os_path in result.output
+
+        published_wo_user_metadata.upload_files.exists
 
     def test_statistics(self, client, proc_infra, admin_user_bravado_client):
 

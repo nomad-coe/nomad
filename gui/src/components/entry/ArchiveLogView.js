@@ -21,13 +21,14 @@ class LogEntryUnstyled extends React.Component {
       color: amber[700]
     },
     exception: {
+      overflowX: 'scroll',
       margin: 0
     }
   })
 
   render() {
     const { classes, entry } = this.props
-    let data = undefined
+    let data
     try {
       data = JSON.parse(entry)
     } catch (e) {
@@ -86,9 +87,9 @@ class ArchiveLogView extends React.Component {
   });
 
   static defaultState = {
-      data: null,
-      doesNotExist: false
-    }
+    data: null,
+    doesNotExist: false
+  }
 
   state = {...ArchiveLogView.defaultState}
 

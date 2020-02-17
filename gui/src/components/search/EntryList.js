@@ -264,18 +264,10 @@ export class EntryListUnstyled extends React.Component {
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
             <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
-            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
+            <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
+            <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_time" label='upload time' noWrap data={row} >
-              <Typography noWrap>
-                {new Date(row.upload_time * 1000).toLocaleString()}
-              </Typography>
-            </Quantity>
-            <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={row}>
-              <Typography noWrap>
-                {row.nomad_version}/{row.nomad_commit}
-              </Typography>
-            </Quantity>
+            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
           </Quantity>
         </div>
       </div>

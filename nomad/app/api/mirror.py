@@ -20,6 +20,8 @@ from flask import request
 from flask_restplus import Resource, abort, fields
 
 from nomad import processing as proc
+from nomad.datamodel import Dataset
+from nomad.doi import DOI
 
 from .api import api
 from .auth import authenticate
@@ -31,7 +33,9 @@ ns = api.namespace('mirror', description='Export upload (and all calc) metadata.
 mirror_upload_model = api.model('MirrorUpload', {
     'upload_id': fields.String(description='The id of the exported upload'),
     'upload': fields.String(description='The upload metadata as mongoengine json string'),
-    'calcs': fields.List(fields.String, description='All upload calculation metadata as mongoengine json strings'),
+    'calcs': fields.List(fields.Raw, description='All upload calculation metadata as mongo SON'),
+    'datasets': fields.Raw(description='All upload datasets as dict id->mongo SON'),
+    'dois': fields.Raw(description='All upload dois as dict id->mongo SON'),
     'upload_files_path': fields.String(description='The path to the local uploads file folder')
 })
 
@@ -39,6 +43,8 @@ mirror_query_model = api.model('MirrorQuery', {
     'query': fields.Raw(
         description='Mongoengine query that is used to search for uploads to mirror.')
 })
+
+_Dataset = Dataset.m_def.m_x('me').me_cls
 
 
 @ns.route('/')
@@ -87,9 +93,25 @@ class MirrorUploadResource(Resource):
         if upload.tasks_running or upload.process_running:
             abort(400, message='Only non processing uploads can be exported')
 
+        calcs = []
+        datasets = {}
+        dois = {}
+        for calc in proc.Calc._get_collection().find(dict(upload_id=upload_id)):
+            calcs.append(calc)
+            for dataset in calc['metadata'].get('datasets', []):
+                if dataset not in datasets:
+                    datasets[dataset] = _Dataset._get_collection().find_one(dict(_id=dataset))
+                    doi = datasets[dataset].get('doi', None)
+                    if doi is not None:
+                        doi_obj = DOI._get_collection().find_one(dict(_id=doi))
+                        if doi_obj is not None:
+                            dois[doi] = doi_obj
+
         return {
-            'upload_id': upload.upload_id,
+            'upload_id': upload_id,
             'upload': upload.to_json(),
-            'calcs': [calc.to_json() for calc in proc.Calc.objects(upload_id=upload.upload_id)],
+            'calcs': calcs,
+            'datasets': datasets,
+            'dois': dois,
             'upload_files_path': upload.upload_files.os_path
         }, 200

@@ -887,6 +887,14 @@ class TestRepo():
             assert len(statistics['system']) == 1
             assert value in statistics['system']
 
+    def test_search_exclude(self, api, example_elastic_calcs, no_warn):
+        rv = api.get('/repo/?exclude=atoms,only_atoms')
+        assert rv.status_code == 200
+        result = json.loads(rv.data)['results'][0]
+        assert 'atoms' not in result
+        assert 'only_atoms' not in result
+        assert 'basis_set' in result
+
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
@@ -1079,6 +1087,14 @@ class TestRepo():
     def test_optimade(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
             '/repo/?%s' % urlencode(dict(owner='all', optimade='nelements >= 1')),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] > 0
+
+    def test_labels(self, api, non_empty_processed, test_user_auth):
+        rv = api.get(
+            '/repo/?%s' % urlencode(dict(owner='all', labels=['nonmetal', 'semiconductor']), doseq=True),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1602,7 +1618,6 @@ class TestMirror:
         data = json.loads(rv.data)
         assert data['upload_id'] == published.upload_id
         assert json.loads(data['upload'])['_id'] == published.upload_id
-        assert Upload.from_json(data['upload']).upload_id == published.upload_id
         assert len(data['calcs']) == len(published.calcs)
         assert data['upload_files_path'] == published.upload_files.os_path
 
@@ -1614,6 +1629,42 @@ class TestMirror:
 
         data = json.loads(rv.data)
         assert data[0]['upload_id'] == published.upload_id
+
+    @pytest.mark.parametrize('with_doi', [False, True])
+    def test_dataset(self, api, published_wo_user_metadata, admin_user_auth, test_user_auth, with_doi):
+        rv = api.post(
+            '/repo/edit', headers=test_user_auth, content_type='application/json',
+            data=json.dumps({
+                'actions': {
+                    'datasets': [{
+                        'value': 'test_dataset'
+                    }]
+                }
+            }))
+        assert rv.status_code == 200
+
+        if with_doi:
+            rv = api.post('/datasets/test_dataset', headers=test_user_auth)
+            assert rv.status_code == 200
+
+        rv = api.post(
+            '/mirror/',
+            content_type='application/json', data='{"query":{}}', headers=admin_user_auth)
+        assert rv.status_code == 200, rv.data
+
+        url = '/mirror/%s' % published_wo_user_metadata.upload_id
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert len(data['datasets']) == 1
+        dataset = data['calcs'][0]['metadata']['datasets'][0]
+        assert dataset in data['datasets']
+        if with_doi:
+            assert len(data['dois']) == 1
+            assert data['datasets'][dataset]['doi'] is not None
+            assert data['datasets'][dataset]['doi'] in data['dois']
+        else:
+            assert 'dois' not in data
 
 
 class TestDataset:

@@ -177,8 +177,8 @@ class RawFiles extends React.Component {
   }
 
   filterPotcar(file) {
-    if (file.toLowerCase().endsWith('potcar')) {
-      return this.props.data.uploader.user_id === this.props.user.sub
+    if (file.includes('POTCAR') && !file.endsWith('.stripped')) {
+      return this.props.user && this.props.data.uploader.user_id === this.props.user.sub
     } else {
       return true
     }
