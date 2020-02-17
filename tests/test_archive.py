@@ -122,15 +122,39 @@ def test_write_archive_multi(example_uuid, example_entry):
     assert example_uuid in toc
 
 
-def test_read_archive_single(example_uuid, example_entry):
+@pytest.mark.parametrize('use_blocked_toc', [False, True])
+def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
-    data = read_archive(f)
+    data = read_archive(f, use_blocked_toc=use_blocked_toc)
 
     assert example_uuid in data
     assert data[example_uuid]['run']['system'][1] == example_entry['run']['system'][1]
     assert data[example_uuid]['run'].to_dict() == example_entry['run']
     assert data[example_uuid].to_dict() == example_entry
+
+
+@pytest.mark.parametrize('use_blocked_toc', [False, True])
+def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
+    archive_size = ArchiveReader.toc_block_size_entries * 2 + 23
+    f = BytesIO()
+    write_archive(
+        f, archive_size,
+        [('{:22d}'.format(i), example_entry) for i in range(0, archive_size)])
+    packed_archive = f.getbuffer()
+
+    f = BytesIO(packed_archive)
+    with ArchiveReader(f, use_blocked_toc=use_blocked_toc) as reader:
+        if use_blocked_toc:
+            reader._load_toc_block(0)
+            assert reader._toc.get('{:22d}'.format(0)) is not None
+            assert len(reader._toc) == ArchiveReader.toc_block_size_entries
+            reader._load_toc_block(archive_size - 1)
+            assert reader._toc.get('{:22d}'.format(archive_size - 1)) is not None
+            assert len(reader._toc) > ArchiveReader.toc_block_size_entries
+
+        for i in range(0, archive_size):
+            reader.get('{:22d}'.format(i)) is not None
