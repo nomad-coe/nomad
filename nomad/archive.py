@@ -8,44 +8,6 @@ import json
 
 from nomad import utils
 
-example_data = {
-    'level1_obj0': {
-        'level2_str0': 'Hello World 0',
-        'level2_obj1': {
-            'level3_str': 'Hello World 1'
-        },
-        'level2_array2': [
-            {
-                'level4_str0': 'Hello World 2'
-            },
-            'b',
-            'c'
-        ]
-    },
-    'level1_obj1': {
-        'level2_str': 'Hello World 3'
-    }
-}
-
-example_data = {
-    'run': {
-        'program_name': 'VASP',
-        'system': [
-            {
-                'atoms': ['a', 'b']
-            },
-            {
-                'atoms': ['a', 'b']
-            },
-        ]
-    }
-}
-
-# example_data = {
-#     'level1_obj0': {
-#         'level2_str0': 'Hello World 0'
-#     }
-# }
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
 
@@ -63,9 +25,7 @@ class TOCPacker(Packer):
     A special msgpack packer that records a TOC while packing.
 
     Uses a combination of the pure python msgpack fallback packer and the "real"
-    cython based packing to pack data.
-
-    The TOC
+    c-based packing.
     """
     def __init__(self, toc_depth: int, *args, **kwargs):
         self.toc_depth = toc_depth
@@ -183,11 +143,12 @@ class ArchiveWriter:
         self._pos = 0
 
         assert len(self._toc) == self.n_entries
+        toc_items = sorted(self._toc.items(), key=lambda item: item[0])
         toc = {
             uuid: [
                 ArchiveWriter._encode_position(*positions[0]),
                 ArchiveWriter._encode_position(*positions[1])]
-            for uuid, positions in self._toc.items()}
+            for uuid, positions in toc_items}
 
         self._write_map_header(3)
         self.write(packb('toc_pos'))
@@ -205,9 +166,6 @@ class ArchiveWriter:
     def _encode_position(start: int, end: int) -> bytes:
         return start.to_bytes(5, byteorder='little', signed=False) + \
             end.to_bytes(5, byteorder='little', signed=False)
-
-    def _encode_uuid(self, uuid: str) -> bytes:
-        return utils.uuid_to_bytes(uuid)
 
     def add(self, uuid: str, data: Any) -> None:
         self._toc_packer.reset()
@@ -314,6 +272,9 @@ class ArchiveReader(ArchiveObject):
 
         super().__init__(None, f)
 
+        # TODO do not load the whole top-level TOC. It has a fixed layout based on
+        # the msgpack spec and can be loaded block-by block. The calc_ids are uniformly
+        # distributed and sorted!
         # this number is determined by the msgpack encoding of the file beginning:
         # { 'toc_pos': <...>
         #              ^11
@@ -446,34 +407,39 @@ if __name__ == '__main__':
         with open('local/test_be.json') as f:
             example_data = json.load(f)
 
-        size = 500
+        size = 1000
         access_every = 2
         example_archive = [(utils.create_uuid(), example_data) for _ in range(0, size)]
         example_uuid = example_archive[int(size / 2)][0]
 
         # this impl
+        # create archive
         start = time()
         buffer = BytesIO()
         write_archive(buffer, len(example_archive), example_archive, entry_toc_depth=2)
-        print(time() - start)
+        print('archive.py: create archive (1): ', time() - start)
 
+        # read single entry from archive
         buffer = BytesIO(buffer.getbuffer())
         start = time()
-        read_archive(buffer)[example_uuid]['section_run']['section_system']
-        print(time() - start)
+        for _ in range(0, 23):
+            read_archive(buffer)[example_uuid]['section_run']['section_system']
+        print('archive.py: access single entry system (23): ', (time() - start) / 23)
 
+        # read every n-ed entry from archive
         buffer = BytesIO(buffer.getbuffer())
         start = time()
-        with read_archive(buffer) as data:
-            for i, entry in enumerate(example_archive):
-                if i % access_every == 0:
-                    data[entry[0]]['section_run']['section_system']
-        print(time() - start)
+        for _ in range(0, 23):
+            with read_archive(buffer) as data:
+                for i, entry in enumerate(example_archive):
+                    if i % access_every == 0:
+                        data[entry[0]]['section_run']['section_system']
+        print('archive.py: access every %d-ed entry single entry system (23): ' % access_every, (time() - start) / 23)
 
         # just msgpack
         start = time()
         packb(example_archive)
-        print(time() - start)
+        print('msgpack: create archive (1): ', time() - start)
 
         # v0.8.0 impl
         from nomad.archive_library import filedb
@@ -483,20 +449,22 @@ if __name__ == '__main__':
         db.add_data({
             uuid: data for uuid, data in example_archive})
         db.close(save=False)
-        print(time() - start)
+        print('filedb.py: create archive (1): ', time() - start)
+
+        buffer = BytesIO(buffer.getbuffer())
+        start = time()
+        for _ in range(0, 23):
+            db = filedb.ArchiveFileDB(buffer, mode='r', max_lfragment=3)
+            db.get_docs(db.ids[example_uuid + '/section_run/section_system'][0])
+        print('filedb.py: access single entry system (23): ', (time() - start) / 23)
 
         buffer = BytesIO(buffer.getbuffer())
         start = time()
         db = filedb.ArchiveFileDB(buffer, mode='r', max_lfragment=3)
-        db.get_docs(db.ids[example_uuid + '/section_run/section_system'][0])
-        print(time() - start)
-
-        buffer = BytesIO(buffer.getbuffer())
-        start = time()
-        db = filedb.ArchiveFileDB(buffer, mode='r', max_lfragment=3)
-        for i, entry in enumerate(example_archive):
-            if i % access_every == 0:
-                db.get_docs(db.ids[entry[0] + '/section_run/section_system'][0])
-        print(time() - start)
+        for _ in range(0, 23):
+            for i, entry in enumerate(example_archive):
+                if i % access_every == 0:
+                    db.get_docs(db.ids[entry[0] + '/section_run/section_system'][0])
+        print('filedb.py: access every %d-ed entry single entry system (23): ' % access_every, (time() - start) / 23)
 
     benchmark()
