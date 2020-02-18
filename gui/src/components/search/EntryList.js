@@ -323,8 +323,7 @@ export class EntryListUnstyled extends React.Component {
     }
 
     const defaultSelectedColumns = this.props.selectedColumns || [
-      ...domain.defaultSearchResultColumns,
-      'published', 'authors']
+      ...domain.defaultSearchResultColumns, 'authors']
 
     const pagination = <TablePagination
       count={totalNumber}
