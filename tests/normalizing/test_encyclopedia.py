@@ -29,7 +29,7 @@ def test_geometry_optimization(geometry_optimization: LocalBackend):
     """Tests that geometry optimizations are correctly processed."
     """
     enc = geometry_optimization.get_mi2_section(Encyclopedia.m_def)
-    run_type = enc.calculation.run_type
+    run_type = enc.run_type.run_type
     assert run_type == "geometry optimization"
 
 
@@ -37,7 +37,7 @@ def test_molecular_dynamics(molecular_dynamics: LocalBackend):
     """Tests that geometry optimizations are correctly processed."
     """
     enc = molecular_dynamics.get_mi2_section(Encyclopedia.m_def)
-    run_type = enc.calculation.run_type
+    run_type = enc.run_type.run_type
     assert run_type == "molecular dynamics"
 
 
@@ -45,16 +45,8 @@ def test_phonon(phonon: LocalBackend):
     """Tests that geometry optimizations are correctly processed."
     """
     enc = phonon.get_mi2_section(Encyclopedia.m_def)
-    run_type = enc.calculation.run_type
+    run_type = enc.run_type.run_type
     assert run_type == "phonon calculation"
-
-
-def test_system_type(geometry_optimization: LocalBackend):
-    """Tests that geometry optimizations are correctly processed.
-    """
-    enc = geometry_optimization.get_mi2_section(Encyclopedia.m_def)
-    system_type = enc.material.system_type
-    assert system_type == "bulk"
 
 
 def test_1d_metainfo(one_d: LocalBackend):
@@ -440,18 +432,17 @@ def test_2d_structure_structure_at_cell_boundary():
 
 def test_method_dft_metainfo(single_point):
     enc = single_point.get_mi2_section(Encyclopedia.m_def)
-    assert enc.calculation.basis_set_type == "Numeric AOs"
-    assert enc.calculation.core_electron_treatment == "full all electron"
-    assert enc.calculation.code_name == "FHI-aims"
-    assert enc.calculation.code_version == "010314"
-    assert enc.calculation.mainfile_uri == "nmd://Rtest_upload_id/data/test/mainfile.txt"
-    assert enc.calculation.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
-    assert enc.calculation.functional_type == "GGA"
+    assert enc.method.basis_set_type == "Numeric AOs"
+    assert enc.method.core_electron_treatment == "full all electron"
+    assert enc.method.code_name == "FHI-aims"
+    assert enc.method.code_version == "010314"
+    assert enc.method.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
+    assert enc.method.functional_type == "GGA"
 
 
 def test_method_gw_metainfo(gw):
     enc = gw.get_mi2_section(Encyclopedia.m_def)
-    assert enc.calculation.code_name == "FHI-aims"
-    assert enc.calculation.code_version == "180607"
-    assert enc.calculation.gw_type == "G0W0"
-    assert enc.calculation.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
+    assert enc.method.code_name == "FHI-aims"
+    assert enc.method.code_version == "180607"
+    assert enc.method.gw_type == "G0W0"
+    assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"

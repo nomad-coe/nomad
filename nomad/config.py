@@ -184,10 +184,10 @@ normalize = NomadConfig(
     # The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
     # according to
     # https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
-    symmetry_tolerance=0.1,
+    symmetry_tolerance=0.2,
     # The symmetry tolerance used in aflow prototype matching. Should only be
     # changed before re-running the prototype detection.
-    prototype_symmetry_tolerance=0.1,
+    prototype_symmetry_tolerance=0.2,
     # Maximum number of atoms in the single cell of a 2D material for it to be
     # considered valid.
     max_2d_single_cell_size=7,

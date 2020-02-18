@@ -602,11 +602,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         for group in wyckoff_sets:
             wset = material.m_create(WyckoffSet)
             if group.x is not None:
-                wset.x = group.x
+                wset.x = float(group.x)
             if group.y is not None:
-                wset.y = group.y
+                wset.y = float(group.y)
             if group.z is not None:
-                wset.z = group.z
+                wset.z = float(group.z)
             wset.indices = group.indices
             wset.element = group.element
             wset.wyckoff_letter = group.wyckoff_letter
