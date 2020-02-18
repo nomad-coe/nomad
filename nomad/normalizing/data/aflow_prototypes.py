@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 aflow_prototypes = {
-    "matid_symmetry_tolerance": 0.2,
     "prototypes_by_spacegroup": {
         1: [
             {

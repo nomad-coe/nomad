@@ -1,6 +1,6 @@
 {
   "name": "nomad-fair-gui",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "commit": "nomad-gui-commit-placeholder",
   "private": true,
   "dependencies": {

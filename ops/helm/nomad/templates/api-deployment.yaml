@@ -16,7 +16,7 @@ data:
     keys=console, access, error
 
     [formatters]
-    keys=generic
+    keys=generic, json
 
     [logger_root]
     level=INFO
@@ -38,14 +38,14 @@ data:
     args=(sys.stdout, )
 
     [handler_access]
-    class=logstash.TCPLogstashHandler
+    class=StreamHandler
     formatter=json
-    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
+    args=(sys.stdout, )
 
     [handler_error]
-    class=logstash.TCPLogstashHandler
+    class=StreamHandler
     formatter=json
-    args=('{{ .Values.logstash.host }}',{{ .Values.logstash.port }})
+    args=(sys.stdout, )
 
     [formatter_generic]
     format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s

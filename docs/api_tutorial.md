@@ -17,8 +17,13 @@ We do not assume many specific python packages. Only the *bravado* package (avai
 via pipy) is required. It allows us to use the nomad ReST API in a more friendly and
 pythonic way. You can simply install it the usual way
 
+Optionally, if you need to access your private data, the package *python-keycloak* is
+required to conveniently acquire the necessary tokens to authenticate your self towards
+NOMAD.
+
 ```
 pip install bravado
+pip install python-keycloak
 ```
 
 For the following code snippets, we need the following imports:
@@ -31,6 +36,12 @@ from urllib.parse import urlparse
 import time
 import os.path
 import sys
+```
+
+And optionally:
+```python
+from bravado.requests_client import RequestsClient, Authenticator
+from keycloak import KeycloakOpenID
 ```
 
 ### An example file
@@ -55,13 +66,47 @@ password = 'password'
 
 ### Using bravado
 Bravado reads a ReST API's definition from a `swagger.json` as it is provided by
-many APIs, including nomad's of course. Bravado also allows to use authentication,
-which makes it even easier. The following would be a typical setup:
+many APIs, including nomad's of course.
 
 ```python
 host = urlparse(nomad_url).netloc.split(':')[0]
 http_client = RequestsClient()
-http_client.set_basic_auth(host, user, password)
+client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
+```
+
+Bravado also allows to use authentication, if required. The following would be a typical setup:
+
+```python
+class KeycloakAuthenticator(Authenticator):
+    """ A bravado authenticator for NOMAD's keycloak-based user management. """
+    def __init__(self, user, password):
+        super().__init__(host=urlparse(nomad_url).netloc.split(':')[0])
+        self.user = user
+        self.password = password
+        self.token = None
+        self.__oidc = KeycloakOpenID(
+            server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+            realm_name='fairdi_nomad_prod',
+            client_id='nomad_public')
+
+    def apply(self, request):
+        if self.token is None:
+            self.token = self.__oidc.token(username=self.user, password=self.password)
+            self.token['time'] = time()
+        elif self.token['expires_in'] < int(time()) - self.token['time'] + 10:
+            try:
+                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
+                self.token['time'] = time()
+            except Exception:
+                self.token = self.__oidc.token(username=self.user, password=self.password)
+                self.token['time'] = time()
+
+        request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
+
+        return request
+
+http_client = RequestsClient()
+http_client.authenticator = KeycloakAuthenticator(user=user, password=password)
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 ```
 
@@ -192,7 +237,30 @@ print('%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['ma
 
 There are different options to download individual files, or zips with multiple files.
 
+## Using *curl* to access the API
+
+The shell tool *curl* can be used to call most API endpoints. Most endpoints for searching
+or downloading data are only **GET** operations controlled by URL parameters. For example:
+
+Downloading data:
+```
+curl http://repository.nomad-coe.eu/app/api/raw/query?upload_id=<your_upload_id> -o download.zip
+```
+
+It is a litle bit trickier, if you need to authenticate yourself, e.g. to download
+not yet published or embargoed data. All endpoints support and most require the use of
+an access token. To acquire an access token from our usermanagement system with curl:
+```
+curl --data 'grant_type=password&client_id=nomad_public&username=<your_username>&password=<your password>' \
+    https://repository.nomad-coe.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+```
+
+You can use the access-token with:
+```
+curl -H 'Authorization: Bearer <you_access_token>' \
+    http://repository.nomad-coe.eu/app/api/raw/query?upload_id=<your_upload_id> -o download.zip
+```
+
 ## Conclusions
-This was just a small glimpse into the nomad API. You should checkout our swagger documentation
-for more details on all the API endpoints and their parameters. You can explore the
-API via swagger-ui and even try it in your browser. Just visit the API url.
+This was just a small glimpse into the nomad API. You should checkout our [swagger-ui](https://repository.nomad-coe.eu/app/api/) for more details on all the API endpoints and their parameters. You can explore the
+API via the swagger-ui and even try it in your browser.

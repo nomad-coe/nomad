@@ -1624,6 +1624,42 @@ class TestMirror:
         data = json.loads(rv.data)
         assert data[0]['upload_id'] == published.upload_id
 
+    @pytest.mark.parametrize('with_doi', [False, True])
+    def test_dataset(self, api, published_wo_user_metadata, admin_user_auth, test_user_auth, with_doi):
+        rv = api.post(
+            '/repo/edit', headers=test_user_auth, content_type='application/json',
+            data=json.dumps({
+                'actions': {
+                    'datasets': [{
+                        'value': 'test_dataset'
+                    }]
+                }
+            }))
+        assert rv.status_code == 200
+
+        if with_doi:
+            rv = api.post('/datasets/test_dataset', headers=test_user_auth)
+            assert rv.status_code == 200
+
+        rv = api.post(
+            '/mirror/',
+            content_type='application/json', data='{"query":{}}', headers=admin_user_auth)
+        assert rv.status_code == 200, rv.data
+
+        url = '/mirror/%s' % published_wo_user_metadata.upload_id
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert len(data['datasets']) == 1
+        dataset = data['calcs'][0]['metadata']['datasets'][0]
+        assert dataset in data['datasets']
+        if with_doi:
+            assert len(data['dois']) == 1
+            assert data['datasets'][dataset]['doi'] is not None
+            assert data['datasets'][dataset]['doi'] in data['dois']
+        else:
+            assert 'dois' not in data
+
 
 class TestDataset:
 
