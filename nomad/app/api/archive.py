@@ -313,7 +313,7 @@ class ArchiveQueryResource(Resource):
 
                     upload_files.open_zipfile_cache()
 
-                upload_files._is_authorized =  create_authorization_predicate(upload_id, entry['calc_id'])
+                upload_files._is_authorized = create_authorization_predicate(upload_id, entry['calc_id'])
                 fo = upload_files.archive_file(calc_id, 'rb')
                 data.append(json.loads(fo.read()))
 
