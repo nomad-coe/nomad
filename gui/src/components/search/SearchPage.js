@@ -75,7 +75,7 @@ class SearchPage extends React.Component {
     const { classes, user, location, update } = this.props
 
     let query = {
-      owner: 'all'
+      owner: 'public'
     }
     if (location && location.search) {
       query = {
@@ -91,7 +91,7 @@ class SearchPage extends React.Component {
         <SearchContext
           update={update}
           initialQuery={query}
-          ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
+          ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
         >
           <Search visualization="elements" tabs={['entries', 'groups', 'datasets']} />
         </SearchContext>

@@ -29,6 +29,10 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.7.7
+- Shows dataset contents with embargo data, but hides the entry details (raw-files, archive)
+- minor bugfixes
+
 ### v0.7.5
 - AFLOWLIB prototypes (archive)
 - primitive label search

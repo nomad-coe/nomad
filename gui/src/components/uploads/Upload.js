@@ -50,12 +50,16 @@ class PublishConfirmDialog extends React.Component {
               area into the public NOMAD. This step is final. All public data will be made available under the Creative
               Commons Attribution license ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
 
-              If you wish, you can put an embargo on your data. Embargoed data is not
-              visible to others (unless explicitly shared), but you can already create
-              datasets and assign DOIs for data with embargo, e.g. to put it into your
-              unpublished paper. The embargo will last up to 36 month. Afterwards, your
-              data will be made publicly available. You can also lift the embargo on
-              entries at any time. This functionality is part of editing entries.
+              If you wish, you can put an embargo on your data. Embargoed data is
+              visible to and findable by others. This makes some metadata (e.g.
+              chemical formula, system type, spacegroup, etc.) public, but the raw-file
+              and archive contents remain hidden (except to you, and users you explicitly
+              share the data with).
+              You can already create datasets and assign DOIs for data with embargo, e.g.
+              to put it into your unpublished paper.
+              The embargo will last up to 36 month. Afterwards, your data will be made publicly
+              available. You can also lift the embargo on entries at any time.
+              This functionality is part of editing entries.
             `}</Markdown>
 
             <FormControl style={{width: '100%', marginTop: 24}}>

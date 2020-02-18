@@ -647,7 +647,7 @@ class InviteUserDialogUnstyled extends React.Component {
             If you want to add a user as co-author or share your data with someone that
             is not already a NOMAD user, you can invite this person here. We need just a few
             details about this person. After your invite, the new user will receive an
-            Email that allows him to set a password and further details. Anyhow, you will
+            Email that allows her to set a password and further details. Anyhow, you will
             be able to add the user as co-author or someone to share with immediately after the
             invite.
           </DialogContentText>
