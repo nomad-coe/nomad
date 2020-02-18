@@ -232,7 +232,7 @@ def test_2d_material_identification():
     for _ in range(10):
         graphene4 = graphene.copy()
         pos = graphene4.get_positions()
-        pos += 0.1 * np.random.rand(pos.shape[0], pos.shape[1])
+        pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         graphene4.set_positions(pos)
         backend = run_normalize_for_structure(graphene4)
         enc = backend.get_mi2_section(Encyclopedia.m_def)
@@ -331,7 +331,7 @@ def test_bulk_material_identification():
     for _ in range(10):
         wurtzite4 = wurtzite.copy()
         pos = wurtzite4.get_positions()
-        pos += 0.1 * np.random.rand(pos.shape[0], pos.shape[1])
+        pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         wurtzite4.set_positions(pos)
         backend = run_normalize_for_structure(wurtzite4)
         enc = backend.get_mi2_section(Encyclopedia.m_def)

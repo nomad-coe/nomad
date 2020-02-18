@@ -177,17 +177,17 @@ mail = NomadConfig(
 normalize = NomadConfig(
     # The system size limit for running the dimensionality analysis. For very
     # large systems the dimensionality analysis will get too expensive.
-    system_classification_with_clusters_threshold=50,
+    system_classification_with_clusters_threshold=64,
     # Symmetry tolerance controls the precision used by spglib in order to find
     # symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
     # their symmetry positions in order for spglib to still detect symmetries.
     # The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
     # according to
     # https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
-    symmetry_tolerance=0.2,
+    symmetry_tolerance=0.1,
     # The symmetry tolerance used in aflow prototype matching. Should only be
     # changed before re-running the prototype detection.
-    prototype_symmetry_tolerance=0.2,
+    prototype_symmetry_tolerance=0.1,
     # Maximum number of atoms in the single cell of a 2D material for it to be
     # considered valid.
     max_2d_single_cell_size=7,

@@ -28,7 +28,7 @@ import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables
 from nomad.normalizing import structure
 from nomad.utils import hash
 from nomad import config
@@ -601,12 +601,14 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def wyckoff_sets(self, material: Material, wyckoff_sets: Dict) -> None:
         for group in wyckoff_sets:
             wset = material.m_create(WyckoffSet)
-            if group.x is not None:
-                wset.x = float(group.x)
-            if group.y is not None:
-                wset.y = float(group.y)
-            if group.z is not None:
-                wset.z = float(group.z)
+            if group.x is not None or group.y is not None or group.z is not None:
+                variables = wset.m_create(WyckoffVariables)
+                if group.x is not None:
+                    variables.x = float(group.x)
+                if group.y is not None:
+                    variables.y = float(group.y)
+                if group.z is not None:
+                    variables.z = float(group.z)
             wset.indices = group.indices
             wset.element = group.element
             wset.wyckoff_letter = group.wyckoff_letter

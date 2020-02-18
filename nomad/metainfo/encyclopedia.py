@@ -3,18 +3,12 @@ from elasticsearch_dsl import InnerDoc
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, units
 
 
-class WyckoffSet(MSection):
+class WyckoffVariables(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing Wyckoff set information.
-        """
-    )
-    wyckoff_letter = Quantity(
-        type=str,
-        description="""
-        The Wyckoff letter for this set.
+        Contains the variables associated with this set.
         """
     )
     x = Quantity(
@@ -35,6 +29,22 @@ class WyckoffSet(MSection):
         The z variable if present.
         """
     )
+
+
+class WyckoffSet(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing Wyckoff set information.
+        """
+    )
+    wyckoff_letter = Quantity(
+        type=str,
+        description="""
+        The Wyckoff letter for this set.
+        """
+    )
     indices = Quantity(
         type=np.dtype('i4'),
         shape=["1..*"],
@@ -48,6 +58,7 @@ class WyckoffSet(MSection):
         Chemical element at this Wyckoff position.
         """
     )
+    variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False)
 
 
 class Material(MSection):
