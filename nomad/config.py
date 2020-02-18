@@ -71,17 +71,25 @@ class NomadConfig(dict):
 
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
+version = '0.7.6'
+commit = gitinfo.commit
+release = 'devel'
+domain = 'DFT'
+service = 'unknown nomad service'
+auxfile_cutoff = 100
+parser_matching_size = 9128
+console_log_level = logging.WARNING
+max_upload_size = 32 * (1024 ** 3)
+raw_file_strip_cutoff = 1000
+use_empty_parsers = False
+springer_db_relative_path = 'normalizing/data/SM_all08.db'
+springer_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), springer_db_relative_path)
 
 rabbitmq = NomadConfig(
     host='localhost',
     user='rabbitmq',
     password='rabbitmq'
 )
-
-
-def rabbitmq_url():
-    return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
-
 
 celery = NomadConfig(
     max_memory=64e6,  # 64 GB
@@ -155,20 +163,6 @@ tests = NomadConfig(
 )
 
 
-def api_url(ssl: bool = True):
-    return '%s://%s/%s/api' % (
-        'https' if services.https and ssl else 'http',
-        services.api_host.strip('/'),
-        services.api_base_path.strip('/'))
-
-
-def gui_url():
-    base = api_url(True)[:-3]
-    if base.endswith('/'):
-        base = base[:-1]
-    return '%s/gui' % base
-
-
 mail = NomadConfig(
     enabled=False,
     with_login=False,
@@ -187,8 +181,16 @@ normalize = NomadConfig(
     # Symmetry tolerance controls the precision used by spglib in order to find
     # symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
     # their symmetry positions in order for spglib to still detect symmetries.
-    # The unit is angstroms.
+    # The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
+    # according to
+    # https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
     symmetry_tolerance=0.1,
+    # The symmetry tolerance used in aflow prototype matching. Should only be
+    # changed before re-running the prototype detection.
+    prototype_symmetry_tolerance=0.1,
+    # Maximum number of atoms in the single cell of a 2D material for it to be
+    # considered valid.
+    max_2d_single_cell_size=7,
     # The distance tolerance between atoms for grouping them into the same
     # cluster. Used in detecting system type.
     cluster_threshold=3.1,
@@ -208,21 +210,43 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.6'
-commit = gitinfo.commit
-release = 'devel'
-domain = 'DFT'
-service = 'unknown nomad service'
-auxfile_cutoff = 100
-parser_matching_size = 9128
-console_log_level = logging.WARNING
-max_upload_size = 32 * (1024 ** 3)
-raw_file_strip_cutoff = 1000
-use_empty_parsers = False
+
+def rabbitmq_url():
+    return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
 
 
-springer_db_relative_path = 'normalizing/data/SM_all08.db'
-springer_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), springer_db_relative_path)
+def api_url(ssl: bool = True):
+    return '%s://%s/%s/api' % (
+        'https' if services.https and ssl else 'http',
+        services.api_host.strip('/'),
+        services.api_base_path.strip('/'))
+
+
+def gui_url():
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+    return '%s/gui' % base
+
+
+def check_config():
+    """Used to check that the current configuration is valid. Should only be
+    called once after the final config is loaded.
+
+    Raises:
+        AssertionError: if there is a contradiction or invalid values in the
+            config file settings.
+    """
+    # The AFLOW symmetry information is checked once on import
+    proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
+    symmetry_tolerance = normalize.symmetry_tolerance
+    if proto_symmetry_tolerance != symmetry_tolerance:
+        raise AssertionError(
+            "The AFLOW prototype information is outdated due to changed tolerance "
+            "for symmetry detection. Please update the AFLOW prototype information "
+            "by running the CLI command 'nomad admin ops prototype-update "
+            "--matches-only'."
+        )
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
@@ -353,3 +377,4 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
 
 
 load_config()
+check_config()
