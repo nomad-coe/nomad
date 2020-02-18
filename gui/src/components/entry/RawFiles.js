@@ -130,9 +130,9 @@ class RawFiles extends React.Component {
   }
 
   handleFileClicked(file) {
-    const {api, uploadId, raiseError} = this.props
+    const {api, uploadId, calcId, raiseError} = this.props
     this.setState({shownFile: file, fileContents: null})
-    api.getRawFile(uploadId, file, {length: 16 * 1024})
+    api.getRawFile(uploadId, calcId, file.split('/').reverse()[0], {length: 16 * 1024})
       .then(contents => this.setState({fileContents: contents}))
       .catch(raiseError)
   }

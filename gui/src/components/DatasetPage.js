@@ -44,6 +44,7 @@ class DatasetPage extends React.Component {
 
   state = {
     dataset: {},
+    empty: false,
     update: 0
   }
 
@@ -58,14 +59,13 @@ class DatasetPage extends React.Component {
       const entry = data.results[0]
       const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
       if (!dataset) {
-        this.setState({dataset: {}})
-        raiseError(new DoesNotExist('Dataset does not exist any more or is not visible to you.'))
+        this.setState({dataset: {}, empty: true})
       }
       this.setState({dataset: {
-        ...dataset, example: entry
+        ...dataset, example: entry, empty: false
       }})
     }).catch(error => {
-      this.setState({dataset: {}})
+      this.setState({dataset: {}, empty: false})
       raiseError(error)
     })
   }
@@ -76,7 +76,7 @@ class DatasetPage extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
-      this.setState({dataset: {}}, () => this.update())
+      this.setState({dataset: {}, empty: false}, () => this.update())
     }
   }
 
@@ -90,13 +90,13 @@ class DatasetPage extends React.Component {
 
   render() {
     const { classes, datasetId } = this.props
-    const { dataset, update } = this.state
+    const { dataset, update, empty } = this.state
 
     return (
       <div>
         <div className={classes.header}>
           <div className={classes.description}>
-            <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
+            <Typography variant="h4">{dataset.name || (empty && 'Empty or non existing dataset') ||'loading ...'}</Typography>
             <Typography>
               dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
             </Typography>
@@ -111,7 +111,9 @@ class DatasetPage extends React.Component {
         </div>
 
         <SearchContext
-          query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}
+          initialQuery={{owner: 'all'}}
+          query={{dataset_id: datasetId}}
+          ownerTypes={['all', 'public']} update={update}
         >
           <Search resultTab="entries" tabs={['entries', 'groups', 'datasets']} />
         </SearchContext>

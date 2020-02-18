@@ -272,12 +272,16 @@ class RawFileFromCalcPathResource(Resource):
             path = urllib.parse.unquote(path)
 
         calc_filepath = path if path is not None else ''
-        authorization_predicate = create_authorization_predicate(upload_id)
+        authorization_predicate = create_authorization_predicate(upload_id, calc_id=calc_id)
         upload_files = UploadFiles.get(upload_id, authorization_predicate)
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-        calc = Calc.get(calc_id)
+        try:
+            calc = Calc.get(calc_id)
+        except KeyError:
+            pass
+
         if calc is None:
             abort(404, message='The calc with id %s does not exist.' % calc_id)
         if calc.upload_id != upload_id:
@@ -455,8 +459,7 @@ class RawFileQueryResource(Resource):
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
-                        upload_files = UploadFiles.get(
-                            upload_id, create_authorization_predicate(upload_id))
+                        upload_files = UploadFiles.get(upload_id)
 
                         if upload_files is None:
                             logger.error('upload files do not exist', upload_id=upload_id)
@@ -467,6 +470,8 @@ class RawFileQueryResource(Resource):
                         def open_file(upload_filename):
                             return upload_files.raw_file(upload_filename, 'rb')
 
+                    upload_files._is_authorized = create_authorization_predicate(
+                        upload_id=upload_id, calc_id=entry['calc_id'])
                     directory = os.path.dirname(mainfile)
                     directory_w_upload = os.path.join(upload_files.upload_id, directory)
                     if directory_w_upload not in directories:

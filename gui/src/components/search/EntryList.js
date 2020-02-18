@@ -12,6 +12,7 @@ import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import PrivateIcon from '@material-ui/icons/AccountCircle'
+import { withApi } from '../api'
 
 export function Published(props) {
   const {entry} = props
@@ -271,12 +272,24 @@ export class EntryListUnstyled extends React.Component {
           </Quantity>
         </div>
       </div>
+
       <div className={classes.entryDetailsActions}>
-        <Button color="primary" onClick={event => this.handleViewEntryPage(event, row)}>
-          Show raw files and archive
-        </Button>
+        {this.showEntryActions(row) &&
+          <Button color="primary" onClick={event => this.handleViewEntryPage(event, row)}>
+            Show raw files and archive
+          </Button>
+        }
       </div>
     </div>)
+  }
+
+  showEntryActions(row) {
+    const { user } = this.props
+    if (row.with_embargo && !(user && row.owners.find(owner => owner.user_id === user.sub))) {
+      return false
+    } else {
+      return !this.props.showEntryActions || this.props.showEntryActions(row)
+    }
   }
 
   handleViewEntryPage(event, row) {
@@ -285,7 +298,7 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryActions(row, selected) {
-    if (!this.props.showEntryActions || this.props.showEntryActions(row)) {
+    if (this.showEntryActions(row)) {
       return <Tooltip title="Show raw files and archive">
         <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
           <DetailsIcon />
@@ -311,7 +324,7 @@ export class EntryListUnstyled extends React.Component {
 
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
-      'authors']
+      'published', 'authors']
 
     const pagination = <TablePagination
       count={totalNumber}
@@ -365,6 +378,6 @@ export class EntryListUnstyled extends React.Component {
   }
 }
 
-const EntryList = compose(withRouter, withDomain, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+const EntryList = compose(withRouter, withDomain, withApi(false), withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
 
 export default EntryList
