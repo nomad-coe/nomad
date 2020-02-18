@@ -698,6 +698,8 @@ export const ApiProvider = compose(withKeycloak, withErrors)(ApiProviderComponen
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
+const __reauthorize_trigger_changes = ['api', 'calcId', 'uploadId', 'calc_id', 'upload_id']
+
 class WithApiComponent extends React.Component {
   static propTypes = {
     raiseError: PropTypes.func.isRequired,
@@ -719,7 +721,7 @@ class WithApiComponent extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (__reauthorize_trigger_changes.find(key => this.props[key] !== prevProps[key])) {
       this.setState({notAuthorized: false})
     }
   }
