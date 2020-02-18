@@ -17,12 +17,14 @@ import pytest
 import click.testing
 import json
 import mongoengine
+import datetime
 
 from nomad import utils, search, processing as proc, files
 from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
 from tests.app.test_app import BlueprintClient
+from tests.utils import assert_exception
 
 # TODO there is much more to test
 
@@ -65,6 +67,32 @@ class TestAdmin:
         assert not published.upload_files.exists()
         assert Calc.objects(upload_id=upload_id).first() is None
         assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
+
+    @pytest.mark.parametrize('upload_time,dry,lifted', [
+        (datetime.datetime.now(), False, False),
+        (datetime.datetime(year=2012, month=1, day=1), True, False),
+        (datetime.datetime(year=2012, month=1, day=1), False, True)])
+    def test_lift_embargo(self, published, upload_time, dry, lifted):
+        upload_id = published.upload_id
+        published.upload_time = upload_time
+        published.save()
+        calc = Calc.objects(upload_id=upload_id).first()
+
+        assert published.upload_files.exists()
+        assert calc.metadata['with_embargo']
+        assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
+        with assert_exception():
+            files.UploadFiles.get(upload_id=upload_id).archive_file(calc_id=calc.calc_id)
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
+            catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
+        assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
+        if lifted:
+            assert files.UploadFiles.get(upload_id=upload_id).archive_file(calc_id=calc.calc_id)
 
     def test_index(self, published):
         upload_id = published.upload_id

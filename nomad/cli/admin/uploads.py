@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Callable
+from typing import List
 import click
 from tabulate import tabulate
 from mongoengine import Q
 from pymongo import UpdateOne
-import threading
 import elasticsearch_dsl as es
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
-from .admin import admin
+from .admin import admin, __run_processing
 
 
 @admin.group(help='Upload related commands')
@@ -231,75 +230,13 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
         delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
 
 
-def __run_processing(
-        ctx, uploads, parallel: int, process: Callable[[proc.Upload], None], label: str):
-    _, uploads = query_uploads(ctx, uploads)
-    uploads_count = uploads.count()
-    uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
-
-    cv = threading.Condition()
-    threads: List[threading.Thread] = []
-
-    state = dict(
-        completed_count=0,
-        skipped_count=0,
-        available_threads_count=parallel)
-
-    logger = utils.get_logger(__name__)
-
-    print('%d uploads selected, %s ...' % (uploads_count, label))
-
-    def process_upload(upload: proc.Upload):
-        logger.info('%s started' % label, upload_id=upload.upload_id)
-
-        completed = False
-        if upload.process_running:
-            logger.warn(
-                'cannot trigger %s, since the upload is already/still processing' % label,
-                current_process=upload.current_process,
-                current_task=upload.current_task, upload_id=upload.upload_id)
-
-        else:
-            upload.reset()
-            process(upload)
-            upload.block_until_complete(interval=.5)
-
-            if upload.tasks_status == proc.FAILURE:
-                logger.info('%s with failure' % label, upload_id=upload.upload_id)
-
-            completed = True
-
-            logger.info('%s complete' % label, upload_id=upload.upload_id)
-
-        with cv:
-            state['completed_count'] += 1 if completed else 0
-            state['skipped_count'] += 1 if not completed else 0
-            state['available_threads_count'] += 1
-
-            print(
-                '   %s %s and skipped %s of %s uploads' %
-                (label, state['completed_count'], state['skipped_count'], uploads_count))
-
-            cv.notify()
-
-    for upload in uploads:
-        with cv:
-            cv.wait_for(lambda: state['available_threads_count'] > 0)
-            state['available_threads_count'] -= 1
-            thread = threading.Thread(target=lambda: process_upload(upload))
-            threads.append(thread)
-            thread.start()
-
-    for thread in threads:
-        thread.join()
-
-
 @uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
 def re_process(ctx, uploads, parallel: int):
-    __run_processing(ctx, uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing')
+    _, uploads = query_uploads(ctx, uploads)
+    __run_processing(uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing')
 
 
 @uploads.command(help='Repack selected uploads.')
@@ -307,7 +244,8 @@ def re_process(ctx, uploads, parallel: int):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
 def re_pack(ctx, uploads, parallel: int):
-    __run_processing(ctx, uploads, parallel, lambda upload: upload.re_pack(), 're-packing')
+    _, uploads = query_uploads(ctx, uploads)
+    __run_processing(uploads, parallel, lambda upload: upload.re_pack(), 're-packing')
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
