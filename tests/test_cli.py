@@ -149,6 +149,15 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
+    def test_ls_query(self, published):
+        upload_id = published.upload_id
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert '1 uploads selected' in result.stdout
+
     def test_rm(self, published):
         upload_id = published.upload_id
 

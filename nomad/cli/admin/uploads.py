@@ -16,8 +16,10 @@ from typing import List
 import click
 from tabulate import tabulate
 from mongoengine import Q
+from elasticsearch_dsl import Q as ESQ
 from pymongo import UpdateOne
 import elasticsearch_dsl as es
+import json
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
 from .admin import admin, __run_processing
@@ -67,6 +69,15 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
 
 
 def query_uploads(ctx, uploads):
+    try:
+        json_query = json.loads(' '.join(uploads))
+        request = search.SearchRequest()
+        request.q = ESQ(json_query)
+        request.quantity('upload_id', size=10000)
+        uploads = list(request.execute()['quantities']['upload_id']['values'])
+    except Exception:
+        pass
+
     query = ctx.obj.query
     if len(uploads) > 0:
         query &= Q(upload_id__in=uploads)
