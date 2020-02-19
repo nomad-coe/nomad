@@ -278,7 +278,7 @@ class Method(MSection):
         """
     )
     method_type = Quantity(
-        type=str,
+        type=MEnum("DFT", "GW", "unavailable"),
         description="""
         Generic name for the used methodology.
         """
@@ -338,7 +338,7 @@ class Method(MSection):
         type=str,
         description="""
         A fixed length, unique identifier for calculations where structure is
-        identical but the used computational parameters are varied.  Only
+        identical but the used computational parameters are varied. Only
         calculations within the same upload will be grouped under the same
         hash.
         """
@@ -415,6 +415,13 @@ class Properties(MSection):
         unit=units.kg / units.m**3,
         description="""
         Mass density of the material based on the structural information.
+        """
+    )
+    energies = Quantity(
+        type=str,
+        description="""
+        Code dependent energy values in the JSON format, corrected to be per
+        formula unit.
         """
     )
 

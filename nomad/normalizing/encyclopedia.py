@@ -46,12 +46,15 @@ class Context():
         run_type: str,
         representative_system,
         representative_method,
+        representative_scc,
     ):
         self.system_type = system_type
         self.method_type = method_type
         self.run_type = run_type
         self.representative_system = representative_system
         self.representative_method = representative_method
+        self.representative_scc = representative_scc
+        self.greatest_common_divisor: int = None
 
 
 class EncyclopediaNormalizer(Normalizer):
@@ -171,7 +174,7 @@ class EncyclopediaNormalizer(Normalizer):
                 electronic_structure_method = sec_method.get("electronic_structure_method", None)
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
-                    method_id = electronic_structure_method
+                    method_id = "GW"
                     break
 
                 # Methods linked to each other through references. Get all
@@ -248,10 +251,14 @@ class EncyclopediaNormalizer(Normalizer):
         method = None
         if ctx.method_type == "DFT":
             method = MethodDFTNormalizer(self._backend, self.logger)
-        elif ctx.method_type in {"G0W0", "scGW"}:
+        elif ctx.method_type == "GW":
             method = MethodGWNormalizer(self._backend, self.logger)
         if method is not None:
             method.normalize(ctx)
+
+        # Fill properties related metainfo
+        properties = PropertiesNormalizer(self._backend, self.logger)
+        properties.normalize(ctx)
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
@@ -283,7 +290,11 @@ class EncyclopediaNormalizer(Normalizer):
         representative_method, method_type = self.method_type(method)
 
         # Process all present properties
-        # TODO
+        try:
+            representative_scc_idx = self._backend["section_run"][0].tmp.get("representative_scc_idx")
+            representative_scc = self._backend[s_scc][representative_scc_idx]
+        except (KeyError, IndexError):
+            representative_scc = None
 
         # Create one context that holds all details
         context = Context(
@@ -292,6 +303,7 @@ class EncyclopediaNormalizer(Normalizer):
             run_type=run_type_name,
             representative_system=representative_system,
             representative_method=representative_method,
+            representative_scc=representative_scc,
         )
 
         # Put the encyclopedia section into backend
@@ -627,6 +639,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
+        ctx.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill structural information
@@ -740,6 +753,7 @@ class Material2DNormalizer(MaterialNormalizer):
         prim_atoms = symmetry_analyzer.get_primitive_system()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
+        ctx.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill metainfo
@@ -951,6 +965,7 @@ class Material1DNormalizer(MaterialNormalizer):
         prim_atoms.set_pbc(True)
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
+        ctx.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill metainfo
@@ -980,7 +995,7 @@ class MethodNormalizer():
     def code_version(self, method: Method) -> None:
         method.code_version = self.backend["program_version"]
 
-    def method_hash(self, method: Method):
+    def method_hash(self, method: Method, settings_basis_set, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing. Not all the settings are set for this
         # calculation, in which case they will be simply set as None.
@@ -990,21 +1005,25 @@ class MethodNormalizer():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.method_hash_dict(method))
+        hash_dict.update(self.method_hash_dict(method, settings_basis_set, repr_method))
 
         # Form a hash from the dictionary
         method_hash = self.group_dict_to_hash("method_hash", hash_dict)
         method.method_hash = method_hash
 
-    def group_eos_hash(self, method: Method, settings_basis_set: OrderedDict, repr_method):
+    def group_eos_hash(self, method: Method, material: Material, settings_basis_set: OrderedDict, repr_method):
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
-        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]  # Only calculations from the same upload are grouped
 
-        # The subclasses may define their own method properties that are to be
-        # included here.
-        hash_dict.update(self.group_eos_hash_dict(method, settings_basis_set, repr_method))
+        # Only calculations from the same upload are grouped
+        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+
+        # Method
+        hash_dict["method_hash"] = method.method_hash
+
+        # The formula should be same for EoS (maybe even symmetries)
+        hash_dict["formula"] = material.formula
 
         # Form a hash from the dictionary
         group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
@@ -1014,7 +1033,14 @@ class MethodNormalizer():
         # Create ordered dictionary with the values. Order is important for
         # consistent hashing.
         hash_dict: OrderedDict = OrderedDict()
-        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]  # Only calculations from the same upload are grouped
+
+        # Only calculations from the same upload are grouped
+        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+
+        # The same code and functional type is required
+        hash_dict['program_name'] = method.code_name
+        hash_dict['program_version'] = method.code_version
+        hash_dict['functional_long_name'] = method.functional_long_name
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -1052,11 +1078,7 @@ class MethodNormalizer():
         pass
 
     @abstractmethod
-    def method_hash_dict(self, method: Method):
-        return OrderedDict()
-
-    @abstractmethod
-    def group_eos_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method):
+    def method_hash_dict(self, method: Method, settings_basis_set, repr_method):
         return OrderedDict()
 
     @abstractmethod
@@ -1094,15 +1116,9 @@ class MethodNormalizer():
                 result += self.find_nones(data[i], "%s[%d]" % (parent, i))
         return result
 
+    @abstractmethod
     def normalize(self, ctx: Context) -> None:
-        # Fetch resources
-        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
-        method = sec_enc.method
-
-        # Fill metainfo
-        self.code_name(method)
-        self.code_version(method)
-        self.method_hash(method)
+        pass
 
 
 class MethodDFTNormalizer(MethodNormalizer):
@@ -1209,13 +1225,10 @@ class MethodDFTNormalizer(MethodNormalizer):
         return xc_functional
 
     def functional_type(self, method: Method, method_type) -> None:
-        if method_type == "GW":
-            method.functional_type = "GW"
-        else:
-            long_name = method.functional_long_name
-            if long_name is not None:
-                short_name = self.create_xc_functional_shortname(long_name)
-                method.functional_type = short_name
+        long_name = method.functional_long_name
+        if long_name is not None:
+            short_name = self.create_xc_functional_shortname(long_name)
+            method.functional_type = short_name
 
     def smearing_kind(self, method: Method, representative_method) -> None:
         try:
@@ -1233,20 +1246,13 @@ class MethodDFTNormalizer(MethodNormalizer):
         else:
             method.smearing_parameter = smearing_width
 
-    def method_hash_dict(self, method: Method) -> OrderedDict:
-        # Extend by numerical settings TODO: maybe add basis set parameters /
-        # other computational parameters
+    def method_hash_dict(self, method: Method, settings_basis_set, repr_method) -> OrderedDict:
+        # Extend by DFT settings. TODO: These amount of included properties
+        # should be greatly extended.
         hash_dict: OrderedDict = OrderedDict()
         hash_dict['functional_long_name'] = method.functional_long_name
-
-        return hash_dict
-
-    def group_eos_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method) -> OrderedDict:
-        # Extend by numerical settings TODO: maybe add basis set parameters /
-        # other computational parameters
-        hash_dict: OrderedDict = OrderedDict()
-        hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(method)
         hash_dict['settings_basis_set'] = settings_basis_set
+        hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(method)
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr * J_to_Ry)
@@ -1260,12 +1266,13 @@ class MethodDFTNormalizer(MethodNormalizer):
         This is the source for generating the related hash."""
         hash_dict: OrderedDict = OrderedDict()
 
-        # Add DFT-specific properties
+        # TODO: Add other DFT-specific properties
         # considered variations:
         #   - smearing kind/width
         #   - k point grids
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
+        hash_dict['functional_long_name'] = method.functional_long_name
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr * J_to_Ry)
@@ -1317,9 +1324,6 @@ class MethodDFTNormalizer(MethodNormalizer):
             self.logger.warning(str(e))
         else:
             result = settings_basis.to_dict()
-
-        # Save as JSON in metainfo
-        # method.settings_basis_set = result
 
         return result
 
@@ -1380,6 +1384,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         repr_system = ctx.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         method = sec_enc.method
+        material = sec_enc.material
         settings_basis_set = self.settings_basis_set(method, ctx)
 
         # Fill metainfo
@@ -1391,8 +1396,8 @@ class MethodDFTNormalizer(MethodNormalizer):
         self.functional_type(method, ctx.method_type)
         self.smearing_kind(method, repr_method)
         self.smearing_parameter(method, repr_method)
-        self.method_hash(method)
-        self.group_eos_hash(method, settings_basis_set, repr_method)
+        self.method_hash(method, settings_basis_set, repr_method)
+        self.group_eos_hash(method, material, settings_basis_set, repr_method)
         self.group_parametervariation_hash(method, settings_basis_set, repr_system, repr_method)
 
 
@@ -1413,8 +1418,11 @@ class MethodGWNormalizer(MethodDFTNormalizer):
                 xc_functional = MethodDFTNormalizer.functional_long_name_from_method(start_method, methods)
                 method.gw_starting_point = xc_functional
 
-    def gw_type(self, method: Method, method_type: str) -> None:
-        method.gw_type = method_type
+    def functional_type(self, method: Method, method_type) -> None:
+        method.functional_type = "GW"
+
+    def gw_type(self, method: Method, repr_method) -> None:
+        method.gw_type = repr_method["electronic_structure_method"]
 
     def normalize(self, ctx: Context) -> None:
         # Fetch resources
@@ -1425,7 +1433,8 @@ class MethodGWNormalizer(MethodDFTNormalizer):
         # Fill metainfo
         self.code_name(method)
         self.code_version(method)
-        self.gw_type(method, ctx.method_type)
+        self.functional_type(method, ctx.method_type)
+        self.gw_type(method, ctx.representative_method)
         self.gw_starting_point(method, repr_method)
 
 
@@ -1575,9 +1584,26 @@ class PropertiesNormalizer():
     def helmholtz_free_energy(self) -> None:
         pass
 
-    def energies(self) -> None:
-        pass
+    def energies(self, properties: Properties, gcd: int, representative_scc) -> None:
+        energy_dict = {}
+        if representative_scc is not None:
+            energies_entries = {
+                "energy_total": "Total E",
+                "energy_total_T0": "Total E projected to T=0",
+                "energy_free": "Free E",
+            }
+            for energy_name, label in energies_entries.items():
+                result = representative_scc.get(energy_name)
+                if result is not None:
+                    energy_dict[label] = result / gcd
 
-    @abstractmethod
+            if len(energy_dict) == 0:
+                energy_dict = None
+        energies = json.dumps(energy_dict)
+        properties.energies = energies
+
     def normalize(self, ctx: Context) -> None:
-        self.band_structure(ctx.run_type)
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        properties = sec_enc.properties
+        # self.band_structure(ctx.run_type)
+        self.energies(properties, ctx.greatest_common_divisor, ctx.representative_scc)

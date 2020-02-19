@@ -192,10 +192,8 @@ class SettingsBasisSetGenericPlaneWaves(
             return cutoff
 
 
-class SettingsBasisSetCodeDependentFhiAims(
-    SettingsBasisSetCodeDependent,
-):
-    """Basis set settings for 'FHI-Aims' (code-dependent)
+class SettingsBasisSetCodeDependentFhiAims(SettingsBasisSetCodeDependent):
+    """Basis set settings for 'FHI-Aims' (code-dependent).
     """
     @staticmethod
     def is_basis_set_for(backend):
@@ -207,8 +205,7 @@ class SettingsBasisSetCodeDependentFhiAims(
         result_dict = super().to_dict(result_dict)
         result_dict['FhiAims_basis'] = None
 
-        # get section_method/x_fhi_aims_section_controlIn_basis_set
-        #   lookup via shortcut setup in Nomad/Archive/calculation.py
+        # Try to find repeated sections that contain basis set definitions
         aims_bs = self.backend.get('x_fhi_aims_section_controlIn_basis_set')
         if aims_bs is None:
             self.logger.warning(
@@ -216,24 +213,19 @@ class SettingsBasisSetCodeDependentFhiAims(
             )
             return result_dict
 
-        # each 'x_fhi_aims_section_controlIn_basis_set' describes basis for
-        # a species; store per-species so we can sort later on
+        # Get basis set settings for each species
         bs_by_species = {}
         for this_aims_bs in aims_bs:
             this_bs_dict = self._values_to_dict(this_aims_bs, level=2)
             this_species = this_aims_bs['x_fhi_aims_controlIn_species_name'][0]
-            if this_species in bs_by_species:
-                self.logger.warning(
-                    "multiple definitions of x_fhi_aims_section_controlIn_basis_set for species " + this_species
-                )
-                return result_dict
             bs_by_species[this_species] = this_bs_dict
 
-        # result: sorted alphabetically by species label
+        # Sorted alphabetically by species label
         if bs_by_species:
             result_dict['FhiAims_basis'] = OrderedDict()
             for k in sorted(bs_by_species.keys()):
                 result_dict['FhiAims_basis'][k] = bs_by_species[k]
+
         return result_dict
 
     # TODO: this should go as .keys() method to archive.py hdf5/json
@@ -281,10 +273,8 @@ class SettingsBasisSetCodeDependentFhiAims(
         return result
 
 
-class SettingsBasisSetCodeDependent_Exciting(
-    SettingsBasisSetCodeDependent,
-):
-    """Basis set settings for 'Exciting' (code-dependent)
+class SettingsBasisSetCodeDependent_Exciting(SettingsBasisSetCodeDependent):
+    """Basis set settings for 'Exciting' (code-dependent).
     """
     @staticmethod
     def is_basis_set_for(backend):
@@ -295,43 +285,36 @@ class SettingsBasisSetCodeDependent_Exciting(
         https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-general/wikis/FHI-visit-preparation
         """
         result_dict = super().to_dict(result_dict)
-
         system = self.context.representative_system
 
         try:
-            result_dict['muffin_tin_radius'] = ', '.join(map(
-                lambda r: "%.6f" % (r),
-                system['x_exciting_muffin_tin_radius'] * 1e+10))
+            result_dict['muffin_tin_radius'] = "%.6f" % (1e+10 * system['x_exciting_muffin_tin_radius'])
         except Exception:
             result_dict['muffin_tin_radius'] = None
 
         try:
-            result_dict['rgkmax'] = "%.6f" % (
-                system['x_exciting_rgkmax'][0] * 1e+10)
+            result_dict['muffin_tin_points'] = "%d" % system['x_exciting_muffin_tin_points']
+        except Exception:
+            result_dict['muffin_tin_points'] = None
+
+        try:
+            result_dict['rgkmax'] = "%.6f" % (system['x_exciting_rgkmax'])
         except Exception:
             result_dict['rgkmax'] = None
 
         try:
-            result_dict['gkmax'] = "%.6f" % (
-                system['x_exciting_gkmax'][0] * 1e-10)
+            result_dict['gkmax'] = "%.6f" % (1e-10 * system['x_exciting_gkmax'])
         except Exception:
             result_dict['gkmax'] = None
 
         try:
-            result_dict['lo'] = "%d" % (system['x_exciting_lo'][0])
+            result_dict['lo'] = "%d" % (system['x_exciting_lo'])
         except Exception:
             result_dict['lo'] = None
 
         try:
-            result_dict['lmaxapw'] = "%d" % (system['x_exciting_lmaxapw'][0])
+            result_dict['lmaxapw'] = "%d" % (system['x_exciting_lmaxapw'])
         except Exception:
             result_dict['lmaxapw'] = None
-
-        try:
-            result_dict['muffin_tin_points'] = ', '.join(map(
-                lambda r: "%d" % (r),
-                system['x_exciting_muffin_tin_points']))
-        except Exception:
-            result_dict['muffin_tin_points'] = None
 
         return result_dict
