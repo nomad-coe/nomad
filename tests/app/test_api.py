@@ -223,10 +223,6 @@ class TestUploads:
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
 
-            print('##########')
-            for key, value in calc['metadata'].items():
-                print(key, value)
-            print('##########')
             assert 'dft.atoms' in calc['metadata']
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
