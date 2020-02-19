@@ -383,8 +383,6 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
 
 
 def test_ems_data(proc_infra, test_user):
-
-
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
 
     additional_keys = [

@@ -69,25 +69,30 @@ class InfoResource(Resource):
     @api.marshal_with(info_model, skip_none=True, code=200, description='Info send')
     def get(self):
         """ Return information about the nomad backend and its configuration. """
+        codes = [
+            parser.code_name
+            for parser in parsing.parser_dict.values()
+            if isinstance(parser, parsing.MatchingParser) and parser.domain == 'dft']
+
         return {
             'parsers': [
                 key[key.index('/') + 1:]
                 for key in parsing.parser_dict.keys()],
-            'codes': sorted(set([
-                parser.code_name
-                for parser in parsing.parser_dict.values()
-                if isinstance(parser, parsing.MatchingParser) and parser.domain == datamodel.Domain.instance.name]), key=lambda x: x.lower()),
+            'codes': sorted(set(codes), key=lambda x: x.lower()),
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
-            'domain': {
-                'name': datamodel.Domain.instance.name,
-                'quantities': [quantity for quantity in datamodel.Domain.instance.quantities.values()],
-                'metrics_names': datamodel.Domain.instance.metrics_names,
-                'aggregations_names': datamodel.Domain.instance.aggregations_names,
-                'metainfo': {
-                    'all_package': datamodel.Domain.instance.metainfo_all_package,
-                    'root_sections': datamodel.Domain.instance.root_sections
+            'domains': [
+                {
+                    'name': domain.name,
+                    'quantities': [quantity for quantity in domain.quantities.values()],
+                    'metrics_names': domain.metrics_names,
+                    'aggregations_names': domain.aggregations_names,
+                    'metainfo': {
+                        'all_package': domain.metainfo_all_package,
+                        'root_sections': domain.root_sections
+                    }
                 }
-            },
+                for domain in datamodel.Domain.instances.values()
+            ],
             'version': config.version,
             'release': config.release,
             'git': {

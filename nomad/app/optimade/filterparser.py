@@ -26,7 +26,7 @@ class FilterException(Exception):
 
 quantities: Dict[str, Quantity] = {
     q.name: Quantity(
-        q.name, es_field='optimade.%s' % q.name,
+        q.name, es_field='dft.optimade.%s' % q.name,
         elastic_mapping_type=q.m_annotations['elastic']['type'])
 
     for q in OptimadeEntry.m_def.all_quantities.values()
@@ -34,7 +34,7 @@ quantities: Dict[str, Quantity] = {
 
 quantities['elements'].length_quantity = quantities['nelements']
 quantities['dimension_types'].length_quantity = quantities['dimension_types']
-quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
+quantities['elements'].has_only_quantity = Quantity(name='dft.only_atoms')
 quantities['elements'].nested_quantity = quantities['elements_ratios']
 quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 

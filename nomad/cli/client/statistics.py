@@ -34,7 +34,7 @@ def codes(client, minimum=1, **kwargs):
     data = client.repo.search(per_page=1, **kwargs).response().result
 
     x_values = sorted([
-        code for code, values in data.statistics['code_name'].items()
+        code for code, values in data.statistics['dft.code_name'].items()
         if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
     return data.statistics, x_values, 'code_name', 'code'
@@ -61,7 +61,7 @@ def error_fig(client):
 
         return {
             code: values[metric]
-            for code, values in result.quantities['code_name'].items()
+            for code, values in result.quantities['dft.code_name'].items()
             if code != 'not processed' and (not labels or code in labels) > 0}
 
     # get the data
@@ -414,7 +414,7 @@ def statistics_table(html, geometries, public_path):
         'total', 'all', 'code_runs')
 
     phonons = get_statistic(
-        client.repo.search(per_page=1, code_name='Phonopy').response().result,
+        client.repo.search(per_page=1, **{'dft.code_name': 'Phonopy'}).response().result,
         'total', 'all', 'code_runs')
 
     # files and sized

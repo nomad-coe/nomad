@@ -43,7 +43,7 @@ def base_request_args():
 def base_search_request():
     """ Creates a search request for all public and optimade enabled data. """
     return search.SearchRequest().owner('all', None).query(
-        Q('exists', field='optimade.nelements'))  # TODO use the elastic annotations when done
+        Q('exists', field='dft.optimade.nelements'))  # TODO use the elastic annotations when done
 
 
 @ns.route('/calculations')

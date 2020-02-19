@@ -335,4 +335,4 @@ Domain(
     groups=dict(
         groups=('group_hash', 'groups')),
     default_statistics=[
-        'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system', 'code_name'])
+        'dft.atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'dft.crystal_system', 'dft.code_name'])

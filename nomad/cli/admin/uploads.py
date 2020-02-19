@@ -50,7 +50,7 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
         query &= Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:
-        code_queries = [es.Q('match', code_name=code_name) for code_name in code]
+        code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
         code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
 
         code_search = es.Search(index=config.elastic.index_name)

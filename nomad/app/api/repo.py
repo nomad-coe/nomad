@@ -148,7 +148,8 @@ class RepoCalcsResource(Resource):
         The search will return aggregations on a predefined set of quantities. Aggregations
         will tell you what quantity values exist and how many entries match those values.
 
-        Ordering is determined by ``order_by`` and ``order`` parameters.
+        Ordering is determined by ``order_by`` and ``order`` parameters. Default is
+        ``upload_time`` in decending order.
         """
 
         try:
@@ -162,7 +163,7 @@ class RepoCalcsResource(Resource):
             page = args.get('page', 1)
             per_page = args.get('per_page', 10 if not scroll else 1000)
             order = args.get('order', -1)
-            order_by = args.get('order_by', 'formula')
+            order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
             metrics: List[str] = request.args.getlist('metrics')
@@ -594,9 +595,8 @@ class RepoQuantityResource(Resource):
         except AssertionError:
             abort(400, message='invalid size')
 
-        search_request.quantity(quantity, size=size, after=after)
-
         try:
+            search_request.quantity(quantity, size=size, after=after)
             results = search_request.execute()
             quantities = results.pop('quantities')
             results['quantity'] = quantities[quantity]

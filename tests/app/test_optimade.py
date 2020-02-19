@@ -36,7 +36,7 @@ def test_get_entry(published: Upload):
         data = json.load(f)
     assert 'OptimadeEntry' in data
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'optimade' in search_result
+    assert 'dft.optimade' in search_result
 
 
 def test_no_optimade(meta_info, elastic, api):
