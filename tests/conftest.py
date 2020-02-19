@@ -28,11 +28,13 @@ from flask import request, g
 import elasticsearch.exceptions
 from typing import List
 import numpy as np
+import json
+import logging
 
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
-from nomad import config, infrastructure, parsing, processing, app, search
+from nomad import config, infrastructure, parsing, processing, app, search, utils
 from nomad.datamodel import User, CalcWithMetadata
 from nomad.parsing import LocalBackend
 
@@ -44,6 +46,10 @@ from tests.test_normalizing import run_normalize
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
+
+
+utils.ConsoleFormatter.short_format = True
+logging.Formatter = utils.ConsoleFormatter
 
 
 @pytest.fixture(scope="session")
@@ -346,10 +352,12 @@ def test_user_bravado_client(client, test_user_auth, monkeypatch):
 
 @pytest.fixture(scope='function')
 def no_warn(caplog):
+    caplog.handler.formatter = utils.ConsoleFormatter()
     yield caplog
     for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            assert False, record.msg
+            msg = utils.ConsoleFormatter.serialize(json.loads(record.msg))
+            assert False, msg
 
 
 @pytest.fixture(scope='function')
