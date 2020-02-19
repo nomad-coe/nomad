@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination, Button } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
@@ -37,13 +36,13 @@ export class EntryListUnstyled extends React.Component {
     order: PropTypes.number.isRequired,
     page: PropTypes.number.isRequired,
     per_page: PropTypes.number.isRequired,
-    domain: PropTypes.object.isRequired,
     editable: PropTypes.bool,
     columns: PropTypes.object,
     title: PropTypes.string,
     actions: PropTypes.element,
     showEntryActions: PropTypes.func,
-    selectedColumns: PropTypes.arrayOf(PropTypes.string)
+    selectedColumns: PropTypes.arrayOf(PropTypes.string),
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -365,6 +364,6 @@ export class EntryListUnstyled extends React.Component {
   }
 }
 
-const EntryList = compose(withRouter, withDomain, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+const EntryList = compose(withRouter, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
 
 export default EntryList

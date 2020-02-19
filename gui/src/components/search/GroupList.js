@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, Table, TableHead, TableRow, TableBody, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -37,7 +36,7 @@ class GroupUnstyled extends React.Component {
   update() {
     const {groupHash, api, raiseError} = this.props
     const {query} = this.context.state
-    api.search({...query, group_hash: groupHash, per_page: 100})
+    api.search({...query, 'dft.group_hash': groupHash, per_page: 100})
       .then(data => {
         this.setState({entries: data.results})
       })
@@ -158,12 +157,12 @@ class GroupListUnstyled extends React.Component {
   renderEntryActions(entry, selected) {
     return <DownloadButton
       dark={selected}
-      query={{group_hash: entry.group_hash}} tooltip="Download all entries of this group"
+      query={{'dft.group_hash': entry.dft.group_hash}} tooltip="Download all entries of this group"
     />
   }
 
   renderEntryDetails(entry) {
-    return <Group groupHash={entry.group_hash} />
+    return <Group groupHash={entry.dft.group_hash} />
   }
 
   render() {
@@ -207,7 +206,7 @@ class GroupListUnstyled extends React.Component {
     return <DataTable
       classes={{details: classes.details}}
       entityLabels={['group of similar entries', 'groups of similar entries']}
-      id={row => row.group_hash}
+      id={row => row.dft.group_hash}
       total={total}
       columns={this.columns}
       selectedColumns={defaultSelectedColumns}
@@ -221,6 +220,6 @@ class GroupListUnstyled extends React.Component {
   }
 }
 
-const GroupList = compose(withRouter, withDomain, withApi(false), withStyles(GroupListUnstyled.styles))(GroupListUnstyled)
+const GroupList = compose(withRouter, withApi(false), withStyles(GroupListUnstyled.styles))(GroupListUnstyled)
 
 export default GroupList

@@ -14,7 +14,7 @@ class SearchContext extends React.Component {
     initialQuery: PropTypes.object,
     initialRequest: PropTypes.object,
     update: PropTypes.number,
-    domain: PropTypes.object.isRequired,
+    domains: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     children: PropTypes.any
@@ -41,7 +41,7 @@ class SearchContext extends React.Component {
     }
   }
 
-  defaultMetric = this.props.domain.defaultSearchMetric
+  defaultMetric = this.props.domains.dft.defaultSearchMetric
 
   state = {
     response: SearchContext.emptyResponse,
@@ -54,6 +54,7 @@ class SearchContext extends React.Component {
     },
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
+    domain: this.props.domains.dft,
     query: {}
   }
 
@@ -121,13 +122,14 @@ class SearchContext extends React.Component {
   }
 
   render() {
-    const {children} = this.props
+    const {children, domains} = this.props
     const value = {
       state: this.state,
       props: this.props,
       setRequest: this.handleRequestChange,
       setQuery: this.handleQueryChange,
-      setMetric: this.handleMetricChange
+      setMetric: this.handleMetricChange,
+      domain: domains.dft  // TODO allow user to change
     }
     return <SearchContext.type.Provider value={value} >
       {children}

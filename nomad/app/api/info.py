@@ -56,7 +56,7 @@ info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
     'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
-    'domain': fields.Nested(model=domain_model),
+    'domains': fields.List(fields.Nested(model=domain_model)),
     'version': fields.String,
     'release': fields.String,
     'git': fields.Nested(model=git_info_model)

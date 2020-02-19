@@ -89,11 +89,12 @@ class MetaInfoBrowser extends Component {
 
   update(pkg) {
     this.props.api.getInfo().then(info => {
-      this.props.api.getMetaInfo(pkg || info.domain.metainfo.all_package).then(metainfos => {
-        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+      const domain = info.domains.find(domain => domain.name === 'dft')  // TODO deal with domains
+      this.props.api.getMetaInfo(pkg || domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.props.metainfo || domain.metainfo.root_sections[0]
         const definition = metainfos.get(metainfoName)
         if (!definition) {
-          this.props.history.push(`/metainfo/${info.domain.metainfo.root_sections[0]}`)
+          this.props.history.push(`/metainfo/${domain.metainfo.root_sections[0]}`)
         } else {
           this.setState({loadedPackage: pkg, metainfos: metainfos})
         }
@@ -107,11 +108,12 @@ class MetaInfoBrowser extends Component {
 
   init() {
     this.props.api.getInfo().then(info => {
-      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metainfos => {
-        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+      const domain = info.domains.find(domain => domain.name === 'dft')  // TODO deal with domains
+      this.props.api.getMetaInfo(domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.props.metainfo || domain.metainfo.root_sections[0]
         const definition = metainfos.get(metainfoName)
         this.setState({
-          domainRootSection: info.domain.metainfo.root_sections[0],
+          domainRootSection: domain.metainfo.root_sections[0],
           allMetainfos: metainfos,
           selectedPackage: definition.package.name})
         this.update(definition.package.name)

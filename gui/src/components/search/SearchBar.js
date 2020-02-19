@@ -1,6 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
+import { withDomain } from '../domains'  // TODO this causes a weird import bug
 import ChipInput from 'material-ui-chip-input'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
@@ -9,7 +10,6 @@ import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
 import { Chip, IconButton, Tooltip } from '@material-ui/core'
 import { nomadPrimaryColor } from '../../config'
-import { withDomain } from '../domains'
 import { compose } from 'recompose'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
@@ -92,7 +92,6 @@ function getSuggestionValue(suggestion) {
 class SearchBar extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    domain: PropTypes.object.isRequired,
     loading: PropTypes.number
   }
 
@@ -132,13 +131,6 @@ class SearchBar extends React.Component {
     textFieldInput: ''
   }
 
-  constructor(props) {
-    super(props)
-    const { domain } = props
-    const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
-    this.additionalSearchKeyRE = new RegExp(reStr)
-  }
-
   getSuggestions(valueWithCase) {
     const value = valueWithCase.toLowerCase()
 
@@ -167,7 +159,10 @@ class SearchBar extends React.Component {
     })
 
     // Add additional quantities to the end
-    const match = value.match(this.additionalSearchKeyRE)
+    const { domain } = this.context.state
+    const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
+    const additionalSearchKeyRE = new RegExp(reStr)
+    const match = value.match(additionalSearchKeyRE)
     if (match && this.props.domain.additionalSearchKeys[match[1]]) {
       suggestions.push({
         key: match[1],
@@ -270,8 +265,8 @@ class SearchBar extends React.Component {
   static contextType = SearchContext.type
 
   render() {
-    const {classes, domain, loading} = this.props
-    const {response: {pagination, statistics}, query} = this.context.state
+    const {classes, loading} = this.props
+    const {response: {pagination, statistics}, query, domain} = this.context.state
 
     let helperText = <span>loading ...</span>
     if (pagination && statistics) {
@@ -341,4 +336,4 @@ class SearchBar extends React.Component {
   }
 }
 
-export default compose(withApi(false, false), withDomain, withStyles(SearchBar.styles))(SearchBar)
+export default compose(withApi(false, false), withStyles(SearchBar.styles))(SearchBar)

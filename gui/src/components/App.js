@@ -69,7 +69,7 @@ class NavigationUnstyled extends React.Component {
     location: PropTypes.object.isRequired,
     loading: PropTypes.number.isRequired,
     raiseError: PropTypes.func.isRequired,
-    domain: PropTypes.object.isRequired
+    domains: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -164,7 +164,7 @@ class NavigationUnstyled extends React.Component {
     '/uploads': 'Upload and Publish Data',
     '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
-    '/entry': capitalize(this.props.domain.entryLabel),
+    '/entry': capitalize(this.props.domains.entryLabel),
     '/dataset': 'Dataset'
   }
 

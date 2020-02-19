@@ -6,47 +6,22 @@ import DFTEntryCards from './dft/DFTEntryCards'
 import EMSSearchAggregations from './ems/EMSSearchAggregations'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
-import { withApi } from './api'
 
 const DomainContext = React.createContext()
 
-class DomainProviderBase extends React.Component {
+export class DomainProvider extends React.Component {
   static propTypes = {
     children: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.node),
       PropTypes.node
-    ]).isRequired,
-    info: PropTypes.object,
-    raiseError: PropTypes.func.isRequired
+    ]).isRequired
   }
 
   domains = {
-    DFT: {
+    entryLabel: 'entry',
+    dft: {
       name: 'DFT',
-      about: `
-        # The NOMAD Repository and Archive
-
-        This web-page is the graphical user interface (GUI) for the NOMAD Repository and
-        Archive. It allows you to search, access, and download all NOMAD data in its
-        raw (Repository) and processed (Archive) form. You can upload and manage your own
-        raw computational material science data. Learn more about what data can be uploaded
-        and how to prepare your data on the [NOMAD Repository homepage](https://repository.nomad-coe.eu/).
-        You can access all published data without an account. If you want to provide
-        your own data, please login or register for an account.
-
-        In the future, this web-page will include more and more features of other NOMAD
-        components as an effort to consolidate the various web applications from the
-        NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
-
-        ### This looks different, what about the old NOMAD interface?
-
-        We have migrated all data from the original NOMAD Repository to this new system.
-        However, not all of the data was successfully processed by the new and more powerful parsers.
-        We will continue to improve the parsers to raise the quality of archive data overtime.
-        For some entries, no archive data might be currently available and some metadata might
-        still be missing when you are exploring Nomad data using the new search and data
-        exploring capabilities (menu items on the left).
-      `,
+      about: 'This include data from many computational material science codes',
       entryLabel: 'entry',
       entryLabelPlural: 'entries',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
@@ -169,23 +144,9 @@ class DomainProviderBase extends React.Component {
        */
       EntryCards: DFTEntryCards
     },
-    EMS: {
+    ems: {
       name: 'EMS',
-      about: `
-        ## A Prototype for Experimental Material Science Data Sharing
-
-        The original goal of the NOMAD CoE project was to provide a data sharing and
-        publication platform for computational material science data. With this prototype,
-        we want to apply NOMAD ideas and implementations to experimental material science
-        data.
-
-        As a first step, this site demonstrates NOMAD's \`domain specific\` search interface
-        and how experiment (meta-)data can be represented. We want to explore what
-        meta-data exists for material experiments, what is necessary to provide meaningful
-        search capabilities, how we can implement FAIR data sharing principles, and
-        how can we establish a community process to integrate the various experimental
-        methods and respective data.
-      `,
+      about: 'This is metadata from material science experiments',
       entryLabel: 'experiment',
       entryLabelPlural: 'experiments',
       searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
@@ -249,17 +210,13 @@ class DomainProviderBase extends React.Component {
   }
 
   render() {
-    const { info } = this.props
-
     return (
-      <DomainContext.Provider value={{domain: info ? this.domains[info.domain.name] : this.domains.DFT}}>
+      <DomainContext.Provider value={{domains: this.domains}}>
         {this.props.children}
       </DomainContext.Provider>
     )
   }
 }
-
-export const DomainProvider = withApi(false, false)(DomainProviderBase)
 
 export function withDomain(Component) {
   function DomainConsumer(props) {

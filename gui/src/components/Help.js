@@ -15,7 +15,7 @@ class HelpDialogUnstyled extends React.Component {
     content: PropTypes.func.isRequired,
     icon: PropTypes.node,
     maxWidth: PropTypes.string,
-    domain: PropTypes.object.isRequired
+    domains: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -41,7 +41,7 @@ class HelpDialogUnstyled extends React.Component {
   }
 
   render() {
-    const {classes, title, content, icon, maxWidth, domain, ...rest} = this.props
+    const {classes, title, content, icon, maxWidth, domains, ...rest} = this.props
     return (
       <div className={classes.root}>
         <Tooltip title={title}>
@@ -56,7 +56,7 @@ class HelpDialogUnstyled extends React.Component {
         >
           <DialogTitle>{title || 'Help'}</DialogTitle>
           <DialogContent>
-            <Markdown>{content(domain)}</Markdown>
+            <Markdown>{content(domains)}</Markdown>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => this.handleClose()} color="primary">

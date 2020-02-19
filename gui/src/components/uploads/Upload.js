@@ -103,7 +103,7 @@ class Upload extends React.Component {
     api: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
-    domain: PropTypes.object.isRequired,
+    domains: PropTypes.object.isRequired,
     open: PropTypes.bool,
     history: PropTypes.object.isRequired
   }
@@ -546,7 +546,7 @@ class Upload extends React.Component {
   }
 
   renderCalcTable() {
-    const { classes } = this.props
+    const { classes, domains } = this.props
     const { columns, upload } = this.state
     const { calcs, tasks_status, waiting } = this.state.upload
 
@@ -611,6 +611,7 @@ class Upload extends React.Component {
       actions={actions}
       showEntryActions={entry => entry.processed}
       {...this.state.params}
+      domain={domains.dft}  // TODO this should work without a domain. There are no domain relevant parts in the upload calc data
     />
   }
 

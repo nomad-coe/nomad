@@ -31,7 +31,7 @@ class RepoEntryView extends React.Component {
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
     calcId: PropTypes.string.isRequired,
-    domain: PropTypes.object.isRequired
+    domains: PropTypes.object.isRequired
   }
 
   static defaultState = {
@@ -69,13 +69,16 @@ class RepoEntryView extends React.Component {
   }
 
   render() {
-    const { classes, domain, ...calcProps } = this.props
+    const { classes, domains, ...calcProps } = this.props
     const calcData = this.state.calcData || calcProps
     const loading = !this.state.calcData
     const { uploadId, calcId } = calcProps
     const quantityProps = {data: calcData, loading: loading}
 
     const authors = loading ? null : calcData.authors
+
+    const domain = domains.dft // TODO this should be chosen based on the domain of the data
+
 
     if (this.state.doesNotExist) {
       return <Typography className={classes.error}>

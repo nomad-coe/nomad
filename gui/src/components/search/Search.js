@@ -24,15 +24,15 @@ class Search extends React.Component {
     },
     'groups': {
       label: 'Grouped entries',
-      render: () => <SearchGroupList />
+      render: (props) => <SearchGroupList {...props} />
     },
     'uploads': {
       label: 'Uploads',
-      render: () => <SearchUploadList />
+      render: (props) => <SearchUploadList {...props}/>
     },
     'datasets': {
       label: 'Datasets',
-      render: () => <SearchDatasetList />
+      render: (props) => <SearchDatasetList {...props}/>
     }
   }
 
@@ -128,6 +128,7 @@ class Search extends React.Component {
   render() {
     const {classes, entryListProps, tabs} = this.props
     const {resultTab, openVisualization} = this.state
+    const {domain} = this.context.state
     // const {state: {request: {uploads, datasets, groups}}} = this.context
 
     return <DisableOnLoading>
@@ -176,7 +177,7 @@ class Search extends React.Component {
             {tabs.map(tab => <KeepState
               key={tab}
               visible={resultTab === tab}
-              render={() => Search.tabs[tab].render(entryListProps)}
+              render={() => Search.tabs[tab].render({domain: domain , ...entryListProps})}
             />)}
           </Paper>
         </div>
@@ -187,12 +188,14 @@ class Search extends React.Component {
 
 class DomainVisualizationUnstyled extends React.Component {
   static propTypes = {
-    domain: PropTypes.object.isRequired,
     open: PropTypes.bool
   }
 
+  static contextType = SearchContext.type
+
   render() {
-    const {open, domain} = this.props
+    const {domain} = this.context.state
+    const {open} = this.props
 
     return <KeepState visible={open} render={() =>
       <domain.SearchAggregations />
@@ -261,8 +264,7 @@ class ElementsVisualization extends React.Component {
 
 class MetricSelectUnstyled extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
-    domain: PropTypes.object.isRequired
+    classes: PropTypes.object.isRequired
   }
 
   static contextType = SearchContext.type
@@ -295,8 +297,8 @@ class MetricSelectUnstyled extends React.Component {
   }
 
   render() {
-    const {classes, domain} = this.props
-    const {state: {metric}} = this.context
+    const {classes} = this.props
+    const {metric, domain} = this.context.state
     const {anchorEl} = this.state
 
     const metricsDefinitions = domain.searchMetrics
@@ -475,7 +477,7 @@ class SearchDatasetList extends React.Component {
       datasets_after={response.datasets && response.datasets.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }
@@ -491,7 +493,7 @@ class SearchGroupList extends React.Component {
       groups_after={response.groups && response.groups.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }
@@ -507,7 +509,7 @@ class SearchUploadList extends React.Component {
       uploads_after={response.uploads && response.uploads.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }
