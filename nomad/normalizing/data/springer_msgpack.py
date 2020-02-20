@@ -28,7 +28,7 @@ import re
 import os
 from bs4 import BeautifulSoup
 
-from nomad.archive_library.filedb import ArchiveFileDB
+from nomad.archive import ArchiveFileDB
 
 
 DB_NAME = '.springer.msg'
@@ -187,6 +187,18 @@ def parse(htmltext):
     return results
 
 
+def _merge_dict(dict0, dict1):
+    if not isinstance(dict1, dict) or not isinstance(dict0, dict):
+        return dict1
+
+    for k, v in dict1.items():
+        if k in dict0:
+            dict0[k] = _merge_dict(dict0[k], v)
+        else:
+            dict0[k] = v
+    return dict0
+
+
 def download_entries(formula, space_group_number):
     """
     Downloads the springer quantities related to a structure from springer.
@@ -216,7 +228,7 @@ def download_entries(formula, space_group_number):
         compound = data.get('compound_classes', None)
         classification = data.get('classification', None)
         entry = dict(id=id, aformula=aformula, url=path, compound=compound, classification=classification)
-        entries = ArchiveFileDB.merge_dict(entries, {str(space_group_number): {normalized_formula: {id: entry}}})
+        entries = _merge_dict(entries, {str(space_group_number): {normalized_formula: {id: entry}}})
     return entries
 
 

@@ -30,9 +30,8 @@ import nomad_meta_info
 
 from nomad.files import UploadFiles, Restricted
 from nomad import search, config
-from nomad.archive_library.utils import get_dbs
-from nomad import search, config
 from nomad.app import common
+from nomad.archive import ArchiveFileDB
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -226,6 +225,17 @@ _archive_query_model = api.clone('ArchiveCalculations', search_model)
 # scroll model should be capitalized to prevent ambiguity with scroll flag
 _archive_query_model['Scroll'] = _archive_query_model.pop('scroll')
 _archive_query_model['Pagination'] = _archive_query_model.pop('pagination')
+
+
+def get_dbs(upload_id):
+    upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
+
+    if upload_files is None:
+        return []
+
+    files = upload_files.archive_file_msg(',')
+    msgdbs = [ArchiveFileDB(f) for f in files if f is not None]
+    return msgdbs
 
 
 @ns.route('/query')

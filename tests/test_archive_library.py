@@ -1,9 +1,8 @@
 import pytest
 import os
 
-from nomad.archive_library.filedb import ArchiveFileDB
-from nomad.archive_library.metainfo import ArchiveMetainfo
-from nomad.archive_library.query import ArchiveQuery
+from nomad.archive import ArchiveFileDB
+from nomad.archive_query import ArchiveQuery, ArchiveMetainfo
 from tests.app.test_app import BlueprintClient
 
 
@@ -11,7 +10,7 @@ from tests.app.test_app import BlueprintClient
 def example_msgdb():
     def create_msgdb(payload):
         filename = 'archive_test.msg'
-        msgdbo = ArchiveFileDB(filename, mode='w', max_lfragment=1)
+        msgdbo = ArchiveFileDB(filename, mode='w', entry_toc_depth=1)
         msgdbo.add_data(payload)
         msgdbo.close()
         msgdbo = ArchiveFileDB(filename, mode='r')
@@ -20,73 +19,6 @@ def example_msgdb():
     filename = 'archive_test.msg'
     yield create_msgdb
     os.remove(filename)
-
-
-class TestArchiveFileDB:
-    def get_value(self, data, key):
-        if key in data:
-            return data[key]
-        if isinstance(data, list):
-            for i in range(len(data)):
-                return self.get_value(data[i], key)
-        else:
-            for v in data.values():
-                return self.get_value(v, key)
-
-    def get_keys(self, data, key=''):
-        if data is None:
-            return [key]
-        keys = []
-        for k, v in data.items():
-            keys += self.get_keys(v, k)
-        return keys
-
-    @pytest.mark.parametrize('payload', [
-        [
-            'tests/data/proc/examples_archive/3Sqa0yIQnBrAautsn38YNhyZrOoE.json',
-            'tests/data/proc/examples_archive/3Sqa0yIQnBrAautsn38YNhyZrOoE.log'],
-        [
-            {'secA': {'propA': 'X'}}]])
-    def test_pack(self, example_msgdb, payload):
-        fo = example_msgdb(payload)
-        assert fo is not None
-
-    @pytest.mark.parametrize('schema, dtype', [
-        ({'secA': {'subsecA1[0]': {'propA1a': None}}}, {'propA1a': float}),
-        ({'secB': {'propB1a': None}}, {'propB1a': list}),
-        ({'secA': {'subsecA1[-1:]': {'propA1a': None}}}, {'propA1a': float})])
-    def test_query(self, example_msgdb, schema, dtype):
-        payload = [
-            {'calc1': {
-                'secA': {'subsecA1': [{'propA1a': 1.0}]}, 'secB': {'propB1a': ['a', 'b']}}},
-            {'calc2': {
-                'secA': {'subsecA1': [{'propA1a': 2.0}]}, 'secB': {'propB1a': ['c', 'd']}}}]
-        msgdb = example_msgdb(payload)
-        calc_ids = msgdb.ids.keys()
-        calc_ids = [c for c in calc_ids if not os.path.dirname(c)]
-        calc_ids = [c for c in calc_ids if not c.endswith('log') and c]
-        calc_ids = [c for c in calc_ids if c not in ['ids', 'max_lfragment']]
-        qs = {calc_id: schema for calc_id in calc_ids}
-        results = msgdb.query(qs)
-        assert len(results) == len(calc_ids)
-        for calc_id in results:
-            for key in self.get_keys(schema):
-                assert(isinstance(self.get_value(results[calc_id], key), dtype[key]))
-
-    def test_error(self, example_msgdb):
-        vals = [
-            [{'atom_labels': ['X']}, {'atom_labels': ['X', 'X']}],
-            [{'atom_labels': ['X']}], {'atom_labels': 'X'}]
-        payload = [{'calc_%d' % i: {'section_run': {'section_system': vals[i]}}} for i in range(len(vals))]
-        msgdb = example_msgdb(payload)
-        # invalid key
-        qs = {'calc_%d' % i: {'sction_run': {'section_system[:]': {'atom_labels': None}}} for i in range(len(vals))}
-        results = msgdb.query(qs)
-        assert results == {'calc_%d' % i: {} for i in range(len(vals))}
-        # invalid calculation
-        qs = {'calc_100': None}
-        results = msgdb.query(qs)
-        assert results == {}
 
 
 class TestArchiveMetainfo:
@@ -98,12 +30,12 @@ class TestArchiveMetainfo:
 
     def assert_metainfo(self, metainfo):
         for calc in metainfo.calcs:
-            assert calc.secA({'propA': None}) is not None
-            assert calc({'secA': {'propA': None, 'propB': None}}) is not None
+            assert calc.secA({'propA': '*'}) is not None
+            assert calc({'secA': {'propA': '*', 'propB': '*'}}) is not None
 
     def test_query_from_file(self, data, example_msgdb):
         _ = example_msgdb(data)
-        metainfo = ArchiveMetainfo(archive_data='archive_test.msg')
+        metainfo = ArchiveMetainfo(archive_data='archive_test.msg', archive_schema={'secA': '*'})
         self.assert_metainfo(metainfo)
 
     def test_query_from_data(self, data):
@@ -117,18 +49,18 @@ class TestArchiveQuery:
         monkeypatch.setattr('nomad.config.client.url', '')
         return BlueprintClient(client, '/api')
 
-    def test_query_from_json(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.archive_library.query.requests', api)
+    def test_query_from_json(self, api, published_wo_user_metadata, test_user_auth, monkeypatch):
+        monkeypatch.setattr('nomad.archive_query.requests', api)
         q_params = {'Pagination': {'order': 1, 'per_page': 5}}
-        q_schema = {'section_entry_info': None}
-        q = ArchiveQuery(q_params, archive_data=q_schema, authentication=other_test_user_auth)
+        q_schema = {'section_entry_info': '*'}
+        q = ArchiveQuery(q_params, archive_data=q_schema, authentication=test_user_auth)
         q.query()
         for calc in q.metainfo:
             assert calc.section_entry_info.calc_id is not None
 
     def test_query_from_kwargs(self, api, published_wo_user_metadata, other_test_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.archive_library.query.requests', api)
-        q_schema = {'section_entry_info': None}
+        monkeypatch.setattr('nomad.archive_query.requests', api)
+        q_schema = {'section_entry_info': '*'}
         q = ArchiveQuery(order=1, per_page=5, scroll=True, archive_data=q_schema, authentication=other_test_user_auth)
         q.query()
         for calc in q.metainfo:
