@@ -53,7 +53,7 @@ export class DomainProvider extends React.Component {
         //   tooltip: 'Aggregates the number of total energy calculations as each entry can contain many calculations.',
         //   renderResultString: count => (<span> with <b>{count.toLocaleString()}</b> total energy calculation{count === 1 ? '' : 's'}</span>)
         // },
-        calculations: {
+        'dft.calculations': {
           label: 'Single configuration calculations',
           shortLabel: 'SCC',
           tooltip: 'Aggregates the number of single configuration calculations (e.g. total energy calculations) as each entry can contain many calculations.',
@@ -62,7 +62,7 @@ export class DomainProvider extends React.Component {
         // The unique_geometries search aggregates unique geometries based on 10^8 hashes.
         // This takes to long in elastic search for a reasonable user experience.
         // Therefore, we only support geometries without uniqueness check
-        geometries: {
+        'dft.geometries': {
           label: 'Geometries',
           shortLabel: 'Geometries',
           tooltip: 'Aggregates the number of simulated system geometries in all entries.',
@@ -85,11 +85,11 @@ export class DomainProvider extends React.Component {
         mainfile: {},
         calc_hash: {},
         formula: {},
-        optimade: {},
-        quantities: {},
-        spacegroup: {},
-        spacegroup_symbol: {},
-        labels: {},
+        'dft.optimade': {},
+        'dft.quantities': {},
+        'dft.spacegroup': {},
+        'dft.spacegroup_symbol': {},
+        'dft.labels': {},
         upload_name: {}
       },
       /**
@@ -97,40 +97,40 @@ export class DomainProvider extends React.Component {
        * Default render
        */
       searchResultColumns: {
-        formula: {
+        'dft.formula': {
           label: 'Formula',
           supportsSort: true
         },
-        code_name: {
+        'dft.code_name': {
           label: 'Code',
           supportsSort: true
         },
-        basis_set: {
+        'dft.basis_set': {
           label: 'Basis set',
           supportsSort: true
         },
-        xc_functional: {
+        'dft.xc_functional': {
           label: 'XT treatment',
           supportsSort: true
         },
-        system: {
+        'dft.system': {
           label: 'System',
           supportsSort: true
         },
-        crystal_system: {
+        'dft.crystal_system': {
           label: 'Crystal system',
           supportsSort: true
         },
-        spacegroup_symbol: {
+        'dft.spacegroup_symbol': {
           label: 'Spacegroup',
           supportsSort: true
         },
-        spacegroup: {
+        'dft.spacegroup': {
           label: 'Spacegroup (number)',
           supportsSort: true
         }
       },
-      defaultSearchResultColumns: ['formula', 'code_name', 'system', 'crystal_system', 'spacegroup_symbol'],
+      defaultSearchResultColumns: ['dft.formula', 'dft.code_name', 'dft.system', 'dft.crystal_system', 'dft.spacegroup_symbol'],
       /**
        * A component to render the domain specific quantities in the metadata card of
        * the entry view. Needs to work with props: data (the entry data from the API),

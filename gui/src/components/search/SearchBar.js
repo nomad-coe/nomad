@@ -212,9 +212,9 @@ class SearchBar extends React.Component {
     }
 
     if (values[key]) {
-      values[key] = key === 'atoms' ? [...values[key], value] : value
+      values[key] = key === 'dft.atoms' ? [...values[key], value] : value
     } else {
-      values[key] = key === 'atoms' ? [value] : value
+      values[key] = key === 'dft.atoms' ? [value] : value
     }
 
     this.setState({
@@ -254,8 +254,8 @@ class SearchBar extends React.Component {
   getChips() {
     const {state: {query: {owner, ...values}}} = this.context
     return Object.keys(values).filter(key => values[key]).map(key => {
-      if (key === 'atoms') {
-        return `atoms=[${values[key].join(',')}]`
+      if (key === 'dft.atoms') {
+        return `dft.atoms=[${values[key].join(',')}]`
       } else {
         return `${key}=${values[key]}`
       }

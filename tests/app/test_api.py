@@ -922,9 +922,16 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, api, example_elastic_calcs, no_warn, metrics):
-        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True, uploads=True), doseq=True))
+        rv = api.get('/repo/?%s' % urlencode({
+            'metrics': metrics,
+            'statistics': True,
+            'dft.groups': True,
+            'datasets': True,
+            'uploads': True}, doseq=True))
+
         assert rv.status_code == 200
         data = json.loads(rv.data)
+
         for name, quantity in data.get('statistics').items():
             for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
@@ -934,8 +941,14 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
+        for group in ['dft.groups', 'uploads', 'datasets']:
+            assert group in data
+            assert 'after' in data[group]
+            assert 'values' in data[group]
+            # assert len(data[group]['values']) == data['statistics']['total']['all'][group]
+
     def test_search_date_histogram(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?date_histogram=true&metrics=total_energies')
+        rv = api.get('/repo/?date_histogram=true&metrics=dft.total_energies')
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')

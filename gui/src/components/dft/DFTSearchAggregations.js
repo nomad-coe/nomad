@@ -69,15 +69,15 @@ class DFTSearchAggregations extends React.Component {
     return (
       <Grid container spacing={24}>
         <Grid item xs={4}>
-          <Quantity quantity="code_name" title="Code" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="dft.code_name" title="Code" scale={0.25} metric={usedMetric} />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="system" title="System type" scale={0.25} metric={usedMetric} />
-          <Quantity quantity="crystal_system" title="Crystal system" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.system" title="System type" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="dft.crystal_system" title="Crystal system" scale={1} metric={usedMetric} />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="basis_set" title="Basis set" scale={0.25} metric={usedMetric} />
-          <Quantity quantity="xc_functional" title="XC functionals" scale={0.5} metric={usedMetric} />
+          <Quantity quantity="dft.basis_set" title="Basis set" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="dft.xc_functional" title="XC functionals" scale={0.5} metric={usedMetric} />
         </Grid>
       </Grid>
     )

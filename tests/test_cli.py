@@ -212,6 +212,7 @@ class TestAdminUploads:
         assert upload.tasks_status == proc.PENDING
         assert calc.tasks_status == proc.PENDING
 
+
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
 

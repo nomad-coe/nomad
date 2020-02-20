@@ -63,11 +63,11 @@ class SearchContext extends React.Component {
   }
 
   handleQueryChange(changes, replace) {
-    if (changes.atoms && changes.atoms.length === 0) {
-      changes.atoms = undefined
+    if (changes['dft.atoms'] && changes['dft.atoms'].length === 0) {
+      changes['dft.atoms'] = undefined
     }
-    if (changes.only_atoms && changes.only_atoms.length === 0) {
-      changes.only_atoms = undefined
+    if (changes['dft.only_atoms'] && changes['dft.only_atoms'].length === 0) {
+      changes['dft.only_atoms'] = undefined
     }
     if (replace) {
       this.setState({query: changes})

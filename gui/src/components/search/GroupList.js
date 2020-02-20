@@ -167,7 +167,7 @@ class GroupListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, groups_after, onChange, actions, domain } = this.props
-    const groups = data.groups || {values: []}
+    const groups = data['dft.groups'] || {values: []}
     const results = Object.keys(groups.values).map(group_hash => {
       const example = groups.values[group_hash].examples[0]
       return {

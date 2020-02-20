@@ -120,7 +120,7 @@ class Search extends React.Component {
       setRequest({
         uploads: tab === 'uploads' ? true : undefined,
         datasets: tab === 'datasets' ? true : undefined,
-        groups: tab === 'groups' ? true : undefined
+        'dft.groups': tab === 'groups' ? true : undefined
       })
     })
   }
@@ -225,9 +225,9 @@ class ElementsVisualization extends React.Component {
     this.setState({exclusive: !this.state.exclusive}, () => {
       const {state: {query}, setQuery} = this.context
       if (this.state.exclusive) {
-        setQuery({...query, only_atoms: query.atoms, atoms: []})
+        setQuery({...query, 'dft.only_atoms': query['dft.atoms'], 'dft.atoms': []})
       } else {
-        setQuery({...query, atoms: query.only_atoms, only_atoms: []})
+        setQuery({...query, 'dft.atoms': query['dft.only_atoms'], 'dft.only_atoms': []})
       }
     })
   }
@@ -238,7 +238,7 @@ class ElementsVisualization extends React.Component {
     }
 
     const {state: {query}, setQuery} = this.context
-    setQuery({...query, atoms: atoms, only_atoms: []})
+    setQuery({...query, 'dft.atoms': atoms, 'dft.only_atoms': []})
   }
 
   render() {
@@ -249,10 +249,10 @@ class ElementsVisualization extends React.Component {
       <Card>
         <CardContent>
           <PeriodicTable
-            aggregations={statistics.atoms}
+            aggregations={statistics['dft.atoms']}
             metric={metric}
             exclusive={this.state.exclusive}
-            values={[...(query.atoms || []), ...(query.only_atoms || [])]}
+            values={[...(query['dft.atoms'] || []), ...(query['dft.only_atoms'] || [])]}
             onChanged={this.handleAtomsChanged}
             onExclusiveChanged={this.handleExclusiveChanged}
           />
@@ -489,8 +489,8 @@ class SearchGroupList extends React.Component {
     const {state: {response}, setRequest} = this.context
 
     return <GroupList data={response}
-      total={response.statistics.total.all.groups}
-      groups_after={response.groups && response.groups.after}
+      total={response.statistics.total.all['dft.groups']}
+      groups_after={response['dft.groups'] && response['dft.groups'].after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response} {...this.props}

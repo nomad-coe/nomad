@@ -28,7 +28,7 @@ from datetime import datetime
 from nomad import search, utils, datamodel, processing as proc, infrastructure
 from nomad.datamodel import UserMetadata, Dataset, User
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime
+from nomad.app.common import RFC3339DateTime, DotKeyNested
 
 from .api import api
 from .auth import authenticate
@@ -105,7 +105,7 @@ _repo_calcs_model_fields = {
         'A string of curl command which can be executed to reproduce the api result.')),
 }
 for group_name, (group_quantity, _) in search.groups.items():
-    _repo_calcs_model_fields[group_name] = fields.Nested(api.model('RepoDatasets', {
+    _repo_calcs_model_fields[group_name] = (DotKeyNested if '.' in group_name else fields.Nested)(api.model('RepoGroup', {
         'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
         'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
     }), skip_none=True)

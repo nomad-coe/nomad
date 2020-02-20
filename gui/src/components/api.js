@@ -387,7 +387,7 @@ class Api {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
-        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        exclude: ['dft.atoms', 'dft.only_atoms', 'dft.files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
         ...search}))
       .catch(handleApiError)
       .then(response => response.body)
@@ -398,7 +398,7 @@ class Api {
           const empty = {}
           Object.keys(response.statistics.total.all).forEach(metric => empty[metric] = 0)
           Object.keys(response.statistics)
-            .filter(key => !['total', 'authors', 'atoms'].includes(key))
+            .filter(key => !['total', 'authors', 'dft.atoms'].includes(key))
             .forEach(key => {
               if (!this.statistics[key]) {
                 this.statistics[key] = new Set()

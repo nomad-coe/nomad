@@ -17,6 +17,7 @@ import ViewColumnIcon from '@material-ui/icons/ViewColumn'
 import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withDomain } from './domains'
+import _ from 'lodash'
 
 class DataTableToolbarUnStyled extends React.Component {
   static propTypes = {
@@ -489,7 +490,7 @@ class DataTableUnStyled extends React.Component {
                             key={key}
                             align={column.align || 'left'}
                           >
-                            {column.render ? column.render(row) : row[key]}
+                            {column.render ? column.render(row) : _.get(row, key)}
                           </TableCell>
                         )
                       })}

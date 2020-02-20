@@ -293,7 +293,7 @@ class Domain:
             instances of :class:`DomainQuantity`.
         metrics: Tuples of elastic field name and elastic aggregation operation that
             can be used to create statistic values.
-        group_quantities: Tuple of quantity name and metric that describes quantities that
+        groups: Tuple of quantity name and metric that describes quantities that
             can be used to group entries by quantity values.
         root_sections: The name of the possible root sections for this domain.
         metainfo_all_package: The name of the full metainfo package for this domain.
@@ -309,6 +309,9 @@ class Domain:
         uploader_id=DomainQuantity(
             elastic_field='uploader.user_id', multi=False, aggregations=5,
             description=('Search for the given uploader id.')),
+        uploader_name=DomainQuantity(
+            elastic_field='uploader.name.keyword', multi=False,
+            description=('Search for the exact uploader\'s full name')),
         comment=DomainQuantity(
             elastic_search_type='match', multi=True,
             description='Search within the comments. This is a text search ala google.'),
@@ -355,10 +358,10 @@ class Domain:
             description='Search for a particular dataset by doi (incl. http://dx.doi.org).'))
 
     base_metrics = dict(
-        datasets=('datasets.id', 'cardinality'),
+        datasets=('datasets_id', 'cardinality'),
         uploads=('upload_id', 'cardinality'),
-        uploaders=('uploader.name.keyword', 'cardinality'),
-        authors=('authors.name.keyword', 'cardinality'),
+        uploaders=('uploader_name', 'cardinality'),
+        authors=('authors', 'cardinality'),
         unique_entries=('calc_hash', 'cardinality'))
 
     base_groups = dict(
@@ -393,12 +396,7 @@ class Domain:
             root_sections=['section_run', 'section_entry_info'],
             metainfo_all_package='all.nomadmetainfo.json') -> None:
 
-        for quantity in quantities.values():
-            quantity.domain = name
-
         domain_quantities = quantities
-        domain_metrics = metrics
-        domain_groups = groups
 
         Domain.instances[name] = self
 
@@ -416,15 +414,24 @@ class Domain:
         for quantity_name in reference_domain_calc.__dict__.keys():
             if not hasattr(reference_general_calc, quantity_name):
                 quantity = domain_quantities.get(quantity_name, None)
-
                 if quantity is None:
-                    quantity = DomainQuantity()
-                    quantity.domain = name
-                    domain_quantities[quantity_name] = quantity
+                    domain_quantities[quantity_name] = DomainQuantity()
+
+        # ensure domain quantity names and domains
+        for quantity_name, quantity in domain_quantities.items():
+            quantity.domain = name
+            quantity.name = quantity_name
+
+        # add domain prefix to domain metrics and groups
+        domain_metrics = {
+            '%s.%s' % (name, key): (quantities[quantity].qualified_elastic_field, es_op)
+            for key, (quantity, es_op) in metrics.items()}
+        domain_groups = {
+            '%s.%s' % (name, key): (quantities[quantity].qualified_name, '%s.%s' % (name, metric))
+            for key, (quantity, metric) in groups.items()}
 
         # add all domain quantities
         for quantity_name, quantity in domain_quantities.items():
-            quantity.name = quantity_name
             self.domain_quantities[quantity.name] = quantity
 
             # update the multi status from an example value
