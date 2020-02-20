@@ -188,14 +188,19 @@ class Calc(Proc):
         instead of creating it initially, we are just updating the existing
         records.
         """
-        logger = self.get_logger()
-
         parser = match_parser(self.mainfile, self.upload_files, strict=False)
         if parser is None:
-            logger.error(
+            # Use the upload logger, to not create a log file for this processing.
+            # We will probably remove these calculations and don't want to be left
+            # with a ghost log file.
+            self.upload.get_logger().error(
                 'no parser matches during re-process, use the old parser',
                 calc_id=self.calc_id)
-        elif self.parser != parser.name:
+            self.errors = ['no matching parser found during re-processing']
+            return
+
+        logger = self.get_logger()
+        if self.parser != parser.name:
             self.parser = parser.name
             logger.info(
                 'different parser matches during re-process, use new parser',
