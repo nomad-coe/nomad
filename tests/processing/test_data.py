@@ -287,11 +287,11 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     # assert maintained user metadata (mongo+es)
     assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, published=True)
-    if with_failure not in ['after','not-matched']:
+    if with_failure not in ['after', 'not-matched']:
         assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
-    if with_failure not in ['after','not-matched']:
+    if with_failure not in ['after', 'not-matched']:
         assert first_calc.metadata['atoms'][0] == 'H'
     else:
         assert first_calc.metadata['atoms'][0] == 'Si'
