@@ -32,7 +32,19 @@ simple_example_file = 'tests/data/integration/examples_vasp.zip'
 @click.option(
     '--with-publish', is_flag=True,
     help='Also publish the upload. Should not be done on an production environment.')
-def integrationtests(with_publish):
+@click.option(
+    '--with-edit', is_flag=True,
+    help='Edits upload i.e. by adding comment, references, coauthors, shared_with.')
+@click.option(
+    '--with-doi', is_flag=True,
+    help='Assign a doi to a dataset.')
+@click.option(
+    '--with-mirror', is_flag=True,
+    help='Get mirror uploads.')
+@click.option(
+    '--with-query', is_flag=True,
+    help='Perform query operations.')
+def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query):
     from .client import create_client
     client = create_client()
 
@@ -132,3 +144,59 @@ def integrationtests(with_publish):
         while upload.process_running:
             upload = client.uploads.get_upload(
                 upload_id=upload.upload_id).response().result
+
+    if with_edit:
+        # add comment, references, coauthors, shared_with, datasets
+        dataset = 'test_dataset'
+        actions = {
+            'comment': {'value': 'Test comment'},
+            'references': [{'value': 'http;//test_reference.com'}],
+            'coauthors': [{'value': 'author1-id'}, {'value': 'author2-id'}],
+            'shared_with': [{'value': 'author3-id'}],
+            'datasets': [{'value': dataset}]}
+
+        payload = dict(actions=actions, query=dict(upload_id=upload.upload_id))
+        print('editing upload')
+        result = client.repo.edit_repo(payload=payload).response().result
+        assert result.success
+
+        # check if dataset was created
+        page = 1
+        found = False
+        while not found:
+            result = client.datasets.list_datasets(page=page, per_page=10).response().result
+            results = result.results
+            if len(results) == 0:
+                break
+            found = dataset in [res.name for res in results]
+            page += 1
+        assert found
+        print('successfully created dataset')
+
+        # assign a doi
+        if with_doi:
+            print('assigning a DOI')
+            result = client.datasets.assign_doi(name=dataset).response().result
+            doi = result.doi
+            assert doi
+
+        # delete dataset
+        print('deleting dataset')
+        result = client.datasets.delete_dataset(name=dataset).response().result
+
+    if with_mirror:
+        print('getting upload mirror')
+        # get_upload_mirror gives 404
+        payload = dict(query=dict())
+        result = client.mirror.get_uploads_mirror(payload=payload).response().result
+        assert len(result) > 0
+
+    if with_query:
+        # paginated search
+        print('performing paginated search')
+        result = client.archive.archive_query(upload_id=[upload.upload_id], page=1, per_page=10).response().result
+        # why no result?
+
+        # scrolled search
+        print('performing scrolled search')
+        result = client.archive.archive_query(upload_id=[upload.upload_id], scroll=True).response().result
