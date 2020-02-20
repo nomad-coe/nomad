@@ -61,7 +61,7 @@ import pickle
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
-from nomad.archive_library.filedb import ArchiveFileDB
+from nomad.archive import ArchiveFileDB
 
 # TODO this should become obsolete, once we are going beyong python 3.6. For now
 # python 3.6's zipfile does not allow to seek/tell within a file-like opened from a

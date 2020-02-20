@@ -1,4 +1,4 @@
-# New archive implementation
+# Archive API tutorial
 
 This contains the tutorials to use the new archive query functionality.
 It uses the new metainfo definition for the archive data. In addition, the archive data
@@ -46,15 +46,12 @@ parameters are downloaded. The results are then expressed in the new metainfo sc
 which offers auto-completion feature, among others.
 
 ## Msgpack container
-The archive data are now stored in a binary format called msgpack. The archive data are
-fragmented and upon query will access only the relevant fragment without loading the whole
-archives collection. This is beneficial when one only query small chunks but will approach the
-efficiency of zip files when one accesses the whole archive. To create a msgpack database
+The archive data are now stored in a binary format called msgpack. To create a msgpack database
 from the archive data and query it, one uses ArchiveFileDB.
 ```python
 from nomad.archive_library.filedb import ArchiveFileDB
 
-db = ArchiveFileDB('archive.msg', mode='w', max_lfragment=2)
+db = ArchiveFileDB('archive.msg', mode='w', entry_toc_depth=2)
 db.add_data({'calc1':{'secA': {'subsecA': {'propA': 1.0}}, 'secB': {'propB': 'X'}}})
 db.add_data({'calc2':{'secA': {'subsecA': {'propA': 2.0}}, 'secB': {'propB': 'Y'}}})
 db.close()

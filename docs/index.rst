@@ -14,5 +14,6 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    api
    metainfo
    parser_tutorial
+   archive_tutorial
    reference
    ops

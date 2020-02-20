@@ -31,7 +31,6 @@ from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User, Dataset
-from nomad.archive_library.filedb import _PLACEHOLDER
 
 from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -670,7 +669,7 @@ class TestArchive(UploadFilesBasedTests):
         assert_zip_file(rv, files=1)
 
     def test_post_archive_query(self, api, published_wo_user_metadata):
-        schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": _PLACEHOLDER}}}
+        schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": '*'}}}
         data = {'results': [schema], 'per_page': 5}
         uri = '/archive/query'
         rv = api.post(uri, content_type='application/json', data=json.dumps(data))
