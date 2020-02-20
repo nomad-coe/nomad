@@ -36,11 +36,11 @@ def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
         domain='dft', upload_id='test upload id', calc_id='test id')
     calc_with_metadata.apply_domain_metadata(normalized)
 
-    entry = create_entry(calc_with_metadata)
+    entry = search.flat(create_entry(calc_with_metadata).to_dict())
 
-    assert getattr(entry, 'calc_id') is not None
-    assert getattr(entry, 'dft.atoms') is not None
-    assert getattr(entry, 'dft.code_name') is not None
+    assert 'calc_id' in entry
+    assert 'dft.atoms' in entry
+    assert 'dft.code_name' in entry
 
 
 def test_index_normalized_calc_with_metadata(
@@ -151,17 +151,18 @@ def test_search_totals(elastic, example_search_data):
 
 def test_search_exclude(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'dft.atoms' in item
+        assert 'dft.atoms' in search.flat(item)
 
     for item in SearchRequest().exclude('dft.atoms').execute_paginated()['results']:
-        assert 'dft.atoms' not in item
+        assert 'dft.atoms' not in search.flat(item)
 
 
 def test_search_include(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'dft.atoms' in item
+        assert 'dft.atoms' in search.flat(item)
 
     for item in SearchRequest().include('calc_id').execute_paginated()['results']:
+        item = search.flat(item)
         assert 'dft.atoms' not in item
         assert 'calc_id' in item
 
@@ -220,11 +221,11 @@ def assert_entry(calc_id):
 def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: List[str] = [], **kwargs):
     keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
-    search = Entry.search().query('match_all')[0:10]
-    assert search.count() == len(list(upload.calcs))
-    if search.count() > 0:
-        for hit in search:
-            hit = hit.to_dict()
+    search_results = Entry.search().query('match_all')[0:10]
+    assert search_results.count() == len(list(upload.calcs))
+    if search_results.count() > 0:
+        for hit in search_results:
+            hit = search.flat(hit.to_dict())
 
             for key, value in kwargs.items():
                 assert hit.get(key, None) == value

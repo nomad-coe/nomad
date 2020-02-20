@@ -405,12 +405,12 @@ def statistics_table(html, geometries, public_path):
 
     # search calcs quantities=section_k_band
     band_structures = get_statistic(
-        client.repo.search(per_page=1, quantities=['section_k_band']).response().result,
+        client.repo.search(per_page=1, **{'dft.quantities': ['section_k_band']}).response().result,
         'total', 'all', 'code_runs')
 
     # search calcs quantities=section_dos
     dos = get_statistic(
-        client.repo.search(per_page=1, quantities=['section_dos']).response().result,
+        client.repo.search(per_page=1, **{'dft.quantities': ['section_dos']}).response().result,
         'total', 'all', 'code_runs')
 
     phonons = get_statistic(

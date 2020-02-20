@@ -25,6 +25,7 @@ import sys
 import os.path
 
 from nomad import search, config
+from nomad.datamodel import Domain
 from nomad.app.optimade import filterparser
 from nomad.app.common import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
@@ -107,10 +108,14 @@ def add_search_parameters(request_parser):
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 
     # main search parameters
-    for quantity in search.quantities.values():
+    for quantity in Domain.all_quantities():
         request_parser.add_argument(
-            quantity.name, help=quantity.description,
+            quantity.qualified_name, help=quantity.description,
             action=quantity.argparse_action if quantity.multi else None)
+
+
+_search_quantities = set([
+    domain.qualified_name for domain in Domain.all_quantities()])
 
 
 def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str, Any]):
@@ -153,7 +158,7 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     # search parameter
     search_request.search_parameters(**{
         key: value for key, value in args.items()
-        if key not in ['optimade'] and key in search.quantities})
+        if key in _search_quantities})
 
 
 def calc_route(ns, prefix: str = ''):

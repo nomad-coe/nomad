@@ -617,13 +617,19 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
 
 @pytest.fixture
 def reset_config():
-    """ Fixture that resets the log-level after test. """
+    """ Fixture that resets configuration. """
     service = config.service
     log_level = config.console_log_level
     yield None
     config.service = service
     config.console_log_level = log_level
     infrastructure.setup_logging()
+
+
+@pytest.fixture
+def reset_infra(mongo, elastic):
+    """ Fixture that resets infrastructure after deleting db or search index. """
+    yield None
 
 
 def create_test_structure(

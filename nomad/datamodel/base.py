@@ -244,10 +244,7 @@ class DomainQuantity:
 
     @property
     def name(self) -> str:
-        if self.domain is not None:
-            return '%s.%s' % (self.domain, self._name)
-        else:
-            return self._name
+        return self._name
 
     @name.setter
     def name(self, name: str) -> None:
@@ -256,6 +253,20 @@ class DomainQuantity:
             self.metadata_field = name
         if self.elastic_field is None:
             self.elastic_field = self.name
+
+    @property
+    def qualified_elastic_field(self) -> str:
+        if self.domain is None:
+            return self.elastic_field
+        else:
+            return '%s.%s' % (self.domain, self.elastic_field)
+
+    @property
+    def qualified_name(self) -> str:
+        if self.domain is None:
+            return self.name
+        else:
+            return '%s.%s' % (self.domain, self.name)
 
 
 class Domain:
@@ -354,6 +365,25 @@ class Domain:
         datasets=('dataset_id', 'datasets'),
         uploads=('upload_id', 'uploads'))
 
+    @classmethod
+    def get_quantity(cls, name_spec) -> DomainQuantity:
+        """
+        Returns the quantity definition for the given quantity name. The name can be the
+        qualified name (``domain.quantity``) or in Django-style (``domain__quantity``).
+        """
+        qualified_name = name_spec.replace('__', '.')
+        split_name = qualified_name.split('.')
+        if len(split_name) == 1:
+            return cls.base_quantities[split_name[0]]
+        elif len(split_name) == 2:
+            return cls.instances[split_name[0]].quantities[split_name[1]]
+        else:
+            assert False, 'qualified quantity name depth must be 2 max'
+
+    @classmethod
+    def all_quantities(cls) -> Iterable[DomainQuantity]:
+        return set([quantity for domain in cls.instances.values() for quantity in domain.quantities.values()])
+
     def __init__(
             self, name: str, domain_entry_class: Type[CalcWithMetadata],
             quantities: Dict[str, DomainQuantity],
@@ -446,7 +476,7 @@ class Domain:
     def order_default_quantity(self) -> str:
         for quantity in self.quantities.values():
             if quantity.order_default:
-                return quantity.name
+                return quantity.qualified_name
 
         assert False, 'each domain must defina an order_default quantity'
 

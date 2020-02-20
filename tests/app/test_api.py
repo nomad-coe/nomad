@@ -224,7 +224,7 @@ class TestUploads:
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
 
-            assert 'dft.atoms' in calc['metadata']
+            assert 'dft.atoms' in search.flat(calc['metadata'])
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
@@ -814,10 +814,11 @@ class TestRepo():
         auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
         rv = api.get('/repo/?owner=%s' % owner, headers=auth)
         data = self.assert_search(rv, calcs)
-        results = data.get('results', None)
         if calcs > 0:
-            for key in ['uploader', 'calc_id', 'dft.formula', 'upload_id']:
-                assert key in results[0]
+            results = data.get('results', None)
+            result = search.flat(results[0])
+            for key in ['uploader.name', 'calc_id', 'dft.formula', 'upload_id']:
+                assert key in result
 
     @pytest.mark.parametrize('calcs, start, end', [
         (2, today - datetime.timedelta(days=6), today),
@@ -887,7 +888,7 @@ class TestRepo():
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
         rv = api.get('/repo/?exclude=dft.atoms,dft.only_atoms')
         assert rv.status_code == 200
-        result = json.loads(rv.data)['results'][0]
+        result = search.flat(json.loads(rv.data)['results'][0])
         assert 'dft.atoms' not in result
         assert 'dft.only_atoms' not in result
         assert 'dft.basis_set' in result

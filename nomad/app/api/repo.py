@@ -34,7 +34,7 @@ from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\
     add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl
+    query_api_python, query_api_curl, _search_quantities
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -264,7 +264,7 @@ _query_model_parameters = {
     'until_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 }
 
-for quantity in search.quantities.values():
+for quantity in datamodel.Domain.all_quantities():
     if quantity.multi and quantity.argparse_action is None:
         def field(**kwargs):
             return fields.List(fields.String(**kwargs))
@@ -379,9 +379,9 @@ class EditRepoCalcsResource(Resource):
 
         # preparing the query of entries that are edited
         parsed_query = {}
-        for quantity_name, quantity in search.quantities.items():
-            if quantity_name in query:
-                value = query[quantity_name]
+        for quantity_name, value in query.items():
+            if quantity_name in _search_quantities:
+                quantity = datamodel.Domain.get_quantity(quantity_name)
                 if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
                     value = value.split(',')
                 parsed_query[quantity_name] = value

@@ -26,6 +26,7 @@ from datetime import datetime
 import json
 
 from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
+from nomad.datamodel import Domain
 
 
 path_analyzer = analyzer(
@@ -69,12 +70,23 @@ class Dataset(InnerDoc):
     name = Keyword()
 
 
+_domain_inner_doc_types: Dict[str, type] = {}
+
+
 class WithDomain(IndexMeta):
     """ Override elasticsearch_dsl metaclass to sneak in domain specific mappings """
     def __new__(cls, name, bases, attrs):
-        for domain in datamodel.Domain.instances.values():
-            for quantity in domain.domain_quantities.values():
-                attrs[quantity.elastic_field] = quantity.elastic_mapping
+        for domain in Domain.instances.values():
+            inner_doc_type = _domain_inner_doc_types.get(domain.name)
+            if inner_doc_type is None:
+                domain_attrs = {
+                    quantity.elastic_field: quantity.elastic_mapping
+                    for quantity in domain.domain_quantities.values()}
+
+                inner_doc_type = type(domain.name, (InnerDoc,), domain_attrs)
+                _domain_inner_doc_types[domain.name] = inner_doc_type
+
+            attrs[domain.name] = Object(inner_doc_type)
 
         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
 
@@ -162,9 +174,13 @@ class Entry(Document, metaclass=WithDomain):
         self.external_id = source.external_id
 
         if self.domain is not None:
-            for quantity in datamodel.Domain.instances[self.domain].domain_quantities.values():
+            inner_doc_type = _domain_inner_doc_types[self.domain]
+            inner_doc = inner_doc_type()
+            for quantity in Domain.instances[self.domain].domain_quantities.values():
                 quantity_value = quantity.elastic_value(getattr(source, quantity.metadata_field))
-                setattr(self, quantity.name, quantity_value)
+                setattr(inner_doc, quantity.elastic_field, quantity_value)
+
+            setattr(self, self.domain, inner_doc)
 
 
 def delete_upload(upload_id):
@@ -221,15 +237,9 @@ def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
-quantities = {
-    quantity_name: quantity
-    for domain in datamodel.Domain.instances.values()
-    for quantity_name, quantity in domain.quantities.items()}
-"""The available search quantities """
-
 metrics = {
     metric_name: metric
-    for domain in datamodel.Domain.instances.values()
+    for domain in Domain.instances.values()
     for metric_name, metric in domain.metrics.items()}
 """
 The available search metrics. Metrics are integer values given for each entry that can
@@ -237,23 +247,23 @@ be used in statistics (aggregations), e.g. the sum of all total energy calculati
 all unique geometries.
 """
 
-metrics_names = [metric_name for domain in datamodel.Domain.instances.values() for metric_name in domain.metrics_names]
+metrics_names = [metric_name for domain in Domain.instances.values() for metric_name in domain.metrics_names]
 """ Names of all available metrics """
 
 groups = {
     key: value
-    for domain in datamodel.Domain.instances.values()
+    for domain in Domain.instances.values()
     for key, value in domain.groups.items()}
 """The available groupable quantities"""
 
 order_default_quantities = {
     domain_name: domain.order_default_quantity
-    for domain_name, domain in datamodel.Domain.instances.items()
+    for domain_name, domain in Domain.instances.items()
 }
 
 default_statistics = {
     domain_name: domain.default_statistics
-    for domain_name, domain in datamodel.Domain.instances.items()
+    for domain_name, domain in Domain.instances.items()
 }
 
 
@@ -353,9 +363,7 @@ class SearchRequest:
         return self
 
     def search_parameter(self, name, value):
-        quantity = quantities.get(name, None)
-        if quantity is None:
-            raise KeyError('Unknown quantity %s' % name)
+        quantity = Domain.get_quantity(name)
 
         if quantity.multi and not isinstance(value, list):
             value = [value]
@@ -365,7 +373,7 @@ class SearchRequest:
         if quantity.elastic_search_type == 'terms':
             if not isinstance(value, list):
                 value = [value]
-            self.q &= Q('terms', **{quantity.elastic_field: value})
+            self.q &= Q('terms', **{quantity.qualified_elastic_field: value})
 
             return self
 
@@ -375,7 +383,7 @@ class SearchRequest:
             values = [value]
 
         for item in values:
-            self.q &= Q(quantity.elastic_search_type, **{quantity.elastic_field: item})
+            self.q &= Q(quantity.elastic_search_type, **{quantity.qualified_elastic_field: item})
 
         return self
 
@@ -429,7 +437,7 @@ class SearchRequest:
         for name in default_statistics[self._domain]:
             self.statistic(
                 name,
-                quantities[name].aggregations,
+                Domain.get_quantity(name).aggregations,
                 metrics_to_use=metrics_to_use)
 
         return self
@@ -459,8 +467,8 @@ class SearchRequest:
                 ``unique_code_runs``, ``datasets``, other domain specific metrics.
                 The basic doc_count metric ``code_runs`` is always given.
         """
-        quantity = quantities[quantity_name]
-        terms = A('terms', field=quantity.elastic_field, size=size, order=dict(_key='asc'))
+        quantity = Domain.get_quantity(quantity_name)
+        terms = A('terms', field=quantity.qualified_elastic_field, size=size, order=dict(_key='asc'))
 
         buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
         self._add_metrics(buckets, metrics_to_use)
@@ -532,8 +540,8 @@ class SearchRequest:
         if size is None:
             size = 100
 
-        quantity = quantities[name]
-        terms = A('terms', field=quantity.elastic_field)
+        quantity = Domain.get_quantity(name)
+        terms = A('terms', field=quantity.qualified_elastic_field)
 
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
@@ -585,15 +593,12 @@ class SearchRequest:
         search = self._search.query(self.q)
 
         if order_by is not None:
-            if order_by not in quantities:
-                raise KeyError('Unknown order quantity %s' % order_by)
-
-            order_by_quantity = quantities[order_by]
+            order_by_quantity = Domain.get_quantity(order_by)
 
             if order == 1:
-                search = search.sort(order_by_quantity.elastic_field)
+                search = search.sort(order_by_quantity.qualified_elastic_field)
             else:
-                search = search.sort('-%s' % order_by_quantity.elastic_field)
+                search = search.sort('-%s' % order_by_quantity.qualified_elastic_field)
 
             search = search.params(preserve_order=True)
 
@@ -617,15 +622,12 @@ class SearchRequest:
 
         search = self._search.query(self.q)
 
-        if order_by not in quantities:
-            raise KeyError('Unknown order quantity %s' % order_by)
-
-        order_by_quantity = quantities[order_by]
+        order_by_quantity = Domain.get_quantity(order_by)
 
         if order == 1:
-            search = search.sort(order_by_quantity.elastic_field)
+            search = search.sort(order_by_quantity.qualified_elastic_field)
         else:
-            search = search.sort('-%s' % order_by_quantity.elastic_field)
+            search = search.sort('-%s' % order_by_quantity.qualified_elastic_field)
         search = search[(page - 1) * per_page: page * per_page]
 
         result = self._response(search.execute(), with_hits=True)
@@ -778,3 +780,23 @@ def to_calc_with_metadata(results: List[Dict[str, Any]]):
     return [
         datamodel.CalcWithMetadata(**calc.metadata)
         for calc in proc.Calc.objects(calc_id__in=ids)]
+
+
+def flat(obj, prefix=None):
+    """
+    Helper that translates nested result objects into flattened dicts with
+    ``domain.quantity`` as keys.
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if isinstance(value, dict):
+                for child_key, child_value in value.items():
+                    result['%s.%s' % (key, child_key)] = flat(child_value)
+
+            else:
+                result[key] = value
+
+        return result
+    else:
+        return obj
