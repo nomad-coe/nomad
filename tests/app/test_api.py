@@ -1411,6 +1411,10 @@ class TestRaw(UploadFilesBasedTests):
         result = json.loads(rv.data)
         assert len(result['contents']) > 0
 
+        url = '/raw/calc/%s/not_existing/' % (non_empty_processed.upload_id)
+        rv = api.get(url, headers=test_user_auth)
+        assert rv.status_code == 404
+
     @UploadFilesBasedTests.check_authorization
     def test_raw_file(self, api, upload, auth_headers):
         url = '/raw/%s/%s' % (upload, example_file_mainfile)

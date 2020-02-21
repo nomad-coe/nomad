@@ -280,10 +280,8 @@ class RawFileFromCalcPathResource(Resource):
         try:
             calc = Calc.get(calc_id)
         except KeyError:
-            pass
-
-        if calc is None:
             abort(404, message='The calc with id %s does not exist.' % calc_id)
+
         if calc.upload_id != upload_id:
             abort(404, message='The calc with id %s is not part of the upload with id %s.' % (calc_id, upload_id))
 
