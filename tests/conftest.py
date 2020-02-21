@@ -49,7 +49,7 @@ example_files = [empty_file, example_file]
 
 
 utils.ConsoleFormatter.short_format = True
-logging.Formatter = utils.ConsoleFormatter
+setattr(logging, 'Formatter', utils.ConsoleFormatter)
 
 
 @pytest.fixture(scope="session")
