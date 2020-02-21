@@ -76,9 +76,12 @@ class RepoEntryView extends React.Component {
     const quantityProps = {data: calcData, loading: loading}
 
     const authors = loading ? null : calcData.authors
+    const domain = calcData.domain && domains[calcData.domain]
 
-    const domain = domains.dft // TODO this should be chosen based on the domain of the data
-
+    let entryHeader = 'Entry metadata'
+    if (domain) {
+      entryHeader = domain.entryTitle(calcData)
+    }
 
     if (this.state.doesNotExist) {
       return <Typography className={classes.error}>
@@ -92,22 +95,23 @@ class RepoEntryView extends React.Component {
           <Grid item xs={7}>
             <Card>
               <CardHeader
-                title="Metadata"
+                title={entryHeader}
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
               <CardContent classes={{root: classes.cardContent}}>
-                <domain.EntryOverview data={calcData} loading={loading} />
+                {domain && <domain.EntryOverview data={calcData} loading={loading} />}
               </CardContent>
               <Divider />
               <CardContent>
                 <Quantity column>
                   <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                   <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                    <div style={{display: 'inline-grid'}}>
-                      {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
-                        <a href={ref}>{ref}</a>
-                      </Typography>)}
-                    </div>
+                    {calcData.references &&
+                      <div style={{display: 'inline-grid'}}>
+                        {calcData.references.map(ref => <Typography key={ref} noWrap>
+                          <a href={ref}>{ref}</a>
+                        </Typography>)}
+                      </div>}
                   </Quantity>
                   <Quantity quantity='authors' {...quantityProps}>
                     <Typography>
@@ -115,13 +119,14 @@ class RepoEntryView extends React.Component {
                     </Typography>
                   </Quantity>
                   <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                    <div>
-                      {(calcData.datasets || []).map(ds => (
-                        <Typography key={ds.id}>
-                          <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
-                          {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
-                        </Typography>))}
-                    </div>
+                    {calcData.datasets &&
+                      <div>
+                        {calcData.datasets.map(ds => (
+                          <Typography key={ds.id}>
+                            <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
+                            {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                          </Typography>))}
+                      </div>}
                   </Quantity>
                 </Quantity>
               </CardContent>
@@ -133,12 +138,12 @@ class RepoEntryView extends React.Component {
               <CardHeader title="Ids / processing" />
               <CardContent classes={{root: classes.cardContent}}>
                 <Quantity column style={{maxWidth: 350}}>
-                  <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard {...quantityProps} />
+                  <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps} />
                   <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="mainfile" loading={loading} noWrap ellipsisFront {...quantityProps} withClipboard />
-                  <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
+                  <Quantity quantity="calc_hash" label={`${domain ? domain.entryLabel : 'entry'} hash`} loading={loading} noWrap {...quantityProps} />
                   <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                   <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
                     <Typography noWrap>
@@ -161,7 +166,7 @@ class RepoEntryView extends React.Component {
           </Grid>
         </Grid>
 
-        <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />
+        {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />}
       </div>
     )
   }

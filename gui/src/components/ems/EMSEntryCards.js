@@ -19,7 +19,7 @@ class EMSEntryCards extends React.Component {
   })
 
   render() {
-    const { classes, data } = this.props
+    const { classes, data, ...props } = this.props
 
     return (
       <Card className={classes.root}>
@@ -28,12 +28,12 @@ class EMSEntryCards extends React.Component {
           <Markdown classes={{root: classes.description}}>{`
             The data for this experiment was uploaded to [zenodo.org](https://zenodo.org).
             Visit the zenodo entry to download the raw experiment data:
-            [${data.repository_url}](${data.repository_url}).
+            [${data.ems.repository_url}](${data.ems.repository_url}).
 
             The meta data describing this experiment in its original format, can be
             downloaded here directly:
           `}</Markdown>
-          <RawFiles data={data} />
+          <RawFiles data={data} {...props} />
         </CardContent>
       </Card>
     )

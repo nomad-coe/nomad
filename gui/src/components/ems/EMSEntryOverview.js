@@ -12,7 +12,7 @@ export default class EMSEntryOverview extends React.Component {
 
   render() {
     const { data } = this.props
-    const { preview_url } = data
+    const { ems: { preview_url } } = data
 
     let relative_preview_url = null
     if (!preview_url) {
@@ -26,25 +26,25 @@ export default class EMSEntryOverview extends React.Component {
 
     return (
       <Quantity column>
-        <Quantity quantity="experiment_summary" label="summary" {...this.props} />
+        <Quantity quantity="ems.experiment_summary" label="summary" {...this.props} />
         <Quantity row>
           <Quantity column>
             <Quantity row>
-              <Quantity quantity="formula" label="sample formula" noWrap {...this.props} />
-              {data.chemical !== 'unavailable'
-                ? <Quantity quantity="chemical" label="sample chemical" noWrap {...this.props} />
+              <Quantity quantity="ems.formula" label="sample formula" noWrap {...this.props} />
+              {data.ems.chemical !== 'unavailable'
+                ? <Quantity quantity="ems.chemical" label="sample chemical" noWrap {...this.props} />
                 : ''}
             </Quantity>
-            <Quantity quantity="method" label="experimental method" noWrap {...this.props} />
-            <Quantity quantity="experiment_location" label="experiment location" noWrap {...this.props} />
+            <Quantity quantity="ems.method" label="experimental method" noWrap {...this.props} />
+            <Quantity quantity="ems.experiment_location" label="experiment location" noWrap {...this.props} />
             <Quantity label="experiment time" {...this.props}>
               <Typography noWrap>{
-                data.experiment_time !== 'unavailable' ? new Date(data.experiment_time * 1000).toLocaleString() : 'unavailable'
+                data.ems.experiment_time !== 'unavailable' ? new Date(data.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
               }</Typography>
             </Quantity>
             <Quantity label="data" {...this.props}>
               <Typography noWrap>
-                <a href={data.repository_url}>{data.repository_name}</a>
+                <a href={data.ems.repository_url}>{data.ems.repository_name}</a>
               </Typography>
             </Quantity>
           </Quantity>

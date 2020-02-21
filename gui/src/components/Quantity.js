@@ -81,7 +81,7 @@ class Quantity extends React.Component {
 
     if (!loading) {
       const value = data && quantity && _.get(data, quantity)
-      if (value && children && children.length !== 0) {
+      if (children && children.length !== 0) {
         content = children
       } else if (value) {
         clipboardContent = value

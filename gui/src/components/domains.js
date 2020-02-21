@@ -24,6 +24,7 @@ export class DomainProvider extends React.Component {
       about: 'This include data from many computational material science codes',
       entryLabel: 'entry',
       entryLabelPlural: 'entries',
+      entryTitle: data => data.dft && data.dft.code_name ? data.dft.code_name + ' run' : 'Code run',
       searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
@@ -147,8 +148,9 @@ export class DomainProvider extends React.Component {
     ems: {
       name: 'EMS',
       about: 'This is metadata from material science experiments',
-      entryLabel: 'experiment',
-      entryLabelPlural: 'experiments',
+      entryLabel: 'entry',
+      entryLabelPlural: 'entries',
+      entryTitle: () => 'Experiment',
       searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
       /**
        * A component that is used to render the search aggregations. The components needs
