@@ -395,54 +395,6 @@ class RunType(MSection):
     )
 
 
-class BandSegment(MSection):
-    m_def = Section(
-        a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
-        description="""
-        Stores a segment within a band.
-        """
-    )
-    k_points = Quantity(
-        type=np.dtype('f8'),
-        shape=['1..*', 3],
-        description="""
-        Coordinates in k-space.
-        """
-    )
-    energies = Quantity(
-        type=np.dtype('f8'),
-        shape=['1..*', 3],
-        unit=units.J,
-        description="""
-        Band energies.
-        """
-    )
-    start_label = Quantity(
-        type=str,
-        description="""
-        Label at the beginning of this segment.
-        """
-    )
-    end_label = Quantity(
-        type=str,
-        description="""
-        Label at the end of this segment.
-        """
-    )
-
-
-class Band(MSection):
-    m_def = Section(
-        a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
-        description="""
-        Stores a single band.
-        """
-    )
-    segments = SubSection(sub_section=BandSegment.m_def, repeats=True)
-
-
 class BandGap(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -496,6 +448,28 @@ class BandGap(MSection):
     )
 
 
+class SpecialPoint(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        A special point in the reciprocal space.
+        """
+    )
+    index = Quantity(
+        type=int,
+        description="""
+        Index of the special point in the path.
+        """
+    )
+    label = Quantity(
+        type=str,
+        description="""
+        Unicode string for the point label.
+        """
+    )
+
+
 class ElectronicBandStructure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -522,7 +496,34 @@ class ElectronicBandStructure(MSection):
     band_gap = SubSection(sub_section=BandGap.m_def, repeats=False)
     band_gap_spin_up = SubSection(sub_section=BandGap.m_def, repeats=False)
     band_gap_spin_down = SubSection(sub_section=BandGap.m_def, repeats=False)
-    bands = SubSection(sub_section=Band.m_def, repeats=True)
+
+    energies = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..2", "1..*", "1..*"],
+        unit=units.m**(-1),
+        description="""
+        The energies of the bands as a 3D array with size [n_spin_channels,
+        n_bands, n_k_points]. By default the spin down channel is given first
+        and the spin up channel is second.
+        """
+    )
+    path = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..*", 3],
+        unit=units.m**(-1),
+        description="""
+        Path of the band structure in reciprocal space.
+        """
+    )
+    special_points = SubSection(sub_section=SpecialPoint.m_def, repeats=True)
+    is_standard_path = Quantity(
+        type=bool,
+        description="""
+        Boolean indicating whether the path follows the standard path for this
+        cell. The AFLOW standard by Setyawan and Curtarolo is used
+        (https://doi.org/10.1016/j.commatsci.2010.05.010).
+        """
+    )
 
 
 class Properties(MSection):

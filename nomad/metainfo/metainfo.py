@@ -863,6 +863,9 @@ class MSection(metaclass=MObjectMeta):
             raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
 
         if type(quantity_def.type) == np.dtype:
+            if str(quantity_def) == "energies:Quantity":
+                print(quantity_def)
+                print(value.shape)
             value = self.__to_np(quantity_def, value)
 
         else:

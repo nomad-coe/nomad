@@ -452,9 +452,14 @@ def test_method_gw_metainfo(gw):
 
 
 def test_band_structure(bands):
-    # Finite gap
+
+    # Single channel, finite gap
     enc = bands.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
-    assert properties.electronic_band_structure is not None
-    gap_ev = (properties.electronic_band_structure.band_gap.value * ureg.J).to(ureg.eV).magnitude
+    bs = properties.electronic_band_structure
+    assert bs is not None
+    gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
+    assert gap_ev == pytest.approx(0.62, 0.01)
+    energies = bs.energies
+    assert energies.shape == (1, 38, 1270)
     assert gap_ev == pytest.approx(0.62, 0.01)
