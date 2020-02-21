@@ -200,6 +200,20 @@ class RawFiles extends React.Component {
       </Typography>
     }
 
+    let downloadUrl
+    if (selectedFiles.length === 1) {
+      // download the individual file
+      downloadUrl = `raw/${uploadId}/${selectedFiles[0]}`
+    } else if (selectedFiles.length === availableFiles.length) {
+      // use an endpoint that downloads all files of the calc
+      downloadUrl = `raw/calc/${uploadId}/${calcId}/*?strip=true`
+    } else if (selectedFiles.length > 0) {
+      // use a prefix to shorten the url
+      const prefix = selectedFiles[0].substring(0, selectedFiles[0].lastIndexOf("/"))
+      const files = selectedFiles.map(path => path.substring(path.lastIndexOf("/") + 1)).join(',')
+      downloadUrl = `raw/${uploadId}?files=${encodeURIComponent(files)}&prefix=${prefix}&strip=true`
+    }
+
     return (
       <div className={classes.root}>
         <FormGroup row>
@@ -225,7 +239,7 @@ class RawFiles extends React.Component {
           <Download component={IconButton} disabled={selectedFiles.length === 0}
             color="secondary"
             tooltip="download selected files"
-            url={(selectedFiles.length === 1) ? `raw/${uploadId}/${selectedFiles[0]}` : `raw/${uploadId}?files=${encodeURIComponent(selectedFiles.join(','))}&strip=true`}
+            url={downloadUrl}
             fileName={selectedFiles.length === 1 ? this.label(selectedFiles[0]) : `${calcId}.zip`}
           >
             <DownloadIcon />
