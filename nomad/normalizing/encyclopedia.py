@@ -1490,6 +1490,7 @@ class PropertiesNormalizer():
         n_channels = energies.shape[0]
         gaps = []
         for channel in range(n_channels):
+            gap = BandGap()
             channel_energies = energies[channel, :, :]
             lower_defined = False
             upper_defined = False
