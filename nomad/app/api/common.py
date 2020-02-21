@@ -74,9 +74,11 @@ search_model_fields = {
     'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True),
 }
-for quantity in search.quantities.values():
-    search_model_fields[quantity.name] = fields.Raw(description=quantity.description, allow_null=True, skip_none=True)
 search_model = api.model('Search', search_model_fields)
+
+query_model = api.model('Query', {
+    quantity.name: fields.Raw(description=quantity.description)
+    for quantity in search.quantities.values()})
 
 
 def add_pagination_parameters(request_parser):
@@ -122,6 +124,7 @@ def add_search_parameters(request_parser):
         request_parser.add_argument(
             quantity.name, help=quantity.description,
             action=quantity.argparse_action if quantity.multi else None)
+
 
 
 def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str, Any]):

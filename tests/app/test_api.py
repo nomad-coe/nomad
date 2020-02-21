@@ -669,7 +669,10 @@ class TestArchive(UploadFilesBasedTests):
         assert_zip_file(rv, files=1)
 
     def test_post_archive_query(self, api, published_wo_user_metadata):
-        schema = {"section_run": {"section_single_configuration_calculation": {"energy_total": '*'}}}
+        schema = {
+            'section_run': {
+                'section_single_configuration_calculation': {
+                    'energy_total': '*'}}}
         data = {'results': [schema], 'per_page': 5}
         uri = '/archive/query'
         rv = api.post(uri, content_type='application/json', data=json.dumps(data))

@@ -109,6 +109,8 @@ for group_name, (group_quantity, _) in search.groups.items():
         'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
         'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
     }), skip_none=True)
+for quantity in search.quantities.values():
+    _repo_calcs_model_fields[quantity.name] = fields.Raw(description=quantity.description, allow_null=True, skip_none=True)
 _repo_calcs_model = api.inherit('RepoCalculations', search_model, _repo_calcs_model_fields)
 
 

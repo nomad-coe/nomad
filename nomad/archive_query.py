@@ -44,7 +44,7 @@ from typing import Dict, List, Any, Union
 
 from nomad.metainfo import MSection, Quantity, SubSection
 from nomad.metainfo.metainfo import MObjectMeta
-from nomad.archive import ArchiveFileDB
+# from nomad.archive import ArchiveFileDB
 from nomad import config as nomad_config
 from nomad.cli.client.client import KeycloakAuthenticator
 
@@ -427,3 +427,7 @@ class ArchiveQuery:
         self._get_archive_data()
         if self.archive_data:
             self.metainfo = ArchiveMetainfo(archive_data=self.archive_data, archive_schema='*')
+
+
+# TODO
+# def query()...

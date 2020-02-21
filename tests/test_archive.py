@@ -4,7 +4,7 @@ import msgpack
 from io import BytesIO
 
 from nomad import utils
-from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, ArchiveFileDB
+from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
 
 
 def create_example_uuid(index: int = 0):
@@ -76,6 +76,11 @@ def test_toc_packer(example_entry):
 
     assert data is not None
     assert msgpack.unpackb(data, raw=False) == example_entry
+
+
+def test_write_archive_empty():
+    f = BytesIO()
+    write_archive(f, 0, [])
 
 
 def test_write_archive_single(example_uuid, example_entry):
@@ -165,22 +170,26 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
             reader.get(create_example_uuid(i)) is not None
 
 
-def test_archivefiledb():
-    payload = [
-        {'calc1': {
-            'secA': {'subsecA1': [{'propA1a': 1.0}]}, 'secB': {'propB1a': ['a', 'b']}}},
-        {'calc2': {
-            'secA': {'subsecA1': [{'propA1a': 2.0}]}, 'secB': {'propB1a': ['c', 'd']}}}]
+def test_query():
+    payload = {
+        'calc1': {
+            'secA': {
+                'subsecA1': [{'propA1a': 1.0}]
+            },
+            'secB': {'propB1a': ['a', 'b']}
+        },
+        'calc2': {
+            'secA': {'subsecA1': [{'propA1a': 2.0}]},
+            'secB': {'propB1a': ['c', 'd']}
+        }
+    }
 
     f = BytesIO()
-    msgdb = ArchiveFileDB(f, mode='w', entry_toc_depth=1)
-    msgdb.add_data(payload)
-    msgdb.close(save=False)
+    write_archive(f, 2, [(k, v) for k, v in payload.items()], entry_toc_depth=1)
+    packed_archive = f.getbuffer()
 
-    f = BytesIO(f.getbuffer())
-    msgdb = ArchiveFileDB(f, mode='r')
-
-    assert msgdb.query({'calc1': '*'}) == payload[0]
-    assert msgdb.query({'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': {'propA1a': 2.0}}}}
-
-    msgdb.close()
+    f = BytesIO(packed_archive)
+    assert query_archive(f, {'calc1': '*'}) == {'calc1': payload['calc1']}
+    assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
+    # TODO
+    # test [:][-1][0:1] ...

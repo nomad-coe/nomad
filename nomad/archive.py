@@ -7,6 +7,7 @@ import struct
 import json
 import math
 import os.path
+import re
 
 from nomad import utils
 
@@ -20,6 +21,12 @@ def packb(o, **kwargs):
 
 def unpackb(o, **kwargs):
     return msgpack.unpackb(o, raw=False)
+
+
+def adjust_uuid_size(uuid):
+    uuid = uuid.rjust(utils.default_hash_len, ' ')
+    assert len(uuid) == utils.default_hash_len, 'uuids must have the right fixed size'
+    return uuid
 
 
 class ArchiveError(Exception):
@@ -144,6 +151,9 @@ class ArchiveWriter:
         return start, self._pos
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val is not None:
+            raise exc_val
+
         # go back and write the real TOC to the header
         self._f.seek(0)
         self._pos = 0
@@ -174,6 +184,8 @@ class ArchiveWriter:
             end.to_bytes(5, byteorder='little', signed=False)
 
     def add(self, uuid: str, data: Any) -> None:
+        uuid = adjust_uuid_size(uuid)
+
         self._toc_packer.reset()
         packed = self._toc_packer.pack(data)
         toc = self._toc_packer.toc
@@ -582,39 +594,54 @@ class ArchiveFileDB:
             lo = int(str_index)
             return lo
 
-    def _load_data(self, qdict: Dict[str, Any], db: ArchiveObject, main_section: bool = False):
-        if not isinstance(qdict, dict):
-            if isinstance(db, ArchiveObject):
-                return db.to_dict()
-            elif isinstance(db, ArchiveList):
-                return list(db)
-            elif isinstance(db, ArchiveItem):
-                return dict(db)
+
+def query_archive(f, query_dict: dict):
+
+    def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
+        if not isinstance(query_dict, dict):
+            if isinstance(archive_item, ArchiveObject):
+                return archive_item.to_dict()
+            elif isinstance(archive_item, ArchiveList):
+                return list(archive_item)
             else:
-                return db
+                return archive_item
 
         res = {}
-        for key, val in qdict.items():
-            index = ArchiveFileDB._get_index(key)
-            dbkey = key.split('[')[0]
-            if main_section:
-                dbkey = self._adjust_key(dbkey)
-            try:
-                if index is None:
-                    res[key] = self._load_data(val, db[dbkey])
-                elif isinstance(index, int):
-                    res[key] = self._load_data(val, db[dbkey])[index]
-                else:
-                    res[key] = self._load_data(val, db[dbkey])[index[0]: index[1]]
+        for key, val in query_dict.items():
+            key = key.strip()
 
-            except Exception:
-                continue
+            # process array indices
+            match = re.match(r'([_a-bA-Z0-9]+)\[([0-9]+|:)\]', key)
+            if match:
+                archive_key = match.group(1)
+                index_str = match.group(2)
+                match = re.match(r'([0-9]*):([0-9]*)', index_str)
+                if match:
+                    index = (
+                        0 if match.group(1) == '' else int(match.group(1)),
+                        None if match.group(2) == '' else int(match.group(2)))
+                else:
+                    index = int(index_str)  # type: ignore
+            else:
+                archive_key = key
+                index = None
+
+            # support for shorter uuids
+            archive_key = key.split('[')[0]
+            if main_section:
+                archive_key = adjust_uuid_size(key)
+
+            if index is None:
+                res[key] = _load_data(val, archive_item[archive_key])
+            elif isinstance(index, int):
+                res[key] = _load_data(val, archive_item[archive_key])[index]
+            else:
+                res[key] = _load_data(val, archive_item[archive_key])[index[0]: index[1]]
 
         return res
 
-    def query(self, qdict):
-        with ArchiveReader(self._fileobj) as db:
-            return self._load_data(qdict, db, True)
+    with ArchiveReader(f) as archive:
+        return _load_data(query_dict, archive, True)
 
 
 if __name__ == '__main__':

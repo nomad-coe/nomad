@@ -609,7 +609,9 @@ class SearchRequest:
         result.update(pagination=dict(total=result['total'], page=page, per_page=per_page))
         return result
 
-    def execute_scrolled(self, scroll_id: str = None, size: int = 1000, scroll: str = u'5m'):
+    def execute_scrolled(
+            self, scroll_id: str = None, size: int = 1000, scroll: str = u'5m',
+            order_by: str = None, order: int = -1):
         """
         Executes a scrolling search. based on ES scroll API. Pagination is replaced with
         scrolling, no ordering is available, no statistics, no quantities will be provided.
@@ -628,6 +630,8 @@ class SearchRequest:
             size: The batch size in number of hits.
             scroll: The time the scroll should be kept alive (i.e. the time between requests
                 to this method) in ES time units. Default is 5 minutes.
+
+        TODO support order and order_by
         """
         es = infrastructure.elastic_client
 
