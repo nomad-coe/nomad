@@ -1635,7 +1635,7 @@ class PropertiesNormalizer():
 
                     # We only store the full path and leave out duplicate
                     # points
-                    label_index += len(band_k_points)
+                    label_index += len(band_k_points) - 1
                     if i_seg == 0:
                         path.append(band_k_points[0:-1])
                         energies.append(band_energies[:, 0:-1, :])

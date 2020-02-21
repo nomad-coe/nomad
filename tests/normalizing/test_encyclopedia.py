@@ -23,7 +23,7 @@ from nomad.utils import hash
 from nomad.parsing import LocalBackend
 from nomad.normalizing import structure
 from nomad.metainfo.encyclopedia import Encyclopedia
-from tests.normalizing.conftest import run_normalize_for_structure, geometry_optimization, molecular_dynamics, phonon, two_d, bulk, bands   # pylint: disable=unused-import
+from tests.normalizing.conftest import run_normalize_for_structure, geometry_optimization, molecular_dynamics, phonon, two_d, bulk, bands_insulator_indirect   # pylint: disable=unused-import
 
 ureg = UnitRegistry()
 
@@ -451,15 +451,14 @@ def test_method_gw_metainfo(gw):
     assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
 
 
-def test_band_structure(bands):
-
-    # Single channel, finite gap
-    enc = bands.get_mi2_section(Encyclopedia.m_def)
+def test_band_structure(bands_insulator_indirect):
+    # Single channel, insulator, indirect
+    enc = bands_insulator_indirect.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
     bs = properties.electronic_band_structure
     assert bs is not None
     gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_ev == pytest.approx(0.62, 0.01)
+    assert gap_ev == pytest.approx(0.99, 0.01)
+    assert bs.band_gap.type == "indirect"
     energies = bs.energies
-    assert energies.shape == (1, 38, 1270)
-    assert gap_ev == pytest.approx(0.62, 0.01)
+    assert energies.shape == (1, 68, 190)

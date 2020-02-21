@@ -158,9 +158,9 @@ def one_d() -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
-def bands() -> LocalBackend:
+def bands_insulator_indirect() -> LocalBackend:
     parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/vasp_bulk_singlepoint/vasprun.xml.bands"
+    filepath = "tests/data/normalizers/band_structure/insulator/vasprun.xml.bands.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
