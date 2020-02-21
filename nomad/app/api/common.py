@@ -126,7 +126,6 @@ def add_search_parameters(request_parser):
             action=quantity.argparse_action if quantity.multi else None)
 
 
-
 def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str, Any]):
     """
     Help that adds query relevant request args to the given SearchRequest.
