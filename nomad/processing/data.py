@@ -189,7 +189,8 @@ class Calc(Proc):
         records.
         """
         parser = match_parser(self.mainfile, self.upload_files, strict=False)
-        if parser is None:
+
+        if parser is None and not config.reprocess_unmatched:
             # Remove the logsfile and set a fake logwriter to avoid creating a log file,
             # because we will probably remove this calc and don't want to have ghost logfiles.
             if self._calc_proc_logwriter_ctx is not None:
@@ -199,7 +200,9 @@ class Calc(Proc):
             self._calc_proc_logwriter_ctx = open('/dev/null', 'wt')
             self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()
             self.get_logger().error(
-                'no parser matches during re-process, use the old parser')
+                'no parser matches during re-process, will not re-process this calc')
+
+            self.errors = ['no parser matches during re-process, will not re-process this calc']
 
             # mock the steps of actual processing
             self._continue_with('parsing')
@@ -208,11 +211,15 @@ class Calc(Proc):
             self._complete()
             return
 
-        logger = self.get_logger(parser=parser.name)
+        logger = self.get_logger()
+        if parser is None:
+            self.get_logger().error('no parser matches during re-process, use the old parser')
+            self.errors = ['no matching parser found during re-processing']
         if self.parser != parser.name:
             self.parser = parser.name
             logger.info(
-                'different parser matches during re-process, use new parser')
+                'different parser matches during re-process, use new parser',
+                parser=parser.name)
 
         try:
             calc_with_metadata = datamodel.CalcWithMetadata(**self.metadata)

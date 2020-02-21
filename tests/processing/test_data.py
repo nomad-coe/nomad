@@ -208,6 +208,9 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+    if with_failure == 'not-matched':
+        monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
+
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()
         calc.tasks_status = FAILURE
