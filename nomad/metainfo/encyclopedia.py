@@ -395,6 +395,135 @@ class RunType(MSection):
     )
 
 
+class BandSegment(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores a segment within a band.
+        """
+    )
+    k_points = Quantity(
+        type=np.dtype('f8'),
+        shape=['1..*', 3],
+        description="""
+        Coordinates in k-space.
+        """
+    )
+    energies = Quantity(
+        type=np.dtype('f8'),
+        shape=['1..*', 3],
+        unit=units.J,
+        description="""
+        Band energies.
+        """
+    )
+    start_label = Quantity(
+        type=str,
+        description="""
+        Label at the beginning of this segment.
+        """
+    )
+    end_label = Quantity(
+        type=str,
+        description="""
+        Label at the end of this segment.
+        """
+    )
+
+
+class Band(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores a single band.
+        """
+    )
+    segments = SubSection(sub_section=BandSegment.m_def, repeats=True)
+
+
+class BandGap(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores an entire band structure.
+        """
+    )
+    value = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Band gap energy.
+        """
+    )
+    type = Quantity(
+        type=MEnum("direct", "indirect"),
+        description="""
+        Type of band gap.
+        """
+    )
+    conduction_band_min_energy = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Conduction band minimum energy.
+        """
+    )
+    valence_band_max_energy = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Valence band maximum energy.
+        """
+    )
+    conduction_band_min_k_point = Quantity(
+        type=np.dtype('f8'),
+        shape=[3],
+        unit=units.m**(-1),
+        description="""
+        Coordinate of the conduction band minimum in k-space.
+        """
+    )
+    valence_band_max_k_point = Quantity(
+        type=np.dtype('f8'),
+        shape=[3],
+        unit=units.m**(-1),
+        description="""
+        Coordinate of the valence band minimum in k-space.
+        """
+    )
+
+
+class ElectronicBandStructure(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores information related to an electronic band structure.
+        """
+    )
+    fermi_level = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Fermi level reported for the band structure.
+        """
+    )
+    reciprocal_cell = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        The reciprocal cell within which the band structure is calculated.
+        """
+    )
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=False)
+    band_gap_spin_up = SubSection(sub_section=BandGap.m_def, repeats=False)
+    band_gap_spin_down = SubSection(sub_section=BandGap.m_def, repeats=False)
+    bands = SubSection(sub_section=Band.m_def, repeats=True)
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -424,6 +553,13 @@ class Properties(MSection):
         formula unit.
         """
     )
+    dos = Quantity(
+        type=str,
+        description="""
+        A JSON encoded string that contains the density of states.
+        """
+    )
+    electronic_band_structure = SubSection(sub_section=ElectronicBandStructure.m_def, repeats=False)
 
 
 class Encyclopedia(MSection):

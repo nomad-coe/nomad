@@ -200,6 +200,11 @@ normalize = NomadConfig(
     # determining if a 2D structure is purely 2-dimensional to allow extra rigid
     # transformations that are improper in 3D but proper in 2D.
     flat_dim_threshold=0.1,
+    # The threshold for point equality in k-space. Unit: 1/m.
+    k_space_precision=150e6,
+    # The energy threshold for how much a band can be on top or below the fermi
+    # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
+    fermi_level_precision=300 * 1.38064852E-23
 )
 
 client = NomadConfig(

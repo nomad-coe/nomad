@@ -22,13 +22,14 @@ import json
 import ase
 import ase.data
 from ase import Atoms
+from ase.cell import Cell
 import numpy as np
 from matid import SymmetryAnalyzer
 import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables, ElectronicBandStructure, Band, BandSegment, BandGap
 from nomad.normalizing import structure
 from nomad.utils import hash
 from nomad import config
@@ -1446,16 +1447,140 @@ class PropertiesNormalizer():
         self.backend = backend
         self.logger = logger
 
-    def band_gap(self) -> None:
-        pass
+    def get_reciprocal_cell(self, band_structure: ElectronicBandStructure, prim_atoms: ase.Atoms, orig_atoms: ase.Atoms) -> np.array:
+        """A reciprocal cell for this calculation. If the original unit cell is
+        not a primitive one, then we will use the one given by spglib.
 
-    def band_gap_position(self) -> None:
-        pass
+        If the used code is calculating it's own primitive cell, then the
+        reciprocal cell used in e.g. band structure calculation might differ
+        from the one given by spglib. To overcome this we would need to get the
+        exact reciprocal cell used by the calculation or then test for
+        different primitive cells
+        (https://atztogo.github.io/spglib/definition.html#transformation-to-the-primitive-cell)
+        whether the k-point path stays inside the first Brillouin zone.
 
-    def band_gap_type(self) -> None:
-        pass
+        Args:
+            prim_atoms: The primitive system as detected by MatID.
+            orig_atoms: The original simulation cell.
 
-    def band_structure(self, run_type: str) -> None:
+        Returns:
+            Reciprocal cell as 3x3 numpy array. Units are in SI (1/m).
+        """
+        primitive_cell = prim_atoms.get_cell()
+        source_cell = orig_atoms.get_cell()
+
+        volume_primitive = primitive_cell.volume
+        volume_source = source_cell.volume
+        volume_diff = abs(volume_primitive - volume_source)
+
+        if volume_diff > (0.001)**3:
+            recip_cell = primitive_cell.reciprocal() * 1e10
+        else:
+            recip_cell = source_cell.reciprocal() * 1e10
+
+        band_structure.reciprocal_cell = recip_cell
+
+        return recip_cell
+
+    def get_band_gaps(self, band_structure: ElectronicBandStructure, fermi_level: float, energies: np.array, kpoints: np.array, reciprocal_cell: np.array) -> None:
+        """Given the band structure and fermi level, calculates the band gap
+        for spin channels and also reports the total band gap as the minum gap
+        found.
+        """
+        # Handle spin channels separately to find gaps for spin up and down
+        n_channels = energies.shape[0]
+        gaps = []
+        for channel in range(n_channels):
+            gap = BandGap()
+            channel_energies = energies[channel, :, :]
+            lower_defined = False
+            upper_defined = False
+            num_bands = channel_energies.shape[1]
+            band_indices = np.arange(num_bands)
+            band_minima_idx = channel_energies.argmin(axis=0)
+            band_maxima_idx = channel_energies.argmax(axis=0)
+            band_minima = channel_energies[band_minima_idx, band_indices]
+            band_maxima = channel_energies[band_maxima_idx, band_indices]
+
+            # Add a tolerance to minima and maxima
+            band_minima_tol = band_minima + config.normalize.fermi_level_precision
+            band_maxima_tol = band_maxima - config.normalize.fermi_level_precision
+
+            for band_idx in range(num_bands):
+                band_min = band_minima[band_idx]
+                band_max = band_maxima[band_idx]
+                band_min_tol = band_minima_tol[band_idx]
+                band_max_tol = band_maxima_tol[band_idx]
+
+                # If any of the bands band crosses the Fermi level, there is no
+                # band gap
+                if band_min_tol <= fermi_level and band_max_tol >= fermi_level:
+                    break
+                # Whole band below Fermi level, save the current highest
+                # occupied band point
+                elif band_min_tol <= fermi_level and band_max_tol <= fermi_level:
+                    gap_lower_energy = band_max
+                    gap_lower_idx = band_maxima_idx[band_idx]
+                    lower_defined = True
+                # Whole band above Fermi level, save the current lowest
+                # unoccupied band point
+                elif band_min_tol >= fermi_level:
+                    gap_upper_energy = band_min
+                    gap_upper_idx = band_minima_idx[band_idx]
+                    upper_defined = True
+                    break
+
+            # If a highest point of the valence band and a lowest point of the
+            # conduction band are found, and the difference between them is
+            # positive, save the information location and value.
+            if lower_defined and upper_defined and gap_upper_energy - gap_lower_energy >= 0:
+
+                # See if the gap is direct or indirect by comparing the k-point
+                # locations with some tolerance
+                k_point_lower = kpoints[gap_lower_idx]
+                k_point_upper = kpoints[gap_upper_idx]
+                k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+                gap.type = "direct" if is_direct_gap else "indirect"
+                gap.value = float(gap_upper_energy - gap_lower_energy)
+                gap.conduction_band_min_k_point = k_point_upper
+                gap.conduction_band_min_energy = float(gap_upper_energy)
+                gap.valence_band_max_k_point = k_point_lower
+                gap.valence_band_max_energy = float(gap_lower_energy)
+
+            gaps.append(gap)
+
+        if n_channels == 1:
+            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+        elif n_channels == 2:
+            # The band gap for the structure is the one with minimum gap
+            if gaps[0].value <= gaps[1].value:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+            else:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
+
+            # The band gap is reported individually for both spin channels
+            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
+            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
+
+    def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
+        """Used to calculate the Euclidian distance of two points in k-space,
+        given relative positions in the reciprocal cell.
+
+        Args:
+            reciprocal_cell: Reciprocal cell.
+            point1: The first position in k-space.
+            point2: The second position in k-space.
+
+        Returns:
+            float: Euclidian distance of the two points in k-space in SI units.
+        """
+        k_point_displacement = np.dot(reciprocal_cell, point1 - point2)
+        k_point_distance = np.linalg.norm(k_point_displacement)
+
+        return k_point_distance
+
+    def band_structure(self) -> None:
         """Band structure data following arbitrary path.
 
         Currently this function is only taking into account the normalized band
@@ -1463,75 +1588,82 @@ class PropertiesNormalizer():
         whole band strcture will be ignored.
         """
         # Band structure data is exctracted only from single point calculations
-        if run_type != RunType.run_type.type.single_point:
+        run_type = self.context.run_type
+        system_type = self.context.system_type
+        if run_type != RunType.run_type.type.single_point or system_type != Material.system_type.type.bulk:
             return
+
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        properties = sec_enc.properties
+        sec_system = self.context.representative_system
+        orig_atoms = sec_system.tmp["representative_atoms"]
+        symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
+        prim_atoms = symmetry_analyzer.get_primitive_system()
 
         # Try to find an SCC with band structure data. Only take data from the
         # last (and only) calculation.
-        band_segments = config.services.unavailable_value
-        scc = self.backend[-1]
+        scc = self.backend[s_scc][-1]
 
         # Give priority to normalized data
-        for src_name in ["k_band_normalized", "k_band"]:
-            try:
-                bs_data = scc[src_name]
-            except KeyError:
+        for src_name in ["section_k_band_normalized", "section_k_band"]:
+            bands = scc.get(src_name)
+            if bands is None:
                 continue
 
-            if src_name == "k_band_normalized":
-                norm = "_normalized"
-            else:
-                norm = ""
+            norm = "_normalized" if src_name == "section_k_band_normalized" else ""
+            all_band_kpt = []
+            all_band_energies = []
 
-            # Get band segments
-            band_segments = []
-            emptylabels = np.array(["?", "?"])
-
-            def get_band_data(bs_data):
-                segment = {}
-                for segment_src in bs_data[
-                        'section_k_band_segment' + norm]:
+            def store_segments(band, band_data):
+                for segment_src in band_data['section_k_band_segment' + norm]:
+                    segment = band.m_create(BandSegment)
                     # Extract only those values we are interested in
                     try:
                         band_k_points = segment_src["band_k_points" + norm]
                         band_energies = segment_src["band_energies" + norm]
                     except KeyError:
-                        return False, None
+                        return False
                     else:
-                        # Non-normalized data has no labels, so we introduce '?'
-                        # attention: '?' can also come from certain norm. calcs
-                        band_labels = segment_src.get('band_segm_labels' + norm, emptylabels)
+                        # Currently we don't accept band structures with invalid labels
+                        band_labels = segment_src.get('band_segm_labels' + norm)
+                        if band_labels is None or "?" in band_labels:
+                            return False
 
-                        # Currently we don't ingest band structures without valid labels
-                        if "?" in band_labels:
-                            return False, None
-
-                        band_k_points = band_k_points
-                        band_energies = band_energies
-                        if band_labels is not None:
-                            band_labels = band_labels
-                        segment['band_k_points'] = band_k_points
-                        segment['band_energies'] = band_energies
-                        segment['band_segm_labels'] = band_labels
-                        band_segments.append(segment)
-                return True, band_segments
+                        all_band_kpt.append(band_k_points)
+                        all_band_energies.append(band_energies)
+                        segment.k_points = band_k_points
+                        segment.energies = band_energies
+                        segment.start_label = band_labels[0]
+                        segment.end_label = band_labels[1]
+                return True
 
             # See if the band structure is valid. If even one part is not,
             # it is not processed.
-            valid_segments = True
-            for i in range(len(bs_data)):
-                valid, band_data = get_band_data(bs_data[i])
+            valid = True
+            band_structure = ElectronicBandStructure()
+            for band_data in bands:
+                band = band_structure.m_create(Band)
+                valid = store_segments(band, band_data)
                 if valid is False:
-                    valid_segments = False
                     break
-                else:
-                    band_segments.append(band_data)
 
-            # We only return the last valid band structure that is found
-            if valid_segments:
-                return band_segments
+            # If valid band structure was found, continue to calculate band
+            # gaps and other properties.
+            if valid:
+                reciprocal_cell = self.get_reciprocal_cell(band_structure, prim_atoms, orig_atoms)
 
-        return band_segments
+                # If we are using a normalized band structure (or the Fermi level
+                # is defined somehow else), we can add band gap information
+                fermi_level = None
+                if src_name == "section_k_band_normalized":
+                    fermi_level = 0.0
+                if fermi_level is not None:
+                    band_structure.fermi_level = fermi_level
+                    kpoints = np.concatenate(all_band_kpt, axis=0)
+                    energies = np.concatenate(all_band_energies, axis=1)
+                    self.get_band_gaps(band_structure, fermi_level, energies, kpoints, reciprocal_cell)
+
+                properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
 
     def brillouin_zone(self) -> None:
         pass
@@ -1560,12 +1692,6 @@ class PropertiesNormalizer():
     def fermi_surface(self) -> None:
         pass
 
-    def has_bs(self) -> None:
-        pass
-
-    def has_dos(self) -> None:
-        pass
-
     def has_fermi_surface(self) -> None:
         pass
 
@@ -1584,7 +1710,12 @@ class PropertiesNormalizer():
     def helmholtz_free_energy(self) -> None:
         pass
 
-    def energies(self, properties: Properties, gcd: int, representative_scc) -> None:
+    def energies(self) -> None:
+        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        properties = sec_enc.properties
+        gcd = self.context.greatest_common_divisor
+        representative_scc = self.context.representative_scc
+
         energy_dict = {}
         if representative_scc is not None:
             energies_entries = {
@@ -1603,7 +1734,6 @@ class PropertiesNormalizer():
         properties.energies = energies
 
     def normalize(self, ctx: Context) -> None:
-        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
-        properties = sec_enc.properties
-        # self.band_structure(ctx.run_type)
-        self.energies(properties, ctx.greatest_common_divisor, ctx.representative_scc)
+        self.context = ctx
+        self.band_structure()
+        self.energies()

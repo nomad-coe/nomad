@@ -144,6 +144,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         self._backend.add_tmp_value("section_run", "representative_scc_idx", scc_idx)
         self._backend.add_tmp_value("section_run", "representative_system_idx", system_idx)
+
         return system_idx
 
     def __normalize_system(self, g_index, representative, logger=None) -> bool:

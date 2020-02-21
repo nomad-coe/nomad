@@ -202,10 +202,10 @@ class SystemNormalizer(SystemBasedNormalizer):
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return False
-        if len(atom_positions) != atoms.get_number_of_atoms():
+        if len(atom_positions) != len(atoms):
             self.logger.error(
                 'len of atom position does not match number of atoms',
-                n_atom_positions=len(atom_positions), n_atoms=atoms.get_number_of_atoms())
+                n_atom_positions=len(atom_positions), n_atoms=len(atoms))
             return False
         try:
             atoms.set_positions(1e10 * atom_positions)
@@ -247,7 +247,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             if atom_positions is not None:
                 with utils.timer(
                         self.logger, 'system classification executed',
-                        system_size=atoms.get_number_of_atoms()):
+                        system_size=len(atoms)):
                     self.system_type_analysis(atoms)
 
             system_type = self._backend.get_value("system_type")
@@ -256,7 +256,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             if atom_positions is not None and (lattice_vectors is not None or not any(pbc)) and system_type == "bulk":
                 with utils.timer(
                         self.logger, 'symmetry analysis executed',
-                        system_size=atoms.get_number_of_atoms()):
+                        system_size=len(atoms)):
 
                     self.symmetry_analysis(atoms)
 
@@ -271,7 +271,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             atoms: The structure to analyse
         """
         system_type = config.services.unavailable_value
-        if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
+        if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
                 classifier = Classifier(cluster_threshold=config.normalize.cluster_threshold)
                 cls = classifier.classify(atoms)
