@@ -22,7 +22,6 @@ import json
 import ase
 import ase.data
 from ase import Atoms
-from ase.cell import Cell
 import numpy as np
 from matid import SymmetryAnalyzer
 import matid.geometry
@@ -1491,7 +1490,6 @@ class PropertiesNormalizer():
         n_channels = energies.shape[0]
         gaps = []
         for channel in range(n_channels):
-            gap = BandGap()
             channel_energies = energies[channel, :, :]
             lower_defined = False
             upper_defined = False

@@ -514,6 +514,7 @@ class ElectronicBandStructure(MSection):
     reciprocal_cell = Quantity(
         type=np.dtype('f8'),
         shape=[3, 3],
+        unit=units.m**(-1),
         description="""
         The reciprocal cell within which the band structure is calculated.
         """
