@@ -1600,11 +1600,9 @@ class PropertiesNormalizer():
         symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
         prim_atoms = symmetry_analyzer.get_primitive_system()
 
-        # Try to find an SCC with band structure data. Only take data from the
-        # last (and only) calculation.
-        scc = self.backend[s_scc][-1]
-
-        # Give priority to normalized data
+        # Try to find an SCC with band structure data, give priority to
+        # normalized data
+        scc = self.context.representative_scc
         for src_name in ["section_k_band_normalized", "section_k_band"]:
             bands = scc.get(src_name)
             if bands is None:
@@ -1744,6 +1742,11 @@ class PropertiesNormalizer():
         properties.energies = energies
 
     def normalize(self, ctx: Context) -> None:
+        # There needs to be a valid SCC in order to extract any properties
+        representative_scc = ctx.representative_scc
+        if representative_scc is None:
+            return
+
         self.context = ctx
         self.band_structure()
         self.energies()
