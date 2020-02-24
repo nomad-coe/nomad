@@ -217,16 +217,7 @@ add_pagination_parameters(_archive_query_parser)
 add_scroll_parameters(_archive_query_parser)
 add_search_parameters(_archive_query_parser)
 
-_archive_query_model_fields = {
-    'results': fields.List(fields.Raw, description=(
-        'A list of search results. Each result is a dict with quantities names as key and '
-        'values as values')),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
-}
-_archive_query_model = api.inherit('ArchiveCalculations', search_model, _archive_query_model_fields)
+_archive_query_model = api.inherit('ArchiveCalculations', search_model)
 
 
 @ns.route('/query')
