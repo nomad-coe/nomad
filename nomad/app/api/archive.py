@@ -21,7 +21,7 @@ from typing import Dict, Any
 from io import BytesIO
 import os.path
 from flask import send_file, request
-from flask_restplus import abort, Resource, fields
+from flask_restplus import abort, Resource
 import json
 import importlib
 import urllib.parse

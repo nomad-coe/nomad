@@ -41,7 +41,8 @@ simple_example_file = 'tests/data/integration/examples_vasp.zip'
 @click.option(
     '--skip-mirror', is_flag=True,
     help='Skip get mirror tests.')
-def integrationtests(skip_parsers, skip_publish, skip_doi, skip_mirror):
+@click.pass_context
+def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
     from .client import create_client
     client = create_client()
     has_doi = False
@@ -71,7 +72,6 @@ def integrationtests(skip_parsers, skip_publish, skip_doi, skip_mirror):
         uploads = client.uploads.get_uploads(name='integration_test_upload').response().result.results
         assert len(uploads) == 1, 'exactly one test upload must be on the server'
         upload = uploads[0]
-
 
         print('observe the upload process to be finished')
         upload = get_upload(upload)
@@ -121,12 +121,15 @@ def integrationtests(skip_parsers, skip_publish, skip_doi, skip_mirror):
         assert len(search.results) <= search.pagination.total
 
         print('performing archive paginated search')
-        result = client.archive.archive_query(upload_id=upload.upload_id, page=1, per_page=10).response().result
+        result = client.archive.archive_query(owner='staging', page=1, per_page=10).response().result
         assert len(result.results) > 0
 
         print('performing archive scrolled search')
-        result = client.archive.archive_query(upload_id=upload.upload_id, scroll=True).response().result
+        result = client.archive.archive_query(owner='staging', scroll=True).response().result
         assert len(result.results) > 0
+
+        print('performing download')
+        client.raw.raw_files_from_query(owner='staging', upload_id=[upload.upload_id])
 
         if not skip_publish:
             print('publish upload')
@@ -178,7 +181,6 @@ def integrationtests(skip_parsers, skip_publish, skip_doi, skip_mirror):
             result = client.mirror.get_uploads_mirror(payload=payload).response().result
             assert len(result) == 1
             assert len(client.mirror.get_upload_mirror(upload_id=upload.upload_id).response().result.calcs) > 0
-       
 
     finally:
         if not published:
