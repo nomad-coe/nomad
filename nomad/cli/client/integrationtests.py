@@ -30,21 +30,21 @@ simple_example_file = 'tests/data/integration/examples_vasp.zip'
 
 @client.command(help='Runs a few example operations as a test.')
 @click.option(
-    '--with-publish', is_flag=True,
+    '--skip-publish', is_flag=True,
     help='Also publish the upload. Should not be done on an production environment.')
 @click.option(
-    '--with-edit', is_flag=True,
+    '--skip-edit', is_flag=True,
     help='Edits upload i.e. by adding comment, references, coauthors, shared_with.')
 @click.option(
-    '--with-doi', is_flag=True,
+    '--skip-doi', is_flag=True,
     help='Assign a doi to a dataset.')
 @click.option(
-    '--with-mirror', is_flag=True,
+    '--skip-mirror', is_flag=True,
     help='Get mirror uploads.')
 @click.option(
-    '--with-query', is_flag=True,
+    '--skip-query', is_flag=True,
     help='Perform query operations.')
-def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query):
+def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query):
     from .client import create_client
     client = create_client()
 
@@ -117,7 +117,7 @@ def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query)
     print('observe the upload process to be finished')
     upload = get_upload(upload)
 
-    if with_publish:
+    if skip_publish:
         try:
             print('publish upload')
             client.uploads.exec_upload_operation(
@@ -145,7 +145,7 @@ def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query)
             upload = client.uploads.get_upload(
                 upload_id=upload.upload_id).response().result
 
-    if with_edit:
+    if skip_edit:
         # add comment, references, coauthors, shared_with, datasets
         dataset = 'test_dataset'
         actions = {
@@ -174,7 +174,7 @@ def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query)
         print('successfully created dataset')
 
         # assign a doi
-        if with_doi:
+        if skip_doi:
             print('assigning a DOI')
             result = client.datasets.assign_doi(name=dataset).response().result
             doi = result.doi
@@ -184,14 +184,14 @@ def integrationtests(with_publish, with_edit, with_doi, with_mirror, with_query)
         print('deleting dataset')
         result = client.datasets.delete_dataset(name=dataset).response().result
 
-    if with_mirror:
+    if skip_mirror:
         print('getting upload mirror')
         # get_upload_mirror gives 404
         payload = dict(query=dict())
         result = client.mirror.get_uploads_mirror(payload=payload).response().result
         assert len(result) > 0
 
-    if with_query:
+    if skip_query:
         # paginated search
         print('performing paginated search')
         result = client.archive.archive_query(upload_id=[upload.upload_id], page=1, per_page=10).response().result
