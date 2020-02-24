@@ -67,7 +67,7 @@ parser_exceptions = {
     'parsers/phonopy': ['basis_set', 'xc_functional'],
     'parsers/gpaw2': symmetry_keys,
     'parsers/gamess': ['formula', 'system'] + symmetry_keys,
-    'parsers/gulp': ['formula', 'xc_functional', 'system'] + symmetry_keys,
+    'parsers/gulp': ['formula', 'xc_functional', 'system', 'basis_set'] + symmetry_keys,
     'parsers/turbomole': symmetry_keys,
     'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
     'parsers/dmol': ['system'] + symmetry_keys,
