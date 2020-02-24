@@ -30,36 +30,25 @@ simple_example_file = 'tests/data/integration/examples_vasp.zip'
 
 @client.command(help='Runs a few example operations as a test.')
 @click.option(
-    '--skip-publish', is_flag=True,
-    help='Also publish the upload. Should not be done on an production environment.')
+    '--skip-parsers', is_flag=True,
+    help='Skip extensive upload and parser tests.')
 @click.option(
-    '--skip-edit', is_flag=True,
-    help='Edits upload i.e. by adding comment, references, coauthors, shared_with.')
+    '--skip-publish', is_flag=True,
+    help='Skip publish the upload. Should not be done on an production environment.')
 @click.option(
     '--skip-doi', is_flag=True,
-    help='Assign a doi to a dataset.')
+    help='Skip assigning a doi to a dataset.')
 @click.option(
     '--skip-mirror', is_flag=True,
-    help='Get mirror uploads.')
-@click.option(
-    '--skip-query', is_flag=True,
-    help='Perform query operations.')
-def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query):
+    help='Skip get mirror tests.')
+def integrationtests(skip_parsers, skip_publish, skip_doi, skip_mirror):
     from .client import create_client
     client = create_client()
+    has_doi = False
+    published = False
 
     print('get the upload command')
     command = client.uploads.get_upload_command().response().result.upload_command_with_name
-
-    print('upload multi code test data with curl')
-    command = command.replace('<local_file>', multi_code_example_file)
-    command = command.replace('<name>', 'integration_test_upload')
-    command += ' -k'
-    code = os.system(command)
-    assert code == 0, 'curl command must be successful'
-    uploads = client.uploads.get_uploads(name='integration_test_upload').response().result.results
-    assert len(uploads) == 1, 'exactly one test upload must be on the server'
-    upload = uploads[0]
 
     def get_upload(upload):
         upload = client.uploads.get_upload(
@@ -72,12 +61,41 @@ def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query)
 
         return upload
 
+    if not skip_parsers:
+        print('upload multi code test data with curl')
+        command = command.replace('<local_file>', multi_code_example_file)
+        command = command.replace('<name>', 'integration_test_upload')
+        command += ' -k'
+        code = os.system(command)
+        assert code == 0, 'curl command must be successful'
+        uploads = client.uploads.get_uploads(name='integration_test_upload').response().result.results
+        assert len(uploads) == 1, 'exactly one test upload must be on the server'
+        upload = uploads[0]
+
+
+        print('observe the upload process to be finished')
+        upload = get_upload(upload)
+
+        assert upload.tasks_status == 'SUCCESS'
+        total = upload.calcs.pagination.total
+        assert 100 > total > 0
+        assert len(upload.calcs.results) == total
+
+        print('delete the upload again')
+        client.uploads.delete_upload(upload_id=upload.upload_id).response()
+        while upload.process_running:
+            upload = client.uploads.get_upload(
+                upload_id=upload.upload_id).response().result
+
+    print('upload simple data with API')
+    with open(simple_example_file, 'rb') as f:
+        upload = client.uploads.upload(
+            name='integration test upload', file=f).response().result
+
     print('observe the upload process to be finished')
     upload = get_upload(upload)
-
-    assert upload.tasks_status == 'SUCCESS'
     total = upload.calcs.pagination.total
-    assert 100 > total > 0
+    assert total > 0
     assert len(upload.calcs.results) == total
 
     try:
@@ -97,28 +115,20 @@ def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query)
             client.archive.get_archive_logs(
                 upload_id=upload.upload_id, calc_id=calc.calc_id).response()
 
-        print('perform search on data')
+        print('perform repo search on data')
         search = client.repo.search(owner='staging', per_page=100).response().result
         assert search.pagination.total >= total
         assert len(search.results) <= search.pagination.total
 
-    finally:
-        print('delete the upload again')
-        client.uploads.delete_upload(upload_id=upload.upload_id).response()
-        while upload.process_running:
-            upload = client.uploads.get_upload(
-                upload_id=upload.upload_id).response().result
+        print('performing archive paginated search')
+        result = client.archive.archive_query(upload_id=upload.upload_id, page=1, per_page=10).response().result
+        assert len(result.results) > 0
 
-    print('upload simple data with API')
-    with open(simple_example_file, 'rb') as f:
-        upload = client.uploads.upload(
-            name='integration test upload', file=f).response().result
+        print('performing archive scrolled search')
+        result = client.archive.archive_query(upload_id=upload.upload_id, scroll=True).response().result
+        assert len(result.results) > 0
 
-    print('observe the upload process to be finished')
-    upload = get_upload(upload)
-
-    if skip_publish:
-        try:
+        if not skip_publish:
             print('publish upload')
             client.uploads.exec_upload_operation(
                 upload_id=upload.upload_id,
@@ -129,24 +139,9 @@ def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query)
                     upload_id=upload.upload_id).response().result
 
             assert upload.tasks_status == 'SUCCESS', 'publish must be successful'
+            published = True
 
-        except Exception as e:
-            print('delete the upload after exception')
-            client.uploads.delete_upload(upload_id=upload.upload_id).response()
-            while upload.process_running:
-                upload = client.uploads.get_upload(
-                    upload_id=upload.upload_id).response().result
-            raise e
-
-    else:
-        print('delete the upload again')
-        client.uploads.delete_upload(upload_id=upload.upload_id).response()
-        while upload.process_running:
-            upload = client.uploads.get_upload(
-                upload_id=upload.upload_id).response().result
-
-    if skip_edit:
-        # add comment, references, coauthors, shared_with, datasets
+        print('editing upload')
         dataset = 'test_dataset'
         actions = {
             'comment': {'value': 'Test comment'},
@@ -156,47 +151,39 @@ def integrationtests(skip_publish, skip_edit, skip_doi, skip_mirror, skip_query)
             'datasets': [{'value': dataset}]}
 
         payload = dict(actions=actions, query=dict(upload_id=upload.upload_id))
-        print('editing upload')
         result = client.repo.edit_repo(payload=payload).response().result
         assert result.success
+        assert client.datasets.get_dataset(name=dataset).response().result['name'] == dataset
 
-        # check if dataset was created
-        page = 1
-        found = False
-        while not found:
-            result = client.datasets.list_datasets(page=page, per_page=10).response().result
-            results = result.results
-            if len(results) == 0:
-                break
-            found = dataset in [res.name for res in results]
-            page += 1
-        assert found
-        print('successfully created dataset')
+        print('list datasets')
+        result = client.datasets.list_datasets(page=1, per_page=10).response().result
+        results = result.results
+        assert len(results) > 0
 
-        # assign a doi
-        if skip_doi:
+        if not skip_doi and published:
             print('assigning a DOI')
             result = client.datasets.assign_doi(name=dataset).response().result
             doi = result.doi
             assert doi
+            has_doi = True
 
-        # delete dataset
-        print('deleting dataset')
-        result = client.datasets.delete_dataset(name=dataset).response().result
+        if not has_doi:
+            print('deleting dataset')
+            result = client.datasets.delete_dataset(name=dataset).response().result
 
-    if skip_mirror:
-        print('getting upload mirror')
-        # get_upload_mirror gives 404
-        payload = dict(query=dict())
-        result = client.mirror.get_uploads_mirror(payload=payload).response().result
-        assert len(result) > 0
+        if not skip_mirror:
+            print('getting upload mirror')
+            # get_upload_mirror gives 404
+            payload = dict(query=dict(upload_id=upload.upload_id))
+            result = client.mirror.get_uploads_mirror(payload=payload).response().result
+            assert len(result) == 1
+            assert len(client.mirror.get_upload_mirror(upload_id=upload.upload_id).response().result.calcs) > 0
+       
 
-    if skip_query:
-        # paginated search
-        print('performing paginated search')
-        result = client.archive.archive_query(upload_id=[upload.upload_id], page=1, per_page=10).response().result
-        # why no result?
-
-        # scrolled search
-        print('performing scrolled search')
-        result = client.archive.archive_query(upload_id=[upload.upload_id], scroll=True).response().result
+    finally:
+        if not published:
+            print('delete the upload again')
+            client.uploads.delete_upload(upload_id=upload.upload_id).response()
+            while upload.process_running:
+                upload = client.uploads.get_upload(
+                    upload_id=upload.upload_id).response().result
