@@ -39,7 +39,7 @@ def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
     entry = search.flat(create_entry(calc_with_metadata).to_dict())
 
     assert 'calc_id' in entry
-    assert 'dft.atoms' in entry
+    assert 'atoms' in entry
     assert 'dft.code_name' in entry
 
 
@@ -70,6 +70,17 @@ def example_search_data(elastic, normalized: parsing.LocalBackend):
     refresh_index()
 
     return normalized
+
+
+@pytest.fixture()
+def example_ems_search_data(elastic, parsed_ems: parsing.LocalBackend):
+    calc_with_metadata = datamodel.CalcWithMetadata(
+        domain='ems', upload_id='test upload id', calc_id='test id')
+    calc_with_metadata.apply_domain_metadata(parsed_ems)
+    create_entry(calc_with_metadata)
+    refresh_index()
+
+    return parsed_ems
 
 
 def test_search_entry(example_search_data):
@@ -104,6 +115,23 @@ def test_search_scroll(elastic, example_search_data):
     assert results['scroll']['total'] == 1
     assert len(results['results']) == 0
     assert 'scroll_id' not in results['scroll']
+
+
+def test_domain(elastic, example_ems_search_data):
+    assert len(list(SearchRequest(domain='ems').execute_scan())) > 0
+    assert len(list(SearchRequest(domain='ems').domain().execute_scan())) > 0
+    assert len(list(SearchRequest(domain='ems').domain('dft').execute_scan())) == 0
+    assert len(list(SearchRequest(domain='dft').domain('dft').execute_scan())) == 0
+
+    results = SearchRequest(domain='ems').statistic('ems.method', size=10).execute()
+    statistics = results['statistics']
+    assert 'ems.method' in statistics
+    assert 'Bare eyes' in statistics['ems.method']
+
+    results = SearchRequest(domain='ems').default_statistics().execute()
+    statistics = results['statistics']
+    assert 'ems.method' in statistics
+    assert 'Bare eyes' in statistics['ems.method']
 
 
 def assert_metrics(container, metrics_names):
@@ -151,19 +179,19 @@ def test_search_totals(elastic, example_search_data):
 
 def test_search_exclude(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'dft.atoms' in search.flat(item)
+        assert 'atoms' in search.flat(item)
 
-    for item in SearchRequest().exclude('dft.atoms').execute_paginated()['results']:
-        assert 'dft.atoms' not in search.flat(item)
+    for item in SearchRequest().exclude('atoms').execute_paginated()['results']:
+        assert 'atoms' not in search.flat(item)
 
 
 def test_search_include(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'dft.atoms' in search.flat(item)
+        assert 'atoms' in search.flat(item)
 
     for item in SearchRequest().include('calc_id').execute_paginated()['results']:
         item = search.flat(item)
-        assert 'dft.atoms' not in item
+        assert 'atoms' not in item
         assert 'calc_id' in item
 
 

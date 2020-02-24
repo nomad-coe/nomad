@@ -30,7 +30,7 @@ export default class EMSEntryOverview extends React.Component {
         <Quantity row>
           <Quantity column>
             <Quantity row>
-              <Quantity quantity="ems.formula" label="sample formula" noWrap {...this.props} />
+              <Quantity quantity="formula" label="sample formula" noWrap {...this.props} />
               {data.ems.chemical !== 'unavailable'
                 ? <Quantity quantity="ems.chemical" label="sample chemical" noWrap {...this.props} />
                 : ''}

@@ -27,6 +27,7 @@ import json
 
 from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
 from nomad.datamodel import Domain
+import nomad.datamodel.base
 
 
 path_analyzer = analyzer(
@@ -123,6 +124,10 @@ class Entry(Document, metaclass=WithDomain):
     datasets = Object(Dataset)
     external_id = Keyword()
 
+    atoms = Keyword()
+    only_atoms = Keyword()
+    formula = Keyword()
+
     @classmethod
     def from_calc_with_metadata(cls, source: datamodel.CalcWithMetadata) -> 'Entry':
         entry = Entry(meta=dict(id=source.calc_id))
@@ -172,6 +177,11 @@ class Entry(Document, metaclass=WithDomain):
         self.references = source.references
         self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
         self.external_id = source.external_id
+
+        self.atoms = source.atoms
+        self.only_atoms = nomad.datamodel.base.only_atoms(source.atoms)
+        self.formula = source.formula
+        self.n_atoms = source.n_atoms
 
         if self.domain is not None:
             inner_doc_type = _domain_inner_doc_types[self.domain]
@@ -300,6 +310,17 @@ class SearchRequest:
         self._domain = domain
         self._query = query
         self._search = Search(index=config.elastic.index_name)
+
+    def domain(self, domain: str = None):
+        """
+        Applies the domain of this request to the query. Allows to optionally update
+        the domain of this request.
+        """
+        if domain is not None:
+            self._domain = domain
+
+        self.q = self.q & Q('term', domain=self._domain)
+        return self
 
     def owner(self, owner_type: str = 'all', user_id: str = None):
         """

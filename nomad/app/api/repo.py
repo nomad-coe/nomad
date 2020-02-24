@@ -386,6 +386,7 @@ class EditRepoCalcsResource(Resource):
                     value = value.split(',')
                 parsed_query[quantity_name] = value
         parsed_query['owner'] = owner
+        parsed_query['domain'] = query.get('domain')
 
         # checking the edit actions and preparing a mongo update on the fly
         json_data['success'] = True

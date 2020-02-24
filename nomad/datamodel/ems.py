@@ -16,9 +16,6 @@
 Experimental material science specific metadata
 """
 
-from typing import List
-import ase.data
-
 from nomad import utils
 
 from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
@@ -28,9 +25,6 @@ class EMSEntryWithMetadata(CalcWithMetadata):
 
     def __init__(self, **kwargs):
         # sample quantities
-        self.formula: str = None
-        self.atoms: List[str] = []
-        self.n_atoms: int = 0
         self.chemical: str = None
         self.sample_constituents: str = None
         self.sample_microstructure: str = None
@@ -116,12 +110,6 @@ Domain(
     root_sections=['section_experiment', 'section_entry_info'],
     metainfo_all_package='all.experimental.nomadmetainfo.json',
     quantities=dict(
-        formula=DomainQuantity(
-            'The chemical (hill) formula of the simulated system.',
-            order_default=True),
-        atoms=DomainQuantity(
-            'The atom labels of all atoms in the simulated system.',
-            aggregations=len(ase.data.chemical_symbols)),
         method=DomainQuantity(
             'The experimental method used.', aggregations=20),
         probing_method=DomainQuantity(
@@ -136,4 +124,5 @@ Domain(
         quantities=('quantities', 'value_count')),
     groups=dict(),
     default_statistics=[
-        'method', 'probing_method', 'sample_microstructure', 'sample_constituents'])
+        'atoms', 'ems.method', 'ems.probing_method', 'ems.sample_microstructure',
+        'ems.sample_constituents'])

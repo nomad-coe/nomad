@@ -533,6 +533,12 @@ def parsed(example_mainfile: Tuple[str, str]) -> parsing.LocalBackend:
 
 
 @pytest.fixture(scope='session')
+def parsed_ems() -> parsing.LocalBackend:
+    """ Provides a parsed experiment in the form of a LocalBackend. """
+    return test_parsing.run_parser('parsers/skeleton', 'tests/data/Parsers/skeleton/example.metadata.json')
+
+
+@pytest.fixture(scope='session')
 def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
     """ Provides a normalized calculation in the form of a LocalBackend. """
     return test_normalizing.run_normalize(parsed)

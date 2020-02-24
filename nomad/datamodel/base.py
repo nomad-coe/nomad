@@ -14,9 +14,10 @@
 
 from typing import Iterable, List, Dict, Type, Tuple, Callable, Any
 import datetime
-from elasticsearch_dsl import Keyword
+from elasticsearch_dsl import Keyword, Integer
 from collections.abc import Mapping
 import numpy as np
+import ase.data
 
 from nomad import config
 
@@ -122,6 +123,11 @@ class CalcWithMetadata(Mapping):
 
         # parser related general (not domain specific) metadata
         self.parser_name = None
+
+        # domain generic metadata
+        self.formula: str = None
+        self.atoms: List[str] = []
+        self.n_atoms: int = 0
 
         self.update(**kwargs)
 
@@ -269,6 +275,12 @@ class DomainQuantity:
             return '%s.%s' % (self.domain, self.name)
 
 
+def only_atoms(atoms):
+    numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
+    only_atoms = [ase.data.chemical_symbols[number] for number in sorted(numbers)]
+    return ''.join(only_atoms)
+
+
 class Domain:
     """
     A domain defines all metadata quantities that are specific to a certain scientific
@@ -301,7 +313,6 @@ class Domain:
     instances: Dict[str, 'Domain'] = {}
 
     base_quantities = dict(
-        domain=DomainQuantity(description='The domain of the entries to return.'),
         authors=DomainQuantity(
             elastic_field='authors.name.keyword', multi=True, aggregations=1000,
             description=(
@@ -356,7 +367,20 @@ class Domain:
             description='Search for a particular dataset by its id.'),
         doi=DomainQuantity(
             elastic_field='datasets.doi', multi=True,
-            description='Search for a particular dataset by doi (incl. http://dx.doi.org).'))
+            description='Search for a particular dataset by doi (incl. http://dx.doi.org).'),
+        formula=DomainQuantity(
+            'The chemical (hill) formula of the simulated system.',
+            order_default=True),
+        atoms=DomainQuantity(
+            'The atom labels of all atoms in the simulated system.',
+            aggregations=len(ase.data.chemical_symbols), multi=True),
+        only_atoms=DomainQuantity(
+            'The atom labels concatenated in species-number order. Used with keyword search '
+            'to facilitate exclusive searches.',
+            elastic_value=only_atoms, metadata_field='atoms', multi=True),
+        n_atoms=DomainQuantity(
+            'Number of atoms in the simulated system',
+            elastic_mapping=Integer()))
 
     base_metrics = dict(
         datasets=('datasets_id', 'cardinality'),
@@ -441,7 +465,7 @@ class Domain:
                     reference_domain_calc.__dict__[quantity.metadata_field], list)
 
             assert not hasattr(reference_general_calc, quantity_name), \
-                'quantity overrides general non domain quantity'
+                'quantity overrides general non domain quantity: %s' % quantity_name
 
         # construct search quantities from base and domain quantities
         self.quantities = dict(**Domain.base_quantities)

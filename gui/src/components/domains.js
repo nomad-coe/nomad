@@ -87,7 +87,7 @@ export const domains = ({
      * Default render
      */
     searchResultColumns: {
-      'dft.formula': {
+      'formula': {
         label: 'Formula',
         supportsSort: true
       },
@@ -120,7 +120,7 @@ export const domains = ({
         supportsSort: true
       }
     },
-    defaultSearchResultColumns: ['dft.formula', 'dft.code_name', 'dft.system', 'dft.crystal_system', 'dft.spacegroup_symbol'],
+    defaultSearchResultColumns: ['formula', 'dft.code_name', 'dft.system', 'dft.crystal_system', 'dft.spacegroup_symbol'],
     /**
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),
@@ -172,7 +172,7 @@ export const domains = ({
      * Default render
      */
     searchResultColumns: {
-      'ems.formula': {
+      'formula': {
         label: 'Formula'
       },
       'ems.method': {
@@ -186,7 +186,7 @@ export const domains = ({
         render: entry => (entry.ems && entry.ems.experiment_time !== 'unavailable') ? new Date(entry.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
       }
     },
-    defaultSearchResultColumns: ['ems.formula', 'ems.method', 'ems.experiment_location', 'ems.experiment_time'],
+    defaultSearchResultColumns: ['formula', 'ems.method', 'ems.experiment_location', 'ems.experiment_time'],
     /**
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),

@@ -236,9 +236,9 @@ class ElementsVisualization extends React.Component {
     this.setState({exclusive: !this.state.exclusive}, () => {
       const {state: {query}, setQuery} = this.context
       if (this.state.exclusive) {
-        setQuery({...query, 'dft.only_atoms': query['dft.atoms'], 'dft.atoms': []})
+        setQuery({...query, only_atoms: query['atoms'], atoms: []})
       } else {
-        setQuery({...query, 'dft.atoms': query['dft.only_atoms'], 'dft.only_atoms': []})
+        setQuery({...query, atoms: query.only_atoms, only_atoms: []})
       }
     })
   }
@@ -249,7 +249,7 @@ class ElementsVisualization extends React.Component {
     }
 
     const {state: {query}, setQuery} = this.context
-    setQuery({...query, 'dft.atoms': atoms, 'dft.only_atoms': []})
+    setQuery({...query, atoms: atoms, only_atoms: []})
   }
 
   render() {
@@ -260,10 +260,10 @@ class ElementsVisualization extends React.Component {
       <Card>
         <CardContent>
           <PeriodicTable
-            aggregations={statistics['dft.atoms']}
+            aggregations={statistics.atoms}
             metric={metric}
             exclusive={this.state.exclusive}
-            values={[...(query['dft.atoms'] || []), ...(query['dft.only_atoms'] || [])]}
+            values={[...(query.atoms || []), ...(query.only_atoms || [])]}
             onChanged={this.handleAtomsChanged}
             onExclusiveChanged={this.handleExclusiveChanged}
           />

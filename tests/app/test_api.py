@@ -224,7 +224,7 @@ class TestUploads:
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
 
-            assert 'dft.atoms' in search.flat(calc['metadata'])
+            assert 'atoms' in calc['metadata']
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
@@ -235,7 +235,7 @@ class TestUploads:
 
         upload_with_metadata = get_upload_with_metadata(upload)
         assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
-        assert_search_upload(upload_with_metadata, additional_keys=['dft.atoms', 'dft.system'])
+        assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'dft.system'])
 
     def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
@@ -817,7 +817,7 @@ class TestRepo():
         if calcs > 0:
             results = data.get('results', None)
             result = search.flat(results[0])
-            for key in ['uploader.name', 'calc_id', 'dft.formula', 'upload_id']:
+            for key in ['uploader.name', 'calc_id', 'formula', 'upload_id']:
                 assert key in result
 
     @pytest.mark.parametrize('calcs, start, end', [
@@ -848,13 +848,13 @@ class TestRepo():
     @pytest.mark.parametrize('calcs, quantity, value, user', [
         (2, 'dft.system', 'bulk', 'test_user'),
         (0, 'dft.system', 'atom', 'test_user'),
-        (1, 'dft.atoms', 'Br', 'test_user'),
-        (1, 'dft.atoms', 'Fe', 'test_user'),
-        (0, 'dft.atoms', ['Fe', 'Br', 'A', 'B'], 'test_user'),
-        (0, 'dft.only_atoms', ['Br', 'Si'], 'test_user'),
-        (1, 'dft.only_atoms', ['Fe'], 'test_user'),
-        (1, 'dft.only_atoms', ['Br', 'K', 'Si'], 'test_user'),
-        (1, 'dft.only_atoms', ['Br', 'Si', 'K'], 'test_user'),
+        (1, 'atoms', 'Br', 'test_user'),
+        (1, 'atoms', 'Fe', 'test_user'),
+        (0, 'atoms', ['Fe', 'Br', 'A', 'B'], 'test_user'),
+        (0, 'only_atoms', ['Br', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Fe'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'K', 'Si'], 'test_user'),
+        (1, 'only_atoms', ['Br', 'Si', 'K'], 'test_user'),
         (1, 'comment', 'specific', 'test_user'),
         (1, 'authors', 'Leonard Hofstadter', 'test_user'),
         (2, 'files', 'test/mainfile.txt', 'test_user'),
@@ -886,11 +886,11 @@ class TestRepo():
             assert value in statistics['dft.system']
 
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?exclude=dft.atoms,dft.only_atoms')
+        rv = api.get('/repo/?exclude=atoms,only_atoms')
         assert rv.status_code == 200
         result = search.flat(json.loads(rv.data)['results'][0])
-        assert 'dft.atoms' not in result
-        assert 'dft.only_atoms' not in result
+        assert 'atoms' not in result
+        assert 'only_atoms' not in result
         assert 'dft.basis_set' in result
 
     metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
@@ -965,7 +965,7 @@ class TestRepo():
         assert len(results) == n_results
 
     @pytest.mark.parametrize('first, order_by, order', [
-        ('1', 'dft.formula', -1), ('2', 'dft.formula', 1),
+        ('1', 'formula', -1), ('2', 'formula', 1),
         ('2', 'dft.basis_set', -1), ('1', 'dft.basis_set', 1),
         (None, 'authors', -1)])
     def test_search_order(self, api, example_elastic_calcs, no_warn, first, order_by, order):
@@ -1011,8 +1011,8 @@ class TestRepo():
     @pytest.mark.parametrize('calcs, quantity, value', [
         (2, 'dft.system', 'bulk'),
         (0, 'dft.system', 'atom'),
-        (1, 'dft.atoms', 'Br'),
-        (1, 'dft.atoms', 'Fe'),
+        (1, 'atoms', 'Br'),
+        (1, 'atoms', 'Fe'),
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
         (0, 'dft.quantities', 'dos')
@@ -1029,7 +1029,7 @@ class TestRepo():
             assert 0 == calcs
 
     def test_quantity_search_after(self, api, example_elastic_calcs, no_warn, test_user_auth):
-        rv = api.get('/repo/quantity/dft.atoms?size=1')
+        rv = api.get('/repo/quantity/atoms?size=1')
         assert rv.status_code == 200
         data = json.loads(rv.data)
 
@@ -1040,7 +1040,7 @@ class TestRepo():
         value = list(quantity['values'].keys())[0]
 
         while True:
-            rv = api.get('/repo/quantity/dft.atoms?size=1&after=%s' % after)
+            rv = api.get('/repo/quantity/atoms?size=1&after=%s' % after)
             assert rv.status_code == 200
             data = json.loads(rv.data)
 
@@ -1057,7 +1057,7 @@ class TestRepo():
     def test_quantities_search(self, api, example_elastic_calcs, no_warn, test_user_auth):
         rv = api.get(
             '/repo/quantities?%s' % urlencode(
-                dict(quantities=['dft.system', 'dft.atoms'], size=1), doseq=True),
+                dict(quantities=['dft.system', 'atoms'], size=1), doseq=True),
             headers=test_user_auth)
         assert rv.status_code == 200
         # TODO actual assertions

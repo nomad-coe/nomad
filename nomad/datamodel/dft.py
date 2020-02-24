@@ -19,7 +19,6 @@ DFT specific metadata
 from typing import List
 import re
 from elasticsearch_dsl import Integer, Object, InnerDoc, Keyword
-import ase.data
 
 from nomadcore.local_backend import ParserEvent
 
@@ -99,9 +98,6 @@ ESLabel = elastic_mapping(Label.m_def, InnerDoc)
 class DFTCalcWithMetadata(CalcWithMetadata):
 
     def __init__(self, **kwargs):
-        self.formula: str = None
-        self.atoms: List[str] = []
-        self.n_atoms: int = 0
         self.basis_set: str = None
         self.xc_functional: str = None
         self.system: str = None
@@ -253,12 +249,6 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
 
 
-def only_atoms(atoms):
-    numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
-    only_atoms = [ase.data.chemical_symbols[number] for number in sorted(numbers)]
-    return ''.join(only_atoms)
-
-
 def _elastic_label_value(label):
     if isinstance(label, str):
         return label
@@ -269,16 +259,6 @@ def _elastic_label_value(label):
 Domain(
     'dft', DFTCalcWithMetadata,
     quantities=dict(
-        formula=DomainQuantity(
-            'The chemical (hill) formula of the simulated system.',
-            order_default=True),
-        atoms=DomainQuantity(
-            'The atom labels of all atoms in the simulated system.',
-            aggregations=len(ase.data.chemical_symbols), multi=True),
-        only_atoms=DomainQuantity(
-            'The atom labels concatenated in species-number order. Used with keyword search '
-            'to facilitate exclusive searches.',
-            elastic_value=only_atoms, metadata_field='atoms', multi=True),
         basis_set=DomainQuantity(
             'The used basis set functions.', aggregations=20),
         xc_functional=DomainQuantity(
@@ -310,9 +290,6 @@ Domain(
         n_geometries=DomainQuantity(
             'Number of unique geometries',
             elastic_mapping=Integer()),
-        n_atoms=DomainQuantity(
-            'Number of atoms in the simulated system',
-            elastic_mapping=Integer()),
         labels=DomainQuantity(
             'Search based for springer classification and aflow prototypes',
             elastic_field='labels.label',
@@ -335,4 +312,4 @@ Domain(
     groups=dict(
         groups=('group_hash', 'groups')),
     default_statistics=[
-        'dft.atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'dft.crystal_system', 'dft.code_name'])
+        'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'dft.crystal_system', 'dft.code_name'])

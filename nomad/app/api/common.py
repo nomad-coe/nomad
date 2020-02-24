@@ -98,6 +98,11 @@ def add_search_parameters(request_parser):
     """ Add search parameters to Flask querystring parser. """
     # more search parameters
     request_parser.add_argument(
+        'domain', type=str,
+        help='Specify the domain to search in: %s, default is ``%s``' % (
+            ', '.join(['``%s``' % key for key in Domain.instances.keys()]),
+            config.default_domain))
+    request_parser.add_argument(
         'owner', type=str,
         help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
     request_parser.add_argument(
@@ -123,6 +128,11 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     Help that adds query relevant request args to the given SearchRequest.
     """
     args = {key: value for key, value in args.items() if value is not None}
+
+    # domain
+    domain = args.get('domain')
+    if domain is not None:
+        search_request.domain(domain=domain)
 
     # owner
     owner = args.get('owner', 'all')
