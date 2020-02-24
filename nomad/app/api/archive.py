@@ -235,7 +235,6 @@ class ArchiveQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
-    @api.response(200, 'Archive data send')
     @api.expect(_archive_query_parser, validate=True)
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
     @authenticate()
