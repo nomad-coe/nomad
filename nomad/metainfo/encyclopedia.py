@@ -278,7 +278,7 @@ class Method(MSection):
         """
     )
     method_type = Quantity(
-        type=MEnum("DFT", "GW", "unavailable"),
+        type=MEnum("DFT", "DFT+U", "GW", "unavailable"),
         description="""
         Generic name for the used methodology.
         """

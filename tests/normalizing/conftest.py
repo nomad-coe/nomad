@@ -158,9 +158,36 @@ def one_d() -> LocalBackend:
 
 
 @pytest.fixture(scope='session')
-def bands_insulator_indirect() -> LocalBackend:
+def bands_unpolarized_gap_indirect() -> LocalBackend:
     parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/insulator/vasprun.xml.bands.xz"
+    filepath = "tests/data/normalizers/band_structure/unpolarized_gap/vasprun.xml.bands"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def bands_polarized_no_gap() -> LocalBackend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/polarized_no_gap/vasprun.xml.bands"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def bands_unpolarized_no_gap() -> LocalBackend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/unpolarized_no_gap/vasprun.xml.bands"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def bands_polarized_gap_indirect() -> LocalBackend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/polarized_gap/vasprun.xml.bands"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend

@@ -1489,9 +1489,8 @@ class PropertiesNormalizer():
         fermi_level = band_structure.fermi_level
         n_channels = energies.shape[0]
 
-        gaps = []
+        gaps: List[BandGap] = [None, None]
         for channel in range(n_channels):
-            gap = BandGap()
             channel_energies = energies[channel, :, :]
             lower_defined = False
             upper_defined = False
@@ -1541,27 +1540,38 @@ class PropertiesNormalizer():
                 k_point_upper = path[gap_upper_idx]
                 k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
                 is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+
+                gap = BandGap()
                 gap.type = "direct" if is_direct_gap else "indirect"
                 gap.value = float(gap_upper_energy - gap_lower_energy)
                 gap.conduction_band_min_k_point = k_point_upper
                 gap.conduction_band_min_energy = float(gap_upper_energy)
                 gap.valence_band_max_k_point = k_point_lower
                 gap.valence_band_max_energy = float(gap_lower_energy)
+                gaps[channel] = gap
 
-            gaps.append(gap)
-
+        # For unpolarized calculations we simply report the gap if it is found.
         if n_channels == 1:
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
-        elif n_channels == 2:
-            # The band gap for the structure is the one with minimum gap
-            if gaps[0].value <= gaps[1].value:
+            if gaps[0] is not None:
                 band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+        # For polarized calculations we report the gap separately for both
+        # channels. Also we report the smaller gap as the the total gap for the
+        # calculation.
+        elif n_channels == 2:
+            if gaps[0] is not None:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
+            if gaps[1] is not None:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
+            if gaps[0] is not None and gaps[1] is not None:
+                if gaps[0].value <= gaps[1].value:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                else:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
             else:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
-
-            # The band gap is reported individually for both spin channels
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
+                if gaps[0] is not None:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                elif gaps[1] is not None:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
 
     def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
         """Used to calculate the Euclidian distance of two points in k-space,
@@ -1650,6 +1660,7 @@ class PropertiesNormalizer():
                 # The path and energies are merged into single arrays
                 path = np.concatenate(path, axis=0)
                 energies = np.swapaxes(np.concatenate(energies, axis=1), 1, 2)
+
                 band_structure.path = path
                 band_structure.energies = energies
 
