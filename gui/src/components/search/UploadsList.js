@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -229,6 +228,6 @@ class UploadListUnstyled extends React.Component {
   }
 }
 
-const UploadList = compose(withRouter, withDomain, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
+const UploadList = compose(withRouter, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
 
 export default UploadList

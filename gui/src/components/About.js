@@ -5,15 +5,14 @@ import Markdown from './Markdown'
 import { appBase, optimadeBase, apiBase, debug, consent } from '../config'
 import { compose } from 'recompose'
 import { withApi } from './api'
-import { withDomain } from './domains'
 import packageJson from '../../package.json'
+import { domains } from './domains'
 
 class About extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     info: PropTypes.object,
-    domains: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -24,7 +23,7 @@ class About extends React.Component {
   })
 
   render() {
-    const { classes, domains, info } = this.props
+    const { classes, info } = this.props
 
     return (
       <div className={classes.root}>
@@ -126,4 +125,4 @@ class About extends React.Component {
   }
 }
 
-export default compose(withApi(), withDomain, withStyles(About.styles))(About)
+export default compose(withApi(), withStyles(About.styles))(About)

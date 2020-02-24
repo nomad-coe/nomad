@@ -5,9 +5,9 @@ import { withApi } from '../api'
 import { compose } from 'recompose'
 import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
-import { withDomain } from '../domains'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
+import { domains } from '../domains'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -30,8 +30,7 @@ class RepoEntryView extends React.Component {
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
-    calcId: PropTypes.string.isRequired,
-    domains: PropTypes.object.isRequired
+    calcId: PropTypes.string.isRequired
   }
 
   static defaultState = {
@@ -69,7 +68,7 @@ class RepoEntryView extends React.Component {
   }
 
   render() {
-    const { classes, domains, ...calcProps } = this.props
+    const { classes, ...calcProps } = this.props
     const calcData = this.state.calcData || calcProps
     const loading = !this.state.calcData
     const { uploadId, calcId } = calcProps
@@ -172,4 +171,4 @@ class RepoEntryView extends React.Component {
   }
 }
 
-export default compose(withApi(false, true), withDomain, withStyles(RepoEntryView.styles))(RepoEntryView)
+export default compose(withApi(false, true), withStyles(RepoEntryView.styles))(RepoEntryView)

@@ -1,44 +1,9 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Grid } from '@material-ui/core'
-import QuantityHistogram from '../search/QuantityHistogram'
+import { Grid } from '@material-ui/core'
+import { Quantity } from '../search/QuantityHistogram'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
-
-
-class QuantityUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    quantity: PropTypes.string.isRequired,
-    metric: PropTypes.string.isRequired,
-    title: PropTypes.string,
-    scale: PropTypes.number
-  }
-  static styles = theme => ({
-    root: {
-      marginTop: theme.spacing.unit * 2
-    }
-  })
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {classes, scale, quantity, title, ...props} = this.props
-    const {state: {response, query}, setQuery} = this.context
-
-    return <QuantityHistogram
-      classes={{root: classes.root}}
-      width={300}
-      defaultScale={scale || 1}
-      title={title || quantity}
-      data={response.statistics[quantity]}
-      value={query[quantity]}
-      onChanged={selection => setQuery({...query, [quantity]: selection})}
-      {...props} />
-  }
-}
-
-const Quantity = withStyles(QuantityUnstyled.styles)(QuantityUnstyled)
 
 
 class DFTSearchAggregations extends React.Component {

@@ -42,7 +42,7 @@ export class EntryListUnstyled extends React.Component {
     actions: PropTypes.element,
     showEntryActions: PropTypes.func,
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
-    domain: PropTypes.object.isRequired
+    domain: PropTypes.object
   }
 
   static styles = theme => ({
@@ -262,7 +262,7 @@ export class EntryListUnstyled extends React.Component {
         <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
+            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={row} />
             <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
             <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
@@ -308,6 +308,7 @@ export class EntryListUnstyled extends React.Component {
       ...EntryListUnstyled.defaultColumns
     }
 
+    console.log(domain)
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns,
       'authors']
@@ -340,7 +341,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          entityLabels={[domain.entryLabel, domain.entryLabelPlural]}
+          entityLabels={domain ? [domain.entryLabel, domain.entryLabelPlural] : ['entry', 'entries']}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}

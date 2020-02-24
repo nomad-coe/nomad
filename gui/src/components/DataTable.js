@@ -16,7 +16,6 @@ import Tooltip from '@material-ui/core/Tooltip'
 import ViewColumnIcon from '@material-ui/icons/ViewColumn'
 import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withDomain } from './domains'
 import _ from 'lodash'
 
 class DataTableToolbarUnStyled extends React.Component {
@@ -297,6 +296,12 @@ class DataTableUnStyled extends React.Component {
     selectedColumns: null
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.columns !== this.props.columns) {
+      this.setState({selectedColumns: this.props.selectedColumns})
+    }
+  }
+
   handleRequestSort(event, property) {
     const { orderBy, order, onOrderChanged } = this.props
     const isDesc = orderBy === property && order === 'desc'
@@ -514,4 +519,4 @@ class DataTableUnStyled extends React.Component {
   }
 }
 
-export default compose(withDomain, withStyles(DataTableUnStyled.styles))(DataTableUnStyled)
+export default compose(withStyles(DataTableUnStyled.styles))(DataTableUnStyled)

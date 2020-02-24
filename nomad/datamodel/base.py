@@ -301,6 +301,7 @@ class Domain:
     instances: Dict[str, 'Domain'] = {}
 
     base_quantities = dict(
+        domain=DomainQuantity(description='The domain of the entries to return.'),
         authors=DomainQuantity(
             elastic_field='authors.name.keyword', multi=True, aggregations=1000,
             description=(

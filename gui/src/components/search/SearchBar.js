@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { withDomain } from '../domains'  // TODO this causes a weird import bug
+import { domains } from '../domains'  // TODO this causes a weird import bug
 import ChipInput from 'material-ui-chip-input'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
@@ -311,7 +311,7 @@ class SearchBar extends React.Component {
             onAdd: (chip) => this.handleAddChip(chip),
             onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
             onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-            label: 'search',
+            // label: 'search',
             fullWidth: true,
             fullWidthInput: false,
             InputLabelProps: {

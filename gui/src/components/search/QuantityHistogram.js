@@ -4,11 +4,12 @@ import { withStyles, Select, MenuItem, Card, CardContent, CardHeader } from '@ma
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
+import SearchContext from '../search/SearchContext'
 
 const unprocessed_label = 'not processed'
 const unavailable_label = 'unavailable'
 
-class QuantityHistogram extends React.Component {
+class QuantityHistogramUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     title: PropTypes.string.isRequired,
@@ -211,4 +212,39 @@ class QuantityHistogram extends React.Component {
   }
 }
 
-export default withStyles(QuantityHistogram.styles)(QuantityHistogram)
+export const QuantityHistogram = withStyles(QuantityHistogramUnstyled.styles)(QuantityHistogramUnstyled)
+
+
+class QuantityUnstyled extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired,
+    quantity: PropTypes.string.isRequired,
+    metric: PropTypes.string.isRequired,
+    title: PropTypes.string,
+    scale: PropTypes.number
+  }
+  static styles = theme => ({
+    root: {
+      marginTop: theme.spacing.unit * 2
+    }
+  })
+
+  static contextType = SearchContext.type
+
+  render() {
+    const {classes, scale, quantity, title, ...props} = this.props
+    const {state: {response, query}, setQuery} = this.context
+
+    return <QuantityHistogram
+      classes={{root: classes.root}}
+      width={300}
+      defaultScale={scale || 1}
+      title={title || quantity}
+      data={response.statistics[quantity]}
+      value={query[quantity]}
+      onChanged={selection => setQuery({...query, [quantity]: selection})}
+      {...props} />
+  }
+}
+
+export const Quantity = withStyles(QuantityUnstyled.styles)(QuantityUnstyled)

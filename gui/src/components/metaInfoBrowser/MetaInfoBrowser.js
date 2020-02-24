@@ -9,7 +9,7 @@ import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLa
 import { compose } from 'recompose'
 import { schema } from '../MetaInfoRepository'
 
-export const help = domain => `
+export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
 NOMAD. You could say it is the archive *schema*. You can browse this schema and
 all its definitions here.

@@ -2,8 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withApi } from '../api'
 import { isEquivalent } from '../../utils'
-import { compose } from 'recompose'
-import { withDomain } from '../domains'
+import { domains } from '../domains'
 
 /**
  * A non visible component that keeps shared search state between all child components.
@@ -14,10 +13,10 @@ class SearchContext extends React.Component {
     initialQuery: PropTypes.object,
     initialRequest: PropTypes.object,
     update: PropTypes.number,
-    domains: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    children: PropTypes.any
+    children: PropTypes.any,
+    defaultDomain: PropTypes.object.isRequired
   }
 
   static emptyResponse = {
@@ -35,13 +34,14 @@ class SearchContext extends React.Component {
     this.handleRequestChange = this.handleRequestChange.bind(this)
     this.handleQueryChange = this.handleQueryChange.bind(this)
     this.handleMetricChange = this.handleMetricChange.bind(this)
+    this.handleDomainChange = this.handleDomainChange.bind(this)
     this.state.query = this.props.initialQuery || {}
     if (this.props.initialRequest) {
       this.state.request = {...this.state.request, ...this.props.initialRequest}
     }
   }
 
-  defaultMetric = this.props.domains.dft.defaultSearchMetric
+  defaultMetric = this.props.defaultDomain.defaultSearchMetric
 
   state = {
     response: SearchContext.emptyResponse,
@@ -54,7 +54,7 @@ class SearchContext extends React.Component {
     },
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
-    domain: this.props.domains.dft,
+    domain: this.props.defaultDomain,
     query: {}
   }
 
@@ -80,10 +80,23 @@ class SearchContext extends React.Component {
     this.setState({metric: metric})
   }
 
+  handleDomainChange(domain) {
+    if (domain.key !== this.state.domain.key) {
+      this.setState(
+        {domain: domains[domain] || this.props.defaultDomain || domains.dft},
+        () => this.update())
+    }
+  }
+
   update() {
     const {api, raiseError} = this.props
-    const {request, query, metric} = this.state
-    const search = {...request, ...query, metrics: metric === this.defaultMetric ? [] : [metric], ...(this.props.query || {})}
+    const {request, query, metric, domain} = this.state
+    const search = {
+      ...request,
+      ...query,
+      domain: domain.key,
+      metrics: metric === this.defaultMetric ? [] : [metric],
+      ...(this.props.query || {})}
 
     api.search(search)
       .then(response => {
@@ -122,14 +135,14 @@ class SearchContext extends React.Component {
   }
 
   render() {
-    const {children, domains} = this.props
+    const {children} = this.props
     const value = {
       state: this.state,
       props: this.props,
       setRequest: this.handleRequestChange,
       setQuery: this.handleQueryChange,
       setMetric: this.handleMetricChange,
-      domain: domains.dft  // TODO allow user to change
+      setDomain: this.handleDomainChange
     }
     return <SearchContext.type.Provider value={value} >
       {children}
@@ -137,7 +150,7 @@ class SearchContext extends React.Component {
   }
 }
 
-const withHoc = compose(withDomain, withApi(false, false))(SearchContext)
+const withHoc = withApi(false, false)(SearchContext)
 Object.assign(withHoc, {type: SearchContext.type})
 
 export default withHoc

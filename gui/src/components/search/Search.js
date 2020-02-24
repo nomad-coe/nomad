@@ -2,19 +2,20 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
-  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton } from '@material-ui/core'
+  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton, FormLabel } from '@material-ui/core'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
 import SearchContext from './SearchContext'
 import { DisableOnLoading } from '../api'
-import { withDomain } from '../domains'
+import { domains } from '../domains'
 import KeepState from '../KeepState'
 import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
+import SearchIcon from '@material-ui/icons/Search'
 
 class Search extends React.Component {
   static tabs = {
@@ -54,6 +55,17 @@ class Search extends React.Component {
       maxWidth: 1024,
       margin: 'auto',
       width: '100%'
+    },
+    searchIcon: {
+      margin: `${theme.spacing.unit}px 0`,
+      padding: `6px 0 2px 0`
+    },
+    domainButton: {
+      margin: theme.spacing.unit,
+    },
+    metricButton: {
+      margin: theme.spacing.unit,
+      marginRight: 0
     },
     searchBar: {
       width: '100%'
@@ -134,19 +146,19 @@ class Search extends React.Component {
     return <DisableOnLoading>
       <div className={classes.root}>
         <div className={classes.search}>
-          <div style={{display: 'flex'}}>
-            <div style={{flexGrow: 1}}>
-              <OwnerSelect />
-            </div>
-            <FormGroup row>
-              <VisualizationSelect
-                classes={{button: classes.selectButton}}
-                value={openVisualization}
-                onChange={this.handleVisualizationChange}
-              />
-              <MetricSelect classes={{button: classes.selectButton}} />
-            </FormGroup>
-          </div>
+          <FormGroup row>
+            <FormControl className={classes.searchIcon}><FormLabel><SearchIcon/></FormLabel></FormControl>
+            <DomainSelect classes={{root: classes.domainButton}} />
+            <OwnerSelect />
+            <div style={{flexGrow: 1}} />
+            <VisualizationSelect
+              classes={{button: classes.selectButton}}
+              value={openVisualization}
+              onChange={this.handleVisualizationChange}
+            />
+            <MetricSelect classes={{root: classes.metricButton}} />
+          </FormGroup>
+
           <SearchBar classes={{autosuggestRoot: classes.searchBar}} />
         </div>
 
@@ -186,7 +198,7 @@ class Search extends React.Component {
   }
 }
 
-class DomainVisualizationUnstyled extends React.Component {
+class DomainVisualization extends React.Component {
   static propTypes = {
     open: PropTypes.bool
   }
@@ -202,7 +214,6 @@ class DomainVisualizationUnstyled extends React.Component {
     }/>
   }
 }
-const DomainVisualization = withDomain(DomainVisualizationUnstyled)
 
 class ElementsVisualization extends React.Component {
   static propTypes = {
@@ -262,10 +273,7 @@ class ElementsVisualization extends React.Component {
   }
 }
 
-class MetricSelectUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired
-  }
+class MetricSelect extends React.Component {
 
   static contextType = SearchContext.type
 
@@ -293,11 +301,11 @@ class MetricSelectUnstyled extends React.Component {
 
   handleToggle = (value) => {
     const {setMetric} = this.context
+    this.setState({anchorEl: null})
     setMetric(value)
   }
 
   render() {
-    const {classes} = this.props
     const {metric, domain} = this.context.state
     const {anchorEl} = this.state
 
@@ -305,8 +313,8 @@ class MetricSelectUnstyled extends React.Component {
     const {label, shortLabel} = metricsDefinitions[metric]
     return <React.Fragment>
       <Tooltip title="Select the metric used to represent data">
-        <Button size="small" className={classes.button} onClick={this.handleClick}>
-          {shortLabel || label}
+        <Button size="small" onClick={this.handleClick} {...this.props} >
+          {shortLabel || label} &#9662;
         </Button>
       </Tooltip>
       <Popover
@@ -342,8 +350,6 @@ class MetricSelectUnstyled extends React.Component {
   }
 }
 
-const MetricSelect = withDomain(MetricSelectUnstyled)
-
 class VisualizationSelect extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -366,6 +372,80 @@ class VisualizationSelect extends React.Component {
           </Button>
         </Tooltip>
       })}
+    </React.Fragment>
+  }
+}
+
+class DomainSelect extends React.Component {
+  static contextType = SearchContext.type
+
+  constructor(props) {
+    super(props)
+    this.handleClick = this.handleClick.bind(this)
+    this.handleClose = this.handleClose.bind(this)
+  }
+
+  state = {
+    anchorEl: null
+  }
+
+  handleClick = event => {
+    this.setState({
+      anchorEl: event.currentTarget
+    })
+  }
+
+  handleClose = () => {
+    this.setState({
+      anchorEl: null
+    })
+  }
+
+  handleToggle = (value) => {
+    const { setDomain } = this.context
+    setDomain(value)
+    this.handleClose()
+  }
+
+  render() {
+    const {domain} = this.context.state
+    const {anchorEl} = this.state
+
+    return <React.Fragment>
+      <Tooltip title="Select the domain to search in">
+        <Button size="small" onClick={this.handleClick} {...this.props}>
+          {domain.name} &#9662;
+        </Button>
+      </Tooltip>
+      <Popover
+        open={anchorEl !== null}
+        anchorEl={anchorEl}
+        onClose={this.handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center'
+        }}
+      >
+        <List>
+          {Object.keys(domains).map(key => {
+            const {name, searchTooltip} = domains[key]
+            return (
+              <ListItem
+                key={key} role={undefined} dense button
+                onClick={() => this.handleToggle(key)}
+              >
+                <Tooltip title={searchTooltip || ''}>
+                  <ListItemText primary={name} />
+                </Tooltip>
+              </ListItem>
+            )
+          })}
+        </List>
+      </Popover>
     </React.Fragment>
   }
 }

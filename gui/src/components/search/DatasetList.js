@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip, Link } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -294,6 +293,6 @@ class DatasetListUnstyled extends React.Component {
   }
 }
 
-const DatasetList = compose(withRouter, withDomain, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
+const DatasetList = compose(withRouter, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
 
 export default DatasetList

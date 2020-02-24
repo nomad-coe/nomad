@@ -7,9 +7,9 @@ import { withApi } from '../api'
 import Search from './Search'
 import SearchContext from './SearchContext'
 import qs from 'qs'
-import { withDomain } from '../domains'
+import { domains } from '../domains'
 
-export const help = domains => `
+export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
 gives you various options to enter and configure your search. The lower part
 shows all data that fulfills your search criteria.
@@ -59,8 +59,7 @@ class SearchPage extends React.Component {
     user: PropTypes.object,
     location: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
-    update: PropTypes.number,
-    domains: PropTypes.object.isRequired
+    update: PropTypes.number
   }
 
   static styles = theme => ({
@@ -89,6 +88,7 @@ class SearchPage extends React.Component {
     return (
       <div className={classes.root}>
         <SearchContext
+          defaultDomain={domains.dft}
           update={update}
           initialQuery={query}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
@@ -100,4 +100,4 @@ class SearchPage extends React.Component {
   }
 }
 
-export default compose(withDomain, withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)
+export default compose(withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)

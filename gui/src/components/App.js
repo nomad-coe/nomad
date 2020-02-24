@@ -23,7 +23,6 @@ import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
 import { guiBase, consent, nomadTheme } from '../config'
-import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
@@ -31,7 +30,6 @@ import Markdown from './Markdown'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
-import { capitalize } from '../utils'
 import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
@@ -68,8 +66,7 @@ class NavigationUnstyled extends React.Component {
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
     loading: PropTypes.number.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    domains: PropTypes.object.isRequired
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -164,7 +161,7 @@ class NavigationUnstyled extends React.Component {
     '/uploads': 'Upload and Publish Data',
     '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
-    '/entry': capitalize(this.props.domains.entryLabel),
+    '/entry': 'Entry',
     '/dataset': 'Dataset'
   }
 
@@ -309,7 +306,7 @@ class NavigationUnstyled extends React.Component {
   }
 }
 
-const Navigation = compose(withRouter, withErrors, withApi(false), withDomain, withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
+const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
 class LicenseAgreementUnstyled extends React.Component {
   static propTypes = {
@@ -487,20 +484,18 @@ export default class App extends React.Component {
       <MuiThemeProvider theme={nomadTheme}>
         <ErrorSnacks>
           <ApiProvider>
-            <DomainProvider>
-              <Navigation>
-                <Switch>
-                  {Object.keys(this.routes).map(route => (
-                    // eslint-disable-next-line react/jsx-key
-                    <Route key={'nop'}
-                      // eslint-disable-next-line react/no-children-prop
-                      children={props => this.renderChildren(route, props)}
-                      exact={this.routes[route].exact}
-                      path={this.routes[route].path} />
-                  ))}
-                </Switch>
-              </Navigation>
-            </DomainProvider>
+            <Navigation>
+              <Switch>
+                {Object.keys(this.routes).map(route => (
+                  // eslint-disable-next-line react/jsx-key
+                  <Route key={'nop'}
+                    // eslint-disable-next-line react/no-children-prop
+                    children={props => this.renderChildren(route, props)}
+                    exact={this.routes[route].exact}
+                    path={this.routes[route].path} />
+                ))}
+              </Switch>
+            </Navigation>
           </ApiProvider>
         </ErrorSnacks>
         <LicenseAgreement />
