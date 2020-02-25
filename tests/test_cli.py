@@ -16,7 +16,6 @@
 import pytest
 import click.testing
 import json
-import mongoengine
 import datetime
 
 from nomad import utils, search, processing as proc, files
