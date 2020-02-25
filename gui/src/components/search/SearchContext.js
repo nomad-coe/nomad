@@ -15,8 +15,7 @@ class SearchContext extends React.Component {
     update: PropTypes.number,
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
-    children: PropTypes.any,
-    defaultDomain: PropTypes.object.isRequired
+    children: PropTypes.any
   }
 
   static emptyResponse = {
@@ -93,7 +92,7 @@ class SearchContext extends React.Component {
       }
       this.setState(
         {
-            domain: domains[domain] || this.props.defaultDomain || domains.dft,
+            domain: domains[domain] || domains.dft,
             query: newQuery
         }, () => this.handleRequestChange({domain: domain}))
     }

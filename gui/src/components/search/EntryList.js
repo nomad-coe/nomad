@@ -11,7 +11,7 @@ import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import PrivateIcon from '@material-ui/icons/AccountCircle'
-import { withApi } from '../api'
+import { domains } from '../domains'
 
 export function Published(props) {
   const {entry} = props
@@ -205,7 +205,9 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryDetails(row) {
-    const { classes, domain } = this.props
+    const { classes } = this.props
+    const domain = (row.domain && domains[row.domain]) || domains.dft
+
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
@@ -300,7 +302,6 @@ export class EntryListUnstyled extends React.Component {
       ...EntryListUnstyled.defaultColumns
     }
 
-    console.log(domain)
     const defaultSelectedColumns = this.props.selectedColumns || [
       ...domain.defaultSearchResultColumns, 'authors']
 

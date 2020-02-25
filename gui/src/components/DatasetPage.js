@@ -9,7 +9,6 @@ import SearchContext from './search/SearchContext'
 import { Typography } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
 import { withRouter } from 'react-router'
-import { withDomain } from './domains'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -129,4 +128,4 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default compose(withRouter, withDomain, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
