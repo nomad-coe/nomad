@@ -501,7 +501,8 @@ class SearchRequest:
             parent = self._search.aggs
 
         for metric in metrics_to_use:
-            field, metric_kind = metrics[metric]
+            quantity, metric_kind = metrics[metric]
+            field = Domain.get_quantity(quantity).elastic_field
             parent.metric('metric:%s' % metric, A(metric_kind, field=field))
 
     def date_histogram(self, metrics_to_use: List[str] = []):
@@ -651,7 +652,9 @@ class SearchRequest:
             search = search.sort('-%s' % order_by_quantity.qualified_elastic_field)
         search = search[(page - 1) * per_page: page * per_page]
 
-        result = self._response(search.execute(), with_hits=True)
+        es_result = search.execute()
+        result = self._response(es_result, with_hits=True)
+
         result.update(pagination=dict(total=result['total'], page=page, per_page=per_page))
         return result
 

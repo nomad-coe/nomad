@@ -29,7 +29,7 @@ export default class DFTEntryOverview extends React.Component {
         <Quantity row>
           <Quantity quantity="dft.system" label='system type' noWrap {...this.props} />
           <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...this.props} />
-          <Quantity quantity='dft.spacegroup_symbol' label="spacegroup" noWrap {...this.props}>
+          <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...this.props}>
             <Typography noWrap>
               {_.get(data, 'dft.spacegroup_symbol')} ({_.get(data, 'dft.spacegroup')})
             </Typography>

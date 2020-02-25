@@ -252,12 +252,17 @@ class SearchBar extends React.Component {
   }
 
   getChips() {
-    const {state: {query: {owner, ...values}}} = this.context
+    const {state: {query: {owner, ...values}, domain}} = this.context
+    const domainPrefix = domain.key + '.'
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`
       } else {
-        return `${key}=${values[key]}`
+        let quantityLabel = key
+        if (key.startsWith(domainPrefix)) {
+          quantityLabel = key.substring(domainPrefix.length)
+        }
+        return `${quantityLabel}=${values[key]}`
       }
     })
   }

@@ -88,7 +88,6 @@ class SearchPage extends React.Component {
     return (
       <div className={classes.root}>
         <SearchContext
-          defaultDomain={domains.dft}
           update={update}
           initialQuery={query}
           ownerTypes={['all', 'public'].filter(key => user || withoutLogin.indexOf(key) !== -1)}

@@ -2,7 +2,6 @@ import React from 'react'
 import { withApi } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
-import { domains } from './domains'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
@@ -59,7 +58,6 @@ class UserdataPage extends React.Component {
     return (
       <div>
         <SearchContext
-          defaultDomain={domains.dft}
           {...this.props}
           ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
           initialRequest={{order_by: 'upload_time', uploads: true}}

@@ -359,6 +359,9 @@ class Domain:
         external_id=DomainQuantity(
             description='External user provided id. Does not have to be unique necessarily.',
             multi=True, argparse_action='split', elastic_search_type='terms'),
+        calc_hash=DomainQuantity(
+            description='Search for the entries hash.',
+            multi=True, argparse_action='split', elastic_search_type='terms'),
         dataset=DomainQuantity(
             elastic_field='datasets.name', multi=True, elastic_search_type='match',
             description='Search for a particular dataset by name.'),
@@ -383,7 +386,7 @@ class Domain:
             elastic_mapping=Integer()))
 
     base_metrics = dict(
-        datasets=('datasets_id', 'cardinality'),
+        datasets=('dataset_id', 'cardinality'),
         uploads=('upload_id', 'cardinality'),
         uploaders=('uploader_name', 'cardinality'),
         authors=('authors', 'cardinality'),

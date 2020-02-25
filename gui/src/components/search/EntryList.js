@@ -208,28 +208,7 @@ export class EntryListUnstyled extends React.Component {
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <Quantity column>
-            <Quantity row>
-              <Quantity quantity="formula" label='formula' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="code_name" label='dft code' noWrap data={row} />
-              <Quantity quantity="code_version" label='dft code version' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="basis_set" label='basis set' noWrap data={row} />
-              <Quantity quantity="xc_functional" label='xc functional' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="system" label='system type' noWrap data={row} />
-              <Quantity quantity="crystal_system" label='crystal system' noWrap data={row} />
-              <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap data={row} >
-                <Typography noWrap>
-                  {row.spacegroup_symbol} ({row.spacegroup})
-                </Typography>
-              </Quantity>
-            </Quantity>
-          </Quantity>
+          <domain.EntryOverview data={row} />
         </div>
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>

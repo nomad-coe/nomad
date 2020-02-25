@@ -9,6 +9,7 @@ import EMSEntryCards from './ems/EMSEntryCards'
 export const domains = ({
   dft: {
     name: 'DFT',
+    label: 'Computational material science data (DFT)',
     key: 'dft',
     about: 'This include data from many computational material science codes',
     entryLabel: 'entry',
@@ -132,11 +133,18 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryCards: DFTEntryCards
+    EntryCards: DFTEntryCards,
+    /**
+     * A component to render additional domain specific cards in the
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    searchTabs: ['entries', 'datasets', 'groups', 'uploads']
   },
   ems: {
     name: 'EMS',
     key: 'ems',
+    label: 'Material science experiment data (EMS)',
     about: 'This is metadata from material science experiments',
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
@@ -198,6 +206,10 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryCards: EMSEntryCards
+    EntryCards: EMSEntryCards,
+    /**
+     * Names of the possible search tabs for this domain
+     */
+    searchTabs: ['entries', 'datasets', 'uploads']
   }
 })

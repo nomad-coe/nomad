@@ -382,26 +382,26 @@ def statistics_table(html, geometries, public_path):
     from nomad.cli.client import create_client
     client = create_client()
 
-    geometry_metric = 'unique_geometries' if not geometries else 'geometries'
+    geometry_metric = 'dft.unique_geometries' if not geometries else 'dft.geometries'
 
     # search scc with system type
     data_all = client.repo.search(
         per_page=1, metrics=['calculations'], statistics=True).response().result
 
     entries = get_statistic(data_all, 'total', 'all', 'code_runs')
-    calculations = get_statistic(data_all, 'total', 'all', 'calculations')
-    calculations_1d = get_statistic(data_all, 'system', '1D', 'calculations') \
-        + get_statistic(data_all, 'system', 'atom', 'calculations') \
-        + get_statistic(data_all, 'system', 'molecule / cluster', 'calculations')
+    calculations = get_statistic(data_all, 'total', 'all', 'dft.calculations')
+    calculations_1d = get_statistic(data_all, 'dft.system', '1D', 'dft.calculations') \
+        + get_statistic(data_all, 'dft.system', 'atom', 'dft.calculations') \
+        + get_statistic(data_all, 'dft.system', 'molecule / cluster', 'dft.calculations')
 
-    calculations_2d = get_statistic(data_all, 'system', '2D / surface', 'calculations')
-    calculations_2d += get_statistic(data_all, 'system', '2D', 'calculations')
-    calculations_2d += get_statistic(data_all, 'system', 'surface', 'calculations')
-    calculations_3d = get_statistic(data_all, 'system', 'bulk', 'calculations')
+    calculations_2d = get_statistic(data_all, 'dft.system', '2D / surface', 'dft.calculations')
+    calculations_2d += get_statistic(data_all, 'dft.system', '2D', 'dft.calculations')
+    calculations_2d += get_statistic(data_all, 'dft.system', 'surface', 'dft.calculations')
+    calculations_3d = get_statistic(data_all, 'dft.system', 'bulk', 'dft.calculations')
 
-    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'quantities']).response().result
+    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'dft.quantities']).response().result
     geometries = get_statistic(metrics_all, 'total', 'all', geometry_metric)
-    quantities = get_statistic(metrics_all, 'total', 'all', 'quantities')
+    quantities = get_statistic(metrics_all, 'total', 'all', 'dft.quantities')
 
     # search calcs quantities=section_k_band
     band_structures = get_statistic(

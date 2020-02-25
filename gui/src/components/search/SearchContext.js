@@ -41,11 +41,12 @@ class SearchContext extends React.Component {
     }
   }
 
-  defaultMetric = this.props.defaultDomain.defaultSearchMetric
+  defaultMetric = domains.dft.defaultSearchMetric
 
   state = {
     response: SearchContext.emptyResponse,
     request: {
+      domain: domains.dft,
       statistics: true,
       order_by: 'upload_time',
       order: -1,
@@ -54,7 +55,7 @@ class SearchContext extends React.Component {
     },
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
-    domain: this.props.defaultDomain,
+    domain: domains.dft,
     query: {}
   }
 
@@ -82,9 +83,19 @@ class SearchContext extends React.Component {
 
   handleDomainChange(domain) {
     if (domain !== this.state.domain.key) {
+      const oldQuery = this.state.query
+      const newQuery = {}
+      let key
+      for (key in oldQuery) {
+        if (!key.includes('.')) {
+          newQuery[key] = oldQuery[key]
+        }
+      }
       this.setState(
-        {domain: domains[domain] || this.props.defaultDomain || domains.dft},
-        () => this.handleQueryChange({domain: domain}))
+        {
+            domain: domains[domain] || this.props.defaultDomain || domains.dft,
+            query: newQuery
+        }, () => this.handleRequestChange({domain: domain}))
     }
   }
 

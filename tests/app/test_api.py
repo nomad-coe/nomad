@@ -786,6 +786,7 @@ class TestRepo():
         assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
         assert 'after' in datasets
         assert 'datasets' in data['statistics']['total']['all']
+        assert data['statistics']['total']['all']['datasets'] > 0
 
     def test_search_uploads(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
         rv = api.get('/repo/?owner=all&uploads=true', headers=other_test_user_auth)

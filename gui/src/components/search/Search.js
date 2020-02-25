@@ -179,7 +179,7 @@ class Search extends React.Component {
               textColor="primary"
               onChange={(event, value) => this.handleTabChange(value)}
             >
-              {tabs.map(tab => <Tab
+              {tabs.filter(tab => domain.searchTabs.includes(tab)).map(tab => <Tab
                 key={tab}
                 label={Search.tabs[tab].label}
                 value={tab}
@@ -432,14 +432,14 @@ class DomainSelect extends React.Component {
       >
         <List>
           {Object.keys(domains).map(key => {
-            const {name, searchTooltip} = domains[key]
+            const {label, searchTooltip} = domains[key]
             return (
               <ListItem
                 key={key} role={undefined} dense button
                 onClick={() => this.handleToggle(key)}
               >
                 <Tooltip title={searchTooltip || ''}>
-                  <ListItemText primary={name} />
+                  <ListItemText primary={label} />
                 </Tooltip>
               </ListItem>
             )
