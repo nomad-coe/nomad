@@ -154,6 +154,10 @@ domain: DFT
 
 springerDbPath: /nomad/fairdi/db/data/springer.db
 
+# Will reprocess calculations with their old matched parser, even if they do not
+# match this parser anymore
+reprocess_unmatched: true
+
 datacite:
   enabled: false
   prefix: "10.17172"

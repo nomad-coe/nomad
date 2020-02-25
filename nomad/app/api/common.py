@@ -65,6 +65,10 @@ search_model = api.model('Search', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
+    'python': fields.String(description=(
+        'A string of python code snippet which can be executed to reproduce the api result.')),
+    'curl': fields.String(description=(
+        'A string of curl command which can be executed to reproduce the api result.'))
 })
 
 

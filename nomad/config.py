@@ -208,7 +208,7 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.7'
+version = '0.7.8'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
@@ -219,6 +219,7 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
+reprocess_unmatched = True
 
 
 springer_db_relative_path = 'normalizing/data/SM_all08.db'

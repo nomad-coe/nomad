@@ -25,6 +25,7 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
+from tests import utils as test_utils
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
 
@@ -205,8 +206,11 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-@pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
+@pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+    if with_failure == 'not-matched':
+        monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
+
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()
         calc.tasks_status = FAILURE
@@ -217,15 +221,12 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     assert published.published
     assert published.upload_files.to_staging_upload_files() is None
 
-    with_failure = with_failure == 'after'
-
     old_upload_time = published.last_update
     first_calc = published.all_calcs(0, 1).first()
     old_calc_time = first_calc.metadata['last_processing']
 
-    if not with_failure:
-        with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-            old_log_lines = f.readlines()
+    with published.upload_files.archive_log_file(first_calc.calc_id) as f:
+        old_log_lines = f.readlines()
     old_archive_files = list(
         archive_file
         for archive_file in os.listdir(published.upload_files.os_path)
@@ -234,8 +235,11 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
         with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
             f.write('')
 
-    if with_failure:
+    if with_failure == 'after':
         raw_files = 'tests/data/proc/examples_template_unparsable.zip'
+    elif with_failure == 'not-matched':
+        monkeypatch.setattr('nomad.parsing.artificial.TemplateParser.is_mainfile', lambda *args, **kwargs: False)
+        raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
     else:
         raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
     shutil.copyfile(
@@ -257,20 +261,28 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     first_calc.reload()
 
     # assert new process time
-    assert published.last_update > old_upload_time
-    assert first_calc.metadata['last_processing'] > old_calc_time
+    if with_failure != 'not-matched':
+        assert published.last_update > old_upload_time
+        assert first_calc.metadata['last_processing'] > old_calc_time
 
     # assert new process version
-    assert first_calc.metadata['nomad_version'] == 're_process_test_version'
-    assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
+    if with_failure != 'not-matched':
+        assert first_calc.metadata['nomad_version'] == 're_process_test_version'
+        assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
 
     # assert changed archive files
-    if not with_failure:
-        for archive_file in old_archive_files:
-            assert os.path.getsize(published.upload_files.join_file(archive_file).os_path) > 0
+    if with_failure in ['after', 'not-matched']:
+        with test_utils.assert_exception():
+            published.upload_files.archive_file(first_calc.calc_id)
+    else:
+        with published.upload_files.archive_file(first_calc.calc_id) as f:
+            assert len(f.readlines()) > 0
 
     # assert changed archive log files
-    if not with_failure:
+    if with_failure in ['not-matched']:
+        with test_utils.assert_exception():
+            published.upload_files.archive_log_file(first_calc.calc_id)
+    else:
         with published.upload_files.archive_log_file(first_calc.calc_id) as f:
             new_log_lines = f.readlines()
         assert old_log_lines != new_log_lines
@@ -278,11 +290,11 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     # assert maintained user metadata (mongo+es)
     assert_upload_files(upload, PublicUploadFiles, published=True)
     assert_search_upload(upload, published=True)
-    if not with_failure:
+    if with_failure not in ['after', 'not-matched']:
         assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
-    if not with_failure:
+    if with_failure not in ['after', 'not-matched']:
         assert first_calc.metadata['atoms'][0] == 'H'
     else:
         assert first_calc.metadata['atoms'][0] == 'Si'
