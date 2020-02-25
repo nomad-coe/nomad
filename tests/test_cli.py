@@ -134,6 +134,15 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
+    def test_create_msgpack(self, published):
+        upload_id = published.upload_id
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'msgpacked', upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert 'writing msgpack archive' in result.stdout
+
     def test_index(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()

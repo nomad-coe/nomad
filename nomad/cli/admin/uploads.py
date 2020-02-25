@@ -19,9 +19,11 @@ from mongoengine import Q
 from pymongo import UpdateOne
 import threading
 import elasticsearch_dsl as es
+import json
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
 from .admin import admin
+from nomad.archive import write_archive
 
 
 @admin.group(help='Upload related commands')
@@ -229,6 +231,30 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 
     for upload in uploads:
         delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
+
+
+@uploads.command(help='Create msgpack file for upload')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def msgpacked(ctx, uploads):
+    _, uploads = query_uploads(ctx, uploads)
+
+    for upload in uploads:
+        upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
+
+        if isinstance(upload_files, files.PublicUploadFiles):
+            def iterator(zf, names):
+                for name in names:
+                    calc_id = name.strip('.json')
+                    with zf.open(name) as f:
+                        yield (calc_id, json.load(f))
+
+            for access in ['public', 'restricted']:
+                zf = upload_files.open_zip_file('archive', access, upload_files._archive_ext)
+                archive_name = zf.filename.replace('.zip', '.msg')
+                names = [name for name in zf.namelist() if name.endswith('json')]
+                print('writing msgpack archive %s' % archive_name)
+                write_archive(archive_name, len(names), iterator(zf, names))
 
 
 def __run_processing(
