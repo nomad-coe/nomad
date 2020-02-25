@@ -154,7 +154,7 @@ class RawFiles extends React.Component {
     })
 
     if (fileContents.contents.length < (page + 1) * 16 * 1024) {
-      api.getRawFile(uploadId, shownFile, {offset: page * 16 * 1024, length: 16 * 1024})
+      api.getRawFile(uploadId, calcId, shownFile.split('/').reverse()[0], {offset: page * 16 * 1024, length: 16 * 1024})
         .then(contents => {
           const {fileContents} = this.state
           // The back-button navigation might cause a scroll event, might cause to loadmore,
