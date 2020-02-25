@@ -107,12 +107,15 @@ class FAQ extends React.Component {
           publishing anything.
 
           Second, you can publish your uploads with an *embargo* period. This can last up to
-          3 years. You can lift the embargo at anytime. This allows you to privately create
-          datasets and DOIs, share data with selected people, before your work is published, e.g.
-          in a paper.
-
-          Non *published* and *embargoed* data is only visible to you (the uploader) and users
-          that you explicitly share your entries with.
+          3 years. You can lift the embargo at anytime. Embargoed data is
+          visible to and findable by others. This makes only some few metadata (e.g.
+          chemical formula, system type, spacegroup, etc.) public, but the raw-file
+          and archive contents remain hidden (except to you, and users you explicitly
+          share the data with).
+          You can already create datasets and assign DOIs for data with embargo, e.g.
+          to put it into your unpublished paper.
+          The embargo will last up to 36 month. Afterwards, your data will be made publicly
+          available. You can also lift the embargo on entries at any time.
 
           ### How do I cite uploaded data in a paper?
 

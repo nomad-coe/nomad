@@ -65,8 +65,9 @@ If you press publish, a dialog will appear that allows you to set an
 *embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
 data with selected users, create a DOI for your data, and later publish the data.
 The *embargo* might last up to 36 month before data becomes public automatically.
-During an *embargo* the data (and datasets created from this data) are only visible to you
-and users you share the data with (i.e. users you added under *share with* when editing entries).
+During an *embargo* the data (and datasets created from this data) are already visible and
+findable, but only you and users you share the data with (i.e. users you added under
+*share with* when editing entries) can view and download the raw-data and archive.
 
 #### Processing errors
 

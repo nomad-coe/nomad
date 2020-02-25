@@ -308,12 +308,13 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async getRawFile(uploadId, path, kwargs) {
+  async getRawFile(uploadId, calcId, path, kwargs) {
     this.onStartLoading()
     const length = (kwargs && kwargs.length) || 4096
     return this.swagger()
-      .then(client => client.apis.raw.get({
+      .then(client => client.apis.raw.get_file_from_calc({
         upload_id: uploadId,
+        calc_id: calcId,
         path: path,
         decompress: true,
         ...(kwargs || {}),
@@ -697,6 +698,8 @@ export const ApiProvider = compose(withKeycloak, withErrors)(ApiProviderComponen
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
+const __reauthorize_trigger_changes = ['api', 'calcId', 'uploadId', 'calc_id', 'upload_id']
+
 class WithApiComponent extends React.Component {
   static propTypes = {
     raiseError: PropTypes.func.isRequired,
@@ -718,7 +721,7 @@ class WithApiComponent extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api) {
+    if (__reauthorize_trigger_changes.find(key => this.props[key] !== prevProps[key])) {
       this.setState({notAuthorized: false})
     }
   }
@@ -746,12 +749,12 @@ class WithApiComponent extends React.Component {
     if (notAuthorized) {
       if (keycloak.authenticated) {
         return (
-          <div>
+          <div style={{marginTop: 24}}>
             <Typography variant="h6">Not Authorized</Typography>
             <Typography>
               You are not authorized to access this information. If someone send
-              you this link, ask him to make his data publicly available or share
-              it with you.
+              you a link to this data, ask the authors to make the data publicly available
+              or share it with you.
             </Typography>
           </div>
         )

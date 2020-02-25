@@ -453,6 +453,7 @@ class DomainSelect extends React.Component {
 class OwnerSelect extends React.Component {
   static ownerLabel = {
     all: 'All entries',
+    visible: 'Include your private entries',
     public: 'Only public entries',
     user: 'Only your entries',
     staging: 'Staging area only'
@@ -460,7 +461,8 @@ class OwnerSelect extends React.Component {
 
   static ownerTooltips = {
     all: 'This will show all entries in the database.',
-    public: 'Do not show entries that are only visible to you.',
+    visible: 'Do also show entries that are only visible to you.',
+    public: 'Do not entries with embargo.',
     user: 'Do only show entries visible to you.',
     staging: 'Will only show entries that you uploaded, but not yet published.'
   }

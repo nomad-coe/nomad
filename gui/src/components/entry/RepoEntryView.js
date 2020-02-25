@@ -56,9 +56,9 @@ class RepoEntryView extends React.Component {
   update() {
     const {uploadId, calcId} = this.props
     this.props.api.repo(uploadId, calcId).then(data => {
-      this.setState({calcData: data})
+      this.setState({calcData: data, doesNotExist: false})
     }).catch(error => {
-      this.setState({calcData: null})
+      this.setState({calcData: null, doesNotExist: false})
       if (error.name === 'DoesNotExist') {
         this.setState({doesNotExist: true})
       } else {

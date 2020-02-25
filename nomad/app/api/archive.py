@@ -306,14 +306,14 @@ class ArchiveQueryResource(Resource):
                     if upload_files is not None:
                         upload_files.close_zipfile_cache()
 
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
+                    upload_files = UploadFiles.get(upload_id)
 
                     if upload_files is None:
                         raise KeyError
 
                     upload_files.open_zipfile_cache()
 
+                upload_files._is_authorized = create_authorization_predicate(upload_id, entry['calc_id'])
                 fo = upload_files.archive_file(calc_id, 'rb')
                 data.append(json.loads(fo.read()))
 
