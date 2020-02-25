@@ -14,12 +14,15 @@
 
 import functools
 import fractions
+import itertools
 from math import gcd as gcd
 from functools import reduce
 from typing import List, Dict, Tuple
 
 import numpy as np
 from ase import Atoms
+from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
+
 from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
 from nomad.constants import NUMBER_TO_MASS_MAP_KG
 
@@ -354,3 +357,65 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
             structure_type_info = type_description
             break
     return structure_type_info
+
+
+def get_brillouin_zone(reciprocal_lattice: np.array) -> dict:
+    """Calculates the Brillouin Zone information from the given reciprocal
+    lattice.
+
+    This function uses the crystallographic definition, so there is no factor
+    of 2*Pi.
+
+    Args:
+        primitive_lattice: The primitive cell as a matrix where rows are the
+            cell basis vectors.
+
+    Returns:
+        A dictionary containing:
+        "vertices": The vertices of the first Brillouin zone
+        "faces": The indices of the vertices that make up the faces on the
+            first Brillouin zone. The order of these indices matter, because
+            only when combined sequentially they form the correct face.
+    """
+    # Create the near lattice points that surround the origin
+    b1 = reciprocal_lattice[0, :]
+    b2 = reciprocal_lattice[1, :]
+    b3 = reciprocal_lattice[2, :]
+
+    list_k_points = []
+    for i, j, k in itertools.product([-1, 0, 1], [-1, 0, 1], [-1, 0, 1]):
+        list_k_points.append(i * b1 + j * b2 + k * b3)
+
+    # Create the first Brillouin zone by calculating a Voronoi cell starting
+    # from the reciprocal cell origin.
+    voronoi = Voronoi(list_k_points)
+    origin_index = 13
+
+    # Get the vertices. The regions attribute will contain a list of
+    # different regions that were found during the Voronoi creation. We want
+    # the Voronoi region for the point at the origin.
+    point_region = voronoi.point_region[13]
+    vertice_indices = voronoi.regions[point_region]
+    vertices = voronoi.vertices[vertice_indices].tolist()
+
+    # Create a mapping between the original index and an index in the new list
+    index_map = {
+        old_id: new_id for (new_id, old_id) in enumerate(vertice_indices)
+    }
+
+    # The ridges are the faces of a 3D Voronoi cell. Here we search for ridges
+    # that are placed between the origin and some other point. These form the
+    # BZ faces.
+    faces = []
+    for key in voronoi.ridge_dict:
+        if key[0] == origin_index or key[1] == origin_index:
+            ridge_indices = voronoi.ridge_dict[key]
+            new_ridge_indices = [index_map[i] for i in ridge_indices]
+            faces.append(new_ridge_indices)
+    faces = faces
+
+    brillouin_zone = {
+        "vertices": vertices,
+        "faces": faces,
+    }
+    return brillouin_zone

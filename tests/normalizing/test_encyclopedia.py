@@ -452,15 +452,21 @@ def test_method_gw_metainfo(gw):
 
 
 def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):
+
+    def test_generic(bs, n_channels):
+        """Generic tests for band structure data."""
+        for segment in bs.segments:
+            assert segment.energies.shape[0] == n_channels
+            assert len(segment.energies.shape) == 3
+            assert segment.energies.shape[2] == segment.k_points.shape[0]
+        assert bs.brillouin_zone is not None
+        assert bs.reciprocal_cell.shape == (3, 3)
+
     # Unpolarized, no gaps
     enc = bands_unpolarized_no_gap.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
     bs = properties.electronic_band_structure
-    energies = bs.energies
-    path = bs.path
-    assert len(energies.shape) == 3
-    assert energies.shape[0] == 1
-    assert energies.shape[2] == path.shape[0]
+    test_generic(bs, n_channels=1)
     assert bs.band_gap is None
     assert bs.band_gap_spin_up is None
     assert bs.band_gap_spin_down is None
@@ -469,11 +475,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     enc = bands_polarized_no_gap.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
     bs = properties.electronic_band_structure
-    energies = bs.energies
-    path = bs.path
-    assert len(energies.shape) == 3
-    assert energies.shape[2] == path.shape[0]
-    assert energies.shape[0] == 2
+    test_generic(bs, n_channels=2)
     assert bs.band_gap is None
     assert bs.band_gap_spin_up is None
     assert bs.band_gap_spin_down is None
@@ -482,14 +484,10 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     enc = bands_unpolarized_gap_indirect.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
     bs = properties.electronic_band_structure
+    test_generic(bs, n_channels=1)
     gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
     assert gap_ev == pytest.approx(0.62, 0.01)
     assert bs.band_gap.type == "indirect"
-    energies = bs.energies
-    path = bs.path
-    assert len(energies.shape) == 3
-    assert energies.shape[0] == 1
-    assert energies.shape[2] == path.shape[0]
     assert bs.band_gap_spin_up is None
     assert bs.band_gap_spin_down is None
 
@@ -497,6 +495,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     enc = bands_polarized_gap_indirect.get_mi2_section(Encyclopedia.m_def)
     properties = enc.properties
     bs = properties.electronic_band_structure
+    test_generic(bs, n_channels=2)
     gap = bs.band_gap
     gap_up = bs.band_gap_spin_up
     gap_down = bs.band_gap_spin_down
@@ -509,8 +508,3 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert gap_up_ev == gap_ev
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
-    energies = bs.energies
-    path = bs.path
-    assert len(energies.shape) == 3
-    assert energies.shape[0] == 2
-    assert energies.shape[2] == path.shape[0]

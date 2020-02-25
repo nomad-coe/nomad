@@ -28,7 +28,7 @@ import matid.geometry
 
 from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables, ElectronicBandStructure, BandGap, SpecialPoint
+from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables, ElectronicBandStructure, BandGap, BandSegment
 from nomad.normalizing import structure
 from nomad.utils import hash
 from nomad import config
@@ -1590,6 +1590,20 @@ class PropertiesNormalizer():
 
         return k_point_distance
 
+    def get_brillouin_zone(self, band_structure: ElectronicBandStructure) -> None:
+        """Returns a dictionary containing the information needed to display
+        the Brillouin zone for this material. This functionality could be put
+        into the GUI directly, with the Brillouin zone construction performed
+        from the reciprocal cell.
+
+        The Brillouin Zone is a Wigner-Seitz cell, and is thus uniquely
+        defined. It's shape does not depend on the used primitive cell.
+        """
+        recip_cell = band_structure.reciprocal_cell.magnitude
+        brillouin_zone = structure.get_brillouin_zone(recip_cell)
+        bz_json = json.dumps(brillouin_zone)
+        band_structure.brillouin_zone = bz_json
+
     def band_structure(self) -> None:
         """Band structure data following arbitrary path.
 
@@ -1622,56 +1636,39 @@ class PropertiesNormalizer():
             # Loop over bands
             for band_data in bands:
                 band_structure = ElectronicBandStructure()
-                path = []
+                kpoints = []
                 energies = []
-                labels = []
-                label_indices = []
                 try:
                     segments = band_data['section_k_band_segment' + norm]
                 except KeyError:
                     return
 
                 # Loop over segments
-                label_index = 0
-                for i_seg, segment_src in enumerate(segments):
+                for segment_src in segments:
                     try:
-                        band_k_points = segment_src["band_k_points" + norm]
-                        band_energies = segment_src["band_energies" + norm]
-                        band_labels = segment_src['band_segm_labels' + norm]
+                        seg_k_points = segment_src["band_k_points" + norm]
+                        seg_energies = segment_src["band_energies" + norm]
+                        seg_labels = segment_src['band_segm_labels' + norm]
                     except KeyError:
                         return
-                    if "?" in band_labels:
+                    if "?" in seg_labels:
                         return
 
-                    # We only store the full path and leave out duplicate
-                    # points
-                    label_index += len(band_k_points) - 1
-                    if i_seg == 0:
-                        path.append(band_k_points[0:-1])
-                        energies.append(band_energies[:, 0:-1, :])
-                        labels.append(band_labels[0])
-                        label_indices.append(0)
-                    else:
-                        path.append(band_k_points[1:])
-                        energies.append(band_energies[:, 1:, :])
-                        labels.append(band_labels[1])
-                        label_indices.append(label_index)
-
-                # The path and energies are merged into single arrays
-                path = np.concatenate(path, axis=0)
-                energies = np.swapaxes(np.concatenate(energies, axis=1), 1, 2)
-
-                band_structure.path = path
-                band_structure.energies = energies
-
-                # The special points are added
-                for label, index in zip(labels, label_indices):
-                    special_point = band_structure.m_create(SpecialPoint)
-                    special_point.label = label
-                    special_point.index = index
+                    seg_energies = np.swapaxes(seg_energies, 1, 2)
+                    segment = BandSegment()
+                    segment.k_points = seg_k_points
+                    segment.energies = seg_energies
+                    segment.labels = seg_labels
+                    properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
+                    kpoints.append(seg_k_points)
+                    energies.append(seg_energies)
+                    band_structure.m_add_sub_section(ElectronicBandStructure.segments, segment)
 
                 # Continue to calculate band gaps and other properties.
+                kpoints = np.concatenate(kpoints, axis=0)
+                energies = np.concatenate(energies, axis=2)
                 self.get_reciprocal_cell(band_structure, prim_atoms, orig_atoms)
+                self.get_brillouin_zone(band_structure)
 
                 # If we are using a normalized band structure (or the Fermi level
                 # is defined somehow else), we can add band gap information
@@ -1680,15 +1677,9 @@ class PropertiesNormalizer():
                     fermi_level = 0.0
                 if fermi_level is not None:
                     band_structure.fermi_level = fermi_level
-                    self.get_band_gaps(band_structure, energies, path)
+                    self.get_band_gaps(band_structure, energies, kpoints)
 
                 properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
-
-    def brillouin_zone(self) -> None:
-        pass
-
-    def brillouin_zone_viewer(self) -> None:
-        pass
 
     def dos(self) -> None:
         pass

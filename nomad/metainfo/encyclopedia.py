@@ -448,24 +448,38 @@ class BandGap(MSection):
     )
 
 
-class SpecialPoint(MSection):
+class BandSegment(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        A special point in the reciprocal space.
+        Represents a continuous path segment starting from a specific k point
+        and ending in another.
         """
     )
-    index = Quantity(
-        type=int,
+    energies = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..2", "1..*", "1..*"],
+        unit=units.m**(-1),
         description="""
-        Index of the special point in the path.
+        The energies of the bands as a 3D array with size [n_spin_channels,
+        n_bands, n_k_points]. By default the spin down channel is given first
+        and the spin up channel is second.
         """
     )
-    label = Quantity(
-        type=str,
+    k_points = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..*", 3],
+        unit=units.m**(-1),
         description="""
-        Unicode string for the point label.
+        Path of the band structure in reciprocal space.
+        """
+    )
+    labels = Quantity(
+        type=np.dtype('str'),
+        shape=[1],
+        description="""
+        The start end end labels for the k points in this segment.
         """
     )
 
@@ -493,29 +507,26 @@ class ElectronicBandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         """
     )
+    brillouin_zone = Quantity(
+        type=str,
+        description="""
+        The Brillouin zone that corresponds to the reciprocal cell used in the
+        band calculation. The Brillouin Zone is defined as a list of vertices
+        and facets that are encoded with JSON. The vertices are 3D points in
+        the reciprocal space, and facets are determined by a chain of vertice
+        indices, with a right-hand ordering determining the surface normal
+        direction.
+        {
+          "vertices": [[3, 2, 1], ...]
+          "faces":  [[0, 1, 2, 3], ...]
+        }
+        """
+    )
     band_gap = SubSection(sub_section=BandGap.m_def, repeats=False)
     band_gap_spin_up = SubSection(sub_section=BandGap.m_def, repeats=False)
     band_gap_spin_down = SubSection(sub_section=BandGap.m_def, repeats=False)
+    segments = SubSection(sub_section=BandSegment.m_def, repeats=True)
 
-    energies = Quantity(
-        type=np.dtype('f8'),
-        shape=["1..2", "1..*", "1..*"],
-        unit=units.m**(-1),
-        description="""
-        The energies of the bands as a 3D array with size [n_spin_channels,
-        n_bands, n_k_points]. By default the spin down channel is given first
-        and the spin up channel is second.
-        """
-    )
-    path = Quantity(
-        type=np.dtype('f8'),
-        shape=["1..*", 3],
-        unit=units.m**(-1),
-        description="""
-        Path of the band structure in reciprocal space.
-        """
-    )
-    special_points = SubSection(sub_section=SpecialPoint.m_def, repeats=True)
     is_standard_path = Quantity(
         type=bool,
         description="""
