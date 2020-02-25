@@ -386,7 +386,7 @@ def statistics_table(html, geometries, public_path):
 
     # search scc with system type
     data_all = client.repo.search(
-        per_page=1, metrics=['calculations'], statistics=True).response().result
+        per_page=1, metrics=['dft.calculations'], statistics=True).response().result
 
     entries = get_statistic(data_all, 'total', 'all', 'code_runs')
     calculations = get_statistic(data_all, 'total', 'all', 'dft.calculations')
