@@ -37,6 +37,7 @@ import os
 import os.path
 import yaml
 import warnings
+import sys
 
 from nomad import gitinfo
 
@@ -112,14 +113,13 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    server_external_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
-    client_id='nomad_api_dev',
-    client_secret='**********',
-    public_client_id='nomad_public')
+    client_id='nomad_public',
+    client_secret=None,
+    oasis=False)
 
 mongo = NomadConfig(
     host='localhost',
@@ -308,8 +308,8 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
         config_file: Override the configfile, default is file stored in env variable
             NOMAD_CONFIG or ``nomad.yaml``.
     """
-    # load yaml and override defaults
-    if os.path.exists(config_file):
+    # load yaml and override defaults (only when not in test)
+    if os.path.exists(config_file) and 'pytest' not in sys.modules:
         with open(config_file, 'r') as stream:
             try:
                 config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))

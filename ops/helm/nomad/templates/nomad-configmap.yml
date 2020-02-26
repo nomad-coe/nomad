@@ -55,7 +55,6 @@ data:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
     keycloak:
-      server_external_url: "{{ .Values.keycloak.serverExternalUrl }}"
       server_url: "{{ .Values.keycloak.serverUrl }}"
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
