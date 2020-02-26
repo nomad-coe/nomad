@@ -59,8 +59,6 @@ data:
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
       client_id: "{{ .Values.keycloak.clientId }}"
-      client_secret: "*"
-      password: "*"
     springer_db_path: "{{ .Values.springerDbPath }}"
     datacite:
       enabled: {{ .Values.datacite.enabled }}
