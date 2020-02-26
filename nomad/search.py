@@ -62,11 +62,12 @@ class Dataset(InnerDoc):
     @classmethod
     def from_dataset_id(cls, dataset_id):
         dataset = datamodel.Dataset.m_def.m_x('me').get(dataset_id=dataset_id)
-        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name)
+        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name, created=dataset.created)
 
     id = Keyword()
     doi = Keyword()
     name = Keyword()
+    created = Date()
 
 
 class WithDomain(IndexMeta):
