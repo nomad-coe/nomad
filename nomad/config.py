@@ -206,7 +206,7 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.9'
+version = '0.7.10'
 commit = gitinfo.commit
 release = 'devel'
 domain = 'DFT'
