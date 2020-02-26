@@ -6,7 +6,6 @@ from msgpack.fallback import Packer, StringIO
 import struct
 import json
 import math
-import os.path
 import re
 
 from nomad import utils
@@ -481,120 +480,6 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     return ArchiveReader(file_or_path, **kwargs)
 
 
-class ArchiveFileDB:
-    def __init__(self, fileio: Union[str, BytesIO], mode: str = 'r', entry_toc_depth: int = 2, **kwargs):
-        self._fileobj = fileio
-        self._mode = mode
-        self._entry_toc_depth = entry_toc_depth
-        self._data: Dict[str, Any] = {}
-        self._key_length = utils.default_hash_len
-        self._db = None
-        self._ids: List[str] = []
-        self._infokey = self._adjust_key('INFO', 'X')
-
-    def write(self, abspath: str, relpath: str):
-        """
-        Mimic the zipfile function to write files to database.
-        Arguments:
-            abspath: The absolute path to the file to be read
-            relpath: For compatibility with zipfile
-        """
-        self.add_data(abspath)
-
-    def close(self, save: bool = True):
-        """
-        Mimic the zipfile function to close the msgpack file.
-        Will trigger the creation of the database when in write mode.
-        Arguments:
-            save: If True will add the current data in memory to database
-        """
-        if 'w' in self._mode:
-            self.create_db()
-        if isinstance(self._fileobj, BytesIO) and save:
-            self._fileobj.close()
-            self._fileobj = None
-
-    def create_db(self):
-        with ArchiveWriter(self._fileobj, len(self._data) + 1, self._entry_toc_depth) as db:
-            for key, val in self._data.items():
-                key = self._adjust_key(key)
-                self._ids.append(key)
-                db.add(key, val)
-            db.add(self._infokey, dict(ids=self._ids, entry_toc_depth=self._entry_toc_depth))
-
-    def _adjust_key(self, key: str, fill_with: str = ' '):
-        key = key.rjust(self._key_length, fill_with)
-        assert len(key) == self._key_length
-        return key
-
-    def add_data(self, data: Union[str, Dict[str, Any], List[Union[str, Dict]]]):
-        """
-        Add data to the msgpack database.
-        Arguments:
-            data: Can be a filename or dictionary or list of both
-        """
-        if isinstance(data, str):
-            key = os.path.basename(data)
-            if data.endswith('json'):
-                uid = key.split('.')[0]
-                val = json.load(open(data))
-                if isinstance(val, dict):
-                    self._data[uid] = val
-
-            else:
-                try:
-                    uid = key.split('.')[0]
-                    dtype = key.split('.')[-1]
-                    val = open(data).read()
-                    if dtype not in self._data:
-                        self._data[dtype] = {}
-                    if val:
-                        self._data[dtype].update({uid: val})
-
-                except Exception:
-                    pass
-
-        elif isinstance(data, dict):
-            for key, val in data.items():
-                if val:
-                    self._data[key] = val
-
-        elif isinstance(data, list):
-            for i in range(len(data)):
-                self.add_data(data[i])
-
-        else:
-            raise ValueError
-
-    @property
-    def ids(self):
-        if not self._ids:
-            with ArchiveReader(self._fileobj) as db:
-                self._ids = db[self._infokey]['ids']
-        return self._ids
-
-    @staticmethod
-    def _get_index(key: str) -> Union[Tuple[int, int], int]:
-        key = key.strip()
-        bracket = key.find('[')
-        if bracket <= 0:
-            return None
-
-        assert key[-1] == ']'
-        str_index = key[bracket + 1: -1]
-        if ':' in str_index:
-            lo_str, hi_str = str_index.split(':')
-            lo = int(lo_str) if lo_str else 0
-            hi = int(hi_str) if hi_str else 10000000
-            return lo, hi
-
-        else:
-            # if db structure should be maintained, return lo, lo + 1
-            # if conform with python indexing, return lo
-            lo = int(str_index)
-            return lo
-
-
 def query_archive(f, query_dict: dict):
 
     def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
@@ -631,12 +516,16 @@ def query_archive(f, query_dict: dict):
             if main_section:
                 archive_key = adjust_uuid_size(key)
 
-            if index is None:
-                res[key] = _load_data(val, archive_item[archive_key])
-            elif isinstance(index, int):
-                res[key] = _load_data(val, archive_item[archive_key])[index]
-            else:
-                res[key] = _load_data(val, archive_item[archive_key])[index[0]: index[1]]
+            try:
+                if index is None:
+                    res[key] = _load_data(val, archive_item[archive_key])
+                elif isinstance(index, int):
+                    res[key] = _load_data(val, archive_item[archive_key])[index]
+                else:
+                    res[key] = _load_data(val, archive_item[archive_key])[index[0]: index[1]]
+
+            except Exception:
+                continue
 
         return res
 

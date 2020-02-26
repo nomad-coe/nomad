@@ -25,169 +25,110 @@ The html parser was taken from a collection of scripts from FHI without further 
 
 import requests
 import re
-import os
 from bs4 import BeautifulSoup
+from typing import Dict, List, Any
+from time import sleep
+import os
 
-from nomad.archive import ArchiveFileDB
+from nomad.archive import query_archive, write_archive, ArchiveReader
 
 
 DB_NAME = '.springer.msg'
 
-spacesRe = re.compile(r"\s+")
-
-symbRe = re.compile(r"[A-Z][a-z]{0,3}")
-
-numRe = re.compile(r"[0-9.]+")
-
-bracketRe = re.compile(r"\[")
-
-closingBraketRe = re.compile(r"\]")
-
-columnNames = {
-    "Normalized_formula": "normalized_formula",
-    "Alphabetic Formula:": "alphabetic_formula",
-    "Classification by Properties:": "classification",
-    "Compound Class(es):": "compound_classes",
-    "Dataset ID": "id",
-    "Space Group:": "space_group_number",
+required_items = {
+    'Alphabetic Formula:': 'alphabetic_formula',
+    'Classification by Properties:': 'classification',
+    'Compound Class(es):': 'compound_classes',
+    'Dataset ID': 'id',
+    'Space Group:': 'space_group_number',
 }
 
-
-def parseSymbol(formulaStr):
-    m = symbRe.match(formulaStr)
-    if m:
-        return (m.group(), formulaStr[len(m.group()):])
-    else:
-        return (None, formulaStr)
+spaces_re = re.compile(r'\s+')
+search_re = re.compile(" href=\"(/isp/[^\"]+)")
+formula_re = re.compile(r'([A-Z][a-z]?)([0-9.]*)|\[(.*?)\]([0-9]+)')
 
 
-def parseAmount(formulaStr):
-    m = numRe.match(formulaStr)
-    if m:
-        return (float(m.group()), formulaStr[len(m.group()):])
-    else:
-        return (1.0, formulaStr)
-
-
-def parseSimpleEntry(formulaStr):
-    sym, rest = parseSymbol(formulaStr)
-    if sym is None:
-        return (None, formulaStr)
-    else:
-        am, rest = parseAmount(rest)
-        res = {}
-        res[sym] = am
-        return (res, rest)
-
-
-def parseComplexEntry(formulaStr, flatten=True):
-    res = {}
-    m = bracketRe.match(formulaStr)
-    if m is None:
-        return (None, formulaStr)
-    else:
-        rest = formulaStr[len(m.group()):]
-        while True:
-            simE, rest = parseEntry(rest)
-            if simE is None: break
-            if '#' in simE:
-                if 'fragments' in res:
-                    res['fragments'].append(simE)
-                else:
-                    res['fragments'] = [simE]
-            else:
-                for sym, am in simE.items():
-                    if sym in res:
-                        res[sym] += am
-                    else:
-                        res[sym] = am
-        m2 = closingBraketRe.match(rest)
-        if m2 is None:
-            return (None, formulaStr)
-        rest = rest[len(m2.group()):]
-        am, rest = parseAmount(rest)
-        for k, v in res.items():
-            res[k] = v * am
+def _update_dict(dict0: Dict[str, float], dict1: Dict[str, float]):
+    for key, val in dict1.items():
+        if key in dict0:
+            dict0[key] += val
         else:
-            res['#'] = am
-        return (res, rest)
+            dict0[key] = val
 
 
-def parseEntry(formulaStr):
-    e, rest = parseSimpleEntry(formulaStr)
-    if e is not None:
-        return (e, rest)
-    return parseComplexEntry(formulaStr)
+def _components(formula_str: str, multiplier: float = 1.0) -> Dict[str, float]:
+    # match atoms and molecules (in brackets)
+    components = formula_re.findall(formula_str)
+
+    symbol_amount: Dict[str, float] = {}
+    for component in components:
+        element, amount_e, molecule, amount_m = component
+        if element:
+            if not amount_e:
+                amount_e = 1.0
+            _update_dict(symbol_amount, {element: float(amount_e) * multiplier})
+
+        elif molecule:
+            if not amount_m:
+                amount_m = 1.0
+            _update_dict(symbol_amount, _components(molecule, float(amount_m) * multiplier))
+
+    return symbol_amount
 
 
-def parseFormula(formulaStr):
-    res = {}
-    rest = formulaStr
-    while len(rest) > 0:
-        e, rest = parseEntry(rest)
-        if e is None:
-            raise Exception("could not parse entry from %r, did parse %s and failed with %r" % (formulaStr, res, rest))
-        if '#' in e:
-            if 'fragments' in res:
-                res['fragments'].append(e)
-            else:
-                res['fragments'] = [e]
-        else:
-            for sym, am in e.items():
-                if sym in res:
-                    res[sym] += am
-                else:
-                    res[sym] = am
-    return res
+def normalize_formula(formula_str: str) -> str:
+    symbol_amount = _components(formula_str)
+
+    total = sum(symbol_amount.values())
+    symbol_normamount = {e: round(a / total * 100.) for e, a in symbol_amount.items()}
+
+    formula_sorted = [
+        '%s%d' % (s, symbol_normamount[s]) for s in sorted(list(symbol_normamount.keys()))]
+
+    return ''.join(formula_sorted)
 
 
-def normalizeFormula(formulaDict):
-    oldTot = sum(formulaDict.values())
-    res = {}
-    for symb, amount in formulaDict.items():
-        res[symb] = int(amount / oldTot * 100.0 + 0.5)
-    sortedS = list(res.keys())
-    sortedS.sort()
-    resStr = ""
-    for symb in sortedS:
-        resStr += symb
-        resStr += str(res[symb])
-    return resStr
-
-
-def parse(htmltext):
+def parse(htmltext: str) -> Dict[str, str]:
     """
-    Parser the quantities in columnNames from an html text.
+    Parser the quantities in required_items from an html text.
     """
     soup = BeautifulSoup(htmltext, "html.parser")
     results = {}
-    for el in soup.findAll(attrs={"class": "data-list__content"}):
-        for it in el.findAll(attrs={"class": "data-list__item"}):
-            key = it.find(attrs={"class": "data-list__item-key"})
-            keyStr = key.string
-            value = spacesRe.sub(" ", it.find(attrs={"class": "data-list__item-value"}).get_text())
-            if value:
-                value = value.strip()
-            if keyStr:
-                keyStr = keyStr.strip()
-                if keyStr in columnNames:
-                    keyStr = columnNames[keyStr]
-                results[keyStr] = value
+    for item in soup.find_all(attrs={"class": "data-list__item"}):
+        key = item.find(attrs={"class": "data-list__item-key"})
+        if not key:
+            continue
+
+        key_str = key.string.strip()
+        if key_str not in required_items:
+            continue
+
+        value = item.find(attrs={"class": "data-list__item-value"})
+        value = spaces_re.sub(' ', value.get_text()).strip()
+        results[required_items[key_str]] = value
+
+        if len(results) >= len(required_items):
+            break
+
     if 'classification' in results:
         results['classification'] = [x.strip() for x in results['classification'].split(",")]
+        results['classification'] = [x for x in results['classification'] if x != '–']
     if 'compound_classes' in results:
         results['compound_classes'] = [x.strip() for x in results['compound_classes'].split(",")]
+        results['compound_classes'] = [x for x in results['compound_classes'] if x != '–']
+
+    normalized_formula = None
     if 'alphabetic_formula' in results:
         try:
-            f = parseFormula(results['alphabetic_formula'])
-            normalized_formula = normalizeFormula(f)
+            normalized_formula = normalize_formula(results['alphabetic_formula'])
         except Exception:
-            normalized_formula = None
+            pass
     results['normalized_formula'] = normalized_formula
+
     return results
 
 
-def _merge_dict(dict0, dict1):
+def _merge_dict(dict0: Dict[str, Any], dict1: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(dict1, dict) or not isinstance(dict0, dict):
         return dict1
 
@@ -199,63 +140,95 @@ def _merge_dict(dict0, dict1):
     return dict0
 
 
-def download_entries(formula, space_group_number):
-    """
-    Downloads the springer quantities related to a structure from springer.
-    """
-    entries = {}
-    root = 'https://materials.springer.com/textsearch?searchTerm=%s&datasourceFacet=sm_isp&substanceId=' % formula
-    response = requests.get(root)
-    if response.status_code != 200:
-        return entries
-    re_search = re.compile(" href=\"(/isp/[^\"]+)")
-    paths = re_search.findall(response.text)
-    paths = ['http://materials.springer.com%s' % p for p in paths]
-    for path in paths:
+def _download(path: str, max_n_query: int = 10) -> str:
+    n_query = 0
+    while True:
         response = requests.get(path)
-        if response.status_code != 200:
-            continue
-        try:
-            data = parse(response.text)
-        except Exception:
-            continue
-        space_group_number = data.get('space_group_number', None)
-        normalized_formula = data.get('normalized_formula', None)
-        id = data.get('id', None)
-        if space_group_number is None or normalized_formula is None or id is None:
-            continue
-        aformula = data.get('alphabetic_formula', None)
-        compound = data.get('compound_classes', None)
-        classification = data.get('classification', None)
-        entry = dict(id=id, aformula=aformula, url=path, compound=compound, classification=classification)
-        entries = _merge_dict(entries, {str(space_group_number): {normalized_formula: {id: entry}}})
-    return entries
+        if response.status_code == 200:
+            break
+        if n_query > max_n_query:
+            break
+        n_query += 1
+        sleep(120)
+
+    if response.status_code != 200:
+        response.raise_for_status()
+
+    return response.text
 
 
-def get_springer_data(normalized_formula, space_group_number):
+def download_springer_data(max_n_query: int = 10):
     """
-    Queries a msgpack database for springer-related quantities. Downloads data if not
-    found in database and adds it to database.
+    Downloads the springer quantities related to a structure from springer and updates
+    database.
     """
-    entries = {}
-    mode = 'w'
-    if os.path.isfile(DB_NAME):
-        db = ArchiveFileDB(DB_NAME, 'r')
-        entries = db.query({str(space_group_number): {normalized_formula: '*'}})
-        db.close()
-        mode = 'w+'
-    if not entries:
-        formula = numRe.sub('', normalized_formula)
-        entries = download_entries(formula, space_group_number)
-        db = ArchiveFileDB(DB_NAME, mode, 3)
-        for key, entry in entries.items():
-            db.add_data({key: entry})
-        db.close()
+    # load database
+    # querying database with unvailable dataset leads to error,
+    # get toc keys first by making an empty query
+    archive = ArchiveReader(DB_NAME)
+    _ = archive._load_toc_block(0)
+    archive_keys = archive._toc.keys()
+
+    sp_data = query_archive(DB_NAME, {spg: '*' for spg in archive_keys})
+
+    sp_ids: List[str] = []
+    for spg in sp_data:
+        if not isinstance(sp_data[spg], dict):
+            continue
+        for formula in sp_data[spg]:
+            sp_ids += list(sp_data[spg][formula].keys())
+
+    page = 1
+    while True:
+        # check springer database for new entries by comparing with local database
+        root = 'https://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId=' % page
+        req_text = _download(root, max_n_query)
+        if 'Sorry,' in req_text:
+            break
+
+        paths = search_re.findall(req_text)
+        for path in paths:
+            sp_id = os.path.basename(path)
+            if sp_id in sp_ids:
+                continue
+
+            path = 'http://materials.springer.com%s' % path
+            req_text = _download(path, max_n_query)
+            try:
+                data = parse(req_text)
+            except Exception:
+                continue
+
+            space_group_number = data.get('space_group_number', None)
+            normalized_formula = data.get('normalized_formula', None)
+            if space_group_number is None or normalized_formula is None:
+                continue
+
+            aformula = data.get('alphabetic_formula', None)
+            compound = data.get('compound_classes', None)
+            classification = data.get('classification', None)
+            entry = dict(
+                aformula=aformula, url=path, compound=compound,
+                classification=classification)
+            sp_data = _merge_dict(
+                sp_data, {str(space_group_number): {normalized_formula: {sp_id: entry}}})
+
+        page += 1
+
+    write_archive(DB_NAME, len(sp_data), sp_data.items(), entry_toc_depth=1)
+
+
+def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
+    """
+    Queries a msgpack database for springer-related quantities.
+    """
+    entries = query_archive(DB_NAME, {str(space_group_number): {normalized_formula: '*'}})
     db_dict = {}
     entries = entries.get(str(space_group_number), {}).get(normalized_formula, {})
-    for id, entry in entries.items():
-        db_dict[id] = {
-            'spr_id': id,
+
+    for sp_id, entry in entries.items():
+        db_dict[sp_id] = {
+            'spr_id': sp_id,
             'spr_aformula': entry['aformula'],
             'spr_url': entry['url'],
             'spr_compound': entry['compound'],

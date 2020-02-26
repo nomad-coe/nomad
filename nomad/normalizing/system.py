@@ -28,7 +28,7 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 from nomad.normalizing import structure
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-from nomad.normalizing.data.springer_msgpack import get_springer_data
+from nomad.normalizing.data.springer_msgpack import query_springer_data
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
@@ -452,7 +452,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                     'spr_classification': spr_classification}
 
         elif database == 'msgpack':
-            dbdict = get_springer_data(normalized_formula, space_group_number)
+            dbdict = query_springer_data(normalized_formula, space_group_number)
 
         # =============
 

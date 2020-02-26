@@ -134,7 +134,7 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
-    def test_create_msgpack(self, published):
+    def test_msgpacked(self, published):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
