@@ -115,21 +115,23 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             client.archive.get_archive_logs(
                 upload_id=upload.upload_id, calc_id=calc.calc_id).response()
 
+        query = dict(owner='staging', upload_id=[upload.upload_id])
+
         print('perform repo search on data')
-        search = client.repo.search(owner='staging', per_page=100).response().result
+        search = client.repo.search(per_page=100, **query).response().result
         assert search.pagination.total >= total
         assert len(search.results) <= search.pagination.total
 
         print('performing archive paginated search')
-        result = client.archive.archive_query(owner='staging', page=1, per_page=10).response().result
+        result = client.archive.archive_query(page=1, per_page=10, **query).response().result
         assert len(result.results) > 0
 
         print('performing archive scrolled search')
-        result = client.archive.archive_query(owner='staging', scroll=True).response().result
+        result = client.archive.archive_query(scroll=True, **query).response().result
         assert len(result.results) > 0
 
         print('performing download')
-        client.raw.raw_files_from_query(owner='staging', upload_id=[upload.upload_id])
+        client.raw.raw_files_from_query(**query)
 
         if not skip_publish:
             print('publish upload')

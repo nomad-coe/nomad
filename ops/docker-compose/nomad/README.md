@@ -22,9 +22,7 @@ The different overrides are:
 - *.prod.yml, production (to run the necessary databases for kubenetes deployments)
 - *.override.yml, development (development configuration, will be automatically used by docker-compose)
 - *.develk.yml, like development but also runs ELK
-- *.example.yml, an example production configuration
 
-To run your own NOMAD mirror or oasis, you should override the `example.yml` to fit your needs.
 Within the overrides you can configure the NOMAD containers (app, worker, gui).
 
 ### Configuring the API and worker
@@ -33,8 +31,6 @@ The API and worker can be configured through a nomad.yaml file or with environme
 variables. A nomad.yaml files needs to be mounted to `/app/nomad.yaml`. There are
 [several options](https://docs.docker.com/compose/environment-variables/) to set
 environment variables in docker-compose.
-
-An example file can be found under `ops/docker-compose/nomad/example/nomad.yaml`.
 
 ### Configuring the GUI
 
@@ -49,26 +45,3 @@ with:
 ```
 nomad admin nginx-conf --prefix /example-nomad
 ```
-
-Or use the example files can be found here `ops/docker-compose/nomad/example/`.
-
-
-### Example *.prod.yml override:
-
-Finally the full override for the example deployment based on the example config files
-can be found here: `ops/docker-compose/nomad/docker-compose.example.yml`.
-
-To simply run a fully fresh nomad:
-
-```
-git clone
-cd nomad/ops/docker-compose/nomad/
-docker login
-docker-compose -f docker-compose.yml -f docker-compose.example.yml up
-```
-
-If everything goes well, NOMAD should be available at `http://your-host/example-nomad/gui/`.
-
-We recommend to either change the nginx.conf to use SSL or put this behind a reverse-proxy
-that supports SSL. If you use a reverse-proxy, you should disable any buffering to support
-large downloads/uploads. We recommend to change the volume `nomad_data` to a bind mount.

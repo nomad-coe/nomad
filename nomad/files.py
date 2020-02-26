@@ -939,3 +939,8 @@ class PublicUploadFiles(UploadFiles):
             for zip_file in self._zipfile_cache.values():
                 zip_file.close()
         self._zipfile_cache = None
+
+
+for directory in [config.fs.public, config.fs.staging, config.fs.tmp]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
