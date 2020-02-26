@@ -19,11 +19,11 @@ from nomad import config
 
 @pytest.fixture
 def with_config():
-    old_value = config.fs.migration_packages
+    old_value = config.fs.public
     yield config
-    config.fs.migration_packages = old_value
+    config.fs.public = old_value
 
 
 def test_apply(with_config):
-    config.apply('fs_migration_packages', 'test_value')
-    assert config.fs.migration_packages == 'test_value'
+    config.apply('fs_public', 'test_value')
+    assert config.fs.public == 'test_value'

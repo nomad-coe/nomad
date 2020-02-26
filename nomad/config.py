@@ -37,7 +37,6 @@ import os
 import os.path
 import yaml
 import warnings
-import sys
 
 from nomad import gitinfo
 
@@ -100,7 +99,6 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
-    migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
     prefix_size=2,
     working_directory=os.getcwd()
@@ -309,7 +307,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
             NOMAD_CONFIG or ``nomad.yaml``.
     """
     # load yaml and override defaults (only when not in test)
-    if os.path.exists(config_file) and 'pytest' not in sys.modules:
+    if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
             try:
                 config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
