@@ -28,11 +28,13 @@ from flask import request, g
 import elasticsearch.exceptions
 from typing import List
 import numpy as np
+import json
+import logging
 
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
-from nomad import config, infrastructure, parsing, processing, app, search
+from nomad import config, infrastructure, parsing, processing, app, search, utils
 from nomad.datamodel import User, CalcWithMetadata
 from nomad.parsing import LocalBackend
 
@@ -44,6 +46,10 @@ from tests.test_normalizing import run_normalize
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
+
+
+utils.ConsoleFormatter.short_format = True
+setattr(logging, 'Formatter', utils.ConsoleFormatter)
 
 
 @pytest.fixture(scope="session")
@@ -66,14 +72,13 @@ def raw_files_infra():
     config.fs.tmp = '.volumes/test_fs/tmp'
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
-    config.fs.migration_packages = '.volumes/test_fs/migration_packages'
     config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp]
+    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -349,10 +354,12 @@ def test_user_bravado_client(client, test_user_auth, monkeypatch):
 
 @pytest.fixture(scope='function')
 def no_warn(caplog):
+    caplog.handler.formatter = utils.ConsoleFormatter()
     yield caplog
     for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            assert False, record.msg
+            msg = utils.ConsoleFormatter.serialize(json.loads(record.msg))
+            assert False, msg
 
 
 @pytest.fixture(scope='function')

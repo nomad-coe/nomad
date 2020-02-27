@@ -272,14 +272,16 @@ class RawFileFromCalcPathResource(Resource):
             path = urllib.parse.unquote(path)
 
         calc_filepath = path if path is not None else ''
-        authorization_predicate = create_authorization_predicate(upload_id)
+        authorization_predicate = create_authorization_predicate(upload_id, calc_id=calc_id)
         upload_files = UploadFiles.get(upload_id, authorization_predicate)
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-        calc = Calc.get(calc_id)
-        if calc is None:
+        try:
+            calc = Calc.get(calc_id)
+        except KeyError:
             abort(404, message='The calc with id %s does not exist.' % calc_id)
+
         if calc.upload_id != upload_id:
             abort(404, message='The calc with id %s is not part of the upload with id %s.' % (calc_id, upload_id))
 
@@ -317,6 +319,8 @@ _raw_files_request_model = api.model('RawFilesRequest', {
 _raw_files_request_parser = api.parser()
 _raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
+_raw_files_request_parser.add_argument(
+    'prefix', type=str, help='A common prefix that is prepend to all files', location='args')
 _raw_files_request_parser.add_argument(**raw_file_strip_argument)
 _raw_files_request_parser.add_argument(**raw_file_compress_argument)
 
@@ -356,13 +360,19 @@ class RawFilesResource(Resource):
         any files that the user is not authorized to access.
         """
         args = _raw_files_request_parser.parse_args()
-        files_str = args.get('files')
-        compress = args.get('compress', False)
-        strip = args.get('strip', False)
 
+        files_str = args.get('files')
         if files_str is None:
             abort(400, message="No files argument given.")
-        files = [file.strip() for file in files_str.split(',')]
+
+        prefix = args.get('prefix')
+        if prefix is not None:
+            files = [os.path.join(prefix, file.strip()) for file in files_str.split(',')]
+        else:
+            files = [file.strip() for file in files_str.split(',')]
+
+        compress = args.get('compress', False)
+        strip = args.get('strip', False)
 
         return respond_to_get_raw_files(upload_id, files, compress=compress, strip=strip)
 
@@ -455,8 +465,7 @@ class RawFileQueryResource(Resource):
                         if upload_files is not None:
                             upload_files.close_zipfile_cache()
 
-                        upload_files = UploadFiles.get(
-                            upload_id, create_authorization_predicate(upload_id))
+                        upload_files = UploadFiles.get(upload_id)
 
                         if upload_files is None:
                             logger.error('upload files do not exist', upload_id=upload_id)
@@ -467,6 +476,8 @@ class RawFileQueryResource(Resource):
                         def open_file(upload_filename):
                             return upload_files.raw_file(upload_filename, 'rb')
 
+                    upload_files._is_authorized = create_authorization_predicate(
+                        upload_id=upload_id, calc_id=entry['calc_id'])
                     directory = os.path.dirname(mainfile)
                     directory_w_upload = os.path.join(upload_files.upload_id, directory)
                     if directory_w_upload not in directories:

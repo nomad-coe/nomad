@@ -62,11 +62,12 @@ class Dataset(InnerDoc):
     @classmethod
     def from_dataset_id(cls, dataset_id):
         dataset = datamodel.Dataset.m_def.m_x('me').get(dataset_id=dataset_id)
-        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name)
+        return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name, created=dataset.created)
 
     id = Keyword()
     doi = Keyword()
     name = Keyword()
+    created = Date()
 
 
 class WithDomain(IndexMeta):
@@ -275,9 +276,10 @@ class SearchRequest:
         """
         Uses the query part of the search to restrict the results based on the owner.
         The possible types are: ``all`` for all calculations; ``public`` for
-        caclulations visible by everyone, excluding entries only visible to the given user;
-        ``user`` for all calculations of to the given user; ``staging`` for all
-        calculations in staging of the given user.
+        calculations visible by everyone, excluding embargo-ed entries and entries only visible
+        to the given user; ``visible`` all data that is visible by the user, excluding
+        embargo-ed entries from other users; ``user`` for all calculations of to the given
+        user; ``staging`` for all calculations in staging of the given user.
 
         Arguments:
             owner_type: The type of the owner query, see above.
@@ -289,11 +291,15 @@ class SearchRequest:
                 given user is not allowed to use the given owner_type.
         """
         if owner_type == 'all':
-            q = Q('term', published=True) & Q('term', with_embargo=False)
+            q = Q('term', published=True)
             if user_id is not None:
                 q = q | Q('term', owners__user_id=user_id)
         elif owner_type == 'public':
             q = Q('term', published=True) & Q('term', with_embargo=False)
+        elif owner_type == 'visible':
+            q = Q('term', published=True) & Q('term', with_embargo=False)
+            if user_id is not None:
+                q = q | Q('term', owners__user_id=user_id)
         elif owner_type == 'shared':
             if user_id is None:
                 raise ValueError('Authentication required for owner value shared.')

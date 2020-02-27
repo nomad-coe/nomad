@@ -249,6 +249,9 @@ class UsersResource(Resource):
     @api.expect(user_model, validate=True)
     def put(self):
         """ Invite a new user. """
+        if config.keycloak.oasis:
+            abort(400, 'User invide does not work this NOMAD OASIS')
+
         json_data = request.get_json()
         try:
             user = datamodel.User.m_from_dict(json_data)
@@ -314,7 +317,14 @@ def create_authorization_predicate(upload_id, calc_id=None):
         # look in mongo
         try:
             upload = processing.Upload.get(upload_id)
-            return g.user.user_id == upload.user_id
+            if g.user.user_id == upload.user_id:
+                return True
+
+            try:
+                calc = processing.Calc.get(calc_id)
+            except KeyError:
+                return False
+            return g.user.user_id in calc.metadata.get('shared_with', [])
 
         except KeyError as e:
             logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)

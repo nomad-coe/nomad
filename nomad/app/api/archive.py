@@ -35,8 +35,8 @@ from nomad.archive import query_archive
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
-from .common import calc_route, streamed_zipfile, search_model,\
-    add_search_parameters, apply_search_parameters, query_model
+from .common import calc_route, streamed_zipfile, search_model, add_search_parameters, apply_search_parameters, query_model
+
 
 ns = api.namespace(
     'archive',
@@ -212,7 +212,7 @@ class ArchiveDownloadResource(Resource):
             generator(), zipfile_name='nomad_archive.zip', compress=compress)
 
 
-_archive_query_model = api.inherit('ArchiveCalculations', search_model, {
+_archive_query_model = api.inherit('ArchiveSearch', search_model, {
     'query': fields.Nested(query_model, description='The query used to find the requested entries.'),
     'query_schema': fields.Raw(description='The query schema that defines what archive data to retrive.')
 })
@@ -287,18 +287,18 @@ class ArchiveQueryResource(Resource):
         data = []
         calcs = results['results']
         archive_files = None
-        cur_upload_id = None
+        current_upload_id = None
         for entry in calcs:
             upload_id = entry['upload_id']
             calc_id = entry['calc_id']
-            if archive_files is None or cur_upload_id != upload_id:
+            if archive_files is None or current_upload_id != upload_id:
                 upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
 
                 if upload_files is None:
                     return []
 
                 archive_files = upload_files.archive_file_msgs()
-                cur_upload_id = upload_id
+                current_upload_id = upload_id
 
             if entry['with_embargo']:
                 archive_file = archive_files[1]

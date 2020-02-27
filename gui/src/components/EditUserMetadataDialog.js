@@ -647,7 +647,7 @@ class InviteUserDialogUnstyled extends React.Component {
             If you want to add a user as co-author or share your data with someone that
             is not already a NOMAD user, you can invite this person here. We need just a few
             details about this person. After your invite, the new user will receive an
-            Email that allows him to set a password and further details. Anyhow, you will
+            Email that allows her to set a password and further details. Anyhow, you will
             be able to add the user as co-author or someone to share with immediately after the
             invite.
           </DialogContentText>
@@ -730,7 +730,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     user: PropTypes.object,
     onEditComplete: PropTypes.func,
     disabled: PropTypes.bool,
-    title: PropTypes.string
+    title: PropTypes.string,
+    info: PropTypes.object
   }
 
   static styles = theme => ({
@@ -1055,7 +1056,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   renderDialogActions(submitting, submitEnabled) {
-    const {classes} = this.props
+    const {classes, info} = this.props
 
     if (submitting) {
       return <DialogActions>
@@ -1070,7 +1071,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       </DialogActions>
     } else {
       return <DialogActions>
-        <InviteUserDialog />
+        {info && !info.oasis && <InviteUserDialog />}
         <span style={{flexGrow: 1}} />
         <Button onClick={this.handleClose} disabled={submitting}>
           Cancel

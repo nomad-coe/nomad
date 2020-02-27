@@ -803,8 +803,10 @@ class TestRepo():
         assert 'uploads' in data['statistics']['total']['all']
 
     @pytest.mark.parametrize('calcs, owner, auth', [
-        (2, 'all', 'none'),
-        (2, 'all', 'test_user'),
+        (3, 'all', 'none'),
+        (2, 'public', 'none'),
+        (3, 'all', 'test_user'),
+        (2, 'public', 'test_user'),
         (4, 'all', 'other_test_user'),
         (1, 'user', 'test_user'),
         (3, 'user', 'other_test_user'),
@@ -832,15 +834,11 @@ class TestRepo():
         (2, None, today)
     ])
     def test_search_time(self, api, example_elastic_calcs, no_warn, calcs, start, end):
-        query_string = ''
+        query_string = '?owner=visible'
         if start is not None:
-            query_string = 'from_time=%s' % rfc3339DateTime.format(start)
+            query_string += '&from_time=%s' % rfc3339DateTime.format(start)
         if end is not None:
-            if query_string != '':
-                query_string += '&'
-            query_string += 'until_time=%s' % rfc3339DateTime.format(end)
-        if query_string != '':
-            query_string = '?%s' % query_string
+            query_string += '&until_time=%s' % rfc3339DateTime.format(end)
 
         rv = api.get('/repo/%s' % query_string)
         self.assert_search(rv, calcs)
@@ -871,7 +869,10 @@ class TestRepo():
             self, api, example_elastic_calcs, no_warn, test_user_auth,
             other_test_user_auth, calcs, quantity, value, user):
         user_auth = test_user_auth if user == 'test_user' else other_test_user_auth
-        query_string = urlencode({quantity: value, 'statistics': True}, doseq=True)
+        query_string = urlencode({
+            'owner': 'public' if user == 'test_user' else 'all',
+            quantity: value,
+            'statistics': True}, doseq=True)
 
         rv = api.get('/repo/?%s' % query_string, headers=user_auth)
         logger.debug('run search quantities test', query_string=query_string)
@@ -943,7 +944,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
-        rv = api.get('/repo/?page=%d&per_page=%d&statistics=true' % (page, per_page))
+        rv = api.get('/repo/?&page=%d&per_page=%d&statistics=true' % (page, per_page))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -956,7 +957,7 @@ class TestRepo():
         ('2', 'basis_set', -1), ('1', 'basis_set', 1),
         (None, 'authors', -1)])
     def test_search_order(self, api, example_elastic_calcs, no_warn, first, order_by, order):
-        rv = api.get('/repo/?order_by=%s&order=%d' % (order_by, order))
+        rv = api.get('/repo/?&order_by=%s&order=%d' % (order_by, order))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -1414,6 +1415,10 @@ class TestRaw(UploadFilesBasedTests):
         result = json.loads(rv.data)
         assert len(result['contents']) > 0
 
+        url = '/raw/calc/%s/not_existing/' % (non_empty_processed.upload_id)
+        rv = api.get(url, headers=test_user_auth)
+        assert rv.status_code == 404
+
     @UploadFilesBasedTests.check_authorization
     def test_raw_file(self, api, upload, auth_headers):
         url = '/raw/%s/%s' % (upload, example_file_mainfile)
@@ -1628,7 +1633,8 @@ class TestMirror:
         data = json.loads(rv.data)
         assert data[0]['upload_id'] == published.upload_id
 
-    def test_dataset(self, api, published_wo_user_metadata, admin_user_auth, test_user_auth):
+    @pytest.mark.parametrize('with_doi', [False, True])
+    def test_dataset(self, api, published_wo_user_metadata, admin_user_auth, test_user_auth, with_doi):
         rv = api.post(
             '/repo/edit', headers=test_user_auth, content_type='application/json',
             data=json.dumps({
@@ -1640,8 +1646,9 @@ class TestMirror:
             }))
         assert rv.status_code == 200
 
-        rv = api.post('/datasets/test_dataset', headers=test_user_auth)
-        assert rv.status_code == 200
+        if with_doi:
+            rv = api.post('/datasets/test_dataset', headers=test_user_auth)
+            assert rv.status_code == 200
 
         rv = api.post(
             '/mirror/',
@@ -1655,8 +1662,12 @@ class TestMirror:
         assert len(data['datasets']) == 1
         dataset = data['calcs'][0]['metadata']['datasets'][0]
         assert dataset in data['datasets']
-        assert data['datasets'][dataset]['doi'] is not None
-        assert data['datasets'][dataset]['doi'] in data['dois']
+        if with_doi:
+            assert len(data['dois']) == 1
+            assert data['datasets'][dataset]['doi'] is not None
+            assert data['datasets'][dataset]['doi'] in data['dois']
+        else:
+            assert 'dois' not in data
 
 
 class TestDataset:
@@ -1665,6 +1676,7 @@ class TestDataset:
     def example_datasets(self, mongo, test_user):
         Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').m_x('me').create()
         Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').m_x('me').create()
+        Dataset(dataset_id='3', user_id=test_user.user_id, name='weird+/*?& name').m_x('me').create()
 
     def assert_dataset(self, dataset, name: str = None, doi: bool = False):
         assert 'dataset_id' in dataset
@@ -1718,8 +1730,8 @@ class TestDataset:
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert 'pagination' in data
-        assert data['pagination']['total'] == 2
-        assert len(data['results']) == 2
+        assert data['pagination']['total'] == 3
+        assert len(data['results']) == 3
         for dataset in data['results']:
             if dataset['name'] == 'ds2':
                 self.assert_dataset(dataset, doi=True)
@@ -1767,12 +1779,17 @@ class TestDataset:
         rv = api.delete('/datasets/ds2', headers=test_user_auth)
         assert rv.status_code == 400
 
-    def test_assign_doi(self, api, test_user_auth, example_dataset_with_entry):
-        rv = api.post('/datasets/ds1', headers=test_user_auth)
-        assert rv.status_code == 200
-        data = json.loads(rv.data)
-        self.assert_dataset(data, name='ds1', doi=True)
-        self.assert_dataset_entry(api, '1', True, True, headers=test_user_auth)
+    @pytest.mark.parametrize('dataset_name,has_entry', [('ds1', True), ('weird+/*?& name', False)])
+    def test_assign_doi(self, api, test_user_auth, example_dataset_with_entry, dataset_name, has_entry):
+        import urllib.parse
+        rv = api.post('/datasets/%s' % urllib.parse.quote(dataset_name), headers=test_user_auth)
+        if has_entry:
+            assert rv.status_code == 200
+            data = json.loads(rv.data)
+            self.assert_dataset(data, name=dataset_name, doi=True)
+            self.assert_dataset_entry(api, '1', True, True, headers=test_user_auth)
+        else:
+            assert rv.status_code == 400
 
     def test_assign_doi_empty(self, api, test_user_auth, example_datasets):
         rv = api.post('/datasets/ds1', headers=test_user_auth)
