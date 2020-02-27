@@ -79,11 +79,13 @@ search_model_fields = {
 search_model = api.model('Search', search_model_fields)
 
 query_model_fields = {
-    quantity.name: fields.Raw(description=quantity.description)
-    for quantity in search.quantities.values()}
+    quantity.qualified_name: fields.Raw(description=quantity.description)
+    for quantity in Domain.all_quantities()}
 
-query_model_fields.update(** {
+query_model_fields.update(**{
     'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
+    'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
+        ', '.join(['``%s``' % key for key in Domain.instances.keys()]), config.default_domain)),
     'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
