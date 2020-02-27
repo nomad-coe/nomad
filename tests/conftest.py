@@ -72,14 +72,13 @@ def raw_files_infra():
     config.fs.tmp = '.volumes/test_fs/tmp'
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
-    config.fs.migration_packages = '.volumes/test_fs/migration_packages'
     config.fs.prefix_size = 2
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
     """ Provides cleaned out files directory structure per function. Clears files after test. """
-    directories = [config.fs.staging, config.fs.public, config.fs.migration_packages, config.fs.tmp]
+    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -166,6 +165,9 @@ def mongo_infra(monkeysession):
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     """ Provides a cleaned mocked mongo per function. """
+    # Some test cases need to reset the database connection
+    if infrastructure.mongo_client != mongo_infra:
+        mongo_infra = infrastructure.mongo_client
     mongo_infra.drop_database('test_db')
     return mongo_infra
 

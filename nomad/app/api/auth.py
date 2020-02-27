@@ -249,6 +249,9 @@ class UsersResource(Resource):
     @api.expect(user_model, validate=True)
     def put(self):
         """ Invite a new user. """
+        if config.keycloak.oasis:
+            abort(400, 'User invide does not work this NOMAD OASIS')
+
         json_data = request.get_json()
         try:
             user = datamodel.User.m_from_dict(json_data)

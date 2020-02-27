@@ -34,7 +34,7 @@ class KeycloakAuthenticator(Authenticator):
         self.token = None
         self.__oidc = KeycloakOpenID(**kwargs)
 
-    def apply(self, request):
+    def apply(self, request=None):
         if self.token is None:
             self.token = self.__oidc.token(username=self.user, password=self.password)
             self.token['time'] = time()
@@ -46,9 +46,11 @@ class KeycloakAuthenticator(Authenticator):
                 self.token = self.__oidc.token(username=self.user, password=self.password)
                 self.token['time'] = time()
 
-        request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
-
-        return request
+        if request:
+            request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
+            return request
+        else:
+            return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
 def create_client():
@@ -83,9 +85,9 @@ def __create_client(
                 host=host,
                 user=user,
                 password=password,
-                server_url=nomad_config.keycloak.server_external_url,
+                server_url=nomad_config.keycloak.server_url,
                 realm_name=nomad_config.keycloak.realm_name,
-                client_id=nomad_config.keycloak.public_client_id)
+                client_id=nomad_config.keycloak.client_id)
         else:
             http_client.set_basic_auth(
                 host=host,

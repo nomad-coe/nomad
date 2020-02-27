@@ -20,7 +20,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 from typing import Dict, Any
 from io import BytesIO
 import os.path
-from flask import send_file, request
+from flask import send_file, request, g
 from flask_restplus import abort, Resource, fields
 import json
 import importlib
@@ -31,12 +31,12 @@ import nomad_meta_info
 from nomad.files import UploadFiles, Restricted
 from nomad import search, config
 from nomad.app import common
+from nomad.archive import query_archive
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
-from .common import calc_route, streamed_zipfile, search_model, add_pagination_parameters,\
-    add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl
+from .common import calc_route, streamed_zipfile, search_model, add_search_parameters, apply_search_parameters, query_model
+
 
 ns = api.namespace(
     'archive',
@@ -212,77 +212,70 @@ class ArchiveDownloadResource(Resource):
             generator(), zipfile_name='nomad_archive.zip', compress=compress)
 
 
-_archive_query_parser = api.parser()
-add_pagination_parameters(_archive_query_parser)
-add_scroll_parameters(_archive_query_parser)
-add_search_parameters(_archive_query_parser)
-
-_archive_query_model_fields = {
-    'results': fields.List(fields.Raw, description=(
-        'A list of search results. Each result is a dict with quantities names as key and '
-        'values as values')),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
-}
-_archive_query_model = api.inherit('ArchiveCalculations', search_model, _archive_query_model_fields)
+_archive_query_model = api.inherit('ArchiveSearch', search_model, {
+    'query': fields.Nested(query_model, description='The query used to find the requested entries.'),
+    'query_schema': fields.Raw(description='The query schema that defines what archive data to retrive.')
+})
 
 
 @ns.route('/query')
 class ArchiveQueryResource(Resource):
-    @api.doc('archive_query')
+    @api.doc('post_archive_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(200, 'Archive data send')
-    @api.expect(_archive_query_parser, validate=True)
+    @api.expect(_archive_query_model)
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
     @authenticate()
-    def get(self):
+    def post(self):
         """
-        Get archive data in json format from all query results.
+        Post a query schema and return it filled with archive data.
 
         See ``/repo`` endpoint for documentation on the search
         parameters.
 
-        The actual data are in archive_data and a supplementary python code (curl) to
+        The actual data are in results and a supplementary python code (curl) to
         execute search is in python (curl).
         """
         try:
-            args = {
-                key: value for key, value in _archive_query_parser.parse_args().items()
-                if value is not None}
+            data_in = request.get_json()
+            scroll = data_in.get('scroll', None)
+            if scroll:
+                scroll_id = scroll.get('scroll_id')
+                scroll = True
 
-            scroll = args.get('scroll', False)
-            scroll_id = args.get('scroll_id', None)
-            page = args.get('page', 1)
-            per_page = args.get('per_page', 10 if not scroll else 1000)
-            order = args.get('order', -1)
-            order_by = 'upload_id'
+            pagination = data_in.get('pagination', {})
+            page = pagination.get('page', 1)
+            per_page = pagination.get('per_page', 10 if not scroll else 1000)
+
+            query = data_in.get('query', {})
+            query_schema = data_in.get('query_schema', '*')
+
         except Exception:
             abort(400, message='bad parameter types')
 
-        try:
-            assert page >= 1
-            assert per_page > 0
-        except AssertionError:
-            abort(400, message='invalid pagination')
-
-        if order not in [-1, 1]:
+        if not (page >= 1 and per_page > 0):
             abort(400, message='invalid pagination')
 
         search_request = search.SearchRequest()
-        apply_search_parameters(search_request, args)
-        search_request.include('calc_id', 'upload_id', 'mainfile')
+        if g.user is not None:
+            search_request.owner('all', user_id=g.user.user_id)
+        else:
+            search_request.owner('all')
+
+        apply_search_parameters(search_request, query)
+        search_request.include('calc_id', 'upload_id', 'with_embargo')
 
         try:
             if scroll:
-                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
+                results = search_request.execute_scrolled(
+                    scroll_id=scroll_id, size=per_page, order_by='upload_id')
+                results['scroll']['scroll'] = True
 
             else:
                 results = search_request.execute_paginated(
-                    per_page=per_page, page=page, order=order, order_by=order_by)
+                    per_page=per_page, page=page, order_by='upload_id')
 
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
@@ -291,41 +284,33 @@ class ArchiveQueryResource(Resource):
             traceback.print_exc()
             abort(400, str(e))
 
-        # build python code and curl snippet
-        results['python'] = query_api_python('archive', 'query', query_string=request.args)
-        results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
-
         data = []
         calcs = results['results']
-        try:
-            upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                calc_id = entry['calc_id']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
+        archive_files = None
+        current_upload_id = None
+        for entry in calcs:
+            upload_id = entry['upload_id']
+            calc_id = entry['calc_id']
+            if archive_files is None or current_upload_id != upload_id:
+                upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
 
-                    upload_files = UploadFiles.get(upload_id)
+                if upload_files is None:
+                    return []
 
-                    if upload_files is None:
-                        raise KeyError
+                archive_files = upload_files.archive_file_msgs()
+                current_upload_id = upload_id
 
-                    upload_files.open_zipfile_cache()
+            if entry['with_embargo']:
+                archive_file = archive_files[1]
+            else:
+                archive_file = archive_files[0]
 
-                upload_files._is_authorized = create_authorization_predicate(upload_id, entry['calc_id'])
-                fo = upload_files.archive_file(calc_id, 'rb')
-                data.append(json.loads(fo.read()))
+            if archive_file is None:
+                continue
 
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
+            data.append(query_archive(archive_file, {calc_id: query_schema}))
 
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
-
-        except KeyError:
-            abort(404, message='Calculation %s/%s does not exist.' % (upload_id, calc_id))
-
+        # assign archive data to results
         results['results'] = data
 
         return results, 200

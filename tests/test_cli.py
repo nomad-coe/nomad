@@ -47,7 +47,6 @@ class TestAdmin:
     #     result = click.testing.CliRunner().invoke(
     #         cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
     #     assert result.exit_code == 0
-
     #     # allow other test to re-establish a connection
     #     mongoengine.disconnect_all()
 
@@ -167,6 +166,15 @@ class TestAdminUploads:
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
+
+    def test_msgpack(self, published):
+        upload_id = published.upload_id
+
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert 'wrote msgpack archive' in result.stdout
 
     def test_index(self, published):
         upload_id = published.upload_id

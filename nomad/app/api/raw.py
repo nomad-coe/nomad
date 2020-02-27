@@ -280,10 +280,8 @@ class RawFileFromCalcPathResource(Resource):
         try:
             calc = Calc.get(calc_id)
         except KeyError:
-            pass
-
-        if calc is None:
             abort(404, message='The calc with id %s does not exist.' % calc_id)
+
         if calc.upload_id != upload_id:
             abort(404, message='The calc with id %s is not part of the upload with id %s.' % (calc_id, upload_id))
 
@@ -321,6 +319,8 @@ _raw_files_request_model = api.model('RawFilesRequest', {
 _raw_files_request_parser = api.parser()
 _raw_files_request_parser.add_argument(
     'files', required=True, type=str, help='Comma separated list of files to download.', location='args')
+_raw_files_request_parser.add_argument(
+    'prefix', type=str, help='A common prefix that is prepend to all files', location='args')
 _raw_files_request_parser.add_argument(**raw_file_strip_argument)
 _raw_files_request_parser.add_argument(**raw_file_compress_argument)
 
@@ -360,13 +360,19 @@ class RawFilesResource(Resource):
         any files that the user is not authorized to access.
         """
         args = _raw_files_request_parser.parse_args()
-        files_str = args.get('files')
-        compress = args.get('compress', False)
-        strip = args.get('strip', False)
 
+        files_str = args.get('files')
         if files_str is None:
             abort(400, message="No files argument given.")
-        files = [file.strip() for file in files_str.split(',')]
+
+        prefix = args.get('prefix')
+        if prefix is not None:
+            files = [os.path.join(prefix, file.strip()) for file in files_str.split(',')]
+        else:
+            files = [file.strip() for file in files_str.split(',')]
+
+        compress = args.get('compress', False)
+        strip = args.get('strip', False)
 
         return respond_to_get_raw_files(upload_id, files, compress=compress, strip=strip)
 

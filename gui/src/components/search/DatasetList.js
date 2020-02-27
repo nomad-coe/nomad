@@ -216,6 +216,10 @@ class DatasetListUnstyled extends React.Component {
       label: 'Dataset name',
       render: (dataset) => dataset.name
     },
+    created: {
+      label: 'Created',
+      render: (dataset) => dataset.created && new Date(dataset.created).toLocaleString()
+    },
     DOI: {
       label: 'Dataset DOI',
       render: (dataset) => dataset.doi && <DOI doi={dataset.doi} />
@@ -282,8 +286,7 @@ class DatasetListUnstyled extends React.Component {
       id={row => row.id}
       total={total}
       columns={this.columns}
-      // selectedColumns={defaultSelectedColumns}
-      // entryDetails={this.renderEntryDetails.bind(this)}
+      selectedColumns={['name', 'DOI', 'entries', 'authors']}
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}

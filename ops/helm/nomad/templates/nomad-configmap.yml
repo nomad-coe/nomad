@@ -11,6 +11,7 @@ data:
   nomad.yaml: |
     release: "{{ .Release.Name }}"
     domain: "{{ .Values.domain }}"
+    reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
@@ -54,13 +55,10 @@ data:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
     keycloak:
-      server_external_url: "{{ .Values.keycloak.serverExternalUrl }}"
       server_url: "{{ .Values.keycloak.serverUrl }}"
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
       client_id: "{{ .Values.keycloak.clientId }}"
-      client_secret: "*"
-      password: "*"
     springer_db_path: "{{ .Values.springerDbPath }}"
     datacite:
       enabled: {{ .Values.datacite.enabled }}

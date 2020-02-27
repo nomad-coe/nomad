@@ -28,6 +28,7 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 from nomad.normalizing import structure
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
+from nomad.normalizing.data.springer_msgpack import query_springer_data
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
@@ -396,57 +397,63 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.closeSection('section_symmetry', symmetry_gid)
 
-    def springer_classification(self, atoms, space_group_number):
+    def springer_classification(self, atoms, space_group_number, database='sqlite'):
         # SPRINGER NORMALIZER
         normalized_formula = formula_normalizer(atoms)
         #
-        springer_db_connection = open_springer_database()
-        if springer_db_connection is None:
-            return
+        if database == 'sqlite':
+            springer_db_connection = open_springer_database()
+            if springer_db_connection is None:
+                return
 
-        cur = springer_db_connection.cursor()
+            cur = springer_db_connection.cursor()
 
-        # SQL QUERY
-        # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
-        cur.execute("""
-            SELECT
-                entry.entry_id,
-                entry.alphabetic_formula,
-                GROUP_CONCAT(DISTINCT compound_classes.compound_class_name),
-                GROUP_CONCAT(DISTINCT classification.classification_name)
-            FROM entry
-            LEFT JOIN entry_compound_class as ecc ON ecc.entry_nr = entry.entry_nr
-            LEFT JOIN compound_classes ON ecc.compound_class_nr = compound_classes.compound_class_nr
-            LEFT JOIN entry_classification as ec ON ec.entry_nr = entry.entry_nr
-            LEFT JOIN classification ON ec.classification_nr = classification.classification_nr
-            LEFT JOIN entry_reference as er ON er.entry_nr = entry.entry_nr
-            LEFT JOIN reference ON reference.reference_nr = er.entry_nr
-            WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
-            GROUP BY entry.entry_id;
-            """ % (normalized_formula, space_group_number))
+            # SQL QUERY
+            # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
+            cur.execute("""
+                SELECT
+                    entry.entry_id,
+                    entry.alphabetic_formula,
+                    GROUP_CONCAT(DISTINCT compound_classes.compound_class_name),
+                    GROUP_CONCAT(DISTINCT classification.classification_name)
+                FROM entry
+                LEFT JOIN entry_compound_class as ecc ON ecc.entry_nr = entry.entry_nr
+                LEFT JOIN compound_classes ON ecc.compound_class_nr = compound_classes.compound_class_nr
+                LEFT JOIN entry_classification as ec ON ec.entry_nr = entry.entry_nr
+                LEFT JOIN classification ON ec.classification_nr = classification.classification_nr
+                LEFT JOIN entry_reference as er ON er.entry_nr = entry.entry_nr
+                LEFT JOIN reference ON reference.reference_nr = er.entry_nr
+                WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
+                GROUP BY entry.entry_id;
+                """ % (normalized_formula, space_group_number))
 
-        results = cur.fetchall()
-        # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
-        # All SQL queries done
+            results = cur.fetchall()
+            # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
+            # All SQL queries done
 
-        # Storing 'results' in a dictionary
-        dbdict = {}
-        for ituple in results:
-            # 'spr' means 'springer'
-            spr_id = ituple[0]
-            spr_aformula = ituple[1]  # alphabetical formula
-            spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
-            spr_compound = ituple[2].split(',')  # split to convert string to list
-            spr_classification = ituple[3].split(',')
-            #
-            spr_compound.sort()
-            spr_classification.sort()
-            #
-            dbdict[spr_id] = {'spr_id': spr_id,
-                              'spr_aformula': spr_aformula,
-                              'spr_url': spr_url,
-                              'spr_compound': spr_compound,
-                              'spr_classification': spr_classification}
+            # Storing 'results' in a dictionary
+            dbdict = {}
+            for ituple in results:
+                # 'spr' means 'springer'
+                spr_id = ituple[0]
+                spr_aformula = ituple[1]  # alphabetical formula
+                spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
+                spr_compound = ituple[2].split(',')  # split to convert string to list
+                spr_classification = ituple[3].split(',')
+                #
+                spr_compound.sort()
+                spr_classification.sort()
+                #
+                dbdict[spr_id] = {
+                    'spr_id': spr_id,
+                    'spr_aformula': spr_aformula,
+                    'spr_url': spr_url,
+                    'spr_compound': spr_compound,
+                    'spr_classification': spr_classification}
+
+        elif database == 'msgpack':
+            dbdict = query_springer_data(normalized_formula, space_group_number)
+
         # =============
 
         # SPRINGER's METAINFO UPDATE

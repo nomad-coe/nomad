@@ -50,7 +50,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple
+from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any
 import os.path
 import os
 import shutil
@@ -58,10 +58,11 @@ import tarfile
 import hashlib
 import io
 import pickle
+import json
 
 from nomad import config, utils
 from nomad.datamodel import UploadWithMetadata
-
+from nomad.archive import write_archive
 
 # TODO this should become obsolete, once we are going beyong python 3.6. For now
 # python 3.6's zipfile does not allow to seek/tell within a file-like opened from a
@@ -134,7 +135,10 @@ class PathObject:
         parent_directory = os.path.dirname(self.os_path)
         parent_name = os.path.basename(parent_directory)
 
-        shutil.rmtree(self.os_path)
+        if os.path.isfile(self.os_path):
+            os.remove(self.os_path)
+        else:
+            shutil.rmtree(self.os_path)
 
         if len(parent_name) == config.fs.prefix_size and basename.startswith(parent_name):
             try:
@@ -370,6 +374,11 @@ class StagingUploadFiles(UploadFiles):
             raise Restricted
         return self._file(self.archive_file_object(calc_id), *args, **kwargs)
 
+    def archive_file_msg(self, calc_id: str, *args, **kwargs) -> List[None]:
+        if not self._is_authorized():
+            raise Restricted
+        return [None, None]
+
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
             raise Restricted
@@ -485,16 +494,46 @@ class StagingUploadFiles(UploadFiles):
             file = target_dir.join_file('%s-%s.%s.zip' % (kind, prefix, ext))
             return zipfile.ZipFile(file.os_path, mode='w')
 
+        def write_msgfile(kind: str, prefix: str, ext: str, size: int, data: Iterable[Tuple[str, Any]]):
+            file = target_dir.join_file('%s-%s.%s.msg' % (kind, prefix, ext))
+            write_archive(file.os_path, size, data)
+
         # zip archives
         if not skip_archive:
-            self._pack_archive_files(upload, create_zipfile)
-        self.logger.info('packed archives')
+            with utils.timer(self.logger, 'packed zip json archive'):
+                self._pack_archive_files(upload, create_zipfile)
+            with utils.timer(self.logger, 'packed msgpack archive'):
+                self._pack_archive_files_msgpack(upload, write_msgfile)
 
         # zip raw files
         if not skip_raw:
-            self._pack_raw_files(upload, create_zipfile)
+            with utils.timer(self.logger, 'packed raw files'):
+                self._pack_raw_files(upload, create_zipfile)
 
-        self.logger.info('packed raw files')
+    def _pack_archive_files_msgpack(self, upload: UploadWithMetadata, write_msgfile):
+        restricted, public = 0, 0
+        for calc in upload.calcs:
+            if calc.with_embargo:
+                restricted += 1
+            else:
+                public += 1
+
+        def create_iterator(with_embargo: bool):
+            for calc in upload.calcs:
+                if with_embargo == calc.with_embargo:
+                    archive_file = self.archive_file_object(calc.calc_id)
+                    if archive_file.exists():
+                        with open(archive_file.os_path, 'rt') as f:
+                            yield (calc.calc_id, json.load(f))
+                    else:
+                        yield (calc.calc_id, {})
+
+        try:
+            write_msgfile('archive', 'public', self._archive_ext, public, create_iterator(False))
+            write_msgfile('archive', 'restricted', self._archive_ext, restricted, create_iterator(True))
+
+        except Exception as e:
+            self.logger.error('exception during packing archives', exc_info=e)
 
     def _pack_archive_files(self, upload: UploadWithMetadata, create_zipfile):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
@@ -740,6 +779,9 @@ class PublicUploadFiles(UploadFiles):
     def get_zip_file(self, prefix: str, access: str, ext: str) -> PathObject:
         return self.join_file('%s-%s.%s.zip' % (prefix, access, ext))
 
+    def get_msg_file(self, prefix: str, access: str, ext: str) -> PathObject:
+        return self.join_file('%s-%s.%s.msg' % (prefix, access, ext))
+
     def open_zip_file(self, prefix: str, access: str, ext: str) -> zipfile.ZipFile:
         zip_path = self.get_zip_file(prefix, access, ext).os_path
         if self._zipfile_cache is None:
@@ -751,6 +793,18 @@ class PublicUploadFiles(UploadFiles):
                 f = zipfile.ZipFile(zip_path)
                 self._zipfile_cache[zip_path] = f
 
+            return f
+
+    def open_msg_file(self, prefix: str, access: str, ext: str) -> IO:
+        msg_path = self.get_msg_file(prefix, access, ext).os_path
+        if self._zipfile_cache is None:
+            return open(msg_path, 'rb')
+        else:
+            if msg_path in self._zipfile_cache:
+                f = self._zipfile_cache[msg_path]
+            else:
+                f = open(msg_path, 'rb')
+                self._zipfile_cache[msg_path] = f
             return f
 
     def _file(self, prefix: str, ext: str, path: str, *args, **kwargs) -> IO:
@@ -779,16 +833,29 @@ class PublicUploadFiles(UploadFiles):
 
         raise KeyError(path)
 
+    def _file_msg(self, prefix: str, access: str, ext: str, *args, **kwargs) -> IO:
+        try:
+            if access == 'restricted' and not self._is_authorized():
+                return None
+
+            return self.open_msg_file(prefix, access, ext)
+        except FileNotFoundError:
+            return None
+        except IsADirectoryError:
+            return None
+        except KeyError:
+            raise
+
     def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
         exists = False
         try:
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self)
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, is_authorized=lambda: True)
             exists = True
         except KeyError:
             if not create:
                 return None
 
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, create=True)
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, create=True, is_authorized=lambda: True)
             staging_upload_files.extract(**kwargs)
 
         if exists and create:
@@ -859,6 +926,11 @@ class PublicUploadFiles(UploadFiles):
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
         return self._file('archive', self._archive_ext, '%s.%s' % (calc_id, self._archive_ext), *args, **kwargs)
 
+    def archive_file_msgs(self, *args, **kwargs) -> Tuple[IO, IO]:
+        return (
+            self._file_msg('archive', 'public', self._archive_ext, *args, **kwargs),
+            self._file_msg('archive', 'restricted', self._archive_ext, *args, **kwargs))
+
     def archive_file_size(self, calc_id: str) -> int:
         file_path = '%s.%s' % (calc_id, self._archive_ext)
         for access in ['public', 'restricted']:
@@ -912,10 +984,15 @@ class PublicUploadFiles(UploadFiles):
             file = self.join_file('%s-%s.%s.repacked.zip' % (kind, prefix, ext))
             return zipfile.ZipFile(file.os_path, mode='w')
 
+        def write_msgfile(kind: str, prefix: str, ext: str, size: int, data: Iterable[Tuple[str, Any]]):
+            file = self.join_file('%s-%s.%s.repacked.msg' % (kind, prefix, ext))
+            write_archive(file.os_path, size, data)
+
         # perform the repacking
         try:
             if not skip_archive:
                 staging_upload._pack_archive_files(upload, create_zipfile)
+                staging_upload._pack_archive_files_msgpack(upload, write_msgfile)
             if not skip_raw:
                 staging_upload._pack_raw_files(upload, create_zipfile)
         finally:
@@ -936,3 +1013,8 @@ class PublicUploadFiles(UploadFiles):
             for zip_file in self._zipfile_cache.values():
                 zip_file.close()
         self._zipfile_cache = None
+
+
+for directory in [config.fs.public, config.fs.staging, config.fs.tmp]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)

@@ -671,15 +671,19 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_get_code_from_query(self, api, processeds, test_user_auth):
-        query_params = {'atoms': 'Si', 'res_type': 'json', 'order': 1, 'per_page': 5}
-        url = '/archive/query?%s' % urlencode(query_params)
-        rv = api.get(url, headers=test_user_auth)
+    def test_post_archive_query(self, api, published_wo_user_metadata):
+        schema = {
+            'section_run': {
+                'section_single_configuration_calculation': {
+                    'energy_total': '*'}}}
+        data = {'results': [schema], 'per_page': 5}
+        uri = '/archive/query'
+        rv = api.post(uri, content_type='application/json', data=json.dumps(data))
         assert rv.status_code == 200
-        data = json.loads(rv.data)
-        assert isinstance(data, dict)
-        assert data['results'] is not None
-        assert data['python'] is not None
+        data = rv.get_json()
+        assert data
+        results = data.get('results', None)
+        assert results is not None
 
 
 class TestRepo():
@@ -1431,6 +1435,10 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 200
         result = json.loads(rv.data)
         assert len(result['contents']) > 0
+
+        url = '/raw/calc/%s/not_existing/' % (non_empty_processed.upload_id)
+        rv = api.get(url, headers=test_user_auth)
+        assert rv.status_code == 404
 
     @UploadFilesBasedTests.check_authorization
     def test_raw_file(self, api, upload, auth_headers):

@@ -48,6 +48,7 @@ example_file_contents = [
     'examples_template/4.aux']
 example_file_mainfile = 'examples_template/template.json'
 empty_file = 'tests/data/proc/empty.zip'
+example_archive_contents = '{"archive": true}'
 
 example_bucket = 'test_bucket'
 example_data = dict(test_key='test_value')
@@ -260,10 +261,10 @@ class UploadFilesContract(UploadFilesFixtures):
         try:
             if test_logs:
                 with upload_files.archive_log_file(example_calc_id, 'rt') as f:
-                    assert f.read() == 'archive'
+                    assert f.read() == example_archive_contents
             else:
                 f = upload_files.archive_file(example_calc_id, 'rt')
-                assert json.load(f) == 'archive'
+                assert json.load(f) == json.loads(example_archive_contents)
 
             if not upload_files._is_authorized():
                 assert not calcs.get(example_calc_id).with_embargo
@@ -318,9 +319,9 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithF
         upload_files.add_rawfiles(calc_file)
 
         with upload_files.archive_file(calc.calc_id, 'wt') as f:
-            f.write('"archive"')
+            f.write(example_archive_contents)
         with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
-            f.write('archive')
+            f.write(example_archive_contents)
 
         calcs.append(calc)
         prefix += 1
@@ -353,7 +354,7 @@ class TestStagingUploadFiles(UploadFilesContract):
 
     def test_write_archive(self, test_upload: StagingUploadWithFiles):
         _, upload_files = test_upload
-        assert json.load(upload_files.archive_file(example_calc_id, 'rt')) == 'archive'
+        assert json.load(upload_files.archive_file(example_calc_id, 'rt')) == json.loads(example_archive_contents)
 
     def test_calc_id(self, test_upload: StagingUploadWithFiles):
         _, upload_files = test_upload
@@ -443,11 +444,11 @@ class TestPublicUploadFiles(UploadFilesContract):
         # We do a very simple check. We made all files empty, those that are rezipped
         # by pack, should not be empty anymore.
         new_sizes = list(os.path.getsize(f) for f in all_files)
-        for f, new in zip(all_files, new_sizes):
-            if 'archive' in f:
-                assert new > 0
+        for file_name, new in zip(all_files, new_sizes):
+            if 'archive' in file_name:
+                assert new > 0, file_name
             else:
-                assert new == 0
+                assert new == 0, file_name
 
         assert upload_files.to_staging_upload_files() is None
 
@@ -457,7 +458,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             calc.with_embargo = False
         upload_files.re_pack(upload)
         assert_upload_files(upload, PublicUploadFiles, with_embargo=False)
-        assert len(os.listdir(upload_files.os_path)) == 4
+        assert len(os.listdir(upload_files.os_path)) == 8
         with assert_exception(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 

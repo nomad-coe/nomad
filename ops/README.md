@@ -9,10 +9,3 @@ respective images.
 
 The NOMAD specific images are provide by our
 [gitlab container registry](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/container_registry).
-To access these container you have to login without MPCDF gitlab account:
-
-```
-docker login gitlab-registry.mpcdf.mpg.de/nomad-lab
-```
-
-There are two basic options to run all these containers: docker-compose and kubernetes.

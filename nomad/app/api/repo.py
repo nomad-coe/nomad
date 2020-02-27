@@ -26,7 +26,7 @@ import elasticsearch.helpers
 from datetime import datetime
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure
-from nomad.datamodel import UserMetadata, Dataset, User
+from nomad.datamodel import UserMetadata, Dataset, User, Domain
 from nomad.app import common
 from nomad.app.common import RFC3339DateTime, DotKeyNested
 
@@ -98,17 +98,18 @@ _repo_calcs_model_fields = {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(search.metrics_names))),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
-}
+        ' metrics over all results. ' % ', '.join(search.metrics_names)))}
+
 for group_name, (group_quantity, _) in search.groups.items():
     _repo_calcs_model_fields[group_name] = (DotKeyNested if '.' in group_name else fields.Nested)(api.model('RepoGroup', {
         'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
         'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
     }), skip_none=True)
+
+for quantity in Domain.all_quantities():
+    _repo_calcs_model_fields[quantity.name] = fields.Raw(
+        description=quantity.description, allow_null=True, skip_none=True)
+
 _repo_calcs_model = api.inherit('RepoCalculations', search_model, _repo_calcs_model_fields)
 
 

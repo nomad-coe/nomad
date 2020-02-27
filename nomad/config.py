@@ -99,7 +99,6 @@ fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
     public='.volumes/fs/public',
-    migration_packages='.volumes/fs/migration_packages',
     local_tmp='/tmp',
     prefix_size=2,
     working_directory=os.getcwd()
@@ -112,14 +111,13 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    server_external_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
-    client_id='nomad_api_dev',
-    client_secret='**********',
-    public_client_id='nomad_public')
+    client_id='nomad_public',
+    client_secret=None,
+    oasis=False)
 
 mongo = NomadConfig(
     host='localhost',
@@ -208,7 +206,7 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.8'
+version = '0.7.10'
 commit = gitinfo.commit
 release = 'devel'
 default_domain = 'dft'
@@ -219,6 +217,7 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
+reprocess_unmatched = True
 
 
 springer_db_relative_path = 'normalizing/data/SM_all08.db'
@@ -307,7 +306,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
         config_file: Override the configfile, default is file stored in env variable
             NOMAD_CONFIG or ``nomad.yaml``.
     """
-    # load yaml and override defaults
+    # load yaml and override defaults (only when not in test)
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:
             try:
