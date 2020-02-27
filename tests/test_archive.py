@@ -85,7 +85,6 @@ def test_write_archive_empty():
 
 def test_write_archive_single(example_uuid, example_entry):
     f = BytesIO()
-    print('#', len(example_uuid))
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
     archive = _unpack(packed_archive)
