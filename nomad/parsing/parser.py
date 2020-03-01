@@ -29,10 +29,10 @@ from nomad.parsing.backend import LocalBackend
 
 
 class Parser(metaclass=ABCMeta):
-    """
+    '''
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
-    """
+    '''
 
     def __init__(self):
         self.domain = 'dft'
@@ -41,7 +41,7 @@ class Parser(metaclass=ABCMeta):
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
             compression: str = None) -> bool:
-        """
+        '''
         Checks if a file is a mainfile for the parsers.
 
         Arguments:
@@ -49,12 +49,12 @@ class Parser(metaclass=ABCMeta):
             mime: The mimetype of the mainfile guessed with libmagic
             buffer: The first 2k of the mainfile contents
             compression: The compression of the mainfile ``[None, 'gz', 'bz2']``
-        """
+        '''
         pass
 
     @abstractmethod
     def run(self, mainfile: str, logger=None) -> LocalBackend:
-        """
+        '''
         Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
         a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
 
@@ -64,14 +64,14 @@ class Parser(metaclass=ABCMeta):
 
         Returns:
             The used :class:`LocalBackend` with status information and result data.
-        """
+        '''
 
 
 class BrokenParser(Parser):
-    """
+    '''
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
-    """
+    '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'parser/broken'
@@ -97,7 +97,7 @@ class BrokenParser(Parser):
 
 
 class MatchingParser(Parser):
-    """
+    '''
     A parser implementation that used regular experessions to match mainfiles.
 
     Arguments:
@@ -107,7 +107,7 @@ class MatchingParser(Parser):
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
         domain: The domain that this parser should be used for. Default is 'dft'.
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
-    """
+    '''
     def __init__(
             self, name: str, code_name: str,
             mainfile_contents_re: str = None,
@@ -153,10 +153,10 @@ class MatchingParser(Parser):
 
 
 class MissingParser(MatchingParser):
-    """
+    '''
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
-    """
+    '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -165,14 +165,14 @@ class MissingParser(MatchingParser):
 
 
 class LegacyParser(MatchingParser):
-    """
+    '''
     A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
     are installed to the python environment.
 
     Arguments:
         parser_class_name: the main parser class that implements NOMAD-coe's
         backend_factory: a callable that returns a backend, takes meta_info and logger as argument
-    """
+    '''
     def __init__(self, parser_class_name: str, *args, backend_factory=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -212,11 +212,11 @@ class LegacyParser(MatchingParser):
 
 
 class VaspOutcarParser(LegacyParser):
-    """
+    '''
     LegacyParser that only matches mailfiles, if there is no .xml in the
     same directory, i.e. to use the VASP OUTCAR parser in absence of .xml
     output file.
-    """
+    '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'parsers/vaspoutcar'

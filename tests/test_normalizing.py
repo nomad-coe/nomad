@@ -50,36 +50,36 @@ vasp_parser_dos = (
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
-symmetry_keys = ['spacegroup', 'spacegroup_symbol', 'crystal_system']
+symmetry_keys = ['dft.spacegroup', 'dft.spacegroup_symbol', 'dft.crystal_system']
 calc_metadata_keys = [
-    'code_name', 'code_version', 'basis_set', 'xc_functional', 'system', 'formula'] + symmetry_keys
+    'dft.code_name', 'dft.code_version', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'formula'] + symmetry_keys
 
 parser_exceptions = {
-    'parsers/wien2k': ['xc_functional'],
+    'parsers/wien2k': ['dft.xc_functional'],
     'parsers/nwchem': symmetry_keys,
     'parsers/bigdft': symmetry_keys,
     'parsers/gaussian': symmetry_keys,
-    'parsers/abinit': ['formula', 'system'] + symmetry_keys,
-    'parsers/dl-poly': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys,
-    'parsers/lib-atoms': ['basis_set', 'xc_functional'],
+    'parsers/abinit': ['formula', 'dft.system'] + symmetry_keys,
+    'parsers/dl-poly': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys,
+    'parsers/lib-atoms': ['dft.basis_set', 'dft.xc_functional'],
     'parsers/orca': symmetry_keys,
     'parsers/octopus': symmetry_keys,
-    'parsers/phonopy': ['basis_set', 'xc_functional'],
+    'parsers/phonopy': ['dft.basis_set', 'dft.xc_functional'],
     'parsers/gpaw2': symmetry_keys,
-    'parsers/gamess': ['formula', 'system'] + symmetry_keys,
-    'parsers/gulp': ['formula', 'xc_functional', 'system', 'basis_set'] + symmetry_keys,
+    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional'] + symmetry_keys,
+    'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'] + symmetry_keys,
     'parsers/turbomole': symmetry_keys,
-    'parsers/elastic': ['basis_set', 'xc_functional', 'system'] + symmetry_keys,
-    'parsers/dmol': ['system'] + symmetry_keys,
+    'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys,
+    'parsers/dmol': ['dft.system'] + symmetry_keys,
     'parser/molcas': symmetry_keys,
-    'parsers/band': ['system'] + symmetry_keys,
-    'parsers/qbox': ['xc_functional'],
-    'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system'] + symmetry_keys
+    'parsers/band': ['dft.system'] + symmetry_keys,
+    'parsers/qbox': ['dft.xc_functional'],
+    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys
 }
-"""
+'''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
 map would be empty.
-"""
+'''
 
 
 def run_normalize(backend: LocalBackend) -> LocalBackend:
@@ -209,17 +209,17 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend: LocalBackend):
-    metadata = datamodel.DFTCalcWithMetadata()
+    metadata = datamodel.EntryMetadata(domain='dft')
     metadata.apply_domain_metadata(backend)
     assert metadata.formula is not None
-    assert metadata.code_name is not None
-    assert metadata.code_version is not None
-    assert metadata.basis_set is not None
-    assert metadata.xc_functional is not None
-    assert metadata.system is not None
-    assert metadata.crystal_system is not None
+    assert metadata.dft.code_name is not None
+    assert metadata.dft.code_version is not None
+    assert metadata.dft.basis_set is not None
+    assert metadata.dft.xc_functional is not None
+    assert metadata.dft.system is not None
+    assert metadata.dft.crystal_system is not None
     assert len(metadata.atoms) is not None
-    assert metadata.spacegroup is not None
+    assert metadata.dft.spacegroup is not None
 
     exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
 
@@ -228,7 +228,7 @@ def assert_normalized(backend: LocalBackend):
 
     for key in calc_metadata_keys:
         if key not in exceptions:
-            assert getattr(metadata, key) != config.services.unavailable_value
+            assert metadata[key] != config.services.unavailable_value
 
 
 def test_normalizer(normalized_example: LocalBackend):
@@ -236,7 +236,7 @@ def test_normalizer(normalized_example: LocalBackend):
 
 
 def test_normalizer_faulty_matid(caplog):
-    """ Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
+    ''' Runs normalizer on an example w/ bools for atom pos. Should force matid error.'''
     # assert isinstance(backend, LocalBackend)
     backend = parse_file(boolean_positions)
     run_normalize(backend)
@@ -245,26 +245,26 @@ def test_normalizer_faulty_matid(caplog):
 
 
 def test_normalizer_single_string_atom_labels(caplog):
-    """
+    '''
     Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
     the numbers of postitions should not match the labels.
-    """
+    '''
     backend = parse_file(single_string_atom_labels)
     run_normalize(backend)
     assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
 
 
 def test_normalizer_unknown_atom_label(caplog, no_warn):
-    """ Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
+    ''' Runs normalizer on ['Br','Si','Si','Za'], for normalizeation Za will be replaced,
         but stays int the labels.
-    """
+    '''
     backend = parse_file(unknown_atom_label)
     run_normalize(backend)
     assert backend.get_value('atom_labels')[3] == 'Za'
 
 
 def test_symmetry_classification_fcc():
-    """Runs normalizer where lattice vectors should give fcc symmetry."""
+    '''Runs normalizer where lattice vectors should give fcc symmetry.'''
     backend = parse_file(fcc_symmetry)
     backend = run_normalize(backend)
     expected_crystal_system = 'cubic'
@@ -297,9 +297,9 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
-    """Checks that the representative systems are correctly identified and
+    '''Checks that the representative systems are correctly identified and
     processed by SystemNormalizer.
-    """
+    '''
     def check_representative_frames(backend):
         # For systems with multiple frames the first and two last should be processed.
         try:
@@ -343,9 +343,9 @@ def test_reduced_chemical_formula():
 
 
 def test_vasp_incar_system():
-    """
+    '''
     Ensure we can test an incar value in the VASP example
-    """
+    '''
     backend = parse_file(vasp_parser)
     backend = run_normalize(backend)
     expected_value = 'SrTiO3'  # material's formula in vasp.xml
@@ -359,8 +359,8 @@ def test_vasp_incar_system():
 
 
 def test_aflow_prototypes():
-    """Tests that some basis structures are matched with the correct AFLOW prototypes
-    """
+    '''Tests that some basis structures are matched with the correct AFLOW prototypes
+    '''
     # No prototype info for non-bulk structures
     backend = run_normalize_for_structure(ase.build.molecule("H2O"))
     assert len(backend["section_prototype"]) == 0
@@ -422,9 +422,9 @@ def test_aflow_prototypes():
 
 
 def test_springer_normalizer():
-    """
+    '''
     Ensure the Springer normalizer works well with the VASP example.
-    """
+    '''
     backend = parse_file(vasp_parser)
     backend = run_normalize(backend)
 
@@ -442,9 +442,9 @@ def test_springer_normalizer():
 
 
 def test_dos_normalizer():
-    """
+    '''
     Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
-    """
+    '''
     backend = parse_file(vasp_parser_dos)
     backend = run_normalize(backend)
 

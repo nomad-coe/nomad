@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Contains interfaces to the archive metainfo and query.
 
 In module ``ArchiveMetainfo``, the data is provided either from raw
@@ -32,7 +32,7 @@ and a query schema similar to the archive json format can be provided to filter 
     metainfo = q.query()
     for c in metainfo.calcs:
         print(c.section_run.section_single_configuration_calculation[0]({'energy_total':'*'}))
-"""
+'''
 
 import numpy as np
 import requests
@@ -47,11 +47,11 @@ from nomad.cli.client.client import KeycloakAuthenticator
 
 
 class ArchiveMetainfo:
-    """
+    '''
     Converts archive data in json format to the new nomad metainfo model
     Arguments:
         archive_data: the archive data in json format
-    """
+    '''
     def __init__(self, archive_data: List[Dict[str, Any]]):
         self._archive_data = archive_data
         self.metainfo = None
@@ -107,10 +107,10 @@ class ArchiveMetainfo:
 
     @property
     def calcs(self):
-        """
+        '''
         Calculations in metainfo form which can be actively queried by using the get
         functionality and providing a schema
-        """
+        '''
         if not self._calcs:
             self._init_calcs()
         for calc_id, calc in self._calcs.items():
@@ -126,9 +126,9 @@ class ArchiveMetainfo:
 
     @property
     def base_metacls(self):
-        """
+        '''
         The base metaclass to apply a calculation
-        """
+        '''
         if self._base_metacls is None:
             name = self._prefix
             self._base_metacls = self._build_meta_cls(self.base_data, name)

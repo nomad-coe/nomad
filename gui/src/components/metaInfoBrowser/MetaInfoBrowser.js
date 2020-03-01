@@ -89,7 +89,7 @@ class MetaInfoBrowser extends Component {
 
   update(pkg) {
     this.props.api.getInfo().then(info => {
-      const domain = info.domains.find(domain => domain.name === 'dft')  // TODO deal with domains
+      const domain = info.domains.find(domain => domain.name === 'dft') // TODO deal with domains
       this.props.api.getMetaInfo(pkg || domain.metainfo.all_package).then(metainfos => {
         const metainfoName = this.props.metainfo || domain.metainfo.root_sections[0]
         const definition = metainfos.get(metainfoName)
@@ -108,7 +108,7 @@ class MetaInfoBrowser extends Component {
 
   init() {
     this.props.api.getInfo().then(info => {
-      const domain = info.domains.find(domain => domain.name === 'dft')  // TODO deal with domains
+      const domain = info.domains.find(domain => domain.name === 'dft') // TODO deal with domains
       this.props.api.getMetaInfo(domain.metainfo.all_package).then(metainfos => {
         const metainfoName = this.props.metainfo || domain.metainfo.root_sections[0]
         const definition = metainfos.get(metainfoName)

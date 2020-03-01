@@ -45,7 +45,7 @@ def assert_section_instance(section: MSection):
 
 
 class TestM3:
-    """ Test for meta-info definition that are used to define other definitions. """
+    ''' Test for meta-info definition that are used to define other definitions. '''
 
     def test_section(self):
         assert Section.m_def == Section.m_def.m_def
@@ -84,7 +84,7 @@ class TestM3:
 
 
 class TestPureReflection:
-    """ Test for using meta-info instances without knowing/using the respective definitions. """
+    ''' Test for using meta-info instances without knowing/using the respective definitions. '''
 
     def test_instantiation(self):
         test_section_def = Section(name='TestSection')
@@ -98,19 +98,19 @@ class TestPureReflection:
 
 
 class MaterialDefining(MCategory):
-    """Quantities that add to what constitutes a different material."""
+    '''Quantities that add to what constitutes a different material.'''
     pass
 
 
 class TestM2:
-    """ Test for meta-info definitions. """
+    ''' Test for meta-info definitions. '''
 
     def test_basics(self):
         assert_section_def(Run.m_def)
         assert_section_def(System.m_def)
 
     def test_default_section_def(self):
-        """ A section class without an explicit section def must set a default section def. """
+        ''' A section class without an explicit section def must set a default section def. '''
         assert Run.m_def is not None
         assert Run.m_def.name == 'Run'
 
@@ -231,9 +231,12 @@ class TestM2:
     def test_qualified_name(self):
         assert System.m_def.qualified_name() == 'nomad.metainfo.example.System'
 
+    def test_derived_virtual(self):
+        assert System.n_atoms.virtual
+
 
 class TestM1:
-    """ Test for meta-info instances. """
+    ''' Test for meta-info instances. '''
 
     def test_run(self):
         class Run(MSection):
@@ -256,6 +259,30 @@ class TestM1:
         assert len(system.atom_labels) == 1
 
         assert_section_instance(system)
+
+    def test_set_none(self):
+        run = Run()
+        run.code_name = 'test'
+        assert run.code_name is not None
+
+        run.code_name = None
+        assert run.code_name is None
+
+    def test_set_subsection(self):
+        run = Run()
+        first = Parsing()
+        run.parsing = first
+        assert first.m_parent == run
+        assert run.parsing == first
+
+        second = Parsing()
+        run.parsing = second
+        assert first.m_parent is None
+        assert second.m_parent == run
+        assert run.parsing == second
+
+        run.parsing = None
+        assert run.parsing is None
 
     def test_defaults(self):
         assert len(System().periodic_dimensions) == 3
@@ -333,6 +360,7 @@ class TestM1:
     def example_data(self):
         run = Run()
         run.code_name = 'test code name'
+        run.m_create(Parsing)
         system: System = run.m_create(System)
         system.atom_labels = ['H', 'H', 'O']
         system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
@@ -355,6 +383,15 @@ class TestM1:
         new_example_data = Run.m_from_dict(dct)
 
         self.assert_example_data(new_example_data)
+
+    def test_to_dict_defaults(self, example_data):
+        dct = example_data.m_to_dict()
+        assert 'nomad_version' not in dct['parsing']
+        assert 'n_atoms' not in dct['systems'][0]
+
+        dct = example_data.m_to_dict(include_defaults=True)
+        assert 'nomad_version' in dct['parsing']
+        assert 'n_atoms' not in dct['systems'][0]
 
     def test_derived(self):
         system = System()
@@ -411,6 +448,17 @@ class TestM1:
         run.m_create(System)
 
         assert len(resource.all(System)) == 2
+
+    def test_mapping(self):
+        run = Run()
+        run.m_create(Parsing).parser_name = 'test'
+        system = run.m_create(System)
+        system.atom_labels = ['H', 'O']
+
+        assert run.systems[0].atom_labels == ['H', 'O']
+        assert run['systems.0.atom_labels'] == ['H', 'O']
+        assert run['systems/0/atom_labels'] == ['H', 'O']
+        assert run['parsing.parser_name'] == 'test'
 
 
 class TestEnvironment:

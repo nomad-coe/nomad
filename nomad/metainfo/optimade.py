@@ -1,10 +1,12 @@
 from ase.data import chemical_symbols
-from elasticsearch_dsl import Keyword, Integer, Float, InnerDoc, Nested
+from elasticsearch_dsl import Keyword, Float, InnerDoc, Nested
 import numpy as np
 
 from . import MSection, Section, Quantity, SubSection, MEnum, units
-from .elastic import elastic_mapping
+from .search import SearchQuantity
 
+
+# TODO move the module
 
 def optimade_links(section: str):
     return [
@@ -29,11 +31,11 @@ class Optimade():
 
 
 class Species(MSection):
-    """
+    '''
     Used to describe the species of the sites of this structure. Species can be pure
     chemical elements, or virtual-crystal atoms representing a statistical occupation of a
     given site by multiple chemical elements.
-    """
+    '''
 
     m_def = Section(links=optimade_links('h.6.2.13'))
 
@@ -96,13 +98,12 @@ class Species(MSection):
 class OptimadeEntry(MSection):
     m_def = Section(
         links=optimade_links('h.6.2'),
-        a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc))
+        a_flask=dict(skip_none=True))
 
     elements = Quantity(
         type=MEnum(chemical_symbols), shape=['1..*'],
         links=optimade_links('h.6.2.1'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             Names of the different elements present in the structure.
@@ -111,7 +112,7 @@ class OptimadeEntry(MSection):
     nelements = Quantity(
         type=int,
         links=optimade_links('h.6.2.2'),
-        a_elastic=dict(type=Integer),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             Number of different elements in the structure as an integer.
@@ -120,7 +121,7 @@ class OptimadeEntry(MSection):
     elements_ratios = Quantity(
         type=float, shape=['nelements'],
         links=optimade_links('h.6.2.3'),
-        a_elastic=dict(type=lambda: Nested(ElementRatio), mapping=ElementRatio.from_structure_entry),
+        a_search=SearchQuantity(es_mapping=Nested(ElementRatio), es_value=ElementRatio.from_structure_entry),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             Relative proportions of different elements in the structure.
@@ -129,7 +130,7 @@ class OptimadeEntry(MSection):
     chemical_formula_descriptive = Quantity(
         type=str,
         links=optimade_links('h.6.2.4'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The chemical formula for a structure as a string in a form chosen by the API
@@ -139,7 +140,7 @@ class OptimadeEntry(MSection):
     chemical_formula_reduced = Quantity(
         type=str,
         links=optimade_links('h.6.2.5'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The reduced chemical formula for a structure as a string with element symbols and
@@ -149,7 +150,7 @@ class OptimadeEntry(MSection):
     chemical_formula_hill = Quantity(
         type=str,
         links=optimade_links('h.6.2.6'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=False),
         description='''
             The chemical formula for a structure in Hill form with element symbols followed by
@@ -159,7 +160,7 @@ class OptimadeEntry(MSection):
     chemical_formula_anonymous = Quantity(
         type=str,
         links=optimade_links('h.6.2.7'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             The anonymous formula is the chemical_formula_reduced, but where the elements are
@@ -171,7 +172,7 @@ class OptimadeEntry(MSection):
     dimension_types = Quantity(
         type=int, shape=[3],
         links=optimade_links('h.6.2.8'),
-        a_elastic=dict(type=Integer, mapping=lambda a: sum(a.dimension_types)),
+        a_search=SearchQuantity(es_value=lambda a: sum(a.dimension_types)),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             List of three integers. For each of the three directions indicated by the three lattice
@@ -201,7 +202,7 @@ class OptimadeEntry(MSection):
     nsites = Quantity(
         type=int,
         links=optimade_links('h.6.2.11'),
-        a_elastic=dict(type=Integer),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True), description='''
             An integer specifying the length of the cartesian_site_positions property.
         ''')
@@ -220,7 +221,7 @@ class OptimadeEntry(MSection):
     structure_features = Quantity(
         type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
         links=optimade_links('h.6.2.15'),
-        a_elastic=dict(type=Keyword),
+        a_search=SearchQuantity(),
         a_optimade=Optimade(query=True, entry=True), description='''
             A list of strings that flag which special features are used by the structure.
 
@@ -232,6 +233,3 @@ class OptimadeEntry(MSection):
         ''')
 
     species = SubSection(sub_section=Species.m_def, repeats=True)
-
-
-ESOptimadeEntry = elastic_mapping(OptimadeEntry.m_def, InnerDoc)

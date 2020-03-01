@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Adds mongoengine supports to the metainfo. Allows to create, save, and get metainfo
 sections from mongoengine. Currently no sub-section support. The annotation key is "a_me",
 the annotation object support the following keys:
 
 - ``primary_key``: *Bool*, renders the quantity to be the primary key.
 - ``index``: *Bool*, adds this quantity to the index
-"""
+'''
 
 from typing import Any, Dict
 import mongoengine as me

@@ -36,10 +36,10 @@ def test_get_entry(published: Upload):
         data = json.load(f)
     assert 'OptimadeEntry' in data
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'dft.optimade' in search.flat(search_result)
+    assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
 
 
-def test_no_optimade(meta_info, elastic, api):
+def test_no_optimade(meta_info, mongo, elastic, api):
     create_test_structure(meta_info, 1, 2, 1, [], 0)
     create_test_structure(meta_info, 2, 2, 1, [], 0, optimade=False)
     search.refresh()

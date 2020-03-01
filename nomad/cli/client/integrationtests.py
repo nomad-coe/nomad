@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 A command that runs some example operations on a working nomad@FAIRDI installation
 as a final integration test.
-"""
+'''
 
 import time
 import os

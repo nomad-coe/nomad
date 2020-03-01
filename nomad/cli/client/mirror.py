@@ -30,7 +30,7 @@ from .client import client
 
 
 __in_test = False
-""" Will be monkeypatched by tests to alter behavior for testing. """
+''' Will be monkeypatched by tests to alter behavior for testing. '''
 
 _Dataset = Dataset.m_def.m_x('me').me_cls
 __logger = utils.get_logger(__name__)
@@ -82,7 +82,7 @@ def transform_reference(reference):
 
 
 def v0Dot6(upload_data):
-    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+    ''' Inplace transforms v0.6.x upload data into v0.7.x upload data. '''
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)
@@ -318,7 +318,7 @@ def mirror(
             proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
-            search.index_all(upload.to_upload_with_metadata().calcs)
+            search.index_all(upload.entries_metadata())
 
         print(
             'Mirrored %s with %d calcs at %s' %

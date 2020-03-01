@@ -129,9 +129,9 @@ def test_processing_with_large_dir(test_user, proc_infra):
         assert len(calc.warnings) == 1
 
 
-def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -141,17 +141,17 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
+    entries = processed.entries_metadata(internal_example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, additional_keys, published=True)
+    assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+    assert_search_upload(entries, additional_keys, published=True)
 
-    assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
 
 
-def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -162,20 +162,20 @@ def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, 
     processed.publish_upload()
     processed.block_until_complete(interval=.01)
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
+    entries = processed.entries_metadata(internal_example_user_metadata)
 
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, additional_keys, published=True)
+    assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+    assert_search_upload(entries, additional_keys, published=True)
 
 
 def test_publish_failed(
-        non_empty_uploaded: Tuple[str, str], example_user_metadata, test_user,
+        non_empty_uploaded: Tuple[str, str], internal_example_user_metadata, test_user,
         monkeypatch, proc_infra):
 
     mock_failure(Calc, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -185,9 +185,9 @@ def test_publish_failed(
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
+    entries = processed.entries_metadata(internal_example_user_metadata)
 
-    assert_search_upload(upload, additional_keys, published=True, processed=False)
+    assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -211,7 +211,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
-def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, with_failure):
     if with_failure == 'not-matched':
         monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
 
@@ -249,7 +249,7 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     shutil.copyfile(
         raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
 
-    upload = published.to_upload_with_metadata(example_user_metadata)
+    entries = published.entries_metadata(internal_example_user_metadata)
 
     # reprocess
     monkeypatch.setattr('nomad.config.version', 're_process_test_version')
@@ -292,10 +292,10 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
         assert old_log_lines != new_log_lines
 
     # assert maintained user metadata (mongo+es)
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, published=True)
+    assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
+    assert_search_upload(entries, published=True)
     if with_failure not in ['after', 'not-matched']:
-        assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+        assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
     if with_failure not in ['after', 'not-matched']:
@@ -306,7 +306,7 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
-def test_re_pack(published: Upload, example_user_metadata, monkeypatch, with_failure):
+def test_re_pack(published: Upload, monkeypatch, with_failure):
     upload_id = published.upload_id
     calc = Calc.objects(upload_id=upload_id).first()
     assert calc.metadata['with_embargo']
@@ -403,6 +403,6 @@ def test_ems_data(proc_infra, test_user):
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
-    upload_with_metadata = upload.to_upload_with_metadata()
-    assert_upload_files(upload_with_metadata, StagingUploadFiles, published=False)
-    assert_search_upload(upload_with_metadata, additional_keys, published=False)
+    entries = upload.entries_metadata()
+    assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+    assert_search_upload(entries, additional_keys, published=False)

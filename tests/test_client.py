@@ -15,7 +15,7 @@
 import time
 
 from nomad.processing import SUCCESS
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import EntryMetadata
 
 from tests.test_files import example_file
 from tests.test_search import create_entry
@@ -37,8 +37,8 @@ def test_upload(bravado, proc_infra, no_warn):
 
 
 def test_get_repo_calc(bravado, proc_infra, raw_files):
-    create_entry(CalcWithMetadata(
-        domain='dft', calc_id=0, upload_id='test_upload', published=True, with_embargo=False))
+    create_entry(EntryMetadata(
+        domain='dft', calc_id='0', upload_id='test_upload', published=True, with_embargo=False))
     repo = bravado.repo.get_repo_calc(upload_id='test_upload', calc_id='0').response().result
     assert repo is not None
     assert repo['calc_id'] is not None

@@ -6,7 +6,7 @@ from .metainfo import Section, Quantity, Datetime
 
 
 def field(quantity: Quantity):
-    """ Returns a flask restplus field with quantity type and shape. """
+    ''' Returns a flask restplus field with quantity type and shape. '''
     field = None
     if quantity.type == int:
         field = fields.Integer

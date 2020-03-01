@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module provides function to establish connections to the database, searchengine, etc.
 infrastructure services. Usually everything is setup at once with :func:`setup`. This
 is run once for each *api* and *worker* process. Individual functions for partial setups
 exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.cli`, etc.
-"""
+'''
 
 import os.path
 import shutil
@@ -42,19 +42,19 @@ from nomad import config, utils
 logger = None
 
 elastic_client = None
-""" The elastic search client. """
+''' The elastic search client. '''
 
 mongo_client = None
-""" The pymongo mongodb client. """
+''' The pymongo mongodb client. '''
 
 
 def setup():
-    """
+    '''
     Uses the current configuration (nomad/config.py and environment) to setup all the
     infrastructure services (repository db, mongo, elastic search) and logging.
     Will create client instances for the databases and has to be called before they
     can be used.
-    """
+    '''
     setup_logging()
     setup_mongo()
     setup_elastic()
@@ -75,7 +75,7 @@ def setup_logging():
 
 
 def setup_mongo():
-    """ Creates connection to mongodb. """
+    ''' Creates connection to mongodb. '''
     global mongo_client
     try:
         mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
@@ -88,7 +88,7 @@ def setup_mongo():
 
 
 def setup_elastic():
-    """ Creates connection to elastic search. """
+    ''' Creates connection to elastic search. '''
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
@@ -111,10 +111,10 @@ def setup_elastic():
 
 
 class Keycloak():
-    """
+    '''
     A class that encapsulates all keycloak related functions for easier mocking and
     configuration
-    """
+    '''
     def __init__(self):
         self.__oidc_client = None
         self.__admin_client = None
@@ -148,7 +148,7 @@ class Keycloak():
         return self.__public_keys
 
     def authorize_flask(self, basic: bool = True) -> str:
-        """
+        '''
         Authorizes the current flask request with keycloak. Uses either Bearer or Basic
         authentication, depending on available headers in the request. Bearer auth is
         basically offline (besides retrieving and caching keycloaks public key for signature
@@ -157,7 +157,7 @@ class Keycloak():
         Will set ``g.user``, either with None or user data from the respective OIDC token.
 
         Returns: An error message or None
-        """
+        '''
         g.oidc_access_token = None
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
             g.oidc_access_token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -235,10 +235,10 @@ class Keycloak():
             pass
 
     def add_user(self, user, bcrypt_password=None, invite=False):
-        """
+        '''
         Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
         realm using the keycloak admin API.
-        """
+        '''
         from nomad import datamodel
         if not isinstance(user, datamodel.User):
             if 'user_id' not in user:
@@ -337,12 +337,12 @@ class Keycloak():
             for keycloak_user in keycloak_results]
 
     def get_user(self, user_id: str = None, username: str = None, user=None) -> object:
-        """
+        '''
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
         the info solely gathered from tokens (i.e. for the authenticated user ``g.user``)
         is generally incomplete.
-        """
+        '''
 
         if user is not None and user_id is None:
             user_id = user.user_id
@@ -390,7 +390,7 @@ keycloak = Keycloak()
 
 
 def reset(remove: bool):
-    """
+    '''
     Resets the databases mongo, elastic/calcs, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
@@ -398,7 +398,7 @@ def reset(remove: bool):
 
     Args:
         remove: Do not try to recreate empty databases, remove entirely.
-    """
+    '''
     try:
         if not mongo_client:
             setup_mongo()

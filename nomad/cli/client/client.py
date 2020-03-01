@@ -65,7 +65,7 @@ def __create_client(
         user: str = nomad_config.client.user,
         password: str = nomad_config.client.password,
         ssl_verify: bool = True, use_token: bool = True):
-    """ A factory method to create the client. """
+    ''' A factory method to create the client. '''
     if not ssl_verify:
         import warnings
         warnings.filterwarnings("ignore")

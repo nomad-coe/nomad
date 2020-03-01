@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Parser for creating artificial test, brenchmark, and demonstration data.
-"""
+'''
 
 import json
 import os.path
@@ -40,7 +40,7 @@ meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, 
 
 
 class ArtificalParser(Parser):
-    """ Base class for artifical parsers based on VASP metainfo. """
+    ''' Base class for artifical parsers based on VASP metainfo. '''
     def __init__(self):
         super().__init__()
         self.backend = None
@@ -54,9 +54,9 @@ class ArtificalParser(Parser):
 
 
 class EmptyParser(MatchingParser):
-    """
+    '''
     Implementation that produces an empty code_run
-    """
+    '''
     def run(self, mainfile: str, logger=None) -> LocalBackend:
         backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)  # type: ignore
         backend.openSection('section_run')
@@ -66,10 +66,10 @@ class EmptyParser(MatchingParser):
 
 
 class TemplateParser(ArtificalParser):
-    """
+    '''
     A parser that generates data based on a template given via the
     mainfile. The template is basically some archive json. Only
-    """
+    '''
     name = 'parsers/template'
 
     def is_mainfile(
@@ -78,11 +78,11 @@ class TemplateParser(ArtificalParser):
         return filename.endswith('template.json')
 
     def transform_value(self, name, value):
-        """ allow subclasses to modify values """
+        ''' allow subclasses to modify values '''
         return value
 
     def transform_section(self, name, section):
-        """ allow subclasses to modify sections """
+        ''' allow subclasses to modify sections '''
         return section
 
     def add_section(self, section):
@@ -130,7 +130,7 @@ class TemplateParser(ArtificalParser):
 
 
 class ChaosParser(ArtificalParser):
-    """
+    '''
     Parser that emulates typical error situations. Files can contain a json string (or
     object with key `chaos`) with one of the following string values:
     - exit
@@ -139,7 +139,7 @@ class ChaosParser(ArtificalParser):
     - exception
     - segfault
     - random
-    """
+    '''
     name = 'parsers/chaos'
 
     def is_mainfile(
@@ -212,7 +212,7 @@ class GenerateRandomParser(TemplateParser):
         return os.path.basename(filename).startswith('random_')
 
     def transform_section(self, name, section):
-        """ allow subclasses to modify sections """
+        ''' allow subclasses to modify sections '''
         if name == 'section_system':
             atoms = []
             atom_positions = []

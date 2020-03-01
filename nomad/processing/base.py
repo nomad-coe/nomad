@@ -107,7 +107,7 @@ class ProcMetaclass(TopLevelDocumentMetaclass):
 
 
 class Proc(Document, metaclass=ProcMetaclass):
-    """
+    '''
     Base class for objects that are involved in processing and need persistent processing
     state.
 
@@ -133,14 +133,14 @@ class Proc(Document, metaclass=ProcMetaclass):
         complete_time: the time that processing completed (successfully or not)
         current_process: the currently or last run asyncronous process
         process_status: the status of the currently or last run asyncronous process
-    """
+    '''
 
     meta: Any = {
         'abstract': True,
     }
 
     tasks: List[str] = None
-    """ the ordered list of tasks that comprise a processing run """
+    ''' the ordered list of tasks that comprise a processing run '''
 
     current_task = StringField(default=None)
     tasks_status = StringField(default=CREATED)
@@ -158,17 +158,17 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     @property
     def tasks_running(self) -> bool:
-        """ Returns True of the process has failed or succeeded. """
+        ''' Returns True of the process has failed or succeeded. '''
         return self.tasks_status not in [SUCCESS, FAILURE]
 
     @property
     def process_running(self) -> bool:
-        """ Returns True of an asynchrounous process is currently running. """
+        ''' Returns True of an asynchrounous process is currently running. '''
         return self.process_status is not None and self.process_status != PROCESS_COMPLETED
 
     @classmethod
     def process_running_mongoengine_query(cls):
-        """ Returns a mongoengine query dict (to be used in objects) to find running processes. """
+        ''' Returns a mongoengine query dict (to be used in objects) to find running processes. '''
         return dict(process_status__in=[PROCESS_CALLED, PROCESS_RUNNING])
 
     def get_logger(self):
@@ -179,9 +179,9 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     @classmethod
     def create(cls, **kwargs):
-        """ Factory method that must be used instead of regular constructor. """
+        ''' Factory method that must be used instead of regular constructor. '''
         assert 'tasks_status' not in kwargs, \
-            """ do not set the status manually, its managed """
+            ''' do not set the status manually, its managed '''
 
         kwargs.setdefault('create_time', datetime.utcnow())
         self = cls(**kwargs)
@@ -194,7 +194,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         return self
 
     def reset(self, worker_hostname: str = None):
-        """ Resets the task chain. Assumes there no current running process. """
+        ''' Resets the task chain. Assumes there no current running process. '''
         assert not self.process_running
 
         self.current_task = None
@@ -206,7 +206,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):
-        """ Returns a pymongo update dict part to reset calculations. """
+        ''' Returns a pymongo update dict part to reset calculations. '''
         return dict(
             current_task=None, process_status=None, tasks_status=PENDING, errors=[], warnings=[],
             worker_hostname=worker_hostname)
@@ -244,7 +244,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             logger.critical(msg, **kwargs)
 
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
-        """ Allows to fail the process. Takes strings or exceptions as args. """
+        ''' Allows to fail the process. Takes strings or exceptions as args. '''
         assert self.process_running or self.tasks_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
@@ -274,7 +274,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.save()
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
-        """ Allows to save warnings. Takes strings or exceptions as args. """
+        ''' Allows to save warnings. Takes strings or exceptions as args. '''
         assert self.process_running or self.tasks_running
 
         logger = self.get_logger(**kwargs)
@@ -326,30 +326,30 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.get_logger().info('completed process')
 
     def on_tasks_complete(self):
-        """ Callback that is called when the list of task are completed """
+        ''' Callback that is called when the list of task are completed '''
         pass
 
     def on_process_complete(self, process_name):
-        """ Callback that is called when the corrent process completed """
+        ''' Callback that is called when the corrent process completed '''
         pass
 
     def block_until_complete(self, interval=0.01):
-        """
+        '''
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
-        """
+        '''
         while self.tasks_running or self.process_running:
             time.sleep(interval)
             self.reload()
 
     @classmethod
     def process_all(cls, func, query: Dict[str, Any], exclude: List[str] = []):
-        """
+        '''
         Allows to run process functions for all objects on the given query. Calling
         process functions though the func:`process` wrapper might be slow, because
         it causes a save on each call. This function will use a query based update to
         do the same for all objects at once.
-        """
+        '''
 
         running_query = dict(cls.process_running_mongoengine_query())
         running_query.update(query)
@@ -388,14 +388,14 @@ class Proc(Document, metaclass=ProcMetaclass):
 
 
 def task(func):
-    """
+    '''
     The decorator for tasks that will be wrapped in exception handling that will fail the process.
     The task methods of a :class:`Proc` class/document comprise a sequence
     (order of methods in class namespace) of tasks. Tasks must be executed in that order.
     Completion of the last task, will put the :class:`Proc` instance into the
     SUCCESS state. Calling the first task will put it into RUNNING state. Tasks will
     only be executed, if the process has not yet reached FAILURE state.
-    """
+    '''
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         try:
@@ -425,20 +425,20 @@ def task(func):
 
 
 def all_subclasses(cls):
-    """ Helper method to calculate set of all subclasses of a given class. """
+    ''' Helper method to calculate set of all subclasses of a given class. '''
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
 
 all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
-""" Name dictionary for all Proc classes. """
+''' Name dictionary for all Proc classes. '''
 
 
 class NomadCeleryRequest(Request):
-    """
+    '''
     A custom celery request class that allows to catch error in the worker main
     thread, which cannot be caught on the worker threads themselves.
-    """
+    '''
 
     def _fail(self, event, **kwargs):
         args = self._payload[0]
@@ -480,9 +480,9 @@ class NomadCeleryTask(Task):
 
 
 def unwarp_task(task, cls_name, self_id, *args, **kwargs):
-    """
+    '''
     Retrieves the proc object that the given task is executed on from the database.
-    """
+    '''
     logger = utils.get_logger(__name__, cls=cls_name, id=self_id)
 
     # get the process class
@@ -521,13 +521,13 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
     time_limit=config.celery.timeout * 2)
 def proc_task(task, cls_name, self_id, func_attr):
-    """
+    '''
     The celery task that is used to execute async process functions.
     It ignores results, since all results are handled via the self document.
     It retries for 3 times with a countdown of 3 on missing 'selfs', since this
     might happen in sharded, distributed mongo setups where the object might not
     have yet been propagated and therefore appear missing.
-    """
+    '''
     self = unwarp_task(task, cls_name, self_id)
 
     logger = self.get_logger()
@@ -576,14 +576,14 @@ def proc_task(task, cls_name, self_id, func_attr):
 
 
 def process(func):
-    """
+    '''
     The decorator for process functions that will be called async via celery.
     All calls to the decorated method will result in celery task requests.
     To transfer state, the instance will be saved to the database and loading on
     the celery task worker. Process methods can call other (process) functions/methods on
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one
     any process at a time.
-    """
+    '''
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'

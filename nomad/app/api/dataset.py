@@ -49,7 +49,7 @@ class DatasetListResource(Resource):
     @api.expect(list_datasets_parser)
     @authenticate(required=True)
     def get(self):
-        """ Retrieve a list of all datasets of the authenticated user. """
+        ''' Retrieve a list of all datasets of the authenticated user. '''
         args = {
             key: value for key, value in list_datasets_parser.parse_args().items()
             if value is not None}
@@ -76,7 +76,7 @@ class DatasetListResource(Resource):
     @api.expect(dataset_model)
     @authenticate(required=True)
     def put(self):
-        """ Creates a new dataset. """
+        ''' Creates a new dataset. '''
         data = request.get_json()
         if data is None:
             data = {}
@@ -112,7 +112,7 @@ class DatasetResource(Resource):
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='Dateset send')
     @authenticate(required=True)
     def get(self, name: str):
-        """ Retrieve a dataset by name. """
+        ''' Retrieve a dataset by name. '''
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:
@@ -126,7 +126,7 @@ class DatasetResource(Resource):
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='DOI assigned')
     @authenticate(required=True)
     def post(self, name: str):
-        """ Assign a DOI to the dataset. """
+        ''' Assign a DOI to the dataset. '''
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:
@@ -168,7 +168,7 @@ class DatasetResource(Resource):
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='Dateset deleted')
     @authenticate(required=True)
     def delete(self, name: str):
-        """ Delete the dataset. """
+        ''' Delete the dataset. '''
         try:
             result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
         except KeyError:

@@ -40,10 +40,10 @@ springer_db_connection = None
 
 
 def open_springer_database():
-    """
+    '''
     Create a global connection to the Springer database in a way that
     each worker opens the database just once.
-    """
+    '''
     global springer_db_connection
     if springer_db_connection is None:
         # filepath definition in 'nomad-FAIR/nomad/config.py'
@@ -59,22 +59,22 @@ def open_springer_database():
 
 
 def normalized_atom_labels(atom_labels):
-    """
+    '''
     Normalizes the given atom labels: they either are labels right away, or contain
     additional numbers (to distinguish same species but different labels, see meta-info),
     or we replace them with ase placeholder atom for unknown elements 'X'.
-    """
+    '''
     return [
         ase.data.chemical_symbols[0] if match is None else match.group(0)
         for match in [re.search(atom_label_re, atom_label) for atom_label in atom_labels]]
 
 
 def formula_normalizer(atoms):
-    """
+    '''
     Reads the chemical symbols in ase.atoms and returns a normalized formula.
     Formula normalization is on the basis of atom counting,
     e.g., Tc ->  Tc100, SZn -> S50Zn50, Co2Nb -> Co67Nb33
-    """
+    '''
     #
     chem_symb = atoms.get_chemical_symbols()
     atoms_counter = Counter(chem_symb)  # dictionary
@@ -91,10 +91,10 @@ def formula_normalizer(atoms):
 
 class SystemNormalizer(SystemBasedNormalizer):
 
-    """
+    '''
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
-    """
+    '''
 
     @staticmethod
     def atom_label_to_num(atom_label):
@@ -109,13 +109,13 @@ class SystemNormalizer(SystemBasedNormalizer):
         return 0
 
     def normalize_system(self, index, is_representative) -> bool:
-        """
+        '''
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
 
         Returns: True, iff the normalization was successful
-        """
+        '''
 
         def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
             try:
@@ -262,13 +262,13 @@ class SystemNormalizer(SystemBasedNormalizer):
         return True
 
     def system_type_analysis(self, atoms: Atoms) -> None:
-        """
+        '''
         Determine the system type with MatID. Write the system type to the
         backend.
 
         Args:
             atoms: The structure to analyse
-        """
+        '''
         system_type = config.services.unavailable_value
         if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
             try:
@@ -297,7 +297,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addValue('system_type', system_type)
 
     def symmetry_analysis(self, atoms) -> None:
-        """Analyze the symmetry of the material being simulated.
+        '''Analyze the symmetry of the material being simulated.
 
         We feed in the parsed values in section_system to the
         the symmetry analyzer. We then use the Matid library
@@ -312,7 +312,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         Returns:
             None: The method should write symmetry variables
             to the backend which is member of this class.
-        """
+        '''
         # Try to use Matid's symmetry analyzer to analyze the ASE object.
         try:
             symm = SymmetryAnalyzer(atoms, symmetry_tol=config.normalize.symmetry_tolerance)
@@ -410,7 +410,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             # SQL QUERY
             # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
-            cur.execute("""
+            cur.execute('''
                 SELECT
                     entry.entry_id,
                     entry.alphabetic_formula,
@@ -425,7 +425,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 LEFT JOIN reference ON reference.reference_nr = er.entry_nr
                 WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
                 GROUP BY entry.entry_id;
-                """ % (normalized_formula, space_group_number))
+                ''' % (normalized_formula, space_group_number))
 
             results = cur.fetchall()
             # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
@@ -487,14 +487,14 @@ class SystemNormalizer(SystemBasedNormalizer):
                     self.logger.warning('Mismatch in Springer classification or compounds')
 
     def prototypes(self, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
-        """Tries to match the material to an entry in the AFLOW prototype data.
+        '''Tries to match the material to an entry in the AFLOW prototype data.
         If a match is found, a section_prototype is added to section_system.
 
         Args:
             atomic_numbers: Array of atomic numbers.
             wyckoff_letters: Array of Wyckoff letters as strings.
             spg_number: Space group number.
-        """
+        '''
         norm_wyckoff = structure.get_normalized_wyckoff(atom_species, wyckoffs)
         protoDict = structure.search_aflow_prototype(spg_number, norm_wyckoff)
         if protoDict is not None:

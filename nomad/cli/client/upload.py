@@ -41,7 +41,7 @@ def stream_upload_with_client(client, stream, name=None):
 
 
 def upload_file(file_path: str, name: str = None, offline: bool = False, publish: bool = False, client=None):
-    """
+    '''
     Upload a file to nomad.
 
     Arguments:
@@ -51,7 +51,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         publish: automatically publish after successful processing
 
     Returns: The upload_id
-    """
+    '''
     if client is None:
         from nomad.cli.client import create_client
         client = create_client()

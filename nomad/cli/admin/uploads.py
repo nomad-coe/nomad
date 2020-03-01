@@ -144,8 +144,7 @@ def chown(ctx, username, uploads):
 
     for upload in uploads:
         upload.user_id = user.user_id
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
+        calcs = upload.entries_metadata()
 
         def create_update(calc):
             return UpdateOne(
@@ -155,8 +154,7 @@ def chown(ctx, username, uploads):
         proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
         upload.save()
 
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
+        calcs = upload.entries_metadata()
         search.index_all(calcs, do_refresh=False)
         search.refresh()
 
@@ -194,8 +192,7 @@ def index(ctx, uploads):
 
     i, failed = 0, 0
     for upload in uploads:
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
+        calcs = upload.entries_metadata()
         failed += search.index_all(calcs)
         i += 1
 

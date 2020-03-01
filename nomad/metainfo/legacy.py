@@ -50,7 +50,7 @@ def from_legacy_metainfo(meta_info_env, package_names: List[str] = None) \
 
 
 class LegacyMetainfoEnvironment:
-    """
+    '''
     Args:
         env: The metainfo environment that is used to manage the definitions.
         orig_legacy_env: The old metainfo :class:`InfoKindEnv` environment with the
@@ -59,7 +59,7 @@ class LegacyMetainfoEnvironment:
             converted metainfo environment.
         all_legacy_defs: A dict that stores the original :class:`InfoKindEl`s by name.
         all_defs: A dict that stroed the converted section and category definitions.
-    """
+    '''
     def __init__(self, metainfo=Union[InfoKindEnv, str], package_names: List[str] = None, logger=None):
         self.logger = utils.get_logger(__name__) if logger is None else logger
         self.env = Environment()
@@ -109,9 +109,9 @@ class LegacyMetainfoEnvironment:
 
     def convert_package(
             self, legacy_definitions: List[InfoKindEl], **kwargs) -> Package:
-        """ Converts a single legacy metainfo package, i.e. a list of :class:`InfoKindEl`
+        ''' Converts a single legacy metainfo package, i.e. a list of :class:`InfoKindEl`
         into a metainfo package.
-        """
+        '''
         package = Package(**kwargs)
 
         definition: Definition = None
@@ -212,7 +212,7 @@ class LegacyMetainfoEnvironment:
         return package
 
     def legacy_info(self, definition: Definition, *args, **kwargs) -> InfoKindEl:
-        """ Creates a legacy metainfo objects for the given definition. """
+        ''' Creates a legacy metainfo objects for the given definition. '''
         super_names: List[str] = list()
         result: Dict[str, Any] = dict(
             name=definition.name,
@@ -266,7 +266,7 @@ class LegacyMetainfoEnvironment:
         return InfoKindEl(*args, **result, **kwargs)
 
     def legacy_info_env(self, packages: List[Package] = None, *args, **kwargs) -> InfoKindEnv:
-        """ Creates a legacy metainfo environment with all definitions from the given packages. """
+        ''' Creates a legacy metainfo environment with all definitions from the given packages. '''
         if packages is None:
             packages = self.env.packages
 
@@ -331,7 +331,7 @@ class LegacyMetainfoEnvironment:
 
 
 if __name__ == '__main__':
-    """ Converts the old metainfo and code-generates definitions for the new metainfo """
+    ''' Converts the old metainfo and code-generates definitions for the new metainfo '''
     env = LegacyMetainfoEnvironment(
         metainfo='vasp.nomadmetainfo.json',
         package_names=['%s.nomadmetainfo.json' % pkg for pkg in ['common', 'public', 'vasp']])

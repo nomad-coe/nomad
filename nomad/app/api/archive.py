@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 (parsed and normalized) calculation data in nomad's *meta-info* format.
-"""
+'''
 
 from typing import Dict, Any
 from io import BytesIO
@@ -51,11 +51,11 @@ class ArchiveCalcLogResource(Resource):
     @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
-        """
+        '''
         Get calculation processing log.
 
         Calcs are references via *upload_id*, *calc_id* pairs.
-        """
+        '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
         upload_files = UploadFiles.get(
@@ -85,11 +85,11 @@ class ArchiveCalcResource(Resource):
     @api.response(200, 'Archive data send')
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
-        """
+        '''
         Get calculation data in archive form.
 
         Calcs are references via *upload_id*, *calc_id* pairs.
-        """
+        '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
         upload_file = UploadFiles.get(
@@ -128,7 +128,7 @@ class ArchiveDownloadResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
-        """
+        '''
         Get calculation data in archive form from all query results.
 
         See ``/repo`` endpoint for documentation on the search
@@ -138,7 +138,7 @@ class ArchiveDownloadResource(Resource):
         any files that the user is not authorized to access.
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
-        """
+        '''
         try:
             args = _archive_download_parser.parse_args()
             compress = args.get('compress', False)
@@ -229,7 +229,7 @@ class ArchiveQueryResource(Resource):
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
     @authenticate()
     def post(self):
-        """
+        '''
         Post a query schema and return it filled with archive data.
 
         See ``/repo`` endpoint for documentation on the search
@@ -237,7 +237,7 @@ class ArchiveQueryResource(Resource):
 
         The actual data are in results and a supplementary python code (curl) to
         execute search is in python (curl).
-        """
+        '''
         try:
             data_in = request.get_json()
             scroll = data_in.get('scroll', None)
@@ -323,9 +323,9 @@ class MetainfoResource(Resource):
     @api.response(404, 'The metainfo does not exist')
     @api.response(200, 'Metainfo data send')
     def get(self, metainfo_package_name):
-        """
+        '''
         Get a metainfo definition file.
-        """
+        '''
         try:
             return load_metainfo(metainfo_package_name), 200
         except FileNotFoundError:
@@ -345,7 +345,7 @@ metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
 def load_metainfo(
         package_name_or_dependency: str, dependency_source: str = None,
         loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
-    """
+    '''
     Loads the given metainfo package and all its dependencies. Returns a dict with
     all loaded package_names and respective packages.
 
@@ -354,7 +354,7 @@ def load_metainfo(
         dependency_source: The path of the metainfo that uses this function to load a relative dependency.
         loaded_packages: Give a dict and the function will added freshly loaded packages
             to it and return it.
-    """
+    '''
     if loaded_packages is None:
         loaded_packages = {}
 

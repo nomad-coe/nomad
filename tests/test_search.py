@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Iterable
 from elasticsearch_dsl import Q
 import pytest
 
@@ -25,36 +25,39 @@ def test_init_mapping(elastic):
 
 
 def test_index_skeleton_calc(elastic):
-    calc_with_metadata = datamodel.CalcWithMetadata(
-        domain='dft', upload_id='test_upload', calc_id='test_calc')
+    entry_metadata = datamodel.EntryMetadata(
+        domain='dft', upload_id='test_upload', calc_id='test_calc',
+        mainfile='test/mainfile', files=['test/file1', 'test/file2'])
 
-    create_entry(calc_with_metadata)
+    create_entry(entry_metadata)
 
 
 def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(
+    entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
+    entry_metadata.apply_domain_metadata(normalized)
 
-    entry = search.flat(create_entry(calc_with_metadata).to_dict())
+    search_entry = create_entry(entry_metadata)
+    entry = search.flat(search_entry.to_dict())
 
     assert 'calc_id' in entry
     assert 'atoms' in entry
     assert 'dft.code_name' in entry
+    assert 'dft.optimade.elements_ratios' in entry
 
 
 def test_index_normalized_calc_with_metadata(
-        elastic, normalized: parsing.LocalBackend, example_user_metadata: dict):
-
-    calc_with_metadata = datamodel.CalcWithMetadata(
+        elastic, normalized: parsing.LocalBackend, internal_example_user_metadata: dict):
+    entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
-    calc_with_metadata.apply_user_metadata(example_user_metadata)
+    entry_metadata.apply_domain_metadata(normalized)
+    internal_example_user_metadata.pop('embargo_length')  # is for uploads only
+    entry_metadata.apply_user_metadata(internal_example_user_metadata)
 
-    entry = create_entry(calc_with_metadata)
+    entry = create_entry(entry_metadata)
 
-    assert getattr(entry, 'with_embargo') == example_user_metadata['with_embargo']
-    assert getattr(entry, 'comment') == example_user_metadata['comment']
+    assert getattr(entry, 'with_embargo') == internal_example_user_metadata['with_embargo']
+    assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
 
 
 def test_index_upload(elastic, processed: processing.Upload):
@@ -63,10 +66,10 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 @pytest.fixture()
 def example_search_data(elastic, normalized: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(
+    entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
-    create_entry(calc_with_metadata)
+    entry_metadata.apply_domain_metadata(normalized)
+    create_entry(entry_metadata)
     refresh_index()
 
     return normalized
@@ -74,10 +77,10 @@ def example_search_data(elastic, normalized: parsing.LocalBackend):
 
 @pytest.fixture()
 def example_ems_search_data(elastic, parsed_ems: parsing.LocalBackend):
-    calc_with_metadata = datamodel.CalcWithMetadata(
+    entry_metadata = datamodel.EntryMetadata(
         domain='ems', upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(parsed_ems)
-    create_entry(calc_with_metadata)
+    entry_metadata.apply_domain_metadata(parsed_ems)
+    create_entry(entry_metadata)
     refresh_index()
 
     return parsed_ems
@@ -200,15 +203,15 @@ def test_search_quantity(
         elastic, normalized: parsing.LocalBackend, test_user: datamodel.User,
         other_test_user: datamodel.User, order_by: str):
 
-    calc_with_metadata = datamodel.CalcWithMetadata(
+    entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
-    calc_with_metadata.apply_domain_metadata(normalized)
-    calc_with_metadata.uploader = test_user.user_id
-    create_entry(calc_with_metadata)
+    entry_metadata.apply_domain_metadata(normalized)
+    entry_metadata.uploader = test_user.user_id
+    create_entry(entry_metadata)
 
-    calc_with_metadata.calc_id = 'other test id'
-    calc_with_metadata.uploader = other_test_user.user_id
-    create_entry(calc_with_metadata)
+    entry_metadata.calc_id = 'other test id'
+    entry_metadata.uploader = other_test_user.user_id
+    create_entry(entry_metadata)
     refresh_index()
 
     request = SearchRequest(domain='dft').quantity(
@@ -228,10 +231,10 @@ def refresh_index():
     infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
 
 
-def create_entry(calc_with_metadata: datamodel.CalcWithMetadata):
-    entry = search.Entry.from_calc_with_metadata(calc_with_metadata)
+def create_entry(entry_metadata: datamodel.EntryMetadata):
+    entry = search.create_entry(entry_metadata)
     entry.save()
-    assert_entry(calc_with_metadata.calc_id)
+    assert_entry(entry_metadata.calc_id)
     return entry
 
 
@@ -246,11 +249,13 @@ def assert_entry(calc_id):
     assert results[0]['calc_id'] == calc_id
 
 
-def assert_search_upload(upload: datamodel.UploadWithMetadata, additional_keys: List[str] = [], **kwargs):
+def assert_search_upload(
+        upload_entries: Iterable[datamodel.EntryMetadata],
+        additional_keys: List[str] = [], **kwargs):
     keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
     search_results = Entry.search().query('match_all')[0:10]
-    assert search_results.count() == len(list(upload.calcs))
+    assert search_results.count() == len(list(upload_entries))
     if search_results.count() > 0:
         for hit in search_results:
             hit = search.flat(hit.to_dict())
@@ -287,7 +292,7 @@ if __name__ == '__main__':
     def gen_data():
         for pid in range(0, n):
             calc = generate_calc(pid)
-            calc = Entry.from_calc_with_metadata(calc)
+            calc = Entry.from_entry_metadata(calc)
             yield calc.to_dict(include_meta=True)
 
     bulk(infrastructure.elastic_client, gen_data())

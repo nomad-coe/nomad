@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The official NOMAD API.
 
 There is a separate documentation for the API endpoints from a client perspective.
@@ -22,7 +22,7 @@ There is a separate documentation for the API endpoints from a client perspectiv
 .. automodule:: nomad.app.api.upload
 .. automodule:: nomad.app.api.repo
 .. automodule:: nomad.app.api.archive
-"""
+'''
 
 from .api import blueprint
 from . import info, auth, upload, repo, archive, raw, mirror, dataset

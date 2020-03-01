@@ -132,7 +132,7 @@ class TestLocalBackend(object):
         assert backend.get_sections('section_symmetry', 2) == [1]
 
     def test_section_override(self, backend, no_warn):
-        """ Test whether we can overwrite values already in the backend."""
+        ''' Test whether we can overwrite values already in the backend.'''
         expected_value = ['Cl', 'Zn']
         backend.openSection('section_run')
         backend.openSection('section_system')
@@ -328,7 +328,7 @@ def assert_parser_result(backend, error=False):
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
-    """Assert working directory has not been changed from parser."""
+    '''Assert working directory has not been changed from parser.'''
     assert previous_wd == current_wd
 
 

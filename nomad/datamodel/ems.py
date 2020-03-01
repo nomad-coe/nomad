@@ -12,55 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Experimental material science specific metadata
-"""
+'''
 
 from nomad import utils
+from nomad.metainfo import Quantity, MSection, Section, Datetime
+from nomad.metainfo.search import SearchQuantity
 
-from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
+from .base import get_optional_backend_value
 
 
-class EMSEntryWithMetadata(CalcWithMetadata):
+class EMSMetadata(MSection):
+    m_def = Section(a_domain='ems')
 
-    def __init__(self, **kwargs):
-        # sample quantities
-        self.chemical: str = None
-        self.sample_constituents: str = None
-        self.sample_microstructure: str = None
+    # sample quantities
+    chemical = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    sample_constituents = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
+    sample_microstructure = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
 
-        # general metadata
-        self.experiment_summary: str = None
-        self.experiment_location: str = None
-        self.experiment_time: str = None
+    # general metadata
+    experiment_summary = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    experiment_location = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    experiment_time = Quantity(type=Datetime, default='not processed', a_search=SearchQuantity())
 
-        # method
-        self.method: str = None
-        self.probing_method: str = None
+    # method
+    method = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
+    probing_method = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
 
-        # data metadata
-        self.repository_name: str = None
-        self.repository_url: str = None
-        self.preview_url: str = None
+    # data metadata
+    repository_name = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    repository_url = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    preview_url = Quantity(type=str, default='not processed', a_search=SearchQuantity())
 
-        self.quantities = []
-        self.group_hash: str = None
-
-        super().__init__(**kwargs)
+    # TODO move
+    quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=SearchQuantity())
+    group_hash = Quantity(type=str, a_search=SearchQuantity())
 
     def apply_domain_metadata(self, backend):
+        entry = self.m_parent
         logger = utils.get_logger(__name__).bind(
-            upload_id=self.upload_id, calc_id=self.calc_id, mainfile=self.mainfile)
+            upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
-        self.formula = get_optional_backend_value(
+        entry.formula = get_optional_backend_value(
             backend, 'sample_chemical_formula', 'section_sample', logger=logger)
-        self.atoms = get_optional_backend_value(
+        atoms = get_optional_backend_value(
             backend, 'sample_atom_labels', 'section_sample', logger=logger)
-        if hasattr(self.atoms, 'tolist'):
-            self.atoms = self.atoms.tolist()
-        self.n_atoms = len(self.atoms)
-        self.atoms = list(set(self.atoms))
-        self.atoms.sort()
+        if hasattr(atoms, 'tolist'):
+            atoms = atoms.tolist()
+        entry.n_atoms = len(atoms)
+
+        atoms = list(set(atoms))
+        atoms.sort()
+        entry.atoms = atoms
+
         self.chemical = get_optional_backend_value(
             backend, 'sample_chemical_name', 'section_sample', logger=logger)
         self.sample_microstructure = get_optional_backend_value(
@@ -88,14 +93,11 @@ class EMSEntryWithMetadata(CalcWithMetadata):
             backend, 'data_preview_url', 'section_data', logger=logger)
 
         self.group_hash = utils.hash(
-            self.formula,
+            entry.formula,
             self.method,
             self.experiment_location,
-            self.with_embargo,
-            self.comment,
-            self.references,
-            self.uploader,
-            self.coauthors)
+            entry.with_embargo,
+            entry.uploader)
 
         quantities = set()
 
@@ -103,26 +105,3 @@ class EMSEntryWithMetadata(CalcWithMetadata):
             quantities.add(meta_info)
 
         self.quantities = list(quantities)
-
-
-Domain(
-    'ems', EMSEntryWithMetadata,
-    root_sections=['section_experiment', 'section_entry_info'],
-    metainfo_all_package='all.experimental.nomadmetainfo.json',
-    quantities=dict(
-        method=DomainQuantity(
-            'The experimental method used.', aggregations=20),
-        probing_method=DomainQuantity(
-            'The used probing method.', aggregations=10),
-        sample_microstructure=DomainQuantity(
-            'The sample micro structure.', aggregations=10),
-        sample_constituents=DomainQuantity(
-            'The sample constituents.', aggregations=10),
-        quantities=DomainQuantity(
-            'All quantities that are used by this calculation')),
-    metrics=dict(
-        quantities=('quantities', 'value_count')),
-    groups=dict(),
-    default_statistics=[
-        'atoms', 'ems.method', 'ems.probing_method', 'ems.sample_microstructure',
-        'ems.sample_constituents'])

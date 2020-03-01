@@ -29,6 +29,7 @@ import aniso8601
 from datetime import datetime
 import pytz
 import docstring_parser
+import flask_restplus.inputs
 
 
 m_package: 'Package' = None
@@ -41,24 +42,24 @@ T = TypeVar('T')
 # Metainfo errors
 
 class MetainfoError(Exception):
-    """ Metainfo related errors. """
+    ''' Metainfo related errors. '''
     pass
 
 
 class DeriveError(MetainfoError):
-    """ An error occurred while computing a derived value. """
+    ''' An error occurred while computing a derived value. '''
     pass
 
 
 class MetainfoReferenceError(MetainfoError):
-    """ An error indicating that a reference could not be resolved. """
+    ''' An error indicating that a reference could not be resolved. '''
     pass
 
 
 # Metainfo quantity data types
 
 class MEnum():
-    """Allows to define str types with values limited to a pre-set list of possible values."""
+    '''Allows to define str types with values limited to a pre-set list of possible values.'''
     def __init__(self, *args, **kwargs):
         # Supports one big list in place of args
         if len(args) == 1 and isinstance(args[0], list):
@@ -80,18 +81,18 @@ class MEnum():
 
 
 class MProxy():
-    """ A placeholder object that acts as reference to a value that is not yet resolved.
+    ''' A placeholder object that acts as reference to a value that is not yet resolved.
 
     Attributes:
         url: The reference represented as an URL string.
-    """
+    '''
 
     def __init__(self, url: str):
         self.url = url
 
 
 class DataType:
-    """
+    '''
     Allows to define custom data types that can be used in the meta-info.
 
     The metainfo supports the most types out of the box. These includes the python build-in
@@ -102,21 +103,21 @@ class DataType:
     type checks and various value transformations. This allows to store values in the
     section differently from how the usermight set/get them, and it allows to have non
     serializeable values that are transformed on de-/serialization.
-    """
+    '''
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        """ Transforms the given value before it is set and checks its type. """
+        ''' Transforms the given value before it is set and checks its type. '''
         return value
 
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        """ Transforms the given value when it is get. """
+        ''' Transforms the given value when it is get. '''
         return value
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        """ Transforms the given value when making the section serializeable. """
+        ''' Transforms the given value when making the section serializeable. '''
         return value
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        """ Transforms the given value from its serializeable form. """
+        ''' Transforms the given value from its serializeable form. '''
         return value
 
 
@@ -175,7 +176,7 @@ class _Unit(DataType):
 
 
 units = pint.UnitRegistry()
-""" The default pint unit registry that should be used to give units to quantity definitions. """
+''' The default pint unit registry that should be used to give units to quantity definitions. '''
 
 
 class _Callable(DataType):
@@ -187,7 +188,7 @@ class _Callable(DataType):
 
 
 class _QuantityType(DataType):
-    """ Data type for defining the type of a metainfo quantity.
+    ''' Data type for defining the type of a metainfo quantity.
 
     A metainfo quantity type can be one of
 
@@ -197,7 +198,7 @@ class _QuantityType(DataType):
     - an MEnum instance to use it's values as possible str values
     - a custom datatype, i.e. instance of :class:`DataType`
     - Any
-    """
+    '''
 
     def set_normalize(self, section, quantity_def, value):
         if value in [str, int, float, bool]:
@@ -261,7 +262,7 @@ class _QuantityType(DataType):
 
 
 class Reference(DataType):
-    """ Datatype used for reference quantities. """
+    ''' Datatype used for reference quantities. '''
 
     def __init__(self, section_def: 'Section'):
         if not isinstance(section_def, Section):
@@ -292,12 +293,15 @@ class Reference(DataType):
 
         return value
 
+    def resolve(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> 'MSection':
+        return section.m_resolve(value.url)
+
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(value, MProxy):
-            resolved: 'MSection' = section.m_resolve(value.url)
+            resolved: 'MSection' = self.resolve(section, quantity_def, value)
             if resolved is None:
                 raise ReferenceError('Could not resolve %s from %s.' % (value, section))
-            section.m_set(quantity_def, value)
+
             return resolved
 
         return value
@@ -311,31 +315,46 @@ class Reference(DataType):
 
 class _Datetime(DataType):
 
-    def __parse(self, datetime_str: str) -> datetime:
+    def _parse(self, datetime_str: str) -> datetime:
         try:
-            try:
-                return aniso8601.parse_datetime(datetime_str)
-            except ValueError:
-                date = aniso8601.parse_date(datetime_str)
-                return datetime(date.year, date.month, date.day)
-        except Exception:
-            raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
+            return aniso8601.parse_datetime(datetime_str)
+        except ValueError:
+            pass
 
-    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        try:
+            return aniso8601.parse_date(datetime_str)
+        except ValueError:
+            pass
+
+        try:
+            # TODO necessary?
+            return flask_restplus.inputs.datetime_from_rfc822(datetime_str)
+        except ValueError:
+            pass
+
+        raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
+
+    def _convert(self, value):
         if isinstance(value, str):
-            value = self.__parse(value)
+            value = self._parse(value)
+
+        elif isinstance(value, (int, float)):
+            value = datetime.fromtimestamp(value)
 
         if not isinstance(value, datetime):
             raise TypeError('%s is not a datetime.' % value)
 
         return value
 
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return self._convert(value)
+
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         value.replace(tzinfo=pytz.utc)
         return value.isoformat()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        return self.__parse(value)
+        return self._convert(value)
 
 
 Dimension = _Dimension()
@@ -365,7 +384,7 @@ class MObjectMeta(type):
 
 
 SectionDef = Union[str, 'Section', 'SubSection', Type[MSectionBound]]
-""" Type for section definition references.
+''' Type for section definition references.
 
 This can either be :
 
@@ -373,11 +392,11 @@ This can either be :
 - the section definition itself
 - the definition of a sub section
 - or the section definition Python class
-"""
+'''
 
 
 class MData:
-    """ An interface for low-level metainfo data objects.
+    ''' An interface for low-level metainfo data objects.
 
     Metainfo data objects store the data of a single section instance. This interface
     constitutes the minimal functionality for accessing and modifying section data.
@@ -386,7 +405,7 @@ class MData:
     All section instances will implement this interface, usually be delegating calls to
     a standalone implementation of this interface. This allows to configure various
     data backends on section instance creation.
-    """
+    '''
 
     def __getitem__(self, key):
         raise NotImplementedError()
@@ -395,47 +414,52 @@ class MData:
         raise NotImplementedError()
 
     def m_set(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> None:
-        """ Set the given value for the given quantity. """
+        ''' Set the given value for the given quantity. '''
         raise NotImplementedError()
 
     def m_get(self, section: 'MSection', quantity_def: 'Quantity') -> Any:
-        """ Retrieve the given value for the given quantity. """
+        ''' Retrieve the given value for the given quantity. '''
         raise NotImplementedError()
 
     def m_is_set(self, section: 'MSection', quantity_def: 'Quantity') -> bool:
-        """ True iff this quantity was explicitely set. """
+        ''' True iff this quantity was explicitely set. '''
         raise NotImplementedError()
 
     def m_add_values(
             self, section: 'MSection', quantity_def: 'Quantity', values: Any,
             offset: int) -> None:
-        """ Add (partial) values for the given quantity of higher dimensionality. """
+        ''' Add (partial) values for the given quantity of higher dimensionality. '''
         raise NotImplementedError()
 
     def m_add_sub_section(
             self, section: 'MSection', sub_section_def: 'SubSection',
             sub_section: 'MSection') -> None:
-        """ Adds the given section instance as a sub section of the given sub section definition. """
+        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+        raise NotImplementedError()
+
+    def m_remove_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection', index: int) -> None:
+        ''' Removes the given section instance as a sub section of the given sub section definition. '''
         raise NotImplementedError()
 
     def m_get_sub_section(
             self, section: 'MSection', sub_section_def: 'SubSection',
             index: int) -> 'MSection':
-        """ Retrieves a single sub section of the given sub section definition. """
+        ''' Retrieves a single sub section of the given sub section definition. '''
         raise NotImplementedError()
 
     def m_get_sub_sections(
             self, section: 'MSection', sub_section_def: 'SubSection') -> Iterable['MSection']:
-        """ Retrieves  all sub sections of the given sub section definition. """
+        ''' Retrieves  all sub sections of the given sub section definition. '''
         raise NotImplementedError()
 
     def m_sub_section_count(self, section: 'MSection', sub_section_def: 'SubSection') -> int:
-        """ Returns the number of sub sections for the given sub section definition. """
+        ''' Returns the number of sub sections for the given sub section definition. '''
         raise NotImplementedError()
 
 
 class MDataDict(MData):
-    """ A simple dict backed implementaton of :class:`MData`. It is used by default. """
+    ''' A simple dict backed implementaton of :class:`MData`. It is used by default. '''
 
     def __init__(self, dct: Dict[str, Any] = None):
         if dct is None:
@@ -484,6 +508,15 @@ class MDataDict(MData):
         else:
             self.dct[sub_section_name] = sub_section
 
+    def m_remove_sub_section(
+            self, section: 'MSection', sub_section_def: 'SubSection', index: int) -> None:
+
+        if sub_section_def.repeats:
+            del(self.dct[sub_section_def.name][index])
+
+        elif sub_section_def.name in self.dct:
+            del(self.dct[sub_section_def.name])
+
     def m_get_sub_section(
             self, section: 'MSection', sub_section_def: 'SubSection',
             index: int) -> 'MSection':
@@ -510,17 +543,17 @@ class MDataDict(MData):
 
 
 class MResource():
-    """Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+    '''Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
 
     MResource allows to keep related objects together and resolve sections of certain
     section definitions.
-    """
+    '''
     def __init__(self):
         self.__data: Dict['Section', List['MSection']] = dict()
         self.contents: List['MSection'] = []
 
     def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
-        """ Create an instance of the given section class and adds it to this resource. """
+        ''' Create an instance of the given section class and adds it to this resource. '''
         result = section_cls(*args, **kwargs)
         self.add(result)
         return cast(MSectionBound, result)
@@ -539,11 +572,11 @@ class MResource():
             self.contents.remove(section)
 
     def all(self, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
-        """ Returns all instances of the given section class in this resource. """
+        ''' Returns all instances of the given section class in this resource. '''
         return cast(List[MSectionBound], self.__data.get(section_cls.m_def, []))
 
     def unload(self):
-        """ Breaks all references among the contain metainfo sections to allow GC. """
+        ''' Breaks all references among the contain metainfo sections to allow GC. '''
         for collections in self.__data.values():
             for section in collections:
                 section.m_parent = None
@@ -552,8 +585,8 @@ class MResource():
         # TODO break actual references via quantities
 
 
-class MSection(metaclass=MObjectMeta):
-    """Base class for all section instances on all meta-info levels.
+class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
+    '''Base class for all section instances on all meta-info levels.
 
     All `section instances` indirectly instantiate the :class:`MSection` and therefore all
     members of :class:`MSection` are available on all `section instances`. :class:`MSection`
@@ -585,7 +618,7 @@ class MSection(metaclass=MObjectMeta):
 
         m_resource: The :class:`MResource` that contains and manages this section.
 
-    """
+    '''
 
     m_def: 'Section' = None
 
@@ -689,7 +722,7 @@ class MSection(metaclass=MObjectMeta):
         constraints: Set[str] = set()
         event_handlers: Set[Callable] = set(m_def.event_handlers)
         for name, attr in cls.__dict__.items():
-            # transfer names and descriptions for properties
+            # transfer names and descriptions for properties, init properties
             if isinstance(attr, Property):
                 attr.name = name
                 if attr.description is not None:
@@ -702,6 +735,8 @@ class MSection(metaclass=MObjectMeta):
                     section_to_add_properties_to.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
+
+                attr.__init_property__()
 
             if inspect.isfunction(attr):
                 method_name = attr.__name__
@@ -856,7 +891,7 @@ class MSection(metaclass=MObjectMeta):
         return self.__check_np(quantity_def, value)
 
     def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
-        """ Set the given value for the given quantity. """
+        ''' Set the given value for the given quantity. '''
         quantity_def = self.__resolve_synonym(quantity_def)
 
         if quantity_def.derived is not None:
@@ -890,7 +925,7 @@ class MSection(metaclass=MObjectMeta):
                 handler(self, quantity_def, value)
 
     def m_get(self, quantity_def: 'Quantity') -> Any:
-        """ Retrieve the given value for the given quantity. """
+        ''' Retrieve the given value for the given quantity. '''
         quantity_def = self.__resolve_synonym(quantity_def)
         if quantity_def.derived is not None:
             try:
@@ -918,6 +953,10 @@ class MSection(metaclass=MObjectMeta):
                     'Only numpy arrays and dtypes can be used for higher dimensional '
                     'quantities.')
 
+            if isinstance(quantity_def.type, Reference):
+                # save the resolved values for the next access to avoid re-resolve
+                self.m_data.m_set(self, quantity_def, value)
+
         elif type(quantity_def.type) == np.dtype:
             if quantity_def.unit is not None:
                 value = value * quantity_def.unit
@@ -925,7 +964,7 @@ class MSection(metaclass=MObjectMeta):
         return value
 
     def m_is_set(self, quantity_def: 'Quantity') -> bool:
-        """ True if the given quantity is set. """
+        ''' True if the given quantity is set. '''
         quantity_def = self.__resolve_synonym(quantity_def)
         if quantity_def.derived is not None:
             return True
@@ -933,15 +972,25 @@ class MSection(metaclass=MObjectMeta):
         return self.m_data.m_is_set(self, quantity_def)
 
     def m_add_values(self, quantity_def: 'Quantity', values: Any, offset: int) -> None:
-        """ Add (partial) values for the given quantity of higher dimensionality. """
+        ''' Add (partial) values for the given quantity of higher dimensionality. '''
         self.m_data.m_add_values(self, quantity_def, values, offset)
 
     def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
-        """ Adds the given section instance as a sub section of the given sub section definition. """
+        ''' Adds the given section instance as a sub section of the given sub section definition. '''
 
         parent_index = -1
         if sub_section_def.repeats:
             parent_index = self.m_sub_section_count(sub_section_def)
+
+        else:
+            old_sub_section = self.m_data.m_get_sub_section(self, sub_section_def, -1)
+            if old_sub_section is not None:
+                old_sub_section.m_parent = None
+                old_sub_section.m_parent_sub_section = None
+                old_sub_section.m_parent_index = -1
+                if self.m_resource is not None:
+                    self.m_resource.remove(sub_section)
+
         sub_section.m_parent = self
         sub_section.m_parent_sub_section = sub_section_def
         sub_section.m_parent_index = parent_index
@@ -956,29 +1005,33 @@ class MSection(metaclass=MObjectMeta):
             if handler.__name__.startswith('on_add_sub_section'):
                 handler(self, sub_section_def, sub_section)
 
+    def m_remove_sub_section(self, sub_section_def: 'SubSection', index: int) -> None:
+        ''' Removes the exiting section for a non repeatable sub section '''
+        self.m_data.m_remove_sub_section(self, sub_section_def, index)
+
     def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
-        """ Retrieves a single sub section of the given sub section definition. """
+        ''' Retrieves a single sub section of the given sub section definition. '''
         return self.m_data.m_get_sub_section(self, sub_section_def, index)
 
     def m_get_sub_sections(self, sub_section_def: 'SubSection') -> Iterable['MSection']:
-        """ Retrieves  all sub sections of the given sub section definition. """
+        ''' Retrieves  all sub sections of the given sub section definition. '''
         return self.m_data.m_get_sub_sections(self, sub_section_def)
 
     def m_sub_section_count(self, sub_section_def: 'SubSection') -> int:
-        """ Returns the number of sub sections for the given sub section definition. """
+        ''' Returns the number of sub sections for the given sub section definition. '''
         return self.m_data.m_sub_section_count(self, sub_section_def)
 
     def m_create(
             self, section_cls: Type[MSectionBound], sub_section_def: 'SubSection' = None,
             **kwargs) -> MSectionBound:
-        """ Creates a section instance and adds it to this section provided there is a
+        ''' Creates a section instance and adds it to this section provided there is a
         corresponding sub section.
 
         Args:
             section_cls: The section class for the sub-secton to create
             sub_section_def: If there are multiple sub-sections for the given class,
                 this must be used to explicitely state the sub-section definition.
-        """
+        '''
 
         section_def = section_cls.m_def
         sub_section_defs = self.m_def.all_sub_sections_by_section.get(section_def, [])
@@ -1005,7 +1058,7 @@ class MSection(metaclass=MObjectMeta):
         return cast(MSectionBound, sub_section)
 
     def m_update(self, safe: bool = True, **kwargs):
-        """ Updates all quantities and sub-sections with the given arguments. """
+        ''' Updates all quantities and sub-sections with the given arguments. '''
         if safe:
             for name, value in kwargs.items():
                 prop = self.m_def.all_properties.get(name, None)
@@ -1029,15 +1082,22 @@ class MSection(metaclass=MObjectMeta):
             self.m_data.m_data.dct.update(**kwargs)  # type: ignore
 
     def m_as(self, section_cls: Type[MSectionBound]) -> MSectionBound:
-        """ 'Casts' this section to the given extending sections. """
+        ''' 'Casts' this section to the given extending sections. '''
         return cast(MSectionBound, self)
 
     def m_follows(self, definition: 'Section') -> bool:
-        """ Determines if this section's definition is or is derived from the given definition. """
+        ''' Determines if this section's definition is or is derived from the given definition. '''
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
-    def m_to_dict(self, with_meta: bool = False) -> Dict[str, Any]:
-        """Returns the data of this section as a json serializeable dictionary. """
+    def m_to_dict(self, with_meta: bool = False, include_defaults: bool = False) -> Dict[str, Any]:
+        '''
+        Returns the data of this section as a json serializeable dictionary.
+
+        Arguments:
+            with_meta: Include information about the section definition and the sections
+                position in its parent.
+            include_defaults: Include default values of unset quantities.
+        '''
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
@@ -1050,81 +1110,100 @@ class MSection(metaclass=MObjectMeta):
 
             # quantities
             for name, quantity in self.m_def.all_quantities.items():
-                if quantity.virtual or not self.m_is_set(quantity):
+                if quantity.virtual:
                     continue
 
-                if self.m_is_set(quantity) and quantity.derived is None:
-                    serialize: TypingCallable[[Any], Any] = str
-                    if isinstance(quantity.type, DataType):
+                is_set = self.m_is_set(quantity)
+                if not is_set:
+                    if not include_defaults or not quantity.m_is_set(Quantity.default):
+                        continue
 
-                        def data_type_serialize(value):
-                            return quantity.type.serialize(self, quantity, value)
+                quantity_type = quantity.type
 
-                        serialize = data_type_serialize
+                serialize: TypingCallable[[Any], Any] = str
+                if isinstance(quantity_type, Reference):
 
-                    elif quantity.type in [str, int, float, bool]:
-                        serialize = quantity.type
-
-                    elif type(quantity.type) == np.dtype:
-                        pass
-
-                    elif isinstance(quantity.type, MEnum):
-                        pass
-
-                    elif quantity.type == Any:
-                        def _serialize(value: Any):
-                            if type(value) not in [str, int, float, bool, list, type(None)]:
-                                raise MetainfoError(
-                                    'Only python primitives are allowed for Any typed non '
-                                    'virtual quantities: %s of quantity %s in section %s' %
-                                    (value, quantity, self))
-
-                            return value
-
-                        serialize = _serialize
-
-                    else:
-                        raise MetainfoError(
-                            'Do not know how to serialize data with type %s for quantity %s' %
-                            (quantity.type, quantity))
-
-                    value = cast(MDataDict, self.m_data).dct[name]
-
-                    if type(quantity.type) == np.dtype:
-                        serializable_value = value.tolist()
-
-                    else:
-                        if len(quantity.shape) == 0:
-                            serializable_value = serialize(value)
-                        elif len(quantity.shape) == 1:
-                            serializable_value = [serialize(i) for i in value]
+                    def reference_serialize(value):
+                        if isinstance(value, MProxy):
+                            return value.url
                         else:
-                            raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
+                            return quantity_type.serialize(self, quantity, value)
 
-                    yield name, serializable_value
+                    serialize = reference_serialize
+
+                elif isinstance(quantity_type, DataType):
+
+                    def data_type_serialize(value):
+                        return quantity_type.serialize(self, quantity, value)
+
+                    serialize = data_type_serialize
+
+                elif quantity_type in [str, int, float, bool]:
+                    serialize = quantity_type
+
+                elif type(quantity_type) == np.dtype:
+                    pass
+
+                elif isinstance(quantity_type, MEnum):
+                    pass
+
+                elif quantity_type == Any:
+                    def _serialize(value: Any):
+                        if type(value) not in [str, int, float, bool, list, type(None)]:
+                            raise MetainfoError(
+                                'Only python primitives are allowed for Any typed non '
+                                'virtual quantities: %s of quantity %s in section %s' %
+                                (value, quantity, self))
+
+                        return value
+
+                    serialize = _serialize
+
+                else:
+                    raise MetainfoError(
+                        'Do not know how to serialize data with type %s for quantity %s' %
+                        (quantity_type, quantity))
+
+                if is_set:
+                    value = cast(MDataDict, self.m_data).dct[name]
+                else:
+                    value = quantity.default
+
+                if type(quantity_type) == np.dtype:
+                    serializable_value = value.tolist()
+
+                else:
+                    if len(quantity.shape) == 0:
+                        serializable_value = serialize(value)
+                    elif len(quantity.shape) == 1:
+                        serializable_value = [serialize(i) for i in value]
+                    else:
+                        raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
+
+                yield name, serializable_value
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
-                            item.m_to_dict()
+                            item.m_to_dict(with_meta=with_meta, include_defaults=include_defaults)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
-                        yield name, sub_section.m_to_dict()
+                        yield name, sub_section.m_to_dict(with_meta=with_meta, include_defaults=include_defaults)
 
         return {key: value for key, value in items()}
 
     @classmethod
     def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
-        """ Creates a section from the given serializable data dictionary.
+        ''' Creates a section from the given serializable data dictionary.
 
         This is the 'opposite' of :func:`m_to_dict`. It takes a deserialised dict, e.g
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
-        """
+        '''
 
         section_def = cls.m_def
 
@@ -1173,11 +1252,11 @@ class MSection(metaclass=MObjectMeta):
         return section
 
     def m_to_json(self, **kwargs):
-        """ Returns the data of this section as a json string. """
+        ''' Returns the data of this section as a json string. '''
         return json.dumps(self.m_to_dict(), **kwargs)
 
     def m_all_contents(self) -> Iterable['MSection']:
-        """ Returns an iterable over all sub and sub subs sections. """
+        ''' Returns an iterable over all sub and sub subs sections. '''
         for content in self.m_contents():
             for sub_content in content.m_all_contents():
                 yield sub_content
@@ -1185,7 +1264,7 @@ class MSection(metaclass=MObjectMeta):
             yield content
 
     def m_contents(self) -> Iterable['MSection']:
-        """ Returns an iterable over all direct subs sections. """
+        ''' Returns an iterable over all direct subs sections. '''
         for sub_section_def in self.m_def.all_sub_sections.values():
             if sub_section_def.repeats:
                 index = 0
@@ -1198,7 +1277,7 @@ class MSection(metaclass=MObjectMeta):
                 yield sub_section
 
     def m_path(self, quantity_def: 'Quantity' = None) -> str:
-        """ Returns the path of this section or the given quantity within the section hierarchy. """
+        ''' Returns the path of this section or the given quantity within the section hierarchy. '''
         if self.m_parent is None:
             return '/'
 
@@ -1213,19 +1292,21 @@ class MSection(metaclass=MObjectMeta):
         return '%s/%s' % (self.m_parent.m_path().rstrip('/'), segment)
 
     def m_root(self, cls: Type[MSectionBound] = None) -> MSectionBound:
-        """ Returns the first parent of the parent section that has no parent; the root. """
+        ''' Returns the first parent of the parent section that has no parent; the root. '''
         if self.m_parent is None:
             return cast(MSectionBound, self)
         else:
             return self.m_parent.m_root(cls)
 
     def m_parent_as(self, cls: Type[MSectionBound] = None) -> MSectionBound:
-        """ Returns the parent section with the given section class type. """
+        ''' Returns the parent section with the given section class type. '''
         return cast(MSectionBound, self.m_parent)
 
     def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
-        """ Resolves the given path using this section as context. """
-
+        '''
+        Resolves the given path or dotted quantity name using this section as context and
+        returns the sub_section or value.
+        '''
         if path.startswith('/'):
             context: 'MSection' = self.m_root()
         else:
@@ -1233,7 +1314,7 @@ class MSection(metaclass=MObjectMeta):
 
         path_stack = path.strip('/').split('/')
         path_stack.reverse()
-        while len(path_stack) > 1:
+        while len(path_stack) > 0:
             prop_name = path_stack.pop()
             prop_def = context.m_def.all_properties.get(prop_name, None)
 
@@ -1275,7 +1356,7 @@ class MSection(metaclass=MObjectMeta):
         return cast(MSectionBound, context)
 
     def m_x(self, key: str, default=None):
-        """ Convinience method for get the annotation with name ``key``. """
+        ''' Convinience method for get the annotation with name ``key``. '''
         return self.m_annotations.get(key, default)
 
     def __validate_shape(self, quantity_def: 'Quantity', value):
@@ -1301,7 +1382,7 @@ class MSection(metaclass=MObjectMeta):
         return True
 
     def m_validate(self):
-        """ Evaluates all constraints and shapes of this section and returns a list of errors. """
+        ''' Evaluates all constraints and shapes of this section and returns a list of errors. '''
         errors: List[str] = []
         for constraint_name in self.m_def.constraints:
             constraint = getattr(self, 'c_%s' % constraint_name, None)
@@ -1327,7 +1408,7 @@ class MSection(metaclass=MObjectMeta):
         return errors
 
     def m_all_validate(self):
-        """ Evaluates all constraints in the whole section hierarchy, incl. this section. """
+        ''' Evaluates all constraints in the whole section hierarchy, incl. this section. '''
         errors: List[str] = []
         for section in itertools.chain([self], self.m_all_contents()):
             for error in section.m_validate():
@@ -1346,6 +1427,16 @@ class MSection(metaclass=MObjectMeta):
             name = '<noname>'
 
         return '%s:%s' % (name, m_section_name)
+
+    def __getitem__(self, key):
+        key = key.replace('.', '/')
+        return self.m_resolve(key)
+
+    def __iter__(self):
+        return self.m_def.all_properties.__iter__()
+
+    def __len__(self):
+        return len(self.m_def.all_properties)
 
 
 class MCategory(metaclass=MObjectMeta):
@@ -1374,7 +1465,7 @@ class MCategory(metaclass=MObjectMeta):
 # Metainfo M3 (i.e. definitions of definitions)
 
 class Definition(MSection):
-    """ A common base for all metainfo definitions.
+    ''' A common base for all metainfo definitions.
 
     All metainfo `definitions` (sections, quantities, sub-sections, packages, ...) share
     some common attributes. These are defined in a common base: all
@@ -1403,7 +1494,7 @@ class Definition(MSection):
     Additional helper functions for `definitions`:
 
     .. automethod:: all_definitions
-    """
+    '''
 
     __all_definitions: Dict[Type[MSection], List[MSection]] = {}
 
@@ -1423,11 +1514,11 @@ class Definition(MSection):
 
     @classmethod
     def all_definitions(cls: Type[MSectionBound]) -> Iterable[MSectionBound]:
-        """ Class method that returns all definitions of this class.
+        ''' Class method that returns all definitions of this class.
 
         This can be used to get a list of all globally available `defintions` or a certain
         kind. E.g. to get all `quantities`: ``Quantity.all_definitions()``.
-        """
+        '''
         return cast(Iterable[MSectionBound], Definition.__all_definitions.get(cls, []))
 
     def qualified_name(self):
@@ -1449,11 +1540,14 @@ class Definition(MSection):
 
 
 class Property(Definition):
-    pass
+
+    def __init_property__(self):
+        ''' Is called during section initialisation to allow property initialisation '''
+        pass
 
 
 class Quantity(Property):
-    """ Definition of an atomic piece of data.
+    ''' Definition of an atomic piece of data.
 
     Quantity definitions are the main building block of meta-info schemas. Each quantity
     represents a single piece of data.
@@ -1551,7 +1645,7 @@ class Quantity(Property):
 
         is_scalar:
             Derived quantity that is True, iff this quantity has shape of length 0
-        """
+        '''
 
     type: 'Quantity' = None
     shape: 'Quantity' = None
@@ -1563,6 +1657,10 @@ class Quantity(Property):
     is_scalar: 'Quantity' = None
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
+
+    def __init_property__(self):
+        if self.derived is not None:
+            self.virtual = True
 
     def __get__(self, obj, cls):
         if obj is None:
@@ -1610,7 +1708,7 @@ class Quantity(Property):
 
 
 class DirectQuantity(Quantity):
-    """ Used for quantities that would cause indefinite loops due to bootstrapping. """
+    ''' Used for quantities that would cause indefinite loops due to bootstrapping. '''
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1637,7 +1735,7 @@ class DirectQuantity(Quantity):
 
 
 class SubSection(Property):
-    """ Defines what sections can appear as sub-sections of another section.
+    ''' Defines what sections can appear as sub-sections of another section.
 
     Like quantities, sub-sections are defined in a `section class` as attributes
     of this class. An like quantities, each sub-section definition becomes a property of
@@ -1656,7 +1754,7 @@ class SubSection(Property):
 
         repeats: A boolean that determines wether this sub-section can appear multiple
             times in the parent section.
-    """
+    '''
 
     sub_section: 'Quantity' = None
     repeats: 'Quantity' = None
@@ -1674,14 +1772,24 @@ class SubSection(Property):
                 return obj.m_get_sub_section(self, -1)
 
     def __set__(self, obj, value):
-        raise NotImplementedError('Sub sections cannot be set directly. Use m_create.')
+        if obj is None:
+            raise NotImplementedError()
+
+        if self.repeats:
+            raise NotImplementedError('Cannot set a repeating sub section use m_create or m_add_sub_section.')
+
+        else:
+            if value is None:
+                obj.m_remove_sub_section(self, -1)
+            else:
+                obj.m_add_sub_section(self, value)
 
     def __delete__(self, obj):
         raise NotImplementedError('Deleting sub sections is not supported.')
 
 
 class Section(Definition):
-    """ Sections define blocks of related quantities and allows hierarchical data.
+    ''' Sections define blocks of related quantities and allows hierarchical data.
 
     Section definitions determine what quantities and sub-sections can appear in a
     following section instance.
@@ -1756,7 +1864,7 @@ class Section(Definition):
         parent_section_sub_section_defs:
             A helper attribute that gives all sub-section definitions that this section
             is used in.
-    """
+    '''
 
     section_cls: Type[MSection] = None
 
@@ -1820,7 +1928,7 @@ class Section(Definition):
 
 
 class Package(Definition):
-    """ Packages organize metainfo defintions alongside Python modules
+    ''' Packages organize metainfo defintions alongside Python modules
 
     Each Python module with metainfo Definition (explicitely or implicitely) has a member
     ``m_package`` with an instance of this class. Definitions (categories, sections) in
@@ -1843,7 +1951,7 @@ class Package(Definition):
 
         all_definitions: A helper attribute that provides all section definitions
             by name.
-    """
+    '''
 
     section_definitions: 'SubSection' = None
     category_definitions: 'SubSection' = None
@@ -1874,7 +1982,7 @@ class Package(Definition):
 
 
 class Category(Definition):
-    """ Categories allow to organize metainfo definitions (not metainfo data like sections do)
+    ''' Categories allow to organize metainfo definitions (not metainfo data like sections do)
 
     Each definition, including categories themselves, can belong to a set of categories.
     Categories therefore form a hierarchy of concepts that definitions can belong to, i.e.
@@ -1883,7 +1991,7 @@ class Category(Definition):
     Args:
         definitions: A helper attribute that gives all definitions that are directly or
             indirectly in this category.
-    """
+    '''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1955,7 +2063,7 @@ SubSection.__init_cls__()
 
 
 class Environment(MSection):
-    """ Environments allow to manage many metainfo packages and quickly access all definitions.
+    ''' Environments allow to manage many metainfo packages and quickly access all definitions.
 
     Environments provide a name-table for large-sets of metainfo definitions that span
     multiple packages. It provides various functions to resolve metainfo definitions by
@@ -1963,7 +2071,7 @@ class Environment(MSection):
 
     Args:
         packages: Packages in this environment.
-    """
+    '''
 
     packages = SubSection(sub_section=Package, repeats=True)
 

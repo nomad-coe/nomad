@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The upload API of the nomad@FAIRDI APIs. Provides endpoints to upload files and
 get the processing status of uploads.
-"""
+'''
 
+from typing import Dict, Any
 from flask import g, request, Response
 from flask_restplus import Resource, fields, abort
 from datetime import datetime
@@ -44,8 +45,8 @@ ns = api.namespace(
 
 class CalcMetadata(fields.Raw):
     def format(self, value):
-        calc_with_metadata = datamodel.CalcWithMetadata(**value)
-        return search.Entry.from_calc_with_metadata(calc_with_metadata).to_dict()
+        entry_metadata = datamodel.EntryMetadata.m_from_dict(value)
+        return search.create_entry(entry_metadata).to_dict()
 
 
 proc_model = api.model('Processing', {
@@ -141,10 +142,10 @@ def disable_marshalling(f):
 
 
 def marshal_with(*args, **kwargs):
-    """
+    '''
     A special version of the RESTPlus marshal_with decorator that allows to disable
     marshalling at runtime by raising DisableMarshalling.
-    """
+    '''
     def decorator(func):
         @api.marshal_with(*args, **kwargs)
         def with_marshalling(*args, **kwargs):
@@ -175,7 +176,7 @@ class UploadListResource(Resource):
     @api.expect(upload_list_parser)
     @authenticate(required=True)
     def get(self):
-        """ Get the list of all uploads from the authenticated user. """
+        ''' Get the list of all uploads from the authenticated user. '''
         try:
             state = request.args.get('state', 'unpublished')
             name = request.args.get('name', None)
@@ -220,7 +221,7 @@ class UploadListResource(Resource):
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
     @authenticate(required=True, upload_token=True)
     def put(self):
-        """
+        '''
         Upload a file and automatically create a new upload in the process.
         Can be used to upload files via browser or other http clients like curl.
         This will also start the processing of the upload.
@@ -237,7 +238,7 @@ class UploadListResource(Resource):
 
         There is a general limit on how many unpublished uploads a user can have. Will
         return 400 if this limit is exceeded.
-        """
+        '''
         # check existence of local_path if local_path is used
         local_path = request.args.get('local_path')
         if local_path:
@@ -345,12 +346,12 @@ class UploadResource(Resource):
     @api.expect(pagination_request_parser)
     @authenticate(required=True)
     def get(self, upload_id: str):
-        """
+        '''
         Get an update for an existing upload.
 
         Will not only return the upload, but also its calculations paginated.
         Use the pagination params to determine the page.
-        """
+        '''
         try:
             upload = Upload.get(upload_id)
         except KeyError:
@@ -398,12 +399,12 @@ class UploadResource(Resource):
     @api.marshal_with(upload_model, skip_none=True, code=200, description='Upload deleted')
     @authenticate(required=True)
     def delete(self, upload_id: str):
-        """
+        '''
         Delete an existing upload.
 
         Only uploads that are sill in staging, not already deleted, not still uploaded, and
         not currently processed, can be deleted.
-        """
+        '''
         try:
             upload = Upload.get(upload_id)
         except KeyError:
@@ -436,7 +437,7 @@ class UploadResource(Resource):
     @api.expect(upload_operation_model)
     @authenticate(required=True)
     def post(self, upload_id):
-        """
+        '''
         Execute an upload operation. Available operations are ``publish`` and ``re-process``
 
         Publish accepts further meta data that allows to provide coauthors, comments,
@@ -449,7 +450,7 @@ class UploadResource(Resource):
         Re-process will re-process the upload and produce updated repository metadata and
         archive. Only published uploads that are not processing at the moment are allowed.
         Only for uploads where calculations have been processed with an older nomad version.
-        """
+        '''
         try:
             upload = Upload.get(upload_id)
         except KeyError:
@@ -464,12 +465,18 @@ class UploadResource(Resource):
 
         operation = json_data.get('operation')
 
-        metadata = json_data.get('metadata', {})
-        for key in metadata:
-            if key.startswith('_'):
+        user_metadata: Dict[str, Any] = json_data.get('metadata', {})
+        metadata: Dict[str, Any] = {}
+        for user_key in user_metadata:
+            if user_key.startswith('_'):
                 if not g.user.is_admin:
                     abort(401, message='Only admin users can use _metadata_keys.')
-                break
+
+                key = user_key[1:]
+            else:
+                key = user_key
+
+            metadata[key] = user_metadata[user_key]
 
         if operation == 'publish':
             if upload.tasks_running:
@@ -519,7 +526,7 @@ class UploadCommandResource(Resource):
     @api.marshal_with(upload_command_model, code=200, description='Upload command send')
     @authenticate(required=True)
     def get(self):
-        """ Get url and example command for shell based uploads. """
+        ''' Get url and example command for shell based uploads. '''
         token = generate_upload_token(g.user)
         upload_url = '%s/uploads/?token=%s' % (config.api_url(ssl=False), token)
         upload_url_with_name = upload_url + '&name=<name>'

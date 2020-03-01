@@ -25,7 +25,7 @@ class FlaskTestHttpClient(HttpClient):
         self._headers = headers
 
     def request(self, request_params, *args, **kwargs):
-        """
+        '''
         Taken from `bravado.http_client.HttpClient`.
 
         Args:
@@ -40,7 +40,7 @@ class FlaskTestHttpClient(HttpClient):
                 `bravado.http_future.HttpFuture`.
         Returns:
             `bravado_core.http_future.HttpFuture`: HTTP Future object
-        """
+        '''
         request_params.setdefault('headers', {}).update(self._headers)
         test_future = FlaskTestFutureAdapter(request_params, self._flask_client)
 
@@ -48,7 +48,7 @@ class FlaskTestHttpClient(HttpClient):
 
 
 class FlaskTestFutureAdapter:
-    """
+    '''
     Mimics a :class:`concurrent.futures.Future` for the purposes of making it work with
     Bravado's :class:`bravado.http_future.HttpFuture` when simulating calls to a Falcon API.
     Those calls will be validated by Bravado.
@@ -59,7 +59,7 @@ class FlaskTestFutureAdapter:
         falcon_api (`falcon.API`): API object to send the request to.
         response_encoding (str): Encoding that will be used to decode response's body.
             If set to None then the body won't be decoded.
-    """
+    '''
 
     def __init__(self, request_params, flask_client, response_encoding='utf-8'):
         self._flask_client = flask_client
@@ -70,10 +70,10 @@ class FlaskTestFutureAdapter:
         self.connection_errors = None
 
     def result(self, **_):
-        """
+        '''
         Args:
             **_: Ignore all the keyword arguments (right now it's just timeout) passed by Bravado.
-        """
+        '''
         # Bravado will create the URL by appending request path to 'http://localhost'
         path = self._request_params['url'].replace('http://localhost', '')
         method = self._request_params.get('method')
@@ -100,54 +100,54 @@ class FlaskTestFutureAdapter:
 
 
 class FlaskTestResponseAdapter(IncomingResponse):
-    """
+    '''
     Wraps a response from Falcon test client to provide a uniform interface
     expected by Bravado's :class:`bravado.http_future.HttpFuture`.
     Args:
         flask_response: Response to a call simulated with flask's test client.
-    """
+    '''
 
     def __init__(self, flask_response):
         self._response = flask_response
 
     @property
     def status_code(self):
-        """
+        '''
         Returns:
             int: HTTP status code
-        """
+        '''
         return self._response.status_code
 
     @property
     def text(self):
-        """
+        '''
         Returns:
             str: Textual representation of the response's body.
-        """
+        '''
         return self._response.data
 
     @property
     def reason(self):
-        """
+        '''
         Returns:
             str: Reason-phrase of the HTTP response (e.g. "OK", or "Not Found")
-        """
+        '''
         # status codes from Falcon look like this: "200 OK"
         return self._response.status[4:]
 
     @property
     def headers(self):
-        """
+        '''
         Returns:
             dict: Headers attached to the response.
-        """
+        '''
         return self._response.headers
 
     def json(self, **kwargs):
-        """
+        '''
         Args:
             **kwargs: This is a part of the interface, but we don't do anything with it.
         Returns:
             dict: JSON representation of the response's body.
-        """
+        '''
         return json.loads(self._response.data)

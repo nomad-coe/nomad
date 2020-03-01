@@ -1,4 +1,4 @@
-""" An example metainfo package. """
+''' An example metainfo package. '''
 
 import numpy as np
 from datetime import datetime
@@ -9,28 +9,28 @@ m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
 
 class SystemHash(MCategory):
-    """ All quantities that contribute to what makes a system unique. """
+    ''' All quantities that contribute to what makes a system unique. '''
 
 
 class Parsing(MSection):
-    """ All data that describes the NOMAD parsing of this run.
+    ''' All data that describes the NOMAD parsing of this run.
 
     Quantities can also be documented like this:
 
     Args:
         parser_name: 'Name of the used parser'
         parser_version: 'Version of the used parser'
-    """
+    '''
 
     parser_name = Quantity(type=str)
     parser_version = Quantity(type=str)
-    nomad_version = Quantity(type=str)
+    nomad_version = Quantity(type=str, default='latest')
     warnings = Quantity(type=str, shape=['0..*'])
     parse_time = Quantity(type=Datetime)
 
 
 class System(MSection):
-    """ All data that describes a simulated system. """
+    ''' All data that describes a simulated system. '''
 
     n_atoms = Quantity(
         type=int, derived=lambda system: len(system.atom_labels),
@@ -63,7 +63,7 @@ class SCC(MSection):
 
 
 class Run(MSection):
-    """ All data that belongs to a single code run. """
+    ''' All data that belongs to a single code run. '''
 
     code_name = Quantity(type=str, description='The name of the code that was run.')
     code_version = Quantity(type=str, description='The version of the code that was run.')
@@ -78,7 +78,7 @@ class Run(MSection):
 
 
 class VaspRun(Run):
-    """ All VASP specific quantities for section Run. """
+    ''' All VASP specific quantities for section Run. '''
     m_def = Section(extends_base_section=True)
 
     x_vasp_raw_format = Quantity(

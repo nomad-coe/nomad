@@ -20,16 +20,16 @@ from nomad.utils import get_logger
 
 
 class Normalizer(metaclass=ABCMeta):
-    """
+    '''
     A base class for normalizers. Normalizers work on a :class:`AbstractParserBackend` instance
     for read and write. Normalizer instances are reused.
 
     Arguments:
         backend: The backend used to read and write data from and to.
-    """
+    '''
 
     domain = 'dft'
-    """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
+    ''' The domain this normalizer should be used in. Default for all normalizer is 'DFT'. '''
 
     def __init__(self, backend: AbstractParserBackend) -> None:
         self._backend = backend
@@ -42,7 +42,7 @@ class Normalizer(metaclass=ABCMeta):
 
 
 class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
-    """
+    '''
     A normalizer base class for normalizers that only touch a section_system.
 
     The normalizer is run on all section systems in a run. However, some systems,
@@ -51,7 +51,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     Args:
         only_representatives: Will only normalize the `representative` systems.
-    """
+    '''
     def __init__(self, backend: AbstractParserBackend, only_representatives: bool = False):
         super().__init__(backend)
         self.only_representatives = only_representatives
@@ -78,15 +78,15 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     @abstractmethod
     def normalize_system(self, section_system_index: int, is_representative: bool) -> bool:
-        """ Normalize the given section and returns True, iff successful"""
+        ''' Normalize the given section and returns True, iff successful'''
         pass
 
     def __representative_system(self):
-        """Used to select a representative system for this entry.
+        '''Used to select a representative system for this entry.
 
         Attempt to find a single section_system that is representative for the
         entry. The selection depends on the type of calculation.
-        """
+        '''
         # Try to find a frame sequence, only first found is considered
         try:
             frame_seq = self._backend['section_frame_sequence'][0]

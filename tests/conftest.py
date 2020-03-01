@@ -35,7 +35,7 @@ from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
 from nomad import config, infrastructure, parsing, processing, app, search, utils
-from nomad.datamodel import User, CalcWithMetadata
+from nomad.datamodel import User, EntryMetadata
 from nomad.parsing import LocalBackend
 
 from tests import test_parsing, test_normalizing
@@ -77,7 +77,7 @@ def raw_files_infra():
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
-    """ Provides cleaned out files directory structure per function. Clears files after test. """
+    ''' Provides cleaned out files directory structure per function. Clears files after test. '''
     directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
         if not os.path.exists(directory):
@@ -123,10 +123,10 @@ def celery_config():
 
 @pytest.fixture(scope='session')
 def purged_app(celery_session_app):
-    """
+    '''
     Purges all pending tasks of the celery app before test. This is necessary to
     remove tasks from the queue that might be 'left over' from prior tests.
-    """
+    '''
     celery_session_app.control.purge()
     yield celery_session_app
 
@@ -140,7 +140,7 @@ def celery_inspect(purged_app):
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
 def worker(mongo, celery_session_worker, celery_inspect):
-    """ Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. """
+    ''' Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. '''
     yield
 
     # wait until there no more active tasks, to leave clean worker and queues for the next
@@ -164,7 +164,7 @@ def mongo_infra(monkeysession):
 
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
-    """ Provides a cleaned mocked mongo per function. """
+    ''' Provides a cleaned mocked mongo per function. '''
     # Some test cases need to reset the database connection
     if infrastructure.mongo_client != mongo_infra:
         mongo_infra = infrastructure.mongo_client
@@ -174,7 +174,7 @@ def mongo(mongo_infra):
 
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
-    """ Provides elastic infrastructure to the session """
+    ''' Provides elastic infrastructure to the session '''
     monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_test')
     try:
         return infrastructure.setup_elastic()
@@ -199,7 +199,7 @@ def clear_elastic(elastic):
 
 @pytest.fixture(scope='function')
 def elastic(elastic_infra):
-    """ Provides a clean elastic per function. Clears elastic before test. """
+    ''' Provides a clean elastic per function. Clears elastic before test. '''
     clear_elastic(elastic_infra)
 
     assert infrastructure.elastic_client is not None
@@ -280,7 +280,7 @@ def keycloak(monkeypatch):
 
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
-    """ Combines all fixtures necessary for processing (elastic, worker, files, mongo) """
+    ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
     return dict(elastic=elastic)
 
 
@@ -384,10 +384,10 @@ def with_warn(caplog):
     assert count > 0
 
 
-"""
+'''
 Fixture for mocked SMTP server for testing.
 Based on https://gist.github.com/akheron/cf3863cdc424f08929e4cb7dc365ef23.
-"""
+'''
 
 RecordedMessage = namedtuple(
     'RecordedMessage',
@@ -527,31 +527,38 @@ def example_user_metadata(other_test_user, test_user) -> dict:
     }
 
 
+@pytest.fixture(scope='module')
+def internal_example_user_metadata(example_user_metadata) -> dict:
+    return {
+        key[1:] if key[0] == '_' else key: value
+        for key, value in example_user_metadata.items()}
+
+
 @pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> parsing.LocalBackend:
-    """ Provides a parsed calculation in the form of a LocalBackend. """
+    ''' Provides a parsed calculation in the form of a LocalBackend. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
 
 @pytest.fixture(scope='session')
 def parsed_ems() -> parsing.LocalBackend:
-    """ Provides a parsed experiment in the form of a LocalBackend. """
+    ''' Provides a parsed experiment in the form of a LocalBackend. '''
     return test_parsing.run_parser('parsers/skeleton', 'tests/data/parsers/skeleton/example.metadata.json')
 
 
 @pytest.fixture(scope='session')
 def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
-    """ Provides a normalized calculation in the form of a LocalBackend. """
+    ''' Provides a normalized calculation in the form of a LocalBackend. '''
     return test_normalizing.run_normalize(parsed)
 
 
 @pytest.fixture(scope='function')
 def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
-    """
+    '''
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
-    """
+    '''
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
     return example_upload_id, example_upload
 
@@ -565,9 +572,9 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def processed(uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
-    """
+    '''
     Provides a processed upload. Upload was uploaded with test_user.
-    """
+    '''
     return test_processing.run_processing(uploaded, test_user)
 
 
@@ -586,19 +593,19 @@ def processeds(non_empty_example_upload: str, test_user: User, proc_infra) -> Li
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
-    """
+    '''
     Provides a processed upload. Upload was uploaded with test_user.
-    """
+    '''
     return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def published(non_empty_processed: processing.Upload, example_user_metadata) -> processing.Upload:
-    """
+def published(non_empty_processed: processing.Upload, internal_example_user_metadata) -> processing.Upload:
+    '''
     Provides a processed upload. Upload was uploaded with test_user.
-    """
-    non_empty_processed.compress_and_set_metadata(example_user_metadata)
+    '''
+    non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
     non_empty_processed.publish_upload()
     try:
         non_empty_processed.block_until_complete(interval=.01)
@@ -611,9 +618,9 @@ def published(non_empty_processed: processing.Upload, example_user_metadata) -> 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def published_wo_user_metadata(non_empty_processed: processing.Upload) -> processing.Upload:
-    """
+    '''
     Provides a processed upload. Upload was uploaded with test_user.
-    """
+    '''
     non_empty_processed.publish_upload()
     try:
         non_empty_processed.block_until_complete(interval=.01)
@@ -625,7 +632,7 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
 
 @pytest.fixture
 def reset_config():
-    """ Fixture that resets configuration. """
+    ''' Fixture that resets configuration. '''
     service = config.service
     log_level = config.console_log_level
     yield None
@@ -636,14 +643,14 @@ def reset_config():
 
 @pytest.fixture
 def reset_infra(mongo, elastic):
-    """ Fixture that resets infrastructure after deleting db or search index. """
+    ''' Fixture that resets infrastructure after deleting db or search index. '''
     yield None
 
 
 def create_test_structure(
         meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int,
         optimade: bool = True, metadata: dict = None):
-    """ Creates a calculation in Elastic and Mongodb with the given properties.
+    ''' Creates a calculation in Elastic and Mongodb with the given properties.
 
     Does require initialized :func:`elastic_infra` and :func:`mongo_infra`.
 
@@ -656,7 +663,7 @@ def create_test_structure(
         periodicity: The number of dimensions to repeat the structure in
         optimade: A boolean. Iff true the entry will have optimade metadata. Default is True.
         metadata: Additional (user) metadata.
-    """
+    '''
 
     atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
     test_vector = np.array([0, 0, 0])
@@ -679,19 +686,19 @@ def create_test_structure(
     backend.closeSection('section_run', 0)
 
     backend = run_normalize(backend)
-    calc = CalcWithMetadata(
+    calc = EntryMetadata(
         domain='dft', upload_id='test_uload_id', calc_id='test_calc_id_%d' % id,
         mainfile='test_mainfile', published=True, with_embargo=False)
     calc.apply_domain_metadata(backend)
     if metadata is not None:
-        calc.update(**metadata)
+        calc.m_update(**metadata)
 
     if not optimade:
-        calc.optimade = None  # type: ignore
+        calc.dft.optimade = None
 
-    proc_calc = processing.Calc.from_calc_with_metadata(calc)
+    proc_calc = processing.Calc.from_entry_metadata(calc)
     proc_calc.save()
-    search_entry = search.Entry.from_calc_with_metadata(calc)
+    search_entry = search.create_entry(calc)
     search_entry.save()
 
     assert processing.Calc.objects(calc_id__in=[calc.calc_id]).count() == 1

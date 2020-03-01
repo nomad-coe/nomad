@@ -22,10 +22,10 @@ from nomad import config
 
 
 logger: BoundLogger = None
-""" A logger pre configured with information about the current request. """
+''' A logger pre configured with information about the current request. '''
 
 base_path = config.services.api_base_path
-""" Provides the root path of the nomad APIs. """
+''' Provides the root path of the nomad APIs. '''
 
 
 class RFC3339DateTime(fields.DateTime):
@@ -41,7 +41,7 @@ rfc3339DateTime = RFC3339DateTime()
 
 
 class DotKeyFieldMixin:
-    """ Allows use of flask_restplus fields with '.' in key names. By default, '.'
+    ''' Allows use of flask_restplus fields with '.' in key names. By default, '.'
     is used as a separator for accessing nested properties. Mixin prevents this,
     allowing fields to use '.' in the key names.
 
@@ -53,7 +53,7 @@ class DotKeyFieldMixin:
 
     flask_restplus tries to fetch values for data['my']['dot']['field'] instead
     of data['my.dot.field'] which is the desired behaviour in this case.
-    """
+    '''
 
     def output(self, key, obj, **kwargs):
         transformed_obj = {k.replace(".", "___"): v for k, v in obj.items()}
@@ -67,10 +67,10 @@ class DotKeyFieldMixin:
 
     @contextmanager
     def toggle_attribute(self):
-        """ Context manager to temporarily set self.attribute to None
+        ''' Context manager to temporarily set self.attribute to None
 
         Yields self.attribute before setting to None
-        """
+        '''
         attribute = self.attribute
         self.attribute = None
         yield attribute

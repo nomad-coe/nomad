@@ -32,7 +32,7 @@ if old_symmetry_tolerance != symmetry_tolerance:
 
 
 def get_normalized_wyckoff(atomic_numbers: np.array, wyckoff_letters: np.array) -> Dict[str, Dict[str, int]]:
-    """Returns a normalized Wyckoff sequence for the given atomic numbers and
+    '''Returns a normalized Wyckoff sequence for the given atomic numbers and
     corresponding wyckoff letters. In a normalized sequence the chemical
     species are "anonymized" by replacing them with upper case alphabets.
 
@@ -45,7 +45,7 @@ def get_normalized_wyckoff(atomic_numbers: np.array, wyckoff_letters: np.array) 
         dictionary. The dictionary contains the number of atoms for each
         species, where the species names have been anomymized in the form
         "X_<index>".
-    """
+    '''
     # Count the occurrence of each chemical species
     atom_count: Dict[int, int] = {}
     for atomic_number in atomic_numbers:
@@ -106,7 +106,7 @@ def get_normalized_wyckoff(atomic_numbers: np.array, wyckoff_letters: np.array) 
 
 
 def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
-    """Searches the AFLOW prototype library for a match for the given space
+    '''Searches the AFLOW prototype library for a match for the given space
     group and normalized Wyckoff sequence. The normalized Wyckoff sequence is
     assumed to come from the MatID symmetry routine.
 
@@ -121,7 +121,7 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
 
     Returns:
         Dictionary containing the AFLOW prototype information.
-    """
+    '''
     structure_type_info = None
     type_descriptions = aflow_prototypes["prototypes_by_spacegroup"].get(space_group, [])
     for type_description in type_descriptions:

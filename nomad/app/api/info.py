@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 API endpoint that deliver backend configuration details.
-"""
+'''
 
 from flask_restplus import Resource, fields
 
@@ -69,7 +69,7 @@ class InfoResource(Resource):
     @api.doc('get_info')
     @api.marshal_with(info_model, skip_none=True, code=200, description='Info send')
     def get(self):
-        """ Return information about the nomad backend and its configuration. """
+        ''' Return information about the nomad backend and its configuration. '''
         codes = [
             parser.code_name
             for parser in parsing.parser_dict.values()
@@ -83,16 +83,13 @@ class InfoResource(Resource):
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'domains': [
                 {
-                    'name': domain.name,
-                    'quantities': [quantity for quantity in domain.quantities.values()],
-                    'metrics_names': domain.metrics_names,
-                    'aggregations_names': domain.aggregations_names,
+                    'name': domain_name,
                     'metainfo': {
-                        'all_package': domain.metainfo_all_package,
-                        'root_sections': domain.root_sections
+                        'all_package': domain['metainfo_all_package'],
+                        'root_section': domain['root_section']
                     }
                 }
-                for domain in datamodel.Domain.instances.values()
+                for domain_name, domain in datamodel.domains.items()
             ],
             'version': config.version,
             'release': config.release,

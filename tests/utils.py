@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Methods to help with testing of nomad@FAIRDI."""
+''' Methods to help with testing of nomad@FAIRDI.'''
 
 from typing import Type
 import json
@@ -21,7 +21,7 @@ from logging import LogRecord
 
 
 def assert_log(caplog, level: str, event_part: str) -> LogRecord:
-    """
+    '''
     Assert whether a log message exists in the logs of the tests at a certain level.
 
     Parameters
@@ -35,7 +35,7 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
         The error message we're after. We search the logs matching level if they
         contain this string.
 
-    """
+    '''
     record = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
@@ -50,10 +50,10 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
 
 @contextmanager
 def assert_exception(exception_cls: Type = Exception):
-    """
+    '''
     A context manager that can be used to assert that the given exception is thrown
     within the respective ``with``clause.
-    """
+    '''
     has_exception = False
     try:
         yield

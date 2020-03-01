@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Iterable
 import pytest
 import time
 import json
@@ -30,7 +30,7 @@ from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User, Dataset
+from nomad.datamodel import EntryMetadata, User, Dataset
 
 from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -56,12 +56,11 @@ def test_user_signature_token(api, test_user_auth):
     return json.loads(rv.data)['signature_token']
 
 
-def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
-    """ Create a :class:`UploadWithMetadata` from a API upload json record. """
-    return UploadWithMetadata(
-        upload_id=upload['upload_id'], calcs=[
-            CalcWithMetadata(domain='dft', calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-            for calc in upload['calcs']['results']])
+def get_upload_entries_metadata(upload: dict) -> Iterable[EntryMetadata]:
+    ''' Create a iterable of :class:`EntryMetadata` from a API upload json record. '''
+    return [
+        EntryMetadata(domain='dft', calc_id=entry['calc_id'], mainfile=entry['mainfile'])
+        for entry in upload['calcs']['results']]
 
 
 def assert_zip_file(rv, files: int = -1, basename: bool = None):
@@ -233,15 +232,13 @@ class TestUploads:
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-        upload_with_metadata = get_upload_with_metadata(upload)
-        assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
-        assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'dft.system'])
+        entries = get_upload_entries_metadata(upload)
+        assert_upload_files(upload_id, entries, files.StagingUploadFiles)
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
     def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
-
-        upload_with_metadata = get_upload_with_metadata(upload)
 
         rv = api.post(
             '/uploads/%s' % upload_id,
@@ -263,10 +260,22 @@ class TestUploads:
         assert upload_proc is not None
         assert upload_proc.published is True
         assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
-        upload_with_metadata = upload_proc.to_upload_with_metadata()
+        entries = upload_proc.entries_metadata()
 
-        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
-        assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
+        for entry in entries:
+            for key, transform in {
+                    'comment': lambda e: e.comment,
+                    'with_embargo': lambda e: e.with_embargo,
+                    'references': lambda e: e.references,
+                    'coauthors': lambda e: [u.user_id for u in e.coauthors],
+                    '_uploader': lambda e: e.uploader.user_id,
+                    '_pid': lambda e: e.pid,
+                    'external_id': lambda e: e.external_id}.items():
+                if key in metadata:
+                    assert transform(entry) == metadata[key], key
+
+        assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
+        assert_search_upload(entries, additional_keys=additional_keys, published=True)
 
     def block_until_completed(self, api, upload_id: str, test_user_auth):
         while True:
@@ -504,6 +513,7 @@ class TestUploads:
 
 
 today = datetime.datetime.utcnow().date()
+today_datetime = datetime.datetime(*today.timetuple()[:6])
 
 
 class UploadFilesBasedTests:
@@ -590,9 +600,9 @@ class UploadFilesBasedTests:
         calc_specs = 'r' if restricted else 'p'
         Upload.create(user=test_user, upload_id='test_upload')
         if in_staging:
-            _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
-            _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
 
         yield 'test_upload', authorized, auth_headers
 
@@ -697,34 +707,35 @@ class TestRepo():
             dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
         example_dataset.m_x('me').create()
 
-        calc_with_metadata = CalcWithMetadata(
-            domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today)
-        calc_with_metadata.files = ['test/mainfile.txt']
-        calc_with_metadata.apply_domain_metadata(normalized)
+        entry_metadata = EntryMetadata(
+            domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
+        entry_metadata.files = ['test/mainfile.txt']
+        entry_metadata.apply_domain_metadata(normalized)
 
-        calc_with_metadata.update(datasets=[example_dataset.dataset_id])
+        entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        search.create_entry(entry_metadata).save(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
-            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5),
+            with_embargo=False, pid=2, upload_time=today_datetime - datetime.timedelta(days=5),
             external_id='external_2')
-        calc_with_metadata.update(
-            atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        entry_metadata.m_update(
+            atoms=['Fe'], comment='this is a specific word', formula='AAA')
+        entry_metadata.dft.basis_set = 'zzz'
+        search.create_entry(entry_metadata).save(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
             with_embargo=False, pid=3, external_id='external_3')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        search.create_entry(entry_metadata).save(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
             with_embargo=True, pid=4, external_id='external_4')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        search.create_entry(entry_metadata).save(refresh=True)
 
         yield
 
@@ -780,28 +791,27 @@ class TestRepo():
         assert rv.status_code == 404
 
     def test_search_datasets(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&datasets=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&group_datasets=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
         datasets = data.get('datasets', None)
         assert datasets is not None
         values = datasets['values']
         assert values['ds_id']['total'] == 4
-        assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
+        assert values['ds_id']['examples'][0]['datasets'][0]['dataset_id'] == 'ds_id'
         assert 'after' in datasets
         assert 'datasets' in data['statistics']['total']['all']
         assert data['statistics']['total']['all']['datasets'] > 0
 
     def test_search_uploads(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&uploads=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&group_uploads=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
         uploads = data.get('uploads', None)
         assert uploads is not None
         values = uploads['values']
-        # the 4 uploads have "example upload id", but 3 have newer upload time. Therefore,
-        # only 3 calc will be in the last (and therefore used) bucket of 'example_upload_id'.
-        assert values['example_upload_id']['total'] == 3
+
+        assert values['example_upload_id']['total'] == 4
         assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
         assert 'after' in uploads
         assert 'uploads' in data['statistics']['total']['all']
@@ -930,10 +940,10 @@ class TestRepo():
     def test_search_aggregation_metrics(self, api, example_elastic_calcs, no_warn, metrics):
         rv = api.get('/repo/?%s' % urlencode({
             'metrics': metrics,
-            'statistics': True,
-            'dft.groups': True,
-            'datasets': True,
-            'uploads': True}, doseq=True))
+            'group_statistics': True,
+            'group_dft.groups': True,
+            'group_datasets': True,
+            'group_uploads': True}, doseq=True))
 
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1169,10 +1179,10 @@ class TestEditRepo():
             create_test_structure(meta_info, id, 2, 1, [], 0, metadata=metadata)
 
         entries = [
-            dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, embargo=False),
-            dict(calc_id='2', upload_id='upload_2', user=test_user, published=True, embargo=True),
-            dict(calc_id='3', upload_id='upload_2', user=test_user, published=False, embargo=False),
-            dict(calc_id='4', upload_id='upload_3', user=other_test_user, published=True, embargo=False)]
+            dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, with_embargo=False),
+            dict(calc_id='2', upload_id='upload_2', user=test_user, published=True, with_embargo=True),
+            dict(calc_id='3', upload_id='upload_2', user=test_user, published=False, with_embargo=False),
+            dict(calc_id='4', upload_id='upload_3', user=other_test_user, published=True, with_embargo=False)]
 
         i = 0
         for entry in entries:
@@ -1253,6 +1263,7 @@ class TestEditRepo():
             shared_with=[other_test_user.user_id])
         rv = self.perform_edit(**edit_data, query=dict(upload_id='upload_1'))
         result = json.loads(rv.data)
+        assert rv.status_code == 200
         actions = result.get('actions')
         for key in edit_data:
             assert key in actions
@@ -1393,7 +1404,7 @@ def test_edit_lift_embargo(api, published, other_test_user_auth):
                 }
             }
         }))
-    assert rv.status_code == 200
+    assert rv.status_code == 200, rv.data
     assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
 
     Upload.get(published.upload_id).block_until_complete()
@@ -1780,13 +1791,13 @@ class TestDataset:
 
     @pytest.fixture()
     def example_dataset_with_entry(self, mongo, elastic, example_datasets):
-        calc = CalcWithMetadata(
+        entry_metadata = EntryMetadata(
             domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
             datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=calc.to_dict()).save()
-        search.Entry.from_calc_with_metadata(calc).save()
+            metadata=entry_metadata.m_to_dict()).save()
+        search.create_entry(entry_metadata).save()
         search.refresh()
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
@@ -1818,12 +1829,12 @@ class TestDataset:
         assert rv.status_code == 400
 
     def test_assign_doi_unpublished(self, api, test_user_auth, example_datasets):
-        calc = CalcWithMetadata(
+        entry_metadata = EntryMetadata(
             domain='dft', calc_id='1', upload_id='1', published=False, with_embargo=False,
             datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=calc.to_dict()).save()
+            metadata=entry_metadata.m_to_dict()).save()
         rv = api.post('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 400
 

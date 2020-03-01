@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 A command that generates various statistics.
-"""
+'''
 
 from matplotlib import scale as mscale
 from matplotlib import transforms as mtransforms

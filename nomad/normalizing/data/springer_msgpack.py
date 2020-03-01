@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Generates and queries a msgpack database of springer-related quantities downloaded from
 http://materials.springer.com. The database is stuctured as
 
@@ -21,7 +21,7 @@ space_group_number : normalized_formula : springer_id : entry
 The msgpack file can be queried using ArchiveFileDB.
 
 The html parser was taken from a collection of scripts from FHI without further testing.
-"""
+'''
 
 import requests
 import re
@@ -89,9 +89,9 @@ def normalize_formula(formula_str: str) -> str:
 
 
 def parse(htmltext: str) -> Dict[str, str]:
-    """
+    '''
     Parser the quantities in required_items from an html text.
-    """
+    '''
     soup = BeautifulSoup(htmltext, "html.parser")
     results = {}
     for item in soup.find_all(attrs={"class": "data-list__item"}):
@@ -158,10 +158,10 @@ def _download(path: str, max_n_query: int = 10) -> str:
 
 
 def download_springer_data(max_n_query: int = 10):
-    """
+    '''
     Downloads the springer quantities related to a structure from springer and updates
     database.
-    """
+    '''
     # load database
     # querying database with unvailable dataset leads to error,
     # get toc keys first by making an empty query
@@ -219,9 +219,9 @@ def download_springer_data(max_n_query: int = 10):
 
 
 def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
-    """
+    '''
     Queries a msgpack database for springer-related quantities.
-    """
+    '''
     entries = query_archive(DB_NAME, {str(space_group_number): {normalized_formula: '*'}})
     db_dict = {}
     entries = entries.get(str(space_group_number), {}).get(normalized_formula, {})

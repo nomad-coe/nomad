@@ -55,124 +55,124 @@ class WrongContextState(Exception):
 
 
 class AbstractParserBackend(metaclass=ABCMeta):
-    """
+    '''
     This ABS provides the parser backend interface used by the NOMAD-coe parsers
     and normalizers.
-    """
+    '''
     @abstractmethod
     def metaInfoEnv(self):
-        """ Returns the meta info used by this backend. """
+        ''' Returns the meta info used by this backend. '''
         pass
 
     @abstractmethod
     def startedParsingSession(
             self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
-        """
+        '''
         Should be called when the parsing starts.
         ParserInfo should be a valid json dictionary.
-        """
+        '''
         pass
 
     @abstractmethod
     def finishedParsingSession(
             self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
             parsingStats=None):
-        """ Called when the parsing finishes. """
+        ''' Called when the parsing finishes. '''
         pass
 
     @abstractmethod
     def openContext(self, contextUri: str):
-        """ Open existing archive data to introduce new data into an existing section. """
+        ''' Open existing archive data to introduce new data into an existing section. '''
         pass
 
     @abstractmethod
     def closeContext(self, contextUri: str):
-        """ Close priorly opened existing archive data again. """
+        ''' Close priorly opened existing archive data again. '''
         pass
 
     @abstractmethod
     def openSection(self, metaName, parent_index=-1):
-        """ Opens a new section and returns its new unique gIndex. """
+        ''' Opens a new section and returns its new unique gIndex. '''
         pass
 
     @abstractmethod
     def closeSection(self, metaName, gIndex):
-        """
+        '''
         Closes the section with the given meta name and index. After this, no more
         value can be added to this section.
-        """
+        '''
         pass
 
     @abstractmethod
     def openNonOverlappingSection(self, metaName):
-        """ Opens a new non overlapping section. """
+        ''' Opens a new non overlapping section. '''
         pass
 
     @abstractmethod
     def setSectionInfo(self, metaName, gIndex, references):
-        """
+        '''
         Sets info values of an open section references should be a dictionary with the
         gIndexes of the root sections this section refers to.
-        """
+        '''
         pass
 
     @abstractmethod
     def closeNonOverlappingSection(self, metaName):
-        """
+        '''
         Closes the current non overlapping section for the given meta name. After
         this, no more value can be added to this section.
-        """
+        '''
         pass
 
     @abstractmethod
     def openSections(self):
-        """ Returns the sections that are still open as metaName, gIndex tuples. """
+        ''' Returns the sections that are still open as metaName, gIndex tuples. '''
         pass
 
     @abstractmethod
     def addValue(self, metaName, value, gIndex=-1):
-        """
+        '''
         Adds a json value for the given metaName. The gIndex is used to identify
         the right parent section.
-        """
+        '''
         pass
 
     @abstractmethod
     def addRealValue(self, metaName, value, gIndex=-1):
-        """
+        '''
         Adds a float value for the given metaName. The gIndex is used to identify
         the right parent section.
-        """
+        '''
         pass
 
     @abstractmethod
     def addArray(self, metaName, shape, gIndex=-1):
-        """
+        '''
         Adds an unannitialized array of the given shape for the given metaName.
         The gIndex is used to identify the right parent section.
         This is neccessary before array values can be set with :func:`setArrayValues`.
-        """
+        '''
 
     @abstractmethod
     def setArrayValues(self, metaName, values, offset=None, gIndex=-1):
-        """
+        '''
         Adds values of the given numpy array to the last array added for the given
         metaName and parent gIndex.
-        """
+        '''
         pass
 
     @abstractmethod
     def addArrayValues(self, metaName, values, gIndex=-1, override: bool = False):
-        """
+        '''
         Adds an array with the given numpy array values for the given metaName and
         parent section gIndex. Override determines whether to rewrite exisiting values
         in the backend.
-        """
+        '''
         pass
 
     @abstractmethod
     def pwarn(self, msg):
-        """ Used to catch parser warnings. """
+        ''' Used to catch parser warnings. '''
         pass
 
     # The following are extensions to the origin NOMAD-coe parser backend. And allow
@@ -185,34 +185,34 @@ class AbstractParserBackend(metaclass=ABCMeta):
 
     @abstractmethod
     def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
-        """ Return all gIndices for existing sections of the given meta_name and parent section index. """
+        ''' Return all gIndices for existing sections of the given meta_name and parent section index. '''
         pass
 
     @abstractmethod
     def get_value(self, metaName: str, g_index=-1) -> Any:
-        """
+        '''
         Return the value set to the given meta_name in its parent section of the given index.
         An index of -1 (default) is only allowed if there is exactly one parent section.
-        """
+        '''
         pass
 
     def write_json(
             self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
             root_sections: List[str] = ['section_run', 'section_entry_info']):
-        """ Writes the backend contents. """
+        ''' Writes the backend contents. '''
         pass
 
     def add_mi2_section(self, section: MSection):
-        """ Allows to mix a metainfo2 style section into backend. """
+        ''' Allows to mix a metainfo2 style section into backend. '''
         pass
 
     def get_mi2_section(self, section_def: MI2Section):
-        """ Allows to mix a metainfo2 style section into backend. """
+        ''' Allows to mix a metainfo2 style section into backend. '''
         pass
 
     def traverse(self, *args, **kwargs) -> Iterable[Tuple[str, str, Any]]:
-        """ Traverses the backend data and yiels tuples with metainfo name, event type,
-        and value """
+        ''' Traverses the backend data and yiels tuples with metainfo name, event type,
+        and value '''
         pass
 
 
@@ -222,7 +222,7 @@ class JSONStreamWriter():
     ARRAY = 2
     KEY_VALUE = 3
 
-    """
+    '''
     A generator that allows to output JSON based on calling 'event' functions.
     Its pure python and could be replaced by some faster implementation, e.g. yajl-py.
     It uses standard json decode to write values. This allows to mix streaming with
@@ -236,7 +236,7 @@ class JSONStreamWriter():
     Raises:
         AssertionError: If methods were called in a non JSON fashion. Call :func:`close`
         to make sure everything was closed properly.
-    """
+    '''
     def __init__(self, file, pretty=False):
         self._fp = file
         self._pretty = pretty
@@ -335,10 +335,10 @@ class JSONStreamWriter():
 
 
 class LegacyParserBackend(AbstractParserBackend):
-    """
+    '''
     Partial implementation of :class:`AbstractParserBackend` that implements some
     methods that are independent from the core backend implementation.
-    """
+    '''
     def __init__(self, logger):
         self.logger = logger if logger is not None else get_logger(__name__)
 
@@ -365,10 +365,10 @@ class LegacyParserBackend(AbstractParserBackend):
             self._warnings.append('There are more warnings, check the processing logs.')
 
     def _parse_context_uri(self, context_uri: str) -> Tuple[str, int]:
-        """
+        '''
         Returns the last segment of the given context uri, i.e. the section that
         constitutes the context.
-        """
+        '''
         path_str = re.sub(r'^(nmd://[^/]+/[^/]+)?/', '', context_uri, count=1)
         path = path_str.split('/')[::-1]  # reversed path via extended slice syntax
 
@@ -388,7 +388,7 @@ class LegacyParserBackend(AbstractParserBackend):
 
     @property
     def status(self) -> ParserStatus:
-        """ Returns status and potential errors. """
+        ''' Returns status and potential errors. '''
         return (self._status, self._errors)
 
     def reset_status(self) -> None:
@@ -398,12 +398,12 @@ class LegacyParserBackend(AbstractParserBackend):
 
 
 class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
-    """
+    '''
     This implementation of :class:`AbstractParserBackend` is a extended version of
     NOMAD-coe's ``LocalBackend`` that allows to write the results in an *archive*-style .json.
     It can be used like the original thing, but also allows to output archive JSON
     after parsing via :func:`write_json`.
-    """
+    '''
     def __init__(self, *args, **kwargs):
         logger = kwargs.pop('logger', None)
         super().__init__(logger=logger)
@@ -417,7 +417,7 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         return self.data[metaname]
 
     def __getattr__(self, name):
-        """ Support for unimplemented and unexpected methods. """
+        ''' Support for unimplemented and unexpected methods. '''
         if name not in self._known_attributes and self._unknown_attributes.get(name) is None:
             self.logger.debug('Access of unexpected backend attribute/method', attribute=name)
             self._unknown_attributes[name] = name
@@ -425,11 +425,11 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         return getattr(self._delegate, name)
 
     def add_mi2_section(self, section: MSection):
-        """ Allows to mix a metainfo2 style section into backend. """
+        ''' Allows to mix a metainfo2 style section into backend. '''
         self.mi2_data[section.m_def.name] = section
 
     def get_mi2_section(self, section_def: MI2Section):
-        """ Allows to mix a metainfo2 style section into backend. """
+        ''' Allows to mix a metainfo2 style section into backend. '''
         return self.mi2_data.get(section_def.name, None)
 
     def finishedParsingSession(self, *args, **kwargs):
@@ -558,7 +558,7 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
     def write_json(
             self, out: TextIO, pretty=True, filter: Callable[[str, Any], Any] = None,
             root_sections: List[str] = ['section_run', 'section_entry_info']):
-        """
+        '''
         Writes the results stored in the backend after parsing in an 'archive'.json
         style format.
 
@@ -566,7 +566,7 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
             out: The file-like that is used to write the json to.
             pretty: Format the json or not.
             filter: Optional filter that takes metaname, value pairs and returns a new value.
-        """
+        '''
         json_writer = JSONStreamWriter(out, pretty=pretty)
         json_writer.open_object()
 

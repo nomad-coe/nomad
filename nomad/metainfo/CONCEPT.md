@@ -179,9 +179,9 @@ Arbitrary serializable objects that can contain additional information.
 This could be code, from a python module that represents the NOMAD *common* package `nomad.metainfo.common`:
 ```python
 class System(MSection):
-    """
+    '''
     The system is ...
-    """
+    '''
 
     n_atoms = Quantity(type=int, derived_from='atom_labels')
 
@@ -189,9 +189,9 @@ class System(MSection):
         shape=['n_atoms'],
         type=MEnum(ase.data.chemical_symbols),
         annotations=[ElasticSearchQuantity('keyword')])
-    """
+    '''
     Atom labels are ...
-    """
+    '''
 
     formula_hill = Quantity(type=str, derived_from=['atom_labels'])
 

@@ -33,12 +33,12 @@ class ArchiveError(Exception):
 
 
 class TOCPacker(Packer):
-    """
+    '''
     A special msgpack packer that records a TOC while packing.
 
     Uses a combination of the pure python msgpack fallback packer and the "real"
     c-based packing.
-    """
+    '''
     def __init__(self, toc_depth: int, *args, **kwargs):
         self.toc_depth = toc_depth
         self.toc: Dict[str, Any] = None
@@ -403,7 +403,7 @@ class ArchiveReader(ArchiveObject):
 def write_archive(
         path_or_file: Union[str, BytesIO], n_entries: int, data: Iterable[Tuple[str, Any]],
         entry_toc_depth: int = 2) -> None:
-    """
+    '''
     Writes a msgpack-based archive file. The file contents will be a valid msgpack-object.
     The data will contain extra table-of-contents (TOC) objects that map some keys to
     positions in the file. Data can be partially read from these positions and deserialized
@@ -456,14 +456,14 @@ def write_archive(
         data: The file contents as an iterator of entry id, data tuples.
         entry_toc_depth: The depth of the table of contents in each entry. Only objects will
             count for calculating the depth.
-    """
+    '''
     with ArchiveWriter(path_or_file, n_entries, entry_toc_depth=entry_toc_depth) as writer:
         for uuid, entry in data:
             writer.add(uuid, entry)
 
 
 def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
-    """
+    '''
     Allows to read a msgpack-based archive.
 
     Arguments:
@@ -475,7 +475,7 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
         A mapping (dict-like) that can be used to access the archive data. The mapping
         will lazyly load data as it is used. The mapping needs to be closed or used within
         a 'with' statement to free the underlying file resource after use.
-    """
+    '''
 
     return ArchiveReader(file_or_path, **kwargs)
 

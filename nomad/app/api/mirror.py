@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The mirror API of the nomad@FAIRDI APIs. Allows to export upload metadata.
-"""
+'''
 
 from flask import request
 from flask_restplus import Resource, abort, fields
@@ -82,9 +82,9 @@ class MirrorUploadResource(Resource):
     @api.doc('get_upload_mirror')
     @authenticate(admin_only=True)
     def get(self, upload_id):
-        """
+        '''
         Export upload (and all calc) metadata for mirrors.
-        """
+        '''
         try:
             upload = proc.Upload.get(upload_id)
         except KeyError:

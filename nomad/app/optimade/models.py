@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 All the API flask restplus models.
-"""
+'''
 
 from typing import Set
 from flask_restplus import fields
@@ -23,7 +23,7 @@ import math
 
 from nomad import config
 from nomad.app.common import RFC3339DateTime
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import EntryMetadata
 
 from .api import api, base_url, url
 
@@ -235,7 +235,7 @@ json_api_calculation_info_model = api.model('CalculationInfo', {
 
 
 class CalculationDataObject:
-    def __init__(self, calc: CalcWithMetadata, request_fields: Set[str] = None):
+    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
 
         def include(key):
             if request_fields is None or (key in request_fields):
@@ -243,7 +243,7 @@ class CalculationDataObject:
 
             return False
 
-        attrs = {key: value for key, value in calc['optimade'].items() if include(key)}
+        attrs = {key: value for key, value in calc.dft.optimade.m_to_dict().items() if include(key)}
 
         self.type = 'calculation'
         self.id = calc.calc_id

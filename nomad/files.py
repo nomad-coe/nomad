@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Uploads contains classes and functions to create and maintain file structures
 for uploads.
 
@@ -46,7 +46,7 @@ might be published!
 There are multiple ways to solve this. Due to the rarity of the case, we take the
 most simple solution: if one file is public, all files are made public, execpt those
 being other mainfiles. Therefore, the aux files of a restricted calc might become public!
-"""
+'''
 
 from abc import ABCMeta
 import sys
@@ -60,8 +60,7 @@ import io
 import pickle
 import json
 
-from nomad import config, utils
-from nomad.datamodel import UploadWithMetadata
+from nomad import config, utils, datamodel
 from nomad.archive import write_archive
 
 # TODO this should become obsolete, once we are going beyong python 3.6. For now
@@ -76,21 +75,21 @@ user_metadata_filename = 'user_metadata.pickle'
 
 
 def always_restricted(path: str):
-    """
+    '''
     Used to put general restrictions on files, e.g. due to licensing issues. Will be
     called during packing and while accessing public files.
-    """
+    '''
     basename = os.path.basename(path)
     if basename.startswith('POTCAR') and not basename.endswith('.stripped'):
         return True
 
 
 def copytree(src, dst):
-    """
+    '''
     A close on ``shutils.copytree`` that does not try to copy the stats on all files.
     This is unecessary for our usecase and also causes permission denies for unknown
     reasons.
-    """
+    '''
     os.makedirs(dst, exist_ok=False)
 
     for item in os.listdir(src):
@@ -103,7 +102,7 @@ def copytree(src, dst):
 
 
 class PathObject:
-    """
+    '''
     Object storage-like abstraction for paths in general.
     Arguments:
         bucket: The bucket to store this object in
@@ -111,7 +110,7 @@ class PathObject:
         os_path: Override the "object storage" path with the given path.
         prefix: Add a x-digit prefix directory, e.g. foo/test/ -> foo/tes/test
         create_prefix: Create the prefix right away
-    """
+    '''
     def __init__(
             self, bucket: str, object_id: str, os_path: str = None,
             prefix: bool = False, create_prefix: bool = False) -> None:
@@ -153,7 +152,7 @@ class PathObject:
 
     @property
     def size(self) -> int:
-        """ The os determined file size. """
+        ''' The os determined file size. '''
         return os.stat(self.os_path).st_size
 
     def __repr__(self) -> str:
@@ -161,13 +160,13 @@ class PathObject:
 
 
 class DirectoryObject(PathObject):
-    """
+    '''
     Object storage-like abstraction for directories.
     Arguments:
         bucket: The bucket to store this object in
         object_id: The object id (i.e. directory path)
         create: True if the directory structure should be created. Default is False.
-    """
+    '''
     def __init__(self, bucket: str, object_id: str, create: bool = False, **kwargs) -> None:
         super().__init__(bucket, object_id, **kwargs)
         self._create = create
@@ -234,7 +233,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             pickle.dump(data, f)
 
     def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
-        """ Casts to or creates corresponding staging upload files or returns None. """
+        ''' Casts to or creates corresponding staging upload files or returns None. '''
         raise NotImplementedError()
 
     @staticmethod
@@ -247,7 +246,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             return None
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
-        """
+        '''
         Opens a raw file and returns a file-like object. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
@@ -255,38 +254,38 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         Raises:
             KeyError: If the file does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
-        """
+        '''
         raise NotImplementedError()
 
     def raw_file_size(self, file_path: str) -> int:
-        """
+        '''
         Returns:
             The size of the given raw file.
-        """
+        '''
         raise NotImplementedError()
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
-        """
+        '''
         Returns the path for all raw files in the archive (with a given prefix).
         Arguments:
             path_prefix: An optional prefix; only returns those files that have the prefix.
         Returns:
             An iterable over all (matching) raw files.
-        """
+        '''
         raise NotImplementedError()
 
     def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
-        """
+        '''
         Gives a list of directory contents and its size.
         Arguments:
             directory: The directory to list
         Returns:
             A list of tuples with file name and size.
-        """
+        '''
         raise NotImplementedError()
 
     def archive_file(self, calc_id: str, *args, **kwargs) -> IO:
-        """
+        '''
         Opens a archive file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
@@ -294,18 +293,18 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         Raises:
             KeyError: If the calc does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
-        """
+        '''
         raise NotImplementedError()
 
     def archive_file_size(self, calc_id: str) -> int:
-        """
+        '''
         Returns:
             The size of the archive.
-        """
+        '''
         raise NotImplementedError()
 
     def archive_log_file(self, calc_id: str, *args, **kwargs) -> IO:
-        """
+        '''
         Opens a archive log file and returns a file-like objects. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
@@ -313,11 +312,11 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         Raises:
             KeyError: If the calc does not exist.
             Restricted: If the file is restricted and upload access evaluated to False.
-        """
+        '''
         raise NotImplementedError()
 
     def open_zipfile_cache(self):
-        """ Allows to reuse the same zipfile for multiple file operations. Must be closed. """
+        ''' Allows to reuse the same zipfile for multiple file operations. Must be closed. '''
         pass
 
     def close_zipfile_cache(self):
@@ -398,7 +397,7 @@ class StagingUploadFiles(UploadFiles):
     def add_rawfiles(
             self, path: str, move: bool = False, prefix: str = None,
             force_archive: bool = False, target_dir: DirectoryObject = None) -> None:
-        """
+        '''
         Add rawfiles to the upload. The given file will be copied, moved, or extracted.
 
         Arguments:
@@ -408,7 +407,7 @@ class StagingUploadFiles(UploadFiles):
             force_archive: Expect the file to be a zip or other support archive file.
                 Usually those files are only extracted if they can be extracted and copied instead.
             target_dir: Overwrite the used directory to extract to. Default is the raw directory of this upload.
-        """
+        '''
         assert not self.is_frozen
         assert os.path.exists(path)
         self._size += os.stat(path).st_size
@@ -449,13 +448,13 @@ class StagingUploadFiles(UploadFiles):
 
     @property
     def is_frozen(self) -> bool:
-        """ Returns True if this upload is already *bagged*. """
+        ''' Returns True if this upload is already *bagged*. '''
         return self._frozen_file.exists()
 
     def pack(
-            self, upload: UploadWithMetadata, target_dir: DirectoryObject = None,
+            self, entries: Iterable[datamodel.EntryMetadata], target_dir: DirectoryObject = None,
             skip_raw: bool = False, skip_archive: bool = False) -> None:
-        """
+        '''
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
         This is potentially a long running operation.
@@ -466,7 +465,7 @@ class StagingUploadFiles(UploadFiles):
                 is the corresponding public upload files directory.
             skip_raw: determine to not pack the raw data, only archive and user metadata
             skip_raw: determine to not pack the archive data, only raw and user metadata
-        """
+        '''
         self.logger.info('started to pack upload')
 
         # freeze the upload
@@ -501,25 +500,25 @@ class StagingUploadFiles(UploadFiles):
         # zip archives
         if not skip_archive:
             with utils.timer(self.logger, 'packed zip json archive'):
-                self._pack_archive_files(upload, create_zipfile)
+                self._pack_archive_files(entries, create_zipfile)
             with utils.timer(self.logger, 'packed msgpack archive'):
-                self._pack_archive_files_msgpack(upload, write_msgfile)
+                self._pack_archive_files_msgpack(entries, write_msgfile)
 
         # zip raw files
         if not skip_raw:
             with utils.timer(self.logger, 'packed raw files'):
-                self._pack_raw_files(upload, create_zipfile)
+                self._pack_raw_files(entries, create_zipfile)
 
-    def _pack_archive_files_msgpack(self, upload: UploadWithMetadata, write_msgfile):
+    def _pack_archive_files_msgpack(self, entries: Iterable[datamodel.EntryMetadata], write_msgfile):
         restricted, public = 0, 0
-        for calc in upload.calcs:
+        for calc in entries:
             if calc.with_embargo:
                 restricted += 1
             else:
                 public += 1
 
         def create_iterator(with_embargo: bool):
-            for calc in upload.calcs:
+            for calc in entries:
                 if with_embargo == calc.with_embargo:
                     archive_file = self.archive_file_object(calc.calc_id)
                     if archive_file.exists():
@@ -535,12 +534,12 @@ class StagingUploadFiles(UploadFiles):
         except Exception as e:
             self.logger.error('exception during packing archives', exc_info=e)
 
-    def _pack_archive_files(self, upload: UploadWithMetadata, create_zipfile):
+    def _pack_archive_files(self, entries: Iterable[datamodel.EntryMetadata], create_zipfile):
         archive_public_zip = create_zipfile('archive', 'public', self._archive_ext)
         archive_restricted_zip = create_zipfile('archive', 'restricted', self._archive_ext)
 
         try:
-            for calc in upload.calcs:
+            for calc in entries:
                 archive_zip = archive_restricted_zip if calc.with_embargo else archive_public_zip
 
                 archive_filename = '%s.%s' % (calc.calc_id, self._archive_ext)
@@ -560,7 +559,7 @@ class StagingUploadFiles(UploadFiles):
             archive_restricted_zip.close()
             archive_public_zip.close()
 
-    def _pack_raw_files(self, upload: UploadWithMetadata, create_zipfile):
+    def _pack_raw_files(self, entries: Iterable[datamodel.EntryMetadata], create_zipfile):
         raw_public_zip = create_zipfile('raw', 'public', 'plain')
         raw_restricted_zip = create_zipfile('raw', 'restricted', 'plain')
 
@@ -568,7 +567,7 @@ class StagingUploadFiles(UploadFiles):
             # 1. add all public raw files
             # 1.1 collect all public mainfiles and aux files
             public_files: Dict[str, str] = {}
-            for calc in upload.calcs:
+            for calc in entries:
                 if not calc.with_embargo:
                     mainfile = calc.mainfile
                     assert mainfile is not None
@@ -578,7 +577,7 @@ class StagingUploadFiles(UploadFiles):
                             if not always_restricted(filepath):
                                 public_files[filepath] = None
             # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
-            for calc in upload.calcs:
+            for calc in entries:
                 if calc.with_embargo:
                     mainfile = calc.mainfile
                     assert mainfile is not None
@@ -629,14 +628,14 @@ class StagingUploadFiles(UploadFiles):
         return results
 
     def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
-        """
+        '''
         Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of a calculation and what not. The mainfile
         is first entry, the rest is sorted.
         Arguments:
             mainfile: The mainfile relative to upload
             with_mainfile: Do include the mainfile, default is True
-        """
+        '''
         mainfile_object = self._raw_dir.join_file(mainfile)
         if not mainfile_object.exists():
             raise KeyError(mainfile)
@@ -666,7 +665,7 @@ class StagingUploadFiles(UploadFiles):
             return aux_files
 
     def calc_id(self, mainfile: str) -> str:
-        """
+        '''
         Calculates a id for the given calc.
         Arguments:
             mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
@@ -674,11 +673,11 @@ class StagingUploadFiles(UploadFiles):
             The calc id
         Raises:
             KeyError: If the mainfile does not exist.
-        """
+        '''
         return utils.hash(self.upload_id, mainfile)
 
     def calc_hash(self, mainfile: str) -> str:
-        """
+        '''
         Calculates a hash for the given calc based on file contents and aux file contents.
         Arguments:
             mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
@@ -686,7 +685,7 @@ class StagingUploadFiles(UploadFiles):
             The calculated hash
         Raises:
             KeyError: If the mainfile does not exist.
-        """
+        '''
         hash = hashlib.sha512()
         for filepath in self.calc_files(mainfile):
             with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
@@ -702,12 +701,12 @@ class StagingUploadFiles(UploadFiles):
 
 
 class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
-    """
+    '''
     :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
 
     Arguments:
         upload_path: The path to the uploaded file.
-    """
+    '''
 
     def __init__(
             self, upload_id: str, upload_path: str, *args, **kwargs) -> None:
@@ -736,12 +735,12 @@ class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
 
 
 class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
-    """
+    '''
     :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
 
     Arguments:
         upload_path: The path to the uploaded file.
-    """
+    '''
 
     def __init__(
             self, public_upload_files: 'PublicUploadFiles', *args, **kwargs) -> None:
@@ -763,9 +762,9 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
     def add_rawfiles(self, *args, **kwargs) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
-    def pack(self, upload: UploadWithMetadata, *args, **kwargs) -> None:
-        """ Packs only the archive contents and stores it in the existing public upload files. """
-        super().pack(upload, target_dir=self.public_upload_files, skip_raw=True)
+    def pack(self, entries: Iterable[datamodel.EntryMetadata], *args, **kwargs) -> None:
+        ''' Packs only the archive contents and stores it in the existing public upload files. '''
+        super().pack(entries, target_dir=self.public_upload_files, skip_raw=True)
 
 
 class PublicUploadFiles(UploadFiles):
@@ -952,13 +951,13 @@ class PublicUploadFiles(UploadFiles):
         return self._file('archive', self._archive_ext, '%s.log' % calc_id, *args, **kwargs)
 
     def re_pack(
-            self, upload: UploadWithMetadata, skip_raw: bool = False,
+            self, entries: Iterable[datamodel.EntryMetadata], skip_raw: bool = False,
             skip_archive: bool = False) -> None:
-        """
+        '''
         Replaces the existing public/restricted data file pairs with new ones, based
         on current restricted information in the metadata. Should be used after updating
         the restrictions on calculations. This is potentially a long running operation.
-        """
+        '''
         # compute a list of files to repack
         files = []
         kinds = []
@@ -991,10 +990,10 @@ class PublicUploadFiles(UploadFiles):
         # perform the repacking
         try:
             if not skip_archive:
-                staging_upload._pack_archive_files(upload, create_zipfile)
-                staging_upload._pack_archive_files_msgpack(upload, write_msgfile)
+                staging_upload._pack_archive_files(entries, create_zipfile)
+                staging_upload._pack_archive_files_msgpack(entries, write_msgfile)
             if not skip_raw:
-                staging_upload._pack_raw_files(upload, create_zipfile)
+                staging_upload._pack_raw_files(entries, create_zipfile)
         finally:
             staging_upload.delete()
 

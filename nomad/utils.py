@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 .. autofunc::nomad.utils.create_uuid
 .. autofunc::nomad.utils.hash
 .. autofunc::nomad.utils.timer
@@ -31,7 +31,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.create_uuid
 .. autofunc::nomad.utils.timer
 .. autofunc::nomad.utils.lnr
-"""
+'''
 
 from typing import List
 import base64
@@ -53,7 +53,7 @@ from datetime import timedelta
 from nomad import config
 
 default_hash_len = 28
-""" Length of hashes and hash-based ids (e.g. calc, upload) in nomad. """
+''' Length of hashes and hash-based ids (e.g. calc, upload) in nomad. '''
 
 
 def decode_handle_id(handle_str: str):
@@ -73,7 +73,7 @@ def decode_handle_id(handle_str: str):
 
 
 def hash(*args, length: int = default_hash_len) -> str:
-    """ Creates a websave hash of the given length based on the repr of the given arguments. """
+    ''' Creates a websave hash of the given length based on the repr of the given arguments. '''
     hash = hashlib.sha512()
     for arg in args:
         hash.update(str(arg).encode('utf-8'))
@@ -82,7 +82,7 @@ def hash(*args, length: int = default_hash_len) -> str:
 
 
 def make_websave(hash, length: int = default_hash_len) -> str:
-    """ Creates a websave string for a hashlib hash object. """
+    ''' Creates a websave string for a hashlib hash object. '''
     if length > 0:
         return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:
@@ -90,30 +90,30 @@ def make_websave(hash, length: int = default_hash_len) -> str:
 
 
 def base64_encode(string):
-    """
+    '''
     Removes any `=` used as padding from the encoded string.
-    """
+    '''
     encoded = base64.urlsafe_b64encode(string).decode('utf-8')
     return encoded.rstrip("=")
 
 
 def base64_decode(string):
-    """
+    '''
     Adds back in the required padding before decoding.
-    """
+    '''
     padding = 4 - (len(string) % 4)
     bytes = (string + ("=" * padding)).encode('utf-8')
     return base64.urlsafe_b64decode(bytes)
 
 
 def sanitize_logevent(event: str) -> str:
-    """
+    '''
     Prepares a log event or message for analysis in elastic stack. It removes numbers,
     list, and matrices of numbers from the event string and limits its size. The
     goal is to make it easier to define aggregations over events by using event
     strings as representatives for event classes rather than event instances (with
     concrete numbers, etc).
-    """
+    '''
     sanitized_event = event[:120]
     sanitized_event = re.sub(r'(\d*\.\d+|\d+(\.\d*)?)', 'X', sanitized_event)
     sanitized_event = re.sub(r'((\[|\()\s*)?X\s*(,\s*X)+(\s*(\]|\)))?', 'L', sanitized_event)
@@ -123,7 +123,7 @@ def sanitize_logevent(event: str) -> str:
 
 @contextmanager
 def legacy_logger(logger):
-    """ Context manager that makes the given logger the logger for legacy log entries. """
+    ''' Context manager that makes the given logger the logger for legacy log entries. '''
     LogstashHandler.legacy_logger = logger
     try:
         yield
@@ -132,14 +132,14 @@ def legacy_logger(logger):
 
 
 class LogstashHandler(logstash.TCPLogstashHandler):
-    """
+    '''
     A log handler that emits records to logstash. It also filters logs for being
     structlog entries. All other entries are diverted to a global `legacy_logger`.
     This legacy logger is supposed to be a structlog logger that turns legacy
     records into structlog entries with reasonable binds depending on the current
     execution context (e.g. parsing/normalizing, etc.). If no legacy logger is
     set, they get emitted as usual (e.g. non nomad logs, celery, dbs, etc.)
-    """
+    '''
 
     legacy_logger = None
 
@@ -349,15 +349,15 @@ def configure_logging():
 
 
 def create_uuid() -> str:
-    """ Returns a web-save base64 encoded random uuid (type 4). """
+    ''' Returns a web-save base64 encoded random uuid (type 4). '''
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
 def get_logger(name, **kwargs):
-    """
+    '''
     Returns a structlog logger that is already attached with a logstash handler.
     Use additional *kwargs* to pre-bind some values to all events.
-    """
+    '''
     if name.startswith('nomad.'):
         name = '.'.join(name.split('.')[:2])
 
@@ -367,14 +367,14 @@ def get_logger(name, **kwargs):
 
 @contextmanager
 def lnr(logger, event, **kwargs):
-    """
+    '''
     A context manager that Logs aNd Raises all exceptions with the given logger.
 
     Arguments:
         logger: The logger that should be used for logging exceptions.
         event: the log message
         **kwargs: additional properties for the structured log
-    """
+    '''
     try:
         yield
     except HTTPException as e:
@@ -387,7 +387,7 @@ def lnr(logger, event, **kwargs):
 
 @contextmanager
 def timer(logger, event, method='info', **kwargs):
-    """
+    '''
     A context manager that takes execution time and produces a log entry with said time.
 
     Arguments:
@@ -399,7 +399,7 @@ def timer(logger, event, method='info', **kwargs):
 
     Returns:
         The method yields a dictionary that can be used to add further log data.
-    """
+    '''
     start = time.time()
 
     try:
@@ -441,15 +441,15 @@ def to_tuple(self, *args):
 
 
 def chunks(list, n):
-    """ Chunks up the given list into parts of size n. """
+    ''' Chunks up the given list into parts of size n. '''
     for i in range(0, len(list), n):
         yield list[i:i + n]
 
 
 class POPO(dict):
-    """
+    '''
     A dict subclass that uses attributes as key/value pairs.
-    """
+    '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -470,10 +470,10 @@ class POPO(dict):
 
 
 class SleepTimeBackoff:
-    """
+    '''
     Provides increasingly larger sleeps. Useful when
     observing long running processes with unknown runtime.
-    """
+    '''
 
     def __init__(self, start_time: float = 0.1, max_time: float = 5):
         self.current_time = start_time
@@ -517,10 +517,10 @@ class ETA:
 
 
 def common_prefix(paths):
-    """
+    '''
     Computes the longest common file path prefix (with respect to '/' separated segments).
     Returns empty string is ne common prefix exists.
-    """
+    '''
     common_prefix = None
 
     for path in paths:

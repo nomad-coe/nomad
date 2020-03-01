@@ -8,7 +8,7 @@ from nomad import config, utils, files
 from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser, MetainfoBackend
 from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.normalizing import normalizers
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import EntryMetadata
 
 from nomadcore import simple_parser
 
@@ -20,10 +20,10 @@ def parse(
         parser_name: str = None,
         backend_factory: Callable = None,
         strict: bool = True, logger=None) -> LocalBackend:
-    """
+    '''
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
-    """
+    '''
     if logger is None:
         logger = utils.get_logger(__name__)
     if parser_name is not None:
@@ -87,9 +87,9 @@ def normalize(
 
 
 def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBackend:
-    """
+    '''
     Parse the downloaded calculation and run the whole normalizer chain.
-    """
+    '''
     for normalizer in normalizers:
         parser_backend = normalize(normalizer, parser_backend=parser_backend, logger=logger)
 
@@ -129,6 +129,6 @@ def _parse(
     if show_backend:
         backend.write_json(sys.stdout, pretty=True)
     if show_metadata:
-        metadata = CalcWithMetadata(domain='dft')  # TODO take domain from matched parser
+        metadata = EntryMetadata(domain='dft')  # TODO take domain from matched parser
         metadata.apply_domain_metadata(backend)
-        json.dump(metadata.to_dict(), sys.stdout, indent=4)
+        json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

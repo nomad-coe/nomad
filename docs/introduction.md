@@ -216,9 +216,6 @@ There are three catergories of metadata:
 Those sets of metadata along with the actual raw and archive data are often transformed,
 passed, stored, etc. by the various nomad modules.
 
-.. figure:: datamodel_metadataflow.png
-   :alt: nomad's metadata flow
-
 ### Implementation
 The different entities have often multiple implementations for different storage systems.
 For example, aspects of calculations are stored in files (raw files, calc metadata, archive data),

@@ -20,7 +20,7 @@ import datetime
 import json
 
 from nomad import utils, processing as proc, search
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import EntryMetadata
 from nomad.cli.client.mirror import transform_reference, tarnsform_user_id, transform_dataset
 
 
@@ -28,14 +28,14 @@ __logger = utils.get_logger(__name__)
 
 
 class SourceCalc(Document):
-    """
+    '''
     Mongo document used as a calculation, upload, and metadata db and index
     build from a given source db. Each :class:`SourceCacl` entry relates
     a pid, mainfile, upload "id" with each other for a corressponding calculation.
     It might alos contain the user metadata. The uploads are "id"ed via the
     specific path segment that identifies an upload on the CoE repo FS(s) without
     any prefixes (e.g. $EXTRACTED, /data/upload, etc.)
-    """
+    '''
     pid = IntField(primary_key=True)
     mainfile = StringField()
     upload = StringField()
@@ -53,14 +53,14 @@ class SourceCalc(Document):
 
 
 def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kwargs):
-    """ Goes through the whole source index to sync differences between repo user metadata
+    ''' Goes through the whole source index to sync differences between repo user metadata
     and metadata in fairdi.
 
     It goes through the source index calc by calc, working in bulks. Getting the samedata
     for fairdi and updating the different calcs in mongo. Will only update user metadata.
 
     Uses kwargs as filters for the used source index query.
-    """
+    '''
     logger = utils.get_logger(__name__)
     start_time = time.time()
 
@@ -96,7 +96,7 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                         important_changes['missing_calcs'].setdefault(source.upload, []).append(source.pid)
                         continue
 
-                target_metadata = CalcWithMetadata(**target.metadata)
+                target_metadata = EntryMetadata(**target.metadata)
                 source_metadata_normalized: Dict[str, Any] = dict(
                     comment=source.metadata.get('comment'),
                     references={transform_reference(ref) for ref in source.metadata['references']},

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The *parsing* module is an interface for the existing NOMAD-coe parsers.
 This module redefines some of the old NOMAD-coe python-common functionality to create a
 more coherent interface to the parsers.
@@ -69,7 +69,7 @@ based on NOMAD-coe's *python-common* module.
     :members:
 .. autoclass:: nomad.parsing.LocalBackend
     :members:
-"""
+'''
 
 from typing import Callable, IO, Union, Dict
 import magic
@@ -96,7 +96,7 @@ encoding_magic = magic.Magic(mime_encoding=True)
 
 
 def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
-    """
+    '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
     the file.
@@ -111,7 +111,7 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
 
     Returns: The parser, or None if no parser could be matched.
-    """
+    '''
     if mainfile.startswith('.') or mainfile.startswith('~'):
         return None
 
@@ -484,7 +484,7 @@ if config.use_empty_parsers:
 
 parsers.append(BrokenParser())
 
-""" Instantiation and constructor based config of all parsers. """
+''' Instantiation and constructor based config of all parsers. '''
 
 parser_dict = {parser.name: parser for parser in parsers}  # type: ignore
-""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
+''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''

@@ -28,19 +28,19 @@ species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
 class OptimadeNormalizer(SystemBasedNormalizer):
 
-    """
+    '''
     This normalizer performs all produces a section all data necessary for the Optimade API.
     It assumes that the :class:`SystemNormalizer` was run before.
-    """
+    '''
     def __init__(self, backend):
         super().__init__(backend, only_representatives=True)
 
     def get_optimade_data(self, index) -> OptimadeEntry:
-        """
+        '''
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
-        """
+        '''
         optimade = OptimadeEntry()
 
         def get_value(key: str, default: Any = None, numpy: bool = False, unit=None) -> Any:

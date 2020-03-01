@@ -41,9 +41,9 @@ def base_request_args():
 
 
 def base_search_request():
-    """ Creates a search request for all public and optimade enabled data. """
+    ''' Creates a search request for all public and optimade enabled data. '''
     return search.SearchRequest().owner('all', None).query(
-        Q('exists', field='dft.optimade.nelements'))  # TODO use the elastic annotations when done
+        Q('exists', field='dft.optimade.elements'))  # TODO use the elastic annotations when done
 
 
 @ns.route('/calculations')
@@ -53,7 +53,7 @@ class CalculationList(Resource):
     @api.expect(entry_listing_endpoint_parser, validate=True)
     @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
-        """ Retrieve a list of calculations that match the given Optimade filter expression. """
+        ''' Retrieve a list of calculations that match the given Optimade filter expression. '''
         request_fields = base_request_args()
 
         try:
@@ -106,7 +106,7 @@ class Calculation(Resource):
     @api.expect(single_entry_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self, id: str):
-        """ Retrieve a single calculation for the given id. """
+        ''' Retrieve a single calculation for the given id. '''
         request_fields = base_request_args()
         search_request = base_search_request().search_parameters(calc_id=id)
 
@@ -134,7 +134,7 @@ class CalculationInfo(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
     def get(self):
-        """ Returns information relating to the API implementation- """
+        ''' Returns information relating to the API implementation- '''
         base_request_args()
 
         result = {
@@ -160,7 +160,7 @@ class Info(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self):
-        """ Returns information relating to the API implementation- """
+        ''' Returns information relating to the API implementation- '''
         base_request_args()
 
         result = {

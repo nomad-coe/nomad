@@ -29,7 +29,7 @@ from .backend import LegacyParserBackend
 
 
 class MetainfoBackend(LegacyParserBackend):
-    """ A backend that uses the new metainfo to store all data. """
+    ''' A backend that uses the new metainfo to store all data. '''
 
     def __init__(self, env: LegacyMetainfoEnvironment, logger=None):
         super().__init__(logger=logger)
@@ -69,22 +69,22 @@ class MetainfoBackend(LegacyParserBackend):
         return current
 
     def openContext(self, context_uri: str):
-        """ Open existing archive data to introduce new data into an existing section. """
+        ''' Open existing archive data to introduce new data into an existing section. '''
         resolved = self.resolve_context(context_uri)
         self.open_sections_by_def.setdefault(resolved.m_def, []).append(resolved)
 
     def closeContext(self, context_uri: str):
-        """ Close priorly opened existing archive data again. """
+        ''' Close priorly opened existing archive data again. '''
         resolved = self.resolve_context(context_uri)
         self.open_sections_by_def.setdefault(resolved.m_def, []).remove(resolved)
 
     def openSection(self, name):
-        """
+        '''
         It will assume that there is a sub-section def with the given name.
         It will use the latest opened section of the sub-sections parent as the parent
         for the new section.
         An Exception will be known root sections, e.g. 'section_run'.
-        """
+        '''
         if name in ['section_run', 'section_entry_info']:
             section_def = self.env.resolve_definition(name, Section)
             sub_section = self.resource.create(section_def.section_cls)
@@ -108,7 +108,7 @@ class MetainfoBackend(LegacyParserBackend):
         return sub_section.m_parent_index
 
     def get_open_section_for_quantity(self, name, g_index):
-        """ Returns the open section that contains the quantity of the given name. """
+        ''' Returns the open section that contains the quantity of the given name. '''
         quantity_def = self.env.resolve_definition(name, Quantity)
         section_def = quantity_def.m_parent_as(Section)
         sections = self.open_sections_by_def.get(section_def, [])
@@ -149,10 +149,10 @@ class MetainfoBackend(LegacyParserBackend):
         return self.openSection(metaName)
 
     def setSectionInfo(self, metaName, gIndex, references):
-        """
+        '''
         Sets info values of an open section references should be a dictionary with the
         gIndexes of the root sections this section refers to.
-        """
+        '''
         # TODO might be necessary to make references work?
         pass
 
@@ -160,7 +160,7 @@ class MetainfoBackend(LegacyParserBackend):
         return self.closeSection(name, -1)
 
     def openSections(self):
-        """ Returns the sections that are still open as metaName, gIndex tuples. """
+        ''' Returns the sections that are still open as metaName, gIndex tuples. '''
         for section_def, sub_sections in self.open_sections_by_def:
             for sub_section in sub_sections:
                 yield section_def.name, sub_section.m_parent_index
@@ -187,26 +187,26 @@ class MetainfoBackend(LegacyParserBackend):
         self.addValue(name, value, g_index)
 
     def addArray(self, name, shape, g_index=-1):
-        """
+        '''
         Adds an unannitialized array of the given shape for the given metaName.
         The gIndex is used to identify the right parent section.
         This is neccessary before array values can be set with :func:`setArrayValues`.
-        """
+        '''
         raise NotImplementedError()
 
     def setArrayValues(self, metaName, values, offset=None, gIndex=-1):
-        """
+        '''
         Adds values of the given numpy array to the last array added for the given
         metaName and parent gIndex.
-        """
+        '''
         raise NotImplementedError()
 
     def addArrayValues(self, name, values, g_index=-1, override: bool = False):
-        """
+        '''
         Adds an array with the given numpy array values for the given metaName and
         parent section gIndex. Override determines whether to rewrite exisiting values
         in the backend.
-        """
+        '''
         section, quantity_def = self.get_open_section_for_quantity(name, g_index)
         if isinstance(quantity_def.type, Reference):
             # quantity is a reference
@@ -239,17 +239,17 @@ class MetainfoBackend(LegacyParserBackend):
             'This method does not make sense in the context of the new metainfo.')
 
     def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
-        """ Return all gIndices for existing sections of the given meta_name and parent index. """
+        ''' Return all gIndices for existing sections of the given meta_name and parent index. '''
         section_def = self.env.resolve_definition(meta_name, Section)
         return [
             section.m_parent_index for section in self.resource.all(section_def.section_cls)
             if g_index == -1 or section.m_parent.m_parent_index == g_index]
 
     def get_value(self, meta_name: str, g_index=-1) -> Any:
-        """
+        '''
         Return the value set to the given meta_name in its parent section of the given index.
         An index of -1 (default) is only allowed if there is exactly one parent section.
-        """
+        '''
         try:
             quantity = self.env.resolve_definition(meta_name, Quantity)
         except KeyError:

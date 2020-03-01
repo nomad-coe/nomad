@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Adds elastic search support to the metainfo.
-"""
+'''
 
 from . import Section, MSection
 
 
 def elastic_mapping(section: Section, base_cls: type) -> type:
-    """ Creates an elasticsearch_dsl document class from a section definition. """
+    ''' Creates an elasticsearch_dsl document class from a section definition. '''
 
     dct = {
         name: quantity.m_annotations['elastic']['type']()
