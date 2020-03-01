@@ -428,15 +428,17 @@ def test_springer_normalizer():
     backend = parse_file(vasp_parser)
     backend = run_normalize(backend)
 
-    backend_value = backend.get_value('springer_id', 89)
+    gindex = 0
+
+    backend_value = backend.get_value('springer_id', gindex)
     expected_value = 'sd_1932539'
     assert expected_value == backend_value
 
-    backend_value = backend.get_value('springer_alphabetical_formula', 89)
+    backend_value = backend.get_value('springer_alphabetical_formula', gindex)
     expected_value = 'O3SrTi'
     assert expected_value == backend_value
 
-    backend_value = backend.get_value('springer_url', 89)
+    backend_value = backend.get_value('springer_url', gindex)
     expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
     assert expected_value == backend_value
 

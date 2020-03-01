@@ -18,9 +18,6 @@ http://materials.springer.com. The database is stuctured as
 
 space_group_number : normalized_formula : springer_id : entry
 
-The msgpack file can be queried using ArchiveFileDB.
-
-The html parser was taken from a collection of scripts from FHI without further testing.
 """
 
 import requests
@@ -28,12 +25,12 @@ import re
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any
 from time import sleep
-import os
+import os.path
 
 from nomad.archive import query_archive, write_archive, ArchiveReader
+from nomad import config
 
-
-DB_NAME = '.springer.msg'
+_DB_PATH = config.springer_msg_db_path
 
 required_items = {
     'Alphabetic Formula:': 'alphabetic_formula',
@@ -41,6 +38,7 @@ required_items = {
     'Compound Class(es):': 'compound_classes',
     'Dataset ID': 'id',
     'Space Group:': 'space_group_number',
+    'Phase Label(s):': 'phase_labels'
 }
 
 spaces_re = re.compile(r'\s+')
@@ -118,11 +116,15 @@ def parse(htmltext: str) -> Dict[str, str]:
         results['compound_classes'] = [x for x in results['compound_classes'] if x != '–']
 
     normalized_formula = None
-    if 'alphabetic_formula' in results:
-        try:
-            normalized_formula = normalize_formula(results['alphabetic_formula'])
-        except Exception:
-            pass
+    for formula_type in ['alphabetic_formula', 'phase_labels']:
+        formula = results.get(formula_type, None)
+        if formula:
+            try:
+                normalized_formula = normalize_formula(formula)
+                break
+            except Exception:
+                pass
+
     results['normalized_formula'] = normalized_formula
 
     return results
@@ -165,11 +167,11 @@ def download_springer_data(max_n_query: int = 10):
     # load database
     # querying database with unvailable dataset leads to error,
     # get toc keys first by making an empty query
-    archive = ArchiveReader(DB_NAME)
+    archive = ArchiveReader(_DB_PATH)
     _ = archive._load_toc_block(0)
     archive_keys = archive._toc.keys()
 
-    sp_data = query_archive(DB_NAME, {spg: '*' for spg in archive_keys})
+    sp_data = query_archive(_DB_PATH, {spg: '*' for spg in archive_keys})
 
     sp_ids: List[str] = []
     for spg in sp_data:
@@ -181,7 +183,7 @@ def download_springer_data(max_n_query: int = 10):
     page = 1
     while True:
         # check springer database for new entries by comparing with local database
-        root = 'https://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId=' % page
+        root = 'http://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId=' % page
         req_text = _download(root, max_n_query)
         if 'Sorry,' in req_text:
             break
@@ -203,10 +205,12 @@ def download_springer_data(max_n_query: int = 10):
             normalized_formula = data.get('normalized_formula', None)
             if space_group_number is None or normalized_formula is None:
                 continue
-
             aformula = data.get('alphabetic_formula', None)
+            if aformula is None:
+                aformula = data.get('phase_labels', None)
             compound = data.get('compound_classes', None)
             classification = data.get('classification', None)
+
             entry = dict(
                 aformula=aformula, url=path, compound=compound,
                 classification=classification)
@@ -215,14 +219,14 @@ def download_springer_data(max_n_query: int = 10):
 
         page += 1
 
-    write_archive(DB_NAME, len(sp_data), sp_data.items(), entry_toc_depth=1)
+    write_archive(_DB_PATH, len(sp_data), sp_data.items(), entry_toc_depth=1)
 
 
 def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
     """
     Queries a msgpack database for springer-related quantities.
     """
-    entries = query_archive(DB_NAME, {str(space_group_number): {normalized_formula: '*'}})
+    entries = query_archive(_DB_PATH, {str(space_group_number): {normalized_formula: '*'}})
     db_dict = {}
     entries = entries.get(str(space_group_number), {}).get(normalized_formula, {})
 

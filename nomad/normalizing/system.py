@@ -397,7 +397,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.closeSection('section_symmetry', symmetry_gid)
 
-    def springer_classification(self, atoms, space_group_number, database='sqlite'):
+    def springer_classification(self, atoms, space_group_number, database='msgpack'):
         # SPRINGER NORMALIZER
         normalized_formula = formula_normalizer(atoms)
         #
@@ -476,7 +476,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         dkeys = list(dbdict.keys())
         if len(dkeys) != 0:
             class_0 = dbdict[dkeys[0]]['spr_classification']
-            comp_0 = dbdict[spr_id]['spr_compound']
+            comp_0 = dbdict[dkeys[0]]['spr_compound']
 
             # compare 'class_0' and 'comp_0' against the rest
             for ii in range(1, len(dkeys)):
