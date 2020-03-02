@@ -360,7 +360,7 @@ class ArchiveReader(ArchiveObject):
             if positions is None:
                 r_start = 0
                 r_end = self._n_toc
-                while positions is None:
+                while positions is None and len(self._toc) < self._n_toc:
                     i_block = r_start + math.floor((r_end - r_start) / 2)
                     first, last = self._load_toc_block(i_block)
                     if key < first:
@@ -370,6 +370,9 @@ class ArchiveReader(ArchiveObject):
                     else:
                         positions = self._toc.get(key)
                         break
+
+                if positions is None:
+                    raise KeyError(key)
 
             toc_position, data_position = positions
 

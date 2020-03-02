@@ -6,6 +6,8 @@ from io import BytesIO
 from nomad import utils
 from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
 
+from .utils import assert_exception
+
 
 def create_example_uuid(index: int = 0):
     return ('{:%dd}' % utils.default_hash_len).format(index)
@@ -144,6 +146,15 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
     assert data[example_uuid]['run']['system'][1] == example_entry['run']['system'][1]
     assert data[example_uuid]['run'].to_dict() == example_entry['run']
     assert data[example_uuid].to_dict() == example_entry
+
+    with assert_exception(KeyError):
+        data['does not exist']
+
+    with assert_exception(KeyError):
+        data[example_uuid]['does not exist']
+
+    with assert_exception(IndexError):
+        data[example_uuid]['run']['system'][2]
 
 
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
