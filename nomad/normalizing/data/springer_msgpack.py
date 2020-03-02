@@ -142,7 +142,7 @@ def _merge_dict(dict0: Dict[str, Any], dict1: Dict[str, Any]) -> Dict[str, Any]:
     return dict0
 
 
-def _download(path: str, max_n_query: int = 10) -> str:
+def _download(path: str, max_n_query: int = 10, retry_time: int = 120) -> str:
     n_query = 0
     while True:
         response = requests.get(path)
@@ -151,7 +151,7 @@ def _download(path: str, max_n_query: int = 10) -> str:
         if n_query > max_n_query:
             break
         n_query += 1
-        sleep(120)
+        sleep(retry_time)
 
     if response.status_code != 200:
         response.raise_for_status()
@@ -159,7 +159,7 @@ def _download(path: str, max_n_query: int = 10) -> str:
     return response.text
 
 
-def download_springer_data(max_n_query: int = 10):
+def update_springer_data(max_n_query: int = 10, retry_time: int = 120):
     """
     Downloads the springer quantities related to a structure from springer and updates
     database.
@@ -184,18 +184,22 @@ def download_springer_data(max_n_query: int = 10):
     while True:
         # check springer database for new entries by comparing with local database
         root = 'http://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId=' % page
-        req_text = _download(root, max_n_query)
+        req_text = _download(root, max_n_query, retry_time)
         if 'Sorry,' in req_text:
             break
 
         paths = search_re.findall(req_text)
+
+        if len(paths) == 0:
+            break
+
         for path in paths:
             sp_id = os.path.basename(path)
             if sp_id in sp_ids:
                 continue
 
             path = 'http://materials.springer.com%s' % path
-            req_text = _download(path, max_n_query)
+            req_text = _download(path, max_n_query, retry_time)
             try:
                 data = parse(req_text)
             except Exception:
