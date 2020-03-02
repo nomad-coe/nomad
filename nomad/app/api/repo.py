@@ -98,11 +98,7 @@ _repo_calcs_model_fields = {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(search.metrics_names))),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
+        ' metrics over all results. ' % ', '.join(search.metrics_names)))
 }
 for group_name, (group_quantity, _) in search.groups.items():
     _repo_calcs_model_fields[group_name] = (DotKeyNested if '.' in group_name else fields.Nested)(api.model('RepoGroup', {

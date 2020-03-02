@@ -59,7 +59,8 @@ info_model = api.model('Info', {
     'domains': fields.List(fields.Nested(model=domain_model)),
     'version': fields.String,
     'release': fields.String,
-    'git': fields.Nested(model=git_info_model)
+    'git': fields.Nested(model=git_info_model),
+    'oasis': fields.Boolean
 })
 
 
@@ -100,5 +101,6 @@ class InfoResource(Resource):
                 'version': gitinfo.version,
                 'commit': gitinfo.commit,
                 'log': gitinfo.log
-            }
+            },
+            'oasis': config.keycloak.oasis
         }, 200

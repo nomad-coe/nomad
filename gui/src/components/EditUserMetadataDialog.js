@@ -730,7 +730,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     user: PropTypes.object,
     onEditComplete: PropTypes.func,
     disabled: PropTypes.bool,
-    title: PropTypes.string
+    title: PropTypes.string,
+    info: PropTypes.object
   }
 
   static styles = theme => ({
@@ -1055,7 +1056,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   renderDialogActions(submitting, submitEnabled) {
-    const {classes} = this.props
+    const {classes, info} = this.props
 
     if (submitting) {
       return <DialogActions>
@@ -1070,7 +1071,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       </DialogActions>
     } else {
       return <DialogActions>
-        <InviteUserDialog />
+        {info && !info.oasis && <InviteUserDialog />}
         <span style={{flexGrow: 1}} />
         <Button onClick={this.handleClose} disabled={submitting}>
           Cancel

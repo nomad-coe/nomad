@@ -83,9 +83,9 @@ def __create_client(
                 host=host,
                 user=user,
                 password=password,
-                server_url=nomad_config.keycloak.server_external_url,
+                server_url=nomad_config.keycloak.server_url,
                 realm_name=nomad_config.keycloak.realm_name,
-                client_id=nomad_config.keycloak.public_client_id)
+                client_id=nomad_config.keycloak.client_id)
         else:
             http_client.set_basic_auth(
                 host=host,

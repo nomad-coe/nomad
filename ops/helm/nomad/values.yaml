@@ -136,8 +136,8 @@ keycloak:
   serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   realmName: "fairdi_nomad_test"
   username: "admin"
-  clientId: "nomad_api_dev"
-  guiClientId: "nomad_gui_dev"
+  clientId: "nomad_public"
+  guiClientId: "nomad_public"
   admin_user_id: "00000000-0000-0000-0000-000000000000"
 
 ## Everything concerning the data that is used by the service
@@ -153,6 +153,10 @@ volumes:
 domain: dft
 
 springerDbPath: /nomad/fairdi/db/data/springer.db
+
+# Will reprocess calculations with their old matched parser, even if they do not
+# match this parser anymore
+reprocess_unmatched: true
 
 datacite:
   enabled: false
