@@ -26,6 +26,9 @@ from nomad.parsing import LocalBackend, BadContextURI
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
+    ('parsers/eels', 'tests/data/parsers/eels.json'),
+    ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
+    ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
@@ -75,7 +78,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 47
+correct_num_output_files = 50
 
 
 class TestLocalBackend(object):
@@ -335,6 +338,7 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    result.domain = parser.domain
     return add_calculation_info(result, parser_name=parser_name)
 
 

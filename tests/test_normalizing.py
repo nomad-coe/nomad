@@ -100,7 +100,10 @@ def normalized_vasp_example(parsed_vasp_example: LocalBackend) -> LocalBackend:
 
 @pytest.fixture
 def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
-    return run_normalize(parsed_example)
+    if parsed_example.domain != 'ems':
+        return run_normalize(parsed_example)
+
+    return None
 
 
 @pytest.fixture
@@ -232,7 +235,8 @@ def assert_normalized(backend: LocalBackend):
 
 
 def test_normalizer(normalized_example: LocalBackend):
-    assert_normalized(normalized_example)
+    if normalized_example is not None:  # non dft cacls are not normalized
+        assert_normalized(normalized_example)
 
 
 def test_normalizer_faulty_matid(caplog):

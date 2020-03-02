@@ -408,6 +408,7 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
         logger = kwargs.pop('logger', None)
         super().__init__(logger=logger)
 
+        self.domain = kwargs.pop('domain', None)
         self._delegate = LegacyLocalBackend(*args, **kwargs)
         self.mi2_data: Dict[str, MSection] = {}
         self._open_context: Tuple[str, int] = None

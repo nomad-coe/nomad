@@ -431,6 +431,13 @@ parsers = [
         mainfile_name_re=(r'.*.aptfim')
     ),
     LegacyParser(
+        name='parsers/eels', code_name='eels', domain='ems',
+        parser_class_name='eelsparser.EelsParserInterface',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_name_re=(r'.*.json'),
+        mainfile_contents_re=(r'"api_permalink": "https://api\.eelsdb\.eu')
+    ),
+    LegacyParser(
         name='parsers/qbox', code_name='qbox', domain='dft',
         parser_class_name='qboxparser.QboxParser',
         mainfile_mime_re=r'(application/xml)|(text/.*)',

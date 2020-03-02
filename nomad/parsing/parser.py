@@ -187,7 +187,7 @@ class LegacyParser(MatchingParser):
             if self.backend_factory is not None:
                 return self.backend_factory(meta_info, logger=logger)
 
-            return LocalBackend(meta_info, debug=False, logger=logger)
+            return LocalBackend(meta_info, debug=False, logger=logger, domain=self.domain)
 
         module_name = self.parser_class_name.split('.')[:-1]
         parser_class = self.parser_class_name.split('.')[-1]

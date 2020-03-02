@@ -91,7 +91,9 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
     for normalizer in normalizers:
-        parser_backend = normalize(normalizer, parser_backend=parser_backend, logger=logger)
+        if normalizer.domain == parser_backend.domain:
+            parser_backend = normalize(
+                normalizer, parser_backend=parser_backend, logger=logger)
 
     return parser_backend
 
