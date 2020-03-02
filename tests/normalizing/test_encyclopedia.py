@@ -23,7 +23,20 @@ from nomad.utils import hash
 from nomad.parsing import LocalBackend
 from nomad.normalizing import structure
 from nomad.metainfo.encyclopedia import Encyclopedia
-from tests.normalizing.conftest import run_normalize_for_structure, geometry_optimization, molecular_dynamics, phonon, two_d, bulk, bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect  # pylint: disable=unused-import
+from tests.normalizing.conftest import (  # pylint: disable=unused-import
+    run_normalize_for_structure,
+    geometry_optimization,
+    molecular_dynamics,
+    phonon,
+    two_d,
+    bulk,
+    bands_unpolarized_no_gap,
+    bands_polarized_no_gap,
+    bands_unpolarized_gap_indirect,
+    bands_polarized_gap_indirect,
+    dos_unpolarized_vasp,
+    dos_polarized_vasp,
+)
 
 ureg = UnitRegistry()
 
@@ -508,3 +521,25 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert gap_up_ev == gap_ev
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
+
+
+def test_dos(dos_unpolarized_vasp, dos_polarized_vasp):
+
+    def test_generic(dos, n_channels):
+        """Generic tests for DOS data."""
+        assert len(dos.energies.shape) == 1
+        assert len(dos.values.shape) == 2
+        assert dos.values.shape[1] == dos.energies.shape[0]
+        assert dos.values.shape[0] == n_channels
+
+    # Unpolarized
+    enc = dos_unpolarized_vasp.get_mi2_section(Encyclopedia.m_def)
+    properties = enc.properties
+    dos = properties.electronic_dos
+    test_generic(dos, n_channels=1)
+
+    # Polarized
+    enc = dos_polarized_vasp.get_mi2_section(Encyclopedia.m_def)
+    properties = enc.properties
+    dos = properties.electronic_dos
+    test_generic(dos, n_channels=2)

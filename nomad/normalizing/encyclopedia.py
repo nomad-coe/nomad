@@ -26,9 +26,30 @@ import numpy as np
 from matid import SymmetryAnalyzer
 import matid.geometry
 
-from nomad.normalizing.normalizer import Normalizer, s_scc, s_system, s_method, s_frame_sequence, r_frame_sequence_to_sampling, s_sampling_method, r_frame_sequence_local_frames
+from nomad.normalizing.normalizer import (
+    Normalizer,
+    s_scc,
+    s_system,
+    s_method,
+    s_frame_sequence,
+    r_frame_sequence_to_sampling,
+    s_sampling_method,
+    r_frame_sequence_local_frames,
+)
+from nomad.metainfo.encyclopedia import (
+    Encyclopedia,
+    Material,
+    Method,
+    Properties,
+    RunType,
+    WyckoffSet,
+    WyckoffVariables,
+    ElectronicBandStructure,
+    ElectronicDOS,
+    BandGap,
+    BandSegment,
+)
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
-from nomad.metainfo.encyclopedia import Encyclopedia, Material, Method, Properties, RunType, WyckoffSet, WyckoffVariables, ElectronicBandStructure, BandGap, BandSegment
 from nomad.normalizing import structure
 from nomad.utils import hash
 from nomad import config
@@ -1682,7 +1703,27 @@ class PropertiesNormalizer():
                 properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
 
     def dos(self) -> None:
-        pass
+        dos_sections = self.backend.get('section_dos')
+        if dos_sections:
+            # There should be only one section dos
+            dos_data = dos_sections[0]
+            dos_kind = dos_data.get('dos_kind', None)
+
+            # dos_kind might not be given for electronic DOS
+            if dos_kind is None:
+                self.logger.warning("dos_kind is not specified, assuming electronic DOS")
+            elif dos_kind == 'vibrational':
+                return None
+
+            # Use only normalized data
+            dos_energies = dos_data.get('dos_energies_normalized')
+            dos_values = dos_data.get('dos_values')
+            if dos_energies is not None and dos_values is not None:
+                sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+                properties = sec_enc.properties
+                dos = properties.m_create(ElectronicDOS)
+                dos.energies = dos_energies
+                dos.values = dos_values
 
     def elastic_constants_matrix(self) -> None:
         pass
@@ -1752,3 +1793,4 @@ class PropertiesNormalizer():
         self.context = ctx
         self.band_structure()
         self.energies()
+        self.dos()

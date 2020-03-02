@@ -537,6 +537,41 @@ class ElectronicBandStructure(MSection):
     )
 
 
+class ElectronicDOS(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Store the electronic density of states (DOS).
+        """
+    )
+    fermi_level = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Fermi level reported for the density of states.
+        """
+    )
+    energies = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..*"],
+        unit=units.J,
+        description="""
+        Array containing the set of discrete energy values with respect to the
+        top of the valence band for the density of states (DOS).
+        """
+    )
+    values = Quantity(
+        type=np.dtype('f8'),
+        shape=["1..2", "1..*"],
+        unit=units.J**(-1),
+        description="""
+        Values (number of states for a given energy, the set of discrete energy
+        values is given in dos_energies) of density of states.
+        """
+    )
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -566,13 +601,8 @@ class Properties(MSection):
         formula unit.
         """
     )
-    dos = Quantity(
-        type=str,
-        description="""
-        A JSON encoded string that contains the density of states.
-        """
-    )
     electronic_band_structure = SubSection(sub_section=ElectronicBandStructure.m_def, repeats=False)
+    electronic_dos = SubSection(sub_section=ElectronicDOS.m_def, repeats=False)
 
 
 class Encyclopedia(MSection):

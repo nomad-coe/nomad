@@ -191,3 +191,21 @@ def bands_polarized_gap_indirect() -> LocalBackend:
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
+
+
+@pytest.fixture(scope='session')
+def dos_polarized_vasp() -> LocalBackend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/dos/polarized_vasp/vasprun.xml.relax2.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_unpolarized_vasp() -> LocalBackend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/dos/unpolarized_vasp/vasprun.xml.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
