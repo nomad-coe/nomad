@@ -258,15 +258,19 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
 
 class ConsoleFormatter(LogstashFormatter):
+
+    short_format = False
+
     @classmethod
     def serialize(cls, message_dict):
         from io import StringIO
 
-        logger = message_dict.pop('logger_name', None)
+        logger = message_dict.pop('logger_name', 'unknown logger')
         event = message_dict.pop('event', None)
-        level = message_dict.pop('level', None)
+        level = message_dict.pop('level', 'UNKNOWN')
         exception = message_dict.pop('exception', None)
-        time = message_dict.pop('@timestamp', None)
+        time = message_dict.pop('@timestamp', '1970-01-01 12:00:00')
+
         for key in ['type', 'tags', 'stack_info', 'path', 'message', 'host', '@version', 'digest']:
             message_dict.pop(key, None)
         keys = list(message_dict.keys())
@@ -279,7 +283,12 @@ class ConsoleFormatter(LogstashFormatter):
             out.write('\n  - exception: %s' % str(exception).replace('\n', '\n    '))
 
         for key in keys:
-            out.write('\n  - %s: %s' % (key, str(message_dict.get(key, None))))
+            if cls.short_format and key.startswith('nomad.'):
+                print_key = key[6:]
+            else:
+                print_key = key
+            if not cls.short_format or print_key not in ['release', 'service']:
+                out.write('\n  - %s: %s' % (print_key, str(message_dict.get(key, None))))
         return out.getvalue()
 
 

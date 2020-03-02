@@ -21,7 +21,7 @@ from typing import Dict, Any
 from io import BytesIO
 import os.path
 from flask import send_file, request
-from flask_restplus import abort, Resource, fields
+from flask_restplus import abort, Resource
 import json
 import importlib
 import urllib.parse
@@ -217,16 +217,7 @@ add_pagination_parameters(_archive_query_parser)
 add_scroll_parameters(_archive_query_parser)
 add_search_parameters(_archive_query_parser)
 
-_archive_query_model_fields = {
-    'results': fields.List(fields.Raw, description=(
-        'A list of search results. Each result is a dict with quantities names as key and '
-        'values as values')),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.')),
-}
-_archive_query_model = api.inherit('ArchiveCalculations', search_model, _archive_query_model_fields)
+_archive_query_model = api.inherit('ArchiveCalculations', search_model)
 
 
 @ns.route('/query')
@@ -235,7 +226,6 @@ class ArchiveQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
-    @api.response(200, 'Archive data send')
     @api.expect(_archive_query_parser, validate=True)
     @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
     @authenticate()
@@ -306,14 +296,14 @@ class ArchiveQueryResource(Resource):
                     if upload_files is not None:
                         upload_files.close_zipfile_cache()
 
-                    upload_files = UploadFiles.get(
-                        upload_id, create_authorization_predicate(upload_id))
+                    upload_files = UploadFiles.get(upload_id)
 
                     if upload_files is None:
                         raise KeyError
 
                     upload_files.open_zipfile_cache()
 
+                upload_files._is_authorized = create_authorization_predicate(upload_id, entry['calc_id'])
                 fo = upload_files.archive_file(calc_id, 'rb')
                 data.append(json.loads(fo.read()))
 

@@ -52,7 +52,7 @@ def test_internal_server_error_get(client, caplog):
     rv = client.get('/api/test/ise?test_arg=value')
     assert rv.status_code == 500
     record = assert_log(caplog, 'error', 'internal server error')
-    data = json.loads(record.message)
+    data = json.loads(record.msg)
 
     assert data['blueprint'] == 'api'
     assert data['endpoint'] == 'api.test_internal_server_error_resource'
@@ -67,7 +67,7 @@ def test_internal_server_error_post(client, caplog):
         data=json.dumps(dict(test_arg='value')))
     assert rv.status_code == 500
     record = assert_log(caplog, 'error', 'internal server error')
-    data = json.loads(record.message)
+    data = json.loads(record.msg)
 
     assert data['blueprint'] == 'api'
     assert data['endpoint'] == 'api.test_internal_server_error_resource'

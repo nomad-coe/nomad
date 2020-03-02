@@ -3,12 +3,13 @@ import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { compose } from 'recompose'
 import { withErrors } from './errors'
-import { withApi, DoesNotExist } from './api'
+import { withApi } from './api'
 import Search from './search/Search'
 import SearchContext from './search/SearchContext'
 import { Typography } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
 import { withRouter } from 'react-router'
+import { withDomain } from './domains'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -21,7 +22,8 @@ class DatasetPage extends React.Component {
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
     raiseError: PropTypes.func.isRequired,
-    history: PropTypes.object.isRequired
+    history: PropTypes.object.isRequired,
+    domain: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -44,6 +46,7 @@ class DatasetPage extends React.Component {
 
   state = {
     dataset: {},
+    empty: false,
     update: 0
   }
 
@@ -58,14 +61,13 @@ class DatasetPage extends React.Component {
       const entry = data.results[0]
       const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
       if (!dataset) {
-        this.setState({dataset: {}})
-        raiseError(new DoesNotExist('Dataset does not exist any more or is not visible to you.'))
+        this.setState({dataset: {}, empty: true})
       }
       this.setState({dataset: {
-        ...dataset, example: entry
+        ...dataset, example: entry, empty: false
       }})
     }).catch(error => {
-      this.setState({dataset: {}})
+      this.setState({dataset: {}, empty: false})
       raiseError(error)
     })
   }
@@ -76,7 +78,7 @@ class DatasetPage extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
-      this.setState({dataset: {}}, () => this.update())
+      this.setState({dataset: {}, empty: false}, () => this.update())
     }
   }
 
@@ -89,14 +91,14 @@ class DatasetPage extends React.Component {
   }
 
   render() {
-    const { classes, datasetId } = this.props
-    const { dataset, update } = this.state
+    const { classes, datasetId, domain } = this.props
+    const { dataset, update, empty } = this.state
 
     return (
       <div>
         <div className={classes.header}>
           <div className={classes.description}>
-            <Typography variant="h4">{dataset.name || 'loading ...'}</Typography>
+            <Typography variant="h4">{dataset.name || (empty && 'Empty or non existing dataset') ||'loading ...'}</Typography>
             <Typography>
               dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
             </Typography>
@@ -111,13 +113,20 @@ class DatasetPage extends React.Component {
         </div>
 
         <SearchContext
-          query={{dataset_id: datasetId}} ownerTypes={['all', 'public']} update={update}
+          initialQuery={{owner: 'all'}}
+          query={{dataset_id: datasetId}}
+          ownerTypes={['all', 'public']} update={update}
         >
-          <Search resultTab="entries" tabs={['entries', 'groups', 'datasets']} />
+          <Search
+            resultTab="entries" tabs={['entries', 'groups', 'datasets']}
+            entryListProps={{
+              selectedColumns: [...domain.defaultSearchResultColumns, 'published', 'authors']
+            }}
+          />
         </SearchContext>
       </div>
     )
   }
 }
 
-export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withDomain, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)

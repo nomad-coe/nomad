@@ -124,7 +124,7 @@ class Keycloak():
     def _oidc_client(self):
         if self.__oidc_client is None:
             self.__oidc_client = KeycloakOpenID(
-                server_url=config.keycloak.server_external_url,
+                server_url=config.keycloak.server_url,
                 client_id=config.keycloak.client_id,
                 realm_name=config.keycloak.realm_name,
                 client_secret_key=config.keycloak.client_secret)
@@ -188,7 +188,7 @@ class Keycloak():
                     options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
                     payload = jwt.decode(
                         g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
-                        issuer='%s/realms/%s' % (config.keycloak.server_external_url.rstrip('/'), config.keycloak.realm_name))
+                        issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
 
             except jwt.InvalidTokenError as e:
                 auth_error = str(e)
@@ -375,7 +375,7 @@ class Keycloak():
                 server_url=config.keycloak.server_url,
                 username=config.keycloak.username,
                 password=config.keycloak.password,
-                realm_name='master',
+                realm_name=config.keycloak.realm_name,
                 verify=True)
             self.__admin_client.realm_name = config.keycloak.realm_name
 

@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Callable, List
 import click
 import datetime
+from elasticsearch_dsl import Q
 import elasticsearch.helpers
 import sys
 import io
@@ -21,6 +23,7 @@ import re
 import uuid
 import json
 from io import StringIO
+import threading
 
 import numpy as np
 import requests
@@ -33,6 +36,72 @@ from nomad import processing as proc, search, datamodel, infrastructure, utils, 
 from nomad.normalizing.structure import get_normalized_wyckoff
 from nomad.cli.cli import cli
 from nomad import config
+
+
+def __run_processing(
+        uploads, parallel: int, process: Callable[[proc.Upload], None], label: str):
+    if isinstance(uploads, (tuple, list)):
+        uploads_count = len(uploads)
+
+    else:
+        uploads_count = uploads.count()
+        uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
+
+    cv = threading.Condition()
+    threads: List[threading.Thread] = []
+
+    state = dict(
+        completed_count=0,
+        skipped_count=0,
+        available_threads_count=parallel)
+
+    logger = utils.get_logger(__name__)
+
+    print('%d uploads selected, %s ...' % (uploads_count, label))
+
+    def process_upload(upload: proc.Upload):
+        logger.info('%s started' % label, upload_id=upload.upload_id)
+
+        completed = False
+        if upload.process_running:
+            logger.warn(
+                'cannot trigger %s, since the upload is already/still processing' % label,
+                current_process=upload.current_process,
+                current_task=upload.current_task, upload_id=upload.upload_id)
+
+        else:
+            upload.reset()
+            process(upload)
+            upload.block_until_complete(interval=.5)
+
+            if upload.tasks_status == proc.FAILURE:
+                logger.info('%s with failure' % label, upload_id=upload.upload_id)
+
+            completed = True
+
+            logger.info('%s complete' % label, upload_id=upload.upload_id)
+
+        with cv:
+            state['completed_count'] += 1 if completed else 0
+            state['skipped_count'] += 1 if not completed else 0
+            state['available_threads_count'] += 1
+
+            print(
+                '   %s %s and skipped %s of %s uploads' %
+                (label, state['completed_count'], state['skipped_count'], uploads_count))
+
+            cv.notify()
+
+    for upload in uploads:
+        with cv:
+            cv.wait_for(lambda: state['available_threads_count'] > 0)
+            state['available_threads_count'] -= 1
+            thread = threading.Thread(target=lambda: process_upload(upload))
+            threads.append(thread)
+            thread.start()
+
+    for thread in threads:
+        thread.join()
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
@@ -55,6 +124,46 @@ def reset(remove, i_am_really_sure):
     infrastructure.setup_elastic()
 
     infrastructure.reset(remove)
+
+
+@admin.command(help='Check and lift embargo of data with expired embargo period.')
+@click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+def lift_embargo(dry, parallel):
+    infrastructure.setup_logging()
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
+    request = search.SearchRequest()
+    request.q = Q('term', with_embargo=True) & Q('term', published=True)
+    request.quantity('upload_id', 1000)
+    result = request.execute()
+
+    uploads_to_repack = []
+    for upload_id in result['quantities']['upload_id']['values']:
+        upload = proc.Upload.get(upload_id)
+        embargo_length = upload.embargo_length
+        if embargo_length is None:
+            embargo_length = 36
+            upload.embargo_length = 36
+
+        if upload.upload_time + datetime.timedelta(days=int(embargo_length * 365 / 12)) < datetime.datetime.now():
+            print('need to lift the embargo of %s (upload_time=%s, embargo=%d)' % (
+                upload.upload_id, upload.upload_time, embargo_length))
+
+            if not dry:
+                proc.Calc._get_collection().update_many(
+                    {'upload_id': upload_id},
+                    {'$set': {'metadata.with_embargo': False}})
+                uploads_to_repack.append(upload)
+                upload.save()
+
+                upload_with_metadata = upload.to_upload_with_metadata()
+                calcs = upload_with_metadata.calcs
+                search.index_all(calcs)
+
+    if not dry:
+        __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
 
 
 @admin.command(help='(Re-)index all calcs.')

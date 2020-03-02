@@ -104,7 +104,7 @@ class DatasetListResource(Resource):
         return Dataset(dataset_id=dataset_id, **data).m_x('me').create(), 200
 
 
-@ns.route('/<string:name>')
+@ns.route('/<path:name>')
 @api.doc(params=dict(name='The name of the requested dataset.'))
 class DatasetResource(Resource):
     @api.doc('get_dataset')

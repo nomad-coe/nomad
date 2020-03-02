@@ -65,6 +65,10 @@ search_model = api.model('Search', {
     'results': fields.List(fields.Raw, description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values')),
+    'python': fields.String(description=(
+        'A string of python code snippet which can be executed to reproduce the api result.')),
+    'curl': fields.String(description=(
+        'A string of curl command which can be executed to reproduce the api result.'))
 })
 
 
@@ -98,7 +102,7 @@ def add_search_parameters(request_parser):
     # more search parameters
     request_parser.add_argument(
         'owner', type=str,
-        help='Specify which calcs to return: ``all``, ``public``, ``user``, ``staging``, default is ``all``')
+        help='Specify which calcs to return: ``visible``, ``public``, ``all``, ``user``, ``staging``, default is ``visible``')
     request_parser.add_argument(
         'from_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) minimum entry time (e.g. upload time)')
@@ -120,7 +124,7 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     args = {key: value for key, value in args.items() if value is not None}
 
     # owner
-    owner = args.get('owner', 'all')
+    owner = args.get('owner', 'visible')
     try:
         search_request.owner(
             owner,

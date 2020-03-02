@@ -11,17 +11,18 @@ The nomad infrastructure consists of a series of nomad and 3rd party services:
 - rabbitmq: a task queue used to distribute work in a cluster
 
 All 3rd party services should be run via *docker-compose* (see blow). The
-nomad python  services can also be run via *docker-compose* or manually started with python.
-The gui can be run manually with a development server via yarn, or with
-*docker-compose*
+nomad python  services can be run with python to develop them.
+The gui can be run with a development server via yarn.
 
 Below you will find information on how to install all python dependencies and code
-manually. How to use *docker*/*docker-compose*. How run services with *docker-compose*
-or manually.
+manually. How to use *docker*/*docker-compose*. How run 3rd-party services with *docker-compose*.
 
 Keep in mind the *docker-compose* configures all services in a way that mirror
 the configuration of the python code in `nomad/config.py` and the gui config in
 `gui/.env.development`.
+
+To learn about how to run everything in docker, e.g. to operate a NOMAD OASIS in
+production, go (here)(/app/docs/ops.html).
 
 ## Install python code and dependencies
 
@@ -151,35 +152,12 @@ having to copy the git itself to the docker build context.
 
 The images are build via *docker-compose* and don't have to be created manually.
 
-### Build with docker-compose
-
-We have multiple *docker-compose* files that must be used together.
-- `docker-compose.yml` contains the base definitions for all services
-- `docker-compose.override.yml` configures services for development (notably builds images for nomad services)
-- `docker-compose.dev-elk.yml` will also provide the ELK service
-- `docker-compose.prod.yml` configures services for production (notable uses a pre-build image for nomad services that was build during CI/CD)
-
-It is sufficient to use the implicit `docker-compose.yml` only (like in the command below).
-The `override` will be used automatically.
-
-Now we can build the *docker-compose* that contains all external services (rabbitmq,
-mongo, elastic, elk) and nomad services (worker, app, gui).
-```
-docker-compose build
-```
-
-Docker-compose tries to cache individual building steps. Sometimes this causes
-troubles and not everything necessary is build when you changed something. In
-this cases use:
-```
-docker-compose build --no-cache
-```
-
-### Run everything with docker-compose
+### Run necessary 3-rd party services with docker-compose
 
 You can run all containers with:
 ```
-docker-compose up
+cd ops/docker-compose/nomad
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongo elastic rabbitmq
 ```
 
 To shut down everything, just `ctrl-c` the running output. If you started everything
@@ -187,25 +165,6 @@ in *deamon* mode (`-d`) use:
 ```
 docker-compose down
 ```
-
-### Run containers selectively
-The following services/containers are managed via our docker-compose:
-- rabbitmq, mongo, elastic, (elk, only for production)
-- worker, app
-- gui
-- proxy
-
-The *proxy* container runs *nginx* based reverse proxies that put all services under
-a single port and different paths.
-
-You can also run services selectively, e.g.
-```
-docker-compose up -d rabbitmq, mongo, elastic
-docker-compose up worker
-docker-compose up app gui proxy
-```
-
-## Accessing 3'rd party services
 
 Usually these services only used by the nomad containers, but sometimes you also
 need to check something or do some manual steps.
@@ -227,12 +186,7 @@ The index prefix for logs is `logstash-`. The ELK is only available with the
 You can access mongodb and elastic search via your preferred tools. Just make sure
 to use the right ports (see above).
 
-
-## Run nomad services manually
-
-You can run the worker, app, and gui as part of the docker infrastructure, like
-seen above. But, of course there are always reasons to run them manually during
-development, like running them in a debugger, profiler, etc.
+## Run nomad services
 
 ### API and worker
 
@@ -244,11 +198,6 @@ nomad admin run worker
 To run it directly with celery, do (from the root)
 ```
 celery -A nomad.processing worker -l info
-```
-
-Run the app via docker, or (from the root):
-```
-nomad admin run app
 ```
 
 You can also run worker and app together:

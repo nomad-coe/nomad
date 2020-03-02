@@ -134,7 +134,10 @@ class PathObject:
         parent_directory = os.path.dirname(self.os_path)
         parent_name = os.path.basename(parent_directory)
 
-        shutil.rmtree(self.os_path)
+        if os.path.isfile(self.os_path):
+            os.remove(self.os_path)
+        else:
+            shutil.rmtree(self.os_path)
 
         if len(parent_name) == config.fs.prefix_size and basename.startswith(parent_name):
             try:
@@ -936,3 +939,8 @@ class PublicUploadFiles(UploadFiles):
             for zip_file in self._zipfile_cache.values():
                 zip_file.close()
         self._zipfile_cache = None
+
+
+for directory in [config.fs.public, config.fs.staging, config.fs.tmp]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
