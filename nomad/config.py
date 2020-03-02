@@ -82,6 +82,7 @@ rabbitmq = NomadConfig(
 def rabbitmq_url():
     return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
 
+
 celery = NomadConfig(
     max_memory=64e6,  # 64 GB
     timeout=1800,  # 1/2 h
