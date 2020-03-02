@@ -41,6 +41,7 @@ class EMSEntryWithMetadata(CalcWithMetadata):
         # data metadata
         self.repository_name: str = None
         self.repository_url: str = None
+        self.entry_repository_url: str = None
         self.preview_url: str = None
 
         self.quantities = []
@@ -86,6 +87,8 @@ class EMSEntryWithMetadata(CalcWithMetadata):
             backend, 'data_repository_url', 'section_data', logger=logger)
         self.preview_url = get_optional_backend_value(
             backend, 'data_preview_url', 'section_data', logger=logger)
+        self.entry_repository_url = get_optional_backend_value(
+            backend, 'entry_repository_url', 'section_data', logger=logger)
 
         self.group_hash = utils.hash(
             self.formula,

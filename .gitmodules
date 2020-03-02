@@ -156,3 +156,6 @@
 [submodule "dependencies/optimade-python-tools"]
 	path = dependencies/optimade-python-tools
 	url = https://github.com/markus1978/optimade-python-tools.git
+[submodule "dependencies/parsers/eels"]
+	path = dependencies/parsers/eels
+	url = https://github.com/markus1978/eels.git

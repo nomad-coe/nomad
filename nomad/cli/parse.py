@@ -23,6 +23,8 @@ def parse(
     """
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
+
+    Returns: A tuple with the parser instance and result backend
     """
     if logger is None:
         logger = utils.get_logger(__name__)
@@ -86,12 +88,14 @@ def normalize(
     return parser_backend
 
 
-def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBackend:
+def normalize_all(parser_backend: LocalBackend, logger=None) -> LocalBackend:
     """
     Parse the downloaded calculation and run the whole normalizer chain.
     """
     for normalizer in normalizers:
-        parser_backend = normalize(normalizer, parser_backend=parser_backend, logger=logger)
+        if normalizer.domain == parser_backend.domain:
+            parser_backend = normalize(
+                normalizer, parser_backend=parser_backend, logger=logger)
 
     return parser_backend
 
@@ -129,6 +133,6 @@ def _parse(
     if show_backend:
         backend.write_json(sys.stdout, pretty=True)
     if show_metadata:
-        metadata = CalcWithMetadata(domain='dft')  # TODO take domain from matched parser
+        metadata = CalcWithMetadata(domain=backend.domain)
         metadata.apply_domain_metadata(backend)
         json.dump(metadata.to_dict(), sys.stdout, indent=4)
