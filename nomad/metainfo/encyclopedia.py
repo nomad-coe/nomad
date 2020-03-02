@@ -8,7 +8,7 @@ class WyckoffVariables(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Contains the variables associated with this set.
+        Contains the variables associated with a Wyckoff set.
         """
     )
     x = Quantity(
@@ -66,7 +66,8 @@ class Material(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing the data that links this entry into a specific material.
+        Section for storing the data that links an Encyclopedia entry into a
+        specific material.
         """
     )
 
@@ -278,7 +279,7 @@ class Method(MSection):
         """
     )
     method_type = Quantity(
-        type=MEnum("DFT", "DFT+U", "GW", "unavailable"),
+        type=MEnum("DFT", "GW", "unavailable", DFTU="DFT+U", ),
         description="""
         Generic name for the used methodology.
         """
@@ -400,7 +401,8 @@ class BandGap(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Stores an entire band structure.
+        Stores information related to a band gap that has bee identified within
+        the band structure.
         """
     )
     value = Quantity(
@@ -453,7 +455,7 @@ class BandSegment(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Represents a continuous path segment starting from a specific k point
+        Represents a continuous path segment starting from a specific k-point
         and ending in another.
         """
     )
@@ -542,7 +544,7 @@ class ElectronicDOS(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Store the electronic density of states (DOS).
+        Stores the electronic density of states (DOS).
         """
     )
     fermi_level = Quantity(
@@ -577,7 +579,8 @@ class Properties(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing Encyclopedia-specific properties.
+        Section for storing all calculation-specific physical quantities that
+        are used by the NOMAD Encyclopedia.
         """
     )
     atomic_density = Quantity(
@@ -607,9 +610,11 @@ class Properties(MSection):
 
 class Encyclopedia(MSection):
     m_def = Section(
-        name="encyclopedia",
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc)
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing all information that is used by the NOMAD Encyclopedia.
+        """
     )
     mainfile_uri = Quantity(
         type=str,
