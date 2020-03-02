@@ -103,7 +103,7 @@ def normalized_example(parsed_example: LocalBackend) -> LocalBackend:
     if parsed_example.domain != 'ems':
         return run_normalize(parsed_example)
 
-    return None
+    return parsed_example
 
 
 @pytest.fixture
@@ -212,17 +212,19 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend: LocalBackend):
-    metadata = datamodel.EntryMetadata(domain='dft')
+    metadata = datamodel.EntryMetadata(domain=backend.domain)
     metadata.apply_domain_metadata(backend)
     assert metadata.formula is not None
-    assert metadata.dft.code_name is not None
-    assert metadata.dft.code_version is not None
-    assert metadata.dft.basis_set is not None
-    assert metadata.dft.xc_functional is not None
-    assert metadata.dft.system is not None
-    assert metadata.dft.crystal_system is not None
     assert len(metadata.atoms) is not None
-    assert metadata.dft.spacegroup is not None
+
+    if backend.domain == 'dft':
+        assert metadata.dft.code_name is not None
+        assert metadata.dft.code_version is not None
+        assert metadata.dft.basis_set is not None
+        assert metadata.dft.xc_functional is not None
+        assert metadata.dft.system is not None
+        assert metadata.dft.crystal_system is not None
+        assert metadata.dft.spacegroup is not None
 
     exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
 
@@ -230,18 +232,21 @@ def assert_normalized(backend: LocalBackend):
         assert len(metadata.atoms) > 0
 
     for key in calc_metadata_keys:
-        if key not in exceptions:
-            assert metadata[key] != config.services.unavailable_value
+        if key in exceptions:
+            continue
+
+        if '.' in key and not key.startswith(backend.domain):
+            continue
+
+        assert metadata[key] != config.services.unavailable_value
 
 
 def test_normalizer(normalized_example: LocalBackend):
-    if normalized_example is not None:  # non dft cacls are not normalized
-        assert_normalized(normalized_example)
+    assert_normalized(normalized_example)
 
 
 def test_normalizer_faulty_matid(caplog):
     ''' Runs normalizer on an example w/ bools for atom pos. Should force matid error.'''
-    # assert isinstance(backend, LocalBackend)
     backend = parse_file(boolean_positions)
     run_normalize(backend)
     assert_log(caplog, 'ERROR', 'matid project system classification failed')
