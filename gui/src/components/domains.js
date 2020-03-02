@@ -53,8 +53,8 @@ export const domains = ({
       // The unique_geometries search aggregates unique geometries based on 10^8 hashes.
       // This takes to long in elastic search for a reasonable user experience.
       // Therefore, we only support geometries without uniqueness check
-      'dft.geometries': {
-        label: 'Geometries',
+      'dft.unique_geometries': {
+        label: 'Unique geometries',
         shortLabel: 'Geometries',
         tooltip: 'Aggregates the number of simulated system geometries in all entries.',
         renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)

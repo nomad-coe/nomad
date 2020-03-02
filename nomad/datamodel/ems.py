@@ -16,7 +16,7 @@
 Experimental material science specific metadata
 '''
 
-from nomad import utils
+from nomad import utils, config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search import SearchQuantity
 
@@ -34,7 +34,7 @@ class EMSMetadata(MSection):
     # general metadata
     experiment_summary = Quantity(type=str, default='not processed', a_search=SearchQuantity())
     experiment_location = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    experiment_time = Quantity(type=Datetime, default='not processed', a_search=SearchQuantity())
+    experiment_time = Quantity(type=Datetime, a_search=SearchQuantity())
 
     # method
     method = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
@@ -77,8 +77,10 @@ class EMSMetadata(MSection):
             backend, 'experiment_summary', 'section_experiment', logger=logger)
         self.experiment_location = get_optional_backend_value(
             backend, 'experiment_location', 'section_experiment', logger=logger)
-        self.experiment_time = get_optional_backend_value(
-            backend, 'experiment_time', 'section_experiment', logger=logger)
+        experiment_time = get_optional_backend_value(
+            backend, 'experiment_time', 'section_experiment', None, logger=logger)
+        if experiment_time != config.services.unavailable_value:
+            self.experiment_time = experiment_time
 
         self.method = get_optional_backend_value(
             backend, 'experiment_method_name', 'section_method', logger=logger)

@@ -12,7 +12,13 @@ export default class EMSEntryOverview extends React.Component {
 
   render() {
     const { data } = this.props
-    const { ems: { preview_url } } = data
+    const { ems } = data
+
+    if (!ems) {
+      return <Typography color="error">No metadata available</Typography>
+    }
+
+    const preview_url = ems && ems.preview_url
 
     let relative_preview_url = null
     if (!preview_url) {
@@ -39,7 +45,7 @@ export default class EMSEntryOverview extends React.Component {
             <Quantity quantity="ems.experiment_location" label="experiment location" noWrap {...this.props} />
             <Quantity label="experiment time" {...this.props}>
               <Typography noWrap>{
-                data.ems.experiment_time !== 'unavailable' ? new Date(data.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
+                data.ems.experiment_time && data.ems.experiment_time !== 'unavailable' ? new Date(data.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
               }</Typography>
             </Quantity>
             <Quantity label="data" {...this.props}>

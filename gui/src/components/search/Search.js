@@ -61,7 +61,7 @@ class Search extends React.Component {
       padding: `6px 0 2px 0`
     },
     domainButton: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing.unit
     },
     metricButton: {
       margin: theme.spacing.unit,
@@ -130,9 +130,9 @@ class Search extends React.Component {
 
     this.setState({resultTab: tab}, () => {
       setRequest({
-        uploads: tab === 'uploads' ? true : undefined,
-        datasets: tab === 'datasets' ? true : undefined,
-        'dft.groups': tab === 'groups' ? true : undefined
+        uploads_grouped: tab === 'uploads' ? true : undefined,
+        datasets_grouped: tab === 'datasets' ? true : undefined,
+        'dft.groups_grouped': tab === 'groups' ? true : undefined
       })
     })
   }
@@ -189,7 +189,7 @@ class Search extends React.Component {
             {tabs.map(tab => <KeepState
               key={tab}
               visible={resultTab === tab}
-              render={() => Search.tabs[tab].render({domain: domain , ...entryListProps})}
+              render={() => Search.tabs[tab].render({domain: domain, ...entryListProps})}
             />)}
           </Paper>
         </div>
@@ -274,7 +274,6 @@ class ElementsVisualization extends React.Component {
 }
 
 class MetricSelect extends React.Component {
-
   static contextType = SearchContext.type
 
   constructor(props) {
@@ -556,7 +555,7 @@ class SearchDatasetList extends React.Component {
 
     return <DatasetList data={response}
       total={response.statistics.total.all.datasets}
-      datasets_after={response.datasets && response.datasets.after}
+      datasets_after={response.datasets_grouped && response.datasets_grouped.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response} {...this.props}
@@ -572,7 +571,7 @@ class SearchGroupList extends React.Component {
 
     return <GroupList data={response}
       total={response.statistics.total.all['dft.groups']}
-      groups_after={response['dft.groups'] && response['dft.groups'].after}
+      groups_after={response['dft.groups_grouped'] && response['dft.groups_grouped'].after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response} {...this.props}
@@ -588,7 +587,7 @@ class SearchUploadList extends React.Component {
 
     return <UploadList data={response}
       total={response.statistics.total.all.uploads}
-      uploads_after={response.uploads && response.uploads.after}
+      uploads_after={response.uploads_grouped && response.uploads_grouped.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
       {...response} {...this.props}

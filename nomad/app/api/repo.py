@@ -88,7 +88,7 @@ _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search.groups:
     _search_request_parser.add_argument(
-        'group_%s' % group_name, type=bool, help=('Return %s group data.' % group_name))
+        group_name, type=bool, help=('Return %s group data.' % group_name))
     _search_request_parser.add_argument(
         '%s_after' % group_name, type=str,
         help='The last %s id of the last scroll window for the %s group' % (group_name, group_name))
@@ -170,7 +170,7 @@ class RepoCalcsResource(Resource):
             metrics: List[str] = request.args.getlist('metrics')
 
             with_statistics = args.get('statistics', False) or \
-                any(args.get('group_%s' % group_name, False) for group_name in search.groups)
+                any(args.get(group_name, False) for group_name in search.groups)
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
@@ -198,7 +198,7 @@ class RepoCalcsResource(Resource):
             additional_metrics = [
                 group_quantity.metric_name
                 for group_name, group_quantity in search.groups.items()
-                if args.get('group_%s' % group_name, False)]
+                if args.get(group_name, False)]
 
             total_metrics = metrics + additional_metrics
 
@@ -218,7 +218,7 @@ class RepoCalcsResource(Resource):
 
             else:
                 for group_name, group_quantity in search.groups.items():
-                    if args.get('group_%s' % group_name, False):
+                    if args.get(group_name, False):
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'group_uploads':
                             kwargs.update(order_by='upload_time', order='desc')
@@ -240,7 +240,7 @@ class RepoCalcsResource(Resource):
                     quantities = results.pop('quantities')
 
                 for group_name, group_quantity in search.groups.items():
-                    if args.get('group_%s' % group_name, False):
+                    if args.get(group_name, False):
                         results[group_name] = quantities[group_quantity.qualified_name]
 
             # build python code/curl snippet

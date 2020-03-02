@@ -167,7 +167,7 @@ class GroupListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, groups_after, onChange, actions, domain } = this.props
-    const groups = data['dft.groups'] || {values: []}
+    const groups = data['dft.groups_grouped'] || {values: []}
     const results = Object.keys(groups.values).map(group_hash => {
       const example = groups.values[group_hash].examples[0]
       return {
@@ -194,10 +194,10 @@ class GroupListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!groups_after} onClick={() => onChange({groups_after: null})}>
+        <IconButton disabled={!groups_after} onClick={() => onChange({'dft.groups_grouped_after': null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({groups_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({'dft.groups_grouped_after': after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>

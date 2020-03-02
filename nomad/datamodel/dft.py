@@ -133,7 +133,7 @@ class DFTMetadata(MSection):
 
     n_geometries = Quantity(
         type=int, description='Number of unique geometries.',
-        a_sesrch=SearchQuantity(metric_name='geometries', metric='sum'))
+        a_search=SearchQuantity(metric_name='geometries', metric='sum'))
 
     n_calculations = Quantity(
         type=int,
@@ -162,7 +162,7 @@ class DFTMetadata(MSection):
     group_hash = Quantity(
         type=str,
         description='Hashes that describe unique geometries simulated by this code run.',
-        a_search=SearchQuantity(many_or='append', group='groups', metric_name='groups', metric='cardinality'))
+        a_search=SearchQuantity(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
 
     labels = SubSection(
         sub_section=Label, repeats=True,

@@ -92,8 +92,8 @@ class SearchContext extends React.Component {
       }
       this.setState(
         {
-            domain: domains[domain] || domains.dft,
-            query: newQuery
+          domain: domains[domain] || domains.dft,
+          query: newQuery
         }, () => this.handleRequestChange({domain: domain}))
     }
   }

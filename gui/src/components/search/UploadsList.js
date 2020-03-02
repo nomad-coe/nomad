@@ -182,7 +182,7 @@ class UploadListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, uploads_after, onChange, actions } = this.props
-    const uploads = data.uploads || {values: []}
+    const uploads = data.uploads_grouped || {values: []}
     const results = Object.keys(uploads.values).map(id => {
       return {
         id: id,
@@ -204,10 +204,10 @@ class UploadListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_after: null})}>
+        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>

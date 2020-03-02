@@ -21,8 +21,7 @@ class DatasetPage extends React.Component {
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
     raiseError: PropTypes.func.isRequired,
-    history: PropTypes.object.isRequired,
-    domain: PropTypes.object.isRequired
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -90,7 +89,7 @@ class DatasetPage extends React.Component {
   }
 
   render() {
-    const { classes, datasetId, domain } = this.props
+    const { classes, datasetId } = this.props
     const { dataset, update, empty } = this.state
 
     return (
@@ -118,9 +117,6 @@ class DatasetPage extends React.Component {
         >
           <Search
             resultTab="entries" tabs={['entries', 'groups', 'datasets']}
-            entryListProps={{
-              selectedColumns: [...domain.defaultSearchResultColumns, 'published', 'authors']
-            }}
           />
         </SearchContext>
       </div>

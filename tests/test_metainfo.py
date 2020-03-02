@@ -15,11 +15,12 @@
 import pytest
 import numpy as np
 import pint.quantity
+import datetime
 
 from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
 
 from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, SubSection, \
-    Definition, Package, DeriveError, MetainfoError, Environment, MResource, units
+    Definition, Package, DeriveError, MetainfoError, Environment, MResource, Datetime, units
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
 from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.parsing.metainfo import MetainfoBackend
@@ -459,6 +460,29 @@ class TestM1:
         assert run['systems.0.atom_labels'] == ['H', 'O']
         assert run['systems/0/atom_labels'] == ['H', 'O']
         assert run['parsing.parser_name'] == 'test'
+
+
+class TestDatatypes:
+
+    def test_datetime(self):
+        class TestSection(MSection):
+            datetime = Quantity(type=Datetime)
+
+        obj = TestSection()
+        assert obj.datetime is None
+        assert 'datetime' not in obj.m_to_dict()
+
+        obj.datetime = datetime.datetime.now()
+        assert obj.datetime is not None
+        assert isinstance(obj.m_to_dict()['datetime'], str)
+
+        obj.datetime = obj.datetime.isoformat()
+        assert obj.datetime is not None
+        assert isinstance(obj.m_to_dict()['datetime'], str)
+
+        obj.datetime = None
+        assert obj.datetime is None
+        assert obj.m_to_dict()['datetime'] is None
 
 
 class TestEnvironment:

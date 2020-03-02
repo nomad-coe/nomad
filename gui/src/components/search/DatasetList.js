@@ -248,7 +248,7 @@ class DatasetListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, datasets_after, onChange, actions } = this.props
-    const datasets = data.datasets || {values: []}
+    const datasets = data.datasets_grouped || {values: []}
     const results = Object.keys(datasets.values).map(id => {
       const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
       return {
@@ -272,10 +272,10 @@ class DatasetListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_after: null})}>
+        <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({datasets_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({datasets_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>

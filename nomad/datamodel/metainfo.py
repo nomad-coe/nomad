@@ -252,7 +252,7 @@ class EntryMetadata(metainfo.MSection):
         type=str,
         description='A random UUID that uniquely identifies the upload of the entry.',
         a_search=SearchQuantity(
-            many_or='append', group='uploads', metric_name='uploads', metric='cardinality'))
+            many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
 
     calc_id = metainfo.Quantity(
         type=str,
@@ -409,7 +409,7 @@ class EntryMetadata(metainfo.MSection):
                 description='Search for a particular dataset by exact name.'),
             SearchQuantity(
                 name='dataset_id', es_quantity='datasets.dataset_id', many_or='append',
-                group='datasets',
+                group='datasets_grouped',
                 metric='cardinality', metric_name='datasets',
                 description='Search for a particular dataset by its id.')])
 

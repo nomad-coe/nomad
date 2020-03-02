@@ -13,6 +13,10 @@ export default class DFTEntryOverview extends React.Component {
   render() {
     const { data } = this.props
 
+    if (!data.dft) {
+      return <Typography color="error">No metadata available</Typography>
+    }
+
     return (
       <Quantity column>
         <Quantity row>

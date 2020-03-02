@@ -335,6 +335,9 @@ class _Datetime(DataType):
         raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
 
     def _convert(self, value):
+        if value is None:
+            return None
+
         if isinstance(value, str):
             value = self._parse(value)
 
@@ -350,6 +353,9 @@ class _Datetime(DataType):
         return self._convert(value)
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if value is None:
+            return None
+
         value.replace(tzinfo=pytz.utc)
         return value.isoformat()
 

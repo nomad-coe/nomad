@@ -791,10 +791,10 @@ class TestRepo():
         assert rv.status_code == 404
 
     def test_search_datasets(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&group_datasets=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&datasets_grouped=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
-        datasets = data.get('datasets', None)
+        datasets = data.get('datasets_grouped', None)
         assert datasets is not None
         values = datasets['values']
         assert values['ds_id']['total'] == 4
@@ -804,10 +804,10 @@ class TestRepo():
         assert data['statistics']['total']['all']['datasets'] > 0
 
     def test_search_uploads(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&group_uploads=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&uploads_grouped=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
-        uploads = data.get('uploads', None)
+        uploads = data.get('uploads_grouped', None)
         assert uploads is not None
         values = uploads['values']
 
@@ -941,9 +941,9 @@ class TestRepo():
         rv = api.get('/repo/?%s' % urlencode({
             'metrics': metrics,
             'group_statistics': True,
-            'group_dft.groups': True,
-            'group_datasets': True,
-            'group_uploads': True}, doseq=True))
+            'dft.groups_grouped': True,
+            'datasets_grouped': True,
+            'uploads_grouped': True}, doseq=True))
 
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -957,7 +957,7 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
-        for group in ['dft.groups', 'uploads', 'datasets']:
+        for group in ['dft.groups_grouped', 'uploads_grouped', 'datasets_grouped']:
             assert group in data
             assert 'after' in data[group]
             assert 'values' in data[group]

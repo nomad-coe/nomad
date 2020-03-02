@@ -60,7 +60,7 @@ class UserdataPage extends React.Component {
         <SearchContext
           {...this.props}
           ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
-          initialRequest={{order_by: 'upload_time', uploads: true}}
+          initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
         >
           <Search
             resultTab="uploads"
