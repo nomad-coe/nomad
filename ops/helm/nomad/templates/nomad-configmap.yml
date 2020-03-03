@@ -59,7 +59,8 @@ data:
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
       client_id: "{{ .Values.keycloak.clientId }}"
-    springer_db_path: "{{ .Values.springerDbPath }}"
+    normalize:
+      springer_db_path: "{{ .Values.springerDbPath }}"
     datacite:
       enabled: {{ .Values.datacite.enabled }}
       prefix: "{{ .Values.datacite.prefix }}"

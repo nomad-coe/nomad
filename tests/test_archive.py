@@ -3,7 +3,7 @@ import pytest
 import msgpack
 from io import BytesIO
 
-from nomad import utils
+from nomad import utils, config
 from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
 
 from .utils import assert_exception
@@ -209,3 +209,11 @@ def test_query():
     assert query_archive(f, {'c1': {'s1': {'ss1[:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:-1]}}}
     assert query_archive(f, {'c1': {'s1': {'ss1[1:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:-1]}}}
     assert query_archive(f, {'c2': {'s1': {'ss1[-3:-1]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][-3:-1]}}}
+    assert query_archive(f, {'calc1': '*'}) == {'calc1': payload['calc1']}
+    assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
+
+
+def test_read_springer():
+    springer = read_archive(config.normalize.springer_db_path)
+    with assert_exception(KeyError):
+        springer['doesnotexist']

@@ -19,43 +19,19 @@ from ase import Atoms
 import numpy as np
 import json
 import re
-import os
-import sqlite3
-
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
-from nomad.normalizing import structure
 from nomad import utils, config
-from nomad.normalizing.normalizer import SystemBasedNormalizer
-from nomad.normalizing.data.springer_msgpack import query_springer_data
+
+from . import aflow_prototypes
+from .normalizer import SystemBasedNormalizer
+from .springer import query_springer_data
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
 atom_label_re = re.compile('|'.join(
     sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True)))
-
-
-springer_db_connection = None
-
-
-def open_springer_database():
-    """
-    Create a global connection to the Springer database in a way that
-    each worker opens the database just once.
-    """
-    global springer_db_connection
-    if springer_db_connection is None:
-        # filepath definition in 'nomad-FAIR/nomad/config.py'
-        db_file = config.springer_db_path
-        if not os.path.exists(db_file):
-            utils.get_logger(__name__).error('Springer database not found')
-            return None
-        springer_db_connection = sqlite3.connect(db_file, check_same_thread=False, uri=True)
-        # we lift the thread check because we share the connection among workers
-        # 'uri=True': open a database in read-only mode
-
-    return springer_db_connection
 
 
 def normalized_atom_labels(atom_labels):
@@ -397,94 +373,43 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.closeSection('section_symmetry', symmetry_gid)
 
-    def springer_classification(self, atoms, space_group_number, database='msgpack'):
-        # SPRINGER NORMALIZER
+    def springer_classification(self, atoms, space_group_number):
         normalized_formula = formula_normalizer(atoms)
-        #
-        if database == 'sqlite':
-            springer_db_connection = open_springer_database()
-            if springer_db_connection is None:
-                return
+        springer_data = query_springer_data(normalized_formula, space_group_number)
 
-            cur = springer_db_connection.cursor()
-
-            # SQL QUERY
-            # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
-            cur.execute("""
-                SELECT
-                    entry.entry_id,
-                    entry.alphabetic_formula,
-                    GROUP_CONCAT(DISTINCT compound_classes.compound_class_name),
-                    GROUP_CONCAT(DISTINCT classification.classification_name)
-                FROM entry
-                LEFT JOIN entry_compound_class as ecc ON ecc.entry_nr = entry.entry_nr
-                LEFT JOIN compound_classes ON ecc.compound_class_nr = compound_classes.compound_class_nr
-                LEFT JOIN entry_classification as ec ON ec.entry_nr = entry.entry_nr
-                LEFT JOIN classification ON ec.classification_nr = classification.classification_nr
-                LEFT JOIN entry_reference as er ON er.entry_nr = entry.entry_nr
-                LEFT JOIN reference ON reference.reference_nr = er.entry_nr
-                WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
-                GROUP BY entry.entry_id;
-                """ % (normalized_formula, space_group_number))
-
-            results = cur.fetchall()
-            # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
-            # All SQL queries done
-
-            # Storing 'results' in a dictionary
-            dbdict = {}
-            for ituple in results:
-                # 'spr' means 'springer'
-                spr_id = ituple[0]
-                spr_aformula = ituple[1]  # alphabetical formula
-                spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
-                spr_compound = ituple[2].split(',')  # split to convert string to list
-                spr_classification = ituple[3].split(',')
-                #
-                spr_compound.sort()
-                spr_classification.sort()
-                #
-                dbdict[spr_id] = {
-                    'spr_id': spr_id,
-                    'spr_aformula': spr_aformula,
-                    'spr_url': spr_url,
-                    'spr_compound': spr_compound,
-                    'spr_classification': spr_classification}
-
-        elif database == 'msgpack':
-            dbdict = query_springer_data(normalized_formula, space_group_number)
-
-        # =============
-
-        # SPRINGER's METAINFO UPDATE
-        # LAYOUT: Five sections under 'section_springer_material' for each material ID:
-        #     id, alphabetical formula, url, compound_class, clasification.
-        # As per Markus/Luca's emails, we don't expose Springer bib references (Springer's paywall)
-        for material in dbdict.values():
+        for material in springer_data.values():
             self._backend.openNonOverlappingSection('section_springer_material')
 
             self._backend.addValue('springer_id', material['spr_id'])
             self._backend.addValue('springer_alphabetical_formula', material['spr_aformula'])
             self._backend.addValue('springer_url', material['spr_url'])
-            self._backend.addArrayValues('springer_compound_class', material['spr_compound'])
-            self._backend.addArrayValues('springer_classification', material['spr_classification'])
+
+            compound_classes = material['spr_compound']
+            if compound_classes is None:
+                compound_classes = []
+            self._backend.addArrayValues('springer_compound_class', compound_classes)
+
+            classifications = material['spr_classification']
+            if classifications is None:
+                classifications = []
+            self._backend.addArrayValues('springer_classification', classifications)
 
             self._backend.closeNonOverlappingSection('section_springer_material')
 
         # Check the 'springer_classification' and 'springer_compound_class' information
         # found is the same for all springer_id's
-        dkeys = list(dbdict.keys())
-        if len(dkeys) != 0:
-            class_0 = dbdict[dkeys[0]]['spr_classification']
-            comp_0 = dbdict[dkeys[0]]['spr_compound']
+        springer_data_keys = list(springer_data.keys())
+        if len(springer_data_keys) != 0:
+            class_0 = springer_data[springer_data_keys[0]]['spr_classification']
+            comp_0 = springer_data[springer_data_keys[0]]['spr_compound']
 
             # compare 'class_0' and 'comp_0' against the rest
-            for ii in range(1, len(dkeys)):
-                class_test = (class_0 == dbdict[dkeys[ii]]['spr_classification'])
-                comp_test = (comp_0 == dbdict[dkeys[ii]]['spr_compound'])
+            for ii in range(1, len(springer_data_keys)):
+                class_test = (class_0 == springer_data[springer_data_keys[ii]]['spr_classification'])
+                comp_test = (comp_0 == springer_data[springer_data_keys[ii]]['spr_compound'])
 
                 if (class_test or comp_test) is False:
-                    self.logger.warning('Mismatch in Springer classification or compounds')
+                    self.logger.info('Mismatch in Springer classification or compounds')
 
     def prototypes(self, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
         """Tries to match the material to an entry in the AFLOW prototype data.
@@ -495,8 +420,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             wyckoff_letters: Array of Wyckoff letters as strings.
             spg_number: Space group number.
         """
-        norm_wyckoff = structure.get_normalized_wyckoff(atom_species, wyckoffs)
-        protoDict = structure.search_aflow_prototype(spg_number, norm_wyckoff)
+        norm_wyckoff = aflow_prototypes.get_normalized_wyckoff(atom_species, wyckoffs)
+        protoDict = aflow_prototypes.search_aflow_prototype(spg_number, norm_wyckoff)
         if protoDict is not None:
             aflow_prototype_id = protoDict["aflow_prototype_id"]
             aflow_prototype_url = protoDict["aflow_prototype_url"]

@@ -431,7 +431,7 @@ def test_springer_normalizer():
     gindex = 0
 
     backend_value = backend.get_value('springer_id', gindex)
-    expected_value = 'sd_1932539'
+    expected_value = 'sd_0305232'
     assert expected_value == backend_value
 
     backend_value = backend.get_value('springer_alphabetical_formula', gindex)
@@ -439,7 +439,7 @@ def test_springer_normalizer():
     assert expected_value == backend_value
 
     backend_value = backend.get_value('springer_url', gindex)
-    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_1932539'
+    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'
     assert expected_value == backend_value
 
 
