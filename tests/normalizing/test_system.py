@@ -57,11 +57,11 @@ parser_exceptions = {
     'parsers/dl-poly': ['formula', 'basis_set', 'xc_functional', 'system'],
     'parsers/lib-atoms': ['basis_set', 'xc_functional'],
     'parsers/phonopy': ['basis_set', 'xc_functional'],
-    'parsers/gamess': ['formula', 'system'],
-    'parsers/gulp': ['formula', 'xc_functional', 'system'],
     'parsers/elastic': ['basis_set', 'xc_functional', 'system'],
     'parsers/dmol': ['system'],
     'parsers/band': ['system'],
+    'parsers/gamess': ['formula', 'system', 'xc_functional'],
+    'parsers/gulp': ['formula', 'xc_functional', 'system', 'basis_set'],
     'parsers/qbox': ['xc_functional'],
     'parser/onetep': ['formula', 'basis_set', 'xc_functional', 'system']
 }
