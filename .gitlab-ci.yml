@@ -91,7 +91,7 @@ tests:
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
-    NOMAD_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.db
+    NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
   script:
     - cd /app
     - ls /builds
