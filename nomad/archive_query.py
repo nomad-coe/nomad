@@ -161,6 +161,7 @@ class ArchiveMetainfo:
                 return Quantity(type=dtype)
 
     def _create_section(self, name, contents):
+        name = name.split('[')[0]
         section = type(name.title(), (MSection,), contents)
         return section
 
@@ -245,9 +246,9 @@ class ArchiveQuery:
                 host=host,
                 user=nomad_config.client.user,
                 password=nomad_config.client.password,
-                server_url=nomad_config.keycloak.server_external_url,
+                server_url=nomad_config.keycloak.server_url,
                 realm_name=nomad_config.keycloak.realm_name,
-                client_id=nomad_config.keycloak.public_client_id)
+                client_id=nomad_config.keycloak.client_id)
         if isinstance(self._authentication, KeycloakAuthenticator):
             return self._authentication.apply()
         else:

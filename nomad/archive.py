@@ -499,17 +499,18 @@ def query_archive(f, query_dict: dict):
             key = key.strip()
 
             # process array indices
-            match = re.match(r'([_a-bA-Z0-9]+)\[([0-9]+|:)\]', key)
+            match = re.match(r'(\w+)\[([-?0-9:]+)\]', key)
             if match:
                 archive_key = match.group(1)
                 index_str = match.group(2)
-                match = re.match(r'([0-9]*):([0-9]*)', index_str)
+                match = re.match(r'([-?0-9]*):([-?0-9]*)', index_str)
                 if match:
                     index = (
                         0 if match.group(1) == '' else int(match.group(1)),
                         None if match.group(2) == '' else int(match.group(2)))
                 else:
                     index = int(index_str)  # type: ignore
+                key = archive_key
             else:
                 archive_key = key
                 index = None
@@ -518,7 +519,6 @@ def query_archive(f, query_dict: dict):
             archive_key = key.split('[')[0]
             if main_section:
                 archive_key = adjust_uuid_size(key)
-
             try:
                 if index is None:
                     res[key] = _load_data(val, archive_item[archive_key])
