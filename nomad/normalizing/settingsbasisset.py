@@ -287,31 +287,36 @@ class SettingsBasisSetCodeDependent_Exciting(SettingsBasisSetCodeDependent):
         result_dict = super().to_dict(result_dict)
         system = self.context.representative_system
 
+        # Add the muffin-tin settings for each species ordered alphabetically by atom label
         try:
-            result_dict['muffin_tin_radius'] = "%.6f" % (1e+10 * system['x_exciting_muffin_tin_radius'])
-        except Exception:
-            result_dict['muffin_tin_radius'] = None
+            groups = self.backend["x_exciting_section_atoms_group"]
+            groups = sorted(groups, key=lambda group: group["x_exciting_geometry_atom_labels"])
+            for group in groups:
+                label = group["x_exciting_geometry_atom_labels"]
+                try:
+                    result_dict["{}_muffin_tin_radius".format(label)] = "%.6f" % (1e+10 * group['x_exciting_muffin_tin_radius'])
+                except KeyError:
+                    result_dict["{}_muffin_tin_radius".format(label)] = None
+                try:
+                    result_dict["{}_muffin_tin_points".format(label)] = "%d" % group['x_exciting_muffin_tin_points']
+                except KeyError:
+                    result_dict["{}_muffin_tin_points".format(label)] = None
+        except KeyError:
+            pass
 
-        try:
-            result_dict['muffin_tin_points'] = "%d" % system['x_exciting_muffin_tin_points']
-        except Exception:
-            result_dict['muffin_tin_points'] = None
-
+        # Other important method settings
         try:
             result_dict['rgkmax'] = "%.6f" % (system['x_exciting_rgkmax'])
         except Exception:
             result_dict['rgkmax'] = None
-
         try:
             result_dict['gkmax'] = "%.6f" % (1e-10 * system['x_exciting_gkmax'])
         except Exception:
             result_dict['gkmax'] = None
-
         try:
             result_dict['lo'] = "%d" % (system['x_exciting_lo'])
         except Exception:
             result_dict['lo'] = None
-
         try:
             result_dict['lmaxapw'] = "%d" % (system['x_exciting_lmaxapw'])
         except Exception:
