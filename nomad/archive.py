@@ -360,8 +360,14 @@ class ArchiveReader(ArchiveObject):
             if positions is None:
                 r_start = 0
                 r_end = self._n_toc
-                while positions is None and len(self._toc) < self._n_toc:
-                    i_block = r_start + math.floor((r_end - r_start) / 2)
+                i_block = None
+                while positions is None:
+                    new_i_block = r_start + math.floor((r_end - r_start) / 2)
+                    if i_block == new_i_block:
+                        break
+                    else:
+                        i_block = new_i_block
+
                     first, last = self._load_toc_block(i_block)
                     if key < first:
                         r_end = i_block - 1

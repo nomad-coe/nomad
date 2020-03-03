@@ -3,7 +3,7 @@ import pytest
 import msgpack
 from io import BytesIO
 
-from nomad import utils
+from nomad import utils, config
 from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
 
 from .utils import assert_exception
@@ -203,3 +203,9 @@ def test_query():
     assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
     # TODO
     # test [:][-1][0:1] ...
+
+
+def test_read_springer():
+    springer = read_archive(config.springer_msg_db_path)
+    with assert_exception(KeyError):
+        springer['doesnotexist']

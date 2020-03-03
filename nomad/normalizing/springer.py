@@ -30,7 +30,7 @@ import os.path
 from nomad.archive import query_archive, write_archive, ArchiveReader
 from nomad import config
 
-_DB_PATH = config.springer_msg_db_path
+_DB_PATH = config.normalize.springer_db_path
 
 required_items = {
     'Alphabetic Formula:': 'alphabetic_formula',
