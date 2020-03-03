@@ -19,8 +19,6 @@ from ase import Atoms
 import numpy as np
 import json
 import re
-import os
-import sqlite3
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
@@ -34,28 +32,6 @@ from .springer import query_springer_data
 # all labels sorted desc to find Br and not B when searching for Br.
 atom_label_re = re.compile('|'.join(
     sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True)))
-
-
-springer_db_connection = None
-
-
-def open_springer_database():
-    """
-    Create a global connection to the Springer database in a way that
-    each worker opens the database just once.
-    """
-    global springer_db_connection
-    if springer_db_connection is None:
-        # filepath definition in 'nomad-FAIR/nomad/config.py'
-        db_file = config.springer_db_path
-        if not os.path.exists(db_file):
-            utils.get_logger(__name__).error('Springer database not found')
-            return None
-        springer_db_connection = sqlite3.connect(db_file, check_same_thread=False, uri=True)
-        # we lift the thread check because we share the connection among workers
-        # 'uri=True': open a database in read-only mode
-
-    return springer_db_connection
 
 
 def normalized_atom_labels(atom_labels):
@@ -407,8 +383,16 @@ class SystemNormalizer(SystemBasedNormalizer):
             self._backend.addValue('springer_id', material['spr_id'])
             self._backend.addValue('springer_alphabetical_formula', material['spr_aformula'])
             self._backend.addValue('springer_url', material['spr_url'])
-            self._backend.addArrayValues('springer_compound_class', material['spr_compound'])
-            self._backend.addArrayValues('springer_classification', material['spr_classification'])
+
+            compound_classes = material['spr_compound']
+            if compound_classes is None:
+                compound_classes = []
+            self._backend.addArrayValues('springer_compound_class', compound_classes)
+
+            classifications = material['spr_classification']
+            if classifications is None:
+                classifications = []
+            self._backend.addArrayValues('springer_classification', classifications)
 
             self._backend.closeNonOverlappingSection('section_springer_material')
 
@@ -425,7 +409,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 comp_test = (comp_0 == springer_data[springer_data_keys[ii]]['spr_compound'])
 
                 if (class_test or comp_test) is False:
-                    self.logger.warning('Mismatch in Springer classification or compounds')
+                    self.logger.info('Mismatch in Springer classification or compounds')
 
     def prototypes(self, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
         """Tries to match the material to an entry in the AFLOW prototype data.

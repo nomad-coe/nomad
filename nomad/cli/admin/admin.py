@@ -33,10 +33,10 @@ from bs4 import BeautifulSoup
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.normalizing.structure import get_normalized_wyckoff
+from nomad.normalizing.aflow_prototypes import get_normalized_wyckoff
 from nomad.cli.cli import cli
 from nomad import config
-from nomad.normalizing.data.springer_msgpack import update_springer_data
+from nomad.normalizing.springer import update_springer_data
 
 
 def __run_processing(

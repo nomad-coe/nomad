@@ -206,6 +206,6 @@ def test_query():
 
 
 def test_read_springer():
-    springer = read_archive(config.springer_msg_db_path)
+    springer = read_archive(config.normalize.springer_db_path)
     with assert_exception(KeyError):
         springer['doesnotexist']
