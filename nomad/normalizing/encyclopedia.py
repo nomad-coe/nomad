@@ -48,7 +48,6 @@ from nomad.metainfo.encyclopedia import (
     ElectronicBandStructure,
     ElectronicDOS,
     BandGap,
-    BandSegment,
 )
 from nomad.parsing.backend import Section, LocalBackend
 from nomad.normalizing.settingsbasisset import SettingsBasisSet
@@ -311,9 +310,6 @@ class EncyclopediaNormalizer(Normalizer):
 
         # Get the method type, stop if unknown
         representative_method, method_type = self.method_type(method)
-        if method_type == config.services.unavailable_value:
-            self.logger.info("unknown method type for encyclopedia, encyclopedia metainfo not created")
-            return
 
         # Get representative scc
         try:
@@ -1798,4 +1794,7 @@ class PropertiesNormalizer():
         # Save metainfo
         self.band_structure(properties, run_type, system_type, representative_scc, sec_system)
         self.energies(properties, gcd, representative_scc)
+
+        # Currently the DOS is not stored separately, although the metainfo is
+        # in place
         # self.dos(properties)
