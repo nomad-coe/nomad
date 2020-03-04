@@ -569,7 +569,8 @@ class ElectronicDOS(MSection):
         unit=units.J**(-1),
         description="""
         Values (number of states for a given energy, the set of discrete energy
-        values is given in dos_energies) of density of states.
+        values is given in dos_energies) of density of states. The values are
+        given as states/energy.
         """
     )
 
@@ -581,6 +582,12 @@ class Properties(MSection):
         description="""
         Section for storing all calculation-specific physical quantities that
         are used by the NOMAD Encyclopedia.
+        """
+    )
+    scc_index = Quantity(
+        type=int,
+        description="""
+        Index of a representative single configuration calculation."
         """
     )
     atomic_density = Quantity(

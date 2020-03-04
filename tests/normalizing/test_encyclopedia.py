@@ -468,10 +468,6 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
 
     def test_generic(bs, n_channels):
         """Generic tests for band structure data."""
-        for segment in bs.segments:
-            assert segment.energies.shape[0] == n_channels
-            assert len(segment.energies.shape) == 3
-            assert segment.energies.shape[2] == segment.k_points.shape[0]
         assert bs.brillouin_zone is not None
         assert bs.reciprocal_cell.shape == (3, 3)
 

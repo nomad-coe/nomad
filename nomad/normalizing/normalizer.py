@@ -18,6 +18,7 @@ from typing import List
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
 
+s_run = 'section_run'
 s_system = 'section_system'
 s_method = 'section_method'
 s_scc = 'section_single_configuration_calculation'
@@ -99,6 +100,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         """
         system_idx = None
         scc_idx = None
+        scc = None
 
         # Try to find a frame sequence, only first found is considered
         try:
@@ -142,8 +144,10 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                     'chose "representative" system for normalization',
                 )
 
-        self._backend.add_tmp_value("section_run", "representative_scc_idx", scc_idx)
-        self._backend.add_tmp_value("section_run", "representative_system_idx", system_idx)
+        if scc is not None:
+            self._backend.add_tmp_value("section_run", "representative_scc_idx", scc_idx)
+        if system_idx is not None:
+            self._backend.add_tmp_value("section_run", "representative_system_idx", system_idx)
 
         return system_idx
 

@@ -22,6 +22,7 @@ from typing import List, Dict, Tuple
 import numpy as np
 from ase import Atoms
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
+from matid.symmetry import WyckoffSet
 
 from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
 from nomad.constants import NUMBER_TO_MASS_MAP_KG
@@ -41,7 +42,7 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
-def get_symmetry_string(space_group: int, wyckoff_sets: Dict) -> str:
+def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet]) -> str:
     """Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.

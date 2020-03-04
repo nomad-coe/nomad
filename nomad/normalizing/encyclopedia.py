@@ -28,6 +28,7 @@ import matid.geometry
 
 from nomad.normalizing.normalizer import (
     Normalizer,
+    s_run,
     s_scc,
     s_system,
     s_method,
@@ -69,6 +70,7 @@ class Context():
         representative_system,
         representative_method,
         representative_scc,
+        representative_scc_idx,
     ):
         self.system_type = system_type
         self.method_type = method_type
@@ -76,6 +78,7 @@ class Context():
         self.representative_system = representative_system
         self.representative_method = representative_method
         self.representative_scc = representative_scc
+        self.representative_scc_idx = representative_scc_idx
         self.greatest_common_divisor: int = None
 
 
@@ -175,9 +178,6 @@ class EncyclopediaNormalizer(Normalizer):
             else:
                 if stype == system_enums.bulk or stype == system_enums.one_d or stype == system_enums.two_d:
                     system_type = stype
-
-        if system_type == config.services.unavailable_value:
-            self.logger.info("System type information not available for encyclopedia")
 
         material.system_type = system_type
         return system, system_type
@@ -285,7 +285,6 @@ class EncyclopediaNormalizer(Normalizer):
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
-        system_enums = Material.system_type.type
 
         # Initialise metainfo structure
         sec_enc = Encyclopedia()
@@ -300,21 +299,25 @@ class EncyclopediaNormalizer(Normalizer):
         # Determine run type, stop if unknown
         run_type_name = self.run_type(run_type)
         if run_type_name == config.services.unavailable_value:
-            self.logger.info("unknown run type for encyclopedia")
+            self.logger.info("unknown run type for encyclopedia, encyclopedia metainfo not created")
             return
 
         # Get the system type, stop if unknown
+        system_enums = Material.system_type.type
         representative_system, system_type = self.system_type(material)
         if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
-            self.logger.info("unknown system type for encyclopedia")
+            self.logger.info("unknown system type for encyclopedia, encyclopedia metainfo not created")
             return
 
-        # Get the method type
+        # Get the method type, stop if unknown
         representative_method, method_type = self.method_type(method)
+        if method_type == config.services.unavailable_value:
+            self.logger.info("unknown method type for encyclopedia, encyclopedia metainfo not created")
+            return
 
-        # Process all present properties
+        # Get representative scc
         try:
-            representative_scc_idx = self._backend["section_run"][0].tmp.get("representative_scc_idx")
+            representative_scc_idx = self._backend[s_run][0].tmp.get("representative_scc_idx")
             representative_scc = self._backend[s_scc][representative_scc_idx]
         except (KeyError, IndexError):
             representative_scc = None
@@ -327,6 +330,7 @@ class EncyclopediaNormalizer(Normalizer):
             representative_system=representative_system,
             representative_method=representative_method,
             representative_scc=representative_scc,
+            representative_scc_idx=representative_scc_idx,
         )
 
         # Put the encyclopedia section into backend
@@ -363,12 +367,9 @@ class MaterialNormalizer():
         formula = structure.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
-    def material_hash(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
-        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
-        space_group_number = symmetry_analyzer.get_space_group_number()
-
+    def material_hash(self, material: Material, spg_number: int, wyckoff_sets: List[WyckoffSet]) -> None:
         # Create and store hash based on SHA512
-        norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+        norm_hash_string = structure.get_symmetry_string(spg_number, wyckoff_sets)
         material.material_hash = hash(norm_hash_string)
 
     def number_of_atoms(self, material: Material, std_atoms: Atoms) -> None:
@@ -545,8 +546,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         point_group = section_symmetry["point_group"]
         material.point_group = point_group
 
-    def space_group_number(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
-        spg_number = symmetry_analyzer.get_space_group_number()
+    def space_group_number(self, material: Material, spg_number: int) -> None:
         material.space_group_number = spg_number
 
     def space_group_international_short_symbol(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
@@ -652,10 +652,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         properties = sec_enc.properties
         sec_symmetry = sec_system["section_symmetry"][0]
         symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
+        spg_number = symmetry_analyzer.get_space_group_number()
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
         repr_atoms = sec_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
-        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional()
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         ctx.greatest_common_divisor = greatest_common_divisor
@@ -663,7 +664,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
         # Fill structural information
         self.mass_density(properties, repr_atoms)
-        self.material_hash(material, symmetry_analyzer)
+        self.material_hash(material, spg_number, wyckoff_sets)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
         self.atom_positions(material, std_atoms)
@@ -681,7 +682,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.material_classification(material, sec_system)
         self.periodicity(material)
         self.point_group(material, sec_symmetry)
-        self.space_group_number(material, symmetry_analyzer)
+        self.space_group_number(material, spg_number)
         self.space_group_international_short_symbol(material, symmetry_analyzer)
         self.structure_type(material, sec_system)
         self.structure_prototype(material, sec_system)
@@ -768,6 +769,8 @@ class Material2DNormalizer(MaterialNormalizer):
         material = sec_enc.material
         repr_atoms = ctx.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        spg_number = symmetry_analyzer.get_space_group_number()
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
@@ -777,7 +780,7 @@ class Material2DNormalizer(MaterialNormalizer):
 
         # Fill metainfo
         self.periodicity(material, std_atoms)
-        self.material_hash(material, symmetry_analyzer)
+        self.material_hash(material, spg_number, wyckoff_sets)
         self.number_of_atoms(material, std_atoms)
         self.atom_labels(material, std_atoms)
         self.atom_positions(material, std_atoms)
@@ -791,7 +794,7 @@ class Material2DNormalizer(MaterialNormalizer):
 class Material1DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 1D structures.
     """
-    def material_hash(self, material: Material, prim_atoms: Atoms) -> None:
+    def material_hash_1d(self, material: Material, prim_atoms: Atoms) -> None:
         """Hash to be used as identifier for a material. Different 1D
         materials are defined by their Coulomb matrix eigenvalues and their
         Hill formulas.
@@ -996,7 +999,7 @@ class Material1DNormalizer(MaterialNormalizer):
         self.cell_normalized(material, std_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.material_hash(material, std_atoms)
+        self.material_hash_1d(material, std_atoms)
         self.lattice_parameters(material, std_atoms, material.periodicity)
 
 
@@ -1150,8 +1153,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         archive_basis_set = self.backend["program_basis_set_type"]
         # TODO: this translation should not be necessary if parsers did their
         # work correctly (using the metainfo doc as reference) until then we
-        # keep this plus the warning - also as help for finding problematic
-        # parsers
+        # keep this mapping.
         basis_set_type_ambiguity = {
             "numeric AOs": "Numeric AOs",
             "gaussians": "Gaussians",
@@ -1593,7 +1595,7 @@ class PropertiesNormalizer():
                     band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
 
     def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
-        """Used to calculate the Euclidian distance of two points in k-space,
+        """Used to calculate the Euclidean distance of two points in k-space,
         given relative positions in the reciprocal cell.
 
         Args:
@@ -1630,7 +1632,11 @@ class PropertiesNormalizer():
         structures, and if they have a k-point that is labeled as '?', the
         whole band strcture will be ignored.
         """
-        # Band structure data is exctracted only from single point calculations
+        # Band structure data is extracted only from bulk calculations. This is
+        # because for now we need the reciprocal cell of the primitive cell
+        # that is only available from the symmetry analysis. Once the
+        # reciprocal cell is directly reported with the band structure this
+        # restriction can go away.
         if run_type != RunType.run_type.type.single_point or system_type != Material.system_type.type.bulk:
             return
 
@@ -1668,14 +1674,18 @@ class PropertiesNormalizer():
                         return
 
                     seg_energies = np.swapaxes(seg_energies, 1, 2)
-                    segment = BandSegment()
-                    segment.k_points = seg_k_points
-                    segment.energies = seg_energies
-                    segment.labels = seg_labels
-                    properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
                     kpoints.append(seg_k_points)
                     energies.append(seg_energies)
-                    band_structure.m_add_sub_section(ElectronicBandStructure.segments, segment)
+
+                    # A full copy of the band structure is currently not store
+                    # within the encyclopedia data, although the metainfo is
+                    # there to support it.
+                    # segment = BandSegment()
+                    # segment.k_points = seg_k_points
+                    # segment.energies = seg_energies
+                    # segment.labels = seg_labels
+                    # properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
+                    # band_structure.m_add_sub_section(ElectronicBandStructure.segments, segment)
 
                 # Continue to calculate band gaps and other properties.
                 kpoints = np.concatenate(kpoints, axis=0)
@@ -1707,7 +1717,8 @@ class PropertiesNormalizer():
             elif dos_kind == 'vibrational':
                 return None
 
-            # Use only normalized data
+            # The encyclopedia currently uses normalized energies (shifted),
+            # but non-normalized values (states/energy)
             dos_energies = dos_data.get('dos_energies_normalized')
             dos_values = dos_data.get('dos_values')
             if dos_energies is not None and dos_values is not None:
@@ -1778,6 +1789,7 @@ class PropertiesNormalizer():
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         properties = sec_enc.properties
+        properties.scc_index = int(ctx.representative_scc_idx)
         run_type = ctx.run_type
         system_type = ctx.system_type
         sec_system = ctx.representative_system
@@ -1786,4 +1798,4 @@ class PropertiesNormalizer():
         # Save metainfo
         self.band_structure(properties, run_type, system_type, representative_scc, sec_system)
         self.energies(properties, gcd, representative_scc)
-        self.dos(properties)
+        # self.dos(properties)
