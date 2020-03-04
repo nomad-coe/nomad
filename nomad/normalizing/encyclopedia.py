@@ -313,7 +313,7 @@ class EncyclopediaNormalizer(Normalizer):
 
         # Get representative scc
         try:
-            representative_scc_idx = self._backend[s_run][0].tmp.get("representative_scc_idx")
+            representative_scc_idx = self._backend[s_run][0].tmp["representative_scc_idx"]
             representative_scc = self._backend[s_scc][representative_scc_idx]
         except (KeyError, IndexError):
             representative_scc = None
