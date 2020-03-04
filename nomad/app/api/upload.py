@@ -46,7 +46,7 @@ ns = api.namespace(
 class CalcMetadata(fields.Raw):
     def format(self, value):
         entry_metadata = datamodel.EntryMetadata.m_from_dict(value)
-        return datamodel.EntryMetadata.m_def.m_x('elastic').create_index_entry(entry_metadata).to_dict()
+        return entry_metadata.a_elastic.create_index_entry().to_dict()
 
 
 proc_model = api.model('Processing', {

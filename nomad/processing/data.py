@@ -302,8 +302,7 @@ class Calc(Proc):
 
             entry_metadata.processed = False
             self.metadata = entry_metadata.m_to_dict(include_defaults=True)
-
-            datamodel.EntryMetadata.m_def.m_x('elastic').index(entry_metadata)
+            entry_metadata.a_elastic.index()
         except Exception as e:
             self.get_logger().error('could not index after processing failure', exc_info=e)
 
@@ -432,7 +431,7 @@ class Calc(Proc):
 
         # index in search
         with utils.timer(logger, 'indexed', step='index'):
-            datamodel.EntryMetadata.m_def.m_x('elastic').index(entry_metadata)
+            entry_metadata.a_elastic.index()
 
         # persist the archive
         with utils.timer(

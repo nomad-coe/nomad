@@ -331,9 +331,8 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
         if re_index:
             def elastic_updates():
                 for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                    entry = datamodel.EntryMetadata.m_def.m_x('elastic').create_index_entry(
-                        datamodel.EntryMetadata.m_from_dict(calc['metadata']))
-                    entry = entry.to_dict(include_meta=True)
+                    entry_metadata = datamodel.EntryMetadata.m_from_dict(calc['metadata'])
+                    entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                     entry['_op_type'] = 'index'
                     yield entry
 

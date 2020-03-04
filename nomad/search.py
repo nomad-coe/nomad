@@ -65,7 +65,7 @@ def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     ''' Update all given calcs with their metadata and set ``publish = True``. '''
     def elastic_updates():
         for calc in calcs:
-            entry = calc.m_def.m_x('elastic').create_index_entry(calc)
+            entry = calc.a_elastic.create_index_entry()
             entry.published = True
             entry = entry.to_dict(include_meta=True)
             source = entry.pop('_source')
@@ -86,7 +86,7 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
     '''
     def elastic_updates():
         for calc in calcs:
-            entry = calc.m_def.m_x('elastic').create_index_entry(calc)
+            entry = calc.a_elastic.create_index_entry()
             entry = entry.to_dict(include_meta=True)
             entry['_op_type'] = 'index'
             yield entry

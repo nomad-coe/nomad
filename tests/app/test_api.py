@@ -717,7 +717,7 @@ class TestRepo():
 
         entry_metadata.m_update(
             calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
-        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
         entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
@@ -726,17 +726,17 @@ class TestRepo():
         entry_metadata.m_update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA')
         entry_metadata.dft.basis_set = 'zzz'
-        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
         entry_metadata.m_update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
             with_embargo=False, pid=3, external_id='external_3')
-        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
         entry_metadata.m_update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
             with_embargo=True, pid=4, external_id='external_4')
-        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
         yield
 
@@ -1798,7 +1798,7 @@ class TestDataset:
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
             metadata=entry_metadata.m_to_dict()).save()
-        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)

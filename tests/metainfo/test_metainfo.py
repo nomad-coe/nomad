@@ -21,7 +21,8 @@ from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Datetime, units, Annotation)
+    MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
+    DefinitionAnnotation)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
 from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.parsing.metainfo import MetainfoBackend
@@ -237,19 +238,24 @@ class TestM2:
         assert System.n_atoms.virtual
 
     def test_annotations(self):
-        class TestSectionAnnotation(Annotation):
+        class TestSectionAnnotation(SectionAnnotation):
             def init_annotation(self, definition):
                 super().init_annotation(definition)
+                section_cls = definition.section_cls
                 assert definition.name == 'TestSection'
                 assert 'test_quantity' in definition.all_quantities
-                assert definition.all_quantities['test_quantity'].m_x('test').initialized
-                assert definition.all_quantities['test_quantity'].m_x('test', as_list=True)[0].initialized
-                assert definition.all_quantities['test_quantity'].m_x(Annotation).initialized
-                assert all(a.initialized for a in definition.all_quantities['list_test_quantity'].m_x('test'))
-                assert all(a.initialized for a in definition.all_quantities['list_test_quantity'].m_x(Annotation))
+                assert section_cls.test_quantity.m_get_annotations('test').initialized
+                assert section_cls.test_quantity.a_test.initialized
+                assert section_cls.test_quantity.m_get_annotations('test', as_list=True)[0].initialized
+                assert section_cls.test_quantity.m_get_annotations(Annotation).initialized
+                assert all(a.initialized for a in section_cls.list_test_quantity.a_test)
+                assert all(a.initialized for a in section_cls.list_test_quantity.m_get_annotations(Annotation))
                 self.initialized = True
 
-        class TestQuantityAnnotation(Annotation):
+            def new(self, section):
+                return dict(test='test annotation')
+
+        class TestQuantityAnnotation(DefinitionAnnotation):
             def init_annotation(self, definition):
                 super().init_annotation(definition)
                 assert definition.name in ['test_quantity', 'list_test_quantity']
@@ -264,8 +270,10 @@ class TestM2:
                 type=str,
                 a_test=[TestQuantityAnnotation(), TestQuantityAnnotation()])
 
-        assert TestSection.m_def.m_x('test').initialized
-        assert TestSection.m_def.m_x(TestSectionAnnotation).initialized
+        assert TestSection.m_def.a_test.initialized
+        assert TestSection.m_def.m_get_annotations(TestSectionAnnotation).initialized
+
+        assert TestSection().a_test == 'test annotation'
 
 
 class TestM1:

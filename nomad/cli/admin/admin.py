@@ -179,10 +179,8 @@ def index(threads, dry):
         with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
             for calc in proc.Calc.objects():
                 eta.add()
-                entry = None
-                entry = datamodel.EntryMetadata.m_def.m_x('elastic').create_index_entry(
-                    datamodel.EntryMetadata.m_from_dict(calc.metadata))
-                entry = entry.to_dict(include_meta=True)
+                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
+                entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                 entry['_op_type'] = 'index'
                 yield entry
 

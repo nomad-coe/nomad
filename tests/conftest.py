@@ -698,6 +698,6 @@ def create_test_structure(
 
     proc_calc = processing.Calc.from_entry_metadata(calc)
     proc_calc.save()
-    calc.m_def.m_x('elastic').index(calc)
+    calc.a_elastic.index()
 
     assert processing.Calc.objects(calc_id__in=[calc.calc_id]).count() == 1

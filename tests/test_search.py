@@ -233,8 +233,7 @@ def refresh_index():
 
 
 def create_entry(entry_metadata: datamodel.EntryMetadata):
-    entry = datamodel.EntryMetadata.m_def.m_x('elastic').index(entry_metadata)
-    entry.save()
+    entry = entry_metadata.a_elastic.index()
     assert_entry(entry_metadata.calc_id)
     return entry
 

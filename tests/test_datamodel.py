@@ -150,7 +150,7 @@ if __name__ == '__main__':
             with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
                 f.write('this is a generated test file')
 
-            search_entry = calc.m_def.m_x('elastic').create_index_entry(calc)
+            search_entry = calc.a_elastic.create_index_entry()
             search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)
             search_entry.n_geometries = low_numbers_for_geometries
             for _ in range(0, random.choice(search_entry.n_geometries)):

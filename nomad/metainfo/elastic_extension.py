@@ -16,7 +16,7 @@ from typing import Callable, Any, Dict, cast
 import uuid
 
 
-from .metainfo import Section, Quantity, MSection, Annotation, MEnum, Datetime, Reference
+from .metainfo import Section, Quantity, MSection, MEnum, Datetime, Reference, Annotation, SectionAnnotation, DefinitionAnnotation
 
 '''
 This module provides metainfo annotation class :class:`Elastic` and
@@ -25,7 +25,7 @@ metainfo data in elastic search.
 '''
 
 
-class ElasticDocument(Annotation):
+class ElasticDocument(SectionAnnotation):
     '''
     This annotation class can be used to extend metainfo sections. It allows to detail
     how section instances (and their sub sections and quantities) should be represented in
@@ -55,6 +55,9 @@ class ElasticDocument(Annotation):
 
         self.m_def: Section = None
         self.fields: Dict[Quantity, str] = {}
+
+    def new(self, section):
+        return dict(elastic=ElasticEntry(section))
 
     def init_annotation(self, definition):
         assert isinstance(definition, Section), 'The ElasticDocument annotation is only usable with Sections.'
@@ -194,7 +197,18 @@ class ElasticDocument(Annotation):
         return document
 
 
-class Elastic(Annotation):
+class ElasticEntry(Annotation):
+    def __init__(self, section: MSection):
+        self.section = section
+
+    def index(self, **kwargs):
+        return ElasticDocument.index(self.section, **kwargs)
+
+    def create_index_entry(self):
+        return ElasticDocument.create_index_entry(self.section)
+
+
+class Elastic(DefinitionAnnotation):
     '''
     This annotation class can be used to extend metainfo quantities. It allows to detail
     how this quantity should be represented in an elastic search index.

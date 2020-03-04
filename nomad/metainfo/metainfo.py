@@ -656,13 +656,23 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 MetainfoError('Section has not m_def.')
 
         # get annotations from kwargs
-        self.m_annotations: Dict[Union[str, type], Any] = {}
-        rest = {}
+        self.m_annotations: Dict[str, Any] = {}
+        other_kwargs = {}
         for key, value in kwargs.items():
             if key.startswith('a_'):
                 self.m_annotations[key[2:]] = value
             else:
-                rest[key] = value
+                other_kwargs[key] = value
+
+        # get additional annotations from the section definition
+        if not is_bootstrapping:
+            for section_annotation in self.m_def.m_x(SectionAnnotation, as_list=True):
+                for name, annotation in section_annotation.new(self).items():
+                    self.m_annotations[name] = annotation
+
+        # add annotation attributes for names annotations
+        for annotation_name, annotation in self.m_annotations.items():
+            setattr(self, 'a_%s' % annotation_name, annotation)
 
         # initialize data
         self.m_data = m_data
@@ -671,9 +681,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         # set remaining kwargs
         if is_bootstrapping:
-            self.m_data.dct.update(**rest)  # type: ignore
+            self.m_data.dct.update(**other_kwargs)  # type: ignore
         else:
-            self.m_update(**rest)
+            self.m_update(**other_kwargs)
 
     @classmethod
     def __init_cls__(cls):
@@ -804,6 +814,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         prop.description = param.description
 
         m_def.__init_metainfo__()
+
+    def __getattr__(self, name):
+        # This will make mypy and pylint ignore 'missing' dynamic attributes and functions
+        # and wrong types of those.
+        # Ideally we have a plugin for both that add the corrent type info
+        return super().__getattr__(name)  # pylint: disable=no-member
 
     def __check_np(self, quantity_def: 'Quantity', value: np.ndarray) -> np.ndarray:
         # TODO this feels expensive, first check, then possible convert very often?
@@ -1351,9 +1367,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return cast(MSectionBound, context)
 
-    def m_x(self, key: Union[str, type], default=None, as_list: bool = False):
+    def m_x(self, *args, **kwargs):
+        # TODO remove
+        return self.m_get_annotations(*args, **kwargs)
+
+    def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''
-        Convinience method for get annotations
+        Convinience method to get annotations
 
         Arguments:
             key: Either the optional annoation name or an annotation class. In the first
@@ -1552,14 +1572,9 @@ class Definition(MSection):
         a class context, this method must be called manually on all definitions.
         '''
 
-        # initialize annotations
-        for annotation in self.m_annotations.values():
-            if isinstance(annotation, (tuple, list)):
-                for single_annotation in annotation:
-                    if isinstance(single_annotation, Annotation):
-                        single_annotation.init_annotation(self)
-            if isinstance(annotation, Annotation):
-                annotation.init_annotation(self)
+        # initialize definition annotations
+        for annotation in self.m_x(DefinitionAnnotation, as_list=True):
+            annotation.init_annotation(self)
 
     @classmethod
     def all_definitions(cls: Type[MSectionBound]) -> Iterable[MSectionBound]:
@@ -2066,6 +2081,31 @@ class Category(Definition):
         self.definitions: Set[Definition] = set()
 
 
+class Annotation:
+    ''' Base class for annotations. '''
+    pass
+
+
+class DefinitionAnnotation(Annotation):
+    ''' Base class for annotations for definitions. '''
+
+    def __init__(self):
+        self.definition: Definition = None
+
+    def init_annotation(self, definition: Definition):
+        self.definition = definition
+
+
+class SectionAnnotation(DefinitionAnnotation):
+    '''
+    Special annotation class for section definition that allows to auto add annotations
+    to section instances.
+    '''
+
+    def new(self, section) -> Dict[str, Any]:
+        return {}
+
+
 Section.m_def = Section(name='Section')
 Section.m_def.m_def = Section.m_def
 Section.m_def.section_cls = Section
@@ -2174,13 +2214,3 @@ class Environment(MSection):
                 if isinstance(definition, Definition):
                     definitions = self.all_definitions_by_name.setdefault(definition.name, [])
                     definitions.append(definition)
-
-
-class Annotation:
-    ''' Base class for annotations. '''
-
-    def __init__(self):
-        self.definition: Definition = None
-
-    def init_annotation(self, definition: Definition):
-        self.definition = definition
