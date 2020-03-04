@@ -41,11 +41,23 @@ The class :class:`EntryMetadata` is used to represent all metadata about an entr
 
 .. autoclass:: nomad.datamodel.EntryMetadata
     :members:
+
+In addition there are domain specific metadata classes:
+
+.. autoclass:: nomad.datamodel.dft.DFTMetadata
+    :members:
+
+.. autoclass:: nomad.datamodel.dft.EMSMetadata
+    :members:
+
+.. autoclass:: nomad.datamodel.OptimadeEntry
+    :members:
 '''
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
-from .metainfo import Dataset, User, EditableUserMetadata, UserMetadata, EntryMetadata
+from .datamodel import Dataset, User, EditableUserMetadata, UserMetadata, EntryMetadata
+from .optimade import OptimadeEntry, Species
 
 domains = {
     'dft': {

@@ -180,7 +180,7 @@ def index(threads, dry):
             for calc in proc.Calc.objects():
                 eta.add()
                 entry = None
-                entry = search.create_entry(
+                entry = datamodel.EntryMetadata.m_def.m_x('elastic').create_index_entry(
                     datamodel.EntryMetadata.m_from_dict(calc.metadata))
                 entry = entry.to_dict(include_meta=True)
                 entry['_op_type'] = 'index'

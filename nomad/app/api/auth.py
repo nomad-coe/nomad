@@ -40,7 +40,7 @@ import hashlib
 import uuid
 
 from nomad import config, processing, utils, infrastructure, datamodel
-from nomad.metainfo.flask_restplus import generate_flask_restplus_model
+from nomad.metainfo.flask_extension import generate_flask_restplus_model
 
 from .api import api
 

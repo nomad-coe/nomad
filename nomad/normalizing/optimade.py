@@ -21,7 +21,7 @@ import pint.quantity
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
-from nomad.metainfo.optimade import OptimadeEntry, Species
+from nomad.datamodel import OptimadeEntry, Species
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 

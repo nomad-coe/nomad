@@ -17,7 +17,7 @@ from flask import request
 from elasticsearch_dsl import Q
 
 from nomad import search
-from nomad.metainfo.optimade import OptimadeEntry
+from nomad.datamodel import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \

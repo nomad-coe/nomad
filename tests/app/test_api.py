@@ -28,6 +28,7 @@ import itertools
 from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
+from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import EntryMetadata, User, Dataset
@@ -716,7 +717,7 @@ class TestRepo():
 
         entry_metadata.m_update(
             calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
-        search.create_entry(entry_metadata).save(refresh=True)
+        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
 
         entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
@@ -725,17 +726,17 @@ class TestRepo():
         entry_metadata.m_update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA')
         entry_metadata.dft.basis_set = 'zzz'
-        search.create_entry(entry_metadata).save(refresh=True)
+        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
 
         entry_metadata.m_update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
             with_embargo=False, pid=3, external_id='external_3')
-        search.create_entry(entry_metadata).save(refresh=True)
+        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
 
         entry_metadata.m_update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
             with_embargo=True, pid=4, external_id='external_4')
-        search.create_entry(entry_metadata).save(refresh=True)
+        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
 
         yield
 
@@ -909,7 +910,7 @@ class TestRepo():
         assert 'only_atoms' not in result
         assert 'dft.basis_set' in result
 
-    metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
+    metrics_permutations = [[], search_extension.metrics] + [[metric] for metric in search_extension.metrics]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
         rv = api.get('/repo/?owner=admin', headers=admin_user_auth)
@@ -1797,8 +1798,7 @@ class TestDataset:
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
             metadata=entry_metadata.m_to_dict()).save()
-        search.create_entry(entry_metadata).save()
-        search.refresh()
+        EntryMetadata.m_def.m_x('elastic').index(entry_metadata, refresh=True)
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)

@@ -16,16 +16,16 @@
 This module represents calculations in elastic search.
 '''
 
-from typing import Iterable, Dict, List, Any, Union, cast
-from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, \
-    Object, Boolean, Integer, Search, Q, A, analyzer, tokenizer
+from typing import Iterable, Dict, List, Any
+from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, utils, metainfo, processing as proc
-from nomad.metainfo.search import SearchQuantity
+from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
+from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities, default_statistics
+from nomad.metainfo.elastic_extension import ElasticDocument
 
 
 path_analyzer = analyzer(
@@ -42,366 +42,22 @@ class ElasticSearchError(Exception): pass
 class ScrollIdNotFound(Exception): pass
 
 
-_elastic_documents: Dict[str, Union[Document, InnerDoc]] = {}
-
-search_quantities: Dict[str, SearchQuantity] = {}
-''' All available search quantities by their full qualified name. '''
-
-metrics: Dict[str, SearchQuantity] = {}
-'''
-The available search metrics. Metrics are integer values given for each entry that can
-be used in statistics (aggregations), e.g. the sum of all total energy calculations or cardinality of
-all unique geometries.
-'''
-
-groups: Dict[str, SearchQuantity] = {}
-''' The available groupable quantities '''
-
-order_default_quantities: Dict[str, SearchQuantity] = {}
-
-default_statistics: Dict[str, List[SearchQuantity]] = {}
-
-
-# TODO make search the search quantities are initialized even without/before creating an elastic document
-# otherwise a dependency on import order is created
-def create_elastic_document(
-        section: metainfo.Section, document_name: str = None, super_cls=Document,
-        prefix: str = None, domain: str = None,
-        attrs: Dict[str, Any] = None) -> Union[Document, InnerDoc]:
-    '''
-    Create all elasticsearch_dsl mapping classes for the section and its sub sections.
-    '''
-    domain = section.m_x('domain', domain)
-    domain_or_all = domain if domain is not None else '__all__'
-
-    if document_name is None:
-        document_name = section.name
-
-    if attrs is None:
-        attrs = {}
-
-    def get_inner_document(section: metainfo.Section, **kwargs) -> type:
-        inner_document = _elastic_documents.get(section.qualified_name())
-        if inner_document is None:
-            inner_document = create_elastic_document(
-                section, super_cls=InnerDoc, **kwargs)
-
-        return inner_document
-
-    # create an attribute for each sub section
-    for sub_section in section.all_sub_sections.values():
-        sub_section_prefix = sub_section.m_x('search')
-        if sub_section_prefix is None:
-            continue
-
-        if prefix is not None:
-            sub_section_prefix = '%s.%s' % (prefix, sub_section_prefix)
-
-        inner_document = get_inner_document(
-            sub_section.sub_section, domain=domain, prefix=sub_section_prefix)
-        attrs[sub_section.name] = Object(inner_document)
-
-    # create an attribute for each quantity
-    for quantity in section.all_quantities.values():
-        local_search_quantities = quantity.m_x('search')
-
-        if local_search_quantities is None:
-            continue
-
-        if not isinstance(local_search_quantities, List):
-            local_search_quantities = [local_search_quantities]
-
-        for i, search_quantity in enumerate(local_search_quantities):
-            search_quantity.configure(quantity=quantity, prefix=prefix)
-
-            # only prefixed or top-level quantities are considered for being
-            # searched directly. Other nested quantities can only be used via
-            # other search_quantities's es_quantity
-            if prefix is not None or super_cls == Document:
-                qualified_name = search_quantity.qualified_name
-                assert qualified_name not in search_quantities, 'Search quantities must have a unique name: %s' % qualified_name
-                search_quantities[qualified_name] = search_quantity
-
-                if search_quantity.metric is not None:
-                    qualified_metric_name = search_quantity.metric_name
-                    assert qualified_metric_name not in metrics, 'Metric names must be unique: %s' % qualified_metric_name
-                    metrics[qualified_metric_name] = search_quantity
-
-                if search_quantity.group is not None:
-                    qualified_group = search_quantity.group
-                    assert qualified_group not in groups, 'Groups must be unique'
-                    groups[qualified_group] = search_quantity
-
-                if search_quantity.default_statistic:
-                    default_statistics.setdefault(domain_or_all, []).append(search_quantity)
-
-                if search_quantity.order_default:
-                    assert order_default_quantities.get(domain_or_all) is None, 'Only one quantity can be the order default'
-                    order_default_quantities[domain_or_all] = search_quantity
-
-            if i != 0:
-                # only the first quantity gets is mapped, unless the other has an
-                # explicit mapping
-                assert search_quantity.es_mapping is None, 'only the first quantity gets is mapped'
-                continue
-
-            if search_quantity.es_mapping is None:
-                # find a mapping based on quantity type
-                if quantity.type == str:
-                    search_quantity.es_mapping = Keyword()
-                elif quantity.type == int:
-                    search_quantity.es_mapping = Integer()
-                elif quantity.type == bool:
-                    search_quantity.es_mapping = Boolean()
-                elif quantity.type == metainfo.Datetime:
-                    search_quantity.es_mapping = Date()
-                elif isinstance(quantity.type, metainfo.Reference):
-                    inner_document = get_inner_document(quantity.type.target_section_def)
-                    search_quantity.es_mapping = Object(inner_document)
-                elif isinstance(quantity.type, metainfo.MEnum):
-                    search_quantity.es_mapping = Keyword()
-                else:
-                    raise NotImplementedError(
-                        'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
-
-            attrs[quantity.name] = search_quantity.es_mapping
-
-    document = type(document_name, (super_cls,), attrs)
-    _elastic_documents[section.qualified_name()] = document
-    return document
-
-
-# TODO move to a init function that is triggered by elastic setup in infrastructure
-Entry = cast(Document, create_elastic_document(
-    datamodel.EntryMetadata.m_def, document_name='Entry',
-    attrs=dict(Index=type('Index', (), dict(name=config.elastic.index_name)))))
-''' The elasticsearch_dsl Document class that constitutes the entry index. '''
-
-metrics_names = list(metrics.keys())
-''' Names of all available metrics '''
+entry_document = datamodel.EntryMetadata.m_def.m_x(ElasticDocument).document
 
 for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
-    default_statistics.setdefault(domain, []).append(*default_statistics.get('__all__'))
-
-
-# class User(InnerDoc):
-
-#     @classmethod
-#     def from_user(cls, user):
-#         self = cls(user_id=user.user_id)
-#         self.name = user.name
-#         self.email = user.email
-
-#         return self
-
-#     user_id = Keyword()
-#     email = Keyword()
-#     name = Text(fields={'keyword': Keyword()})
-
-
-# class Dataset(InnerDoc):
-
-#     @classmethod
-#     def from_dataset_id(cls, dataset_id):
-#         dataset = datamodel.Dataset.m_def.m_x('me').get(dataset_id=dataset_id)
-#         return cls(id=dataset.dataset_id, doi=dataset.doi, name=dataset.name, created=dataset.created)
-
-#     id = Keyword()
-#     doi = Keyword()
-#     name = Keyword()
-#     created = Date()
-
-
-# _domain_inner_doc_types: Dict[str, type] = {}
-
-
-# class WithDomain(IndexMeta):
-#     ''' Override elasticsearch_dsl metaclass to sneak in domain specific mappings '''
-#     def __new__(cls, name, bases, attrs):
-#         for domain in Domain.instances.values():
-#             inner_doc_type = _domain_inner_doc_types.get(domain.name)
-#             if inner_doc_type is None:
-#                 domain_attrs = {
-#                     quantity.elastic_field: quantity.elastic_mapping
-#                     for quantity in domain.domain_quantities.values()}
-
-#                 inner_doc_type = type(domain.name, (InnerDoc,), domain_attrs)
-#                 _domain_inner_doc_types[domain.name] = inner_doc_type
-
-#             attrs[domain.name] = Object(inner_doc_type)
-
-#         return super(WithDomain, cls).__new__(cls, name, bases, attrs)
-
-
-# class Entry(Document, metaclass=WithDomain):
-
-#     class Index:
-#         name = config.elastic.index_name
-
-#     domain = Keyword()
-#     upload_id = Keyword()
-#     upload_time = Date()
-#     upload_name = Keyword()
-#     calc_id = Keyword()
-#     calc_hash = Keyword()
-#     pid = Keyword()
-#     raw_id = Keyword()
-#     mainfile = Keyword()
-#     files = Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
-#     uploader = Object(User)
-
-#     with_embargo = Boolean()
-#     published = Boolean()
-
-#     processed = Boolean()
-#     last_processing = Date()
-#     nomad_version = Keyword()
-#     nomad_commit = Keyword()
-
-#     authors = Object(User, multi=True)
-#     owners = Object(User, multi=True)
-#     comment = Text()
-#     references = Keyword()
-#     datasets = Object(Dataset)
-#     external_id = Keyword()
-
-#     atoms = Keyword()
-#     only_atoms = Keyword()
-#     formula = Keyword()
-
-#     @classmethod
-#     def from_entry_metadata(cls, source: datamodel.EntryMetadata) -> 'Entry':
-#         entry = Entry(meta=dict(id=source.calc_id))
-#         entry.update(source)
-#         return entry
-
-#     def update(self, source: datamodel.EntryMetadata) -> None:
-#         self.domain = source.domain
-#         self.upload_id = source.upload_id
-#         self.upload_time = source.upload_time
-#         self.upload_name = source.upload_name
-#         self.calc_id = source.calc_id
-#         self.calc_hash = source.calc_hash
-#         self.pid = None if source.pid is None else str(source.pid)
-#         self.raw_id = None if source.raw_id is None else str(source.raw_id)
-
-#         self.processed = source.processed
-#         self.last_processing = source.last_processing
-#         self.nomad_version = source.nomad_version
-#         self.nomad_commit = source.nomad_commit
-
-#         self.mainfile = source.mainfile
-#         if source.files is None:
-#             self.files = [self.mainfile]
-#         elif self.mainfile not in source.files:
-#             self.files = [self.mainfile] + source.files
-#         else:
-#             self.files = source.files
-
-#         self.with_embargo = bool(source.with_embargo)
-#         self.published = source.published
-
-#         uploader = datamodel.User.get(user_id=source.uploader) if source.uploader is not None else None
-#         authors = [datamodel.User.get(user_id) for user_id in source.coauthors]
-#         owners = [datamodel.User.get(user_id) for user_id in source.shared_with]
-#         if uploader is not None:
-#             authors.append(uploader)
-#             owners.append(uploader)
-#         authors.sort(key=lambda user: user.last_name + ' ' + user.first_name)
-#         owners.sort(key=lambda user: user.last_name + ' ' + user.first_name)
-
-#         self.uploader = User.from_user(uploader) if uploader is not None else None
-#         self.authors = [User.from_user(user) for user in authors]
-#         self.owners = [User.from_user(user) for user in owners]
-
-#         self.comment = source.comment
-#         self.references = source.references
-#         self.datasets = [Dataset.from_dataset_id(dataset_id) for dataset_id in source.datasets]
-#         self.external_id = source.external_id
-
-#         self.atoms = source.atoms
-#         self.only_atoms = nomad.datamodel.base.only_atoms(source.atoms)
-#         self.formula = source.formula
-#         self.n_atoms = source.n_atoms
-
-#         if self.domain is not None:
-#             inner_doc_type = _domain_inner_doc_types[self.domain]
-#             inner_doc = inner_doc_type()
-#             for quantity in Domain.instances[self.domain].domain_quantities.values():
-#                 quantity_value = quantity.elastic_value(getattr(source, quantity.metadata_field))
-#                 setattr(inner_doc, quantity.elastic_field, quantity_value)
-
-#             setattr(self, self.domain, inner_doc)
-
-
-def create_entry(section: metainfo.MSection) -> Any:
-    ''' Creates a elasticsearch_dsl document for the given section. '''
-    cls = _elastic_documents[section.m_def.qualified_name()]
-
-    if section.m_def == datamodel.EntryMetadata.m_def:
-        obj = cls(meta=dict(id=section.m_get(datamodel.EntryMetadata.calc_id)))
-    else:
-        obj = cls()
-
-    for quantity in section.m_def.all_quantities.values():
-        search_quantities = quantity.m_x('search')
-        if search_quantities is None:
-            continue
-
-        if not isinstance(search_quantities, list):
-            search_quantities = [search_quantities]
-
-        value = section.m_get(quantity)
-        if value is None or value == []:
-            continue
-
-        for i, search_quantity in enumerate(search_quantities):
-            if i != 0:
-                # Only the value is only written for the first quantity
-                continue
-
-            quantity_type = quantity.type
-            if isinstance(quantity_type, metainfo.Reference):
-                if quantity.is_scalar:
-                    value = create_entry(cast(metainfo.MSection, value))
-                else:
-                    value = [create_entry(item) for item in value]
-
-            elif search_quantity.es_value is not None:
-                value = search_quantity.es_value(section)
-
-            setattr(obj, quantity.name, value)
-
-    for sub_section in section.m_def.all_sub_sections.values():
-        if not sub_section.m_x('search'):
-            continue
-
-        if sub_section.repeats:
-            mi_values = list(section.m_get_sub_sections(sub_section))
-            if len(mi_values) == 0:
-                continue
-            value = [create_entry(value) for value in mi_values]
-        else:
-            mi_value = section.m_get_sub_section(sub_section, -1)
-            if mi_value is None:
-                continue
-            value = create_entry(mi_value)
-
-        setattr(obj, sub_section.name, value)
-
-    return obj
+    default_statistics.setdefault(domain, []).extend(default_statistics.get('__all__'))
 
 
 def delete_upload(upload_id):
     ''' Delete all entries with given ``upload_id`` from the index. '''
-    index = Entry._default_index()
+    index = entry_document._default_index()
     Search(index=index).query('match', upload_id=upload_id).delete()
 
 
 def delete_entry(calc_id):
     ''' Delete the entry with the given ``calc_id`` from the index. '''
-    index = Entry._default_index()
+    index = entry_document._default_index()
     Search(index=index).query('match', calc_id=calc_id).delete()
 
 
@@ -409,7 +65,7 @@ def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     ''' Update all given calcs with their metadata and set ``publish = True``. '''
     def elastic_updates():
         for calc in calcs:
-            entry = create_entry(calc)
+            entry = calc.m_def.m_x('elastic').create_index_entry(calc)
             entry.published = True
             entry = entry.to_dict(include_meta=True)
             source = entry.pop('_source')
@@ -430,7 +86,7 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
     '''
     def elastic_updates():
         for calc in calcs:
-            entry = create_entry(calc)
+            entry = calc.m_def.m_x('elastic').create_index_entry(calc)
             entry = entry.to_dict(include_meta=True)
             entry['_op_type'] = 'index'
             yield entry
@@ -565,7 +221,7 @@ class SearchRequest:
             value = [value]
 
         if quantity.many_or and isinstance(value, List):
-            self.q &= Q('terms', **{quantity.es_quantity: value})
+            self.q &= Q('terms', **{quantity.search_field: value})
             return self
 
         if quantity.derived:
@@ -579,7 +235,7 @@ class SearchRequest:
             values = [value]
 
         for item in values:
-            self.q &= Q('match', **{quantity.es_quantity: item})
+            self.q &= Q('match', **{quantity.search_field: item})
 
         return self
 
@@ -664,7 +320,7 @@ class SearchRequest:
                 The basic doc_count metric ``code_runs`` is always given.
         '''
         quantity = search_quantities[quantity_name]
-        terms = A('terms', field=quantity.es_quantity, size=size, order=dict(_key='asc'))
+        terms = A('terms', field=quantity.search_field, size=size, order=dict(_key='asc'))
 
         buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
         self._add_metrics(buckets, metrics_to_use)
@@ -677,7 +333,7 @@ class SearchRequest:
 
         for metric in metrics_to_use:
             metric_quantity = metrics[metric]
-            field = metric_quantity.es_quantity
+            field = metric_quantity.search_field
             parent.metric(
                 'metric:%s' % metric_quantity.metric_name,
                 A(metric_quantity.metric, field=field))
@@ -740,7 +396,7 @@ class SearchRequest:
             size = 100
 
         quantity = search_quantities[name]
-        terms = A('terms', field=quantity.es_quantity)
+        terms = A('terms', field=quantity.search_field)
 
         # We are using elastic searchs 'composite aggregations' here. We do not really
         # compose aggregations, but only those pseudo composites allow us to use the
@@ -782,7 +438,9 @@ class SearchRequest:
         Exectutes without returning actual results. Only makes sense if the request
         was configured for statistics or quantity values.
         '''
-        return self._response(self._search.query(self.q)[0:0].execute())
+        search = self._search.query(self.q)[0:0]
+        response = search.execute()
+        return self._response(response)
 
     def execute_scan(self, order_by: str = None, order: int = -1, **kwargs):
         '''
@@ -795,9 +453,9 @@ class SearchRequest:
             order_by_quantity = search_quantities[order_by]
 
             if order == 1:
-                search = search.sort(order_by_quantity.es_quantity)
+                search = search.sort(order_by_quantity.search_field)
             else:
-                search = search.sort('-%s' % order_by_quantity.es_quantity)
+                search = search.sort('-%s' % order_by_quantity.search_field)
 
             search = search.params(preserve_order=True)
 
@@ -824,9 +482,9 @@ class SearchRequest:
         search = self._search.query(self.q)
 
         if order == 1:
-            search = search.sort(order_by_quantity.es_quantity)
+            search = search.sort(order_by_quantity.search_field)
         else:
-            search = search.sort('-%s' % order_by_quantity.es_quantity)
+            search = search.sort('-%s' % order_by_quantity.search_field)
         search = search[(page - 1) * per_page: page * per_page]
 
         es_result = search.execute()
@@ -917,7 +575,7 @@ class SearchRequest:
         # statistics
         def get_metrics(bucket, code_runs):
             result = {}
-            for metric in metrics_names:
+            for metric in metrics:
                 agg_name = 'metric:%s' % metric
                 if agg_name in bucket:
                     result[metric] = bucket[agg_name]['value']

@@ -18,37 +18,37 @@ Experimental material science specific metadata
 
 from nomad import utils, config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
-from nomad.metainfo.search import SearchQuantity
+from nomad.metainfo.search_extension import Search
 
-from .base import get_optional_backend_value
+from .common import get_optional_backend_value
 
 
 class EMSMetadata(MSection):
     m_def = Section(a_domain='ems')
 
     # sample quantities
-    chemical = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    sample_constituents = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
-    sample_microstructure = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
+    chemical = Quantity(type=str, default='not processed', a_search=Search())
+    sample_constituents = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
+    sample_microstructure = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
 
     # general metadata
-    experiment_summary = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    experiment_location = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    experiment_time = Quantity(type=Datetime, a_search=SearchQuantity())
+    experiment_summary = Quantity(type=str, default='not processed', a_search=Search())
+    experiment_location = Quantity(type=str, default='not processed', a_search=Search())
+    experiment_time = Quantity(type=Datetime, a_search=Search())
 
     # method
-    method = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
-    probing_method = Quantity(type=str, default='not processed', a_search=SearchQuantity(default_statistic=True))
+    method = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
+    probing_method = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
 
     # data metadata
-    repository_name = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    repository_url = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    entry_repository_url = Quantity(type=str, default='not processed', a_search=SearchQuantity())
-    preview_url = Quantity(type=str, default='not processed', a_search=SearchQuantity())
+    repository_name = Quantity(type=str, default='not processed', a_search=Search())
+    repository_url = Quantity(type=str, default='not processed', a_search=Search())
+    entry_repository_url = Quantity(type=str, default='not processed', a_search=Search())
+    preview_url = Quantity(type=str, default='not processed', a_search=Search())
 
     # TODO move
-    quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=SearchQuantity())
-    group_hash = Quantity(type=str, a_search=SearchQuantity())
+    quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
+    group_hash = Quantity(type=str, a_search=Search())
 
     def apply_domain_metadata(self, backend):
         entry = self.m_parent

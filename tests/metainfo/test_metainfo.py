@@ -19,8 +19,9 @@ import datetime
 
 from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
 
-from nomad.metainfo.metainfo import MSection, MCategory, Section, Quantity, SubSection, \
-    Definition, Package, DeriveError, MetainfoError, Environment, MResource, Datetime, units
+from nomad.metainfo.metainfo import (
+    MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
+    MetainfoError, Environment, MResource, Datetime, units, Annotation)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
 from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 from nomad.parsing.metainfo import MetainfoBackend
@@ -234,6 +235,37 @@ class TestM2:
 
     def test_derived_virtual(self):
         assert System.n_atoms.virtual
+
+    def test_annotations(self):
+        class TestSectionAnnotation(Annotation):
+            def init_annotation(self, definition):
+                super().init_annotation(definition)
+                assert definition.name == 'TestSection'
+                assert 'test_quantity' in definition.all_quantities
+                assert definition.all_quantities['test_quantity'].m_x('test').initialized
+                assert definition.all_quantities['test_quantity'].m_x('test', as_list=True)[0].initialized
+                assert definition.all_quantities['test_quantity'].m_x(Annotation).initialized
+                assert all(a.initialized for a in definition.all_quantities['list_test_quantity'].m_x('test'))
+                assert all(a.initialized for a in definition.all_quantities['list_test_quantity'].m_x(Annotation))
+                self.initialized = True
+
+        class TestQuantityAnnotation(Annotation):
+            def init_annotation(self, definition):
+                super().init_annotation(definition)
+                assert definition.name in ['test_quantity', 'list_test_quantity']
+                assert definition.m_parent is not None
+                self.initialized = True
+
+        class TestSection(MSection):
+            m_def = Section(a_test=TestSectionAnnotation())
+
+            test_quantity = Quantity(type=str, a_test=TestQuantityAnnotation())
+            list_test_quantity = Quantity(
+                type=str,
+                a_test=[TestQuantityAnnotation(), TestQuantityAnnotation()])
+
+        assert TestSection.m_def.m_x('test').initialized
+        assert TestSection.m_def.m_x(TestSectionAnnotation).initialized
 
 
 class TestM1:

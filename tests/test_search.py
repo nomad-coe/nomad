@@ -17,7 +17,8 @@ from elasticsearch_dsl import Q
 import pytest
 
 from nomad import datamodel, search, processing, parsing, infrastructure, config
-from nomad.search import Entry, SearchRequest
+from nomad.search import entry_document, SearchRequest
+from nomad.metainfo import search_extension
 
 
 def test_init_mapping(elastic):
@@ -144,11 +145,11 @@ def assert_metrics(container, metrics_names):
 
 
 def test_search_statistics(elastic, example_search_data):
-    assert 'authors' in search.metrics_names
-    assert 'datasets' in search.metrics_names
-    assert 'unique_entries' in search.metrics_names
+    assert 'authors' in search_extension.metrics.keys()
+    assert 'datasets' in search_extension.metrics.keys()
+    assert 'unique_entries' in search_extension.metrics.keys()
 
-    use_metrics = search.metrics_names
+    use_metrics = search_extension.metrics.keys()
 
     request = SearchRequest(domain='dft').statistic(
         'dft.system', size=10, metrics_to_use=use_metrics).date_histogram()
@@ -166,7 +167,7 @@ def test_search_statistics(elastic, example_search_data):
 
 
 def test_search_totals(elastic, example_search_data):
-    use_metrics = search.metrics_names
+    use_metrics = search_extension.metrics.keys()
 
     request = SearchRequest(domain='dft').totals(metrics_to_use=use_metrics)
     results = request.execute()
@@ -232,7 +233,7 @@ def refresh_index():
 
 
 def create_entry(entry_metadata: datamodel.EntryMetadata):
-    entry = search.create_entry(entry_metadata)
+    entry = datamodel.EntryMetadata.m_def.m_x('elastic').index(entry_metadata)
     entry.save()
     assert_entry(entry_metadata.calc_id)
     return entry
@@ -240,10 +241,10 @@ def create_entry(entry_metadata: datamodel.EntryMetadata):
 
 def assert_entry(calc_id):
     refresh_index()
-    calc = Entry.get(calc_id)
+    calc = entry_document.get(calc_id)
     assert calc is not None
 
-    search = Entry.search().query(Q('term', calc_id=calc_id))[0:10]
+    search = entry_document.search().query(Q('term', calc_id=calc_id))[0:10]
     assert search.count() == 1
     results = list(hit.to_dict() for hit in search)
     assert results[0]['calc_id'] == calc_id
@@ -254,7 +255,7 @@ def assert_search_upload(
         additional_keys: List[str] = [], **kwargs):
     keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
     refresh_index()
-    search_results = Entry.search().query('match_all')[0:10]
+    search_results = entry_document.search().query('match_all')[0:10]
     assert search_results.count() == len(list(upload_entries))
     if search_results.count() > 0:
         for hit in search_results:
@@ -292,7 +293,7 @@ if __name__ == '__main__':
     def gen_data():
         for pid in range(0, n):
             calc = generate_calc(pid)
-            calc = Entry.from_entry_metadata(calc)
+            calc = entry_document.from_entry_metadata(calc)
             yield calc.to_dict(include_meta=True)
 
     bulk(infrastructure.elastic_client, gen_data())

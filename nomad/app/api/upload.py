@@ -27,7 +27,7 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files, search, datamodel
+from nomad import config, utils, files, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.app import common
@@ -46,7 +46,7 @@ ns = api.namespace(
 class CalcMetadata(fields.Raw):
     def format(self, value):
         entry_metadata = datamodel.EntryMetadata.m_from_dict(value)
-        return search.create_entry(entry_metadata).to_dict()
+        return datamodel.EntryMetadata.m_def.m_x('elastic').create_index_entry(entry_metadata).to_dict()
 
 
 proc_model = api.model('Processing', {

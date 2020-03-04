@@ -21,10 +21,11 @@ import re
 from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
-from nomad.metainfo import optimade, MSection, Section, Quantity, MEnum, SubSection
-from nomad.metainfo.search import SearchQuantity
+from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
+from nomad.metainfo.search_extension import Search
 
-from .base import get_optional_backend_value
+from .common import get_optional_backend_value
+from .optimade import OptimadeEntry
 
 
 xc_treatments = {
@@ -77,15 +78,15 @@ class Label(MSection):
         source: The source that this label was taken from.
 
     '''
-    label = Quantity(type=str, a_search=SearchQuantity())
+    label = Quantity(type=str, a_search=Search())
 
     type = Quantity(type=MEnum(
         'compound_class', 'classification', 'prototype', 'prototype_id'),
-        a_search=SearchQuantity())
+        a_search=Search())
 
     source = Quantity(
         type=MEnum('springer', 'aflow_prototype_library'),
-        a_search=SearchQuantity())
+        a_search=Search())
 
 
 class DFTMetadata(MSection):
@@ -94,75 +95,75 @@ class DFTMetadata(MSection):
     basis_set = Quantity(
         type=str, default='not processed',
         description='The used basis set functions.',
-        a_search=SearchQuantity(statistic_size=20, default_statistic=True))
+        a_search=Search(statistic_size=20, default_statistic=True))
 
     xc_functional = Quantity(
         type=str, default='not processed',
         description='The libXC based xc functional classification used in the simulation.',
-        a_search=SearchQuantity(statistic_size=20, default_statistic=True))
+        a_search=Search(statistic_size=20, default_statistic=True))
 
     system = Quantity(
         type=str, default='not processed',
         description='The system type of the simulated system.',
-        a_search=SearchQuantity(default_statistic=True))
+        a_search=Search(default_statistic=True))
 
     crystal_system = Quantity(
         type=str, default='not processed',
         description='The crystal system type of the simulated system.',
-        a_search=SearchQuantity(default_statistic=True))
+        a_search=Search(default_statistic=True))
 
     spacegroup = Quantity(
         type=int, default='not processed',
         description='The spacegroup of the simulated system as number.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     spacegroup_symbol = Quantity(
         type=str, default='not processed',
         description='The spacegroup as international short symbol.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     code_name = Quantity(
         type=str, default='not processed',
         description='The name of the used code.',
-        a_search=SearchQuantity(statistic_size=40, default_statistic=True))
+        a_search=Search(statistic_size=40, default_statistic=True))
 
     code_version = Quantity(
         type=str, default='not processed',
         description='The version of the used code.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     n_geometries = Quantity(
         type=int, description='Number of unique geometries.',
-        a_search=SearchQuantity(metric_name='geometries', metric='sum'))
+        a_search=Search(metric_name='geometries', metric='sum'))
 
     n_calculations = Quantity(
         type=int,
         description='Number of single configuration calculation sections',
-        a_search=SearchQuantity(metric_name='calculations', metric='sum'))
+        a_search=Search(metric_name='calculations', metric='sum'))
 
     n_total_energies = Quantity(
         type=int, description='Number of total energy calculations',
-        a_search=SearchQuantity(metric_name='total_energies', metric='sum'))
+        a_search=Search(metric_name='total_energies', metric='sum'))
 
     n_quantities = Quantity(
         type=int, description='Number of metainfo quantities parsed from the entry.',
-        a_search=SearchQuantity(metric='sum', metric_name='quantities'))
+        a_search=Search(metric='sum', metric_name='quantities'))
 
     quantities = Quantity(
         type=str, shape=['0..*'],
         description='All quantities that are used by this entry.',
-        a_search=SearchQuantity(
+        a_search=Search(
             metric_name='distinct_quantities', metric='cardinality', many_and='append'))
 
     geometries = Quantity(
         type=str, shape=['0..*'],
         description='Hashes for each simulated geometry',
-        a_search=SearchQuantity(metric_name='unique_geometries', metric='cardinality'))
+        a_search=Search(metric_name='unique_geometries', metric='cardinality'))
 
     group_hash = Quantity(
         type=str,
         description='Hashes that describe unique geometries simulated by this code run.',
-        a_search=SearchQuantity(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
+        a_search=Search(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
 
     labels = SubSection(
         sub_section=Label, repeats=True,
@@ -170,7 +171,7 @@ class DFTMetadata(MSection):
         a_search='labels')
 
     optimade = SubSection(
-        sub_section=optimade.OptimadeEntry,
+        sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
         a_search='optimade')
 
@@ -182,7 +183,7 @@ class DFTMetadata(MSection):
 
         if 'optimade' in kwargs:
             print('########################## B')
-            self.optimade = optimade.OptimadeEntry.m_from_dict(kwargs.pop('optimade'))
+            self.optimade = OptimadeEntry.m_from_dict(kwargs.pop('optimade'))
 
         super().m_update(**kwargs)
 
@@ -293,4 +294,4 @@ class DFTMetadata(MSection):
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
 
         # optimade
-        self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
+        self.optimade = backend.get_mi2_section(OptimadeEntry.m_def)

@@ -116,7 +116,7 @@ if __name__ == '__main__':
     import json
     from elasticsearch.helpers import bulk
 
-    from nomad import infrastructure, search
+    from nomad import infrastructure
 
     print('Generate test data and add it to search and files')
     print('  first arg is number of calcs (code runs)')
@@ -150,7 +150,7 @@ if __name__ == '__main__':
             with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
                 f.write('this is a generated test file')
 
-            search_entry = search.Entry.from_entry_metadata(calc)
+            search_entry = calc.m_def.m_x('elastic').create_index_entry(calc)
             search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)
             search_entry.n_geometries = low_numbers_for_geometries
             for _ in range(0, random.choice(search_entry.n_geometries)):

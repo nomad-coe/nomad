@@ -274,7 +274,29 @@ A more complex example
 
 '''
 
-from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Environment, MEnum, Datetime, MProxy, MetainfoError, DeriveError, \
-    MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
-    units
+
+from .metainfo import (
+    MSection,
+    MCategory,
+    Definition,
+    Property,
+    Quantity,
+    SubSection,
+    Section,
+    Category,
+    Package,
+    Environment,
+    MEnum,
+    Datetime,
+    MProxy,
+    MetainfoError,
+    DeriveError,
+    MetainfoReferenceError,
+    DataType,
+    MData,
+    MDataDict,
+    Reference,
+    MResource,
+    m_package,
+    units,
+    Annotation)

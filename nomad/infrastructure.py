@@ -96,9 +96,9 @@ def setup_elastic():
     logger.info('setup elastic connection')
 
     try:
-        from nomad.search import Entry
-        Entry.init(index=config.elastic.index_name)
-        Entry._index._name = config.elastic.index_name
+        from nomad.search import entry_document
+        entry_document.init(index=config.elastic.index_name)
+        entry_document._index._name = config.elastic.index_name
         logger.info('initialized elastic index', index_name=config.elastic.index_name)
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
@@ -411,9 +411,9 @@ def reset(remove: bool):
         if not elastic_client:
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
-        from nomad.search import Entry
+        from nomad.search import entry_document
         if not remove:
-            Entry.init(index=config.elastic.index_name)
+            entry_document.init(index=config.elastic.index_name)
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)

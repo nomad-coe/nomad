@@ -656,7 +656,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 MetainfoError('Section has not m_def.')
 
         # get annotations from kwargs
-        self.m_annotations: Dict[str, Any] = {}
+        self.m_annotations: Dict[Union[str, type], Any] = {}
         rest = {}
         for key, value in kwargs.items():
             if key.startswith('a_'):
@@ -688,7 +688,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         m_def.section_cls = cls
 
         # add base sections
-        extended_base_section = None
         if m_def.extends_base_section:
             base_sections_count = len(cls.__bases__)
             if base_sections_count == 0:
@@ -700,7 +699,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     'Section %s extend the base section, but has more than one base section' % m_def)
 
             base_section_cls = cls.__bases__[0]
-            extended_base_section = base_section = getattr(base_section_cls, 'm_def', None)
+            base_section = getattr(base_section_cls, 'm_def', None)
             if base_section is None:
                 raise MetainfoError(
                     'The base section of %s is not a section class.' % m_def)
@@ -710,7 +709,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     setattr(base_section_cls, name, attr)
 
             section_to_add_properties_to = base_section
+            base_sections = [base_section]
         else:
+            base_sections: List[Section] = []
             for base_cls in cls.__bases__:
                 if base_cls != MSection:
                     base_section = getattr(base_cls, 'm_def')
@@ -719,12 +720,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             'Section defining classes must have MSection or a decendant as '
                             'base classes.')
 
-                    base_sections = list(m_def.m_get(Section.base_sections))
                     base_sections.append(base_section)
-                    m_def.m_set(Section.base_sections, base_sections)
 
             section_to_add_properties_to = m_def
 
+        m_def.m_set(Section.base_sections, base_sections)
+
+        # transfer names, descriptions, constraints, event_handlers
         constraints: Set[str] = set()
         event_handlers: Set[Callable] = set(m_def.event_handlers)
         for name, attr in cls.__dict__.items():
@@ -741,8 +743,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     section_to_add_properties_to.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
-
-                attr.__init_property__()
 
             if inspect.isfunction(attr):
                 method_name = attr.__name__
@@ -803,17 +803,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if prop.description is None:
                         prop.description = param.description
 
-        # validate
-        def validate(definition):
-            errors = definition.m_all_validate()
-            if len(errors) > 0:
-                raise MetainfoError(
-                    '%s. The section definition %s violates %d more constraints' %
-                    (str(errors[0]).strip('.'), definition, len(errors) - 1))
-
-        if extended_base_section is not None:
-            validate(extended_base_section)
-        validate(m_def)
+        m_def.__init_metainfo__()
 
     def __check_np(self, quantity_def: 'Quantity', value: np.ndarray) -> np.ndarray:
         # TODO this feels expensive, first check, then possible convert very often?
@@ -1361,9 +1351,45 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return cast(MSectionBound, context)
 
-    def m_x(self, key: str, default=None):
-        ''' Convinience method for get the annotation with name ``key``. '''
-        return self.m_annotations.get(key, default)
+    def m_x(self, key: Union[str, type], default=None, as_list: bool = False):
+        '''
+        Convinience method for get annotations
+
+        Arguments:
+            key: Either the optional annoation name or an annotation class. In the first
+                case the annotation is returned, regardless of its type. In the second
+                case, all names and list for names are iterated and all annotations of the
+                given class are returned.
+            default: The default, if no annotation is found. None is  the default default.
+            as_list: Returns a list, no matter how many annoations have been found.
+        '''
+        if isinstance(key, str):
+            value = self.m_annotations.get(key, default)
+            if as_list and not isinstance(value, (list, tuple)):
+                return [value]
+            else:
+                return value
+
+        elif isinstance(key, type):
+            result_list = []
+            for values in self.m_annotations.values():
+                if isinstance(values, (tuple, list)):
+                    for value in values:
+                        if isinstance(value, key):
+                            result_list.append(value)
+                elif isinstance(values, key):
+                    result_list.append(values)
+
+            result_list_len = len(result_list)
+            if not as_list:
+                if result_list_len == 1:
+                    return result_list[0]
+                elif result_list_len == 0:
+                    return default
+
+            return result_list
+
+        raise TypeError('Key must be str or annotation class.')
 
     def __validate_shape(self, quantity_def: 'Quantity', value):
         if quantity_def == Quantity.default:
@@ -1518,6 +1544,23 @@ class Definition(MSection):
             definitions = Definition.__all_definitions.setdefault(cls, [])
             definitions.append(self)
 
+    def __init_metainfo__(self):
+        '''
+        An initialization method that is called after the class context of the definition
+        has been initialized. For example it is called on all quantities of a section
+        class after the class was created. If metainfo definitions are created without
+        a class context, this method must be called manually on all definitions.
+        '''
+
+        # initialize annotations
+        for annotation in self.m_annotations.values():
+            if isinstance(annotation, (tuple, list)):
+                for single_annotation in annotation:
+                    if isinstance(single_annotation, Annotation):
+                        single_annotation.init_annotation(self)
+            if isinstance(annotation, Annotation):
+                annotation.init_annotation(self)
+
     @classmethod
     def all_definitions(cls: Type[MSectionBound]) -> Iterable[MSectionBound]:
         ''' Class method that returns all definitions of this class.
@@ -1546,10 +1589,8 @@ class Definition(MSection):
 
 
 class Property(Definition):
-
-    def __init_property__(self):
-        ''' Is called during section initialisation to allow property initialisation '''
-        pass
+    ''' A common base-class for section properties: sub sections and quantities. '''
+    pass
 
 
 class Quantity(Property):
@@ -1664,7 +1705,8 @@ class Quantity(Property):
 
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
 
-    def __init_property__(self):
+    def __init_metainfo__(self):
+        super().__init_metainfo__()
         if self.derived is not None:
             self.virtual = True
 
@@ -1891,6 +1933,26 @@ class Section(Definition):
         self.all_sub_sections_by_section: Dict['Section', List['SubSection']] = dict()
         self.parent_section_sub_section_defs: List['SubSection'] = list()
 
+    def __init_metainfo__(self):
+        # initialize properties
+        for property in self.all_properties.values():
+            property.__init_metainfo__()
+
+        super().__init_metainfo__()
+
+        # validate
+        def validate(definition):
+            errors = definition.m_all_validate()
+            if len(errors) > 0:
+                raise MetainfoError(
+                    '%s. The section definition %s violates %d more constraints' %
+                    (str(errors[0]).strip('.'), definition, len(errors) - 1))
+
+        if self.extends_base_section:
+            validate(self.m_get(Section.base_sections)[0])
+        else:
+            validate(self)
+
     def on_add_sub_section(self, sub_section_def, sub_section):
         if sub_section_def == Section.quantities:
             self.all_properties[sub_section.name] = sub_section
@@ -2112,3 +2174,13 @@ class Environment(MSection):
                 if isinstance(definition, Definition):
                     definitions = self.all_definitions_by_name.setdefault(definition.name, [])
                     definitions.append(definition)
+
+
+class Annotation:
+    ''' Base class for annotations. '''
+
+    def __init__(self):
+        self.definition: Definition = None
+
+    def init_annotation(self, definition: Definition):
+        self.definition = definition

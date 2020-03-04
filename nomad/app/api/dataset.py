@@ -18,7 +18,7 @@ import re
 
 from nomad import utils, processing as proc
 from nomad.datamodel import Dataset
-from nomad.metainfo.flask_restplus import generate_flask_restplus_model
+from nomad.metainfo.flask_extension import generate_flask_restplus_model
 from nomad.doi import DOI
 from nomad.app import common
 

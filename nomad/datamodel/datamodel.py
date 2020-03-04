@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
-This duplicates functionality for .base.py. It represents first pieces of a transition
-towards using the new metainfo system for all repository metadata.
-'''
+''' All generic entry metadata and related classes. '''
+
 from typing import Dict, Any
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import Keyword, Text, analyzer, tokenizer
 import ase.data
 
 from nomad import metainfo, config
-from nomad.metainfo.search import SearchQuantity
-import nomad.metainfo.mongoengine
+from nomad.metainfo.search_extension import Search
+from nomad.metainfo.elastic_extension import ElasticDocument
+import nomad.metainfo.mongoengine_extension
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -62,12 +61,12 @@ class User(metainfo.MSection):
     user_id = metainfo.Quantity(
         type=str,
         a_me=dict(primary_key=True),
-        a_search=SearchQuantity())
+        a_search=Search())
 
     name = metainfo.Quantity(
         type=str,
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
-        a_search=SearchQuantity(es_mapping=Text(fields={'keyword': Keyword()})))
+        a_search=Search(mapping=Text(fields={'keyword': Keyword()})))
 
     first_name = metainfo.Quantity(type=str)
     last_name = metainfo.Quantity(type=str)
@@ -75,7 +74,7 @@ class User(metainfo.MSection):
         type=str,
         a_me=dict(index=True),
         a_elastic=dict(mapping=Keyword),  # TODO remove?
-        a_search=SearchQuantity())
+        a_search=Search())
 
     username = metainfo.Quantity(type=str)
     affiliation = metainfo.Quantity(type=str)
@@ -149,25 +148,25 @@ class Dataset(metainfo.MSection):
     dataset_id = metainfo.Quantity(
         type=str,
         a_me=dict(primary_key=True),
-        a_search=SearchQuantity())
+        a_search=Search())
     name = metainfo.Quantity(
         type=str,
         a_me=dict(index=True),
-        a_search=SearchQuantity())
+        a_search=Search())
     user_id = metainfo.Quantity(
         type=str,
         a_me=dict(index=True))
     doi = metainfo.Quantity(
         type=str,
         a_me=dict(index=True),
-        a_search=SearchQuantity())
+        a_search=Search())
     pid = metainfo.Quantity(
         type=str,
         a_me=dict(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
         a_me=dict(index=True),
-        a_search=SearchQuantity())
+        a_search=Search())
 
 
 class DatasetReference(metainfo.Reference):
@@ -248,72 +247,75 @@ class EntryMetadata(metainfo.MSection):
         upload_time: The time that this entry was uploaded
         datasets: Ids of all datasets that this entry appears in
     '''
+    m_def = metainfo.Section(a_elastic=ElasticDocument(
+        index_name=config.elastic.index_name, id=lambda x: x.calc_id))
+
     upload_id = metainfo.Quantity(
         type=str,
         description='A random UUID that uniquely identifies the upload of the entry.',
-        a_search=SearchQuantity(
+        a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
 
     calc_id = metainfo.Quantity(
         type=str,
         description='A unique ID based on the upload id and entry\'s mainfile.',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
 
     calc_hash = metainfo.Quantity(
         type=str,
         description='A raw file content based checksum/hash.',
-        a_search=SearchQuantity(
+        a_search=Search(
             many_or='append', metric_name='unique_entries', metric='cardinality'))
 
     mainfile = metainfo.Quantity(
         type=str,
         description='The upload relative mainfile path.',
         a_search=[
-            SearchQuantity(
+            Search(
                 description='Search within the mainfile path.',
-                es_mapping=Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()}),
-                many_or='append', es_quantity='mainfile.keyword'),
-            SearchQuantity(
+                mapping=Text(multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()}),
+                many_or='append', search_field='mainfile.keyword'),
+            Search(
                 description='Search for the exact mainfile.',
-                many_and='append', name='mainfile_path', es_quantity='mainfile.keyword')])
+                many_and='append', name='mainfile_path', search_field='mainfile.keyword')])
 
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
         description='The entries raw file paths relative to its upload.',
         a_search=[
-            SearchQuantity(
+            Search(
                 description='Search within the paths.', name='path',
-                es_mapping=Text(
+                mapping=Text(
                     multi=True, analyzer=path_analyzer, fields={'keyword': Keyword()})
             ),
-            SearchQuantity(
+            Search(
                 description='Search for exact paths.',
-                many_or='append', name='files', es_quantity='files.keyword')])
+                many_or='append', name='files', search_field='files.keyword')])
 
     pid = metainfo.Quantity(
         type=int,
         description='The unique, sequentially enumerated, integer persistent identifier',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
 
     raw_id = metainfo.Quantity(
         type=str,
         description='A raw format specific id that was acquired from the files of this entry',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
 
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
         description='The material science domain',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     processed = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     last_processing = metainfo.Quantity(
         type=metainfo.Datetime,
@@ -322,37 +324,37 @@ class EntryMetadata(metainfo.MSection):
     nomad_version = metainfo.Quantity(
         type=str,
         description='The NOMAD version used for the last processing attempt.',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
     nomad_commit = metainfo.Quantity(
         type=str,
         description='The NOMAD commit used for the last processing attempt.',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
     parser_name = metainfo.Quantity(
         type=str,
         description='The NOMAD parser used for the last processing attempt.',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
 
     comment = metainfo.Quantity(
         type=str, categories=[UserMetadata, EditableUserMetadata],
         description='A user provided comment.',
-        a_search=SearchQuantity(es_mapping=Text()))
+        a_search=Search(mapping=Text()))
 
     references = metainfo.Quantity(
         type=str, shape=['0..*'], categories=[UserMetadata, EditableUserMetadata],
         description='User provided references (URLs).',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     uploader = metainfo.Quantity(
         type=user_reference, categories=[UserMetadata],
         description='The uploader of the entry',
         a_flask=dict(admin_only=True, verify=User),
         a_search=[
-            SearchQuantity(
+            Search(
                 description='Search uploader with exact names.',
                 metric_name='uploaders', metric='cardinality',
-                many_or='append', es_quantity='uploader.name.keyword'),
-            SearchQuantity(
-                name='uploader_id', es_quantity='uploader.user_id')
+                many_or='append', search_field='uploader.name.keyword'),
+            Search(
+                name='uploader_id', search_field='uploader.user_id')
         ])
 
     coauthors = metainfo.Quantity(
@@ -364,10 +366,10 @@ class EntryMetadata(metainfo.MSection):
         type=user_reference, shape=['0..*'],
         description='All authors (uploader and co-authors).',
         derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.coauthors,
-        a_search=SearchQuantity(
+        a_search=Search(
             description='Search authors with exact names.',
             metric='cardinality',
-            many_or='append', es_quantity='authors.name.keyword', statistic_size=1000))
+            many_or='append', search_field='authors.name.keyword', statistic_size=1000))
 
     shared_with = metainfo.Quantity(
         type=user_reference, shape=['0..*'], default=[], categories=[UserMetadata, EditableUserMetadata],
@@ -378,25 +380,25 @@ class EntryMetadata(metainfo.MSection):
         type=user_reference, shape=['0..*'],
         description='All owner (uploader and shared with users).',
         derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.shared_with,
-        a_search=SearchQuantity(
+        a_search=Search(
             description='Search owner with exact names.',
-            many_or='append', es_quantity='owners.name.keyword'))
+            many_or='append', search_field='owners.name.keyword'))
 
     with_embargo = metainfo.Quantity(
         type=bool, default=False, categories=[UserMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     upload_time = metainfo.Quantity(
         type=metainfo.Datetime, categories=[UserMetadata],
         description='The datetime this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
-        a_search=SearchQuantity(order_default=True))
+        a_search=Search(order_default=True))
 
     upload_name = metainfo.Quantity(
         type=str, categories=[UserMetadata],
         description='The user provided upload name',
-        a_search=SearchQuantity(many_or='append'))
+        a_search=Search(many_or='append'))
 
     datasets = metainfo.Quantity(
         type=dataset_reference, shape=['0..*'], default=[],
@@ -404,11 +406,11 @@ class EntryMetadata(metainfo.MSection):
         description='A list of user curated datasets this entry belongs to.',
         a_flask=dict(verify=Dataset),
         a_search=[
-            SearchQuantity(
-                es_quantity='datasets.name', many_or='append',
+            Search(
+                search_field='datasets.name', many_or='append',
                 description='Search for a particular dataset by exact name.'),
-            SearchQuantity(
-                name='dataset_id', es_quantity='datasets.dataset_id', many_or='append',
+            Search(
+                name='dataset_id', search_field='datasets.dataset_id', many_or='append',
                 group='datasets_grouped',
                 metric='cardinality', metric_name='datasets',
                 description='Search for a particular dataset by its id.')])
@@ -416,34 +418,34 @@ class EntryMetadata(metainfo.MSection):
     external_id = metainfo.Quantity(
         type=str, categories=[UserMetadata],
         description='A user provided external id.',
-        a_search=SearchQuantity(many_or='split'))
+        a_search=Search(many_or='split'))
 
     last_edit = metainfo.Quantity(
         type=metainfo.Datetime, categories=[UserMetadata],
         description='The datetime the user metadata was edited last.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     formula = metainfo.Quantity(
         type=str, categories=[DomainMetadata],
         description='A (reduced) chemical formula.',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     atoms = metainfo.Quantity(
         type=str, shape=['n_atoms'], default=[], categories=[DomainMetadata],
         description='The atom labels of all atoms of the entry\'s material.',
-        a_search=SearchQuantity(
+        a_search=Search(
             many_and='append', default_statistic=True, statistic_size=len(ase.data.chemical_symbols)))
 
     only_atoms = metainfo.Quantity(
         type=str, categories=[DomainMetadata],
         description='The atom labels concatenated in order-number order.',
         derived=lambda entry: _only_atoms(entry.atoms),
-        a_search=SearchQuantity(many_and='append', derived=_only_atoms))
+        a_search=Search(many_and='append', derived=_only_atoms))
 
     n_atoms = metainfo.Quantity(
         type=int, categories=[DomainMetadata],
         description='The number of atoms in the entry\'s material',
-        a_search=SearchQuantity())
+        a_search=Search())
 
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
     dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft')
@@ -460,5 +462,5 @@ class EntryMetadata(metainfo.MSection):
         domain_section.apply_domain_metadata(backend)
 
 
-nomad.metainfo.mongoengine.init_section(User)
-nomad.metainfo.mongoengine.init_section(Dataset)
+nomad.metainfo.mongoengine_extension.init_section(User)
+nomad.metainfo.mongoengine_extension.init_section(Dataset)

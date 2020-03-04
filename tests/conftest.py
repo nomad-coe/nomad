@@ -34,7 +34,7 @@ import logging
 from nomadcore.local_meta_info import loadJsonFile
 import nomad_meta_info
 
-from nomad import config, infrastructure, parsing, processing, app, search, utils
+from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User, EntryMetadata
 from nomad.parsing import LocalBackend
 
@@ -698,7 +698,6 @@ def create_test_structure(
 
     proc_calc = processing.Calc.from_entry_metadata(calc)
     proc_calc.save()
-    search_entry = search.create_entry(calc)
-    search_entry.save()
+    calc.m_def.m_x('elastic').index(calc)
 
     assert processing.Calc.objects(calc_id__in=[calc.calc_id]).count() == 1
