@@ -317,6 +317,7 @@ class EncyclopediaNormalizer(Normalizer):
             representative_scc = self._backend[s_scc][representative_scc_idx]
         except (KeyError, IndexError):
             representative_scc = None
+            representative_scc_idx = None
 
         # Create one context that holds all details
         context = Context(
