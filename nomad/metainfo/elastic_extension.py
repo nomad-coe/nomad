@@ -53,15 +53,10 @@ class ElasticDocument(SectionAnnotation):
         self.index_name = index_name
         self.id = id
 
-        self.m_def: Section = None
         self.fields: Dict[Quantity, str] = {}
 
     def new(self, section):
         return dict(elastic=ElasticEntry(section))
-
-    def init_annotation(self, definition):
-        assert isinstance(definition, Section), 'The ElasticDocument annotation is only usable with Sections.'
-        self.m_def = definition
 
     @classmethod
     def create_index_entry(cls, section: MSection):
@@ -127,7 +122,7 @@ class ElasticDocument(SectionAnnotation):
 
     @property
     def document(self):
-        return ElasticDocument.create_document(self.m_def)
+        return ElasticDocument.create_document(self.definition)
 
     @classmethod
     def create_document(

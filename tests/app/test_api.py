@@ -706,7 +706,7 @@ class TestRepo():
 
         example_dataset = Dataset(
             dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
-        example_dataset.m_x('me').create()
+        example_dataset.a_mongo.create()
 
         entry_metadata = EntryMetadata(
             domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
@@ -740,7 +740,7 @@ class TestRepo():
 
         yield
 
-        example_dataset.m_x('me').me_obj.delete()
+        example_dataset.a_mongo.delete()
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
         if rv.status_code != 200:
@@ -1156,22 +1156,22 @@ class TestEditRepo():
     def example_datasets(self, test_user, other_test_user):
         self.example_dataset = Dataset(
             dataset_id='example_ds', name='example_ds', user_id=test_user.user_id)
-        self.example_dataset.m_x('me').create()
+        self.example_dataset.a_mongo.create()
 
         self.other_example_dataset = Dataset(
             dataset_id='other_example_ds', name='other_example_ds',
             user_id=other_test_user.user_id)
-        self.other_example_dataset.m_x('me').create()
+        self.other_example_dataset.a_mongo.create()
 
         yield
 
-        self.example_dataset.m_x('me').me_obj.delete()
-        self.other_example_dataset.m_x('me').me_obj.delete()
+        self.example_dataset.a_mongo.delete()
+        self.other_example_dataset.a_mongo.delete()
 
     @pytest.fixture(autouse=True)
     def remove_new_dataset(self):
         yield 'new_ds'
-        Dataset.m_def.m_x('me').objects(name='new_ds').delete()
+        Dataset.m_def.a_mongo.objects(name='new_ds').delete()
 
     @pytest.fixture(autouse=True)
     def example_data(self, meta_info, class_api, test_user, other_test_user):
@@ -1346,7 +1346,7 @@ class TestEditRepo():
         data = json.loads(rv.data)
         assert not data['success']
         assert self.example_dataset.name in data['message']
-        assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is not None
+        assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is not None
 
     def test_edit_ds_remove(self):
         rv = self.perform_edit(
@@ -1355,17 +1355,17 @@ class TestEditRepo():
         rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
         assert rv.status_code == 200
         with assert_exception(KeyError):
-            assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is None
+            assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is None
 
     def test_edit_ds_user_namespace(self, test_user):
-        assert Dataset.m_def.m_x('me').objects(
+        assert Dataset.m_def.a_mongo.objects(
             name=self.other_example_dataset.name).first() is not None
 
         rv = self.perform_edit(
             datasets=[self.other_example_dataset.name], query=dict(upload_id='upload_1'))
 
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
-        new_dataset = Dataset.m_def.m_x('me').objects(
+        new_dataset = Dataset.m_def.a_mongo.objects(
             name=self.other_example_dataset.name,
             user_id=test_user.user_id).first()
         assert new_dataset is not None
@@ -1374,7 +1374,7 @@ class TestEditRepo():
     def test_edit_new_ds(self, test_user):
         rv = self.perform_edit(datasets=['new_dataset'], query=dict(upload_id='upload_1'))
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
-        new_dataset = Dataset.m_def.m_x('me').objects(name='new_dataset').first()
+        new_dataset = Dataset.m_def.a_mongo.objects(name='new_dataset').first()
         assert new_dataset is not None
         assert new_dataset.user_id == test_user.user_id
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
@@ -1707,9 +1707,9 @@ class TestDataset:
 
     @pytest.fixture()
     def example_datasets(self, mongo, test_user):
-        Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').m_x('me').create()
-        Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').m_x('me').create()
-        Dataset(dataset_id='3', user_id=test_user.user_id, name='weird+/*?& name').m_x('me').create()
+        Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').a_mongo.create()
+        Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').a_mongo.create()
+        Dataset(dataset_id='3', user_id=test_user.user_id, name='weird+/*?& name').a_mongo.create()
 
     def assert_dataset(self, dataset, name: str = None, doi: bool = False):
         assert 'dataset_id' in dataset

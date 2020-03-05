@@ -44,7 +44,7 @@ mirror_query_model = api.model('MirrorQuery', {
         description='Mongoengine query that is used to search for uploads to mirror.')
 })
 
-_Dataset = Dataset.m_def.m_x('me').me_cls
+_Dataset = Dataset.m_def.a_mongo.mongo_cls
 
 
 @ns.route('/')

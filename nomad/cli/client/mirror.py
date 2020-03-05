@@ -32,7 +32,7 @@ from .client import client
 __in_test = False
 ''' Will be monkeypatched by tests to alter behavior for testing. '''
 
-_Dataset = Dataset.m_def.m_x('me').me_cls
+_Dataset = Dataset.m_def.a_mongo.mongo_cls
 __logger = utils.get_logger(__name__)
 
 

@@ -14,134 +14,171 @@
 
 '''
 Adds mongoengine supports to the metainfo. Allows to create, save, and get metainfo
-sections from mongoengine. Currently no sub-section support. The annotation key is "a_me",
-the annotation object support the following keys:
-
-- ``primary_key``: *Bool*, renders the quantity to be the primary key.
-- ``index``: *Bool*, adds this quantity to the index
+sections from mongoengine. Currently no sub-section support. The annotation key is 'mongo'.
 '''
 
-from typing import Any, Dict
-import mongoengine as me
+from typing import Any, Dict, List
 
-from .metainfo import Section, Quantity, Datetime
-
-
-def init_section(section_cls):
-    section_def = section_cls.m_def
-    assert section_def.m_annotations.get('me') is None, 'Can only initialize once'
-    section_def.m_annotations['me'] = MESection(section_cls)
-    # assert getattr(section_cls, '__init__', None) is None, 'Only section classes without constructor can be used for mongoengine'
-
-    def __init__(self, *args, **kwargs):
-        super(section_cls, self).__init__(*args, **kwargs)
-        self.m_annotations['me'] = MEInstance(section_cls.m_def.m_x('me'), self)
-
-    section_cls.__init__ = __init__
+from .metainfo import DefinitionAnnotation, SectionAnnotation, Annotation, MSection, Datetime, Quantity
 
 
-class MESection():
-    def __init__(self, section_cls):
-        self.section_cls = section_cls
-        self.me_cls = generate_mongoengine(section_cls.m_def)
+class Mongo(DefinitionAnnotation):
+    '''
+    This annotation class can be used to extend metainfo quantities. It enables and
+    details the mapping of quantities to fields in mongoengine documents.
 
-        section_def = self.section_cls.m_def
+    Attributes:
+        index: A boolean indicating that this quantity should be indexed.
+        primary_key: A boolean indicating that this quantity is the primary key.
+    '''
+    def __init__(
+            self, index: bool = False, primary_key: bool = False,
+            **kwargs):
+        self.primary_key = primary_key
+        self.index = index
+        self.kwargs = kwargs
 
-        id_quantity = None
-        for quantity in section_def.all_quantities.values():
-            annotation = quantity.m_annotations.get('me', None)
-            if annotation is not None and annotation.get('primary_key', False):
-                id_quantity = quantity.name
-        assert id_quantity is not None, 'Section %s has no mongoengine primary key' % section_def
+        if kwargs is None:
+            self.kwargs = {}
 
-        self.id_quantity = id_quantity
+        if self.primary_key:
+            kwargs.update(primary_key=primary_key)
+
+
+class MongoDocument(SectionAnnotation):
+    '''
+    This annotation class can be used to extend metainfo section. It allows to get
+    the mongoengine document class to store instances of this section in mongodb. It
+    also provides access to the respective mongodb collection.
+    '''
+    def __init__(self):
+        self._mongoengine_cls = None
+
+        self.primary_key: Mongo = None
+
+    def new(self, section):
+        return dict(mongo=MongoInstance(section))
+
+    @property
+    def mongo_cls(self):
+        '''
+        The mongoengine document class for this section. Only quantities with :class:`Mongo`
+        annotation are mapped to fields.
+        '''
+        if self._mongoengine_cls is not None:
+            return self._mongoengine_cls
+
+        import mongoengine as me
+
+        def generate_field(quantity: Quantity, annotation: Mongo):
+            field = None
+            if quantity.type == int:
+                field = me.IntField
+            elif quantity.type == float:
+                field = me.FloatField
+            elif quantity.type == str:
+                field = me.StringField
+            elif quantity.type == bool:
+                field = me.BooleanField
+            elif quantity.type == Datetime:
+                field = me.DateTimeField
+            else:
+                raise NotImplementedError
+
+            result = field(default=quantity.default, **annotation.kwargs)
+
+            if len(quantity.shape) == 0:
+                return result
+            elif len(quantity.shape) == 1:
+                return me.ListField(result)
+            else:
+                raise NotImplementedError
+
+        indexes: List[str] = []
+        dct: Dict[str, Any] = {}
+
+        for quantity in self.definition.all_quantities.values():
+            annotation = quantity.m_get_annotations(Mongo)
+            if annotation is None:
+                continue
+
+            if annotation.index:
+                indexes.append(quantity.name)
+
+            dct[quantity.name] = generate_field(quantity, annotation)
+
+            if annotation.primary_key:
+                self.primary_key = annotation
+
+        if len(indexes) > 0:
+            dct['meta'] = dict(indexes=indexes)
+
+        self._mongoengine_cls = type(self.definition.name, (me.Document,), dct)
+        return self._mongoengine_cls
 
     def objects(self, *args, **kwargs):
-        return self.me_cls.objects(*args, **kwargs)
+        '''
+        Allows access to the underlying collection objects function.
+        Returns mongoengine document instances, not metainfo section instances.
+        '''
+        return self.mongo_cls.objects(*args, **kwargs)
 
     def get(self, **kwargs):
-        me_obj = self.objects(**kwargs).first()
-        if me_obj is None:
-            raise KeyError
-        return self.to_metainfo(me_obj)
+        '''
+        Returns the first entry that matches the given objects query as metainfo
+        section instance. Raises KeyError.
+        '''
+        mongo_instance = self.objects(**kwargs).first()
+        if mongo_instance is None:
+            raise KeyError()
+        return self.to_metainfo(mongo_instance)
 
-    def to_metainfo(self, me_obj):
-        section = self.section_cls()
-        section.m_x('me').me_obj = me_obj
-        for quantity in self.section_cls.m_def.all_quantities.keys():
-            value = getattr(me_obj, quantity)
-            if value is not None:
-                setattr(section, quantity, value)
+    def to_metainfo(self, mongo_instance):
+        '''
+        Turns the given mongoengine document instance into its metainfo section instance
+        counterpart.
+        '''
+        section = self.definition.section_cls()
+        section.a_mongo.mongo_instance = mongo_instance
+        for name, quantity in self.definition.all_quantities.items():
+            if quantity.m_get_annotations(Mongo) is not None:
+                value = getattr(mongo_instance, name)
+                if value is not None:
+                    section.m_set(quantity, value)
 
         return section
 
 
-class MEInstance():
-    def __init__(self, me_section: MESection, metainfo):
-        self.me_section = me_section
-        self.metainfo = metainfo
-        self.me_obj = None
+class MongoInstance(Annotation):
+    '''
+    The annotation that is automatically added to all instances of sections that
+    feature the :class:`MongoDocument` annotation.
+    '''
+
+    def __init__(self, section: MSection):
+        self.section = section
+        self.mongo_instance = None
 
     def save(self):
-        if self.me_obj is None:
+        ''' Saves the section as mongo entry. Does an upsert. '''
+        if self.mongo_instance is None:
             return self.create()
 
-        for quantity_name, quantity in self.metainfo.m_def.all_quantities.items():
-            me_value = self.metainfo.m_get(quantity)
+        for quantity_name, quantity in self.section.m_def.all_quantities.items():
+            value = self.section.m_get(quantity)
 
-            setattr(self.me_obj, quantity_name, me_value)
+            setattr(self.mongo_instance, quantity_name, value)
 
-        self.me_obj.save()
-        return self.metainfo
+        self.mongo_instance.save()
+        return self.section
 
     def create(self):
-        self.me_obj = self.me_section.me_cls()
+        ''' Creates a new mongo entry and saves it. '''
+        self.mongo_instance = self.section.m_def.a_mongo.mongo_cls()
         return self.save()
 
     def delete(self):
-        self.me_obj.delete()
-        self.me_obj = None
-        return self.metainfo
-
-
-def generate_mongoengine(section_def: Section):
-    def generate_field(quantity: Quantity):
-        annotation = quantity.m_x('me', {})
-        annotation.pop('index', None)
-
-        field = None
-        if quantity.type == int:
-            field = me.IntField
-        elif quantity.type == float:
-            field = me.FloatField
-        elif quantity.type == str:
-            field = me.StringField
-        elif quantity.type == bool:
-            field = me.BooleanField
-        elif quantity.type == Datetime:
-            field = me.DateTimeField
-        else:
-            raise NotImplementedError
-
-        result = field(default=quantity.default, **annotation)
-
-        if len(quantity.shape) == 0:
-            return result
-        elif len(quantity.shape) == 1:
-            return me.ListField(result)
-        else:
-            raise NotImplementedError
-
-    indexes = [
-        quantity.name
-        for quantity in section_def.all_quantities.values()
-        if quantity.m_annotations.get('a_me', {}).get('index', False)]
-
-    dct: Dict[str, Any] = dict()
-    if len(indexes) > 0:
-        dct.update(meta=dict(indexes=indexes))
-    dct.update(**{
-        name: generate_field(quantity)
-        for name, quantity in section_def.all_quantities.items()
-    })
-    return type(section_def.name, (me.Document,), dct)
+        ''' Deletes the respective entry from mongodb. '''
+        self.mongo_instance.delete()
+        self.mongo_instance = None
+        return self.section

@@ -62,12 +62,12 @@ class DatasetListResource(Resource):
         if prefix is not '':
             query_params.update(name=re.compile('^%s.*' % prefix, re.IGNORECASE))
 
-        result_query = Dataset.m_def.m_x('me').objects(**query_params)
+        result_query = Dataset.m_def.a_mongo.objects(**query_params)
 
         return dict(
             pagination=dict(total=result_query.count(), page=page, per_page=per_page),
             results=[
-                Dataset.m_def.m_x('me').to_metainfo(result)
+                Dataset.m_def.a_mongo.to_metainfo(result)
                 for result in result_query[(page - 1) * per_page: page * per_page]]), 200
 
     @api.doc('create_dataset')
@@ -86,7 +86,7 @@ class DatasetListResource(Resource):
         if name is None:
             abort(400, 'Must provide a dataset name.')
 
-        if Dataset.m_def.m_x('me').objects(user_id=g.user.user_id, name=name).count() > 0:
+        if Dataset.m_def.a_mongo.objects(user_id=g.user.user_id, name=name).count() > 0:
             abort(400, 'A dataset with name %s does already exist for the current user.' % name)
 
         # only admin can set user or doi
@@ -101,7 +101,7 @@ class DatasetListResource(Resource):
         if 'user_id' not in data:
             data['user_id'] = g.user.user_id
         dataset_id = data.pop('dataset_id', utils.create_uuid())
-        return Dataset(dataset_id=dataset_id, **data).m_x('me').create(), 200
+        return Dataset(dataset_id=dataset_id, **data).a_mongo.create(), 200
 
 
 @ns.route('/<path:name>')
@@ -114,7 +114,7 @@ class DatasetResource(Resource):
     def get(self, name: str):
         ''' Retrieve a dataset by name. '''
         try:
-            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+            result = Dataset.m_def.a_mongo.get(user_id=g.user.user_id, name=name)
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
@@ -128,7 +128,7 @@ class DatasetResource(Resource):
     def post(self, name: str):
         ''' Assign a DOI to the dataset. '''
         try:
-            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+            result = Dataset.m_def.a_mongo.get(user_id=g.user.user_id, name=name)
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
@@ -151,7 +151,7 @@ class DatasetResource(Resource):
 
         result.doi = doi.doi
 
-        result.m_x('me').save()
+        result.a_mongo.save()
         if doi.state != 'findable':
             common.logger.warning(
                 'doi was created, but is not findable', doi=doi.doi, doi_state=doi.state,
@@ -170,7 +170,7 @@ class DatasetResource(Resource):
     def delete(self, name: str):
         ''' Delete the dataset. '''
         try:
-            result = Dataset.m_def.m_x('me').get(user_id=g.user.user_id, name=name)
+            result = Dataset.m_def.a_mongo.get(user_id=g.user.user_id, name=name)
         except KeyError:
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
@@ -183,7 +183,7 @@ class DatasetResource(Resource):
             {'__raw__': {'$pull': {'metadata.datasets': result.dataset_id}}})
 
         # delete the dataset
-        result.m_x('me').delete()
+        result.a_mongo.delete()
 
         return result
 
@@ -195,7 +195,7 @@ class RepoPidResource(Resource):
     @api.marshal_with(dataset_model, skip_none=True, code=200, description='DOI resolved')
     @authenticate()
     def get(self, doi: str):
-        dataset_me = Dataset.m_def.m_x('me').objects(doi=doi).first()
+        dataset_me = Dataset.m_def.a_mongo.objects(doi=doi).first()
         if dataset_me is None:
             abort(404, 'Dataset with DOI %s does not exist' % doi)
 

@@ -451,7 +451,7 @@ class EditRepoCalcsResource(Resource):
 
                     elif flask_verify == datamodel.Dataset:
                         try:
-                            mongo_value = Dataset.m_def.m_x('me').get(
+                            mongo_value = Dataset.m_def.a_mongo.get(
                                 user_id=g.user.user_id, name=action_value).dataset_id
                         except KeyError:
                             action['message'] = 'Dataset does not exist and will be created'
@@ -460,7 +460,7 @@ class EditRepoCalcsResource(Resource):
                                 dataset = Dataset(
                                     dataset_id=utils.create_uuid(), user_id=g.user.user_id,
                                     name=action_value, created=datetime.utcnow())
-                                dataset.m_x('me').create()
+                                dataset.a_mongo.create()
                                 mongo_value = dataset.dataset_id
 
                     elif action_quantity_name == 'with_embargo':
@@ -508,7 +508,7 @@ class EditRepoCalcsResource(Resource):
                         if dataset_id not in mongo_update.get(mongo_key, []):
                             removed_datasets.append(dataset_id)
 
-                    doi_ds = Dataset.m_def.m_x('me').objects(
+                    doi_ds = Dataset.m_def.a_mongo.objects(
                         dataset_id__in=removed_datasets, doi__ne=None).first()
                     if doi_ds is not None:
                         json_data['success'] = False
@@ -538,7 +538,7 @@ class EditRepoCalcsResource(Resource):
         if removed_datasets is not None:
             for dataset in removed_datasets:
                 if proc.Calc.objects(metadata__dataset_id=dataset).first() is None:
-                    Dataset.m_def.m_x('me').objects(dataset_id=dataset).delete()
+                    Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
         return json_data, 200
 

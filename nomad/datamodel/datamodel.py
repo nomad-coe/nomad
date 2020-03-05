@@ -22,7 +22,7 @@ import ase.data
 from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
-import nomad.metainfo.mongoengine_extension
+from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -60,7 +60,6 @@ class User(metainfo.MSection):
 
     user_id = metainfo.Quantity(
         type=str,
-        a_me=dict(primary_key=True),
         a_search=Search())
 
     name = metainfo.Quantity(
@@ -72,7 +71,6 @@ class User(metainfo.MSection):
     last_name = metainfo.Quantity(type=str)
     email = metainfo.Quantity(
         type=str,
-        a_me=dict(index=True),
         a_elastic=dict(mapping=Keyword),  # TODO remove?
         a_search=Search())
 
@@ -145,27 +143,29 @@ class Dataset(metainfo.MSection):
             datasets based on this id. Is not used for new datasets.
         created: The date when the dataset was first created.
     '''
+    m_def = metainfo.Section(a_mongo=MongoDocument())
+
     dataset_id = metainfo.Quantity(
         type=str,
-        a_me=dict(primary_key=True),
+        a_mongo=Mongo(primary_key=True),
         a_search=Search())
     name = metainfo.Quantity(
         type=str,
-        a_me=dict(index=True),
+        a_mongo=Mongo(index=True),
         a_search=Search())
     user_id = metainfo.Quantity(
         type=str,
-        a_me=dict(index=True))
+        a_mongo=Mongo(index=True))
     doi = metainfo.Quantity(
         type=str,
-        a_me=dict(index=True),
+        a_mongo=Mongo(index=True),
         a_search=Search())
     pid = metainfo.Quantity(
         type=str,
-        a_me=dict(index=True))
+        a_mongo=Mongo(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
-        a_me=dict(index=True),
+        a_mongo=Mongo(index=True),
         a_search=Search())
 
 
@@ -185,7 +185,7 @@ class DatasetReference(metainfo.Reference):
             return super().set_normalize(section, quantity_def, value)
 
     def resolve(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> metainfo.MSection:
-        return Dataset.m_def.m_x('me').get(dataset_id=value.url)
+        return Dataset.m_def.a_mongo.get(dataset_id=value.url)
 
     def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
         if isinstance(value, metainfo.MProxy):
@@ -460,7 +460,3 @@ class EntryMetadata(metainfo.MSection):
         assert domain_section_def is not None, 'unknown domain %s' % self.domain
         domain_section = self.m_create(domain_section_def.section_cls)
         domain_section.apply_domain_metadata(backend)
-
-
-nomad.metainfo.mongoengine_extension.init_section(User)
-nomad.metainfo.mongoengine_extension.init_section(Dataset)
