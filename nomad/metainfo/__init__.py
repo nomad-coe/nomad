@@ -293,8 +293,6 @@ from .metainfo import (
     DeriveError,
     MetainfoReferenceError,
     DataType,
-    MData,
-    MDataDict,
     Reference,
     MResource,
     m_package,
