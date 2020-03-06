@@ -35,7 +35,7 @@ class DFT(MSection):
         a_elastic=[Elastic(), Elastic()])
     n_atoms = Quantity(
         type=int, derived=lambda x: len(x.atoms),
-        a_eleastic=Elastic(index=False, field='natoms'))
+        a_elastic=Elastic(index=False, field='natoms'))
     only_atoms = Quantity(
         type=str, shape=['0..*'], derived=lambda x: x.atoms,
         a_elastic=Elastic(value=lambda x: ','.join(x.atoms)))
@@ -52,15 +52,15 @@ class Entry(MSection):
 
 
 def test_document():
-    annotation = Entry.m_def.m_x(ElasticDocument)
+    annotation = Entry.m_def.a_elastic
     document = annotation.document
 
     assert issubclass(document, Document)
     assert DFT.m_def.qualified_name() in ElasticDocument._all_documents
     assert EMS.m_def.qualified_name() not in ElasticDocument._all_documents
 
-    assert DFT.atoms.m_x(Elastic)[0].qualified_field == 'dft.atoms'
-    assert DFT.n_atoms.m_x(Elastic).qualified_field == 'dft.natoms'
+    assert DFT.atoms.a_elastic[0].qualified_field == 'dft.atoms'
+    assert DFT.n_atoms.a_elastic.qualified_field == 'dft.natoms'
 
 
 def test_create_entry():
@@ -68,7 +68,7 @@ def test_create_entry():
     entry = Entry(entry_id='test_id', uploader=user)
     entry.m_create(DFT).atoms = ['H', 'O']
 
-    index_entry = Entry.m_def.m_x(ElasticDocument).create_index_entry(entry)
+    index_entry = Entry.m_def.a_elastic.create_index_entry(entry)
 
     assert index_entry.entry_id == entry.entry_id
     assert index_entry.uploader.name == 'Test Tester'

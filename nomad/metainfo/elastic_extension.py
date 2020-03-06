@@ -16,7 +16,9 @@ from typing import Callable, Any, Dict, cast
 import uuid
 
 
-from .metainfo import Section, Quantity, MSection, MEnum, Datetime, Reference, Annotation, SectionAnnotation, DefinitionAnnotation
+from .metainfo import (
+    Section, Quantity, MSection, MEnum, Datetime, Reference, Annotation, SectionAnnotation,
+    DefinitionAnnotation)
 
 '''
 This module provides metainfo annotation class :class:`Elastic` and
@@ -62,7 +64,7 @@ class ElasticDocument(SectionAnnotation):
     def create_index_entry(cls, section: MSection):
         ''' Creates an elasticsearch_dsl document instance for the given section. '''
         m_def = section.m_def
-        annotation = m_def.m_x(ElasticDocument)
+        annotation = m_def.m_get_annotations(ElasticDocument)
         document_cls = ElasticDocument._all_documents[m_def.qualified_name()]
 
         if annotation is None:
@@ -75,7 +77,7 @@ class ElasticDocument(SectionAnnotation):
             obj = document_cls(meta=dict(id=id))
 
         for quantity in m_def.all_quantities.values():
-            for annotation in quantity.m_x(Elastic, as_list=True):
+            for annotation in quantity.m_get_annotations(Elastic, as_list=True):
                 if annotation.mapping is None:
                     continue
 
@@ -151,7 +153,7 @@ class ElasticDocument(SectionAnnotation):
         # create an field for each quantity
         for quantity in section.all_quantities.values():
             first = True
-            for annotation in quantity.m_x(Elastic, as_list=True):
+            for annotation in quantity.m_get_annotations(Elastic, as_list=True):
                 if annotation.mapping is None and first:
                     kwargs = dict(index=annotation.index)
                     # find a mapping based on quantity type

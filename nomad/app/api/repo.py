@@ -406,7 +406,7 @@ class EditRepoCalcsResource(Resource):
                 if quantity is None:
                     abort(400, 'Unknown quantity %s' % action_quantity_name)
 
-                quantity_flask = quantity.m_x('flask', {})
+                quantity_flask = quantity.m_get_annotations('flask', {})
                 if quantity_flask.get('admin_only', False):
                     if not g.user.is_admin():
                         abort(404, 'Only the admin user can set %s' % quantity.name)

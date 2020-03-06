@@ -514,7 +514,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         # get additional annotations from the section definition
         if not is_bootstrapping:
-            for section_annotation in self.m_def.m_x(SectionAnnotation, as_list=True):
+            for section_annotation in self.m_def.m_get_annotations(SectionAnnotation, as_list=True):
                 for name, annotation in section_annotation.new(self).items():
                     self.m_annotations[name] = annotation
 
@@ -1203,10 +1203,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return cast(MSectionBound, context)
 
-    def m_x(self, *args, **kwargs):
-        # TODO remove
-        return self.m_get_annotations(*args, **kwargs)
-
     def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''
         Convinience method to get annotations
@@ -1409,7 +1405,7 @@ class Definition(MSection):
         '''
 
         # initialize definition annotations
-        for annotation in self.m_x(DefinitionAnnotation, as_list=True):
+        for annotation in self.m_get_annotations(DefinitionAnnotation, as_list=True):
             annotation.init_annotation(self)
 
     @classmethod

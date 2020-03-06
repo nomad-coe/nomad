@@ -2,7 +2,7 @@ from ase.data import chemical_symbols
 from elasticsearch_dsl import Keyword, Float, InnerDoc, Nested
 import numpy as np
 
-from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, units
+from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, units, DefinitionAnnotation
 from nomad.metainfo.search_extension import Search
 
 
@@ -25,7 +25,7 @@ class ElementRatio(InnerDoc):
             for i in range(0, entry.nelements)]
 
 
-class Optimade():
+class Optimade(DefinitionAnnotation):
     def __init__(self, query: bool = False, entry: bool = False):
         pass
 

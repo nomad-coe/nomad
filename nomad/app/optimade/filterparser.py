@@ -29,7 +29,7 @@ class FilterException(Exception):
 quantities: Dict[str, Quantity] = {
     q.name: Quantity(
         q.name, es_field='dft.optimade.%s' % q.name,
-        elastic_mapping_type=q.m_x('search').mapping.__class__)
+        elastic_mapping_type=q.a_search.mapping.__class__)
 
     for q in OptimadeEntry.m_def.all_quantities.values()
     if 'search' in q.m_annotations}

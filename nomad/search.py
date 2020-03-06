@@ -25,7 +25,6 @@ import json
 
 from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
 from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities, default_statistics
-from nomad.metainfo.elastic_extension import ElasticDocument
 
 
 path_analyzer = analyzer(
@@ -42,7 +41,7 @@ class ElasticSearchError(Exception): pass
 class ScrollIdNotFound(Exception): pass
 
 
-entry_document = datamodel.EntryMetadata.m_def.m_x(ElasticDocument).document
+entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
 
 for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
