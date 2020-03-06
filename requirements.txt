@@ -58,6 +58,7 @@ python-json-logger
 setuptools
 sphinx
 sphinxcontrib.httpdomain
+sphinx-click
 sphinx_rtd_theme
 gitpython
 mypy==0.730
