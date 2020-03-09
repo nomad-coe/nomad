@@ -21,7 +21,7 @@ the following CLI command inside the target deployment:
 
 .. code-block:: sh
 
-    nomad client -n <api_url> -u <username> -w <password> mirror <query_json> --source-mapping .volumes/fs:nomad/fairdi/prod/fs
+    nomad client -n <api_url> -u <username> -w <password> mirror <query_json> --source-mapping <target_docker_path>:<shared_path>
 
 Here is a breakdown of the different arguments:
 
@@ -35,10 +35,10 @@ Here is a breakdown of the different arguments:
   * :code:`--source-mapping <mapping>`: The deployments use a separate folder to store
     the archive and raw data. To correctly find the data that should be
     mirrored, the absolute path on the filesystem that is shared between the
-    deployments needs to be provided. E.g. *.volumes/fs:nomad/fairdi/prod/fs*.
+    deployments needs to be provided. E.g. *.volumes/fs:/nomad/fairdi/prod/fs*.
     The first part of this mapping indicates a docker volume path
     (*.volumes/fs* in this example) that should be mapped to the second
-    filepath on the shared filesystem (*nomad/fairdi/prod/fs* in this example).
+    filepath on the shared filesystem (*/nomad/fairdi/prod/fs* in this example).
 
 Updating the AFLOW prototype information
 """"""""""""""""""""""""""""""""""""""""
