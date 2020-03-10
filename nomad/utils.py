@@ -33,10 +33,11 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.lnr
 """
 
-from typing import List
+from typing import List, Iterable
 import base64
 import logging
 import structlog
+from collections import OrderedDict
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
 from structlog.stdlib import LoggerFactory
 import logstash
@@ -548,3 +549,76 @@ def common_prefix(paths):
         common_prefix = ''
 
     return common_prefix
+
+
+class RestrictedDict(OrderedDict):
+    """Dictionary-like container with predefined set of mandatory and optional
+    keys and a set of forbidden values.
+    """
+    def __init__(self, mandatory: Iterable = None, optional: Iterable = None, forbidden_values: Iterable = None, lazy: bool = True):
+        """
+        Args:
+            mandatory_keys: Keys that have to be present.
+            optional_keys: Keys that are optional.
+            forbidden_values: Values that are forbidden.
+            lazy: If false, the values are checked already when inserting. If
+                true, the values are only checked manually by calling the
+                check()-function.
+        """
+        super().__init__()
+        if mandatory:
+            self._mandatory = set(mandatory)
+        else:
+            self._mandatory = set()
+        if optional:
+            self._optional = set(optional)
+        else:
+            self._optional = set()
+        if forbidden_values:
+            self._forbidden_values = set(forbidden_values)
+        else:
+            self._forbidden_values = set()
+        self._lazy = lazy
+
+    def __setitem__(self, key, value):
+        if not self._lazy:
+            if key not in self._mandatory and key not in self._optional:
+                raise KeyError("The key {} is not allowed.".format(key))
+            for forbidden_value in self._forbidden_values:
+                if value == forbidden_value:
+                    raise ValueError("The value {} is not allowed.".format(key))
+        super().__setitem__(key, value)
+
+    def check(self, recursive=False):
+        # Check that only the defined keys are used
+        for key in self.keys():
+            if key not in self._mandatory and key not in self._optional:
+                raise KeyError("The key {} is not allowed.".format(key))
+
+        # Check that all mandatory values are all defined
+        for key in self._mandatory:
+            if key not in self:
+                raise KeyError("The mandatory key {} is not present.".format(key))
+
+        # Check that forbidden values are not used.
+        for value in self.values():
+            for forbidden_value in self._forbidden_values:
+                if value == forbidden_value:
+                    raise ValueError("The value {} is not allowed.".format(key))
+
+        # Check recursively
+        if recursive:
+            for value in self.values():
+                if isinstance(value, RestrictedDict):
+                    value.check(recursive)
+
+    def update(self, other):
+        for key, value in other.items():
+            self.__setitem__(key, value)
+
+    def hash(self) -> str:
+        """Creates a hash code from the contents. Ensures consistent ordering.
+        """
+        hash_str = json.dumps(self, sort_keys=True)
+
+        return hash(hash_str)

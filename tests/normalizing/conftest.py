@@ -209,3 +209,12 @@ def dos_unpolarized_vasp() -> LocalBackend:
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
+
+
+@pytest.fixture(scope='session')
+def hash_exciting() -> LocalBackend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/hashes/exciting/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend

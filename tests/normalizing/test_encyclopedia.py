@@ -36,6 +36,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     bands_polarized_gap_indirect,
     dos_unpolarized_vasp,
     dos_polarized_vasp,
+    hash_exciting,
 )
 
 ureg = UnitRegistry()
@@ -517,3 +518,15 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert gap_up_ev == gap_ev
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
+
+def test_hashes_exciting(hash_exciting):
+    """Tests that the hashes has been successfully calculated for calculations
+    from exciting.
+    """
+    enc = hash_exciting.get_mi2_section(Encyclopedia.m_def)
+    method_hash = enc.method.method_hash
+    group_eos_hash = enc.method.group_eos_hash
+    group_parametervariation_hash = enc.method.group_parametervariation_hash
+    assert method_hash is not None
+    assert group_eos_hash is not None
+    assert group_parametervariation_hash is not None

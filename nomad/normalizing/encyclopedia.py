@@ -46,13 +46,12 @@ from nomad.metainfo.encyclopedia import (
     WyckoffSet,
     WyckoffVariables,
     ElectronicBandStructure,
-    ElectronicDOS,
     BandGap,
 )
 from nomad.parsing.backend import Section, LocalBackend
-from nomad.normalizing.settingsbasisset import SettingsBasisSet
+from nomad.normalizing.settingsbasisset import get_basis_set_settings
 from nomad.normalizing import structure
-from nomad.utils import hash
+from nomad.utils import hash, RestrictedDict
 from nomad import config
 
 J_to_Ry = 4.587425e+17
@@ -1014,52 +1013,79 @@ class MethodNormalizer():
     def code_version(self, method: Method) -> None:
         method.code_version = self.backend["program_version"]
 
-    def method_hash(self, method: Method, settings_basis_set: OrderedDict, repr_method: Section):
-        # Create ordered dictionary with the values. Order is important for
-        # consistent hashing. Not all the settings are set for this
-        # calculation, in which case they will be simply set as None.
-        hash_dict: OrderedDict = OrderedDict()
-        hash_dict['program_name'] = method.code_name
-        hash_dict['program_version'] = method.code_version
+    def method_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
+        method_dict = RestrictedDict(
+            mandatory=(
+                "program_name",
+                "subsettings",
+            ),
+            forbidden_values=(None)
+        )
+        method_dict['program_name'] = method.code_name
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.method_hash_dict(method, settings_basis_set, repr_method))
+        subsettings = self.method_hash_dict(method, settings_basis_set, repr_method)
+        method_dict["subsettings"] = subsettings
 
-        # Form a hash from the dictionary
-        method_hash = self.group_dict_to_hash("method_hash", hash_dict)
-        method.method_hash = method_hash
+        # If all required information is present, safe the hash
+        try:
+            method_dict.check(recursive=True)
+        except (KeyError, ValueError):
+            self.logger.info("Could not create method hash, missing required information.")
+        else:
+            method.method_hash = method_dict.hash()
 
-    def group_eos_hash(self, method: Method, material: Material, settings_basis_set: OrderedDict, repr_method: Section):
-        # Create ordered dictionary with the values. Order is important for
-        # consistent hashing.
-        hash_dict: OrderedDict = OrderedDict()
+    @abstractmethod
+    def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+        pass
+
+    def group_eos_hash(self, method: Method, material: Material, repr_method: Section):
+        eos_dict = RestrictedDict(
+            mandatory=(
+                "upload_id",
+                "method_hash",
+                "formula",
+            ),
+            forbidden_values=(None)
+        )
 
         # Only calculations from the same upload are grouped
-        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+        eos_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
 
         # Method
-        hash_dict["method_hash"] = method.method_hash
+        eos_dict["method_hash"] = method.method_hash
 
         # The formula should be same for EoS (maybe even symmetries)
-        hash_dict["formula"] = material.formula
+        eos_dict["formula"] = material.formula
 
         # Form a hash from the dictionary
-        group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
-        method.group_eos_hash = group_eos_hash
+        try:
+            eos_dict.check(recursive=True)
+        except (KeyError, ValueError):
+            self.logger.info("Could not create EOS hash, missing required information.")
+        else:
+            method.group_eos_hash = eos_dict.hash()
 
-    def group_parametervariation_hash(self, method: Method, settings_basis_set: OrderedDict, repr_system: Section, repr_method: Section):
+    def group_parametervariation_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_system: Section, repr_method: Section):
         # Create ordered dictionary with the values. Order is important for
-        # consistent hashing.
-        hash_dict: OrderedDict = OrderedDict()
+        param_dict = RestrictedDict(
+            mandatory=(
+                "upload_id",
+                "program_name",
+                "program_version",
+                "settings_geometry",
+                "subsettings",
+            ),
+            forbidden_values=(None)
+        )
 
         # Only calculations from the same upload are grouped
-        hash_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+        param_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
 
         # The same code and functional type is required
-        hash_dict['program_name'] = method.code_name
-        hash_dict['program_version'] = method.code_version
-        hash_dict['functional_long_name'] = method.functional_long_name
+        param_dict['program_name'] = method.code_name
+        param_dict['program_version'] = method.code_version
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -1079,61 +1105,30 @@ class MethodNormalizer():
             cell * 1e10,  # convert to Angstrom
             formatter={'float_kind': lambda x: "%.6f" % x},
         ).replace('\n', '')
-
-        hash_dict['settings_geometry'] = geom_dict
+        param_dict['settings_geometry'] = geom_dict
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        hash_dict.update(self.group_parametervariation_hash_dict(method, settings_basis_set, repr_method))
+        subsettings = self.group_parametervariation_hash_dict(method, settings_basis_set, repr_method)
+        param_dict["subsettings"] = subsettings
 
         # Form a hash from the dictionary
-        group_eos_hash = self.group_dict_to_hash('group_eos_hash', hash_dict)
-        method.group_parametervariation_hash = group_eos_hash
+        try:
+            param_dict.check(recursive=True)
+        except (KeyError, ValueError):
+            self.logger.info("Could not create parameter variation hash, missing required information.")
+        else:
+            method.group_parametervariation_hash = param_dict.hash()
+
+    @abstractmethod
+    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+        pass
 
     def group_e_min(self) -> None:
         pass
 
     def group_type(self) -> None:
         pass
-
-    @abstractmethod
-    def method_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method: Section):
-        return OrderedDict()
-
-    @abstractmethod
-    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method: Section):
-        return OrderedDict()
-
-    def group_dict_to_hash(self, name, src_dict: OrderedDict):
-        """Given a dictionary of computational settings, this function forms a
-        hash code from them.
-        """
-        nones = self.find_nones(src_dict)
-        if len(nones) > 0:
-            self.logger.info(
-                '%s: missing data for hash: %s',
-                name, ', '.join(sorted(nones))
-            )
-        hash_str = json.dumps(src_dict)
-
-        return hash(hash_str)
-
-    def find_nones(self, data: Dict, parent: str = '') -> List[str]:
-        """Recursively finds values that are set as None. Returns a list of
-        identifiers for the None-values.
-        """
-        result: List[str] = []
-        if data is None:
-            return [parent]
-        elif isinstance(data, (bytes, str)):
-            return []
-        if getattr(data, 'items', None) is not None:
-            for (k, v) in data.items():
-                result += self.find_nones(v, "%s['%s']" % (parent, k))
-        elif getattr(data, '__len__', None) is not None:
-            for i in range(len(data)):
-                result += self.find_nones(data[i], "%s[%d]" % (parent, i))
-        return result
 
     @abstractmethod
     def normalize(self, ctx: Context) -> None:
@@ -1191,7 +1186,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         """
         xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.backend[s_method])
         if xc_functional is config.services.unavailable_value:
-            self.logger.error(
+            self.logger.warning(
                 "Metainfo for 'XC_functional' not found, and could not "
                 "compose name from 'section_XC_functionals'."
             )
@@ -1264,13 +1259,48 @@ class MethodDFTNormalizer(MethodNormalizer):
         else:
             method.smearing_parameter = smearing_width
 
-    def method_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method: Section) -> OrderedDict:
-        # Extend by DFT settings. TODO: These amount of included properties
-        # should be greatly extended.
-        hash_dict: OrderedDict = OrderedDict()
+    def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+        # Extend by DFT settings.
+        hash_dict = RestrictedDict(
+            mandatory=(
+                "functional_long_name",
+                "settings_basis_set",
+                "scf_threshold_energy_change",
+            ),
+            optional=(
+                "settings_k_point_sampling",
+                "smearing_kind",
+                "smearing_parameter",
+                "number_of_eigenvalues_kpoints",
+            ),
+            forbidden_values=(None)
+        )
+        # Functional settings
         hash_dict['functional_long_name'] = method.functional_long_name
+
+        # Basis set settings
         hash_dict['settings_basis_set'] = settings_basis_set
-        hash_dict['settings_k_point_sampling'] = self.settings_k_point_sampling(method)
+
+        # k-point sampling settings if present. Add number of kpoints as
+        # detected from eigenvalues. TODO: we would like to have info on the
+        # _reducible_ k-point-mesh:
+        #    - grid dimensions (e.g. [ 4, 4, 8 ])
+        #    - or list of reducible k-points
+        hash_dict['smearing_kind'] = method.smearing_kind
+        smearing_parameter = method.smearing_parameter
+        if smearing_parameter is not None:
+            smearing_parameter = '%.4f' % (smearing_parameter * J_to_Ry)
+        hash_dict['smearing_parameter'] = smearing_parameter
+        try:
+            scc = self.backend[s_scc][-1]
+            eigenvalues = scc['eigenvalues']
+            kpt = eigenvalues[-1]['eigenvalues_kpoints']
+        except (KeyError, IndexError):
+            pass
+        else:
+            hash_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
+
+        # SCF convergence settings
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr * J_to_Ry)
@@ -1278,11 +1308,20 @@ class MethodDFTNormalizer(MethodNormalizer):
 
         return hash_dict
 
-    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: OrderedDict, repr_method: Section):
+    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         """Dictionary containing the parameters used for convergence test
         grouping
         This is the source for generating the related hash."""
-        hash_dict: OrderedDict = OrderedDict()
+        param_dict = RestrictedDict(
+            mandatory=(
+                "functional_long_name",
+                "scf_threshold_energy_change",
+            ),
+            optional=(
+                "atoms_pseudopotentials",
+            ),
+            forbidden_values=(None)
+        )
 
         # TODO: Add other DFT-specific properties
         # considered variations:
@@ -1290,60 +1329,17 @@ class MethodDFTNormalizer(MethodNormalizer):
         #   - k point grids
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
-        hash_dict['functional_long_name'] = method.functional_long_name
+        param_dict['functional_long_name'] = method.functional_long_name
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr * J_to_Ry)
-        hash_dict['scf_threshold_energy_change'] = conv_thr
+        param_dict['scf_threshold_energy_change'] = conv_thr
 
         # Pseudopotentials are kept constant, if applicable
         if settings_basis_set is not None:
-            hash_dict['atoms_pseudopotentials'] = settings_basis_set.get('atoms_pseudopotentials', None)
-        else:
-            hash_dict['atoms_pseudopotentials'] = None
+            param_dict['atoms_pseudopotentials'] = settings_basis_set.get('atoms_pseudopotentials', None)
 
-        return hash_dict
-
-    def settings_k_point_sampling(self, method: Method) -> OrderedDict:
-        """Gather 1BZ integration information (k-points and interpolation).
-        """
-        result: OrderedDict = OrderedDict()
-
-        # Add electronic smearing settings if present
-        result['smearing_kind'] = method.smearing_kind
-        smearing_parameter = method.smearing_parameter
-        if smearing_parameter is not None:
-            smearing_parameter = '%.4f' % (smearing_parameter * J_to_Ry)
-        result['smearing_parameter'] = smearing_parameter
-
-        # Add number of kpoints as detected from eigenvalues. TODO: we would
-        # like to have info on the _reducible_ k-point-mesh:
-        #    - grid dimensions (e.g. [ 4, 4, 8 ])
-        #    - or list of reducible k-points
-        try:
-            scc = self.backend[s_scc][-1]
-            eigenvalues = scc['eigenvalues']
-            kpt = eigenvalues[-1]['eigenvalues_kpoints']
-        except (KeyError, IndexError):
-            result['number_of_eigenvalues_kpoints'] = None
-        else:
-            result['number_of_eigenvalues_kpoints'] = str(len(kpt))
-
-        return result
-
-    def settings_basis_set(self, method: Method, ctx: Context) -> OrderedDict:
-        """Settings that encode the used basis set. Depends on the used basis
-        set and code.
-        """
-        result: OrderedDict = OrderedDict()
-        try:
-            settings_basis = SettingsBasisSet.factory(ctx, self.backend, self.logger)
-        except ValueError as e:
-            self.logger.warning(str(e))
-        else:
-            result = settings_basis.to_dict()
-
-        return result
+        return param_dict
 
     def create_xc_functional_shortname(self, xc_longname):
         """Use lookup table to transform xc functional long- into shortname.
@@ -1403,7 +1399,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         method = sec_enc.method
         material = sec_enc.material
-        settings_basis_set = self.settings_basis_set(method, ctx)
+        settings_basis_set = get_basis_set_settings(ctx, self.backend, self.logger)
 
         # Fill metainfo
         self.basis_set_type(method)
@@ -1415,7 +1411,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         self.smearing_kind(method, repr_method)
         self.smearing_parameter(method, repr_method)
         self.method_hash(method, settings_basis_set, repr_method)
-        self.group_eos_hash(method, material, settings_basis_set, repr_method)
+        self.group_eos_hash(method, material, repr_method)
         self.group_parametervariation_hash(method, settings_basis_set, repr_system, repr_method)
 
 
@@ -1701,28 +1697,6 @@ class PropertiesNormalizer():
 
                 properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
 
-    def dos(self, properties: Properties) -> None:
-        dos_sections = self.backend.get('section_dos')
-        if dos_sections:
-            # There should be only one section dos
-            dos_data = dos_sections[0]
-            dos_kind = dos_data.get('dos_kind', None)
-
-            # dos_kind might not be given for electronic DOS
-            if dos_kind is None:
-                self.logger.warning("dos_kind is not specified, assuming electronic DOS")
-            elif dos_kind == 'vibrational':
-                return None
-
-            # The encyclopedia currently uses normalized energies (shifted),
-            # but non-normalized values (states/energy)
-            dos_energies = dos_data.get('dos_energies_normalized')
-            dos_values = dos_data.get('dos_values')
-            if dos_energies is not None and dos_values is not None:
-                dos = properties.m_create(ElectronicDOS)
-                dos.energies = dos_energies
-                dos.values = dos_values
-
     def elastic_constants_matrix(self) -> None:
         pass
 
@@ -1795,7 +1769,3 @@ class PropertiesNormalizer():
         # Save metainfo
         self.band_structure(properties, run_type, system_type, representative_scc, sec_system)
         self.energies(properties, gcd, representative_scc)
-
-        # Currently the DOS is not stored separately, although the metainfo is
-        # in place
-        # self.dos(properties)

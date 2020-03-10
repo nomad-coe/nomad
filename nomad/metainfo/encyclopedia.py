@@ -177,7 +177,8 @@ class Material(MSection):
     space_group_number = Quantity(
         type=int,
         description="""
-        Integer representation of the space group, part of crystal structure classification, part of material definition.
+        Integer representation of the space group, part of crystal structure
+        classification, part of material definition.
         """
     )
     space_group_international_short_symbol = Quantity(
@@ -323,16 +324,18 @@ class Method(MSection):
     method_hash = Quantity(
         type=str,
         description="""
-        A fixed length, unique method identifier in the form of a hash
-        digest.
+        A fixed length, unique method identifier in the form of a hash digest.
+        The hash is created by using several method settings as seed. This hash
+        is only defined if a set of well-defined method settings is available
+        for the used program.
         """
     )
     group_eos_hash = Quantity(
         type=str,
         description="""
         A fixed length, unique identifier for equation-of-state calculations.
-        Only calculations wihtin the same upload will be grouped under the same
-        hash.
+        Only calculations within the same upload and with a method hash
+        available will be grouped under the same hash.
         """
     )
     group_parametervariation_hash = Quantity(
@@ -340,14 +343,15 @@ class Method(MSection):
         description="""
         A fixed length, unique identifier for calculations where structure is
         identical but the used computational parameters are varied. Only
-        calculations within the same upload will be grouped under the same
-        hash.
+        calculations within the same upload and with a method hash available
+        will be grouped under the same hash.
         """
     )
     gw_starting_point = Quantity(
         type=str,
         description="""
-        The exchange-correlation functional that was used as a starting point for this GW calculation.
+        The exchange-correlation functional that was used as a starting point
+        for this GW calculation.
         """
     )
     gw_type = Quantity(
