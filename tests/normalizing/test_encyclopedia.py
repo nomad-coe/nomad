@@ -519,6 +519,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
 
+
 def test_hashes_exciting(hash_exciting):
     """Tests that the hashes has been successfully calculated for calculations
     from exciting.
