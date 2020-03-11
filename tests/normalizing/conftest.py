@@ -218,3 +218,8 @@ def hash_exciting() -> LocalBackend:
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
+
+
+@pytest.fixture(scope='session')
+def hash_vasp(bands_unpolarized_gap_indirect) -> LocalBackend:
+    return bands_unpolarized_gap_indirect

@@ -37,6 +37,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     dos_unpolarized_vasp,
     dos_polarized_vasp,
     hash_exciting,
+    hash_vasp,
 )
 
 ureg = UnitRegistry()
@@ -521,7 +522,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
 
 
 def test_hashes_exciting(hash_exciting):
-    """Tests that the hashes has been successfully calculated for calculations
+    """Tests that the hashes has been successfully created for calculations
     from exciting.
     """
     enc = hash_exciting.get_mi2_section(Encyclopedia.m_def)
@@ -531,3 +532,17 @@ def test_hashes_exciting(hash_exciting):
     assert method_hash is not None
     assert group_eos_hash is not None
     assert group_parametervariation_hash is not None
+
+
+def test_hashes_undefined(hash_vasp):
+    """Tests that the hashes are not present when the method settings cannot be
+    determined at a sufficient accuracy.
+    """
+    # VASP
+    enc = hash_vasp.get_mi2_section(Encyclopedia.m_def)
+    method_hash = enc.method.method_hash
+    group_eos_hash = enc.method.group_eos_hash
+    group_parametervariation_hash = enc.method.group_parametervariation_hash
+    assert method_hash is None
+    assert group_eos_hash is None
+    assert group_parametervariation_hash is None

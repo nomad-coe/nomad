@@ -3,28 +3,41 @@ from collections import OrderedDict
 import numpy as np
 from typing import Tuple, List
 
+from nomad.parsing.backend import LocalBackend
 from nomad.parsing.backend import Section
 from nomad.utils import RestrictedDict
 
 
-def get_basis_set_settings(context, backend, logger):
-    """Decide which type of basis set settings are applicable to the entry
-    and return a corresponding SettingsBasisSet class.
+def get_basis_set_settings(context, backend: LocalBackend, logger) -> RestrictedDict:
+    """Decide which type of basis set settings are applicable to the entry and
+    return a corresponding settings as a RestrictedDict.
+
+    Args:
+        context: The calculation context.
+        backend: Backend from which values are extracted.
+        logger: Shared logger.
+
+    Returns:
+        RestrictedDict or None: Returns the extracted settings as a
+        RestrictedDict. If no suitable basis set settings could be identified,
+        returns None.
     """
-    settings = None
+    settings: SettingsBasisSet = None
     program_name = backend.get('program_name')
     if program_name == "exciting":
-        settings = SettingsBasisSetExciting(context, backend, logger).settings
+        settings = SettingsBasisSetExciting(context, backend, logger)
     elif program_name == "FHI-aims":
-        settings = SettingsBasisSetFHIAims(context, backend, logger).settings
-    return settings
+        settings = SettingsBasisSetFHIAims(context, backend, logger)
+    else:
+        return None
+
+    return settings.to_dict()
 
 
 class SettingsBasisSet(ABC):
-    """Abstract base class for basis set settings
-
-    Provides a factory() static method for delegating to the concrete
-    implementation applicable for a given calculation.
+    """Abstract base class for basis set settings. The idea is to create
+    subclasses that inherit this class and hierarchically add new mandatory and
+    optional settings with the setup()-function.
     """
     def __init__(self, context, backend, logger):
         """
@@ -33,19 +46,19 @@ class SettingsBasisSet(ABC):
         self._backend = backend
         self._logger = logger
         mandatory, optional = self.setup()
-        self.settings = RestrictedDict(mandatory, optional)
-        self.fill()
+        self.settings = RestrictedDict(mandatory, optional, forbidden_values=[None])
 
     @abstractmethod
-    def fill(self):
-        """Used to fill the settings.
+    def to_dict(self) -> RestrictedDict:
+        """Used to extract basis set settings from the backend and returning
+        them as a RestrictedDict.
         """
         pass
 
     @abstractmethod
     def setup(self) -> Tuple:
         """Used to define a list of mandatory and optional settings for a
-        subclass in the form of a RestrictedDict object.
+        subclass.
 
         Returns:
             Should return a tuple of two lists: the first one defining
@@ -60,13 +73,15 @@ class SettingsBasisSetFHIAims(SettingsBasisSet):
     """Basis set settings for 'FHI-Aims' (code-dependent).
     """
     def setup(self) -> Tuple:
+        # Get previously defined values from superclass
         mandatory, optional = super().setup()
-        mandatory += ["FhiAims_basis"]
+
+        # Add new values
+        mandatory += ["fhiaims_basis"]
+
         return mandatory, optional
 
-    def fill(self):
-        """Special case of basis set settings for FHI-Aims code.
-        """
+    def to_dict(self):
         # Get basis set settings for each species
         aims_bs = self._backend.get('x_fhi_aims_section_controlIn_basis_set')
         if aims_bs is not None:
@@ -81,7 +96,9 @@ class SettingsBasisSetFHIAims(SettingsBasisSet):
                 basis = OrderedDict()
                 for k in sorted(bs_by_species.keys()):
                     basis[k] = bs_by_species[k]
-                self.settings["FhiAims_basis"] = basis
+                self.settings["fhiaims_basis"] = basis
+
+        return self.settings
 
     @classmethod
     def _values_to_dict(cls, data, level=0):
@@ -121,7 +138,10 @@ class SettingsBasisSetExciting(SettingsBasisSet):
     """Basis set settings for 'Exciting' (code-dependent).
     """
     def setup(self) -> Tuple:
+        # Get previously defined values from superclass
         mandatory, optional = super().setup()
+
+        # Add new values
         mandatory += [
             "muffin_tin_settings",
             "rgkmax",
@@ -129,13 +149,13 @@ class SettingsBasisSetExciting(SettingsBasisSet):
             "lo",
             "lmaxapw",
         ]
+
         return mandatory, optional
 
-    def fill(self):
+    def to_dict(self):
         """Special case of basis set settings for Exciting code. See list at:
         https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-general/wikis/FHI-visit-preparation
         """
-
         # Add the muffin-tin settings for each species ordered alphabetically by atom label
         try:
             groups = self._backend["x_exciting_section_atoms_group"]
@@ -173,3 +193,5 @@ class SettingsBasisSetExciting(SettingsBasisSet):
             self.settings['lmaxapw'] = "%d" % (system['x_exciting_lmaxapw'])
         except KeyError:
             pass
+
+        return self.settings

@@ -1015,11 +1015,11 @@ class MethodNormalizer():
 
     def method_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
-            mandatory=(
+            mandatory_keys=[
                 "program_name",
                 "subsettings",
-            ),
-            forbidden_values=(None)
+            ],
+            forbidden_values=[None]
         )
         method_dict['program_name'] = method.code_name
 
@@ -1031,8 +1031,8 @@ class MethodNormalizer():
         # If all required information is present, safe the hash
         try:
             method_dict.check(recursive=True)
-        except (KeyError, ValueError):
-            self.logger.info("Could not create method hash, missing required information.")
+        except (KeyError, ValueError) as e:
+            self.logger.info("Could not create method hash, missing required information.", exc_info=e)
         else:
             method.method_hash = method_dict.hash()
 
@@ -1042,12 +1042,12 @@ class MethodNormalizer():
 
     def group_eos_hash(self, method: Method, material: Material, repr_method: Section):
         eos_dict = RestrictedDict(
-            mandatory=(
+            mandatory_keys=(
                 "upload_id",
                 "method_hash",
                 "formula",
             ),
-            forbidden_values=(None)
+            forbidden_values=[None]
         )
 
         # Only calculations from the same upload are grouped
@@ -1062,22 +1062,22 @@ class MethodNormalizer():
         # Form a hash from the dictionary
         try:
             eos_dict.check(recursive=True)
-        except (KeyError, ValueError):
-            self.logger.info("Could not create EOS hash, missing required information.")
+        except (KeyError, ValueError) as e:
+            self.logger.info("Could not create EOS hash, missing required information.", exc_info=e)
         else:
             method.group_eos_hash = eos_dict.hash()
 
     def group_parametervariation_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_system: Section, repr_method: Section):
         # Create ordered dictionary with the values. Order is important for
         param_dict = RestrictedDict(
-            mandatory=(
+            mandatory_keys=[
                 "upload_id",
                 "program_name",
                 "program_version",
                 "settings_geometry",
                 "subsettings",
-            ),
-            forbidden_values=(None)
+            ],
+            forbidden_values=[None]
         )
 
         # Only calculations from the same upload are grouped
@@ -1115,8 +1115,8 @@ class MethodNormalizer():
         # Form a hash from the dictionary
         try:
             param_dict.check(recursive=True)
-        except (KeyError, ValueError):
-            self.logger.info("Could not create parameter variation hash, missing required information.")
+        except (KeyError, ValueError) as e:
+            self.logger.info("Could not create parameter variation hash, missing required information.", exc_info=e)
         else:
             method.group_parametervariation_hash = param_dict.hash()
 
@@ -1262,18 +1262,17 @@ class MethodDFTNormalizer(MethodNormalizer):
     def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
         # Extend by DFT settings.
         hash_dict = RestrictedDict(
-            mandatory=(
+            mandatory_keys=(
                 "functional_long_name",
                 "settings_basis_set",
                 "scf_threshold_energy_change",
             ),
-            optional=(
-                "settings_k_point_sampling",
+            optional_keys=(
                 "smearing_kind",
                 "smearing_parameter",
                 "number_of_eigenvalues_kpoints",
             ),
-            forbidden_values=(None)
+            forbidden_values=[None]
         )
         # Functional settings
         hash_dict['functional_long_name'] = method.functional_long_name
@@ -1286,11 +1285,11 @@ class MethodDFTNormalizer(MethodNormalizer):
         # _reducible_ k-point-mesh:
         #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
-        hash_dict['smearing_kind'] = method.smearing_kind
-        smearing_parameter = method.smearing_parameter
-        if smearing_parameter is not None:
-            smearing_parameter = '%.4f' % (smearing_parameter * J_to_Ry)
-        hash_dict['smearing_parameter'] = smearing_parameter
+        if method.smearing_kind is not None:
+            hash_dict['smearing_kind'] = method.smearing_kind
+        if method.smearing_parameter is not None:
+            smearing_parameter = '%.4f' % (method.smearing_parameter * J_to_Ry)
+            hash_dict['smearing_parameter'] = smearing_parameter
         try:
             scc = self.backend[s_scc][-1]
             eigenvalues = scc['eigenvalues']
@@ -1304,7 +1303,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         conv_thr = repr_method.get('scf_threshold_energy_change', None)
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr * J_to_Ry)
-        hash_dict['scf_threshold_energy_change'] = conv_thr
+            hash_dict['scf_threshold_energy_change'] = conv_thr
 
         return hash_dict
 
@@ -1313,14 +1312,14 @@ class MethodDFTNormalizer(MethodNormalizer):
         grouping
         This is the source for generating the related hash."""
         param_dict = RestrictedDict(
-            mandatory=(
+            mandatory_keys=(
                 "functional_long_name",
                 "scf_threshold_energy_change",
             ),
-            optional=(
+            optional_keys=(
                 "atoms_pseudopotentials",
             ),
-            forbidden_values=(None)
+            forbidden_values=[None]
         )
 
         # TODO: Add other DFT-specific properties
@@ -1337,7 +1336,9 @@ class MethodDFTNormalizer(MethodNormalizer):
 
         # Pseudopotentials are kept constant, if applicable
         if settings_basis_set is not None:
-            param_dict['atoms_pseudopotentials'] = settings_basis_set.get('atoms_pseudopotentials', None)
+            pseudos = settings_basis_set.get('atoms_pseudopotentials', None)
+            if pseudos is not None:
+                param_dict['atoms_pseudopotentials'] = pseudos
 
         return param_dict
 
@@ -1669,16 +1670,6 @@ class PropertiesNormalizer():
                     seg_energies = np.swapaxes(seg_energies, 1, 2)
                     kpoints.append(seg_k_points)
                     energies.append(seg_energies)
-
-                    # A full copy of the band structure is currently not store
-                    # within the encyclopedia data, although the metainfo is
-                    # there to support it.
-                    # segment = BandSegment()
-                    # segment.k_points = seg_k_points
-                    # segment.energies = seg_energies
-                    # segment.labels = seg_labels
-                    # properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
-                    # band_structure.m_add_sub_section(ElectronicBandStructure.segments, segment)
 
                 # Continue to calculate band gaps and other properties.
                 kpoints = np.concatenate(kpoints, axis=0)

@@ -555,55 +555,78 @@ class RestrictedDict(OrderedDict):
     """Dictionary-like container with predefined set of mandatory and optional
     keys and a set of forbidden values.
     """
-    def __init__(self, mandatory: Iterable = None, optional: Iterable = None, forbidden_values: Iterable = None, lazy: bool = True):
+    def __init__(self, mandatory_keys: Iterable = None, optional_keys: Iterable = None, forbidden_values: Iterable = None, lazy: bool = True):
         """
         Args:
             mandatory_keys: Keys that have to be present.
             optional_keys: Keys that are optional.
-            forbidden_values: Values that are forbidden.
+            forbidden_values: Values that are forbidden. Only supports hashable values.
             lazy: If false, the values are checked already when inserting. If
                 true, the values are only checked manually by calling the
                 check()-function.
         """
         super().__init__()
-        if mandatory:
-            self._mandatory = set(mandatory)
+
+        if isinstance(mandatory_keys, (list, tuple, set)):
+            self._mandatory_keys = set(mandatory_keys)
+        elif mandatory_keys is None:
+            self._mandatory_keys = set()
         else:
-            self._mandatory = set()
-        if optional:
-            self._optional = set(optional)
+            raise ValueError("Please provide the mandatory_keys as a list, tuple or set.")
+
+        if isinstance(optional_keys, (list, tuple, set)):
+            self._optional_keys = set(optional_keys)
+        elif optional_keys is None:
+            self._optional_keys = set()
         else:
-            self._optional = set()
-        if forbidden_values:
+            raise ValueError("Please provide the optional_keys as a list, tuple or set.")
+
+        if isinstance(forbidden_values, (list, tuple, set)):
             self._forbidden_values = set(forbidden_values)
-        else:
+        elif forbidden_values is None:
             self._forbidden_values = set()
+        else:
+            raise ValueError("Please provide the forbidden_values as a list or tuple of values.")
+
         self._lazy = lazy
 
     def __setitem__(self, key, value):
         if not self._lazy:
-            if key not in self._mandatory and key not in self._optional:
+
+            # Check that only the defined keys are used
+            if key not in self._mandatory_keys and key not in self._optional_keys:
                 raise KeyError("The key {} is not allowed.".format(key))
-            for forbidden_value in self._forbidden_values:
-                if value == forbidden_value:
+
+            # Check that forbidden values are not used.
+            try:
+                match = value in self._forbidden_values
+            except TypeError:
+                pass  # Unhashable value will not match
+            else:
+                if match:
                     raise ValueError("The value {} is not allowed.".format(key))
+
         super().__setitem__(key, value)
 
     def check(self, recursive=False):
         # Check that only the defined keys are used
         for key in self.keys():
-            if key not in self._mandatory and key not in self._optional:
+            if key not in self._mandatory_keys and key not in self._optional_keys:
                 raise KeyError("The key {} is not allowed.".format(key))
 
         # Check that all mandatory values are all defined
-        for key in self._mandatory:
+        for key in self._mandatory_keys:
             if key not in self:
                 raise KeyError("The mandatory key {} is not present.".format(key))
 
         # Check that forbidden values are not used.
         for value in self.values():
-            for forbidden_value in self._forbidden_values:
-                if value == forbidden_value:
+            try:
+                match = value in self._forbidden_values
+            except TypeError:
+                pass  # Unhashable value will not match
+            else:
+                if match:
                     raise ValueError("The value {} is not allowed.".format(key))
 
         # Check recursively
