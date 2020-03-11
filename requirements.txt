@@ -37,7 +37,7 @@ zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
-ujson
+ujson==1.35
 bravado
 pyjwt[crypto]
 jsonschema[format]
