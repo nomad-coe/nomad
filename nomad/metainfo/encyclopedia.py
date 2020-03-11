@@ -361,7 +361,7 @@ class Method(MSection):
         """
     )
     smearing_kind = Quantity(
-        type=MEnum("gaussian", "fermi", "marzari-vanderbilt", "methfessel-paxton", "tetrahedra"),
+        type=str,
         description="""
         Smearing function used for the electronic structure calculation.
         """
