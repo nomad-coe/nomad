@@ -174,8 +174,16 @@ class EncyclopediaNormalizer(Normalizer):
             except KeyError:
                 pass
             else:
-                if stype == system_enums.bulk or stype == system_enums.one_d or stype == system_enums.two_d:
+                if stype == system_enums.one_d or stype == system_enums.two_d:
                     system_type = stype
+                # For bulk systems we also ensure that the symmetry information is available
+                if stype == system_enums.bulk:
+                    try:
+                        system["section_symmetry"][0]
+                    except (KeyError, IndexError):
+                        self.logger.info("Symmetry information is not available for a bulk system. No Encylopedia entry created.")
+                    else:
+                        system_type = stype
 
         material.system_type = system_type
         return system, system_type
