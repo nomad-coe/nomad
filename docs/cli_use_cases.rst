@@ -53,8 +53,6 @@ The dataset should be recreated if the AFLOW dataset has been updated or if the
 symmetry matching routine used within NOMAD is updated (e.g. the symmetry
 tolerance is modified). To produce a new dataset run the following command:
 
-
-
 .. code-block:: sh
 
     nomad admin ops prototypes-update <module_path>
