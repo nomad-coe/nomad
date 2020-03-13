@@ -20,7 +20,6 @@ from functools import reduce
 from typing import List, Dict, Tuple
 
 import numpy as np
-from ase import Atoms
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 from matid.symmetry import WyckoffSet
 
@@ -217,46 +216,6 @@ def get_formula_string(symbols: List[str], counts: List[int]) -> str:
         else:
             formula += symbol
     return formula
-
-
-def find_vacuum_directions(system: Atoms, threshold: float) -> np.array:
-    """Searches for vacuum gaps that are separating the periodic copies.
-
-    Args:
-        system: The structure to analyze
-        threshold: Vacuum threshold in angstroms
-
-    Returns:
-        np.ndarray: An array with a boolean for each lattice basis
-        direction indicating if there is enough vacuum to separate the
-        copies in that direction.
-    """
-    rel_pos = system.get_scaled_positions()
-    pbc = system.get_pbc()
-
-    # Find the maximum vacuum gap for all basis vectors
-    gaps = np.empty(3, dtype=bool)
-    for axis in range(3):
-        if not pbc[axis]:
-            gaps[axis] = True
-            continue
-        comp = rel_pos[:, axis]
-        ind = np.sort(comp)
-        ind_rolled = np.roll(ind, 1, axis=0)
-        distances = ind - ind_rolled
-
-        # The first distance is from first to last, so it needs to be
-        # wrapped around
-        distances[0] += 1
-
-        # Find maximum gap in cartesian coordinates
-        max_gap = np.max(distances)
-        basis = system.get_cell()[axis, :]
-        max_gap_cartesian = np.linalg.norm(max_gap * basis)
-        has_vacuum_gap = max_gap_cartesian >= threshold
-        gaps[axis] = has_vacuum_gap
-
-    return gaps
 
 
 def get_normalized_wyckoff(atomic_numbers: np.array, wyckoff_letters: np.array) -> Dict[str, Dict[str, int]]:

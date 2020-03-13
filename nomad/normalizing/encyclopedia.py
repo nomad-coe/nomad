@@ -347,16 +347,17 @@ class EncyclopediaNormalizer(Normalizer):
             # Put the encyclopedia section into backend
             self._backend.add_mi2_section(sec_enc)
             self.fill(context)
-            self.logger.info(
-                "Successfully created metainfo for Encyclopedia.",
-                enc_status="success"
-            )
 
         except Exception as e:
             self.logger.info(
                 "Failed to create an Encyclopedia entry due to an unhandlable exception.",
                 enc_status="failure",
                 exc_info=e,
+            )
+        else:
+            self.logger.info(
+                "Successfully created metainfo for Encyclopedia.",
+                enc_status="success"
             )
 
 
@@ -738,29 +739,22 @@ class Material2DNormalizer(MaterialNormalizer):
         material.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
 
     def periodicity(self, material: Material, std_atoms: Atoms) -> None:
-        # Determine the periodicity by examining vacuum gaps
-        vacuum_directions = structure.find_vacuum_directions(
-            std_atoms,
-            threshold=config.normalize.cluster_threshold
-        )
-
-        # If one axis is not periodic, return. This only happens if the vacuum
-        # gap is not aligned with a cell vector.
-        if sum(vacuum_directions) != 1:
-            raise ValueError("Could not detect the periodic dimensions in a 2D system.")
-
-        material.periodicity = np.invert(vacuum_directions)
+        # MatID already provides the correct periodicity
+        material.periodicity = std_atoms.get_pbc()
 
     def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
-        # Determine the periodicity by examining vacuum gaps
-        vacuum_directions = structure.find_vacuum_directions(original_system, threshold=7.0)
-        periodicity = np.invert(vacuum_directions)
+        # Get dimension of system by also taking into account the covalent radii
+        dimensions = matid.geometry.get_dimensions(original_system, [True, True, True])
+        basis_dimensions = np.linalg.norm(original_system.get_cell(), axis=1)
+        gaps = basis_dimensions - dimensions
+        periodicity = gaps <= config.normalize.cluster_threshold
 
         # If two axis are not periodic, return. This only happens if the vacuum
-        # gap is not aligned with a cell vector.
+        # gap is not aligned with a cell vector or if the linear gap search is
+        # unsufficient (the structure is "wavy" making also the gap highly
+        # nonlinear).
         if sum(periodicity) != 2:
-            self.logger.warn("Could not detect the periodic dimensions in a 2D system.")
-            return False
+            raise ValueError("Could not detect the periodic dimensions in a 2D system.")
 
         # Center the system in the non-periodic direction, also taking
         # periodicity into account. The get_center_of_mass()-function in MatID
@@ -843,18 +837,18 @@ class Material1DNormalizer(MaterialNormalizer):
         material.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def periodicity(self, material: Material, prim_atoms: Atoms) -> None:
-        # Determine the periodicity by examining vacuum gaps
-        vacuum_directions = structure.find_vacuum_directions(
-            prim_atoms,
-            threshold=config.normalize.cluster_threshold
-        )
+        # Get dimension of system by also taking into account the covalent radii
+        dimensions = matid.geometry.get_dimensions(prim_atoms, [True, True, True])
+        basis_dimensions = np.linalg.norm(prim_atoms.get_cell(), axis=1)
+        gaps = basis_dimensions - dimensions
+        periodicity = gaps <= config.normalize.cluster_threshold
 
         # If one axis is not periodic, return. This only happens if the vacuum
         # gap is not aligned with a cell vector.
-        if sum(vacuum_directions) != 2:
+        if sum(periodicity) != 1:
             raise ValueError("Could not detect the periodic dimensions in a 1D system.")
 
-        material.periodicity = np.invert(vacuum_directions)
+        material.periodicity = periodicity
 
     def get_structure_fingerprint(self, prim_atoms: Atoms) -> str:
         """Calculates a numeric fingerprint that coarsely encodes the atomic
@@ -939,7 +933,7 @@ class Material1DNormalizer(MaterialNormalizer):
         return fingerprint
 
     def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
-        """For 1D systems the symmetery is analyzed from the original system
+        """For 1D systems the symmetry is analyzed from the original system
         with enforced full periodicity.
 
         Args:
@@ -1058,7 +1052,7 @@ class MethodNormalizer():
         try:
             method_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create method hash, missing required information.", exc_info=e)
+            self.logger.info("Could not create method hash, missing required information: {}".format(str(e)))
         else:
             method.method_hash = method_dict.hash()
 
@@ -1089,7 +1083,7 @@ class MethodNormalizer():
         try:
             eos_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create EOS hash, missing required information.", exc_info=e)
+            self.logger.info("Could not create EOS hash, missing required information: {}".format(str(e)))
         else:
             method.group_eos_hash = eos_dict.hash()
 
@@ -1142,7 +1136,7 @@ class MethodNormalizer():
         try:
             param_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create parameter variation hash, missing required information.", exc_info=e)
+            self.logger.info("Could not create parameter variation hash, missing required information: {}".format(str(e)))
         else:
             method.group_parametervariation_hash = param_dict.hash()
 
