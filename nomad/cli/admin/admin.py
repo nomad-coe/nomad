@@ -327,7 +327,7 @@ RewriteCond %{QUERY_STRING} ^pid=([^&]+)$
 RewriteRule ^/NomadRepository-1.1/views/calculation.zul$ /{0}/gui/entry/pid/%1? [R=301]
 
 AllowEncodedSlashes On
-'''.format(prefix, host, port))
+'''.format(prefix, host, port))  # type: ignore
 
 
 def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:

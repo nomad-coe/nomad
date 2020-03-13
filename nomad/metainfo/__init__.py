@@ -299,4 +299,7 @@ from .metainfo import (
     units,
     Annotation,
     DefinitionAnnotation,
-    SectionAnnotation)
+    SectionAnnotation,
+    SectionProxy,
+    derived,
+    constraint)

@@ -1,9 +1,25 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 ''' An example metainfo package. '''
 
 import numpy as np
 from datetime import datetime
 
-from nomad.metainfo import MSection, MCategory, Section, Quantity, Package, SubSection, MEnum, Datetime, units
+from nomad.metainfo import (
+    MSection, MCategory, Section, Quantity, Package, SubSection, MEnum, Datetime, units,
+    constraint)
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -58,6 +74,8 @@ class System(MSection):
 class SCC(MSection):
 
     energy_total = Quantity(type=float, default=0.0, unit=units.J)
+    energy_total_0 = Quantity(type=np.dtype(np.float32), default=0.0, unit=units.J)
+    an_int = Quantity(type=np.dtype(np.int32))
 
     system = Quantity(type=System, description='The system that this calculation is based on.')
 
@@ -72,7 +90,8 @@ class Run(MSection):
     systems = SubSection(sub_section=System, repeats=True)
     sccs = SubSection(sub_section=SCC, repeats=True)
 
-    def c_one_scc_per_system(self):
+    @constraint
+    def one_scc_per_system(self):
         assert self.m_sub_section_count(Run.systems) == self.m_sub_section_count(Run.sccs),\
             'Numbers of system does not match numbers of calculations.'
 
@@ -96,7 +115,7 @@ if __name__ == '__main__':
     print(Run.m_def.m_get_sub_sections(Section.quantities))
 
     # Or all Sections in the package
-    print(m_package.m_get_sub_sections(Package.section_definitions))  # type: ignore, pylint: disable=undefined-variable
+    print(m_package.m_get_sub_sections(Package.section_definitions))
 
     # There are also some definition specific helper methods.
     # For example to get all attributes (Quantities and possible sub-sections) of a section.

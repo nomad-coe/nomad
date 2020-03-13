@@ -389,10 +389,8 @@ class SystemNormalizer(SystemBasedNormalizer):
         self._backend.addArrayValues('wyckoff_letters_original', orig_wyckoff)
         self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
         self._backend.closeSection('section_original_system', orig_gid)
-        self._backend.closeSection('section_symmetry', symmetry_gid)
 
         self.springer_classification(atoms, space_group_number)  # Springer Normalizer
-
         self.prototypes(conv_num, conv_wyckoff, space_group_number)
 
         self._backend.closeSection('section_symmetry', symmetry_gid)

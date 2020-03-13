@@ -6,7 +6,7 @@ import sys
 
 from nomad import config, utils, files
 from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser, MetainfoBackend
-from nomad.metainfo.legacy import LegacyMetainfoEnvironment
+from nomad.metainfo.legacy import convert
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryMetadata
 
@@ -119,7 +119,7 @@ def _parse(
     if metainfo:
 
         def backend_factory(env, logger):
-            return MetainfoBackend(LegacyMetainfoEnvironment(env), logger=logger)
+            return MetainfoBackend(convert(env), logger=logger)
 
         kwargs.update(backend_factory=backend_factory)
 

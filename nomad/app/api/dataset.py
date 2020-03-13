@@ -95,7 +95,7 @@ class DatasetListResource(Resource):
                 abort(400, 'The dataset contains information you are not allowed to set.')
 
         # no other keys
-        if any(key not in Dataset.m_def.all_quantities for key in data):
+        if any(key not in Dataset.m_def.all_quantities for key in data):  # pylint: disable=all
             abort(400, 'The dataset contains unknown keys.')
 
         if 'user_id' not in data:

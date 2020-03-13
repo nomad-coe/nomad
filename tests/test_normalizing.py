@@ -24,6 +24,7 @@ from nomad.normalizing import normalizers
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.test_parsing import parsed_example_metainfo  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 from tests.test_parsing import parse_file
 from tests.utils import assert_log
@@ -238,11 +239,16 @@ def assert_normalized(backend: LocalBackend):
         if '.' in key and not key.startswith(backend.domain):
             continue
 
-        assert metadata[key] != config.services.unavailable_value
+        assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
 
 
 def test_normalizer(normalized_example: LocalBackend):
     assert_normalized(normalized_example)
+
+
+def test_normalizer_metainfo(parsed_example_metainfo):
+    if parsed_example_metainfo.domain != 'ems':
+        assert_normalized(run_normalize(parsed_example_metainfo))
 
 
 def test_normalizer_faulty_matid(caplog):

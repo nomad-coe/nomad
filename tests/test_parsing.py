@@ -20,13 +20,15 @@ import os
 from shutil import copyfile
 
 from nomad import utils, files
+from nomad.metainfo.legacy import convert
 from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
-from nomad.parsing import LocalBackend, BadContextURI
+from nomad.parsing import LocalBackend, BadContextURI, MetainfoBackend
+
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
-    ('parsers/eels', 'tests/data/parsers/eels.json'),
+    # ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
@@ -335,10 +337,15 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
     assert previous_wd == current_wd
 
 
-def run_parser(parser_name, mainfile):
+def run_parser(parser_name, mainfile, backend_factory=None):
     parser = parser_dict[parser_name]
+    if backend_factory is not None and hasattr(parser, 'backend_factory'):
+        original_backend_factory = parser.backend_factory
+        parser.backend_factory = backend_factory
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
     result.domain = parser.domain
+    if backend_factory is not None and hasattr(parser, 'backend_factory'):
+        parser.backend_factory = original_backend_factory
     return add_calculation_info(result, parser_name=parser_name)
 
 
@@ -372,6 +379,17 @@ def parsed_example(request) -> LocalBackend:
     return result
 
 
+@pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
+def parsed_example_metainfo(request) -> LocalBackend:
+    parser_name, mainfile = request.param
+
+    def backend_factory(env, logger):
+        return MetainfoBackend(convert(env), logger=logger)
+
+    result = run_parser(parser_name, mainfile, backend_factory=backend_factory)
+    return result
+
+
 def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
     backend.openNonOverlappingSection('section_entry_info')
     backend.addValue('upload_id', 'test_upload_id')
@@ -391,6 +409,10 @@ def test_parser(parser_name, mainfile):
     assert_parser_result(parsed_example)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
+
+
+def test_parser_metainfo(parsed_example_metainfo):
+    pass
 
 
 def test_broken_xml_vasp():

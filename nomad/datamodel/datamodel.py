@@ -108,14 +108,8 @@ class UserReference(metainfo.Reference):
     def __init__(self):
         super().__init__(User.m_def)
 
-    def set_normalize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
-        if isinstance(value, str):
-            return metainfo.MProxy(value)
-        else:
-            return super().set_normalize(section, quantity_def, value)
-
-    def resolve(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> metainfo.MSection:
-        return User.get(user_id=value.url)
+    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+        return User.get(user_id=proxy.m_proxy_url)
 
     def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
         return value.user_id
@@ -178,23 +172,14 @@ class DatasetReference(metainfo.Reference):
     def __init__(self):
         super().__init__(Dataset.m_def)
 
-    def set_normalize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
-        if isinstance(value, str):
-            return metainfo.MProxy(value)
-        else:
-            return super().set_normalize(section, quantity_def, value)
-
-    def resolve(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> metainfo.MSection:
-        return Dataset.m_def.a_mongo.get(dataset_id=value.url)
+    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+        return Dataset.m_def.a_mongo.get(dataset_id=proxy.m_proxy_url)
 
     def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
         if isinstance(value, metainfo.MProxy):
-            return value.url
+            return value.m_proxy_url
         else:
             return value.user_id
-
-    def deserialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
-        return metainfo.MProxy(value)
 
 
 dataset_reference = DatasetReference()

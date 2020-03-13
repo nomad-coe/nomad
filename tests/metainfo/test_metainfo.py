@@ -22,9 +22,9 @@ from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
-    DefinitionAnnotation)
-from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, m_package as example_package
-from nomad.metainfo.legacy import LegacyMetainfoEnvironment
+    DefinitionAnnotation, Reference, MProxy, derived)
+from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
+from nomad.metainfo.legacy import LegacyMetainfoEnvironment, convert
 from nomad.parsing.metainfo import MetainfoBackend
 
 from tests.utils import assert_exception
@@ -118,7 +118,8 @@ class TestM2:
         assert Run.m_def.name == 'Run'
 
     def test_quantities(self):
-        assert len(Run.m_def.quantities) == 3
+        assert len(Run.m_def.extending_sections) == 1
+        assert len(Run.m_def.all_quantities) == 3
         assert Run.m_def.all_quantities['code_name'] in Run.m_def.quantities
         assert Run.m_def.all_quantities['code_name'] == Run.__dict__['code_name']
 
@@ -202,21 +203,24 @@ class TestM2:
         assert len(TestSection.m_def.all_sub_sections_by_section[System.m_def]) == 2
 
     def test_dimension_exists(self):
-        with assert_exception(MetainfoError):
-            class TestSection(MSection):  # pylint: disable=unused-variable
-                test = Quantity(type=str, shape=['does_not_exist'])
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            test = Quantity(type=str, shape=['does_not_exist'])
+
+        assert len(TestSection.m_def.warnings) > 0
 
     def test_dimension_is_int(self):
-        with assert_exception(MetainfoError):
-            class TestSection(MSection):  # pylint: disable=unused-variable
-                dim = Quantity(type=str)
-                test = Quantity(type=str, shape=['dim'])
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            dim = Quantity(type=str)
+            test = Quantity(type=str, shape=['dim'])
+
+        assert len(TestSection.m_def.warnings) > 0
 
     def test_dimension_is_shapeless(self):
-        with assert_exception(MetainfoError):
-            class TestSection(MSection):  # pylint: disable=unused-variable
-                dim = Quantity(type=int, shape=[1])
-                test = Quantity(type=str, shape=['dim'])
+        class TestSection(MSection):  # pylint: disable=unused-variable
+            dim = Quantity(type=int, shape=[1])
+            test = Quantity(type=str, shape=['dim'])
+
+        assert len(TestSection.m_def.warnings) > 0
 
     def test_higher_shapes_require_dtype(self):
         with assert_exception(MetainfoError):
@@ -227,9 +231,6 @@ class TestM2:
         with assert_exception(MetainfoError):
             class TestSection(Run, System):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
-
-    def test_parent_section_sub_section_defs(self):
-        len(System.m_def.parent_section_sub_section_defs) > 0
 
     def test_qualified_name(self):
         assert System.m_def.qualified_name() == 'nomad.metainfo.example.System'
@@ -405,7 +406,7 @@ class TestM1:
         system: System = run.m_create(System)
         system.atom_labels = ['H', 'H', 'O']
         system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
-
+        system.atom_labels = np.array(['H', 'H', 'O'])
         return run
 
     def assert_example_data(self, data: Run):
@@ -444,6 +445,23 @@ class TestM1:
         assert system.n_atoms == 3
         pass
 
+    def test_derived_cached(self):
+        class TestSection(MSection):
+            value = Quantity(type=str)
+            list = Quantity(type=str, shape=[1])
+
+            @derived(cached=True)
+            def derived(self):
+                return self.value + self.list[0]
+
+        assert TestSection.derived.cached
+        test_section = TestSection(value='test', list=['1'])
+        assert test_section.derived == 'test1'
+        test_section.value = '2'
+        assert test_section.derived == '21'
+        test_section.list[0] = '2'
+        assert test_section.derived == '21'
+
     def test_extension(self):
         run = Run()
         run.m_as(VaspRun).x_vasp_raw_format = 'outcar'
@@ -460,7 +478,7 @@ class TestM1:
         run = Run()
         run.m_create(System)
 
-        errors = run.m_validate()
+        errors, _ = run.m_validate()
         assert len(errors) == 1
 
     def test_validate_dimension(self):
@@ -501,6 +519,46 @@ class TestM1:
         assert run['systems/0/atom_labels'] == ['H', 'O']
         assert run['parsing.parser_name'] == 'test'
 
+    def test_np_dtype(self):
+        scc = SCC()
+        scc.energy_total_0 = 1.0
+        scc.an_int = 1
+        assert scc.energy_total_0.m == 1.0  # pylint: disable=no-member
+        assert scc.energy_total_0.item() == 1.0  # pylint: disable=no-member
+        assert scc.m_to_dict()['energy_total_0'] == 1.0
+        assert scc.an_int == 1
+        assert scc.an_int.__class__ == np.int32
+        assert scc.an_int.item() == 1  # pylint: disable=no-member
+
+    def test_proxy(self):
+        class OtherSection(MSection):
+            name = Quantity(type=str)
+
+        class ReferencingSection(MSection):
+            proxy = Quantity(type=Reference(OtherSection.m_def))
+            sub = SubSection(sub_section=OtherSection.m_def)
+
+        obj = ReferencingSection()
+        referenced = obj.m_create(OtherSection)
+        referenced.name = 'test_value'
+        obj.proxy = referenced
+
+        assert obj.proxy == referenced
+        assert obj.m_to_dict()['proxy'] == '/sub'
+        assert obj.m_resolve('sub') == referenced
+        assert obj.m_resolve('/sub') == referenced
+
+        obj.proxy = MProxy('doesnotexist', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)
+        with assert_exception(ReferenceError):
+            obj.proxy.name
+
+        obj.proxy = MProxy('sub', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)
+        assert obj.proxy.name == 'test_value'
+        assert not isinstance(obj.proxy, MProxy)
+
+        obj = ReferencingSection.m_from_dict(obj.m_to_dict(with_meta=True))
+        assert obj.proxy.name == 'test_value'
+
 
 class TestDatatypes:
 
@@ -540,101 +598,3 @@ class TestEnvironment:
         sub_section_system = env.resolve_definition('systems', SubSection)
         assert sub_section_system.m_def == SubSection.m_def
         assert sub_section_system.name == 'systems'
-
-
-class TestLegacy:
-
-    @pytest.fixture(scope='session')
-    def legacy_example(self):
-        return {
-            'type': 'nomad_meta_info_1_0',
-            'metaInfos': [
-                dict(name='section_run', kindStr='type_section'),
-                dict(
-                    name='program_name', dtypeStr='C', superNames=['program_info']),
-                dict(name='bool_test', dtypeStr='b', superNames=['section_run']),
-
-                dict(name='section_system', kindStr='type_section', superNames=['section_run']),
-                dict(
-                    name='atom_labels', dtypeStr='C', shape=['number_of_atoms'],
-                    superNames=['section_system']),
-                dict(
-                    name='atom_positions', dtypeStr='f', shape=['number_of_atoms', 3],
-                    superNames=['section_system']),
-                dict(
-                    name='number_of_atoms', dtypeStr='i', kindStr='type_dimension',
-                    superNames=['section_system', 'system_info']),
-
-                dict(name='section_method', kindStr='type_section', superNames=['section_run']),
-                dict(
-                    name='method_system_ref', dtypeStr='i',
-                    referencedSections=['section_system'],
-                    superNames=['section_method']),
-
-                dict(
-                    name='program_info', kindStr='type_abstract_document_content',
-                    superNames=['section_run']),
-                dict(name='system_info', kindStr='type_abstract_document_content')
-            ]
-        }
-
-    @pytest.fixture(scope='session')
-    def legacy_env(self, legacy_example):
-        env = InfoKindEnv()
-        for definition in legacy_example.get('metaInfos'):
-            env.addInfoKindEl(InfoKindEl(
-                description='test_description', package='test_package', **definition))
-        return env
-
-    @pytest.fixture(scope='session')
-    def env(self, legacy_env):
-        return LegacyMetainfoEnvironment(legacy_env)
-
-    def test_environment(self, env, no_warn):
-        assert env.all_defs.get('section_system') is not None
-        assert env.all_defs.get('section_run') is not None
-        assert env.all_defs.get('section_method') is not None
-        assert env.all_defs.get('method_system_ref').type.target_section_def == \
-            env.all_defs.get('section_system')
-        assert env.all_defs.get('atom_labels').type == str
-        assert env.all_defs.get('atom_positions').type == np.dtype('f')
-
-        assert env.env.resolve_definition('section_system', Section) == \
-            env.all_defs.get('section_system', '<does not exist>')
-        assert env.env.resolve_definition('section_system', SubSection) is not None
-
-        assert env.env.resolve_definition('bool_test', Quantity).type == bool
-        assert env.env.resolve_definition('program_name', Quantity).m_parent.name == 'section_run'
-
-    def test_backend(self, env, no_warn):
-        backend = MetainfoBackend(env)
-        run = backend.openSection('section_run')
-        backend.addValue('program_name', 'vasp')
-
-        system_0 = backend.openSection('section_system')
-        assert system_0 == 0
-
-        backend.addArrayValues('atom_labels', np.array(['H', 'H', 'O']))
-        backend.addValue('number_of_atoms', 3)
-        backend.addArrayValues('atom_positions', [[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-        backend.closeSection('section_system', system_0)
-
-        system_1 = backend.openSection('section_system')
-        assert system_1 == 1
-        backend.closeSection('section_system', system_1)
-
-        method = backend.openSection('section_method')
-        backend.addValue('method_system_ref', system_0)
-        backend.closeSection('section_method', method)
-
-        backend.closeSection('section_run', run)
-
-        assert backend.get_sections('section_system') == [0, 1]
-        assert len(backend.get_value('atom_labels', 0)) == 3
-        assert backend.get_value('method_system_ref', 0) == 0
-        assert backend.get_value('program_name', 0) == 'vasp'
-
-        backend.openContext('section_run/0/section_system/1')
-        backend.addValue('number_of_atoms', 10)
-        backend.closeContext('section_run/0/section_system/1')
-        assert backend.get_value('number_of_atoms', 1) == 10

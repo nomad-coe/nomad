@@ -1,18 +1,37 @@
-import numpy as np
-import typing
-from nomad.metainfo import MSection, Package, Quantity, SubSection, MProxy
+import numpy as np            # pylint: disable=unused-import
+import typing                 # pylint: disable=unused-import
+from nomad.metainfo import (  # pylint: disable=unused-import
+    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy
+)
+{% for dependency in pkg.dependencies %}
+from . import {{dependency.name}}
+{%- endfor %}
 
 m_package = Package(name='{{ pkg.name }}', description='{{ pkg.description }}')
+{% for category in pkg.category_definitions %}
+
+class {{ category.name }}(MCategory):
+    {% if category.description is not none -%}
+    '''
+    {{ format_description(category.description, indent=1) }}
+    '''
+    {% elif category.categories | length > 0 %}
+    m_def = Category(categories=[{{ format_definition_refs(pkg, category.categories) }}])
+    {% else %}
+    pass
+    {% endif %}
+{%- endfor -%}
+
 {% for section in pkg.section_definitions %}
 
-class {{ section.name }}(MSection):
+class {{ section.name }}({%- if section.extends_base_section -%}{{ format_definition_refs(pkg, section.base_sections)}}{%- else -%}MSection{%- endif -%}):
     {% if section.description is not none -%}
     '''
     {{ format_description(section.description, indent=1) }}
     '''
     {% endif %}
-
-    {%- for quantity in section.quantities %}
+    m_def = Section(validate=False{%- if section.extends_base_section -%}, extends_base_section=True{%- endif -%})
+    {% for quantity in section.quantities %}
     {{ quantity.name }} = Quantity(
         type={{ format_type(quantity.type) }},
         shape={{ quantity.shape }}
@@ -22,12 +41,15 @@ class {{ section.name }}(MSection):
         {%- if quantity.description is not none -%},
         description='''
         {{ format_description(quantity.description, indent=2) }}
-        '''{%- endif -%})
+        '''{%- endif -%}
+        {%- if quantity.categories | length > 0 -%},
+        categories=[{{ format_definition_refs(pkg, quantity.categories) }}]
+        {%- endif -%})
     {% endfor -%}
 
     {%- for sub_section in section.sub_sections %}
     {{ sub_section.name }} = SubSection(
-        sub_section=MProxy('{{ sub_section.sub_section.name }}'),
+        sub_section=SectionProxy('{{ sub_section.sub_section.name }}'),
         repeats={{ sub_section.repeats }}
         {%- if sub_section.description is not none -%},
         description='''
@@ -35,3 +57,6 @@ class {{ section.name }}(MSection):
         '''{%- endif -%})
     {% endfor -%}
 {%- endfor %}
+
+m_package.__init_metainfo__()
+
