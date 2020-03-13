@@ -51,7 +51,7 @@ from nomad.metainfo.encyclopedia import (
 from nomad.parsing.backend import Section, LocalBackend
 from nomad.normalizing.settingsbasisset import get_basis_set_settings
 from nomad.normalizing import structure
-from nomad.utils import hash, RestrictedDict
+from nomad.utils import hash, RestrictedDict, timer
 from nomad import config
 
 J_to_Ry = 4.587425e+17
@@ -290,75 +290,68 @@ class EncyclopediaNormalizer(Normalizer):
         properties.normalize(ctx)
 
     def normalize(self, logger=None) -> None:
-        try:
-            super().normalize(logger)
-
-            # Initialise metainfo structure
-            sec_enc = Encyclopedia()
-            material = sec_enc.m_create(Material)
-            method = sec_enc.m_create(Method)
-            sec_enc.m_create(Properties)
-            run_type = sec_enc.m_create(RunType)
-
-            # Get generic data
-            self.mainfile_uri(sec_enc)
-
-            # Determine run type, stop if unknown
-            run_type_name = self.run_type(run_type)
-            if run_type_name == config.services.unavailable_value:
-                self.logger.info(
-                    "Unknown run type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unknown_run_type"
-                )
-                return
-
-            # Get the system type, stop if unknown
-            system_enums = Material.system_type.type
-            representative_system, system_type = self.system_type(material)
-            if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
-                self.logger.info(
-                    "Unknown system type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unknown_system_type"
-                )
-                return
-
-            # Get the method type, stop if unknown
-            representative_method, method_type = self.method_type(method)
-
-            # Get representative scc
+        with timer(self.logger, 'EncyclopediaNormalizer finished') as log:
             try:
-                representative_scc_idx = self._backend[s_run][0].tmp["representative_scc_idx"]
-                representative_scc = self._backend[s_scc][representative_scc_idx]
-            except (KeyError, IndexError):
-                representative_scc = None
-                representative_scc_idx = None
+                super().normalize(logger)
 
-            # Create one context that holds all details
-            context = Context(
-                system_type=system_type,
-                method_type=method_type,
-                run_type=run_type_name,
-                representative_system=representative_system,
-                representative_method=representative_method,
-                representative_scc=representative_scc,
-                representative_scc_idx=representative_scc_idx,
-            )
+                # Initialise metainfo structure
+                sec_enc = Encyclopedia()
+                material = sec_enc.m_create(Material)
+                method = sec_enc.m_create(Method)
+                sec_enc.m_create(Properties)
+                run_type = sec_enc.m_create(RunType)
 
-            # Put the encyclopedia section into backend
-            self._backend.add_mi2_section(sec_enc)
-            self.fill(context)
+                # Get generic data
+                self.mainfile_uri(sec_enc)
 
-        except Exception as e:
-            self.logger.info(
-                "Failed to create an Encyclopedia entry due to an unhandlable exception.",
-                enc_status="failure",
-                exc_info=e,
-            )
-        else:
-            self.logger.info(
-                "Successfully created metainfo for Encyclopedia.",
-                enc_status="success"
-            )
+                # Determine run type, stop if unknown
+                run_type_name = self.run_type(run_type)
+                if run_type_name == config.services.unavailable_value:
+                    log["enc_status"] = "unknown_run_type"
+                    log["enc_message"] = "Unknown run type for encyclopedia, encyclopedia metainfo not created."
+                    return
+
+                # Get the system type, stop if unknown
+                system_enums = Material.system_type.type
+                representative_system, system_type = self.system_type(material)
+                if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
+                    log["enc_status"] = "unknown_system_type"
+                    log["enc_message"] = "Unknown system type for encyclopedia, encyclopedia metainfo not created."
+                    return
+
+                # Get the method type, stop if unknown
+                representative_method, method_type = self.method_type(method)
+
+                # Get representative scc
+                try:
+                    representative_scc_idx = self._backend[s_run][0].tmp["representative_scc_idx"]
+                    representative_scc = self._backend[s_scc][representative_scc_idx]
+                except (KeyError, IndexError):
+                    representative_scc = None
+                    representative_scc_idx = None
+
+                # Create one context that holds all details
+                context = Context(
+                    system_type=system_type,
+                    method_type=method_type,
+                    run_type=run_type_name,
+                    representative_system=representative_system,
+                    representative_method=representative_method,
+                    representative_scc=representative_scc,
+                    representative_scc_idx=representative_scc_idx,
+                )
+
+                # Put the encyclopedia section into backend
+                self._backend.add_mi2_section(sec_enc)
+                self.fill(context)
+
+            except Exception as e:
+                log["enc_status"] = "failure"
+                log["enc_message"] = "Failed to create an Encyclopedia entry due to an unhandlable exception."
+                log["exc_info"] = e
+            else:
+                log["enc_status"] = "success"
+                log["enc_message"] = "Successfully created metainfo for Encyclopedia."
 
 
 class MaterialNormalizer():
