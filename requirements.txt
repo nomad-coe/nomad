@@ -12,12 +12,13 @@ matid
 
 # infrastructue related
 msgpack<0.6.0
+elasticsearch==6.4.0
+elasticsearch-dsl==6.4.0
 pyyaml
 future
 enum34
 requests
 celery[redis]
-elasticsearch-dsl>=6.0.0,<7.0.0
 mongoengine==0.18.2
 Werkzeug==0.16.1
 flask
@@ -38,7 +39,7 @@ zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
-ujson
+ujson==1.35
 bravado
 pyjwt[crypto]
 jsonschema[format]
@@ -59,6 +60,7 @@ python-json-logger
 setuptools
 sphinx
 sphinxcontrib.httpdomain
+sphinx-click
 sphinx_rtd_theme
 gitpython
 mypy==0.730
