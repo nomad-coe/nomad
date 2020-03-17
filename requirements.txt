@@ -11,12 +11,13 @@ Pint==0.7.2
 matid
 
 # infrastructue related
+elasticsearch==6.4.0
+elasticsearch-dsl==6.4.0
 pyyaml
 future
 enum34
 requests
 celery[redis]
-elasticsearch-dsl>=6.0.0,<7.0.0
 mongoengine==0.18.2
 Werkzeug==0.16.1
 flask
