@@ -1,10 +1,11 @@
 import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy
+    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
+    Reference
 )
 {% for dependency in pkg.dependencies %}
-from . import {{dependency.name}}
+{{ fromat_package_import(dependency) }}
 {%- endfor %}
 
 m_package = Package(name='{{ pkg.name }}', description='{{ pkg.description }}')
@@ -33,7 +34,7 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
     m_def = Section(validate=False{%- if section.extends_base_section -%}, extends_base_section=True{%- endif -%})
     {% for quantity in section.quantities %}
     {{ quantity.name }} = Quantity(
-        type={{ format_type(quantity.type) }},
+        type={{ format_type(pkg, quantity.type) }},
         shape={{ quantity.shape }}
         {%- if quantity.unit is not none -%},
         unit={{ format_unit(quantity.unit) }}

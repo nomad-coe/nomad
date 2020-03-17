@@ -407,6 +407,10 @@ def timer(logger, event, method='info', **kwargs):
     finally:
         stop = time.time()
 
+    if logger is None:
+        print(event, stop - start)
+        return
+
     logger_method = getattr(logger, 'info', None)
     if logger_method is not None:
         logger_method(event, exec_time=stop - start, **kwargs)

@@ -318,4 +318,4 @@ class MetainfoBackend(LegacyParserBackend):
         pass
 
     def pwarn(self, msg):
-        pass
+        self.logger.warning(msg)

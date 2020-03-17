@@ -42,3 +42,12 @@ def qa(skip_tests: bool, exitfirst: bool):
     ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
 
     sys.exit(ret_code)
+
+
+@dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
+@click.argument('package', nargs=1)
+def legacy_metainfo(package):
+    from nomad.metainfo.legacy import convert, generate_metainfo_code
+
+    env = convert(package)
+    generate_metainfo_code(env)

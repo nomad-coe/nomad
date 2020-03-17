@@ -95,15 +95,17 @@ class MProxy():
         url: The reference represented as an URL string.
     '''
 
-    def __init__(self, m_proxy_url: str, m_proxy_section: 'MSection', m_proxy_quantity: 'Quantity'):
+    def __init__(
+            self, m_proxy_url: str, m_proxy_section: 'MSection' = None,
+            m_proxy_quantity: 'Quantity' = None):
         self.m_proxy_url = m_proxy_url
         self.m_proxy_section = m_proxy_section
         self.m_proxy_resolved = None
-        self.m_reference_type = m_proxy_quantity.type
+        self.m_proxy_quantity = m_proxy_quantity
 
     def m_proxy_resolve(self):
-        if self.m_proxy_section and not self.m_proxy_resolved:
-            self.m_proxy_resolved = self.m_reference_type.resolve(self)
+        if self.m_proxy_section and self.m_proxy_quantity and not self.m_proxy_resolved:
+            self.m_proxy_resolved = self.m_proxy_quantity.type.resolve(self)
 
         if self.m_proxy_resolved is not None and isinstance(self, MProxy):
             setattr(self, '__class__', self.m_proxy_resolved.__class__)
@@ -112,10 +114,26 @@ class MProxy():
         return self.m_proxy_resolved
 
     def __getattr__(self, key):
-        if self.m_proxy_resolve():
+        if self.m_proxy_resolve() is not None:
             return getattr(self.m_proxy_resolved, key)
 
         raise ReferenceError('could not resolve %s' % self.m_proxy_url)
+
+
+class SectionProxy(MProxy):
+    def m_proxy_resolve(self):
+        if self.m_proxy_section and not self.m_proxy_resolved:
+            root = self.m_proxy_section
+            while root is not None and not isinstance(root, Package):
+                root = root.m_parent
+
+            if isinstance(root, Package):
+                self.m_proxy_resolved = root.all_definitions.get(self.m_proxy_url)
+
+            if self.m_proxy_resolved is None:
+                raise ReferenceError('could not resolve %s' % self.m_proxy_url)
+
+        return self.m_proxy_resolved
 
 
 class DataType:
@@ -298,9 +316,7 @@ class _QuantityType(DataType):
 class Reference(DataType):
     ''' Datatype used for reference quantities. '''
 
-    def __init__(self, section_def: 'Section'):
-        if not isinstance(section_def, Section):
-            raise MetainfoError('%s is not a section definition.' % section_def)
+    def __init__(self, section_def: Union['Section', 'SectionProxy']):
         self.target_section_def = section_def
 
     def resolve(self, proxy) -> 'MSection':
@@ -311,6 +327,12 @@ class Reference(DataType):
         return proxy.m_proxy_section.m_resolve(proxy.m_proxy_url)
 
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if isinstance(self.target_section_def, MProxy):
+            proxy = self.target_section_def
+            proxy.m_proxy_section = section
+            proxy.m_proxy_quantity = quantity_def
+            self.target_section_def = proxy.m_proxy_resolve()
+
         if self.target_section_def.m_follows(Definition.m_def):
             # special case used in metainfo definitions, where we reference metainfo definitions
             # using their Python class. E.g. referencing a section definition using its
@@ -325,13 +347,14 @@ class Reference(DataType):
 
         if isinstance(value, MProxy):
             value.m_proxy_section = section
+            value.m_proxy_quantity = quantity_def
             return value
 
         if not isinstance(value, MSection):
             raise TypeError(
                 'The value %s is not a section and can not be used as a reference.' % value)
 
-        if not value.m_follows(self.target_section_def):
+        if not value.m_follows(self.target_section_def):  # type: ignore
             raise TypeError(
                 '%s is not a %s and therefore an invalid value of %s.' %
                 (value, self.target_section_def, quantity_def))
@@ -2398,13 +2421,3 @@ class Environment(MSection):
             raise KeyError('Could not uniquely identify %s' % name)
         else:
             raise KeyError('Could not resolve %s' % name)
-
-
-class SectionProxy(MProxy):
-    def m_proxy_resolve(self):
-        if self.m_proxy_section and not self.m_proxy_resolved:
-            root = self.m_proxy_section.m_root()
-            if isinstance(root, Package):
-                self.m_proxy_resolved = root.all_definitions.get(self.m_proxy_url)
-
-        super().m_proxy_resolve()

@@ -21,7 +21,7 @@ from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
     DefinitionAnnotation, Reference, MProxy, derived)
-from nomad.metainfo.legacy import LegacyMetainfoEnvironment, convert
+from nomad.metainfo.legacy import LegacyMetainfoEnvironment, convert, python_package_mapping
 from nomad.parsing.metainfo import MetainfoBackend
 
 
@@ -60,6 +60,7 @@ def legacy_example():
 @pytest.fixture(scope='session')
 def legacy_env(legacy_example):
     env = InfoKindEnv()
+    env.name = 'test.nomadmetainfo.json'
     for definition in legacy_example.get('metaInfos'):
         env.addInfoKindEl(InfoKindEl(
             description='test_description', package='test_package', **definition))
@@ -69,6 +70,24 @@ def legacy_env(legacy_example):
 @pytest.fixture(scope='session')
 def env(legacy_env):
     return convert(legacy_env)
+
+
+@pytest.mark.parametrize('package,path,name', [
+    (
+        'vasp',
+        'dependencies/parsers/vasp/vaspparser/metainfo/vasp.py',
+        'vaspparser.metainfo.vasp'),
+    (
+        'common',
+        'nomad/datamodel/metainfo/common.py',
+        'nomad.datamodel.metainfo.common'),
+    (
+        'vasp_incars',
+        'dependencies/parsers/vasp/vaspparser/metainfo/vasp_incars.py',
+        'vaspparser.metainfo.vasp_incars')
+])
+def test_package_mapping(package, path, name):
+    assert python_package_mapping(package) == (name, path)
 
 
 def test_environment(env: LegacyMetainfoEnvironment, no_warn):

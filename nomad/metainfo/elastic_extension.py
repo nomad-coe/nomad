@@ -167,7 +167,7 @@ class ElasticDocument(SectionAnnotation):
                         annotation.mapping = Date(**kwargs)
                     elif isinstance(quantity.type, Reference):
                         inner_document = ElasticDocument.create_document(
-                            quantity.type.target_section_def, inner_doc=True,
+                            cast(Section, quantity.type.target_section_def), inner_doc=True,
                             prefix=annotation.field)
                         annotation.mapping = Object(inner_document)
                     elif isinstance(quantity.type, MEnum):

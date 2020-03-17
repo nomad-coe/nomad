@@ -119,6 +119,11 @@ def _parse(
     if metainfo:
 
         def backend_factory(env, logger):
+            # from vaspparser.metainfo import m_env
+            # from nomad.metainfo import Section
+            # m_env.resolve_definition('section_basis_set_atom_centered', Section)
+            # return MetainfoBackend(m_env, logger=logger)
+
             return MetainfoBackend(convert(env), logger=logger)
 
         kwargs.update(backend_factory=backend_factory)

@@ -1,5 +1,5 @@
 
-from typing import cast, Dict, List, Union, Any, Set, Iterable
+from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple
 import numpy as np
 from pint.errors import UndefinedUnitError
 import os.path
@@ -12,7 +12,7 @@ import nomad_meta_info
 from nomad import utils
 from nomad.metainfo import (
     Definition, SubSection, Package, Quantity, Category, Section, Reference, units,
-    Environment, MEnum)
+    Environment, MEnum, MProxy)
 
 
 logger = utils.get_logger(__name__)
@@ -23,11 +23,37 @@ _ignored_packages = [
     'repository.nomadmetainfo.json']
 
 
+def python_package_mapping(metainfo_package_name: str) -> Tuple[str, str]:
+    '''
+    Compute the python package for the given metainfo package name. It returns
+    a tuple containing a file path and a package name. The filepath denotes the file
+    for this package within the nomad git project.
+    '''
+
+    split_mi_package_name = metainfo_package_name.split('_')
+    prefix = split_mi_package_name[0]
+
+    if prefix in ['common', 'general', 'public']:
+        directory = 'nomad/datamodel/metainfo'
+        python_package_name = 'nomad.datamodel.metainfo.%s' % metainfo_package_name
+
+    else:
+        directory = 'dependencies/parsers/%s/%sparser/metainfo' % (prefix, prefix)
+        python_package_name = '%sparser.metainfo.%s' % (prefix, metainfo_package_name)
+
+    path = '%s/%s.py' % (directory, metainfo_package_name)
+
+    return python_package_name, path
+
+
 class LegacyMetainfoEnvironment(Environment):
     '''
     A metainfo environment with functions to create a legacy metainfo version of
     the environment.
     '''
+
+    legacy_package_name = Quantity(type=str)
+
     def legacy_info(self, definition: Definition, *args, **kwargs) -> InfoKindEl:
         ''' Creates a legacy metainfo objects for the given definition. '''
         super_names: List[str] = list()
@@ -62,6 +88,11 @@ class LegacyMetainfoEnvironment(Environment):
                 dtype_str = 'C'
             elif isinstance(definition.type, Reference):
                 dtype_str = 'r'
+                if isinstance(definition.type.target_section_def, MProxy):
+                    proxy = definition.type.target_section_def
+                    proxy.m_proxy_section = definition
+                    proxy.m_proxy_quantity = Quantity.type
+                    definition.type.target_section_def = proxy.m_proxy_resolve()
                 result['referencedSections'] = [definition.type.target_section_def.name]
             elif isinstance(definition.type, MEnum):
                 dtype_str = 'C'
@@ -136,6 +167,7 @@ class EnvironmentConversion:
 
     def create_env(self) -> LegacyMetainfoEnvironment:
         env = LegacyMetainfoEnvironment()
+        env.legacy_package_name = self.legacy_env.name.replace('.nomadmetainfo.json', '').replace('.', '_')
         for package_conv in self.package_conversions.values():
             package = package_conv.package
             errors, warnings = package.m_all_validate()
@@ -149,7 +181,6 @@ class EnvironmentConversion:
                     (warnings[0], len(warnings) - 1, package))
             env.m_add_sub_section(Environment.packages, package)
             package.init_metainfo()
-
         return env
 
     def __fix_legacy_super_names(self):
@@ -206,7 +237,9 @@ class PackageConversion:
         self.env_conversion = env_conversion
         self.legacy_defs: List[InfoKindEl] = []
 
-        self.package = Package(name=name)
+        python_package, python_path = python_package_mapping(name)
+
+        self.package = Package(name=name, a_python=(python_package, python_path))
         self.quantities: Dict[str, Quantity] = {}
 
         self.logger = logger.bind(package=name)
@@ -356,19 +389,17 @@ def convert(metainfo_path: str) -> LegacyMetainfoEnvironment:
     return EnvironmentConversion(metainfo_path).create_env()
 
 
-def generate_metainfo_code(metainfo_env: Environment, directory: str = None):
+def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
     '''
     Generates python code with metainfo definitions for all packages in the given
     environement
 
     Arguments:
         env: The metainfo environment.
-        directory: An optional directory path. The directory must exist. Default
-            is the working directory.
+        python_package_path: An optional directory path. The directory must exist. Default
+            is the working directory. The path will be used to form the module prefix
+            for generated Python modules.
     '''
-
-    if directory is None:
-        directory = '.'
 
     def format_description(description, indent=0, width=90):
         paragraphs = [paragraph.strip() for paragraph in description.split('\n')]
@@ -383,13 +414,19 @@ def generate_metainfo_code(metainfo_env: Environment, directory: str = None):
             format_paragraph(p, i == 0)
             for i, p in enumerate(paragraphs) if p != ''])
 
-    def format_type(mi_type):
+    def format_type(pkg, mi_type):
         if type(mi_type) == np.dtype:
             return 'np.dtype(np.%s)' % mi_type
         if mi_type in [int, float, str, bool]:
             return mi_type.__name__
         if isinstance(mi_type, Reference):
-            return "SectionProxy('%s')" % mi_type.target_section_def.name
+            if pkg == mi_type.target_section_def.m_parent:
+                return "Reference(SectionProxy('%s'))" % mi_type.target_section_def.name
+
+            else:
+                python_pkg, _ = mi_type.target_section_def.m_parent.a_python
+                return '%s.%s' % (python_pkg.split('.')[-1], mi_type.target_section_def.name)
+
         else:
             return str(mi_type)
 
@@ -401,9 +438,15 @@ def generate_metainfo_code(metainfo_env: Environment, directory: str = None):
             if pkg == definition.m_parent:
                 return definition.name
             else:
-                return definition.qualified_name()
+                python_pkg, _ = definition.m_parent.a_python
+                return '%s.%s' % (python_pkg.split('.')[-1], definition.name)
 
         return ', '.join([format_definition_ref(definition) for definition in definitions])
+
+    def fromat_package_import(pkg):
+        python_package, _ = pkg.a_python
+        packages = python_package.split('.')
+        return 'from %s import %s' % ('.'.join(packages[:-1]), packages[-1])
 
     env = JinjaEnvironment(
         loader=PackageLoader('nomad.metainfo', 'templates'),
@@ -412,31 +455,26 @@ def generate_metainfo_code(metainfo_env: Environment, directory: str = None):
         format_description=format_description,
         format_type=format_type,
         format_unit=format_unit,
-        format_definition_refs=format_definition_refs)
+        format_definition_refs=format_definition_refs,
+        fromat_package_import=fromat_package_import)
 
     for package in metainfo_env.packages:
-        file_name = package.name
-        with open(os.path.join(directory, '%s.py' % file_name), 'wt') as f:
+        _, path = package.a_python
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+
+        with open(path, 'wt') as f:
             code = env.get_template('package.j2').render(pkg=package)
             code = '\n'.join([
                 line.rstrip() if line.strip() != '' else ''
                 for line in code.split('\n')])
             f.write(code)
 
+    _, path = python_package_mapping(metainfo_env.legacy_package_name)
+    with open(os.path.join(os.path.dirname(path), '__init__.py'), 'wt') as f:
 
-# if __name__ == '__main__':
-#     output = 'output'
-
-#     env = convert('vasp.nomadmetainfo.json')
-#     assert env.resolve_definition('x_vasp_incar_EFIELD_PEAD', Quantity) is not None
-#     assert 'x_vasp_incar_EFIELD_PEAD' in env.legacy_info_env()
-#     generate_metainfo_code(env, output)
-
-#     from output import public
-#     import json
-
-#     run = public.section_run()
-#     system = run.m_create(public.section_system)
-#     system.atom_labels = ['H', 'H', 'O']
-
-#     print(json.dumps(run.m_to_dict(with_meta=True), indent=2))
+        code = env.get_template('environment.j2').render(env=metainfo_env)
+        code = '\n'.join([
+            line.rstrip() if line.strip() != '' else ''
+            for line in code.split('\n')])
+        f.write(code)
