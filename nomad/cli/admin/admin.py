@@ -33,9 +33,10 @@ from bs4 import BeautifulSoup
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.normalizing.structure import get_normalized_wyckoff
+from nomad.normalizing.aflow_prototypes import get_normalized_wyckoff
 from nomad.cli.cli import cli
 from nomad import config
+from nomad.normalizing.springer import update_springer_data
 
 
 def __run_processing(
@@ -528,3 +529,10 @@ def prototypes_update(ctx, filepath, matches_only):
 
     # Write data file to the specified path
     write_prototype_data_file(aflow_prototypes, filepath)
+
+
+@admin.command(help='Updates the springer database in nomad.config.springer_msg_db_path.')
+@click.option('--max-n-query', default=10, type=int, help='Number of unsuccessful springer request before returning an error. Default is 10.')
+@click.option('--retry-time', default=120, type=int, help='Time in seconds to retry after unsuccessful request. Default is 120.')
+def springer_update(max_n_query, retry_time):
+    update_springer_data(max_n_query, retry_time)

@@ -3,8 +3,10 @@ import pytest
 import msgpack
 from io import BytesIO
 
-from nomad import utils
+from nomad import utils, config
 from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
+
+from .utils import assert_exception
 
 
 def create_example_uuid(index: int = 0):
@@ -145,6 +147,15 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
     assert data[example_uuid]['run'].to_dict() == example_entry['run']
     assert data[example_uuid].to_dict() == example_entry
 
+    with assert_exception(KeyError):
+        data['does not exist']
+
+    with assert_exception(KeyError):
+        data[example_uuid]['does not exist']
+
+    with assert_exception(IndexError):
+        data[example_uuid]['run']['system'][2]
+
 
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
 def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
@@ -171,15 +182,15 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
 
 def test_query():
     payload = {
-        'calc1': {
-            'secA': {
-                'subsecA1': [{'propA1a': 1.0}]
+        'c1': {
+            's1': {
+                'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]
             },
-            'secB': {'propB1a': ['a', 'b']}
+            's2': {'p1': ['a', 'b']}
         },
-        'calc2': {
-            'secA': {'subsecA1': [{'propA1a': 2.0}]},
-            'secB': {'propB1a': ['c', 'd']}
+        'c2': {
+            's1': {'ss1': [{'p1': 2.0}]},
+            's2': {'p1': ['c', 'd']}
         }
     }
 
@@ -188,7 +199,19 @@ def test_query():
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
-    assert query_archive(f, {'calc1': '*'}) == {'calc1': payload['calc1']}
-    assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
-    # TODO
-    # test [:][-1][0:1] ...
+    assert query_archive(f, {'c1': '*'}) == {'c1': payload['c1']}
+    assert query_archive(f, {'c1': '*', 'c2': {'s1': '*'}}) == {'c1': payload['c1'], 'c2': {'s1': payload['c2']['s1']}}
+    assert query_archive(f, {'c2': {'s1': {'ss1[0]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][0]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[1:]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[0:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][0:2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[-2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][-2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:-1]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[1:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:-1]}}}
+    assert query_archive(f, {'c2': {'s1': {'ss1[-3:-1]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][-3:-1]}}}
+
+
+def test_read_springer():
+    springer = read_archive(config.normalize.springer_db_path)
+    with assert_exception(KeyError):
+        springer['doesnotexist']

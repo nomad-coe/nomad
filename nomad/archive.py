@@ -360,8 +360,14 @@ class ArchiveReader(ArchiveObject):
             if positions is None:
                 r_start = 0
                 r_end = self._n_toc
+                i_block = None
                 while positions is None:
-                    i_block = r_start + math.floor((r_end - r_start) / 2)
+                    new_i_block = r_start + math.floor((r_end - r_start) / 2)
+                    if i_block == new_i_block:
+                        break
+                    else:
+                        i_block = new_i_block
+
                     first, last = self._load_toc_block(i_block)
                     if key < first:
                         r_end = i_block - 1
@@ -370,6 +376,9 @@ class ArchiveReader(ArchiveObject):
                     else:
                         positions = self._toc.get(key)
                         break
+
+                if positions is None:
+                    raise KeyError(key)
 
             toc_position, data_position = positions
 
@@ -496,17 +505,18 @@ def query_archive(f, query_dict: dict):
             key = key.strip()
 
             # process array indices
-            match = re.match(r'([_a-bA-Z0-9]+)\[([0-9]+|:)\]', key)
+            match = re.match(r'(\w+)\[([-?0-9:]+)\]', key)
             if match:
                 archive_key = match.group(1)
                 index_str = match.group(2)
-                match = re.match(r'([0-9]*):([0-9]*)', index_str)
+                match = re.match(r'([-?0-9]*):([-?0-9]*)', index_str)
                 if match:
                     index = (
                         0 if match.group(1) == '' else int(match.group(1)),
                         None if match.group(2) == '' else int(match.group(2)))
                 else:
                     index = int(index_str)  # type: ignore
+                key = archive_key
             else:
                 archive_key = key
                 index = None
@@ -515,7 +525,6 @@ def query_archive(f, query_dict: dict):
             archive_key = key.split('[')[0]
             if main_section:
                 archive_key = adjust_uuid_size(key)
-
             try:
                 if index is None:
                     res[key] = _load_data(val, archive_item[archive_key])
