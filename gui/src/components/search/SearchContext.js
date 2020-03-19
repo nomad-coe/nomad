@@ -50,7 +50,8 @@ class SearchContext extends React.Component {
       order_by: 'upload_time',
       order: -1,
       page: 1,
-      per_page: 10
+      per_page: 10,
+      date_histogram: true
     },
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,

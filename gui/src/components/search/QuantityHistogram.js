@@ -9,6 +9,39 @@ import SearchContext from '../search/SearchContext'
 const unprocessed_label = 'not processed'
 const unavailable_label = 'unavailable'
 
+const _mapping = {
+  'energy_total': 'Total energy',
+  'energy_total_T0': 'Total energy (0K)',
+  'energy_free': 'Free energy',
+  'energy_electrostatic': 'Electrostatic',
+  'energy_X': 'Exchange',
+  'energy_XC': 'Exchange-correlation',
+  'energy_sum_eigenvalues': 'Band energy',
+  'dos_values': 'DOS',
+  'eigenvalues_values': 'Eigenvalues',
+  'volumetric_data_values': 'Volumetric data',
+  'electronic_kinetic_energy': 'Kinetic energy',
+  'total_charge': 'Charge',
+  'atom_forces_free': 'Free atomic forces',
+  'atom_forces_raw': 'Raw atomic forces',
+  'atom_forces_T0': 'Atomic forces (0K)',
+  'atom_forces': 'Atomic forces',
+  'stress_tensor': 'Stress tensor',
+  'thermodynamical_property_heat_capacity_C_v': 'Heat capacity',
+  'vibrational_free_energy_at_constant_volume': 'Free energy (const=V)',
+  'band_energies': 'Band energies',
+  'spin_S2': 'Spin momentum operator',
+  'excitation_energies': 'Excitation energies',
+  'oscillator_strengths': 'Oscillator strengths',
+  'transition_dipole_moments': 'Transition dipole moments'}
+
+function map_key (name) {
+  if (name in _mapping) {
+    return _mapping[name]
+  }
+  return name
+}
+
 class QuantityHistogramUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -69,7 +102,7 @@ class QuantityHistogramUnstyled extends React.Component {
 
     const data = Object.keys(this.props.data)
       .map(key => ({
-        name: key,
+        name: map_key(key),
         value: this.props.data[key][this.props.metric]
       }))
 

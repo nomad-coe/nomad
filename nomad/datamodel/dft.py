@@ -45,6 +45,58 @@ basis_sets = {
     'planewaves': 'plane waves'
 }
 
+compound_types = [
+    'unary',
+    'binary',
+    'ternary',
+    'quaternary',
+    'quinary',
+    'sexinary',
+    'septenary',
+    'octanary',
+    'nonary',
+    'decinary'
+]
+
+_energy_quantities = [
+    'energy_total',
+    'energy_total_T0',
+    'energy_free',
+    'energy_electrostatic',
+    'energy_X',
+    'energy_XC',
+    'energy_sum_eigenvalues']
+
+_electronic_quantities = [
+    'dos_values',
+    'eigenvalues_values',
+    'volumetric_data_values',
+    'electronic_kinetic_energy',
+    'total_charge',
+    'atomic_multipole_values']
+
+_forces_quantities = [
+    'atom_forces_free',
+    'atom_forces_raw',
+    'atom_forces_T0',
+    'atom_forces',
+    'stress_tensor']
+
+_vibrational_quantities = [
+    'thermodynamical_property_heat_capacity_C_v',
+    'vibrational_free_energy_at_constant_volume',
+    'band_energies']
+
+_magnetic_quantities = [
+    'spin_S2'
+]
+
+_optical_quantities = [
+    'excitation_energies',
+    'oscillator_strengths',
+    'transition_dipole_moments'
+]
+
 version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
 
@@ -58,6 +110,12 @@ def map_functional_name_to_xc_treatment(name):
 def map_basis_set_to_basis_set_label(name):
     key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
     return basis_sets.get(key, name)
+
+
+def map_atoms_to_compound_type(atoms):
+    if len(atoms) > len(compound_types):
+        return '>decinary'
+    return compound_types[len(atoms) - 1]
 
 
 def simplify_version(version):
@@ -107,6 +165,12 @@ class DFTMetadata(MSection):
         description='The system type of the simulated system.',
         a_search=Search(default_statistic=True))
 
+    compound_type = Quantity(
+        type=str, default='not processed',
+        description='The compound type of the simulated system.',
+        a_search=Search(statistic_size=11, default_statistic=True)
+    )
+
     crystal_system = Quantity(
         type=str, default='not processed',
         description='The crystal system type of the simulated system.',
@@ -155,6 +219,36 @@ class DFTMetadata(MSection):
         a_search=Search(
             metric_name='distinct_quantities', metric='cardinality', many_and='append'))
 
+    quantities_energy = Quantity(
+        type=str, shape=['0..*'],
+        description='Energy-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_electronic = Quantity(
+        type=str, shape=['0..*'],
+        description='Electronic structure-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_forces = Quantity(
+        type=str, shape=['0..*'],
+        description='Forces-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_vibrational = Quantity(
+        type=str, shape=['0..*'],
+        description='Vibrational-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_magnetic = Quantity(
+        type=str, shape=['0..*'],
+        description='Magnetic-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_optical = Quantity(
+        type=str, shape=['0..*'],
+        description='Optical-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
     geometries = Quantity(
         type=str, shape=['0..*'],
         description='Hashes for each simulated geometry',
@@ -169,6 +263,16 @@ class DFTMetadata(MSection):
         sub_section=Label, repeats=True,
         description='The labels taken from AFLOW prototypes and springer.',
         a_search='labels')
+
+    labels_springer_compound_class = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer compund classification.',
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
+
+    labels_springer_classification = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer classification by property.',
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
 
     optimade = SubSection(
         sub_section=OptimadeEntry,
@@ -213,6 +317,7 @@ class DFTMetadata(MSection):
         atoms = list(set(normalized_atom_labels(set(atoms))))
         atoms.sort()
         entry.atoms = atoms
+        self.compound_type = map_atoms_to_compound_type(atoms)
 
         self.crystal_system = get_optional_backend_value(
             backend, 'crystal_system', 'section_symmetry', logger=logger)
@@ -243,6 +348,13 @@ class DFTMetadata(MSection):
         # metrics and quantities
         quantities = set()
         geometries = set()
+        quantities_energy = set()
+        quantities_electronic = set()
+        quantities_forces = set()
+        quantities_vibrational = set()
+        quantities_magnetic = set()
+        quantities_optical = set()
+
         n_quantities = 0
         n_calculations = 0
         n_total_energies = 0
@@ -250,6 +362,18 @@ class DFTMetadata(MSection):
 
         for meta_info, event, value in backend.traverse():
             quantities.add(meta_info)
+            if meta_info in _energy_quantities:
+                quantities_energy.add(meta_info)
+            elif meta_info in _electronic_quantities:
+                quantities_electronic.add(meta_info)
+            elif meta_info in _forces_quantities:
+                quantities_forces.add(meta_info)
+            elif meta_info in _vibrational_quantities:
+                quantities_vibrational.add(meta_info)
+            elif meta_info in _magnetic_quantities:
+                quantities_magnetic.add(meta_info)
+            elif meta_info in _optical_quantities:
+                quantities_optical.add(meta_info)
 
             if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
                 n_quantities += 1
@@ -269,6 +393,12 @@ class DFTMetadata(MSection):
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
+        self.quantities_energy = list(quantities_energy)
+        self.quantities_electronic = list(quantities_electronic)
+        self.quantities_forces = list(quantities_forces)
+        self.quantities_vibrational = list(quantities_vibrational)
+        self.quantities_magnetic = list(quantities_magnetic)
+        self.quantities_optical = list(quantities_optical)
         self.n_quantities = n_quantities
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
@@ -285,6 +415,8 @@ class DFTMetadata(MSection):
             self.labels.append(Label(label=compound, type='compound_class', source='springer'))
         for classification in classifications:
             self.labels.append(Label(label=classification, type='classification', source='springer'))
+        self.labels_springer_compound_class = list(compounds)
+        self.labels_springer_classification = list(classifications)
 
         aflow_id = get_optional_backend_value(backend, 'prototype_aflow_id', 'section_prototype')
         aflow_label = get_optional_backend_value(backend, 'prototype_label', 'section_prototype')
