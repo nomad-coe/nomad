@@ -1702,6 +1702,18 @@ class TestMirror:
         else:
             assert 'dois' not in data
 
+    def test_files(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/files/%s?prefix=archive' % published.upload_id
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        assert rv.data is not None
+
+    def test_users(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/users'
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        assert rv.data is not None
+
 
 class TestDataset:
 
