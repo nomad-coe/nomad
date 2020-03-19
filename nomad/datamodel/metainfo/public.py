@@ -2283,7 +2283,7 @@ class section_method_atom_kind(MSection):
     method_atom_kind_mass = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='unified_atomic_mass_unit',
+        unit='atomic_mass_unit',
         description='''
         Mass of the kind of this kind of atoms.
         ''',

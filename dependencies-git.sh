@@ -13,9 +13,11 @@ git config -f .gitmodules --get-regexp '^submodule\..*\.path$' |
             echo "$path is clean"
         else
             echo "$path is not clean"
-            git checkout -b nomad-fair-metainfo
+            git stash
+            git checkout nomad-fair-metainfo
+            git stash apply
             git add -A
-            git commit -a -m "Added metainfo python code."
+            git commit -a -m "Fixed gitignore."
             git push origin nomad-fair-metainfo
         fi
     done
