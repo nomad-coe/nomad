@@ -17,7 +17,7 @@ git config -f .gitmodules --get-regexp '^submodule\..*\.path$' |
             git checkout nomad-fair-metainfo
             git stash apply
             git add -A
-            git commit -a -m "Fixed gitignore."
+            git commit -a -m $1
             git push origin nomad-fair-metainfo
         fi
     done
