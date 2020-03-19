@@ -17,17 +17,11 @@ import numpy as np
 import pint.quantity
 import datetime
 
-from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
-
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
     DefinitionAnnotation, Reference, MProxy, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
-from nomad.metainfo.legacy import LegacyMetainfoEnvironment, convert
-from nomad.parsing.metainfo import MetainfoBackend
-
-from tests.utils import assert_exception
 
 
 def assert_section_def(section_def: Section):
@@ -182,7 +176,7 @@ class TestM2:
         class TestBase(MSection):
             name = Quantity(type=str)
 
-        with assert_exception(MetainfoError):
+        with pytest.raises(MetainfoError):
             class TestSection(TestBase):  # pylint: disable=unused-variable
                 name = Quantity(type=int)
 
@@ -190,7 +184,7 @@ class TestM2:
         class TestBase(MSection):
             name = Quantity(type=str)
 
-        with assert_exception(MetainfoError):
+        with pytest.raises(MetainfoError):
             class TestSection(TestBase):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
                 name = Quantity(type=int)
@@ -223,12 +217,12 @@ class TestM2:
         assert len(TestSection.m_def.warnings) > 0
 
     def test_higher_shapes_require_dtype(self):
-        with assert_exception(MetainfoError):
+        with pytest.raises(MetainfoError):
             class TestSection(MSection):  # pylint: disable=unused-variable
                 test = Quantity(type=int, shape=[3, 3])
 
     def test_only_extends_one_base(self):
-        with assert_exception(MetainfoError):
+        with pytest.raises(MetainfoError):
             class TestSection(Run, System):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
 
@@ -330,7 +324,7 @@ class TestM1:
         assert len(System().periodic_dimensions) == 3
         assert System().atom_labels is None
 
-        with assert_exception(AttributeError):
+        with pytest.raises(AttributeError):
             getattr(System(), 'does_not_exist')
 
     def test_m_section(self):
@@ -360,15 +354,15 @@ class TestM1:
         assert parsing.m_parent_index == -1
 
     def test_wrong_type(self):
-        with assert_exception(TypeError):
+        with pytest.raises(TypeError):
             Run().code_name = 1
 
     def test_wrong_shape_1(self):
-        with assert_exception(TypeError):
+        with pytest.raises(TypeError):
             Run().code_name = ['name']
 
     def test_wrong_shape_2(self):
-        with assert_exception(TypeError):
+        with pytest.raises(TypeError):
             System().atom_labels = 'label'
 
     def test_np_array(self):
@@ -396,7 +390,7 @@ class TestM1:
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
         assert isinstance(system.lattice_vectors, pint.quantity._Quantity)
         assert isinstance(system.unit_cell, pint.quantity._Quantity)
-        assert np.array_equal(system.unit_cell, system.lattice_vectors)
+        assert np.array_equal(system.unit_cell.magnitude, system.lattice_vectors.magnitude)
 
     @pytest.fixture(scope='function')
     def example_data(self):
@@ -438,7 +432,7 @@ class TestM1:
     def test_derived(self):
         system = System()
 
-        with assert_exception(DeriveError):
+        with pytest.raises(DeriveError):
             assert system.n_atoms == 3
 
         system.atom_labels = ['H', 'H', 'O']
@@ -493,7 +487,7 @@ class TestM1:
             two = SubSection(sub_section=System)
 
         test_section = TestSection()
-        with assert_exception():
+        with pytest.raises(Exception):
             test_section.m_create(System)
 
         test_section.m_create(System, TestSection.one)
@@ -524,7 +518,7 @@ class TestM1:
         scc.energy_total_0 = 1.0
         scc.an_int = 1
         assert scc.energy_total_0.m == 1.0  # pylint: disable=no-member
-        assert scc.energy_total_0.item() == 1.0  # pylint: disable=no-member
+        assert scc.energy_total_0 == 1.0 * units.J
         assert scc.m_to_dict()['energy_total_0'] == 1.0
         assert scc.an_int == 1
         assert scc.an_int.__class__ == np.int32
@@ -549,7 +543,7 @@ class TestM1:
         assert obj.m_resolve('/sub') == referenced
 
         obj.proxy = MProxy('doesnotexist', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)
-        with assert_exception(ReferenceError):
+        with pytest.raises(ReferenceError):
             obj.proxy.name
 
         obj.proxy = MProxy('sub', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)

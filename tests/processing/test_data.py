@@ -25,7 +25,6 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
-from tests import utils as test_utils
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
 
@@ -276,7 +275,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert changed archive files
     if with_failure in ['after', 'not-matched']:
-        with test_utils.assert_exception():
+        with pytest.raises(Exception):
             published.upload_files.archive_file(first_calc.calc_id)
     else:
         with published.upload_files.archive_file(first_calc.calc_id) as f:
@@ -284,7 +283,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert changed archive log files
     if with_failure in ['not-matched']:
-        with test_utils.assert_exception():
+        with pytest.raises(Exception):
             published.upload_files.archive_log_file(first_calc.calc_id)
     else:
         with published.upload_files.archive_log_file(first_calc.calc_id) as f:

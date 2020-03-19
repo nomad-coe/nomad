@@ -27,8 +27,6 @@ from nomad.files import DirectoryObject, PathObject
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
 
-from tests.utils import assert_exception
-
 
 CalcWithFiles = Tuple[datamodel.EntryMetadata, str]
 UploadWithFiles = Tuple[str, Iterable[datamodel.EntryMetadata], UploadFiles]
@@ -456,7 +454,7 @@ class TestPublicUploadFiles(UploadFilesContract):
         upload_files.re_pack(entries)
         assert_upload_files(upload_id, entries, PublicUploadFiles, with_embargo=False)
         assert len(os.listdir(upload_files.os_path)) == 8
-        with assert_exception(KeyError):
+        with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
 

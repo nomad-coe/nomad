@@ -27,16 +27,10 @@ import time
 import os
 import signal
 
-from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
-import nomad_meta_info
+from nomad import metainfo
 
-from nomad.parsing.backend import LocalBackend
-from nomad.parsing.parser import Parser, MatchingParser
-
-
-file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-meta_info_path = os.path.normpath(os.path.join(file_dir, 'vasp.nomadmetainfo.json'))
-meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
+from .legacy import Backend
+from .parser import Parser, MatchingParser
 
 
 class ArtificalParser(Parser):
@@ -46,7 +40,7 @@ class ArtificalParser(Parser):
         self.backend = None
 
     def init_backend(self):
-        self.backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)
+        self.backend = Backend(metainfo='vasp')
 
     @property
     def name(self):
@@ -57,8 +51,8 @@ class EmptyParser(MatchingParser):
     '''
     Implementation that produces an empty code_run
     '''
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
-        backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)  # type: ignore
+    def run(self, mainfile: str, logger=None) -> Backend:
+        backend = Backend(metainfo='vasp')
         backend.openSection('section_run')
         backend.addValue('program_name', self.code_name)
         backend.closeSection('section_run', 0)
@@ -100,8 +94,8 @@ class TemplateParser(ArtificalParser):
             else:
                 value = self.transform_value(key, value)
                 if isinstance(value, list):
-                    shape = meta_info_env[key].get('shape')
-                    if shape is None or len(shape) == 0:
+                    quantity_def = self.backend.env.resolve_definition(key, metainfo.Quantity)
+                    if quantity_def.is_scalar:
                         for single_value in value:
                             self.backend.addValue(key, single_value, index)
                     else:
@@ -111,7 +105,7 @@ class TemplateParser(ArtificalParser):
 
         self.backend.closeSection(name, index)
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
@@ -147,7 +141,7 @@ class ChaosParser(ArtificalParser):
             compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         self.init_backend()
 
         chaos_json = json.load(open(mainfile, 'r'))
@@ -243,7 +237,7 @@ class GenerateRandomParser(TemplateParser):
         else:
             return value
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')

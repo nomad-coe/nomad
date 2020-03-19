@@ -265,6 +265,12 @@ class _QuantityType(DataType):
         if isinstance(value, Section):
             return value
 
+        if isinstance(value, Reference) and isinstance(value.target_section_def, MProxy):
+            proxy = value.target_section_def
+            proxy.m_proxy_section = section
+            proxy.m_proxy_quantity = quantity_def
+            return value
+
         if isinstance(value, DataType):
             return value
 
@@ -277,6 +283,8 @@ class _QuantityType(DataType):
                 return Reference(section)
 
         if isinstance(value, MProxy):
+            value.m_proxy_section = section
+            value.m_proxy_quantity = quantity_def
             return value
 
         raise MetainfoError(
@@ -399,6 +407,9 @@ class _Datetime(DataType):
         elif isinstance(value, (int, float)):
             value = datetime.fromtimestamp(value)
 
+        elif isinstance(value, pint.Quantity):
+            value = datetime.fromtimestamp(value.magnitude)
+
         if not isinstance(value, datetime):
             raise TypeError('%s is not a datetime.' % value)
 
@@ -475,18 +486,28 @@ def constraint(warning):
 
 
 class MResource():
-    '''Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
-
-    MResource allows to keep related objects together and resolve sections of certain
-    section definitions.
     '''
+    Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+    '''
+
     def __init__(self):
         self.__data: Dict['Section', List['MSection']] = dict()
         self.contents: List['MSection'] = []
 
     def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
-        ''' Create an instance of the given section class and adds it to this resource. '''
+        '''
+        Create an instance of the given section class and adds it to this resource as
+        a root section. The m_parent_index will be set sequentially among root sections of
+        the same section definition starting with 0.
+        '''
+        index = 0
+        for content in self.contents:
+            if content.m_follows(section_cls.m_def):
+                index = max(index, content.m_parent_index + 1)
+
         result = section_cls(*args, **kwargs)
+        result.m_parent_index = index
+
         self.add(result)
         return cast(MSectionBound, result)
 
@@ -497,6 +518,8 @@ class MResource():
             self.contents.append(section)
 
     def remove(self, section):
+        import traceback
+        traceback.print_stack()
         assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
         section.m_resource = None
         self.__data.get(section.m_def).remove(section)
@@ -515,6 +538,16 @@ class MResource():
             collections.clear()
 
         # TODO break actual references via quantities
+
+    def m_to_dict(self, filter: TypingCallable[['MSection'], bool] = None):
+        if filter is None:
+            def filter(_):  # pylint: disable=function-redefined
+                return True
+
+        return {
+            section.m_def.name: section.m_to_dict()
+            for section in self.contents
+            if filter(section)}
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -991,6 +1024,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_follows(self, definition: 'Section') -> bool:
         ''' Determines if this section's definition is or is derived from the given definition. '''
+        if not isinstance(definition, Section):
+            raise TypeError('%s is of class Section' % definition)
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
     def m_to_dict(self, with_meta: bool = False, include_defaults: bool = False) -> Dict[str, Any]:
@@ -1192,6 +1227,26 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if include_self and depth_first:
             yield self
 
+    def m_traverse(self):
+        '''
+        Performs a depth-first traversal and yield tuples of section, property def,
+        parent index for all set properties.
+        '''
+        for key in self.__dict__:
+            property_def = self.m_def.all_properties.get(key)
+            if property_def is None:
+                continue
+
+            if isinstance(property_def, SubSection):
+                for sub_section in self.m_get_sub_sections(property_def):
+                    for i in sub_section.m_traverse():
+                        yield i
+
+                    yield self, property_def, sub_section.m_parent_index
+
+            else:
+                yield self, property_def, -1
+
     def m_pretty_print(self, indent=None):
         ''' Pretty prints the containment hierarchy '''
         if indent is None:
@@ -1282,6 +1337,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             if isinstance(prop_def, SubSection):
                 if prop_def.repeats:
+                    if len(path_stack) == 0:
+                        return context.m_get_sub_sections(prop_def)  # type: ignore
+
                     try:
                         index = int(path_stack.pop())
                     except ValueError:
@@ -1306,7 +1364,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             elif isinstance(prop_def, Quantity):
                 if len(path_stack) > 0:
                     raise ReferenceError(
-                        'Could not resolve %s, %s is not a sub section' % (path, prop_name))
+                        'Could not resolve %s, %s is not a property' % (path, prop_name))
+
+                if not context.m_is_set(prop_def):
+                    raise ReferenceError(
+                        'Could not resolve %s, %s is not set on %s' % (path, prop_name, context))
 
                 return context.m_get(prop_def)
 
@@ -1404,6 +1466,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return errors, warnings
 
+    def m_copy(self: MSectionBound) -> MSectionBound:
+        # TODO this a shallow copy, but should be a deep copy
+        copy = self.m_def.section_cls()
+        copy.__dict__.update(**self.__dict__)
+        copy.m_parent = None
+        copy.m_parent_index = -1
+        copy.m_parent_sub_section = None
+        copy.m_resource = None
+        return cast(MSectionBound, copy)
+
     def m_all_validate(self):
         ''' Evaluates all constraints in the whole section hierarchy, incl. this section. '''
         errors: List[str] = []
@@ -1428,8 +1500,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return '%s:%s' % (name, m_section_name)
 
     def __getitem__(self, key):
-        key = key.replace('.', '/')
-        return self.m_resolve(key)
+        try:
+            key = key.replace('.', '/')
+            return self.m_resolve(key)
+        except ReferenceError:
+            raise KeyError()
 
     def __iter__(self):
         return self.m_def.all_properties.__iter__()
@@ -2418,6 +2493,6 @@ class Environment(MSection):
         if len(defs) == 1:
             return defs[0]
         elif len(defs) > 1:
-            raise KeyError('Could not uniquely identify %s' % name)
+            raise KeyError('Could not uniquely identify %s, candidates are %s' % (name, defs))
         else:
             raise KeyError('Could not resolve %s' % name)

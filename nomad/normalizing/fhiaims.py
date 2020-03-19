@@ -92,9 +92,12 @@ class FhiAimsBaseNormalizer(Normalizer):
         super().normalize(logger)
 
         for index in self._backend.get_sections('section_method'):
-            to_compare = self._backend.get_value(controlIn_basis_set, index)
-            if to_compare is None:
-                # not fhi aims data
+            try:
+                to_compare = self._backend.get_value(controlIn_basis_set, index)
+                if to_compare is None:
+                    # not fhi aims data
+                    continue
+            except KeyError:
                 continue
 
             matrix_hits_int = dict.fromkeys(pure_types_json, 0)

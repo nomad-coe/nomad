@@ -72,4 +72,4 @@ domains = {
     }
 }
 
-root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info']
+root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry']

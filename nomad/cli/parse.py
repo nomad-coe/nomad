@@ -4,9 +4,8 @@ import json
 import click
 import sys
 
-from nomad import config, utils, files
-from nomad.parsing import LocalBackend, parser_dict, match_parser, MatchingParser, MetainfoBackend
-from nomad.metainfo.legacy import convert
+from nomad import config, utils
+from nomad.parsing import Backend, parser_dict, match_parser, MatchingParser
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryMetadata
 
@@ -16,21 +15,23 @@ from .cli import cli
 
 
 def parse(
-        mainfile: str, upload_files: Union[str, files.StagingUploadFiles],
+        mainfile_path: str,
         parser_name: str = None,
         backend_factory: Callable = None,
-        strict: bool = True, logger=None) -> LocalBackend:
+        strict: bool = True, logger=None) -> Backend:
     '''
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
     '''
+    mainfile = os.path.basename(mainfile_path)
+
     if logger is None:
         logger = utils.get_logger(__name__)
     if parser_name is not None:
         parser = parser_dict.get(parser_name)
         assert parser is not None, 'the given parser must exist'
     else:
-        parser = match_parser(mainfile, upload_files, strict=strict)
+        parser = match_parser(mainfile_path, strict=strict)
         if isinstance(parser, MatchingParser):
             parser_name = parser.name
         else:
@@ -41,11 +42,6 @@ def parse(
     logger.info('identified parser')
     if hasattr(parser, 'backend_factory'):
         setattr(parser, 'backend_factory', backend_factory)
-
-    if isinstance(upload_files, str):
-        mainfile_path = os.path.join(upload_files, mainfile)
-    else:
-        mainfile_path = upload_files.raw_file_object(mainfile).os_path
 
     parser_backend = parser.run(mainfile_path, logger=logger)
 
@@ -65,8 +61,8 @@ def parse(
 
 
 def normalize(
-        normalizer: Union[str, Callable], parser_backend: LocalBackend = None,
-        logger=None) -> LocalBackend:
+        normalizer: Union[str, Callable], parser_backend: Backend = None,
+        logger=None) -> Backend:
 
     if logger is None:
         logger = utils.get_logger(__name__)
@@ -86,7 +82,7 @@ def normalize(
     return parser_backend
 
 
-def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBackend:
+def normalize_all(parser_backend: Backend = None, logger=None) -> Backend:
     '''
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
@@ -105,36 +101,24 @@ def normalize_all(parser_backend: LocalBackend = None, logger=None) -> LocalBack
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
-@click.option('--metainfo', is_flag=True, help='Use the new metainfo instead of the legacy metainfo.')
 @click.option('--annotate', is_flag=True, help='Sub-matcher based parsers will create a .annotate file.')
 def _parse(
         mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser,
-        metainfo, annotate):
+        annotate):
 
     simple_parser.annotate = annotate
 
     utils.configure_logging()
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
-    if metainfo:
-
-        def backend_factory(env, logger):
-            # from vaspparser.metainfo import m_env
-            # from nomad.metainfo import Section
-            # m_env.resolve_definition('section_basis_set_atom_centered', Section)
-            # return MetainfoBackend(m_env, logger=logger)
-
-            return MetainfoBackend(convert(env), logger=logger)
-
-        kwargs.update(backend_factory=backend_factory)
-
-    backend = parse(mainfile, '.', **kwargs)
+    backend = parse(mainfile, **kwargs)
 
     if not skip_normalizers:
         normalize_all(backend)
 
     if show_backend:
-        backend.write_json(sys.stdout, pretty=True)
+        json.dump(backend.resource.m_to_dict(), sys.stdout, indent=2)
+
     if show_metadata:
         metadata = EntryMetadata(domain='dft')  # TODO take domain from matched parser
         metadata.apply_domain_metadata(backend)

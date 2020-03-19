@@ -1,10 +1,28 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+'''
+This module contains functionality to use old 'legacy' NOMAD CoE parsers with the
+new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a unifying
+wrapper for parsers, parser logging, and a parser backend.
+'''
 
 from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple
 import numpy as np
 from pint.errors import UndefinedUnitError
 import os.path
-from jinja2 import Environment as JinjaEnvironment, PackageLoader, select_autoescape
-import textwrap
+
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl, InfoKindEnv
 import nomad_meta_info
@@ -12,8 +30,7 @@ import nomad_meta_info
 from nomad import utils
 from nomad.metainfo import (
     Definition, SubSection, Package, Quantity, Category, Section, Reference, units,
-    Environment, MEnum, MProxy)
-
+    Environment, MEnum, MSection, DefinitionAnnotation)
 
 logger = utils.get_logger(__name__)
 
@@ -23,22 +40,51 @@ _ignored_packages = [
     'repository.nomadmetainfo.json']
 
 
+class LegacyDefinition(DefinitionAnnotation):
+
+    def __init__(self, name: str):
+        self.name = name
+
+
+class LegacyPackage(LegacyDefinition):
+    def __init__(self, name, python_module, python_path):
+        super().__init__(name)
+
+        self.python_module = python_module
+        self.python_path = python_path
+
+
+def normalize_name(name: str):
+    return name.replace('.', '_').replace('-', '_')
+
+
+def normalized_package_name(name: str):
+    '''
+    Transforms legacy metainfo '.nomadmetainfo.json' filenames into proper (python)
+    identifier.
+    '''
+    name = name.replace('.nomadmetainfo.json', '')
+    return normalize_name(name)
+
+
 def python_package_mapping(metainfo_package_name: str) -> Tuple[str, str]:
     '''
     Compute the python package for the given metainfo package name. It returns
-    a tuple containing a file path and a package name. The filepath denotes the file
+    a tuple containing a package name and a file path. The filepath denotes the file
     for this package within the nomad git project.
     '''
+    prefix = metainfo_package_name.replace('.nomadmetainfo.json', '').split('.')[0]
+    metainfo_package_name = normalized_package_name(metainfo_package_name)
 
-    split_mi_package_name = metainfo_package_name.split('_')
-    prefix = split_mi_package_name[0]
-
-    if prefix in ['common', 'general', 'public']:
+    if prefix in ['common', 'general', 'public', 'dft', 'ems']:
         directory = 'nomad/datamodel/metainfo'
         python_package_name = 'nomad.datamodel.metainfo.%s' % metainfo_package_name
 
     else:
-        directory = 'dependencies/parsers/%s/%sparser/metainfo' % (prefix, prefix)
+        parser_dir = prefix.replace('_', '-')
+        prefix = prefix.replace('_', '')
+
+        directory = 'dependencies/parsers/%s/%sparser/metainfo' % (parser_dir, prefix)
         python_package_name = '%sparser.metainfo.%s' % (prefix, metainfo_package_name)
 
     path = '%s/%s.py' % (directory, metainfo_package_name)
@@ -58,12 +104,12 @@ class LegacyMetainfoEnvironment(Environment):
         ''' Creates a legacy metainfo objects for the given definition. '''
         super_names: List[str] = list()
         result: Dict[str, Any] = dict(
-            name=definition.name,
+            name=definition.a_legacy.name,
             description=definition.description,
             superNames=super_names)
 
         for category in definition.categories:
-            super_names.append(category.name)
+            super_names.append(category.a_legacy.name)
 
         if isinstance(definition, Section):
             result['kindStr'] = 'type_section'
@@ -72,7 +118,7 @@ class LegacyMetainfoEnvironment(Environment):
                 for sub_section in self.resolve_definitions(definition.name, SubSection))
 
             for sub_section in self.resolve_definitions(definition.name, SubSection):
-                super_names.append(sub_section.m_parent_as(Definition).name)
+                super_names.append(sub_section.m_parent_as(Definition).a_legacy.name)
 
         elif isinstance(definition, Quantity):
             result['kindStr'] = 'document_content'
@@ -88,12 +134,8 @@ class LegacyMetainfoEnvironment(Environment):
                 dtype_str = 'C'
             elif isinstance(definition.type, Reference):
                 dtype_str = 'r'
-                if isinstance(definition.type.target_section_def, MProxy):
-                    proxy = definition.type.target_section_def
-                    proxy.m_proxy_section = definition
-                    proxy.m_proxy_quantity = Quantity.type
-                    definition.type.target_section_def = proxy.m_proxy_resolve()
-                result['referencedSections'] = [definition.type.target_section_def.name]
+                result['referencedSections'] = [
+                    definition.type.target_section_def.m_resolved().a_legacy.name]
             elif isinstance(definition.type, MEnum):
                 dtype_str = 'C'
             elif type(definition.type) == np.dtype:
@@ -106,10 +148,16 @@ class LegacyMetainfoEnvironment(Environment):
             result['dtypeStr'] = dtype_str
             if definition.unit is not None:
                 result['units'] = str(definition.unit)
-            super_names.append(definition.m_parent_as(Definition).name)
+            super_names.append(definition.m_parent_as(Definition).a_legacy.name)
 
         elif isinstance(definition, Category):
             result['kindStr'] = 'abstract_document_content'
+
+        package = cast(MSection, definition)
+        while not isinstance(package, Package):
+            package = package.m_parent
+
+        result['package'] = package.name
 
         return InfoKindEl(*args, **result, **kwargs)
 
@@ -134,8 +182,9 @@ class LegacyMetainfoEnvironment(Environment):
 class EnvironmentConversion:
     def __init__(self, legacy_env_or_path: Union[InfoKindEnv, str]):
         if isinstance(legacy_env_or_path, str):
-            legacy_env_or_path = os.path.normpath(os.path.join(
-                os.path.dirname(nomad_meta_info.__file__), legacy_env_or_path))
+            if not os.path.exists(legacy_env_or_path):
+                legacy_env_or_path = os.path.normpath(os.path.join(
+                    os.path.dirname(nomad_meta_info.__file__), legacy_env_or_path))
             self.legacy_env, _ = loadJsonFile(filePath=legacy_env_or_path)
 
         else:
@@ -148,7 +197,7 @@ class EnvironmentConversion:
         for legacy_def in self.legacy_env.infoKindEls():
             if legacy_def.package in _ignored_packages:
                 continue
-            legacy_def.package = legacy_def.package.replace('.nomadmetainfo.json', '').replace('.', '_')
+            # legacy_def.package = normalized_package_name(legacy_def.package)
             package_conversion = self.package_conversions.get(legacy_def.package)
             if package_conversion is None:
                 package_conversion = PackageConversion(self, legacy_def.package)
@@ -167,7 +216,7 @@ class EnvironmentConversion:
 
     def create_env(self) -> LegacyMetainfoEnvironment:
         env = LegacyMetainfoEnvironment()
-        env.legacy_package_name = self.legacy_env.name.replace('.nomadmetainfo.json', '').replace('.', '_')
+        env.legacy_package_name = normalized_package_name(self.legacy_env.name)
         for package_conv in self.package_conversions.values():
             package = package_conv.package
             errors, warnings = package.m_all_validate()
@@ -237,25 +286,33 @@ class PackageConversion:
         self.env_conversion = env_conversion
         self.legacy_defs: List[InfoKindEl] = []
 
-        python_package, python_path = python_package_mapping(name)
+        python_module, python_path = python_package_mapping(name)
 
-        self.package = Package(name=name, a_python=(python_package, python_path))
+        self.package = Package(
+            name=normalize_name(name),
+            a_legacy=LegacyPackage(name, python_module, python_path))
+
         self.quantities: Dict[str, Quantity] = {}
 
         self.logger = logger.bind(package=name)
 
     def create_definitions(self):
         for legacy_def in self.legacy_defs:
-            name = legacy_def.name
+            name = normalize_name(legacy_def.name)
 
             if legacy_def.kindStr == 'type_abstract_document_content':
-                self.package.m_create(Category, name=name)
+                self.package.m_create(
+                    Category, name=name, a_legacy=LegacyDefinition(name=legacy_def.name))
 
             elif legacy_def.kindStr == 'type_section':
-                self.package.m_create(Section, name=name)
+                self.package.m_create(
+                    Section, name=name,
+                    a_legacy=LegacyDefinition(name=legacy_def.name))
 
             elif legacy_def.kindStr in ['type_dimension', 'type_document_content']:
-                definition = Quantity(name=name)
+                definition = Quantity(
+                    name=name,
+                    a_legacy=LegacyDefinition(name=legacy_def.name))
                 self.quantities[name] = (definition)
 
             else:
@@ -275,7 +332,9 @@ class PackageConversion:
                 continue
 
             if create_extends and isinstance(definition, Section):
-                extending_def = self.package.m_create(Section, name=definition.name)
+                extending_def = self.package.m_create(
+                    Section, name=definition.name,
+                    a_legacy=LegacyDefinition(name=definition.a_legacy.name))
                 extending_def.base_sections = [definition]
                 extending_def.extends_base_section = True
                 return extending_def
@@ -286,25 +345,28 @@ class PackageConversion:
 
     def set_super_names(self):
         for legacy_def in self.legacy_defs:
-            definition = self.__resolve(legacy_def.name)
-            assert definition is not None, 'definition %s must exist' % legacy_def.name
+            name = normalize_name(legacy_def.name)
+            definition = self.__resolve(name)
+            assert definition is not None, 'definition %s must exist' % name
 
             if isinstance(definition, Section):
                 parent_section: Section = None
                 for super_name in legacy_def.superNames:
-                    super_def = self.__resolve(super_name, create_extends=True)
+                    super_def = self.__resolve(normalize_name(super_name), create_extends=True)
                     if isinstance(super_def, Section):
                         parent_section = cast(Section, super_def)
 
                 if parent_section is not None:
-                    sub_section = parent_section.m_create(SubSection, name=definition.name)
+                    sub_section = parent_section.m_create(
+                        SubSection, name=definition.name,
+                        a_legacy=LegacyDefinition(name=legacy_def.name))
                     sub_section.sub_section = definition
                     sub_section.repeats = legacy_def.repeats is None or legacy_def.repeats
 
             if isinstance(definition, Quantity):
                 parent_section: Section = None
                 for super_name in legacy_def.superNames:
-                    super_def = self.__resolve(super_name, create_extends=True)
+                    super_def = self.__resolve(normalize_name(super_name), create_extends=True)
                     if isinstance(super_def, Section):
                         parent_section = cast(Section, super_def)
 
@@ -312,18 +374,20 @@ class PackageConversion:
 
     def init_definitions(self):
         for legacy_def in self.legacy_defs:
-            definition = self.__resolve(legacy_def.name)
-            assert definition is not None, 'definition %s must exist' % legacy_def.name
+            name = normalize_name(legacy_def.name)
+            definition = self.__resolve(name)
+            assert definition is not None, 'definition %s must exist' % name
             logger = self.logger.bind(definition=definition.name)
 
             # common properties
-            definition.description = legacy_def.description
+            if legacy_def.description is not None and legacy_def.description.strip() != '':
+                definition.description = legacy_def.description
 
             if isinstance(definition, Definition):
                 # deal with categories
                 categories: List[Category] = []
                 for super_name in legacy_def.superNames:
-                    super_def = self.__resolve(super_name)
+                    super_def = self.__resolve(normalize_name(super_name))
                     if isinstance(super_def, Category):
                         categories.append(super_def)
 
@@ -343,7 +407,7 @@ class PackageConversion:
 
                 elif len(referenced_sections) > 1:
                     logger.error(
-                        'higher dimensional references not yet supported: %s' % legacy_def.name)
+                        'higher dimensional references not yet supported: %s' % name)
                     definition.type = np.dtype(int)
 
                 elif legacy_def.kindStr == 'type_dimension':
@@ -353,7 +417,7 @@ class PackageConversion:
                 elif legacy_def.dtypeStr == 'C':
                     definition.type = str
                 elif legacy_def.dtypeStr == 'r':
-                    logger.error('r typed quantity %s  doesn\'t have referencedSections' % legacy_def.name)
+                    logger.error('r typed quantity %s  doesn\'t have referencedSections' % name)
                     definition.type = int
                 elif legacy_def.dtypeStr == 'b':
                     definition.type = bool
@@ -400,6 +464,8 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
             is the working directory. The path will be used to form the module prefix
             for generated Python modules.
     '''
+    from jinja2 import Environment as JinjaEnvironment, PackageLoader, select_autoescape
+    import textwrap
 
     def format_description(description, indent=0, width=90):
         paragraphs = [paragraph.strip() for paragraph in description.split('\n')]
@@ -416,16 +482,21 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
 
     def format_type(pkg, mi_type):
         if type(mi_type) == np.dtype:
+            if mi_type == np.dtype('U'):
+                return 'np.dtype(\'U\')'
+
             return 'np.dtype(np.%s)' % mi_type
+
         if mi_type in [int, float, str, bool]:
             return mi_type.__name__
+
         if isinstance(mi_type, Reference):
             if pkg == mi_type.target_section_def.m_parent:
                 return "Reference(SectionProxy('%s'))" % mi_type.target_section_def.name
 
             else:
-                python_pkg, _ = mi_type.target_section_def.m_parent.a_python
-                return '%s.%s' % (python_pkg.split('.')[-1], mi_type.target_section_def.name)
+                python_module = mi_type.target_section_def.m_parent.a_legacy.python_module
+                return '%s.%s' % (python_module.split('.')[-1], mi_type.target_section_def.name)
 
         else:
             return str(mi_type)
@@ -438,20 +509,24 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
             if pkg == definition.m_parent:
                 return definition.name
             else:
-                python_pkg, _ = definition.m_parent.a_python
-                return '%s.%s' % (python_pkg.split('.')[-1], definition.name)
+                python_module = definition.m_parent.a_legacy.python_module
+                return '%s.%s' % (python_module.split('.')[-1], definition.name)
 
         return ', '.join([format_definition_ref(definition) for definition in definitions])
 
     def fromat_package_import(pkg):
-        python_package, _ = pkg.a_python
-        packages = python_package.split('.')
-        return 'from %s import %s' % ('.'.join(packages[:-1]), packages[-1])
+        python_module = pkg.a_legacy.python_module
+        modules = python_module.split('.')
+        return 'from %s import %s' % ('.'.join(modules[:-1]), modules[-1])
+
+    def order_categories(categories):
+        return sorted(categories, key=lambda c: len(c.categories))
 
     env = JinjaEnvironment(
         loader=PackageLoader('nomad.metainfo', 'templates'),
         autoescape=select_autoescape(['python']))
     env.globals.update(
+        order_categories=order_categories,
         format_description=format_description,
         format_type=format_type,
         format_unit=format_unit,
@@ -459,7 +534,7 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
         fromat_package_import=fromat_package_import)
 
     for package in metainfo_env.packages:
-        _, path = package.a_python
+        path = package.a_legacy.python_path
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
 

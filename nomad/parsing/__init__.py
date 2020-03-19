@@ -60,14 +60,13 @@ Parsers and calculation files are matched via regular expressions.
 .. autofunction:: nomad.parsing.match_parser
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
-basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
-NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
+basends. In nomad@FAIRDI, we only currently only use a single backed. The following
 classes provide a interface definition for *backends* as an ABC and a concrete implementation
-based on NOMAD-coe's *python-common* module.
+based on nomad@fairdi's metainfo:
 
 .. autoclass:: nomad.parsing.AbstractParserBackend
     :members:
-.. autoclass:: nomad.parsing.LocalBackend
+.. autoclass:: nomad.parsing.Backend
     :members:
 '''
 
@@ -78,12 +77,13 @@ import bz2
 import lzma
 import os.path
 
-from nomad import files, config
+from nomad import config
 
-from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
-from nomad.parsing.metainfo import MetainfoBackend
-from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser, MatchingParser
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
+from nomad.parsing.legacy import (
+    AbstractParserBackend, Backend, BackendError, BadContextUri, LegacyParser, VaspOutcarParser)
+from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser
+from nomad.parsing.artificial import (
+    TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser)
 
 
 _compressions = {
@@ -95,7 +95,7 @@ _compressions = {
 encoding_magic = magic.Magic(mime_encoding=True)
 
 
-def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
+def match_parser(mainfile_path: str, strict=True) -> 'Parser':
     '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -105,20 +105,14 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
     and beginning file contents.
 
     Arguments:
-        mainfile: The upload relative path to the mainfile
-        upload_files: Either a :class:`files.StagingUploadFiles` object or a directory name.
-            Directory name + mainfile needs to point to the file.
+        mainfile_path: Path to the mainfile
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
 
     Returns: The parser, or None if no parser could be matched.
     '''
+    mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
         return None
-
-    if isinstance(upload_files, str):
-        mainfile_path = os.path.join(upload_files, mainfile)
-    else:
-        mainfile_path = upload_files.raw_file_object(mainfile).os_path
 
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))

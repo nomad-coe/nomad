@@ -14,16 +14,15 @@
 
 import time
 import json
+import pytest
 
 from nomad import utils
-
-from tests import utils as test_utils
 
 
 def test_decode_handle_id():
     assert utils.decode_handle_id('a1') == 321
     assert utils.decode_handle_id('6i370') == 6884576
-    with test_utils.assert_exception(ValueError):
+    with pytest.raises(ValueError):
         utils.decode_handle_id('zz')
 
 

@@ -14,18 +14,7 @@
 
 from typing import List
 from abc import ABCMeta, abstractmethod
-import sys
 import re
-import importlib
-import inspect
-from unittest.mock import patch
-import logging
-import os.path
-import os
-import glob
-
-from nomad import utils, config
-from nomad.parsing.backend import LocalBackend
 
 
 class Parser(metaclass=ABCMeta):
@@ -53,9 +42,9 @@ class Parser(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None):
         '''
-        Runs the parser on the given mainfile. It uses :class:`LocalBackend` as
+        Runs the parser on the given mainfile. It uses :class:`Backend` as
         a backend. The meta-info access is handled by the underlying NOMAD-coe parser.
 
         Args:
@@ -63,7 +52,7 @@ class Parser(metaclass=ABCMeta):
             logger: A optional logger
 
         Returns:
-            The used :class:`LocalBackend` with status information and result data.
+            The used :class:`Backend` with status information and result data.
         '''
 
 
@@ -92,7 +81,7 @@ class BrokenParser(Parser):
 
         return False
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None):
         raise Exception('Failed on purpose.')
 
 
@@ -160,73 +149,5 @@ class MissingParser(MatchingParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None):
         raise Exception('The code %s is not yet supported.' % self.code_name)
-
-
-class LegacyParser(MatchingParser):
-    '''
-    A parser implementation for legacy NOMAD-coe parsers. It assumes that parsers
-    are installed to the python environment.
-
-    Arguments:
-        parser_class_name: the main parser class that implements NOMAD-coe's
-        backend_factory: a callable that returns a backend, takes meta_info and logger as argument
-    '''
-    def __init__(self, parser_class_name: str, *args, backend_factory=None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.parser_class_name = parser_class_name
-        self.backend_factory = backend_factory
-
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
-        # TODO we need a homogeneous interface to parsers, but we dont have it right now.
-        # There are some hacks to distringuish between ParserInterface parser and simple_parser
-        # using hasattr, kwargs, etc.
-        def create_backend(meta_info):
-            if self.backend_factory is not None:
-                return self.backend_factory(meta_info, logger=logger)
-
-            return LocalBackend(meta_info, debug=False, logger=logger, domain=self.domain)
-
-        module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[-1]
-        module = importlib.import_module('.'.join(module_name))
-        Parser = getattr(module, parser_class)
-
-        init_signature = inspect.getargspec(Parser.__init__)
-        kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
-        kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
-
-        with utils.legacy_logger(logger):
-            self.parser = Parser(**kwargs)
-
-            with patch.object(sys, 'argv', []):
-                backend = self.parser.parse(mainfile)
-                os.chdir(config.fs.working_directory)
-
-            if backend is None or not hasattr(backend, 'status'):
-                backend = self.parser.parser_context.super_backend
-
-        return backend
-
-
-class VaspOutcarParser(LegacyParser):
-    '''
-    LegacyParser that only matches mailfiles, if there is no .xml in the
-    same directory, i.e. to use the VASP OUTCAR parser in absence of .xml
-    output file.
-    '''
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.name = 'parsers/vaspoutcar'
-
-    def is_mainfile(self, filename: str, *args, **kwargs) -> bool:
-        is_mainfile = super().is_mainfile(filename, *args, **kwargs)
-
-        if is_mainfile:
-            directory = os.path.dirname(filename)
-            if len(glob.glob('%s/*.xml*' % directory)) > 0:
-                return False
-
-        return is_mainfile

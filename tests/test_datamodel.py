@@ -123,11 +123,9 @@ def test_common_metainfo():
 
 def test_vasp_metainfo():
     from nomad.datamodel.metainfo import public
-
-    run = public.section_run()
-
-    assert 'vasp_src_date' not in run.m_def.all_quantities
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
+    run = public.section_run()
+    assert 'vasp_src_date' in run.m_def.all_quantities
 
 
 if __name__ == '__main__':

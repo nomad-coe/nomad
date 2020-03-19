@@ -33,7 +33,7 @@ def test_index_skeleton_calc(elastic):
     create_entry(entry_metadata)
 
 
-def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
+def test_index_normalized_calc(elastic, normalized: parsing.Backend):
     entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -48,7 +48,7 @@ def test_index_normalized_calc(elastic, normalized: parsing.LocalBackend):
 
 
 def test_index_normalized_calc_with_metadata(
-        elastic, normalized: parsing.LocalBackend, internal_example_user_metadata: dict):
+        elastic, normalized: parsing.Backend, internal_example_user_metadata: dict):
     entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -66,7 +66,7 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 
 @pytest.fixture()
-def example_search_data(elastic, normalized: parsing.LocalBackend):
+def example_search_data(elastic, normalized: parsing.Backend):
     entry_metadata = datamodel.EntryMetadata(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -77,7 +77,7 @@ def example_search_data(elastic, normalized: parsing.LocalBackend):
 
 
 @pytest.fixture()
-def example_ems_search_data(elastic, parsed_ems: parsing.LocalBackend):
+def example_ems_search_data(elastic, parsed_ems: parsing.Backend):
     entry_metadata = datamodel.EntryMetadata(
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)
@@ -201,7 +201,7 @@ def test_search_include(elastic, example_search_data):
 
 @pytest.mark.parametrize("order_by", [None, 'upload_id'])
 def test_search_quantity(
-        elastic, normalized: parsing.LocalBackend, test_user: datamodel.User,
+        elastic, normalized: parsing.Backend, test_user: datamodel.User,
         other_test_user: datamodel.User, order_by: str):
 
     entry_metadata = datamodel.EntryMetadata(

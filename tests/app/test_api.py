@@ -38,7 +38,6 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
-from tests.utils import assert_exception
 
 from tests.app.test_app import BlueprintClient
 
@@ -700,7 +699,7 @@ class TestArchive(UploadFilesBasedTests):
 class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
-            self, elastic_infra, normalized: parsing.LocalBackend,
+            self, elastic_infra, normalized: parsing.Backend,
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
@@ -1174,10 +1173,10 @@ class TestEditRepo():
         Dataset.m_def.a_mongo.objects(name='new_ds').delete()
 
     @pytest.fixture(autouse=True)
-    def example_data(self, meta_info, class_api, test_user, other_test_user):
+    def example_data(self, class_api, test_user, other_test_user):
         def create_entry(id, user, **kwargs):
             metadata = dict(uploader=user.user_id, **kwargs)
-            create_test_structure(meta_info, id, 2, 1, [], 0, metadata=metadata)
+            create_test_structure(id, 2, 1, [], 0, metadata=metadata)
 
         entries = [
             dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, with_embargo=False),
@@ -1354,7 +1353,7 @@ class TestEditRepo():
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
         assert rv.status_code == 200
-        with assert_exception(KeyError):
+        with pytest.raises(KeyError):
             assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is None
 
     def test_edit_ds_user_namespace(self, test_user):

@@ -45,9 +45,52 @@ def qa(skip_tests: bool, exitfirst: bool):
 
 
 @dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
-@click.argument('package', nargs=1)
-def legacy_metainfo(package):
+@click.argument('path', nargs=-1)
+def legacy_metainfo(path):
     from nomad.metainfo.legacy import convert, generate_metainfo_code
 
-    env = convert(package)
-    generate_metainfo_code(env)
+    if len(path) == 0:
+        path = [
+            'abinit.nomadmetainfo.json',
+            'aptfim.nomadmetainfo.json',
+            'atk.nomadmetainfo.json',
+            'band.nomadmetainfo.json',
+            'bigdft.nomadmetainfo.json',
+            'castep.nomadmetainfo.json',
+            'cp2k.nomadmetainfo.json',
+            'cpmd.nomadmetainfo.json',
+            'crystal.nomadmetainfo.json',
+            'dl_poly.nomadmetainfo.json',
+            'dmol3.nomadmetainfo.json',
+            'eels.nomadmetainfo.json',
+            'elastic.nomadmetainfo.json',
+            'elk.nomadmetainfo.json',
+            'exciting.nomadmetainfo.json',
+            'fhi_aims.nomadmetainfo.json',
+            'fleur.nomadmetainfo.json',
+            'gamess.nomadmetainfo.json',
+            'gaussian.nomadmetainfo.json',
+            'gpaw.nomadmetainfo.json',
+            'gulp.nomadmetainfo.json',
+            'lib_atoms.nomadmetainfo.json',
+            'molcas.nomadmetainfo.json',
+            'mpes.nomadmetainfo.json',
+            'nwchem.nomadmetainfo.json',
+            'octopus.nomadmetainfo.json',
+            'onetep.nomadmetainfo.json',
+            'orca.nomadmetainfo.json',
+            'phonopy.nomadmetainfo.json',
+            'photoemission.nomadmetainfo.json',
+            'qbox.nomadmetainfo.json',
+            'quantum_espresso.nomadmetainfo.json',
+            'siesta.nomadmetainfo.json',
+            'skeleton.nomadmetainfo.json',
+            'turbomole.nomadmetainfo.json',
+            'vasp.nomadmetainfo.json',
+            'wien2k.nomadmetainfo.json',
+            'dft.nomadmetainfo.json',
+            'ems.nomadmetainfo.json']
+
+    for element in path:
+        env = convert(element)
+        generate_metainfo_code(env)

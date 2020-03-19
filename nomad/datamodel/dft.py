@@ -18,14 +18,13 @@ DFT specific metadata
 
 import re
 
-from nomadcore.local_backend import ParserEvent
-
 from nomad import utils, config
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
 from .common import get_optional_backend_value
 from .optimade import OptimadeEntry
+from .metainfo.public import section_run
 
 
 xc_treatments = {
@@ -175,18 +174,6 @@ class DFTMetadata(MSection):
         description='Metadata used for the optimade API.',
         a_search='optimade')
 
-    def m_update(self, **kwargs):
-        # TODO necessary?
-        if 'labels' in kwargs:
-            print('########################## A')
-            self.labels = [Label.m_from_dict(label) for label in kwargs.pop('labels')]
-
-        if 'optimade' in kwargs:
-            print('########################## B')
-            self.optimade = OptimadeEntry.m_from_dict(kwargs.pop('optimade'))
-
-        super().m_update(**kwargs)
-
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
@@ -248,23 +235,28 @@ class DFTMetadata(MSection):
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, event, value in backend.traverse():
-            quantities.add(meta_info)
+        for root_section in backend.resource.contents:
+            if not root_section.m_follows(section_run.m_def):
+                continue
 
-            if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
+            quantities.add(root_section.m_def.name)
+            n_quantities += 1
+
+            for section, property_def, _ in root_section.m_traverse():
+                property_name = property_def.name
+                quantities.add(property_name)
                 n_quantities += 1
 
-                if meta_info == 'energy_total':
+                if property_name == 'energy_total':
                     n_total_energies += 1
 
-                if meta_info == 'configuration_raw_gid':
-                    geometries.add(value)
+                if property_name == 'configuration_raw_gid':
+                    geometries.add(section.m_get(property_def))
 
-            elif event == ParserEvent.open_section:
-                if meta_info == 'section_single_configuration_calculation':
+                if property_name == 'section_single_configuration_calculation':
                     n_calculations += 1
 
-                if meta_info == 'section_system':
+                if property_name == 'section_system':
                     n_geometries += 1
 
         self.quantities = list(quantities)
@@ -294,4 +286,6 @@ class DFTMetadata(MSection):
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
 
         # optimade
-        self.optimade = backend.get_mi2_section(OptimadeEntry.m_def)
+        optimade = backend.get_mi2_section(OptimadeEntry.m_def)
+        if optimade is not None:
+            self.optimade = optimade.m_copy()

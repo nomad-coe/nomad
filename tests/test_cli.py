@@ -23,7 +23,6 @@ from nomad.cli import cli
 from nomad.processing import Upload, Calc
 
 from tests.app.test_app import BlueprintClient
-from tests.utils import assert_exception
 
 # TODO there is much more to test
 
@@ -79,7 +78,7 @@ class TestAdmin:
         assert published.upload_files.exists()
         assert calc.metadata['with_embargo']
         assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
-        with assert_exception():
+        with pytest.raises(Exception):
             files.UploadFiles.get(upload_id=upload_id).archive_file(calc_id=calc.calc_id)
 
         result = click.testing.CliRunner().invoke(

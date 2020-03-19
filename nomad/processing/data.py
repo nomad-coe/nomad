@@ -39,7 +39,7 @@ import json
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parser_dict, match_parser, LocalBackend
+from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
 
 
@@ -106,7 +106,7 @@ class Calc(Proc):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._parser_backend: LocalBackend = None
+        self._parser_backend: Backend = None
         self._upload: Upload = None
         self._upload_files: ArchiveBasedStagingUploadFiles = None
         self._calc_proc_logwriter = None
@@ -187,7 +187,7 @@ class Calc(Proc):
         instead of creating it initially, we are just updating the existing
         records.
         '''
-        parser = match_parser(self.mainfile, self.upload_files, strict=False)
+        parser = match_parser(self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
 
         if parser is None and not config.reprocess_unmatched:
             # Remove the logsfile and set a fake logwriter to avoid creating a log file,
@@ -437,8 +437,10 @@ class Calc(Proc):
         with utils.timer(
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
+
             with self.upload_files.archive_file(self.calc_id, 'wt') as out:
-                self._parser_backend.write_json(out, pretty=True, root_sections=datamodel.root_sections)
+                json.dump(self._parser_backend.resource.m_to_dict(
+                    lambda section: section.m_def.name in datamodel.root_sections), out, indent=2)
 
             log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
 
@@ -823,7 +825,7 @@ class Upload(Proc):
         for filename in upload_files.raw_file_manifest():
             self._preprocess_files(filename)
             try:
-                parser = match_parser(filename, upload_files)
+                parser = match_parser(upload_files.raw_file_object(filename).os_path)
                 if parser is not None:
                     directory = os.path.dirname(filename)
                     if directory in directories_with_match:

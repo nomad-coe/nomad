@@ -22,7 +22,6 @@ from nomad.app.optimade import parse_filter, url
 
 from tests.app.test_app import BlueprintClient
 from tests.conftest import clear_elastic, create_test_structure
-from tests.utils import assert_exception
 
 
 @pytest.fixture(scope='session')
@@ -34,14 +33,14 @@ def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
     with published.upload_files.archive_file(calc_id) as f:
         data = json.load(f)
-    assert 'OptimadeEntry' in data
+    assert 'OptimadeEntry' in data, data.keys()
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
     assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
 
 
-def test_no_optimade(meta_info, mongo, elastic, api):
-    create_test_structure(meta_info, 1, 2, 1, [], 0)
-    create_test_structure(meta_info, 2, 2, 1, [], 0, optimade=False)
+def test_no_optimade(mongo, elastic, api):
+    create_test_structure(1, 2, 1, [], 0)
+    create_test_structure(2, 2, 1, [], 0, optimade=False)
     search.refresh()
 
     rv = api.get('/calculations')
@@ -52,14 +51,14 @@ def test_no_optimade(meta_info, mongo, elastic, api):
 
 
 @pytest.fixture(scope='module')
-def example_structures(meta_info, elastic_infra, mongo_infra):
+def example_structures(elastic_infra, mongo_infra):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    create_test_structure(meta_info, 1, 2, 1, [], 0)
-    create_test_structure(meta_info, 2, 2, 1, ['C'], 0)
-    create_test_structure(meta_info, 3, 2, 1, [], 1)
-    create_test_structure(meta_info, 4, 1, 1, [], 0)
+    create_test_structure(1, 2, 1, [], 0)
+    create_test_structure(2, 2, 1, ['C'], 0)
+    create_test_structure(3, 2, 1, [], 1)
+    create_test_structure(4, 1, 1, [], 0)
     search.refresh()
 
     yield
@@ -127,7 +126,7 @@ def test_optimade_parser(example_structures, query, results):
         result = search.SearchRequest(query=query).execute_paginated()
         assert result['pagination']['total'] == results
     else:
-        with assert_exception():
+        with pytest.raises(Exception):
             query = parse_filter(query)
 
 

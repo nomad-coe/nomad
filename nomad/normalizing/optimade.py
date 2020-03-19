@@ -130,4 +130,6 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             return True
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             self.logger.warn('could not acquire optimade data', exc_info=e)

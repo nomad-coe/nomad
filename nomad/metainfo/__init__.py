@@ -276,6 +276,7 @@ A more complex example
 
 
 from .metainfo import (
+    MSectionBound,
     MSection,
     MCategory,
     Definition,

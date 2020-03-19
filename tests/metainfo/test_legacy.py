@@ -17,12 +17,8 @@ import numpy as np
 
 from nomadcore.local_meta_info import InfoKindEl, InfoKindEnv
 
-from nomad.metainfo.metainfo import (
-    MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
-    DefinitionAnnotation, Reference, MProxy, derived)
+from nomad.metainfo.metainfo import Section, Quantity, SubSection
 from nomad.metainfo.legacy import LegacyMetainfoEnvironment, convert, python_package_mapping
-from nomad.parsing.metainfo import MetainfoBackend
 
 
 @pytest.fixture(scope='session')
@@ -82,9 +78,9 @@ def env(legacy_env):
         'nomad/datamodel/metainfo/common.py',
         'nomad.datamodel.metainfo.common'),
     (
-        'vasp_incars',
-        'dependencies/parsers/vasp/vaspparser/metainfo/vasp_incars.py',
-        'vaspparser.metainfo.vasp_incars')
+        'fhi_aims',
+        'dependencies/parsers/fhi-aims/fhiaimsparser/metainfo/fhi_aims.py',
+        'fhiaimsparser.metainfo.fhi_aims')
 ])
 def test_package_mapping(package, path, name):
     assert python_package_mapping(package) == (name, path)
@@ -106,37 +102,3 @@ def test_environment(env: LegacyMetainfoEnvironment, no_warn):
     assert env.resolve_definition('atom_positions', Quantity).type == np.dtype('float64')
     assert env.resolve_definition('bool_test', Quantity).type == bool
     assert env.resolve_definition('program_name', Quantity).m_parent.name == 'section_run'
-
-
-def test_backend(env, no_warn):
-    backend = MetainfoBackend(env)
-    run = backend.openSection('section_run')
-    backend.addValue('program_name', 'vasp')
-
-    system_0 = backend.openSection('section_system')
-    assert system_0 == 0
-
-    backend.addValue('number_of_atoms', 3)
-    backend.addArrayValues('atom_labels', np.array(['H', 'H', 'O']))
-    backend.addArrayValues('atom_positions', [[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    backend.closeSection('section_system', system_0)
-
-    system_1 = backend.openSection('section_system')
-    assert system_1 == 1
-    backend.closeSection('section_system', system_1)
-
-    method = backend.openSection('section_method')
-    backend.addValue('method_system_ref', system_0)
-    backend.closeSection('section_method', method)
-
-    backend.closeSection('section_run', run)
-
-    assert backend.get_sections('section_system') == [0, 1]
-    assert len(backend.get_value('atom_labels', 0)) == 3
-    assert backend.get_value('method_system_ref', 0) == 0
-    assert backend.get_value('program_name', 0) == 'vasp'
-
-    backend.openContext('section_run/0/section_system/1')
-    backend.addValue('number_of_atoms', 10)
-    backend.closeContext('section_run/0/section_system/1')
-    assert backend.get_value('number_of_atoms', 1) == 10

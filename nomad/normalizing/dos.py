@@ -52,7 +52,7 @@ class DosNormalizer(Normalizer):
                     return
 
                 number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = np.linalg.det(lattice_vectors)
+                unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
 
                 # Final quantities
                 dos_normed = dos / (number_of_atoms * unit_cell_volume)

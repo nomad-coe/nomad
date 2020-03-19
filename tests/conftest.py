@@ -31,12 +31,9 @@ import numpy as np
 import json
 import logging
 
-from nomadcore.local_meta_info import loadJsonFile
-import nomad_meta_info
-
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User, EntryMetadata
-from nomad.parsing import LocalBackend
+from nomad.parsing import Backend
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
@@ -284,14 +281,6 @@ def proc_infra(worker, elastic, mongo, raw_files):
     return dict(elastic=elastic)
 
 
-@pytest.fixture(scope='session')
-def meta_info():
-    file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-    path = os.path.join(file_dir, 'all.nomadmetainfo.json')
-    meta_info, _ = loadJsonFile(path)
-    return meta_info
-
-
 @pytest.fixture(scope='module')
 def test_user():
     return User(**test_users[test_user_uuid(1)])
@@ -535,21 +524,21 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 
 
 @pytest.fixture(scope='session')
-def parsed(example_mainfile: Tuple[str, str]) -> parsing.LocalBackend:
-    ''' Provides a parsed calculation in the form of a LocalBackend. '''
+def parsed(example_mainfile: Tuple[str, str]) -> parsing.Backend:
+    ''' Provides a parsed calculation in the form of a Backend. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
 
 @pytest.fixture(scope='session')
-def parsed_ems() -> parsing.LocalBackend:
-    ''' Provides a parsed experiment in the form of a LocalBackend. '''
+def parsed_ems() -> parsing.Backend:
+    ''' Provides a parsed experiment in the form of a Backend. '''
     return test_parsing.run_parser('parsers/skeleton', 'tests/data/parsers/skeleton/example.metadata.json')
 
 
 @pytest.fixture(scope='session')
-def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
-    ''' Provides a normalized calculation in the form of a LocalBackend. '''
+def normalized(parsed: parsing.Backend) -> parsing.Backend:
+    ''' Provides a normalized calculation in the form of a Backend. '''
     return test_normalizing.run_normalize(parsed)
 
 
@@ -648,7 +637,7 @@ def reset_infra(mongo, elastic):
 
 
 def create_test_structure(
-        meta_info, id: int, h: int, o: int, extra: List[str], periodicity: int,
+        id: int, h: int, o: int, extra: List[str], periodicity: int,
         optimade: bool = True, metadata: dict = None):
     ''' Creates a calculation in Elastic and Mongodb with the given properties.
 
@@ -668,7 +657,7 @@ def create_test_structure(
     atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
     test_vector = np.array([0, 0, 0])
 
-    backend = LocalBackend(meta_info, False, True)  # type: ignore
+    backend = Backend('public', False, True)  # type: ignore
     backend.openSection('section_run')
     backend.addValue('program_name', 'test_code')
     backend.openSection('section_system')

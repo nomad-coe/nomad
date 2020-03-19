@@ -4,9 +4,13 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference
 )
+from nomad.metainfo.legacy import LegacyDefinition
 
 
-m_package = Package(name='public', description='None')
+m_package = Package(
+    name='public_nomadmetainfo_json',
+    description='None',
+    a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
 
 class accessory_info(MCategory):
@@ -15,12 +19,18 @@ class accessory_info(MCategory):
     timing).
     '''
 
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='accessory_info'))
+
 
 class atom_forces_type(MCategory):
     '''
     The types of forces acting on the atoms (i.e., minus derivatives of the specific type
     of energy with respect to the atom position).
     '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='atom_forces_type'))
 
 
 class basis_set_description(MCategory):
@@ -29,11 +39,17 @@ class basis_set_description(MCategory):
     set, plane-waves or both).
     '''
 
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='basis_set_description'))
+
 
 class configuration_core(MCategory):
     '''
     Properties defining the current configuration.
     '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='configuration_core'))
 
 
 class conserved_quantity(MCategory):
@@ -42,66 +58,8 @@ class conserved_quantity(MCategory):
     kinetic+potential energy during NVE).
     '''
 
-
-class energy_component_per_atom(MCategory):
-    '''
-    A value of an energy component per atom, concurring in defining the total energy per
-    atom.
-    '''
-
-
-class energy_component(MCategory):
-    '''
-    A value of an energy component, expected to be an extensive property.
-    '''
-
-
-class energy_total_potential_per_atom(MCategory):
-    '''
-    A value of the total potential energy per atom. Note that a direct comparison may not
-    be possible because of a difference in the methods for computing total energies and
-    numerical implementations of various codes might leads to different energy zeros (see
-    section_energy_code_independent for a code-independent definition of the energy).
-    '''
-
-
-class energy_total_potential(MCategory):
-    '''
-    A value of the total potential energy. Note that a direct comparison may not be
-    possible because of a difference in the methods for computing total energies and
-    numerical implementations of various codes might leads to different energy zeros (see
-    section_energy_code_independent for a code-independent definition of the energy).
-    '''
-
-
-class energy_type_C(MCategory):
-    '''
-    This metadata stores the correlation (C) energy.
-    '''
-
-
-class energy_type_reference(MCategory):
-    '''
-    This metadata stores an energy used as reference point.
-    '''
-
-
-class energy_type_van_der_Waals(MCategory):
-    '''
-    This metadata stores the converged van der Waals energy.
-    '''
-
-
-class energy_type_XC(MCategory):
-    '''
-    This metadata stores the exchange-correlation (XC) energy.
-    '''
-
-
-class energy_type_X(MCategory):
-    '''
-    This metadata stores the exchange (X) energy.
-    '''
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='conserved_quantity'))
 
 
 class energy_value(MCategory):
@@ -109,17 +67,17 @@ class energy_value(MCategory):
     This metadata stores an energy value.
     '''
 
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='energy_value'))
+
 
 class error_estimate_contribution(MCategory):
     '''
     An estimate of a partial quantity contributing to the error for a given quantity.
     '''
 
-
-class error_estimate(MCategory):
-    '''
-    An estimate of the error on the converged (final) value.
-    '''
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='error_estimate_contribution'))
 
 
 class message_debug(MCategory):
@@ -127,11 +85,157 @@ class message_debug(MCategory):
     A debugging message of the computational program.
     '''
 
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='message_debug'))
 
-class message_error(MCategory):
+
+class parsing_message_debug(MCategory):
     '''
-    An error message of the computational program.
+    This field is used for debugging messages of the parsing program.
     '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='parsing_message_debug'))
+
+
+class scf_info(MCategory):
+    '''
+    Contains information on the self-consistent field (SCF) procedure, i.e. the number of
+    SCF iterations (number_of_scf_iterations) or a section_scf_iteration section with
+    detailed information on the SCF procedure of specified quantities.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='scf_info'))
+
+
+class settings_numerical_parameter(MCategory):
+    '''
+    A parameter that can influence the convergence, but not the physics (unlike
+    settings_physical_parameter)
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_numerical_parameter'))
+
+
+class settings_physical_parameter(MCategory):
+    '''
+    A parameter that defines the physical model used. Use settings_numerical_parameter for
+    parameters that that influence only the convergence/accuracy.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_physical_parameter'))
+
+
+class settings_potential_energy_surface(MCategory):
+    '''
+    Contains parameters that control the potential energy surface.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_potential_energy_surface'))
+
+
+class settings_run(MCategory):
+    '''
+    Contains parameters that control the whole run (but not the *single configuration
+    calculation*, see section_single_configuration_calculation).
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_run'))
+
+
+class settings_sampling(MCategory):
+    '''
+    Contains parameters controlling the sampling.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_sampling'))
+
+
+class settings_scf(MCategory):
+    '''
+    Contains parameters connected with the convergence of the self-consistent field (SCF)
+    iterations.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_scf'))
+
+
+class settings_smearing(MCategory):
+    '''
+    Contain parameters that control the smearing of the orbital occupation at finite
+    electronic temperatures.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_smearing'))
+
+
+class settings_stress_tensor(MCategory):
+    '''
+    Settings to calculate the stress tensor (stress_tensor) consistent with the total
+    energy of the system given in energy_total.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='settings_stress_tensor'))
+
+
+class stress_tensor_type(MCategory):
+    '''
+    Contains the final value of the default stress tensor (stress_tensor) and/or the value
+    of the stress tensor (stress_tensor_value) of the kind defined in stress_tensor_kind.
+    '''
+
+    m_def = Category(
+        a_legacy=LegacyDefinition(name='stress_tensor_type'))
+
+
+class energy_component_per_atom(MCategory):
+    '''
+    A value of an energy component per atom, concurring in defining the total energy per
+    atom.
+    '''
+
+    m_def = Category(
+        categories=[energy_value],
+        a_legacy=LegacyDefinition(name='energy_component_per_atom'))
+
+
+class energy_component(MCategory):
+    '''
+    A value of an energy component, expected to be an extensive property.
+    '''
+
+    m_def = Category(
+        categories=[energy_value],
+        a_legacy=LegacyDefinition(name='energy_component'))
+
+
+class energy_type_reference(MCategory):
+    '''
+    This metadata stores an energy used as reference point.
+    '''
+
+    m_def = Category(
+        categories=[energy_value],
+        a_legacy=LegacyDefinition(name='energy_type_reference'))
+
+
+class error_estimate(MCategory):
+    '''
+    An estimate of the error on the converged (final) value.
+    '''
+
+    m_def = Category(
+        categories=[error_estimate_contribution],
+        a_legacy=LegacyDefinition(name='error_estimate'))
 
 
 class message_info(MCategory):
@@ -139,11 +243,9 @@ class message_info(MCategory):
     An information message of the computational program.
     '''
 
-
-class message_warning(MCategory):
-    '''
-    A warning message of the computational program.
-    '''
+    m_def = Category(
+        categories=[message_debug],
+        a_legacy=LegacyDefinition(name='message_info'))
 
 
 class parallelization_info(MCategory):
@@ -154,17 +256,9 @@ class parallelization_info(MCategory):
     code.
     '''
 
-
-class parsing_message_debug(MCategory):
-    '''
-    This field is used for debugging messages of the parsing program.
-    '''
-
-
-class parsing_message_error(MCategory):
-    '''
-    This field is used for error messages of the parsing program.
-    '''
+    m_def = Category(
+        categories=[accessory_info],
+        a_legacy=LegacyDefinition(name='parallelization_info'))
 
 
 class parsing_message_info(MCategory):
@@ -172,11 +266,9 @@ class parsing_message_info(MCategory):
     This field is used for info messages of the parsing program.
     '''
 
-
-class parsing_message_warning(MCategory):
-    '''
-    This field is used for warning messages of the parsing program.
-    '''
+    m_def = Category(
+        categories=[parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_info'))
 
 
 class program_info(MCategory):
@@ -186,25 +278,9 @@ class program_info(MCategory):
     children of this field.
     '''
 
-
-class scf_info(MCategory):
-    '''
-    Contains information on the self-consistent field (SCF) procedure, i.e. the number of
-    SCF iterations (number_of_scf_iterations) or a section_scf_iteration section with
-    detailed information on the SCF procedure of specified quantities.
-    '''
-
-
-class settings_barostat(MCategory):
-    '''
-    Contains parameters controlling the barostat in a molecular dynamics calculation.
-    '''
-
-
-class settings_coupled_cluster(MCategory):
-    '''
-    Contains parameters for the coupled-cluster method (CC) in the post Hartree-Fock step.
-    '''
+    m_def = Category(
+        categories=[accessory_info],
+        a_legacy=LegacyDefinition(name='program_info'))
 
 
 class settings_geometry_optimization(MCategory):
@@ -212,19 +288,9 @@ class settings_geometry_optimization(MCategory):
     Contains parameters controlling the geometry optimization.
     '''
 
-
-class settings_GW(MCategory):
-    '''
-    Contains parameters for the GW-method in the post Hartree-Fock step, that expands the
-    self-energy in terms of the single particle Green's function $G$ and the screened
-    Coulomb interaction $W$.
-    '''
-
-
-class settings_integrator(MCategory):
-    '''
-    Contains parameters that control the molecular dynamics (MD) integrator.
-    '''
+    m_def = Category(
+        categories=[settings_sampling],
+        a_legacy=LegacyDefinition(name='settings_geometry_optimization'))
 
 
 class settings_k_points(MCategory):
@@ -232,12 +298,9 @@ class settings_k_points(MCategory):
     Contains parameters that control the $k$-point mesh.
     '''
 
-
-class settings_MCSCF(MCategory):
-    '''
-    Contains parameters for the multi-configurational self-consistent-field (MCSCF)
-    method.
-    '''
+    m_def = Category(
+        categories=[settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_k_points'))
 
 
 class settings_metadynamics(MCategory):
@@ -245,17 +308,19 @@ class settings_metadynamics(MCategory):
     Contains parameters that control the metadynamics sampling.
     '''
 
+    m_def = Category(
+        categories=[settings_sampling],
+        a_legacy=LegacyDefinition(name='settings_metadynamics'))
+
 
 class settings_molecular_dynamics(MCategory):
     '''
     Contains parameters that control the molecular dynamics sampling.
     '''
 
-
-class settings_moller_plesset_perturbation_theory(MCategory):
-    '''
-    Contains parameters for Møller–Plesset perturbation theory.
-    '''
+    m_def = Category(
+        categories=[settings_sampling],
+        a_legacy=LegacyDefinition(name='settings_molecular_dynamics'))
 
 
 class settings_Monte_Carlo(MCategory):
@@ -263,107 +328,9 @@ class settings_Monte_Carlo(MCategory):
     Contains parameters that control the Monte-Carlo sampling.
     '''
 
-
-class settings_multi_reference(MCategory):
-    '''
-    Contains parameters for the multi-reference single and double configuration
-    interaction method.
-    '''
-
-
-class settings_numerical_parameter(MCategory):
-    '''
-    A parameter that can influence the convergence, but not the physics (unlike
-    settings_physical_parameter)
-    '''
-
-
-class settings_physical_parameter(MCategory):
-    '''
-    A parameter that defines the physical model used. Use settings_numerical_parameter for
-    parameters that that influence only the convergence/accuracy.
-    '''
-
-
-class settings_post_hartree_fock(MCategory):
-    '''
-    Contains parameters for the post Hartree-Fock method.
-    '''
-
-
-class settings_potential_energy_surface(MCategory):
-    '''
-    Contains parameters that control the potential energy surface.
-    '''
-
-
-class settings_relativity(MCategory):
-    '''
-    Contains parameters and information connected with the relativistic treatment used in
-    the calculation.
-    '''
-
-
-class settings_run(MCategory):
-    '''
-    Contains parameters that control the whole run (but not the *single configuration
-    calculation*, see section_single_configuration_calculation).
-    '''
-
-
-class settings_sampling(MCategory):
-    '''
-    Contains parameters controlling the sampling.
-    '''
-
-
-class settings_scf(MCategory):
-    '''
-    Contains parameters connected with the convergence of the self-consistent field (SCF)
-    iterations.
-    '''
-
-
-class settings_self_interaction_correction(MCategory):
-    '''
-    Contains parameters and information connected with the self-interaction correction
-    (SIC) method being used in self_interaction_correction_method.
-    '''
-
-
-class settings_smearing(MCategory):
-    '''
-    Contain parameters that control the smearing of the orbital occupation at finite
-    electronic temperatures.
-    '''
-
-
-class settings_stress_tensor(MCategory):
-    '''
-    Settings to calculate the stress tensor (stress_tensor) consistent with the total
-    energy of the system given in energy_total.
-    '''
-
-
-class settings_thermostat(MCategory):
-    '''
-    Contains parameters that control the thermostat in the molecular dynamics (MD)
-    calculations.
-    '''
-
-
-class settings_van_der_Waals(MCategory):
-    '''
-    Contain parameters and information connected with the Van der Waals treatment used in
-    the calculation to compute the Van der Waals energy (energy_van_der_Waals).
-    '''
-
-
-class settings_XC_functional(MCategory):
-    '''
-    Contain parameters connected with the definition of the exchange-correlation (XC)
-    functional (see section_XC_functionals and XC_functional).
-    '''
+    m_def = Category(
+        categories=[settings_sampling],
+        a_legacy=LegacyDefinition(name='settings_Monte_Carlo'))
 
 
 class settings_XC(MCategory):
@@ -373,12 +340,9 @@ class settings_XC(MCategory):
     and include, e.g., post Hartree-Fock methods, too.
     '''
 
-
-class stress_tensor_type(MCategory):
-    '''
-    Contains the final value of the default stress tensor (stress_tensor) and/or the value
-    of the stress tensor (stress_tensor_value) of the kind defined in stress_tensor_kind.
-    '''
+    m_def = Category(
+        categories=[settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_XC'))
 
 
 class time_info(MCategory):
@@ -387,20 +351,270 @@ class time_info(MCategory):
     e.g., debugging or visualization purposes.
     '''
 
+    m_def = Category(
+        categories=[accessory_info],
+        a_legacy=LegacyDefinition(name='time_info'))
+
+
+class energy_total_potential_per_atom(MCategory):
+    '''
+    A value of the total potential energy per atom. Note that a direct comparison may not
+    be possible because of a difference in the methods for computing total energies and
+    numerical implementations of various codes might leads to different energy zeros (see
+    section_energy_code_independent for a code-independent definition of the energy).
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_total_potential_per_atom'))
+
+
+class energy_total_potential(MCategory):
+    '''
+    A value of the total potential energy. Note that a direct comparison may not be
+    possible because of a difference in the methods for computing total energies and
+    numerical implementations of various codes might leads to different energy zeros (see
+    section_energy_code_independent for a code-independent definition of the energy).
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_total_potential'))
+
+
+class energy_type_C(MCategory):
+    '''
+    This metadata stores the correlation (C) energy.
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_type_C'))
+
+
+class energy_type_van_der_Waals(MCategory):
+    '''
+    This metadata stores the converged van der Waals energy.
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_type_van_der_Waals'))
+
+
+class energy_type_XC(MCategory):
+    '''
+    This metadata stores the exchange-correlation (XC) energy.
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_type_XC'))
+
+
+class energy_type_X(MCategory):
+    '''
+    This metadata stores the exchange (X) energy.
+    '''
+
+    m_def = Category(
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_type_X'))
+
+
+class message_warning(MCategory):
+    '''
+    A warning message of the computational program.
+    '''
+
+    m_def = Category(
+        categories=[message_info, message_debug],
+        a_legacy=LegacyDefinition(name='message_warning'))
+
+
+class parsing_message_warning(MCategory):
+    '''
+    This field is used for warning messages of the parsing program.
+    '''
+
+    m_def = Category(
+        categories=[parsing_message_info, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_warning'))
+
+
+class settings_barostat(MCategory):
+    '''
+    Contains parameters controlling the barostat in a molecular dynamics calculation.
+    '''
+
+    m_def = Category(
+        categories=[settings_sampling, settings_molecular_dynamics],
+        a_legacy=LegacyDefinition(name='settings_barostat'))
+
+
+class settings_integrator(MCategory):
+    '''
+    Contains parameters that control the molecular dynamics (MD) integrator.
+    '''
+
+    m_def = Category(
+        categories=[settings_sampling, settings_molecular_dynamics],
+        a_legacy=LegacyDefinition(name='settings_integrator'))
+
+
+class settings_post_hartree_fock(MCategory):
+    '''
+    Contains parameters for the post Hartree-Fock method.
+    '''
+
+    m_def = Category(
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_post_hartree_fock'))
+
+
+class settings_relativity(MCategory):
+    '''
+    Contains parameters and information connected with the relativistic treatment used in
+    the calculation.
+    '''
+
+    m_def = Category(
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_relativity'))
+
+
+class settings_self_interaction_correction(MCategory):
+    '''
+    Contains parameters and information connected with the self-interaction correction
+    (SIC) method being used in self_interaction_correction_method.
+    '''
+
+    m_def = Category(
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_self_interaction_correction'))
+
+
+class settings_thermostat(MCategory):
+    '''
+    Contains parameters that control the thermostat in the molecular dynamics (MD)
+    calculations.
+    '''
+
+    m_def = Category(
+        categories=[settings_sampling, settings_molecular_dynamics],
+        a_legacy=LegacyDefinition(name='settings_thermostat'))
+
+
+class settings_van_der_Waals(MCategory):
+    '''
+    Contain parameters and information connected with the Van der Waals treatment used in
+    the calculation to compute the Van der Waals energy (energy_van_der_Waals).
+    '''
+
+    m_def = Category(
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_van_der_Waals'))
+
+
+class settings_XC_functional(MCategory):
+    '''
+    Contain parameters connected with the definition of the exchange-correlation (XC)
+    functional (see section_XC_functionals and XC_functional).
+    '''
+
+    m_def = Category(
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_XC_functional'))
+
+
+class message_error(MCategory):
+    '''
+    An error message of the computational program.
+    '''
+
+    m_def = Category(
+        categories=[message_info, message_debug, message_warning],
+        a_legacy=LegacyDefinition(name='message_error'))
+
+
+class parsing_message_error(MCategory):
+    '''
+    This field is used for error messages of the parsing program.
+    '''
+
+    m_def = Category(
+        categories=[parsing_message_info, parsing_message_warning, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_error'))
+
+
+class settings_coupled_cluster(MCategory):
+    '''
+    Contains parameters for the coupled-cluster method (CC) in the post Hartree-Fock step.
+    '''
+
+    m_def = Category(
+        categories=[settings_post_hartree_fock, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_coupled_cluster'))
+
+
+class settings_GW(MCategory):
+    '''
+    Contains parameters for the GW-method in the post Hartree-Fock step, that expands the
+    self-energy in terms of the single particle Green's function $G$ and the screened
+    Coulomb interaction $W$.
+    '''
+
+    m_def = Category(
+        categories=[settings_post_hartree_fock, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_GW'))
+
+
+class settings_MCSCF(MCategory):
+    '''
+    Contains parameters for the multi-configurational self-consistent-field (MCSCF)
+    method.
+    '''
+
+    m_def = Category(
+        categories=[settings_post_hartree_fock, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_MCSCF'))
+
+
+class settings_moller_plesset_perturbation_theory(MCategory):
+    '''
+    Contains parameters for Møller–Plesset perturbation theory.
+    '''
+
+    m_def = Category(
+        categories=[settings_post_hartree_fock, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_moller_plesset_perturbation_theory'))
+
+
+class settings_multi_reference(MCategory):
+    '''
+    Contains parameters for the multi-reference single and double configuration
+    interaction method.
+    '''
+
+    m_def = Category(
+        categories=[settings_post_hartree_fock, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='settings_multi_reference'))
+
 
 class archive_context(MSection):
     '''
     Contains information relating to an archive.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='archive_context'))
 
     archive_gid = Quantity(
         type=str,
         shape=[],
         description='''
         unique identifier of an archive.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='archive_gid'))
 
 
 class calculation_context(MSection):
@@ -408,14 +622,15 @@ class calculation_context(MSection):
     Contains information relating to a calculation.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='calculation_context'))
 
     calculation_gid = Quantity(
         type=str,
         shape=[],
         description='''
         unique identifier of a calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_gid'))
 
 
 class section_atom_projected_dos(MSection):
@@ -424,7 +639,7 @@ class section_atom_projected_dos(MSection):
     evaluation.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_atom_projected_dos'))
 
     atom_projected_dos_energies = Quantity(
         type=np.dtype(np.float64),
@@ -433,7 +648,8 @@ class section_atom_projected_dos(MSection):
         description='''
         Array containing the set of discrete energy values for the atom-projected density
         (electronic-energy) of states (DOS).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_projected_dos_energies'))
 
     atom_projected_dos_lm = Quantity(
         type=np.dtype(np.int32),
@@ -446,7 +662,8 @@ class section_atom_projected_dos(MSection):
         different conventions is accepted (see the [m_kind wiki
         page](https://gitlab.rzg.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/m-kind).
         The adopted convention is specified by atom_projected_dos_m_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_projected_dos_lm'))
 
     atom_projected_dos_m_kind = Quantity(
         type=str,
@@ -455,7 +672,8 @@ class section_atom_projected_dos(MSection):
         String describing what the integer numbers of $m$ in atom_projected_dos_lm mean.
         The allowed values are listed in the [m_kind wiki
         page](https://gitlab.rzg.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/m-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_projected_dos_m_kind'))
 
     atom_projected_dos_values_lm = Quantity(
         type=np.dtype(np.float64),
@@ -466,7 +684,8 @@ class section_atom_projected_dos(MSection):
         from each $l,m$ channel for the atom-projected density (electronic-energy) of
         states. Here, there are as many atom-projected DOS as the number_of_atoms, the
         list of labels of the atoms and their meanings are in atom_labels.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_projected_dos_values_lm'))
 
     atom_projected_dos_values_total = Quantity(
         type=np.dtype(np.float64),
@@ -478,7 +697,8 @@ class section_atom_projected_dos(MSection):
         of states (DOS). Here, there are as many atom-projected DOS as the
         number_of_atoms, the list of labels of the atoms and their meanings are in
         atom_labels.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_projected_dos_values_total'))
 
     number_of_atom_projected_dos_values = Quantity(
         type=int,
@@ -486,7 +706,8 @@ class section_atom_projected_dos(MSection):
         description='''
         Gives the number of energy values for the atom-projected density of states (DOS)
         based on atom_projected_dos_values_lm and atom_projected_dos_values_total.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_atom_projected_dos_values'))
 
     number_of_lm_atom_projected_dos = Quantity(
         type=int,
@@ -494,7 +715,8 @@ class section_atom_projected_dos(MSection):
         description='''
         Gives the number of $l$, $m$ combinations for the atom projected density of states
         (DOS) defined in section_atom_projected_dos.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_lm_atom_projected_dos'))
 
 
 class section_atomic_multipoles(MSection):
@@ -503,7 +725,7 @@ class section_atomic_multipoles(MSection):
     atom.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_atomic_multipoles'))
 
     atomic_multipole_kind = Quantity(
         type=str,
@@ -515,7 +737,8 @@ class section_atomic_multipoles(MSection):
         metadata. Allowed values are listed in the [atomic_multipole_kind wiki
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/atomic-
         multipole-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_multipole_kind'))
 
     atomic_multipole_lm = Quantity(
         type=np.dtype(np.int32),
@@ -526,7 +749,8 @@ class section_atomic_multipoles(MSection):
         is specified by atomic_multipole_kind. The meaning of the integer number $l$ is
         monopole/charge for $l=0$, dipole for $l=1$, quadrupole for $l=2$, etc. The
         meaning of the integer numbers $m$ is specified by atomic_multipole_m_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_multipole_lm'))
 
     atomic_multipole_m_kind = Quantity(
         type=str,
@@ -535,7 +759,8 @@ class section_atomic_multipoles(MSection):
         String describing the definition for each integer number $m$ in
         atomic_multipole_lm. Allowed values are listed in the [m_kind wiki
         page](https://gitlab.rzg.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/m-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_multipole_m_kind'))
 
     atomic_multipole_values = Quantity(
         type=np.dtype(np.float64),
@@ -543,7 +768,8 @@ class section_atomic_multipoles(MSection):
         description='''
         Value of the multipoles (including the monopole/charge for $l$ = 0, the dipole for
         $l$ = 1, etc.) for each atom, calculated as described in atomic_multipole_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_multipole_values'))
 
     number_of_lm_atomic_multipoles = Quantity(
         type=int,
@@ -551,7 +777,8 @@ class section_atomic_multipoles(MSection):
         description='''
         Gives the number of $l$, $m$ combinations for atomic multipoles
         atomic_multipole_lm.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_lm_atomic_multipoles'))
 
 
 class section_basis_functions_atom_centered(MSection):
@@ -560,7 +787,7 @@ class section_basis_functions_atom_centered(MSection):
     of the (atom-centered) basis set defined in section_basis_set_atom_centered.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_basis_functions_atom_centered'))
 
 
 class section_basis_set_atom_centered(MSection):
@@ -573,7 +800,7 @@ class section_basis_set_atom_centered(MSection):
     in the section_basis_functions_atom_centered section.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_basis_set_atom_centered'))
 
     basis_set_atom_centered_ls = Quantity(
         type=np.dtype(np.int32),
@@ -582,7 +809,8 @@ class section_basis_set_atom_centered(MSection):
         Azimuthal quantum number ($l$) values (of the angular part given by the spherical
         harmonic $Y_{lm}$) of the atom-centered basis function defined in the current
         section_basis_set_atom_centered.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_atom_centered_ls'))
 
     basis_set_atom_centered_radial_functions = Quantity(
         type=np.dtype(np.float64),
@@ -592,7 +820,8 @@ class section_basis_set_atom_centered(MSection):
         are numerically tabulated on a default 0.01-nm equally spaced grid from 0 to 4 nm.
         The 5 tabulated values are $r$, $f(r)$, $f'(r)$, $f(r) \\cdot r$,
         $\\frac{d}{dr}(f(r) \\cdot r)$.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_atom_centered_radial_functions'))
 
     basis_set_atom_centered_short_name = Quantity(
         type=str,
@@ -603,7 +832,8 @@ class section_basis_set_atom_centered(MSection):
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/basis-
         set-atom-centered-short-name), this name should not contain the *atom kind* (to
         simplify the use of a single name for multiple elements).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_atom_centered_short_name'))
 
     basis_set_atom_centered_unique_name = Quantity(
         type=str,
@@ -624,7 +854,8 @@ class section_basis_set_atom_centered(MSection):
         not contain the *atom kind* for which this basis set is intended for, in order to
         simplify the use of a single name for multiple *atom kinds* (see atom_labels for
         the actual meaning of *atom kind*).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_atom_centered_unique_name'))
 
     basis_set_atom_number = Quantity(
         type=np.dtype(np.int32),
@@ -632,7 +863,8 @@ class section_basis_set_atom_centered(MSection):
         description='''
         Atomic number (i.e., number of protons) of the atom for which this basis set is
         constructed (0 means unspecified or a pseudo atom).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_atom_number'))
 
     number_of_basis_functions_in_basis_set_atom_centered = Quantity(
         type=int,
@@ -641,7 +873,8 @@ class section_basis_set_atom_centered(MSection):
         Gives the number of different basis functions in a section_basis_set_atom_centered
         section. This equals the number of actual coefficients that are specified when
         using this basis set.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_basis_functions_in_basis_set_atom_centered'))
 
     number_of_kinds_in_basis_set_atom_centered = Quantity(
         type=int,
@@ -651,15 +884,18 @@ class section_basis_set_atom_centered(MSection):
         section_basis_set_atom_centered section. Specifically, basis functions with the
         same $n$ and $l$ quantum numbers are grouped in sets. Each set counts as one
         *kind*.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_kinds_in_basis_set_atom_centered'))
 
     section_basis_functions_atom_centered = SubSection(
         sub_section=SectionProxy('section_basis_functions_atom_centered'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_basis_functions_atom_centered'))
 
     section_gaussian_basis_group = SubSection(
         sub_section=SectionProxy('section_gaussian_basis_group'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_gaussian_basis_group'))
 
 
 class section_basis_set_cell_dependent(MSection):
@@ -671,7 +907,7 @@ class section_basis_set_cell_dependent(MSection):
     parameter(s), stored in basis_set_cell_dependent_name).
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_basis_set_cell_dependent'))
 
     basis_set_cell_dependent_kind = Quantity(
         type=str,
@@ -681,7 +917,8 @@ class section_basis_set_cell_dependent(MSection):
         centered such as plane-waves). Allowed values are listed in the
         [basis_set_cell_dependent_kind wiki page](https://gitlab.mpcdf.mpg.de/nomad-
         lab/nomad-meta-info/wikis/metainfo/basis-set-cell-dependent-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_cell_dependent_kind'))
 
     basis_set_cell_dependent_name = Quantity(
         type=str,
@@ -691,7 +928,8 @@ class section_basis_set_cell_dependent(MSection):
         plane-waves). Allowed values are listed in the [basis_set_cell_dependent_name wiki
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/basis-
         set-cell-dependent-name).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_cell_dependent_name'))
 
     basis_set_planewave_cutoff = Quantity(
         type=np.dtype(np.float64),
@@ -703,7 +941,8 @@ class section_basis_set_cell_dependent(MSection):
         set. Note that normally this basis set is used for the wavefunctions, and the
         density would have 4 times the cutoff, but this actually depends on the use of the
         basis set by the method.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_planewave_cutoff'))
 
 
 class section_basis_set(MSection):
@@ -732,7 +971,7 @@ class section_basis_set(MSection):
     set, where the same basis set can be assigned to more than one atom.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_basis_set'))
 
     basis_set_kind = Quantity(
         type=str,
@@ -742,7 +981,8 @@ class section_basis_set(MSection):
         function or an electron density. Allowed values are listed in the [basis_set_kind
         wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/basis-set-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_kind'))
 
     basis_set_name = Quantity(
         type=str,
@@ -752,7 +992,8 @@ class section_basis_set(MSection):
         string are specified in the [basis_set_name wiki
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/basis-
         set-name).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='basis_set_name'))
 
     mapping_section_basis_set_atom_centered = Quantity(
         type=Reference(SectionProxy('section_basis_set_atom_centered')),
@@ -763,7 +1004,8 @@ class section_basis_set(MSection):
         section_single_configuration_calculation. The actual definition of the atom-
         centered basis set is in the section_basis_set_atom_centered that is referred to
         by this metadata.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='mapping_section_basis_set_atom_centered'))
 
     mapping_section_basis_set_cell_dependent = Quantity(
         type=Reference(SectionProxy('section_basis_set_cell_dependent')),
@@ -772,14 +1014,16 @@ class section_basis_set(MSection):
         Assignment of the cell-dependent (i.e., non atom centered, e.g., plane-waves)
         parts of the basis set, which is defined (type, parameters) in
         section_basis_set_cell_dependent that is referred to by this metadata.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='mapping_section_basis_set_cell_dependent'))
 
     number_of_basis_functions = Quantity(
         type=int,
         shape=[],
         description='''
         Stores the total number of basis functions in a section_basis_set section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_basis_functions'))
 
 
 class section_restricted_uri(MSection):
@@ -788,14 +1032,15 @@ class section_restricted_uri(MSection):
     this calculation can be subject to restriction)
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_restricted_uri'))
 
     number_of_restricted_uri = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         The number of restricted uris in restricted_uri list.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_restricted_uri'))
 
     restricted_uri = Quantity(
         type=str,
@@ -803,7 +1048,8 @@ class section_restricted_uri(MSection):
         description='''
         The list of nomad uri(s) identifying the restricted info/file corresponding to
         this calculation
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri'))
 
     restricted_uri_reason = Quantity(
         type=str,
@@ -812,7 +1058,8 @@ class section_restricted_uri(MSection):
         The reason of restriction for the uri or file. The reason can be 'propriety
         license', 'open-source redistribution restricted license', 'other license', or
         'author restricted'.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri_reason'))
 
     restricted_uri_issue_authority = Quantity(
         type=str,
@@ -821,7 +1068,8 @@ class section_restricted_uri(MSection):
         The issue authority is the restriction owner for the uri or file. This can be
         license owner such as 'VASP' or 'AMBER', 'NOMAD', or the author of the uri. For
         example the repository user name of the author.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri_issue_authority'))
 
     restricted_uri_end_date = Quantity(
         type=str,
@@ -830,7 +1078,8 @@ class section_restricted_uri(MSection):
         The deadline date of the restriction for the uri or file. The end date can be in
         date format string for those restrictions set by authors or NOMAD otherwise it is
         set to 'unlimited' for the restriction related to license.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri_end_date'))
 
     restricted_uri_restriction = Quantity(
         type=str,
@@ -838,21 +1087,24 @@ class section_restricted_uri(MSection):
         description='''
         The type of restriction for the uri or file. The type can be 'any access' or
         'license permitted'.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri_restriction'))
 
     restricted_uri_license = Quantity(
         type=str,
         shape=[],
         description='''
         The info of the license that is the reason of restriction.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='restricted_uri_license'))
 
     number_of_restricted_uri_files = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         The number of restricted files in restricted_uri_files list.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_restricted_uri_files'))
 
 
 class section_calculation_to_calculation_refs(MSection):
@@ -873,7 +1125,7 @@ class section_calculation_to_calculation_refs(MSection):
     calculation_to_calculation_external_url.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_calculation_to_calculation_refs'))
 
     calculation_to_calculation_external_url = Quantity(
         type=str,
@@ -882,7 +1134,8 @@ class section_calculation_to_calculation_refs(MSection):
         URL used to reference an externally stored calculation. The kind of relationship
         between the present and the referenced section_single_configuration_calculation is
         specified by calculation_to_calculation_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_to_calculation_external_url'))
 
     calculation_to_calculation_kind = Quantity(
         type=str,
@@ -901,7 +1154,8 @@ class section_calculation_to_calculation_refs(MSection):
         connected calculations. The referenced calculation is identified via
         calculation_to_calculation_ref (typically used for a calculation in the same
         section_run) or calculation_to_calculation_external_url.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_to_calculation_kind'))
 
     calculation_to_calculation_ref = Quantity(
         type=Reference(SectionProxy('section_single_configuration_calculation')),
@@ -913,7 +1167,8 @@ class section_calculation_to_calculation_refs(MSection):
         calculation_to_calculation_external_url. The kind of relationship between the
         present and the referenced section_single_configuration_calculation is specified
         by calculation_to_calculation_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_to_calculation_ref'))
 
 
 class section_calculation_to_folder_refs(MSection):
@@ -923,7 +1178,7 @@ class section_calculation_to_folder_refs(MSection):
     calulations
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_calculation_to_folder_refs'))
 
     calculation_to_folder_external_url = Quantity(
         type=str,
@@ -933,7 +1188,8 @@ class section_calculation_to_folder_refs(MSection):
         relationship between the present and the referenced
         section_single_configuration_calculation is specified by
         calculation_to_folder_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_to_folder_external_url'))
 
     calculation_to_folder_kind = Quantity(
         type=str,
@@ -941,7 +1197,8 @@ class section_calculation_to_folder_refs(MSection):
         description='''
         String defining the relationship between the referenced
         section_single_configuration_calculation and a folder containing calculations.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_to_folder_kind'))
 
 
 class section_dos(MSection):
@@ -950,7 +1207,7 @@ class section_dos(MSection):
     of states (DOS) evaluation.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_dos'))
 
     dos_energies_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -961,7 +1218,8 @@ class section_dos(MSection):
         valence band for the density (electronic-energy) of states (DOS). This is the
         total DOS, see atom_projected_dos_energies and species_projected_dos_energies for
         partial density of states.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_energies_normalized'))
 
     dos_energies = Quantity(
         type=np.dtype(np.float64),
@@ -972,14 +1230,16 @@ class section_dos(MSection):
         energy or vibrational energy) of states (DOS). This is the total DOS, see
         atom_projected_dos_energies and species_projected_dos_energies for partial density
         of states.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_energies'))
 
     dos_fermi_energy = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
         Stores the Fermi energy of the density of states.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_fermi_energy'))
 
     dos_integrated_values = Quantity(
         type=np.dtype(np.float64),
@@ -988,7 +1248,8 @@ class section_dos(MSection):
         Integrated density of states (starting at $-\\infty$), pseudo potential
         calculations should start with the number of core electrons if they cover only the
         active electrons
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_integrated_values'))
 
     dos_kind = Quantity(
         type=str,
@@ -996,7 +1257,8 @@ class section_dos(MSection):
         description='''
         String to specify the kind of density of states (either electronic or
         vibrational).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_kind'))
 
     dos_lm = Quantity(
         type=np.dtype(np.int32),
@@ -1009,7 +1271,8 @@ class section_dos(MSection):
         accepted (see the [m_kind wiki page](https://gitlab.rzg.mpg.de/nomad-lab/nomad-
         meta-info/wikis/metainfo/m-kind). The actual adopted convention is specified by
         dos_m_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_lm'))
 
     dos_m_kind = Quantity(
         type=str,
@@ -1018,7 +1281,8 @@ class section_dos(MSection):
         String describing what the integer numbers of $m$ in dos_lm mean. The allowed
         values are listed in the [m_kind wiki page](https://gitlab.rzg.mpg.de/nomad-
         lab/nomad-meta-info/wikis/metainfo/m-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_m_kind'))
 
     dos_values_lm = Quantity(
         type=np.dtype(np.float64),
@@ -1028,7 +1292,8 @@ class section_dos(MSection):
         Array containing the density (electronic-energy) of states values projected on the
         various spherical harmonics (integrated on all atoms), see
         atom_projected_dos_values_lm for atom values.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_values_lm'))
 
     dos_values_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -1036,7 +1301,8 @@ class section_dos(MSection):
         description='''
         Density of states (DOS) values divided by the unit cell volume and by the number
         of atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_values_normalized'))
 
     dos_values = Quantity(
         type=np.dtype(np.float64),
@@ -1046,7 +1312,8 @@ class section_dos(MSection):
         given in dos_energies) of density (electronic-energy or vibrational-energy) of
         states. This refers to the simulation cell, i.e. integrating over all energies
         will give the number of electrons in the simulation cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='dos_values'))
 
     number_of_dos_lms = Quantity(
         type=int,
@@ -1054,7 +1321,8 @@ class section_dos(MSection):
         description='''
         Gives the number of $l$, $m$ combinations for the given projected density of
         states (DOS) in dos_values and dos_values_lm.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_dos_lms'))
 
     number_of_dos_values = Quantity(
         type=int,
@@ -1062,7 +1330,8 @@ class section_dos(MSection):
         description='''
         Gives the number of energy values for the density of states (DOS), see
         dos_energies.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_dos_values'))
 
 
 class section_eigenvalues(MSection):
@@ -1075,7 +1344,7 @@ class section_eigenvalues(MSection):
     stored in eigenvalues_values and eigenvalues_occupation, respectively.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_eigenvalues'))
 
     eigenvalues_kind = Quantity(
         type=str,
@@ -1084,7 +1353,8 @@ class section_eigenvalues(MSection):
         A short string describing the kind of eigenvalues, as defined in the
         [eigenvalues_kind wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/eigenvalues-kind).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_kind'))
 
     eigenvalues_kpoints_multiplicity = Quantity(
         type=np.dtype(np.float64),
@@ -1094,7 +1364,8 @@ class section_eigenvalues(MSection):
         expands to after applying all symmetries). This defaults to 1. If expansion is
         preformed then each point will have weight
         eigenvalues_kpoints_weights/eigenvalues_kpoints_multiplicity.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_kpoints_multiplicity'))
 
     eigenvalues_kpoints_weights = Quantity(
         type=np.dtype(np.float64),
@@ -1103,7 +1374,8 @@ class section_eigenvalues(MSection):
         Weights of the $k$ points (in the basis of the reciprocal lattice vectors) used
         for the evaluation of the eigenvalues tabulated in eigenvalues_values, should
         account for symmetry too.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_kpoints_weights'))
 
     eigenvalues_kpoints = Quantity(
         type=np.dtype(np.float64),
@@ -1111,7 +1383,8 @@ class section_eigenvalues(MSection):
         description='''
         Coordinates of the $k$ points (in the basis of the reciprocal lattice vectors)
         used for the evaluation of the eigenvalues tabulated in eigenvalues_values.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_kpoints'))
 
     eigenvalues_occupation = Quantity(
         type=np.dtype(np.float64),
@@ -1120,7 +1393,8 @@ class section_eigenvalues(MSection):
         Occupation of the eigenstates. The corresponding eigenvalues (energy) are given in
         eigenvalues_values. The coordinates in the reciprocal space are defined in
         eigenvalues_kpoints.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_occupation'))
 
     eigenvalues_values = Quantity(
         type=np.dtype(np.float64),
@@ -1130,14 +1404,16 @@ class section_eigenvalues(MSection):
         Values of the (electronic-energy) eigenvalues. The coordinates of the
         corresponding eigenstates in the reciprocal space are defined in
         eigenvalues_kpoints and their occupations are given in eigenvalues_occupation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='eigenvalues_values'))
 
     number_of_band_segment_eigenvalues = Quantity(
         type=int,
         shape=[],
         description='''
         Gives the number of eigenvalues in a band segment, see band_energies.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_band_segment_eigenvalues'))
 
     number_of_eigenvalues_kpoints = Quantity(
         type=int,
@@ -1145,14 +1421,16 @@ class section_eigenvalues(MSection):
         description='''
         Gives the number of $k$ points, see eigenvalues_kpoints. $k$ points are calculated
         within a run and are irreducible if a symmetry is used.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_eigenvalues_kpoints'))
 
     number_of_eigenvalues = Quantity(
         type=int,
         shape=[],
         description='''
         Gives the number of eigenvalues, see eigenvalues_values.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_eigenvalues'))
 
     number_of_normalized_band_segment_eigenvalues = Quantity(
         type=int,
@@ -1161,7 +1439,8 @@ class section_eigenvalues(MSection):
         Gives the number of normalized eigenvalues in a band segment, see
 
         band_energies_normalized.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_normalized_band_segment_eigenvalues'))
 
 
 class section_energy_code_independent(MSection):
@@ -1173,7 +1452,7 @@ class section_energy_code_independent(MSection):
     different codes and numerical settings.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_energy_code_independent'))
 
     energy_code_independent_kind = Quantity(
         type=str,
@@ -1184,7 +1463,8 @@ class section_energy_code_independent(MSection):
         codes and numerical settings. Details can be found on the [energy_code_independent
         wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/energy-code-independent).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='energy_code_independent_kind'))
 
     energy_code_independent_value = Quantity(
         type=np.dtype(np.float64),
@@ -1197,7 +1477,8 @@ class section_energy_code_independent(MSection):
         [energy_code_independent wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-
         meta-info/wikis/metainfo/energy-code-independent).
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_code_independent_value'))
 
 
 class section_energy_van_der_Waals(MSection):
@@ -1211,7 +1492,7 @@ class section_energy_van_der_Waals(MSection):
     settings_van_der_Waals.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_energy_van_der_Waals'))
 
     energy_van_der_Waals_kind = Quantity(
         type=str,
@@ -1223,7 +1504,8 @@ class section_energy_van_der_Waals(MSection):
         section_single_configuration_calculation). The method used for van der Waals  (the
         one consistent with energy_current and, e.g., for evaluating the forces for a
         relaxation or dynamics) is defined in settings_van_der_Waals.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='energy_van_der_Waals_kind'))
 
     energy_van_der_Waals_value = Quantity(
         type=np.dtype(np.float64),
@@ -1238,7 +1520,8 @@ class section_energy_van_der_Waals(MSection):
         relaxation or dynamics, is given in energy_van_der_Waals and defined in
         settings_van_der_Waals.
         ''',
-        categories=[energy_value, energy_type_van_der_Waals, energy_component])
+        categories=[energy_type_van_der_Waals, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_van_der_Waals_value'))
 
     energy_van_der_Waals = Quantity(
         type=np.dtype(np.float64),
@@ -1250,7 +1533,8 @@ class section_energy_van_der_Waals(MSection):
         method consistent with, e.g., forces used for relaxation or dynamics. Alternative
         methods are listed in section_energy_van_der_Waals.
         ''',
-        categories=[energy_value, energy_type_van_der_Waals, energy_component])
+        categories=[energy_type_van_der_Waals, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_van_der_Waals'))
 
 
 class section_frame_sequence_user_quantity(MSection):
@@ -1258,7 +1542,7 @@ class section_frame_sequence_user_quantity(MSection):
     Section collecting some user-defined quantities evaluated along a sequence of frame.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_frame_sequence_user_quantity'))
 
     frame_sequence_user_quantity_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1267,7 +1551,8 @@ class section_frame_sequence_user_quantity(MSection):
         Array containing the strictly increasing indices referring to the frames of
         frame_sequence_user_quantity. If not given it defaults to the trivial mapping
         0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_user_quantity_frames'))
 
     frame_sequence_user_quantity_name = Quantity(
         type=str,
@@ -1281,7 +1566,8 @@ class section_frame_sequence_user_quantity(MSection):
         instantaneous temperature (frame_sequence_temperature) and pressure
         (frame_sequence_pressure). This metadata should be used for other quantities that
         are monitored along a sequence of frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_user_quantity_name'))
 
     frame_sequence_user_quantity_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1290,7 +1576,8 @@ class section_frame_sequence_user_quantity(MSection):
         Average of frame_sequence_user_quantity and its standard deviation in this
         sequence of frames (i.e., a trajectory, a frame is one
         section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_user_quantity_stats'))
 
     frame_sequence_user_quantity = Quantity(
         type=np.dtype(np.float64),
@@ -1303,7 +1590,8 @@ class section_frame_sequence_user_quantity(MSection):
         frame_sequence_kinetic_energy_frames. If not all frames have a value the indices
         of the frames that have a value are stored in
         frame_sequence_kinetic_energy_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_user_quantity'))
 
     number_of_frame_sequence_user_quantity_components = Quantity(
         type=int,
@@ -1320,7 +1608,8 @@ class section_frame_sequence_user_quantity(MSection):
         frame_sequence_potential_energy](frame_sequence_kinetic_energy and
         frame_sequence_potential_energy)), the instantaneous temperature
         (frame_sequence_temperature) and the pressure (frame_sequence_pressure).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_frame_sequence_user_quantity_components'))
 
     number_of_user_quantity_evaluations_in_sequence = Quantity(
         type=int,
@@ -1330,7 +1619,8 @@ class section_frame_sequence_user_quantity(MSection):
         frame_sequence_user_quantity frames. A sequence is a trajectory, which can have
         number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_user_quantity_evaluations_in_sequence'))
 
 
 class section_frame_sequence(MSection):
@@ -1346,7 +1636,7 @@ class section_frame_sequence(MSection):
     found in the section_single_configuration_calculation section.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_frame_sequence'))
 
     frame_sequence_conserved_quantity_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1355,7 +1645,8 @@ class section_frame_sequence(MSection):
         Array containing the strictly increasing indices of the frames the
         frame_sequence_conserved_quantity values refers to. If not given it defaults to
         the trivial mapping 0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_conserved_quantity_frames'))
 
     frame_sequence_conserved_quantity_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1365,7 +1656,8 @@ class section_frame_sequence(MSection):
         Average value of energy-like frame_sequence_conserved_quantity, and its standard
         deviation, over this sequence of frames (i.e., a trajectory, a frame is one
         section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_conserved_quantity_stats'))
 
     frame_sequence_conserved_quantity = Quantity(
         type=np.dtype(np.float64),
@@ -1377,7 +1669,8 @@ class section_frame_sequence(MSection):
         section_single_configuration_calculation), for example the total energy in the NVE
         ensemble. If not all frames have a value the indices of the frames that have a
         value are stored in frame_sequence_conserved_quantity_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_conserved_quantity'))
 
     frame_sequence_continuation_kind = Quantity(
         type=Reference(SectionProxy('section_frame_sequence')),
@@ -1386,7 +1679,8 @@ class section_frame_sequence(MSection):
         Type of continuation that has been performed from the previous sequence of frames
         (i.e., a trajectory, a frame is one section_single_configuration_calculation),
         upon restart.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_continuation_kind'))
 
     frame_sequence_external_url = Quantity(
         type=str,
@@ -1402,7 +1696,8 @@ class section_frame_sequence(MSection):
         for this reference is described in the [frame_sequence_external_url wiki
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/frame-
         sequence-external-url).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_external_url'))
 
     frame_sequence_kinetic_energy_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1411,7 +1706,8 @@ class section_frame_sequence(MSection):
         Array containing the strictly increasing indices referring to the frames of
         frame_sequence_kinetic_energy. If not given it defaults to the trivial mapping
         0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_kinetic_energy_frames'))
 
     frame_sequence_kinetic_energy_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1420,7 +1716,8 @@ class section_frame_sequence(MSection):
         description='''
         Average kinetic energy and its standard deviation over this sequence of frames
         (i.e., a trajectory, a frame is one section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_kinetic_energy_stats'))
 
     frame_sequence_kinetic_energy = Quantity(
         type=np.dtype(np.float64),
@@ -1431,7 +1728,8 @@ class section_frame_sequence(MSection):
         (i.e., a trajectory, a frame is one section_single_configuration_calculation). If
         not all frames have a value the indices of the frames that have a value are stored
         in frame_sequence_kinetic_energy_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_kinetic_energy'))
 
     frame_sequence_local_frames_ref = Quantity(
         type=Reference(SectionProxy('section_single_configuration_calculation')),
@@ -1445,7 +1743,8 @@ class section_frame_sequence(MSection):
         molecular dynamics trajectory, or geometry optimization. The full information for
         each frame is stored in section_single_configuration_calculation and this metadata
         establishes the link for each frame.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_local_frames_ref'))
 
     frame_sequence_potential_energy_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1454,7 +1753,8 @@ class section_frame_sequence(MSection):
         Array containing the strictly increasing indices referring to the frames of
         frame_sequence_potential_energy. If not given it defaults to the trivial mapping
         0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_potential_energy_frames'))
 
     frame_sequence_potential_energy_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1463,7 +1763,8 @@ class section_frame_sequence(MSection):
         description='''
         Average potential energy and its standard deviation over this sequence of frames
         (i.e., a trajectory, a frame is one section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_potential_energy_stats'))
 
     frame_sequence_potential_energy = Quantity(
         type=np.dtype(np.float64),
@@ -1476,7 +1777,8 @@ class section_frame_sequence(MSection):
         section_single_configuration_calculation and repeated here in a summary array for
         easier access. If not all frames have a value the indices of the frames that have
         a value are stored in frame_sequence_potential_energy_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_potential_energy'))
 
     frame_sequence_pressure_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1484,7 +1786,8 @@ class section_frame_sequence(MSection):
         description='''
         Array containing the strictly increasing indices referring to the frames of
         frame_sequence_pressure. If not given it defaults to the trivial mapping 0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_pressure_frames'))
 
     frame_sequence_pressure_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1494,7 +1797,8 @@ class section_frame_sequence(MSection):
         Average pressure (one third of the trace of the stress tensor) and standard
         deviation over this sequence of frames (i.e., a trajectory, a frame is one
         section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_pressure_stats'))
 
     frame_sequence_pressure = Quantity(
         type=np.dtype(np.float64),
@@ -1506,7 +1810,8 @@ class section_frame_sequence(MSection):
         section_single_configuration_calculation). If not all frames have a value the
         indices of the frames that have a value are stored in
         frame_sequence_pressure_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_pressure'))
 
     frame_sequence_temperature_frames = Quantity(
         type=np.dtype(np.int32),
@@ -1515,7 +1820,8 @@ class section_frame_sequence(MSection):
         Array containing the strictly increasing indices referring to the frames of
         frame_sequence_temperature. If not given it defaults to the trivial mapping
         0,1,...
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_temperature_frames'))
 
     frame_sequence_temperature_stats = Quantity(
         type=np.dtype(np.float64),
@@ -1524,7 +1830,8 @@ class section_frame_sequence(MSection):
         description='''
         Average temperature and its standard deviation over this sequence of frames (i.e.,
         a trajectory, a frame is one section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_temperature_stats'))
 
     frame_sequence_temperature = Quantity(
         type=np.dtype(np.float64),
@@ -1537,7 +1844,8 @@ class section_frame_sequence(MSection):
         frame is one section_single_configuration_calculation). If not all frames have a
         value the indices of the frames that have a value are stored in
         frame_sequence_temperature_frames.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_temperature'))
 
     frame_sequence_time = Quantity(
         type=np.dtype(np.float64),
@@ -1547,7 +1855,8 @@ class section_frame_sequence(MSection):
         Time along this sequence of frames (i.e., a trajectory, a frame is one
         section_single_configuration_calculation). Time start is arbitrary, but when a
         sequence is a continuation of another time should be continued too.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_time'))
 
     frame_sequence_to_sampling_ref = Quantity(
         type=Reference(SectionProxy('section_sampling_method')),
@@ -1556,14 +1865,16 @@ class section_frame_sequence(MSection):
         Reference from the present section_frame_sequence to the section_sampling_method,
         that defines the parameters used in this sequence of frames (i.e., a trajectory, a
         frame is one section_single_configuration_calculation).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='frame_sequence_to_sampling_ref'))
 
     geometry_optimization_converged = Quantity(
         type=bool,
         shape=[],
         description='''
         Arrays specify whether a geometry optimization is converged.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='geometry_optimization_converged'))
 
     number_of_conserved_quantity_evaluations_in_sequence = Quantity(
         type=int,
@@ -1572,7 +1883,8 @@ class section_frame_sequence(MSection):
         Gives the number of conserved quantity evaluations in this sequence. A sequence is
         a trajectory, which can have number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_conserved_quantity_evaluations_in_sequence'))
 
     number_of_frames_in_sequence = Quantity(
         type=int,
@@ -1581,7 +1893,8 @@ class section_frame_sequence(MSection):
         Gives the number of frames in a sequence. A sequence is a trajectory, which can
         have number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_frames_in_sequence'))
 
     number_of_kinetic_energies_in_sequence = Quantity(
         type=int,
@@ -1589,7 +1902,8 @@ class section_frame_sequence(MSection):
         description='''
         Gives the number of kinetic energy evaluations in this sequence of frames, see
         frame_sequence_kinetic_energy.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_kinetic_energies_in_sequence'))
 
     number_of_potential_energies_in_sequence = Quantity(
         type=int,
@@ -1598,7 +1912,8 @@ class section_frame_sequence(MSection):
         Gives the number of potential energies evaluation in this sequence. A sequence is
         a trajectory, which can have number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_potential_energies_in_sequence'))
 
     number_of_pressure_evaluations_in_sequence = Quantity(
         type=int,
@@ -1607,7 +1922,8 @@ class section_frame_sequence(MSection):
         Gives the number of pressure evaluations in this sequence. A sequence is a
         trajectory, which can have number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_pressure_evaluations_in_sequence'))
 
     number_of_temperatures_in_sequence = Quantity(
         type=int,
@@ -1617,7 +1933,8 @@ class section_frame_sequence(MSection):
         section_frame_sequence. A sequence is a trajectory, which can have
         number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_temperatures_in_sequence'))
 
     previous_sequence_ref = Quantity(
         type=Reference(SectionProxy('section_frame_sequence')),
@@ -1627,15 +1944,18 @@ class section_frame_sequence(MSection):
         can have number_of_frames_in_sequence each representing one
         section_single_configuration_calculation section. If not given, a start from an
         initial configuration is assumed.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='previous_sequence_ref'))
 
     section_frame_sequence_user_quantity = SubSection(
         sub_section=SectionProxy('section_frame_sequence_user_quantity'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_frame_sequence_user_quantity'))
 
     section_thermodynamical_properties = SubSection(
         sub_section=SectionProxy('section_thermodynamical_properties'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_thermodynamical_properties'))
 
 
 class section_gaussian_basis_group(MSection):
@@ -1655,7 +1975,7 @@ class section_gaussian_basis_group(MSection):
     of basis_set_atom_centered_radial_functions.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_gaussian_basis_group'))
 
     gaussian_basis_group_contractions = Quantity(
         type=np.dtype(np.float64),
@@ -1664,7 +1984,8 @@ class section_gaussian_basis_group(MSection):
         contraction coefficients $c_{i j}$ defining the contracted basis functions with
         respect to *normalized* primitive Gaussian functions. They define the Gaussian
         basis functions as described in section_gaussian_basis_group.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='gaussian_basis_group_contractions'))
 
     gaussian_basis_group_exponents = Quantity(
         type=np.dtype(np.float64),
@@ -1673,7 +1994,8 @@ class section_gaussian_basis_group(MSection):
         description='''
         Exponents $\\alpha_j$ of the Gaussian functions defining this basis set
         $exp(-\\alpha_j r^2)$. One should be careful about the units of the coefficients.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='gaussian_basis_group_exponents'))
 
     gaussian_basis_group_ls = Quantity(
         type=np.dtype(np.float64),
@@ -1681,7 +2003,8 @@ class section_gaussian_basis_group(MSection):
         description='''
         Azimuthal quantum number ($l$) values (of the angular part given by the spherical
         harmonic $Y_{l m}$ of the various contracted basis functions).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='gaussian_basis_group_ls'))
 
     number_of_gaussian_basis_group_contractions = Quantity(
         type=int,
@@ -1689,7 +2012,8 @@ class section_gaussian_basis_group(MSection):
         description='''
         Gives the number of different contractions, i.e. resulting basis functions in a
         section_gaussian_basis_group section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_gaussian_basis_group_contractions'))
 
     number_of_gaussian_basis_group_exponents = Quantity(
         type=int,
@@ -1697,7 +2021,8 @@ class section_gaussian_basis_group(MSection):
         description='''
         Gives the number of different Gaussian exponents in a section_gaussian_basis_group
         section.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_gaussian_basis_group_exponents'))
 
 
 class section_k_band_normalized(MSection):
@@ -1708,7 +2033,7 @@ class section_k_band_normalized(MSection):
     energy_total evaluations, can be found in the section_eigenvalues section.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band_normalized'))
 
     k_band_path_normalized_is_standard = Quantity(
         type=bool,
@@ -1717,11 +2042,13 @@ class section_k_band_normalized(MSection):
         If the normalized path is along the default path defined in W. Setyawan and S.
         Curtarolo, [Comput. Mater. Sci. **49**, 299-312
         (2010)](http://dx.doi.org/10.1016/j.commatsci.2010.05.010).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='k_band_path_normalized_is_standard'))
 
     section_k_band_segment_normalized = SubSection(
         sub_section=SectionProxy('section_k_band_segment_normalized'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_k_band_segment_normalized'))
 
 
 class section_k_band_segment_normalized(MSection):
@@ -1739,7 +2066,7 @@ class section_k_band_segment_normalized(MSection):
     respectively. The labels for the segment are specified in band_segm_labels.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band_segment_normalized'))
 
     band_energies_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -1750,7 +2077,8 @@ class section_k_band_segment_normalized(MSection):
         with respect to the top of the valence band. This is a third-order tensor, with
         one dimension used for the spin channels, one for the $k$ points for each segment,
         and one for the eigenvalue sequence.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_energies_normalized'))
 
     band_k_points_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -1758,7 +2086,8 @@ class section_k_band_segment_normalized(MSection):
         description='''
         Fractional coordinates of the $k$ points (in the basis of the reciprocal-lattice
         vectors) for which the normalized electronic energies are given.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_k_points_normalized'))
 
     band_occupations_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -1767,7 +2096,8 @@ class section_k_band_segment_normalized(MSection):
         Occupation of the $k$-points along the normalized electronic band. The size of the
         dimensions of this third-order tensor are the same as for the tensor in
         band_energies.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_occupations_normalized'))
 
     band_segm_labels_normalized = Quantity(
         type=str,
@@ -1777,7 +2107,8 @@ class section_k_band_segment_normalized(MSection):
         sampled in the $k$-space, using the conventional symbols, e.g., Gamma, K, L. The
         coordinates (fractional, in the reciprocal space) of the start and end points for
         each segment are given in band_segm_start_end_normalized
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_segm_labels_normalized'))
 
     band_segm_start_end_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -1786,7 +2117,8 @@ class section_k_band_segment_normalized(MSection):
         Fractional coordinates of the start and end point (in the basis of the reciprocal
         lattice vectors) of the segment sampled in the $k$ space. The conventional symbols
         (e.g., Gamma, K, L) of the same points are given in band_segm_labels
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_segm_start_end_normalized'))
 
     number_of_normalized_k_points_per_segment = Quantity(
         type=int,
@@ -1794,7 +2126,8 @@ class section_k_band_segment_normalized(MSection):
         description='''
         Gives the number of $k$ points in the segment of the normalized band structure
         (see section_k_band_segment_normalized).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_normalized_k_points_per_segment'))
 
 
 class section_k_band_segment(MSection):
@@ -1814,7 +2147,7 @@ class section_k_band_segment(MSection):
     specified in band_segm_labels.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band_segment'))
 
     band_energies = Quantity(
         type=np.dtype(np.float64),
@@ -1826,7 +2159,8 @@ class section_k_band_segment(MSection):
         with one dimension used for the spin channels (1 in case of a vibrational band
         structure), one for the $k$ or $q$ points for each segment, and one for the
         eigenvalue sequence.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_energies'))
 
     band_k_points = Quantity(
         type=np.dtype(np.float64),
@@ -1834,7 +2168,8 @@ class section_k_band_segment(MSection):
         description='''
         Fractional coordinates of the $k$ or $q$ points (in the basis of the reciprocal-
         lattice vectors) for which the electronic energy are given.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_k_points'))
 
     band_occupations = Quantity(
         type=np.dtype(np.float64),
@@ -1842,7 +2177,8 @@ class section_k_band_segment(MSection):
         description='''
         Occupation of the $k$-points along the electronic band. The size of the dimensions
         of this third-order tensor are the same as for the tensor in band_energies.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_occupations'))
 
     band_segm_labels = Quantity(
         type=str,
@@ -1852,7 +2188,8 @@ class section_k_band_segment(MSection):
         sampled in the $k$-space or $q$-space, using the conventional symbols, e.g.,
         Gamma, K, L. The coordinates (fractional, in the reciprocal space) of the start
         and end points for each segment are given in band_segm_start_end
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_segm_labels'))
 
     band_segm_start_end = Quantity(
         type=np.dtype(np.float64),
@@ -1861,7 +2198,8 @@ class section_k_band_segment(MSection):
         Fractional coordinates of the start and end point (in the basis of the reciprocal
         lattice vectors) of the segment sampled in the $k$ space. The conventional symbols
         (e.g., Gamma, K, L) of the same points are given in band_segm_labels
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_segm_start_end'))
 
     number_of_k_points_per_segment = Quantity(
         type=int,
@@ -1869,7 +2207,8 @@ class section_k_band_segment(MSection):
         description='''
         Gives the number of $k$ points in the segment of the band structure, see
         section_k_band_segment.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_k_points_per_segment'))
 
 
 class section_k_band(MSection):
@@ -1880,18 +2219,20 @@ class section_k_band(MSection):
     used for energy_total evaluations, can be found in the section_eigenvalues section.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band'))
 
     band_structure_kind = Quantity(
         type=str,
         shape=[],
         description='''
         String to specify the kind of band structure (either electronic or vibrational).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='band_structure_kind'))
 
     section_k_band_segment = SubSection(
         sub_section=SectionProxy('section_k_band_segment'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_k_band_segment'))
 
 
 class section_method_atom_kind(MSection):
@@ -1908,21 +2249,23 @@ class section_method_atom_kind(MSection):
     sections.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_method_atom_kind'))
 
     method_atom_kind_atom_number = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         Atomic number (number of protons) of this atom kind, use 0 if not an atom.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_atom_kind_atom_number'))
 
     method_atom_kind_explicit_electrons = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         description='''
         Number of explicit electrons (often called valence).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_atom_kind_explicit_electrons'))
 
     method_atom_kind_label = Quantity(
         type=str,
@@ -1934,22 +2277,25 @@ class section_method_atom_kind(MSection):
         differently defined sets of atom-centered basis functions or two different pseudo-
         potentials). Atom kind is typically the symbol of the atomic species but it can be
         also a ghost or pseudo-atom.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_atom_kind_label'))
 
     method_atom_kind_mass = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='atomic_mass_unit',
+        unit='unified_atomic_mass_unit',
         description='''
         Mass of the kind of this kind of atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_atom_kind_mass'))
 
     method_atom_kind_pseudopotential_name = Quantity(
         type=str,
         shape=[],
         description='''
         Name identifying the pseudopotential used.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_atom_kind_pseudopotential_name'))
 
 
 class section_method_to_method_refs(MSection):
@@ -1967,7 +2313,7 @@ class section_method_to_method_refs(MSection):
     the same section_run) or method_to_method_external_url.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_method_to_method_refs'))
 
     method_to_method_external_url = Quantity(
         type=str,
@@ -1976,7 +2322,8 @@ class section_method_to_method_refs(MSection):
         URL used to reference an externally stored section_method. The kind of
         relationship between the present and the referenced section_method is specified by
         method_to_method_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_to_method_external_url'))
 
     method_to_method_kind = Quantity(
         type=str,
@@ -1993,7 +2340,8 @@ class section_method_to_method_refs(MSection):
         Hence, the need of keeping track of these connected calculations. The referenced
         section_method is identified via method_to_method_ref (typically used for a
         section_method in the same section_run) or method_to_method_external_url.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_to_method_kind'))
 
     method_to_method_ref = Quantity(
         type=Reference(SectionProxy('section_method')),
@@ -2004,7 +2352,8 @@ class section_method_to_method_refs(MSection):
         of the value contained in method_to_method_external_url. The kind of relationship
         between the method defined in the present section_method and the referenced one is
         described by method_to_method_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='method_to_method_ref'))
 
 
 class section_method(MSection):
@@ -2017,7 +2366,7 @@ class section_method(MSection):
     optimization etc. See section frame_sequence for these other settings instead.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_method'))
 
     basis_set = Quantity(
         type=str,
@@ -2027,7 +2376,8 @@ class section_method(MSection):
         calculated with XC_method. It might identify a class of basis sets, often matches
         one of the strings given in any of basis_set_name.
         ''',
-        categories=[settings_potential_energy_surface, settings_numerical_parameter])
+        categories=[settings_numerical_parameter, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='basis_set'))
 
     calculation_method_current = Quantity(
         type=str,
@@ -2040,7 +2390,8 @@ class section_method(MSection):
         concatenating XC_method_current and basis_set. See [calculation_method_current
         wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/calculation-method-current) for the details.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_method_current'))
 
     calculation_method_kind = Quantity(
         type=str,
@@ -2053,7 +2404,8 @@ class section_method(MSection):
         - absolute
 
         - perturbative.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_method_kind'))
 
     calculation_method = Quantity(
         type=str,
@@ -2066,7 +2418,8 @@ class section_method(MSection):
         activate this, method_to_method_kind must have the value starting_point (see the
         [method_to_method_kind wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-
         meta-info/wikis/metainfo/method-to-method-kind)).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_method'))
 
     electronic_structure_method = Quantity(
         type=str,
@@ -2079,7 +2432,8 @@ class section_method(MSection):
         wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/electronic-structure-method).
         ''',
-        categories=[settings_potential_energy_surface, settings_XC])
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='electronic_structure_method'))
 
     k_mesh_points = Quantity(
         type=np.dtype(np.float64),
@@ -2089,7 +2443,8 @@ class section_method(MSection):
         evaluate energy_total, and are in fractional coordinates (in the basis of the
         reciprocal-lattice vectors).
         ''',
-        categories=[settings_k_points, settings_potential_energy_surface])
+        categories=[settings_k_points, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='k_mesh_points'))
 
     k_mesh_weights = Quantity(
         type=np.dtype(np.float64),
@@ -2098,7 +2453,8 @@ class section_method(MSection):
         Weights of all the k points in the $k$-point mesh. These are the weights for
         k_mesh_points (i.e. the k point used to evaluate energy_total).
         ''',
-        categories=[settings_k_points, settings_potential_energy_surface])
+        categories=[settings_k_points, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='k_mesh_weights'))
 
     number_of_k_mesh_points = Quantity(
         type=int,
@@ -2106,14 +2462,16 @@ class section_method(MSection):
         description='''
         number of k points in the mesh (i.e. the k points used to evaluate energy_total).
         ''',
-        categories=[settings_k_points, settings_potential_energy_surface])
+        categories=[settings_k_points, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='number_of_k_mesh_points'))
 
     number_of_spin_channels = Quantity(
         type=int,
         shape=[],
         description='''
         Gives the number of spin channels, see section_method.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_spin_channels'))
 
     relativity_method = Quantity(
         type=str,
@@ -2122,7 +2480,8 @@ class section_method(MSection):
         Describes the relativistic treatment used for the calculation of the final energy
         and related quantities. If skipped or empty, no relativistic treatment is applied.
         ''',
-        categories=[settings_potential_energy_surface, settings_XC, settings_relativity])
+        categories=[settings_relativity, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='relativity_method'))
 
     scf_max_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -2131,7 +2490,8 @@ class section_method(MSection):
         Specifies the maximum number of allowed self-consistent field (SCF) iterations in
         a calculation run, see section_run.
         ''',
-        categories=[settings_scf])
+        categories=[settings_scf],
+        a_legacy=LegacyDefinition(name='scf_max_iteration'))
 
     scf_threshold_energy_change = Quantity(
         type=np.dtype(np.float64),
@@ -2143,7 +2503,8 @@ class section_method(MSection):
         when the total-energy change between two SCF cycles is below the threshold
         (possibly in combination with other criteria).
         ''',
-        categories=[settings_scf])
+        categories=[settings_scf],
+        a_legacy=LegacyDefinition(name='scf_threshold_energy_change'))
 
     self_interaction_correction_method = Quantity(
         type=str,
@@ -2174,7 +2535,8 @@ class section_method(MSection):
         | `"SIC_MAURI_US"`          | A (scaled) correction proposed by Mauri and co-
         workers on the spin density / doublet unpaired orbital |
         ''',
-        categories=[settings_potential_energy_surface, settings_XC, settings_self_interaction_correction])
+        categories=[settings_self_interaction_correction, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='self_interaction_correction_method'))
 
     smearing_kind = Quantity(
         type=str,
@@ -2202,7 +2564,8 @@ class section_method(MSection):
         | `"tetrahedra"`            | Interpolation of state energies and occupations
         (ignores smearing_width) |
         ''',
-        categories=[settings_smearing])
+        categories=[settings_smearing],
+        a_legacy=LegacyDefinition(name='smearing_kind'))
 
     smearing_width = Quantity(
         type=np.dtype(np.float64),
@@ -2213,7 +2576,8 @@ class section_method(MSection):
 
         *NOTE:* Not all methods specified in smearing_kind uses this value.
         ''',
-        categories=[settings_smearing])
+        categories=[settings_smearing],
+        a_legacy=LegacyDefinition(name='smearing_width'))
 
     spin_target_multiplicity = Quantity(
         type=np.dtype(np.int32),
@@ -2223,7 +2587,8 @@ class section_method(MSection):
         $S$ is the total spin. It is an integer number. This value is not necessarily the
         value obtained at the end of the calculation. See spin_S2 for the converged value
         of the spin moment.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='spin_target_multiplicity'))
 
     stress_tensor_method = Quantity(
         type=str,
@@ -2238,7 +2603,8 @@ class section_method(MSection):
 
         * analytic
         ''',
-        categories=[settings_stress_tensor])
+        categories=[settings_stress_tensor],
+        a_legacy=LegacyDefinition(name='stress_tensor_method'))
 
     total_charge = Quantity(
         type=np.dtype(np.int32),
@@ -2246,7 +2612,8 @@ class section_method(MSection):
         unit='coulomb',
         description='''
         Provides the total amount of charge of the system in a run.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='total_charge'))
 
     van_der_Waals_method = Quantity(
         type=str,
@@ -2285,7 +2652,8 @@ class section_method(MSection):
         | `"XC"`                | The method to calculate the Van der Waals energy uses a
         non-local functional which is described in section_XC_functionals. |
         ''',
-        categories=[settings_van_der_Waals, settings_potential_energy_surface, settings_XC])
+        categories=[settings_van_der_Waals, settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='van_der_Waals_method'))
 
     XC_functional = Quantity(
         type=str,
@@ -2301,7 +2669,8 @@ class section_method(MSection):
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-
         functional).
         ''',
-        categories=[settings_physical_parameter, settings_XC_functional, settings_potential_energy_surface, settings_XC])
+        categories=[settings_potential_energy_surface, settings_physical_parameter, settings_XC_functional, settings_XC],
+        a_legacy=LegacyDefinition(name='XC_functional'))
 
     XC_method = Quantity(
         type=str,
@@ -2317,7 +2686,8 @@ class section_method(MSection):
         the XC method (XC_method) defined in section_method that is referred to by
         method_to_method_ref where method_to_method_kind = "starting_point_method".
         ''',
-        categories=[settings_potential_energy_surface, settings_XC])
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='XC_method'))
 
     XC_method_current = Quantity(
         type=str,
@@ -2343,19 +2713,23 @@ class section_method(MSection):
         calculation). In this case, the string that contains both the perturbative and
         starting point method is stored in XC_method.
         ''',
-        categories=[settings_potential_energy_surface, settings_XC])
+        categories=[settings_XC, settings_potential_energy_surface],
+        a_legacy=LegacyDefinition(name='XC_method_current'))
 
     section_method_atom_kind = SubSection(
         sub_section=SectionProxy('section_method_atom_kind'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_method_atom_kind'))
 
     section_method_to_method_refs = SubSection(
         sub_section=SectionProxy('section_method_to_method_refs'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_method_to_method_refs'))
 
     section_XC_functionals = SubSection(
         sub_section=SectionProxy('section_XC_functionals'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_XC_functionals'))
 
 
 class section_original_system(MSection):
@@ -2363,7 +2737,7 @@ class section_original_system(MSection):
     Section containing symmetry information that is specific to the original system.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_original_system'))
 
     equivalent_atoms_original = Quantity(
         type=np.dtype(np.int32),
@@ -2371,14 +2745,16 @@ class section_original_system(MSection):
         description='''
         Gives a mapping table of atoms to symmetrically independent atoms in the original
         cell. This is used to find symmetrically equivalent atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='equivalent_atoms_original'))
 
     wyckoff_letters_original = Quantity(
         type=str,
         shape=['number_of_atoms'],
         description='''
         Wyckoff letters for atoms in the original cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='wyckoff_letters_original'))
 
 
 class section_primitive_system(MSection):
@@ -2389,21 +2765,23 @@ class section_primitive_system(MSection):
     https://atztogo.github.io/spglib/definition.html#transformation-to-the-primitive-cell
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_primitive_system'))
 
     atom_positions_primitive = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_atoms_primitive', 3],
         description='''
         Atom positions in the primitive cell in reduced units.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_positions_primitive'))
 
     atomic_numbers_primitive = Quantity(
         type=np.dtype(np.int32),
         shape=['number_of_atoms_primitive'],
         description='''
         Atomic numbers in the primitive cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_numbers_primitive'))
 
     equivalent_atoms_primitive = Quantity(
         type=np.dtype(np.int32),
@@ -2411,7 +2789,8 @@ class section_primitive_system(MSection):
         description='''
         Gives a mapping table of atoms to symmetrically independent atoms in the primitive
         cell. This is used to find symmetrically equivalent atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='equivalent_atoms_primitive'))
 
     lattice_vectors_primitive = Quantity(
         type=np.dtype(np.float64),
@@ -2419,21 +2798,24 @@ class section_primitive_system(MSection):
         unit='meter',
         description='''
         Primitive lattice vectors. The vectors are the rows of this matrix.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='lattice_vectors_primitive'))
 
     number_of_atoms_primitive = Quantity(
         type=int,
         shape=[],
         description='''
         Number of atoms in primitive system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_atoms_primitive'))
 
     wyckoff_letters_primitive = Quantity(
         type=str,
         shape=['number_of_atoms_primitive'],
         description='''
         Wyckoff letters for atoms in the primitive cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='wyckoff_letters_primitive'))
 
 
 class section_processor_info(MSection):
@@ -2442,7 +2824,7 @@ class section_processor_info(MSection):
     current calculation.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_processor_info'))
 
     processor_id = Quantity(
         type=str,
@@ -2450,7 +2832,8 @@ class section_processor_info(MSection):
         description='''
         Id (name+version) of the processor that generated or added information to the
         current calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_id'))
 
     processor_number_of_evaluated_contexts = Quantity(
         type=np.dtype(np.int64),
@@ -2458,7 +2841,8 @@ class section_processor_info(MSection):
         description='''
         number of contexts evaluated with this processor in the current current
         calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_number_of_evaluated_contexts'))
 
     processor_number_of_failed_contexts = Quantity(
         type=np.dtype(np.int64),
@@ -2466,14 +2850,16 @@ class section_processor_info(MSection):
         description='''
         number of contexts in the current current calculation that had failure for this
         processor.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_number_of_failed_contexts'))
 
     processor_number_of_skipped_contexts = Quantity(
         type=np.dtype(np.int64),
         shape=[],
         description='''
         number of contexts skipped by this processor in the current current calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_number_of_skipped_contexts'))
 
     processor_number_of_successful_contexts = Quantity(
         type=np.dtype(np.int64),
@@ -2481,7 +2867,8 @@ class section_processor_info(MSection):
         description='''
         number of contexts in the current calculation that where successfully handled by
         this processor.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_number_of_successful_contexts'))
 
     processor_version_details = Quantity(
         type=typing.Any,
@@ -2489,7 +2876,8 @@ class section_processor_info(MSection):
         description='''
         detailed version information on the processor that generated or added information
         to the current calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_version_details'))
 
 
 class section_processor_log_event(MSection):
@@ -2497,7 +2885,7 @@ class section_processor_log_event(MSection):
     A log event
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_processor_log_event'))
 
     processor_log_event_level = Quantity(
         type=np.dtype(np.int32),
@@ -2506,14 +2894,16 @@ class section_processor_log_event(MSection):
         Level of the logging, a lower number has more priority. The levels are the same as
         log4j: FATAL -> 100, ERROR -> 200, WARN -> 300, INFO -> 400, DEBUG -> 500, TRACE
         -> 600
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_log_event_level'))
 
     processor_log_event_message = Quantity(
         type=str,
         shape=[],
         description='''
         The log message
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_log_event_message'))
 
 
 class section_processor_log(MSection):
@@ -2521,25 +2911,28 @@ class section_processor_log(MSection):
     log of a processor
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_processor_log'))
 
     processor_log_processor_id = Quantity(
         type=str,
         shape=[],
         description='''
         The processor id of the processor creating this log
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_log_processor_id'))
 
     processor_log_start = Quantity(
         type=str,
         shape=[],
         description='''
         Start of the log (in ansi notation YYYY-MM-TT...)
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='processor_log_start'))
 
     section_processor_log_event = SubSection(
         sub_section=SectionProxy('section_processor_log_event'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_processor_log_event'))
 
 
 class section_prototype(MSection):
@@ -2547,7 +2940,7 @@ class section_prototype(MSection):
     Information on the prototype corresponding to the current section.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_prototype'))
 
     prototype_aflow_id = Quantity(
         type=str,
@@ -2556,7 +2949,8 @@ class section_prototype(MSection):
         AFLOW id of the prototype (see
         http://aflowlib.org/CrystalDatabase/prototype_index.html) identified on the basis
         of the space_group and normalized_wyckoff.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='prototype_aflow_id'))
 
     prototype_aflow_url = Quantity(
         type=str,
@@ -2565,14 +2959,16 @@ class section_prototype(MSection):
         Url to the AFLOW definition of the prototype (see
         http://aflowlib.org/CrystalDatabase/prototype_index.html) identified on the basis
         of the space_group and normalized_wyckoff.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='prototype_aflow_url'))
 
     prototype_assignment_method = Quantity(
         type=str,
         shape=[],
         description='''
         Method used to identify the prototype.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='prototype_assignment_method'))
 
     prototype_label = Quantity(
         type=str,
@@ -2581,7 +2977,8 @@ class section_prototype(MSection):
         Label of the prototype identified on the basis of the space_group and
         normalized_wyckoff. The label is in the same format as in the read_prototypes
         function: <space_group_number>-<prototype_name>-<Pearson's symbol>).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='prototype_label'))
 
 
 class section_run(MSection):
@@ -2592,7 +2989,7 @@ class section_run(MSection):
     ](program_info)).
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_run'))
 
     calculation_file_uri = Quantity(
         type=str,
@@ -2600,7 +2997,8 @@ class section_run(MSection):
         description='''
         Contains the nomad uri of a raw the data file connected to the current run. There
         should be an value for the main_file_uri and all ancillary files.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_file_uri'))
 
     message_debug_run = Quantity(
         type=str,
@@ -2608,7 +3006,8 @@ class section_run(MSection):
         description='''
         A debugging message of the computational program, associated with a run.
         ''',
-        categories=[message_debug])
+        categories=[message_debug],
+        a_legacy=LegacyDefinition(name='message_debug_run'))
 
     message_error_run = Quantity(
         type=str,
@@ -2616,7 +3015,8 @@ class section_run(MSection):
         description='''
         An error message of the computational program, associated with a run.
         ''',
-        categories=[message_info, message_debug, message_warning, message_error])
+        categories=[message_info, message_debug, message_error, message_warning],
+        a_legacy=LegacyDefinition(name='message_error_run'))
 
     message_info_run = Quantity(
         type=str,
@@ -2624,7 +3024,8 @@ class section_run(MSection):
         description='''
         An information message of the computational program, associated with a run.
         ''',
-        categories=[message_info, message_debug])
+        categories=[message_info, message_debug],
+        a_legacy=LegacyDefinition(name='message_info_run'))
 
     message_warning_run = Quantity(
         type=str,
@@ -2632,7 +3033,8 @@ class section_run(MSection):
         description='''
         A warning message of the computational program, associated with a run.
         ''',
-        categories=[message_info, message_debug, message_warning])
+        categories=[message_info, message_debug, message_warning],
+        a_legacy=LegacyDefinition(name='message_warning_run'))
 
     parsing_message_debug_run = Quantity(
         type=str,
@@ -2641,7 +3043,8 @@ class section_run(MSection):
         This field is used for debugging messages of the parsing program associated with a
         single configuration calculation, see section_single_configuration_calculation.
         ''',
-        categories=[parsing_message_debug])
+        categories=[parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_debug_run'))
 
     parsing_message_error_run = Quantity(
         type=str,
@@ -2650,7 +3053,8 @@ class section_run(MSection):
         This field is used for error messages of the parsing program associated with a
         run, see section_run.
         ''',
-        categories=[parsing_message_info, parsing_message_error, parsing_message_warning, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_error, parsing_message_warning, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_error_run'))
 
     parsing_message_info_run = Quantity(
         type=str,
@@ -2659,7 +3063,8 @@ class section_run(MSection):
         This field is used for info messages of the parsing program associated with a run,
         see section_run.
         ''',
-        categories=[parsing_message_info, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_info_run'))
 
     parsing_message_warning_run = Quantity(
         type=str,
@@ -2668,7 +3073,8 @@ class section_run(MSection):
         This field is used for warning messages of the parsing program associated with a
         run, see section_run.
         ''',
-        categories=[parsing_message_info, parsing_message_warning, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_warning, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_warning_run'))
 
     program_basis_set_type = Quantity(
         type=str,
@@ -2691,7 +3097,8 @@ class section_run(MSection):
         * Real-space grid
 
         * Local-orbital minimum-basis
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='program_basis_set_type'))
 
     program_compilation_datetime = Quantity(
         type=np.dtype(np.float64),
@@ -2702,7 +3109,8 @@ class section_run(MSection):
         1 January 1970) in seconds. For date and times without a timezone, the default
         timezone GMT is used.
         ''',
-        categories=[accessory_info, program_info])
+        categories=[accessory_info, program_info],
+        a_legacy=LegacyDefinition(name='program_compilation_datetime'))
 
     program_compilation_host = Quantity(
         type=str,
@@ -2710,7 +3118,8 @@ class section_run(MSection):
         description='''
         Specifies the host on which the program was compiled.
         ''',
-        categories=[accessory_info, program_info])
+        categories=[accessory_info, program_info],
+        a_legacy=LegacyDefinition(name='program_compilation_host'))
 
     program_name = Quantity(
         type=str,
@@ -2718,7 +3127,8 @@ class section_run(MSection):
         description='''
         Specifies the name of the program that generated the data.
         ''',
-        categories=[accessory_info, program_info])
+        categories=[accessory_info, program_info],
+        a_legacy=LegacyDefinition(name='program_name'))
 
     program_version = Quantity(
         type=str,
@@ -2728,7 +3138,8 @@ class section_run(MSection):
         number of an official release, the version tag or a commit id as well as the
         location of the repository.
         ''',
-        categories=[accessory_info, program_info])
+        categories=[accessory_info, program_info],
+        a_legacy=LegacyDefinition(name='program_version'))
 
     run_clean_end = Quantity(
         type=bool,
@@ -2736,7 +3147,8 @@ class section_run(MSection):
         description='''
         Indicates whether this run terminated properly (true), or if it was killed or
         exited with an error code unequal to zero (false).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='run_clean_end'))
 
     run_hosts = Quantity(
         type=typing.Any,
@@ -2746,14 +3158,16 @@ class section_run(MSection):
         associative list that contains program-dependent information (*key*) on how the
         host was used (*value*). Useful for debugging purposes.
         ''',
-        categories=[accessory_info, parallelization_info])
+        categories=[parallelization_info, accessory_info],
+        a_legacy=LegacyDefinition(name='run_hosts'))
 
     raw_id = Quantity(
         type=str,
         shape=[],
         description='''
         An optional calculation id, if one is found in the code input/output files.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='raw_id'))
 
     time_run_cpu1_end = Quantity(
         type=np.dtype(np.float64),
@@ -2762,7 +3176,8 @@ class section_run(MSection):
         description='''
         Stores the end time of the run on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_cpu1_end'))
 
     time_run_cpu1_start = Quantity(
         type=np.dtype(np.float64),
@@ -2771,7 +3186,8 @@ class section_run(MSection):
         description='''
         Stores the start time of the run on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_cpu1_start'))
 
     time_run_date_end = Quantity(
         type=np.dtype(np.float64),
@@ -2782,7 +3198,8 @@ class section_run(MSection):
         January 1970) in seconds. For date and times without a timezone, the default
         timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_date_end'))
 
     time_run_date_start = Quantity(
         type=np.dtype(np.float64),
@@ -2793,7 +3210,8 @@ class section_run(MSection):
         January 1970) in seconds. For date and times without a timezone, the default
         timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_date_start'))
 
     time_run_wall_end = Quantity(
         type=np.dtype(np.float64),
@@ -2802,7 +3220,8 @@ class section_run(MSection):
         description='''
         Stores the internal wall-clock time at the end of the run.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_wall_end'))
 
     time_run_wall_start = Quantity(
         type=np.dtype(np.float64),
@@ -2811,35 +3230,43 @@ class section_run(MSection):
         description='''
         Stores the internal wall-clock time from the start of the run.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_run_wall_start'))
 
     section_basis_set_atom_centered = SubSection(
         sub_section=SectionProxy('section_basis_set_atom_centered'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_basis_set_atom_centered'))
 
     section_basis_set_cell_dependent = SubSection(
         sub_section=SectionProxy('section_basis_set_cell_dependent'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_basis_set_cell_dependent'))
 
     section_frame_sequence = SubSection(
         sub_section=SectionProxy('section_frame_sequence'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_frame_sequence'))
 
     section_method = SubSection(
         sub_section=SectionProxy('section_method'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_method'))
 
     section_sampling_method = SubSection(
         sub_section=SectionProxy('section_sampling_method'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_sampling_method'))
 
     section_single_configuration_calculation = SubSection(
         sub_section=SectionProxy('section_single_configuration_calculation'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_single_configuration_calculation'))
 
     section_system = SubSection(
         sub_section=SectionProxy('section_system'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_system'))
 
 
 class section_sampling_method(MSection):
@@ -2851,7 +3278,7 @@ class section_sampling_method(MSection):
     frames, section_frame_sequence.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_sampling_method'))
 
     ensemble_type = Quantity(
         type=str,
@@ -2860,7 +3287,8 @@ class section_sampling_method(MSection):
         Kind of sampled ensemble stored in section_frame_sequence; valid values are
         defined in [ensemble_type wiki page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-
         meta-info/wikis/metainfo/ensemble-type).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='ensemble_type'))
 
     geometry_optimization_energy_change = Quantity(
         type=np.dtype(np.float64),
@@ -2873,7 +3301,8 @@ class section_sampling_method(MSection):
         geometry optimization steps is below the threshold (possibly in combination with
         other criteria)
         ''',
-        categories=[settings_sampling, settings_geometry_optimization])
+        categories=[settings_geometry_optimization, settings_sampling],
+        a_legacy=LegacyDefinition(name='geometry_optimization_energy_change'))
 
     geometry_optimization_geometry_change = Quantity(
         type=np.dtype(np.float64),
@@ -2886,7 +3315,8 @@ class section_sampling_method(MSection):
         displacements of the nuclei between two geometry optimization steps is below the
         threshold (possibly in combination with other criteria)
         ''',
-        categories=[settings_sampling, settings_geometry_optimization])
+        categories=[settings_geometry_optimization, settings_sampling],
+        a_legacy=LegacyDefinition(name='geometry_optimization_geometry_change'))
 
     geometry_optimization_method = Quantity(
         type=str,
@@ -2896,7 +3326,8 @@ class section_sampling_method(MSection):
         [geometry_optimization_method wiki page](https://gitlab.mpcdf.mpg.de/nomad-
         lab/nomad-meta-info/wikis/metainfo/geometry-optimization-method).
         ''',
-        categories=[settings_sampling, settings_geometry_optimization])
+        categories=[settings_geometry_optimization, settings_sampling],
+        a_legacy=LegacyDefinition(name='geometry_optimization_method'))
 
     geometry_optimization_threshold_force = Quantity(
         type=np.dtype(np.float64),
@@ -2908,7 +3339,8 @@ class section_sampling_method(MSection):
         the maximum of the moduli of the force on each of the atoms is below this
         threshold (possibly in combination with other criteria)
         ''',
-        categories=[settings_sampling, settings_geometry_optimization])
+        categories=[settings_geometry_optimization, settings_sampling],
+        a_legacy=LegacyDefinition(name='geometry_optimization_threshold_force'))
 
     sampling_method_expansion_order = Quantity(
         type=np.dtype(np.int32),
@@ -2916,7 +3348,8 @@ class section_sampling_method(MSection):
         description='''
         Order up to which the potential energy surface was expanded in a Taylor series
         (see sampling_method).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='sampling_method_expansion_order'))
 
     sampling_method = Quantity(
         type=str,
@@ -2951,7 +3384,8 @@ class section_sampling_method(MSection):
 
         | `"taylor_expansion"`           | Taylor expansion of the potential energy
         surface |
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='sampling_method'))
 
 
 class section_scf_iteration(MSection):
@@ -2961,7 +3395,7 @@ class section_scf_iteration(MSection):
     quantities.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_scf_iteration'))
 
     electronic_kinetic_energy_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -2971,7 +3405,8 @@ class section_scf_iteration(MSection):
         Electronic kinetic energy as defined in XC_method during the self-consistent field
         (SCF) iterations.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='electronic_kinetic_energy_scf_iteration'))
 
     energy_change_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -2981,7 +3416,8 @@ class section_scf_iteration(MSection):
         Stores the change of total energy with respect to the previous self-consistent
         field (SCF) iteration.
         ''',
-        categories=[energy_value, error_estimate_contribution])
+        categories=[error_estimate_contribution, energy_value],
+        a_legacy=LegacyDefinition(name='energy_change_scf_iteration'))
 
     energy_correction_entropy_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -2993,7 +3429,8 @@ class section_scf_iteration(MSection):
         in account. The array lists the values of the entropy correction for each self-
         consistent field (SCF) iteration. Defined consistently with XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_correction_entropy_scf_iteration'))
 
     energy_correction_hartree_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3005,7 +3442,8 @@ class section_scf_iteration(MSection):
         density electrostatic energy during the self-consistent field (SCF) iterations.
         Defined consistently with XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_correction_hartree_scf_iteration'))
 
     energy_electrostatic_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3015,7 +3453,8 @@ class section_scf_iteration(MSection):
         Total electrostatic energy (nuclei + electrons) during each self-consistent field
         (SCF) iteration.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_electrostatic_scf_iteration'))
 
     energy_free_per_atom_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3026,7 +3465,8 @@ class section_scf_iteration(MSection):
         calculated with smearing_kind) calculated with XC_method during the self-
         consistent field (SCF) iterations.
         ''',
-        categories=[energy_value, energy_component_per_atom])
+        categories=[energy_component_per_atom, energy_value],
+        a_legacy=LegacyDefinition(name='energy_free_per_atom_scf_iteration'))
 
     energy_free_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3037,7 +3477,8 @@ class section_scf_iteration(MSection):
         smearing_kind) calculated with the method described in XC_method during the self-
         consistent field (SCF) iterations.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_free_scf_iteration'))
 
     energy_hartree_error_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3047,7 +3488,8 @@ class section_scf_iteration(MSection):
         Error in the Hartree (electrostatic) potential energy during each self-consistent
         field (SCF) iteration. Defined consistently with XC_method.
         ''',
-        categories=[energy_value, error_estimate_contribution])
+        categories=[error_estimate_contribution, energy_value],
+        a_legacy=LegacyDefinition(name='energy_hartree_error_scf_iteration'))
 
     energy_sum_eigenvalues_per_atom_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3058,7 +3500,8 @@ class section_scf_iteration(MSection):
         eigenvalues of the Hamiltonian matrix given by XC_method, during each self-
         consistent field (SCF) iteration.
         ''',
-        categories=[energy_value, energy_component_per_atom])
+        categories=[energy_component_per_atom, energy_value],
+        a_legacy=LegacyDefinition(name='energy_sum_eigenvalues_per_atom_scf_iteration'))
 
     energy_sum_eigenvalues_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3068,7 +3511,8 @@ class section_scf_iteration(MSection):
         Sum of the eigenvalues of the Hamiltonian matrix defined by XC_method, during each
         self-consistent field (SCF) iteration.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_sum_eigenvalues_scf_iteration'))
 
     energy_total_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3078,7 +3522,8 @@ class section_scf_iteration(MSection):
         Value of the total electronic energy calculated with the method described in
         XC_method during each self-consistent field (SCF) iteration.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_total_scf_iteration'))
 
     energy_total_T0_per_atom_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3089,7 +3534,8 @@ class section_scf_iteration(MSection):
         atom extrapolated to $T=0$, based on a free-electron gas argument, during each
         self-consistent field (SCF) iteration.
         ''',
-        categories=[energy_total_potential_per_atom, energy_value, energy_component])
+        categories=[energy_total_potential_per_atom, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_total_T0_per_atom_scf_iteration'))
 
     energy_total_T0_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3100,7 +3546,8 @@ class section_scf_iteration(MSection):
         method described in XC_method and extrapolated to $T=0$, based on a free-electron
         gas argument, during each self-consistent field (SCF) iteration.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_total_T0_scf_iteration'))
 
     energy_XC_potential_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3113,7 +3560,8 @@ class section_scf_iteration(MSection):
         eigenvalues. Values are given for each self-consistent field (SCF) iteration
         (i.e., not the converged value, the latter being stored in energy_XC_potential).
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_XC_potential_scf_iteration'))
 
     energy_XC_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3123,7 +3571,8 @@ class section_scf_iteration(MSection):
         Value for exchange-correlation (XC) energy obtained during each self-consistent
         field (SCF) iteration, using the method described in XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_XC_scf_iteration'))
 
     spin_S2_scf_iteration = Quantity(
         type=np.dtype(np.float64),
@@ -3132,7 +3581,8 @@ class section_scf_iteration(MSection):
         Stores the value of the total spin moment operator $S^2$ during the self-
         consistent field (SCF) iterations of the XC_method. It can be used to calculate
         the spin contamination in spin-unrestricted calculations.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='spin_S2_scf_iteration'))
 
     time_scf_iteration_cpu1_end = Quantity(
         type=np.dtype(np.float64),
@@ -3141,7 +3591,8 @@ class section_scf_iteration(MSection):
         description='''
         Stores the end time of a self-consistent field (SCF) iteration on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_cpu1_end'))
 
     time_scf_iteration_cpu1_start = Quantity(
         type=np.dtype(np.float64),
@@ -3150,7 +3601,8 @@ class section_scf_iteration(MSection):
         description='''
         Stores the start time of a self-consistent field (SCF) iteration on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_cpu1_start'))
 
     time_scf_iteration_date_end = Quantity(
         type=np.dtype(np.float64),
@@ -3161,7 +3613,8 @@ class section_scf_iteration(MSection):
         *Unix epoch* (00:00:00 UTC on 1 January 1970) in seconds. For date and times
         without a timezone, the default timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_date_end'))
 
     time_scf_iteration_date_start = Quantity(
         type=np.dtype(np.float64),
@@ -3172,7 +3625,8 @@ class section_scf_iteration(MSection):
         *Unix epoch* (00:00:00 UTC on 1 January 1970) in seconds. For date and times
         without a timezone, the default timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_date_start'))
 
     time_scf_iteration_wall_end = Quantity(
         type=np.dtype(np.float64),
@@ -3182,7 +3636,8 @@ class section_scf_iteration(MSection):
         Stores the internal wall-clock time at the end of a self-consistent field (SCF)
         iteration.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_wall_end'))
 
     time_scf_iteration_wall_start = Quantity(
         type=np.dtype(np.float64),
@@ -3192,7 +3647,8 @@ class section_scf_iteration(MSection):
         Stores the internal wall-clock time from the start of a self-consistent field
         (SCF) iteration.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration_wall_start'))
 
 
 class section_single_configuration_calculation(MSection):
@@ -3213,7 +3669,7 @@ class section_single_configuration_calculation(MSection):
     with the same computational method. This storage strategy avoids redundancies.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_single_configuration_calculation'))
 
     atom_forces_free_raw = Quantity(
         type=np.dtype(np.float64),
@@ -3231,7 +3687,8 @@ class section_single_configuration_calculation(MSection):
         such as fixed atoms, distances, angles, dihedrals, etc. are also considered
         separately (see atom_forces_free for the filtered counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces_free_raw'))
 
     atom_forces_free = Quantity(
         type=np.dtype(np.float64),
@@ -3250,7 +3707,8 @@ class section_single_configuration_calculation(MSection):
         such as fixed atoms, distances, angles, dihedrals, etc. are included (see
         atom_forces_free_raw for the unfiltered counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces_free'))
 
     atom_forces_raw = Quantity(
         type=np.dtype(np.float64),
@@ -3266,7 +3724,8 @@ class section_single_configuration_calculation(MSection):
         dihedrals, etc. are also considered separately (see atom_forces for the filtered
         counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces_raw'))
 
     atom_forces_T0_raw = Quantity(
         type=np.dtype(np.float64),
@@ -3282,7 +3741,8 @@ class section_single_configuration_calculation(MSection):
         angles, dihedrals, etc. are also considered separately (see atom_forces_T0 for the
         filtered counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces_T0_raw'))
 
     atom_forces_T0 = Quantity(
         type=np.dtype(np.float64),
@@ -3298,7 +3758,8 @@ class section_single_configuration_calculation(MSection):
         such as fixed atoms, distances, angles, dihedrals, etc. are also included (see
         atom_forces_free_T0_raw for the unfiltered counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces_T0'))
 
     atom_forces = Quantity(
         type=np.dtype(np.float64),
@@ -3314,7 +3775,8 @@ class section_single_configuration_calculation(MSection):
         such as fixed atoms, distances, angles, dihedrals, etc. are included (see
         atom_forces_raw for the unfiltered counterpart).
         ''',
-        categories=[atom_forces_type])
+        categories=[atom_forces_type],
+        a_legacy=LegacyDefinition(name='atom_forces'))
 
     electronic_kinetic_energy = Quantity(
         type=np.dtype(np.float64),
@@ -3323,7 +3785,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Self-consistent electronic kinetic energy as defined in XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='electronic_kinetic_energy'))
 
     energy_C = Quantity(
         type=np.dtype(np.float64),
@@ -3332,7 +3795,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Correlation (C) energy calculated with the method described in XC_functional.
         ''',
-        categories=[energy_value, energy_type_C, energy_component])
+        categories=[energy_component, energy_value, energy_type_C],
+        a_legacy=LegacyDefinition(name='energy_C'))
 
     energy_correction_entropy = Quantity(
         type=np.dtype(np.float64),
@@ -3343,7 +3807,8 @@ class section_single_configuration_calculation(MSection):
         occupation so that forces at finite T do not need to keep the change of occupation
         in account. Defined consistently with XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_correction_entropy'))
 
     energy_correction_hartree = Quantity(
         type=np.dtype(np.float64),
@@ -3354,7 +3819,8 @@ class section_single_configuration_calculation(MSection):
         (that uses the mixed density on one side), and the fully consistent density-
         density electrostatic energy. Defined consistently with XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_correction_hartree'))
 
     energy_current = Quantity(
         type=np.dtype(np.float64),
@@ -3371,7 +3837,8 @@ class section_single_configuration_calculation(MSection):
         page](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/energy-
         current).
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_current'))
 
     energy_electrostatic = Quantity(
         type=np.dtype(np.float64),
@@ -3381,7 +3848,8 @@ class section_single_configuration_calculation(MSection):
         Total electrostatic energy (nuclei + electrons), defined consistently with
         calculation_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_electrostatic'))
 
     energy_free_per_atom = Quantity(
         type=np.dtype(np.float64),
@@ -3391,7 +3859,8 @@ class section_single_configuration_calculation(MSection):
         Free energy per atom (whose minimum gives the smeared occupation density
         calculated with smearing_kind) calculated with XC_method.
         ''',
-        categories=[energy_value, energy_component_per_atom])
+        categories=[energy_component_per_atom, energy_value],
+        a_legacy=LegacyDefinition(name='energy_free_per_atom'))
 
     energy_free = Quantity(
         type=np.dtype(np.float64),
@@ -3402,7 +3871,8 @@ class section_single_configuration_calculation(MSection):
         density calculated with smearing_kind) calculated with the method described in
         XC_method.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_free'))
 
     energy_hartree_error = Quantity(
         type=np.dtype(np.float64),
@@ -3412,7 +3882,8 @@ class section_single_configuration_calculation(MSection):
         Error in the Hartree (electrostatic) potential energy. Defined consistently with
         XC_method.
         ''',
-        categories=[energy_value, error_estimate_contribution])
+        categories=[error_estimate_contribution, energy_value],
+        a_legacy=LegacyDefinition(name='energy_hartree_error'))
 
     energy_hartree_fock_X_scaled = Quantity(
         type=np.dtype(np.float64),
@@ -3426,7 +3897,8 @@ class section_single_configuration_calculation(MSection):
         hybrid functional would be stored in this metadata. Defined consistently with
         XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_hartree_fock_X_scaled'))
 
     energy_hartree_fock_X = Quantity(
         type=np.dtype(np.float64),
@@ -3436,7 +3908,8 @@ class section_single_configuration_calculation(MSection):
         Converged exact-exchange (Hartree-Fock) energy. Defined consistently with
         XC_method.
         ''',
-        categories=[energy_type_X, energy_value, energy_component])
+        categories=[energy_type_X, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_hartree_fock_X'))
 
     energy_method_current = Quantity(
         type=np.dtype(np.float64),
@@ -3447,7 +3920,8 @@ class section_single_configuration_calculation(MSection):
         Depending on calculation_method_kind it might be a total energy or only a
         correction.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_method_current'))
 
     energy_sum_eigenvalues_per_atom = Quantity(
         type=np.dtype(np.float64),
@@ -3457,7 +3931,8 @@ class section_single_configuration_calculation(MSection):
         Value of the energy per atom, where the energy is defined as the sum of the
         eigenvalues of the Hamiltonian matrix given by XC_method.
         ''',
-        categories=[energy_value, energy_component_per_atom])
+        categories=[energy_component_per_atom, energy_value],
+        a_legacy=LegacyDefinition(name='energy_sum_eigenvalues_per_atom'))
 
     energy_sum_eigenvalues = Quantity(
         type=np.dtype(np.float64),
@@ -3466,7 +3941,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Sum of the eigenvalues of the Hamiltonian matrix defined by XC_method.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_sum_eigenvalues'))
 
     energy_T0_per_atom = Quantity(
         type=np.dtype(np.float64),
@@ -3476,7 +3952,8 @@ class section_single_configuration_calculation(MSection):
         Value of the total energy per atom, calculated with the method described in
         XC_method and extrapolated to $T=0$, based on a free-electron gas argument.
         ''',
-        categories=[energy_total_potential_per_atom, energy_value, energy_component])
+        categories=[energy_total_potential_per_atom, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_T0_per_atom'))
 
     energy_total_T0_per_atom = Quantity(
         type=np.dtype(np.float64),
@@ -3486,7 +3963,8 @@ class section_single_configuration_calculation(MSection):
         Value of the total energy, calculated with the method described in XC_method per
         atom extrapolated to $T=0$, based on a free-electron gas argument.
         ''',
-        categories=[energy_total_potential_per_atom, energy_value, energy_component])
+        categories=[energy_total_potential_per_atom, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_total_T0_per_atom'))
 
     energy_total_T0 = Quantity(
         type=np.dtype(np.float64),
@@ -3497,7 +3975,8 @@ class section_single_configuration_calculation(MSection):
         method described in XC_method and extrapolated to $T=0$, based on a free-electron
         gas argument.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_total_T0'))
 
     energy_total = Quantity(
         type=np.dtype(np.float64),
@@ -3507,7 +3986,8 @@ class section_single_configuration_calculation(MSection):
         Value of the total energy, calculated with the method described in XC_method and
         extrapolated to $T=0$, based on a free-electron gas argument.
         ''',
-        categories=[energy_component, energy_value, energy_total_potential])
+        categories=[energy_component, energy_value, energy_total_potential],
+        a_legacy=LegacyDefinition(name='energy_total'))
 
     energy_XC_functional = Quantity(
         type=np.dtype(np.float64),
@@ -3517,7 +3997,8 @@ class section_single_configuration_calculation(MSection):
         Value of the exchange-correlation (XC) energy calculated with the functional
         stored in XC_functional.
         ''',
-        categories=[energy_type_XC, energy_value, energy_component])
+        categories=[energy_type_XC, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_XC_functional'))
 
     energy_XC_potential = Quantity(
         type=np.dtype(np.float64),
@@ -3530,7 +4011,8 @@ class section_single_configuration_calculation(MSection):
         eigenvalues. Value associated with the configuration, should be the most converged
         value.
         ''',
-        categories=[energy_value, energy_component])
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_XC_potential'))
 
     energy_XC = Quantity(
         type=np.dtype(np.float64),
@@ -3540,7 +4022,8 @@ class section_single_configuration_calculation(MSection):
         Value of the exchange-correlation (XC) energy calculated with the method described
         in XC_method.
         ''',
-        categories=[energy_type_XC, energy_value, energy_component])
+        categories=[energy_type_XC, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_XC'))
 
     energy_X = Quantity(
         type=np.dtype(np.float64),
@@ -3550,7 +4033,8 @@ class section_single_configuration_calculation(MSection):
         Value fo the exchange (X) energy calculated with the method described in
         XC_method.
         ''',
-        categories=[energy_type_X, energy_value, energy_component])
+        categories=[energy_type_X, energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_X'))
 
     energy_zero_point = Quantity(
         type=np.dtype(np.float64),
@@ -3558,14 +4042,16 @@ class section_single_configuration_calculation(MSection):
         description='''
         Value for the converged zero-point vibrations energy calculated using the method
         described in zero_point_method , and used in energy_current .
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='energy_zero_point'))
 
     hessian_matrix = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_atoms', 'number_of_atoms', 3, 3],
         description='''
         The matrix with the second derivative with respect to atom displacements.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='hessian_matrix'))
 
     message_debug_evaluation = Quantity(
         type=str,
@@ -3574,7 +4060,8 @@ class section_single_configuration_calculation(MSection):
         A debugging message of the computational program, associated with a *single
         configuration calculation* (see section_single_configuration_calculation).
         ''',
-        categories=[message_debug])
+        categories=[message_debug],
+        a_legacy=LegacyDefinition(name='message_debug_evaluation'))
 
     message_error_evaluation = Quantity(
         type=str,
@@ -3583,7 +4070,8 @@ class section_single_configuration_calculation(MSection):
         An error message of the computational program, associated with a *single
         configuration calculation* (see section_single_configuration_calculation).
         ''',
-        categories=[message_info, message_debug, message_warning, message_error])
+        categories=[message_info, message_debug, message_error, message_warning],
+        a_legacy=LegacyDefinition(name='message_error_evaluation'))
 
     message_info_evaluation = Quantity(
         type=str,
@@ -3592,7 +4080,8 @@ class section_single_configuration_calculation(MSection):
         An information message of the computational program, associated with a *single
         configuration calculation* (see section_single_configuration_calculation).
         ''',
-        categories=[message_info, message_debug])
+        categories=[message_info, message_debug],
+        a_legacy=LegacyDefinition(name='message_info_evaluation'))
 
     message_warning_evaluation = Quantity(
         type=str,
@@ -3600,7 +4089,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         A warning message of the computational program.
         ''',
-        categories=[message_info, message_debug, message_warning])
+        categories=[message_info, message_debug, message_warning],
+        a_legacy=LegacyDefinition(name='message_warning_evaluation'))
 
     number_of_scf_iterations = Quantity(
         type=int,
@@ -3609,7 +4099,8 @@ class section_single_configuration_calculation(MSection):
         Gives the number of performed self-consistent field (SCF) iterations at a specfied
         level of theory.
         ''',
-        categories=[scf_info])
+        categories=[scf_info],
+        a_legacy=LegacyDefinition(name='number_of_scf_iterations'))
 
     parsing_message_debug_evaluation = Quantity(
         type=str,
@@ -3618,7 +4109,8 @@ class section_single_configuration_calculation(MSection):
         This field is used for debugging messages of the parsing program associated with a
         run, see section_run.
         ''',
-        categories=[parsing_message_debug])
+        categories=[parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_debug_evaluation'))
 
     parsing_message_error_single_configuration = Quantity(
         type=str,
@@ -3627,7 +4119,8 @@ class section_single_configuration_calculation(MSection):
         This field is used for error messages of the parsing program associated with a
         single configuration calculation, see section_single_configuration_calculation.
         ''',
-        categories=[parsing_message_info, parsing_message_error, parsing_message_warning, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_error, parsing_message_warning, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_error_single_configuration'))
 
     parsing_message_info_single_configuration = Quantity(
         type=str,
@@ -3636,7 +4129,8 @@ class section_single_configuration_calculation(MSection):
         This field is used for info messages of the parsing program associated with a
         single configuration calculation, see section_single_configuration_calculation.
         ''',
-        categories=[parsing_message_info, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_info_single_configuration'))
 
     parsing_message_warning_evaluation = Quantity(
         type=str,
@@ -3645,7 +4139,8 @@ class section_single_configuration_calculation(MSection):
         This field is used for warning messages of the parsing program associated with a
         run, see section_run.
         ''',
-        categories=[parsing_message_info, parsing_message_warning, parsing_message_debug])
+        categories=[parsing_message_info, parsing_message_warning, parsing_message_debug],
+        a_legacy=LegacyDefinition(name='parsing_message_warning_evaluation'))
 
     single_configuration_calculation_converged = Quantity(
         type=bool,
@@ -3653,7 +4148,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Determines whether a *single configuration calculation* in
         section_single_configuration_calculation is converged.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='single_configuration_calculation_converged'))
 
     single_configuration_calculation_to_system_ref = Quantity(
         type=Reference(SectionProxy('section_system')),
@@ -3661,7 +4157,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Reference to the system (atomic configuration, cell, ...) that is calculated in
         section_single_configuration_calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='single_configuration_calculation_to_system_ref'))
 
     single_configuration_to_calculation_method_ref = Quantity(
         type=Reference(SectionProxy('section_method')),
@@ -3669,7 +4166,8 @@ class section_single_configuration_calculation(MSection):
         description='''
         Reference to the method used for the calculation in
         section_single_configuration_calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='single_configuration_to_calculation_method_ref'))
 
     spin_S2 = Quantity(
         type=np.dtype(np.float64),
@@ -3678,7 +4176,8 @@ class section_single_configuration_calculation(MSection):
         Stores the value of the total spin moment operator $S^2$ for the converged
         wavefunctions calculated with the XC_method. It can be used to calculate the spin
         contamination in spin-unrestricted calculations.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='spin_S2'))
 
     stress_tensor = Quantity(
         type=np.dtype(np.float64),
@@ -3692,7 +4191,8 @@ class section_single_configuration_calculation(MSection):
         optimization. Alternative definitions of the stress tensor can be assigned with
         stress_tensor_kind
         ''',
-        categories=[stress_tensor_type])
+        categories=[stress_tensor_type],
+        a_legacy=LegacyDefinition(name='stress_tensor'))
 
     time_calculation = Quantity(
         type=np.dtype(np.float64),
@@ -3703,7 +4203,8 @@ class section_single_configuration_calculation(MSection):
         calculation_method_current. Basically, it tracks the real time that has been
         elapsed from start to end.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_calculation'))
 
     time_single_configuration_calculation_cpu1_end = Quantity(
         type=np.dtype(np.float64),
@@ -3713,7 +4214,8 @@ class section_single_configuration_calculation(MSection):
         Stores the end time of the *single configuration calculation* (see
         section_single_configuration_calculation) on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_cpu1_end'))
 
     time_single_configuration_calculation_cpu1_start = Quantity(
         type=np.dtype(np.float64),
@@ -3723,7 +4225,8 @@ class section_single_configuration_calculation(MSection):
         Stores the start time of the *single configuration calculation* (see
         section_single_configuration_calculation) on CPU 1.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_cpu1_start'))
 
     time_single_configuration_calculation_date_end = Quantity(
         type=np.dtype(np.float64),
@@ -3735,7 +4238,8 @@ class section_single_configuration_calculation(MSection):
         UTC on 1 January 1970) in seconds. For date and times without a timezone, the
         default timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_date_end'))
 
     time_single_configuration_calculation_date_start = Quantity(
         type=np.dtype(np.float64),
@@ -3747,7 +4251,8 @@ class section_single_configuration_calculation(MSection):
         UTC on 1 January 1970) in seconds. For date and times without a timezone, the
         default timezone GMT is used.
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_date_start'))
 
     time_single_configuration_calculation_wall_end = Quantity(
         type=np.dtype(np.float64),
@@ -3757,7 +4262,8 @@ class section_single_configuration_calculation(MSection):
         Stores the internal wall-clock time at the end of the *single configuration
         calculation* (see section_single_configuration_calculation).
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_wall_end'))
 
     time_single_configuration_calculation_wall_start = Quantity(
         type=np.dtype(np.float64),
@@ -3767,7 +4273,8 @@ class section_single_configuration_calculation(MSection):
         Stores the internal wall-clock time from the start of the *single configuration
         calculation* (see section_single_configuration_calculation).
         ''',
-        categories=[accessory_info, time_info])
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_single_configuration_calculation_wall_start'))
 
     zero_point_method = Quantity(
         type=str,
@@ -3775,67 +4282,83 @@ class section_single_configuration_calculation(MSection):
         description='''
         Describes the zero-point vibrations method. If skipped or an empty string is used,
         it means no zero-point vibrations correction is applied.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='zero_point_method'))
 
     section_atom_projected_dos = SubSection(
         sub_section=SectionProxy('section_atom_projected_dos'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_atom_projected_dos'))
 
     section_atomic_multipoles = SubSection(
         sub_section=SectionProxy('section_atomic_multipoles'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_atomic_multipoles'))
 
     section_basis_set = SubSection(
         sub_section=SectionProxy('section_basis_set'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_basis_set'))
 
     section_calculation_to_calculation_refs = SubSection(
         sub_section=SectionProxy('section_calculation_to_calculation_refs'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_calculation_to_calculation_refs'))
 
     section_calculation_to_folder_refs = SubSection(
         sub_section=SectionProxy('section_calculation_to_folder_refs'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_calculation_to_folder_refs'))
 
     section_dos = SubSection(
         sub_section=SectionProxy('section_dos'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_dos'))
 
     section_eigenvalues = SubSection(
         sub_section=SectionProxy('section_eigenvalues'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_eigenvalues'))
 
     section_energy_code_independent = SubSection(
         sub_section=SectionProxy('section_energy_code_independent'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_energy_code_independent'))
 
     section_energy_van_der_Waals = SubSection(
         sub_section=SectionProxy('section_energy_van_der_Waals'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_energy_van_der_Waals'))
 
     section_k_band_normalized = SubSection(
         sub_section=SectionProxy('section_k_band_normalized'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_k_band_normalized'))
 
     section_k_band = SubSection(
         sub_section=SectionProxy('section_k_band'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_k_band'))
 
     section_scf_iteration = SubSection(
         sub_section=SectionProxy('section_scf_iteration'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_scf_iteration'))
 
     section_species_projected_dos = SubSection(
         sub_section=SectionProxy('section_species_projected_dos'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_species_projected_dos'))
 
     section_stress_tensor = SubSection(
         sub_section=SectionProxy('section_stress_tensor'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_stress_tensor'))
 
     section_volumetric_data = SubSection(
         sub_section=SectionProxy('section_volumetric_data'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_volumetric_data'))
 
 
 class section_species_projected_dos(MSection):
@@ -3844,7 +4367,7 @@ class section_species_projected_dos(MSection):
     evaluation.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_species_projected_dos'))
 
     number_of_lm_species_projected_dos = Quantity(
         type=int,
@@ -3852,7 +4375,8 @@ class section_species_projected_dos(MSection):
         description='''
         Gives the number of $l$, $m$ combinations for the species-projected density of
         states (DOS) defined in section_species_projected_dos.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_lm_species_projected_dos'))
 
     number_of_species_projected_dos_values = Quantity(
         type=int,
@@ -3860,7 +4384,8 @@ class section_species_projected_dos(MSection):
         description='''
         Gives the number of energy values for the species-projected density of states
         (DOS) defined in section_species_projected_dos.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_species_projected_dos_values'))
 
     number_of_species = Quantity(
         type=int,
@@ -3868,7 +4393,8 @@ class section_species_projected_dos(MSection):
         description='''
         Gives the number of species for the species-projected density of states (DOS)
         defined in section_species_projected_dos.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_species'))
 
     species_projected_dos_energies_normalized = Quantity(
         type=np.dtype(np.float64),
@@ -3878,7 +4404,8 @@ class section_species_projected_dos(MSection):
         Contains the set of discrete energy values with respect to the top of the valence
         band for the species-projected density of states (DOS). It is derived from the
         species_projected_dos_energies species field.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_energies_normalized'))
 
     species_projected_dos_energies = Quantity(
         type=np.dtype(np.float64),
@@ -3887,7 +4414,8 @@ class section_species_projected_dos(MSection):
         description='''
         Contains the set of discrete energy values for the species-projected density of
         states (DOS).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_energies'))
 
     species_projected_dos_lm = Quantity(
         type=np.dtype(np.int32),
@@ -3900,7 +4428,8 @@ class section_species_projected_dos(MSection):
         quantum number $m$, besides the conventional use as magnetic quantum number ($l+1$
         integer values from $-l$ to $l$), a set of different conventions is accepted. The
         adopted convention is specified by atom_projected_dos_m_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_lm'))
 
     species_projected_dos_m_kind = Quantity(
         type=str,
@@ -3921,7 +4450,8 @@ class section_species_projected_dos(MSection):
         * integrated
 
         functions or values.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_m_kind'))
 
     species_projected_dos_species_label = Quantity(
         type=str,
@@ -3935,7 +4465,8 @@ class section_species_projected_dos(MSection):
         refer to actual atomic species, i.e. belonging to the periodic table of elements.
         Thus, the species-projected DOS are expected to be as many as the different atomic
         species in the system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_species_label'))
 
     species_projected_dos_values_lm = Quantity(
         type=np.dtype(np.float64),
@@ -3947,7 +4478,8 @@ class section_species_projected_dos(MSection):
         Here, there are as many species-projected DOS as the number of species,
         number_of_species. The list of labels of the species is given in
         species_projected_dos_species_label.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_values_lm'))
 
     species_projected_dos_values_total = Quantity(
         type=np.dtype(np.float64),
@@ -3959,7 +4491,8 @@ class section_species_projected_dos(MSection):
         Here, there are as many species-projected DOS as the number of species,
         number_of_species. The list of labels of the species is given in
         species_projected_dos_species_label.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='species_projected_dos_values_total'))
 
 
 class section_springer_material(MSection):
@@ -3970,28 +4503,31 @@ class section_springer_material(MSection):
     section_springer_references
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_springer_material'))
 
     springer_id = Quantity(
         type=str,
         shape=[],
         description='''
         Id of the classified material according to Springer Materials
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='springer_id'))
 
     springer_alphabetical_formula = Quantity(
         type=str,
         shape=[],
         description='''
         The alphabetical formula of the material according to Springer Materials Database
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='springer_alphabetical_formula'))
 
     springer_url = Quantity(
         type=str,
         shape=[],
         description='''
         Url to the source page in Springer Materials describing the current entry
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='springer_url'))
 
     springer_compound_class = Quantity(
         type=str,
@@ -3999,7 +4535,8 @@ class section_springer_material(MSection):
         description='''
         Name of a class of the current compound, as defined in by Springer Materials. This
         is a property of the chemical formula of the compound
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='springer_compound_class'))
 
     springer_classification = Quantity(
         type=str,
@@ -4007,11 +4544,13 @@ class section_springer_material(MSection):
         description='''
         Contains the classification name of the current material according to Springer
         Materials
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='springer_classification'))
 
     section_springer_id = SubSection(
         sub_section=SectionProxy('section_springer_id'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_springer_id'))
 
 
 class section_springer_id(MSection):
@@ -4019,7 +4558,7 @@ class section_springer_id(MSection):
     Identifiers used by Springer Materials
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_springer_id'))
 
 
 class section_std_system(MSection):
@@ -4029,21 +4568,23 @@ class section_std_system(MSection):
     from https://arxiv.org/abs/1506.01455
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_std_system'))
 
     atom_positions_std = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_atoms_std', 3],
         description='''
         Standardized atom positions in reduced units.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_positions_std'))
 
     atomic_numbers_std = Quantity(
         type=np.dtype(np.int32),
         shape=['number_of_atoms_std'],
         description='''
         Atomic numbers of the atoms in the standardized cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atomic_numbers_std'))
 
     equivalent_atoms_std = Quantity(
         type=np.dtype(np.int32),
@@ -4051,7 +4592,8 @@ class section_std_system(MSection):
         description='''
         Gives a mapping table of atoms to symmetrically independent atoms in the
         standardized cell. This is used to find symmetrically equivalent atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='equivalent_atoms_std'))
 
     lattice_vectors_std = Quantity(
         type=np.dtype(np.float64),
@@ -4060,21 +4602,24 @@ class section_std_system(MSection):
         description='''
         Standardized lattice vectors of the conventional cell. The vectors are the rows of
         this matrix.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='lattice_vectors_std'))
 
     number_of_atoms_std = Quantity(
         type=int,
         shape=[],
         description='''
         Number of atoms in standardized system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_atoms_std'))
 
     wyckoff_letters_std = Quantity(
         type=str,
         shape=['number_of_atoms_std'],
         description='''
         Wyckoff letters for atoms in the standardized cell.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='wyckoff_letters_std'))
 
 
 class section_stress_tensor(MSection):
@@ -4086,7 +4631,7 @@ class section_stress_tensor(MSection):
     geometry optimization (if needed).
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_stress_tensor'))
 
     stress_tensor_kind = Quantity(
         type=str,
@@ -4099,7 +4644,8 @@ class section_stress_tensor(MSection):
         This field allows for multiple definitions and evaluated values of the stress
         tensor, while only one definition is used for, e.g., molecular dynamics and
         geometry optimization.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='stress_tensor_kind'))
 
     stress_tensor_value = Quantity(
         type=np.dtype(np.float64),
@@ -4113,7 +4659,8 @@ class section_stress_tensor(MSection):
         tensor, while only one definition is used for, e.g., molecular dynamics and
         geometry optimization.
         ''',
-        categories=[stress_tensor_type])
+        categories=[stress_tensor_type],
+        a_legacy=LegacyDefinition(name='stress_tensor_value'))
 
 
 class section_symmetry(MSection):
@@ -4121,7 +4668,7 @@ class section_symmetry(MSection):
     Section containing information about the symmetry properties of the system.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_symmetry'))
 
     bravais_lattice = Quantity(
         type=str,
@@ -4133,7 +4680,8 @@ class section_symmetry(MSection):
         second uppercase letter identifies the centring and can be one of the following: P
         (primitive), S (face centred), I (body centred), R (rhombohedral centring) or F
         (all faces centred).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='bravais_lattice'))
 
     choice = Quantity(
         type=str,
@@ -4142,7 +4690,8 @@ class section_symmetry(MSection):
         String that specifies the centering, origin and basis vector settings of the 3D
         space group that defines the symmetry group of the simulated physical system (see
         section_system). Values are as defined by spglib.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='choice'))
 
     crystal_system = Quantity(
         type=str,
@@ -4150,21 +4699,24 @@ class section_symmetry(MSection):
         description='''
         Name of the crystal system. Can be one of the following: triclinic, monoclinic,
         orthorhombic, tetragonal, trigonal, hexagonal or cubic.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='crystal_system'))
 
     hall_number = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         The Hall number for this system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='hall_number'))
 
     hall_symbol = Quantity(
         type=str,
         shape=[],
         description='''
         The Hall symbol for this system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='hall_symbol'))
 
     international_short_symbol = Quantity(
         type=str,
@@ -4172,7 +4724,8 @@ class section_symmetry(MSection):
         description='''
         Specifies the International Union of Crystallography (IUC) short symbol of the 3D
         space group of this system
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='international_short_symbol'))
 
     origin_shift = Quantity(
         type=np.dtype(np.float64),
@@ -4183,14 +4736,16 @@ class section_symmetry(MSection):
         space_group_3D_transformation_matrix, the transformation between the standardized
         coordinates $\\mathbf{x}_s$ and original coordinates $\\mathbf{x}$ is then given by
         $\\mathbf{x}_s = \\mathbf{P} \\mathbf{x} + \\mathbf{p}$.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='origin_shift'))
 
     point_group = Quantity(
         type=str,
         shape=[],
         description='''
         Symbol of the crystallographic point group in the Hermann-Mauguin notation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='point_group'))
 
     space_group_number = Quantity(
         type=np.dtype(np.int32),
@@ -4198,7 +4753,8 @@ class section_symmetry(MSection):
         description='''
         Specifies the International Union of Crystallography (IUC) number of the 3D space
         group of this system.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='space_group_number'))
 
     symmetry_method = Quantity(
         type=str,
@@ -4206,7 +4762,8 @@ class section_symmetry(MSection):
         description='''
         Identifies the source of the symmetry information contained within this section.
         If equal to 'spg_normalized' the information comes from a normalization step.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='symmetry_method'))
 
     transformation_matrix = Quantity(
         type=np.dtype(np.float64),
@@ -4217,19 +4774,23 @@ class section_symmetry(MSection):
         space_group_3D_origin_shift, the transformation between the standardized
         coordinates $\\mathbf{x}_s$ and original coordinates $\\mathbf{x}$ is then given by
         $\\mathbf{x}_s = \\mathbf{P} \\mathbf{x} + \\mathbf{p}$.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='transformation_matrix'))
 
     section_original_system = SubSection(
         sub_section=SectionProxy('section_original_system'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_original_system'))
 
     section_primitive_system = SubSection(
         sub_section=SectionProxy('section_primitive_system'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_primitive_system'))
 
     section_std_system = SubSection(
         sub_section=SectionProxy('section_std_system'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_std_system'))
 
 
 class section_system_to_system_refs(MSection):
@@ -4245,7 +4806,7 @@ class section_system_to_system_refs(MSection):
     via system_to_system_ref.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_system_to_system_refs'))
 
     system_to_system_kind = Quantity(
         type=str,
@@ -4257,7 +4818,8 @@ class section_system_to_system_refs(MSection):
         larger supercell but properties such as the phonon band structure are still
         calculated for the primitive cell. Hence, the need of keeping track of these
         connected systems. The referenced system is identified via system_to_system_ref.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_to_system_kind'))
 
     system_to_system_ref = Quantity(
         type=Reference(SectionProxy('section_system')),
@@ -4265,7 +4827,8 @@ class section_system_to_system_refs(MSection):
         description='''
         Reference to another system. The kind of relationship between the present and the
         referenced section_system is specified by system_to_system_kind.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_to_system_ref'))
 
 
 class section_system(MSection):
@@ -4275,14 +4838,15 @@ class section_system(MSection):
     (if present), the external potentials and other parameters.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_system'))
 
     atom_atom_number = Quantity(
         type=np.dtype(np.int32),
         shape=['number_of_sites'],
         description='''
         Atomic number Z of the atom.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_atom_number'))
 
     atom_concentrations = Quantity(
         type=np.dtype(np.float64),
@@ -4290,7 +4854,8 @@ class section_system(MSection):
         description='''
         concentration of the atom species in a variable composition, by default it should
         be considered an array of ones. Summing these should give the number_of_sites
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_concentrations'))
 
     atom_labels = Quantity(
         type=str,
@@ -4306,7 +4871,8 @@ class section_system(MSection):
         atom-centered basis sets). This metadata defines a configuration and is therefore
         required.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='atom_labels'))
 
     atom_positions = Quantity(
         type=np.dtype(np.float64),
@@ -4318,7 +4884,8 @@ class section_system(MSection):
         species are given for each site in the unit cell, it stores the position of the
         sites.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='atom_positions'))
 
     atom_species = Quantity(
         type=np.dtype(np.int32),
@@ -4326,7 +4893,8 @@ class section_system(MSection):
         description='''
         Species of the atom (normally the atomic number Z, 0 or negative for unidentifed
         species or particles that are not atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_species'))
 
     atom_velocities = Quantity(
         type=np.dtype(np.float64),
@@ -4335,7 +4903,8 @@ class section_system(MSection):
         description='''
         Velocities of the nuclei, defined as the change in Cartesian coordinates of the
         nuclei with respect to time.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='atom_velocities'))
 
     configuration_periodic_dimensions = Quantity(
         type=bool,
@@ -4347,7 +4916,8 @@ class section_system(MSection):
         section_single_configuration_calculation where it is defined for all subsequent
         section_single_configuration_calculation in section_run, until redefined.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='configuration_periodic_dimensions'))
 
     configuration_raw_gid = Quantity(
         type=str,
@@ -4356,7 +4926,8 @@ class section_system(MSection):
         checksum of the configuration_core, i.e. the geometry of the system. The values
         are not normalized in any way so equivalent configurations might have different
         values
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='configuration_raw_gid'))
 
     embedded_system = Quantity(
         type=bool,
@@ -4364,7 +4935,8 @@ class section_system(MSection):
         description='''
         Is the system embedded into a host geometry?.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='embedded_system'))
 
     lattice_vectors = Quantity(
         type=np.dtype(np.float64),
@@ -4375,7 +4947,8 @@ class section_system(MSection):
         last (fastest) index runs over the $x,y,z$ Cartesian coordinates, and the first
         index runs over the 3 lattice vectors.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='lattice_vectors'))
 
     local_rotations = Quantity(
         type=np.dtype(np.float64),
@@ -4384,7 +4957,8 @@ class section_system(MSection):
         A rotation matrix defining the orientation of each atom. If the rotation matrix
         only needs to be specified for some atoms, the remaining atoms should set it to
         the zero matrix (not the identity!)
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='local_rotations'))
 
     number_of_atoms = Quantity(
         type=int,
@@ -4393,7 +4967,8 @@ class section_system(MSection):
         Stores the total number of atoms used in the calculation. For alloys where
         concentrations of species are given for each site in the unit cell, it stores the
         number of sites.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_atoms'))
 
     number_of_sites = Quantity(
         type=int,
@@ -4401,7 +4976,8 @@ class section_system(MSection):
         description='''
         number of sites in a variable composition representation. By default (no variable
         composition) it is the same as number_of_atoms.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_sites'))
 
     SC_matrix = Quantity(
         type=np.dtype(np.int32),
@@ -4409,7 +4985,8 @@ class section_system(MSection):
         description='''
         Specifies the matrix that transforms the unit-cell into the super-cell in which
         the actual calculation is performed.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='SC_matrix'))
 
     simulation_cell = Quantity(
         type=np.dtype(np.float64),
@@ -4421,14 +4998,16 @@ class section_system(MSection):
         $x,y,z$ Cartesian coordinates, and the first index runs over the 3 lattice
         vectors.
         ''',
-        categories=[configuration_core])
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='simulation_cell'))
 
     symmorphic = Quantity(
         type=bool,
         shape=[],
         description='''
         Is the space group symmorphic? Set to True if all translations are zero.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='symmorphic'))
 
     system_composition = Quantity(
         type=str,
@@ -4436,14 +5015,16 @@ class section_system(MSection):
         description='''
         Composition, i.e. cumulative chemical formula with atoms ordered by decreasing
         atomic number Z.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_composition'))
 
     system_configuration_consistent = Quantity(
         type=bool,
         shape=[],
         description='''
         Flag set is the configuration is consistent
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_configuration_consistent'))
 
     system_name = Quantity(
         type=str,
@@ -4451,7 +5032,8 @@ class section_system(MSection):
         description='''
         Specifies the name of the system. This information is provided by the user in some
         codes and is stored here for debugging or visualization purposes.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_name'))
 
     system_reweighted_composition = Quantity(
         type=str,
@@ -4460,35 +5042,40 @@ class section_system(MSection):
         Composition, i.e. cumulative chemical with atoms ordered by decreasing atomic
         number Z reweighted so that the sum is close to 100, and values are rounded up,
         and are stable (i.e. it is a fixed point).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_reweighted_composition'))
 
     system_type = Quantity(
         type=str,
         shape=[],
         description='''
         Type of the system
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='system_type'))
 
     time_reversal_symmetry = Quantity(
         type=bool,
         shape=[],
         description='''
         Is time-reversal symmetry present?
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='time_reversal_symmetry'))
 
     chemical_composition = Quantity(
         type=str,
         shape=[],
         description='''
         The chemical composition as full formula of the system, based on atom species.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='chemical_composition'))
 
     chemical_composition_reduced = Quantity(
         type=str,
         shape=[],
         description='''
         The chemical composition as reduced formula of the system, based on atom species.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='chemical_composition_reduced'))
 
     chemical_composition_bulk_reduced = Quantity(
         type=str,
@@ -4496,23 +5083,28 @@ class section_system(MSection):
         description='''
         The chemical composition as reduced bulk formula of the system, based on atom
         species.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='chemical_composition_bulk_reduced'))
 
     section_prototype = SubSection(
         sub_section=SectionProxy('section_prototype'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_prototype'))
 
     section_springer_material = SubSection(
         sub_section=SectionProxy('section_springer_material'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_springer_material'))
 
     section_symmetry = SubSection(
         sub_section=SectionProxy('section_symmetry'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_symmetry'))
 
     section_system_to_system_refs = SubSection(
         sub_section=SectionProxy('section_system_to_system_refs'),
-        repeats=True)
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_system_to_system_refs'))
 
 
 class section_thermodynamical_properties(MSection):
@@ -4521,7 +5113,7 @@ class section_thermodynamical_properties(MSection):
     section_frame_sequence.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_thermodynamical_properties'))
 
     helmholz_free_energy = Quantity(
         type=np.dtype(np.float64),
@@ -4530,7 +5122,8 @@ class section_thermodynamical_properties(MSection):
         description='''
         Stores the Helmholtz free energy per unit cell at constant volume of a
         thermodynamic calculation.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='helmholz_free_energy'))
 
     number_of_thermodynamical_property_values = Quantity(
         type=int,
@@ -4538,7 +5131,8 @@ class section_thermodynamical_properties(MSection):
         description='''
         Gives the number of thermal properties values available in
         section_thermodynamical_properties.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_thermodynamical_property_values'))
 
     thermodynamical_properties_calculation_method = Quantity(
         type=str,
@@ -4549,7 +5143,8 @@ class section_thermodynamical_properties(MSection):
         Valid values:
 
         * harmonic
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='thermodynamical_properties_calculation_method'))
 
     thermodynamical_property_heat_capacity_C_v = Quantity(
         type=np.dtype(np.float64),
@@ -4557,7 +5152,8 @@ class section_thermodynamical_properties(MSection):
         unit='joule / kelvin',
         description='''
         Stores the heat capacity per cell unit at constant volume.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='thermodynamical_property_heat_capacity_C_v'))
 
     thermodynamical_property_temperature = Quantity(
         type=np.dtype(np.float64),
@@ -4566,7 +5162,8 @@ class section_thermodynamical_properties(MSection):
         description='''
         Specifies the temperatures at which properties such as the Helmholtz free energy
         are calculated.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='thermodynamical_property_temperature'))
 
     vibrational_free_energy_at_constant_volume = Quantity(
         type=np.dtype(np.float64),
@@ -4574,7 +5171,8 @@ class section_thermodynamical_properties(MSection):
         unit='joule',
         description='''
         Holds the vibrational free energy per atom at constant volume.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='vibrational_free_energy_at_constant_volume'))
 
 
 class section_volumetric_data(MSection):
@@ -4612,7 +5210,7 @@ class section_volumetric_data(MSection):
     Rules for more complex spins are to be decided when necessary.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_volumetric_data'))
 
     volumetric_data_displacements = Quantity(
         type=np.dtype(np.float64),
@@ -4623,7 +5221,8 @@ class section_volumetric_data(MSection):
         lattice_vectors.  In many cases, displacements and number of points are related to
         lattice_vectors through: [displacement] * [number of points + N] =
         [lattice_vector],where N is 1 for periodic directions and 0 for non-periodic ones
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_displacements'))
 
     volumetric_data_kind = Quantity(
         type=str,
@@ -4634,35 +5233,40 @@ class section_volumetric_data(MSection):
         are 1/m^3 and potentials are J/m^3.  See [full specification on the
         wiki](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/volumetric-data).
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_kind'))
 
     volumetric_data_multiplicity = Quantity(
         type=int,
         shape=[],
         description='''
         number of functions stored
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_multiplicity'))
 
     volumetric_data_nx = Quantity(
         type=int,
         shape=[],
         description='''
         number of points along x axis
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_nx'))
 
     volumetric_data_ny = Quantity(
         type=int,
         shape=[],
         description='''
         number of points along y axis
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_ny'))
 
     volumetric_data_nz = Quantity(
         type=int,
         shape=[],
         description='''
         number of points along z axis
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_nz'))
 
     volumetric_data_origin = Quantity(
         type=np.dtype(np.float64),
@@ -4670,7 +5274,8 @@ class section_volumetric_data(MSection):
         description='''
         location of the first grid point; same coordinate system as atom_positions when
         applicable.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_origin'))
 
     volumetric_data_values = Quantity(
         type=np.dtype(np.float64),
@@ -4679,7 +5284,8 @@ class section_volumetric_data(MSection):
         Array of shape (multiplicity, nx, ny, nz) containing the values.  The units of
         these values depend on which kind of data the values represent; see
         "volumetric_data_kind".
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='volumetric_data_values'))
 
 
 class section_XC_functionals(MSection):
@@ -4688,7 +5294,7 @@ class section_XC_functionals(MSection):
     section_method that are combined to form the XC_functional.
     '''
 
-    m_def = Section(validate=False)
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_XC_functionals'))
 
     XC_functional_name = Quantity(
         type=str,
@@ -4704,7 +5310,8 @@ class section_XC_functionals(MSection):
         *NOTE*: This value should refer to a correlation, an exchange or an exchange-
         correlation functional only.
         ''',
-        categories=[settings_physical_parameter])
+        categories=[settings_physical_parameter],
+        a_legacy=LegacyDefinition(name='XC_functional_name'))
 
     XC_functional_parameters = Quantity(
         type=typing.Any,
@@ -4725,7 +5332,8 @@ class section_XC_functionals(MSection):
         If this metadata is not given, the default parameter values for the
         XC_functional_name are assumed.
         ''',
-        categories=[settings_physical_parameter])
+        categories=[settings_physical_parameter],
+        a_legacy=LegacyDefinition(name='XC_functional_parameters'))
 
     XC_functional_weight = Quantity(
         type=np.dtype(np.float64),
@@ -4741,7 +5349,8 @@ class section_XC_functionals(MSection):
 
         If not specified then the default is set to 1.
         ''',
-        categories=[settings_physical_parameter])
+        categories=[settings_physical_parameter],
+        a_legacy=LegacyDefinition(name='XC_functional_weight'))
 
 
 m_package.__init_metainfo__()
