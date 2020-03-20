@@ -644,8 +644,9 @@ class MSection(metaclass=MObjectMeta):
             m_def = Section()
             setattr(cls, 'm_def', m_def)
 
-        # transfer name m_def
-        m_def.name = cls.__name__
+        # Use class name if name is not explicitly defined
+        if m_def.name is None:
+            m_def.name = cls.__name__
         m_def.section_cls = cls
 
         # add base sections

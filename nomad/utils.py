@@ -396,7 +396,7 @@ def timer(logger, event, method='info', **kwargs):
     Arguments:
         logger: The logger that should be used to produce the log entry.
         event: The log message/event.
-        method: The log methad that should be used. Must be a valid logger method name.
+        method: The log method that should be used. Must be a valid logger method name.
             Default is 'info'.
         **kwargs: Additional logger data that is passed to the log entry.
 

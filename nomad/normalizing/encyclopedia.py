@@ -62,7 +62,7 @@ class Context():
     """
     def __init__(
         self,
-        system_type: str,
+        material_type: str,
         method_type: str,
         run_type: str,
         representative_system,
@@ -70,7 +70,7 @@ class Context():
         representative_scc,
         representative_scc_idx,
     ):
-        self.system_type = system_type
+        self.material_type = material_type
         self.method_type = method_type
         self.run_type = run_type
         self.representative_system = representative_system
@@ -160,11 +160,11 @@ class EncyclopediaNormalizer(Normalizer):
         run_type_sec.run_type = run_type
         return run_type
 
-    def system_type(self, material: Material) -> tuple:
+    def material_type(self, material: Material) -> tuple:
         # Try to fetch representative system
         system = None
-        system_type = config.services.unavailable_value
-        system_enums = Material.system_type.type
+        material_type = config.services.unavailable_value
+        material_enums = Material.material_type.type
         system_idx = self._backend["section_run"][0].tmp["representative_system_idx"]
         if system_idx is not None:
             # Try to find system type information from backend for the selected system.
@@ -174,19 +174,19 @@ class EncyclopediaNormalizer(Normalizer):
             except KeyError:
                 pass
             else:
-                if stype == system_enums.one_d or stype == system_enums.two_d:
-                    system_type = stype
+                if stype == material_enums.one_d or stype == material_enums.two_d:
+                    material_type = stype
                 # For bulk systems we also ensure that the symmetry information is available
-                if stype == system_enums.bulk:
+                if stype == material_enums.bulk:
                     try:
                         system["section_symmetry"][0]
                     except (KeyError, IndexError):
                         self.logger.info("Symmetry information is not available for a bulk system. No Encylopedia entry created.")
                     else:
-                        system_type = stype
+                        material_type = stype
 
-        material.system_type = system_type
-        return system, system_type
+        material.material_type = material_type
+        return system, material_type
 
     def method_type(self, method: Method) -> tuple:
         repr_method = None
@@ -267,11 +267,11 @@ class EncyclopediaNormalizer(Normalizer):
     def fill(self, ctx: Context):
         # Fill structure related metainfo
         struct: Any = None
-        if ctx.system_type == Material.system_type.type.bulk:
+        if ctx.material_type == Material.material_type.type.bulk:
             struct = MaterialBulkNormalizer(self.backend, self.logger)
-        elif ctx.system_type == Material.system_type.type.two_d:
+        elif ctx.material_type == Material.material_type.type.two_d:
             struct = Material2DNormalizer(self.backend, self.logger)
-        elif ctx.system_type == Material.system_type.type.one_d:
+        elif ctx.material_type == Material.material_type.type.one_d:
             struct = Material1DNormalizer(self.backend, self.logger)
         if struct is not None:
             struct.normalize(ctx)
@@ -316,17 +316,23 @@ class EncyclopediaNormalizer(Normalizer):
                 return
 
             # Get the system type, stop if unknown
-            system_enums = Material.system_type.type
-            representative_system, system_type = self.system_type(material)
-            if system_type != system_enums.bulk and system_type != system_enums.two_d and system_type != system_enums.one_d:
+            material_enums = Material.material_type.type
+            representative_system, material_type = self.material_type(material)
+            if material_type != material_enums.bulk and material_type != material_enums.two_d and material_type != material_enums.one_d:
                 self.logger.info(
                     "Unsupported system type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unsupported_system_type",
+                    enc_status="unsupported_material_type",
                 )
                 return
 
             # Get the method type, stop if unknown
             representative_method, method_type = self.method_type(method)
+            if method_type == config.services.unavailable_value:
+                self.logger.info(
+                    "Unsupported method type for encyclopedia, encyclopedia metainfo not created.",
+                    enc_status="unsupported_method_type",
+                )
+                return
 
             # Get representative scc
             try:
@@ -338,7 +344,7 @@ class EncyclopediaNormalizer(Normalizer):
 
             # Create one context that holds all details
             context = Context(
-                system_type=system_type,
+                material_type=material_type,
                 method_type=method_type,
                 run_type=run_type_name,
                 representative_system=representative_system,
@@ -1641,7 +1647,7 @@ class PropertiesNormalizer():
         bz_json = json.dumps(brillouin_zone)
         band_structure.brillouin_zone = bz_json
 
-    def band_structure(self, properties: Properties, run_type: str, system_type: str, representative_scc: Section, sec_system: Section) -> None:
+    def band_structure(self, properties: Properties, run_type: str, material_type: str, representative_scc: Section, sec_system: Section) -> None:
         """Band structure data following arbitrary path.
 
         Currently this function is only taking into account the normalized band
@@ -1653,7 +1659,7 @@ class PropertiesNormalizer():
         # that is only available from the symmetry analysis. Once the
         # reciprocal cell is directly reported with the band structure this
         # restriction can go away.
-        if run_type != RunType.run_type.type.single_point or system_type != Material.system_type.type.bulk:
+        if run_type != RunType.run_type.type.single_point or material_type != Material.material_type.type.bulk:
             return
 
         orig_atoms = sec_system.tmp["representative_atoms"]
@@ -1775,10 +1781,10 @@ class PropertiesNormalizer():
         properties = sec_enc.properties
         properties.scc_index = int(ctx.representative_scc_idx)
         run_type = ctx.run_type
-        system_type = ctx.system_type
+        material_type = ctx.material_type
         sec_system = ctx.representative_system
         gcd = ctx.greatest_common_divisor
 
         # Save metainfo
-        self.band_structure(properties, run_type, system_type, representative_scc, sec_system)
+        self.band_structure(properties, run_type, material_type, representative_scc, sec_system)
         self.energies(properties, gcd, representative_scc)

@@ -72,10 +72,10 @@ class Material(MSection):
     )
 
     # Material-specific
-    system_type = Quantity(
+    material_type = Quantity(
         type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
         description="""
-        "Character of physical system's geometry, e.g. bulk, surface... ",
+        "Character of physical system's geometry, e.g. bulk, 2D, 1D... ",
         """
     )
     material_hash = Quantity(
@@ -623,8 +623,9 @@ class Encyclopedia(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
+        name="encyclopedia",
         description="""
-        Section for storing all information that is used by the NOMAD Encyclopedia.
+        Section which stores information for the NOMAD Encyclopedia.
         """
     )
     mainfile_uri = Quantity(
