@@ -24,6 +24,7 @@ import os.path
 from urllib.parse import urlencode
 import base64
 import itertools
+from hashlib import md5
 
 from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
@@ -1707,12 +1708,17 @@ class TestMirror:
         rv = api.get(url, headers=admin_user_auth)
         assert rv.status_code == 200
         assert rv.data is not None
+        assert md5(rv.data).hexdigest() == '76cdb2bad9582d23c1f6f4d868218d6c'
 
     def test_users(self, api, published, admin_user_auth, no_warn):
         url = '/mirror/users'
         rv = api.get(url, headers=admin_user_auth)
         assert rv.status_code == 200
-        assert rv.data is not None
+        users = json.loads(rv.data)
+        assert users is not None
+        assert len(users) == 3
+        for user in users:
+            assert 'email' not in user
 
 
 class TestDataset:
