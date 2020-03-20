@@ -391,3 +391,32 @@ def test_match(raw_files, with_latin_1_file, no_warn):
     assert len(matched_mainfiles) == correct_num_output_files, ', '.join([
         '%s: %s' % (parser.name, mainfile)
         for mainfile, parser in matched_mainfiles.items()])
+
+
+def parser_in_dir(dir):
+    for root, _, files in os.walk(dir):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+
+            if 'test' not in file_path:
+                continue
+
+            parser = match_parser(file_path)
+            if parser is not None:
+
+                try:
+                    parser.run(file_path)
+                except Exception as e:
+                    print(file_path, parser, 'FAILURE', e)
+                else:
+                    print(file_path, parser, 'SUCCESS')
+
+
+if __name__ == '__main__':
+    import sys
+    import os
+
+    assert len(sys.argv) == 2 and os.path.isdir(sys.argv[1]), \
+        'One argument with an directory path is required.'
+
+    parser_in_dir(sys.argv[1])

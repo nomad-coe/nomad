@@ -362,7 +362,6 @@ def test_vasp_incar_system():
     # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
     backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
 
-    print("backend_value: ", backend_value)
     assert expected_value == backend_value
 
 

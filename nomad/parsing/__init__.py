@@ -173,7 +173,7 @@ parsers = [
     ),
     LegacyParser(
         name='parsers/vasp', code_name='VASP',
-        parser_class_name='vaspparser.VASPRunParserInterface',
+        parser_class_name='vaspparser.VASPRunParser',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'

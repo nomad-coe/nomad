@@ -18,7 +18,7 @@ new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a un
 wrapper for parsers, parser logging, and a parser backend.
 '''
 
-from typing import Dict, List, Union, Any, Tuple, Type
+from typing import Dict, List, Union, Any, Tuple, Type, cast
 from abc import ABCMeta, abstractmethod
 import importlib
 import os.path
@@ -27,8 +27,6 @@ from unittest.mock import patch
 import logging
 import glob
 import sys
-
-from nomadcore.local_meta_info import InfoKindEnv
 
 from nomad import utils, datamodel, config
 from nomad.metainfo import (
@@ -227,21 +225,21 @@ class Backend(AbstractParserBackend):
             warnings and errors.
     '''
 
-    def __init__(self, metainfo: Union[str, InfoKindEnv], domain: str = None, logger=None):
+    def __init__(self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None, logger=None):
+        assert metainfo is not None
 
         if logger is None:
             logger = utils.get_logger(__name__)
         self.logger = logger
         self.domain = domain if domain is not None else 'dft'  # TODO
 
-        if isinstance(metainfo, InfoKindEnv):
-            print('#################')  # TODO remove
-            metainfo = metainfo.name
+        if isinstance(metainfo, str):
+            python_package_name, _ = python_package_mapping(metainfo)
+            python_package_name = '.'.join(python_package_name.split('.')[:-1])
+            python_module = importlib.import_module(python_package_name)
+            metainfo = getattr(python_module, 'm_env')
 
-        python_package_name, _ = python_package_mapping(metainfo)
-        python_package_name = '.'.join(python_package_name.split('.')[:-1])
-        python_module = importlib.import_module(python_package_name)
-        self.env: LegacyMetainfoEnvironment = getattr(python_module, 'm_env')
+        self.env: LegacyMetainfoEnvironment = cast(LegacyMetainfoEnvironment, metainfo)
         self.__legacy_env = None
         self.resource = MResource()
 
@@ -540,27 +538,33 @@ class LegacyParser(MatchingParser):
         self.parser_class_name = parser_class_name
         self.backend_factory = backend_factory
 
+        module_name = self.parser_class_name.split('.')[:-1]
+        parser_class = self.parser_class_name.split('.')[-1]
+        module = importlib.import_module('.'.join(module_name))
+        self.parser_class = getattr(module, parser_class)
+
     def run(self, mainfile: str, logger=None) -> Backend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distinguish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
+
+        if issubclass(self.parser_class, CoEParser):
+            # TODO reuse parser
+            parser = self.parser_class()
+            return parser.run(mainfile, logger)
+
         def create_backend(meta_info):
             if self.backend_factory is not None:
                 return self.backend_factory(meta_info, logger=logger)
 
             return Backend(meta_info, logger=logger, domain=self.domain)
 
-        module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[-1]
-        module = importlib.import_module('.'.join(module_name))
-        Parser = getattr(module, parser_class)
-
-        init_signature = inspect.getargspec(Parser.__init__)
+        init_signature = inspect.getargspec(self.parser_class.__init__)
         kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
         with utils.legacy_logger(logger):
-            self.parser = Parser(**kwargs)
+            self.parser = self.parser_class(**kwargs)
 
             with patch.object(sys, 'argv', []):
                 backend = self.parser.parse(mainfile)
@@ -570,6 +574,86 @@ class LegacyParser(MatchingParser):
                 backend = self.parser.parser_context.super_backend
 
         return backend
+
+
+class CoEParser(metaclass=ABCMeta):
+
+    @abstractmethod
+    def run(self, mainfile, logger) -> Backend:
+        pass
+
+
+class CoEInterfaceParser(CoEParser):
+
+    def __init__(self, interface_class):
+        super().__init__()
+        self.interface_class = interface_class
+        self.__interface = None
+
+    def run(self, mainfile, logger):
+        if self.__interface is None:
+            self.__interface = self.interface_class()
+
+        self.__interface.setup_logger(logger)
+        self.__interface.parse(mainfile)
+        return self.__interface.parser_context.super_backend
+
+
+class CoESimpleMatcherParser(CoEParser):
+
+    def __init__(self):
+        super().__init__()
+        self.parser_description = self.create_parser_description()
+        self.simple_matcher = self.create_simple_matcher()
+
+        self._metainfo_env = self.metainfo_env()
+        self.__legacy_metainfo_env = None
+
+        self.caching_levels = self.create_caching_levels()
+
+    @abstractmethod
+    def metainfo_env(self) -> LegacyMetainfoEnvironment:
+        pass
+
+    @property
+    def metaInfoEnv(self) -> LegacyMetainfoEnvironment:
+        if self.__legacy_metainfo_env is None:
+            self.__legacy_metainfo_env = self._metainfo_env.legacy_info_env()
+        return self.__legacy_metainfo_env
+
+    def create_caching_levels(self) -> dict:
+        return dict()
+
+    @abstractmethod
+    def create_simple_matcher(self):
+        pass
+
+    @abstractmethod
+    def create_parser_description(self) -> dict:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def create_super_context(self):
+        pass
+
+    def simple_parser(self, mainfile, logger) -> Backend:
+        from nomadcore.simple_parser import mainFunction
+        backend = Backend(self._metainfo_env, logger=logger)
+        from unittest.mock import patch
+        with patch.object(sys, 'argv', ['<exe>', '--uri', 'nmd://uri', mainfile]):
+            mainFunction(
+                mainFileDescription=self.simple_matcher,
+                metaInfoEnv=self.metaInfoEnv,
+                parserInfo=self.parser_description,
+                cachingLevelForMetaName=self.caching_levels,
+                superContext=self.create_super_context(),
+                superBackend=backend)
+
+        return backend
+
+    def run(self, mainfile, logger) -> Backend:
+        with utils.legacy_logger(logger):
+            return self.simple_parser(mainfile, logger)
 
 
 class VaspOutcarParser(LegacyParser):
