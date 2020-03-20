@@ -238,6 +238,12 @@ class Calc(Proc):
         finally:
             # close loghandler that was not closed due to failures
             try:
+                if self._parser_backend and self._parser_backend.resource:
+                    self._parser_backend.resource.unload()
+            except Exception as e:
+                logger.error('could unload processing results', exc_info=e)
+
+            try:
                 if self._calc_proc_logwriter is not None:
                     self._calc_proc_logwriter.close()
                     self._calc_proc_logwriter = None
@@ -283,6 +289,12 @@ class Calc(Proc):
             self.archiving()
         finally:
             # close loghandler that was not closed due to failures
+            try:
+                if self._parser_backend and self._parser_backend.resource:
+                    self._parser_backend.resource.unload()
+            except Exception as e:
+                logger.error('could unload processing results', exc_info=e)
+
             try:
                 if self._calc_proc_logwriter is not None:
                     self._calc_proc_logwriter.close()

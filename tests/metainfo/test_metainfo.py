@@ -553,6 +553,24 @@ class TestM1:
         obj = ReferencingSection.m_from_dict(obj.m_to_dict(with_meta=True))
         assert obj.proxy.name == 'test_value'
 
+    def test_copy(self):
+        run = Run()
+        run.m_create(Parsing).parser_name = 'test'
+        system = run.m_create(System)
+        system.atom_labels = ['H', 'O']
+
+        copy = run.m_copy()
+        assert copy is not run
+        assert copy.m_def is run.m_def
+        assert copy.systems is run.systems
+
+        copy = run.m_copy(deep=True)
+        assert copy is not run
+        assert copy.systems is not run.systems
+        assert copy.systems[0] is not run.systems[0]
+        assert copy.systems[0].m_parent_index == 0
+        assert copy.systems[0].m_parent_sub_section is run.systems[0].m_parent_sub_section
+
 
 class TestDatatypes:
 

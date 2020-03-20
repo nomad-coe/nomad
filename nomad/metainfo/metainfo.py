@@ -537,9 +537,8 @@ class MResource():
         for collections in self.__data.values():
             for section in collections:
                 section.m_parent = None
+                section.__dict__.clear()
             collections.clear()
-
-        # TODO break actual references via quantities
 
     def m_to_dict(self, filter: TypingCallable[['MSection'], bool] = None):
         if filter is None:
@@ -1468,14 +1467,23 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return errors, warnings
 
-    def m_copy(self: MSectionBound) -> MSectionBound:
+    def m_copy(self: MSectionBound, deep=False, parent=None) -> MSectionBound:
         # TODO this a shallow copy, but should be a deep copy
         copy = self.m_def.section_cls()
         copy.__dict__.update(**self.__dict__)
-        copy.m_parent = None
-        copy.m_parent_index = -1
-        copy.m_parent_sub_section = None
+        copy.m_parent = parent
+        copy.m_parent_index = -1 if parent is None else self.m_parent_index
+        copy.m_parent_sub_section = None if parent is None else self.m_parent_sub_section
         copy.m_resource = None
+
+        if deep:
+            for sub_section_def in self.m_def.all_sub_sections.values():
+                sub_sections_copy = [
+                    sub_section.m_copy(deep=True, parent=copy)
+                    for sub_section in self.m_get_sub_sections(sub_section_def)]
+
+                copy.__dict__[sub_section_def.name] = sub_sections_copy
+
         return cast(MSectionBound, copy)
 
     def m_all_validate(self):

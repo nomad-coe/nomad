@@ -405,7 +405,8 @@ def parser_in_dir(dir):
             if parser is not None:
 
                 try:
-                    parser.run(file_path)
+                    backend = parser.run(file_path)
+                    backend.resource.unload()
                 except Exception as e:
                     print(file_path, parser, 'FAILURE', e)
                 else:
