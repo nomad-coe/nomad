@@ -26,7 +26,7 @@ import json
 import importlib
 import urllib.parse
 
-import nomad_meta_info
+import metainfo
 
 from nomad.files import UploadFiles, Restricted
 from nomad import search, config
@@ -339,7 +339,7 @@ class MetainfoResource(Resource):
                 abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
 
 
-metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
+metainfo_main_path = os.path.dirname(os.path.abspath(metainfo.__file__))
 
 
 def load_metainfo(

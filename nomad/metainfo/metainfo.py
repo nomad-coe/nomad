@@ -188,8 +188,10 @@ class _Dimension(DataType):
             return value
 
         if isinstance(value, str):
-            # TODO error/warning?
-            return '0..*'
+            # TODO raise a warning or allow this?
+            # In the old metainfo there are cases where an expression is used
+            # that is later evaluated in the parser
+            return value
 
         raise TypeError('%s is not a valid dimension' % str(value))
 

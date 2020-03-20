@@ -235,6 +235,7 @@ class Backend(AbstractParserBackend):
         self.domain = domain if domain is not None else 'dft'  # TODO
 
         if isinstance(metainfo, InfoKindEnv):
+            print('#################')  # TODO remove
             metainfo = metainfo.name
 
         python_package_name, _ = python_package_mapping(metainfo)

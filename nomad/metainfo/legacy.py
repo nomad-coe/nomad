@@ -25,7 +25,6 @@ import os.path
 
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl, InfoKindEnv
-import nomad_meta_info
 
 from nomad import utils
 from nomad.metainfo import (
@@ -121,7 +120,7 @@ class LegacyMetainfoEnvironment(Environment):
                 super_names.append(sub_section.m_parent_as(Definition).a_legacy.name)
 
         elif isinstance(definition, Quantity):
-            result['kindStr'] = 'document_content'
+            result['kindStr'] = 'type_document_content'
             result['shape'] = definition.shape
             dtype_str = None
             if definition.type == int:
@@ -151,7 +150,7 @@ class LegacyMetainfoEnvironment(Environment):
             super_names.append(definition.m_parent_as(Definition).a_legacy.name)
 
         elif isinstance(definition, Category):
-            result['kindStr'] = 'abstract_document_content'
+            result['kindStr'] = 'type_abstract_document_content'
 
         package = cast(MSection, definition)
         while not isinstance(package, Package):
@@ -182,9 +181,6 @@ class LegacyMetainfoEnvironment(Environment):
 class EnvironmentConversion:
     def __init__(self, legacy_env_or_path: Union[InfoKindEnv, str]):
         if isinstance(legacy_env_or_path, str):
-            if not os.path.exists(legacy_env_or_path):
-                legacy_env_or_path = os.path.normpath(os.path.join(
-                    os.path.dirname(nomad_meta_info.__file__), legacy_env_or_path))
             self.legacy_env, _ = loadJsonFile(filePath=legacy_env_or_path)
 
         else:
