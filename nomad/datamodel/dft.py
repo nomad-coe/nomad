@@ -112,12 +112,6 @@ def map_basis_set_to_basis_set_label(name):
     return basis_sets.get(key, name)
 
 
-def map_atoms_to_compound_type(atoms):
-    if len(atoms) > len(compound_types):
-        return '>decinary'
-    return compound_types[len(atoms) - 1]
-
-
 def simplify_version(version):
     match = version_re.search(version)
     if match is None:
@@ -317,7 +311,7 @@ class DFTMetadata(MSection):
         atoms = list(set(normalized_atom_labels(set(atoms))))
         atoms.sort()
         entry.atoms = atoms
-        self.compound_type = map_atoms_to_compound_type(atoms)
+        self.compound_type = compound_types[len(atoms) - 1] if len(atoms) <= 10 else '>decinary'
 
         self.crystal_system = get_optional_backend_value(
             backend, 'crystal_system', 'section_symmetry', logger=logger)

@@ -965,12 +965,19 @@ class TestRepo():
             assert 'values' in data[group]
             # assert len(data[group]['values']) == data['statistics']['total']['all'][group]
 
-    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?date_histogram=true&metrics=dft.total_energies')
+    @pytest.mark.parametrize('query, nbuckets', [
+        (dict(interval='1M', metrics='dft.total_energies'), 1),
+        (dict(interval='1d', metrics='dft.quantities'), 6),
+        (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 1),
+        (dict(until_time='2010-03-20T12:43:54.566414'), 0),
+        (dict(interval='1m', from_time='2020-02-20T12:43:54.566414', metrics='dft.calculations'), 7201)
+    ])
+    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn, query, nbuckets):
+        rv = api.get('/repo/?date_histogram=true&%s' % urlencode(query))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
-        assert len(histogram) > 0
+        assert len(histogram) == nbuckets
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
@@ -1033,7 +1040,10 @@ class TestRepo():
         (1, 'atoms', 'Fe'),
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
-        (0, 'dft.quantities', 'dos')
+        (0, 'dft.quantities', 'dos'),
+        (2, 'dft.quantities_energy', 'energy_total'),
+        (2, 'dft.compound_type', 'ternary'),
+        (0, 'dft.labels_springer_compound_class', 'intermetallic')
     ])
     def test_quantity_search(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         rv = api.get('/repo/quantity/%s' % quantity, headers=test_user_auth)
