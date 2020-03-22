@@ -622,8 +622,11 @@ _repo_quantities_search_request_parser.add_argument(
 _repo_quantities_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
 
-_repo_quantities_model = api.model('RepoQuantities', {
-    'quantities': fields.List(fields.Nested(_repo_quantity_model))
+_repo_quantities_model = api.model('RepoQuantitiesResponse', {
+    'quantities': fields.Nested(api.model('RepoQuantities', {
+        quantity: fields.List(fields.Nested(_repo_quantity_model))
+        for quantity in search_extension.search_quantities
+    }))
 })
 
 

@@ -144,7 +144,7 @@ class CalculationInfo(Resource):
                 for attr in OptimadeEntry.m_def.all_properties.values()},
             'formats': ['json'],
             'output_fields_by_format': {
-                'json': OptimadeEntry.m_def.all_properties.keys()}
+                'json': list(OptimadeEntry.m_def.all_properties.keys())}
         }
 
         return dict(

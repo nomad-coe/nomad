@@ -24,5 +24,5 @@ There is a separate documentation for the API endpoints from a client perspectiv
 .. automodule:: nomad.app.api.archive
 '''
 
-from .api import blueprint
+from .api import api, blueprint
 from . import info, auth, upload, repo, archive, raw, mirror, dataset

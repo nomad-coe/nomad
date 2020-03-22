@@ -574,6 +574,7 @@ class SearchRequest:
         # statistics
         def get_metrics(bucket, code_runs):
             result = {}
+            # TODO optimize ... go through the buckets not the metrics
             for metric in metrics:
                 agg_name = 'metric:%s' % metric
                 if agg_name in bucket:
@@ -583,7 +584,7 @@ class SearchRequest:
 
         statistics_results = {
             quantity_name[11:]: {
-                bucket['key']: get_metrics(bucket, bucket['doc_count'])
+                str(bucket['key']): get_metrics(bucket, bucket['doc_count'])
                 for bucket in quantity['buckets']
             }
             for quantity_name, quantity in aggs.items()

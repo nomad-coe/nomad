@@ -17,21 +17,53 @@ This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official
 we will soon at the optimade api. The app module also servers documentation, gui, and
 alive.
 '''
-from flask import Flask, Blueprint, jsonify, url_for, abort, request
-from flask_restplus import Api
+from flask import Flask, Blueprint, jsonify, url_for, abort, request, make_response
+from flask_restplus import Api, representations
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
 import os.path
 import random
 from structlog import BoundLogger
+import orjson
+import collections
+from mongoengine.base.datastructures import BaseList
 
 from nomad import config, utils as nomad_utils
 
-from .api import blueprint as api
-from .optimade import blueprint as optimade
-from .docs import blueprint as docs
+from .api import blueprint as api_blueprint, api
+from .optimade import blueprint as optimade_blueprint, api as optimade
+from .docs import blueprint as docs_blueprint
 from . import common
+
+
+__new_line = '\n'.encode()
+
+
+# replace the json implementation of flask_restplus
+def output_json(data, code, headers=None):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if isinstance(data, BaseList):
+            return list(data)
+
+        raise TypeError
+
+    # always end the json dumps with a new line
+    # see https://github.com/mitsuhiko/flask/pull/1262
+    dumped = orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS) + __new_line
+
+    resp = make_response(dumped, code)
+    resp.headers.extend(headers or {})
+    return resp
+
+
+api.representation('application/json')(output_json)
+optimade.representation('application/json')(output_json)
 
 
 @property  # type: ignore
@@ -72,9 +104,9 @@ app.wsgi_app = DispatcherMiddleware(  # type: ignore
 
 CORS(app)
 
-app.register_blueprint(api, url_prefix='/api')
-app.register_blueprint(optimade, url_prefix='/optimade')
-app.register_blueprint(docs, url_prefix='/docs')
+app.register_blueprint(api_blueprint, url_prefix='/api')
+app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
+app.register_blueprint(docs_blueprint, url_prefix='/docs')
 
 
 @app.errorhandler(Exception)

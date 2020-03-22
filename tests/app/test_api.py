@@ -1084,7 +1084,9 @@ class TestRepo():
                 dict(quantities=['dft.system', 'atoms'], size=1), doseq=True),
             headers=test_user_auth)
         assert rv.status_code == 200
-        # TODO actual assertions
+        data = json.loads(rv.data)
+        assert 'dft.system' in data['quantities']
+        assert 'atoms' in data['quantities']
 
     @pytest.mark.parametrize('pid_or_handle, with_login, success', [
         ('2', True, True), ('2', False, True),

@@ -19,6 +19,6 @@ The optimade implementation of NOMAD.
 from flask import Blueprint
 from flask_restplus import Api
 
-from .api import blueprint, url
+from .api import blueprint, url, api
 from .endpoints import CalculationList, Calculation
 from .filterparser import parse_filter
