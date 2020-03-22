@@ -28,6 +28,7 @@ import os
 import signal
 
 from nomad import metainfo
+from nomad.datamodel.metainfo import m_env as metainfo_env
 
 from .legacy import Backend
 from .parser import Parser, MatchingParser
@@ -65,6 +66,10 @@ class TemplateParser(ArtificalParser):
     mainfile. The template is basically some archive json. Only
     '''
     name = 'parsers/template'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.metainfo_env = metainfo_env
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,

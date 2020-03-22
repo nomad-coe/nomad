@@ -543,6 +543,9 @@ class LegacyParser(MatchingParser):
         module = importlib.import_module('.'.join(module_name))
         self.parser_class = getattr(module, parser_class)
 
+        module = importlib.import_module('.'.join(module_name + ['metainfo']))
+        self.metainfo_env = getattr(module, 'm_env')
+
     def run(self, mainfile: str, logger=None) -> Backend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distinguish between ParserInterface parser and simple_parser

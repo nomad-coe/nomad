@@ -480,7 +480,7 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     return ArchiveReader(file_or_path, **kwargs)
 
 
-def query_archive(f, query_dict: dict):
+def query_archive(f_or_archive_reader: Union[ArchiveReader, BytesIO], query_dict: dict):
 
     def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
         if not isinstance(query_dict, dict):
@@ -529,8 +529,15 @@ def query_archive(f, query_dict: dict):
 
         return res
 
-    with ArchiveReader(f) as archive:
-        return _load_data(query_dict, archive, True)
+    if isinstance(f_or_archive_reader, ArchiveReader):
+        return _load_data(query_dict, f_or_archive_reader, True)
+
+    elif isinstance(f_or_archive_reader, BytesIO):
+        with ArchiveReader(f_or_archive_reader) as archive:
+            return _load_data(query_dict, archive, True)
+
+    else:
+        raise TypeError('%s is neither a file-like nor ArchiveReader' % f_or_archive_reader)
 
 
 if __name__ == '__main__':

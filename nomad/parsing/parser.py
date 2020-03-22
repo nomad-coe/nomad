@@ -16,6 +16,8 @@ from typing import List
 from abc import ABCMeta, abstractmethod
 import re
 
+from nomad.metainfo import Environment
+
 
 class Parser(metaclass=ABCMeta):
     '''
@@ -25,6 +27,7 @@ class Parser(metaclass=ABCMeta):
 
     def __init__(self):
         self.domain = 'dft'
+        self.metainfo_env: Environment = None
 
     @abstractmethod
     def is_mainfile(

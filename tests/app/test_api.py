@@ -681,7 +681,7 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_post_archive_query(self, api, published_wo_user_metadata):
+    def test_archive_query(self, api, published_wo_user_metadata):
         schema = {
             'section_run': {
                 'section_single_configuration_calculation': {
@@ -689,11 +689,19 @@ class TestArchive(UploadFilesBasedTests):
         data = {'results': [schema], 'per_page': 5}
         uri = '/archive/query'
         rv = api.post(uri, content_type='application/json', data=json.dumps(data))
+
         assert rv.status_code == 200
         data = rv.get_json()
+
         assert data
         results = data.get('results', None)
-        assert results is not None
+        assert len(results) > 0
+        for result in results:
+            assert 'calc_id' in result
+            assert 'parser_name' in result
+            assert 'archive' in result
+
+        # TODO assert archive contents
 
 
 class TestRepo():

@@ -17,7 +17,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 (parsed and normalized) calculation data in nomad's *meta-info* format.
 '''
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from io import BytesIO
 import os.path
 from flask import send_file, request, g
@@ -29,9 +29,8 @@ import urllib.parse
 import metainfo
 
 from nomad.files import UploadFiles, Restricted
-from nomad import search, config
+from nomad import search, config, archive
 from nomad.app import common
-from nomad.archive import query_archive
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
@@ -265,7 +264,7 @@ class ArchiveQueryResource(Resource):
             search_request.owner('all')
 
         apply_search_parameters(search_request, query)
-        search_request.include('calc_id', 'upload_id', 'with_embargo')
+        search_request.include('calc_id', 'upload_id', 'with_embargo', 'parser_name')
 
         try:
             if scroll:
@@ -286,29 +285,42 @@ class ArchiveQueryResource(Resource):
 
         data = []
         calcs = results['results']
-        archive_files = None
+        archive_readers: List[archive.ArchiveReader] = []
         current_upload_id = None
         for entry in calcs:
             upload_id = entry['upload_id']
             calc_id = entry['calc_id']
-            if archive_files is None or current_upload_id != upload_id:
+            if current_upload_id is None or current_upload_id != upload_id:
                 upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
 
                 if upload_files is None:
                     return []
 
-                archive_files = upload_files.archive_file_msgs()
+                for archive_reader in archive_readers:
+                    if archive_reader is not None:
+                        archive_reader.close()
+
+                archive_readers = [
+                    archive.ArchiveReader(f) if f is not None else None
+                    for f in upload_files.archive_file_msgs()]
+
                 current_upload_id = upload_id
 
             if entry['with_embargo']:
-                archive_file = archive_files[1]
+                archive_reader = archive_readers[1]
             else:
-                archive_file = archive_files[0]
+                archive_reader = archive_readers[0]
 
-            if archive_file is None:
+            if archive_reader is None:
                 continue
 
-            data.append(query_archive(archive_file, {calc_id: query_schema}))
+            data.append(
+                {
+                    'calc_id': calc_id,
+                    'parser_name': entry['parser_name'],
+                    'archive': archive.query_archive(
+                        archive_reader, {calc_id: query_schema})[calc_id]
+                })
 
         # assign archive data to results
         results['results'] = data

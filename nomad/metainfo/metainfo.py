@@ -937,7 +937,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         else:
             return self.__dict__.get(sub_section_def.name, None)
 
-    def m_get_sub_sections(self, sub_section_def: 'SubSection') -> Iterable['MSection']:
+    def m_get_sub_sections(self, sub_section_def: 'SubSection') -> List['MSection']:
         ''' Retrieves  all sub sections of the given sub section definition. '''
         try:
             if sub_section_def.repeats:
