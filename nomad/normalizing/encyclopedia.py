@@ -44,7 +44,9 @@ from nomad.metainfo.encyclopedia import (
     Properties,
     RunType,
     WyckoffSet,
+    Bulk,
     WyckoffVariables,
+    IdealizedStructure,
     ElectronicBandStructure,
     BandGap,
 )
@@ -233,13 +235,6 @@ class EncyclopediaNormalizer(Normalizer):
         method.method_type = method_id
         return repr_method, method_id
 
-    def mainfile_uri(self, encyclopedia: Encyclopedia):
-        entry_info = self._backend["section_entry_info"][0]
-        upload_id = entry_info["upload_id"]
-        mainfile_path = entry_info["mainfile"]
-        uri = f"nmd://R{upload_id}/data/{mainfile_path}"
-        encyclopedia.mainfile_uri = uri
-
     # def similar_materials(self) -> None:
         # pass
 
@@ -264,30 +259,30 @@ class EncyclopediaNormalizer(Normalizer):
     # def number_of_calculations(self) -> None:
         # pass
 
-    def fill(self, ctx: Context):
+    def fill(self, context: Context):
         # Fill structure related metainfo
         struct: Any = None
-        if ctx.material_type == Material.material_type.type.bulk:
+        if context.material_type == Material.material_type.type.bulk:
             struct = MaterialBulkNormalizer(self.backend, self.logger)
-        elif ctx.material_type == Material.material_type.type.two_d:
+        elif context.material_type == Material.material_type.type.two_d:
             struct = Material2DNormalizer(self.backend, self.logger)
-        elif ctx.material_type == Material.material_type.type.one_d:
+        elif context.material_type == Material.material_type.type.one_d:
             struct = Material1DNormalizer(self.backend, self.logger)
         if struct is not None:
-            struct.normalize(ctx)
+            struct.normalize(context)
 
         # Fill method related metainfo
         method = None
-        if ctx.method_type == Method.method_type.type.DFT or ctx.method_type == Method.method_type.type.DFTU:
+        if context.method_type == Method.method_type.type.DFT or context.method_type == Method.method_type.type.DFTU:
             method = MethodDFTNormalizer(self._backend, self.logger)
-        elif ctx.method_type == Method.method_type.type.GW:
+        elif context.method_type == Method.method_type.type.GW:
             method = MethodGWNormalizer(self._backend, self.logger)
         if method is not None:
-            method.normalize(ctx)
+            method.normalize(context)
 
         # Fill properties related metainfo
         properties = PropertiesNormalizer(self.backend, self.logger)
-        properties.normalize(ctx)
+        properties.normalize(context)
 
     def normalize(self, logger=None) -> None:
         """The caller will automatically log if the normalizer succeeds or ends
@@ -302,9 +297,6 @@ class EncyclopediaNormalizer(Normalizer):
             method = sec_enc.m_create(Method)
             sec_enc.m_create(Properties)
             run_type = sec_enc.m_create(RunType)
-
-            # Get generic data
-            self.mainfile_uri(sec_enc)
 
             # Determine run type, stop if unknown
             run_type_name = self.run_type(run_type)
@@ -377,18 +369,18 @@ class MaterialNormalizer():
         self.backend = backend
         self.logger = logger
 
-    def atom_labels(self, material: Material, std_atoms: Atoms) -> None:
-        material.atom_labels = std_atoms.get_chemical_symbols()
+    def atom_labels(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
+        ideal.atom_labels = std_atoms.get_chemical_symbols()
 
-    def atom_positions(self, material: Material, std_atoms: Atoms) -> None:
-        material.atom_positions = std_atoms.get_scaled_positions(wrap=False)
+    def atom_positions(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
+        ideal.atom_positions = std_atoms.get_scaled_positions(wrap=False)
 
     @abstractmethod
-    def cell_normalized(self, material: Material, std_atoms: Atoms) -> None:
+    def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         pass
 
-    def cell_volume(self, material: Material, std_atoms: Atoms) -> None:
-        material.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
+    def cell_volume(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
+        ideal.cell_volume = float(std_atoms.get_volume() * 1e-10**3)
 
     def formula(self, material: Material, names: List[str], counts: List[int]) -> None:
         formula = structure.get_formula_string(names, counts)
@@ -403,11 +395,11 @@ class MaterialNormalizer():
         norm_hash_string = structure.get_symmetry_string(spg_number, wyckoff_sets)
         material.material_hash = hash(norm_hash_string)
 
-    def number_of_atoms(self, material: Material, std_atoms: Atoms) -> None:
-        material.number_of_atoms = len(std_atoms)
+    def number_of_atoms(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
+        ideal.number_of_atoms = len(std_atoms)
 
     @abstractmethod
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         pass
 
 
@@ -419,30 +411,30 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         orig_volume = repr_system.get_volume() * (1e-10)**3
         properties.atomic_density = float(orig_n_atoms / orig_volume)
 
-    def bravais_lattice(self, material: Material, section_symmetry: Section) -> None:
+    def bravais_lattice(self, bulk: Bulk, section_symmetry: Section) -> None:
         bravais_lattice = section_symmetry["bravais_lattice"]
-        material.bravais_lattice = bravais_lattice
+        bulk.bravais_lattice = bravais_lattice
 
-    def cell_normalized(self, material: Material, std_atoms: Atoms) -> None:
+    def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         cell_normalized *= 1e-10
-        material.cell_normalized = cell_normalized
+        ideal.lattice_vectors = cell_normalized
 
-    def cell_primitive(self, material: Material, prim_atoms: Atoms) -> None:
+    def lattice_vectors_primitive(self, ideal: IdealizedStructure, prim_atoms: Atoms) -> None:
         cell_prim = prim_atoms.get_cell()
         cell_prim *= 1e-10
-        material.cell_primitive = cell_prim
+        ideal.lattice_vectors_primitive = cell_prim
 
-    def crystal_system(self, material: Material, section_symmetry: Section) -> None:
-        material.crystal_system = section_symmetry["crystal_system"]
+    def crystal_system(self, bulk: Bulk, section_symmetry: Section) -> None:
+        bulk.crystal_system = section_symmetry["crystal_system"]
 
-    def has_free_wyckoff_parameters(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+    def has_free_wyckoff_parameters(self, bulk: Bulk, symmetry_analyzer: SymmetryAnalyzer) -> None:
         has_free_param = symmetry_analyzer.get_has_free_wyckoff_parameters()
-        material.has_free_wyckoff_parameters = has_free_param
+        bulk.has_free_wyckoff_parameters = has_free_param
 
-    def lattice_parameters(self, material: Material, std_atoms: Atoms) -> None:
+    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell() * 1E-10
-        material.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
+        ideal.lattice_parameters = structure.get_lattice_parameters(cell_normalized)
 
     def mass_density(self, properties: Properties, repr_system: Atoms) -> None:
         mass = structure.get_summed_atomic_mass(repr_system.get_atomic_numbers())
@@ -570,19 +562,19 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
             material.material_name = name
 
-    def periodicity(self, material: Material) -> None:
-        material.periodicity = np.array([True, True, True], dtype=np.bool)
+    def periodicity(self, ideal: IdealizedStructure) -> None:
+        ideal.periodicity = np.array([True, True, True], dtype=np.bool)
 
-    def point_group(self, material: Material, section_symmetry: Section) -> None:
+    def point_group(self, bulk: Bulk, section_symmetry: Section) -> None:
         point_group = section_symmetry["point_group"]
-        material.point_group = point_group
+        bulk.point_group = point_group
 
-    def space_group_number(self, material: Material, spg_number: int) -> None:
-        material.space_group_number = spg_number
+    def space_group_number(self, bulk: Bulk, spg_number: int) -> None:
+        bulk.space_group_number = spg_number
 
-    def space_group_international_short_symbol(self, material: Material, symmetry_analyzer: SymmetryAnalyzer) -> None:
+    def space_group_international_short_symbol(self, bulk: Bulk, symmetry_analyzer: SymmetryAnalyzer) -> None:
         spg_int_symb = symmetry_analyzer.get_space_group_international_short()
-        material.space_group_international_short_symbol = spg_int_symb
+        bulk.space_group_international_short_symbol = spg_int_symb
 
     def material_classification(self, material: Material, section_system: Section) -> None:
         try:
@@ -606,7 +598,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         if classes:
             material.material_classification = json.dumps(classes)
 
-    def structure_type(self, material: Material, section_system: Section) -> None:
+    def structure_type(self, bulk: Bulk, section_system: Section) -> None:
         try:
             sec_prototype = section_system["section_prototype"][0]
             notes = sec_prototype.tmp['prototype_notes']
@@ -638,18 +630,18 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         }
         enc_note = note_map.get(notes, None)
         if enc_note is not None:
-            material.structure_type = enc_note
+            bulk.structure_type = enc_note
 
-    def structure_prototype(self, material: Material, section_system: Section) -> None:
+    def structure_prototype(self, bulk: Bulk, section_system: Section) -> None:
         try:
             sec_prototype = section_system["section_prototype"][0]
             name = sec_prototype.tmp['prototype_name']
         except Exception:
             return
 
-        material.structure_prototype = name
+        bulk.structure_prototype = name
 
-    def strukturbericht_designation(self, material: Material, section_system: Section) -> None:
+    def strukturbericht_designation(self, bulk: Bulk, section_system: Section) -> None:
         try:
             sec_prototype = section_system["section_prototype"][0]
             strukturbericht = sec_prototype.tmp["strukturbericht_designation"]
@@ -658,11 +650,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
         # In the current GUI we replace LaTeX with plain text
         strukturbericht = re.sub('[$_{}]', '', strukturbericht)
-        material.strukturbericht_designation = strukturbericht
+        bulk.strukturbericht_designation = strukturbericht
 
-    def wyckoff_sets(self, material: Material, wyckoff_sets: Dict) -> None:
+    def wyckoff_sets(self, bulk: Bulk, wyckoff_sets: Dict) -> None:
         for group in wyckoff_sets:
-            wset = material.m_create(WyckoffSet)
+            wset = bulk.m_create(WyckoffSet)
             if group.x is not None or group.y is not None or group.z is not None:
                 variables = wset.m_create(WyckoffVariables)
                 if group.x is not None:
@@ -675,9 +667,9 @@ class MaterialBulkNormalizer(MaterialNormalizer):
             wset.element = group.element
             wset.wyckoff_letter = group.wyckoff_letter
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_system = ctx.representative_system
+        sec_system = context.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         properties = sec_enc.properties
@@ -690,51 +682,53 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
-        ctx.greatest_common_divisor = greatest_common_divisor
+        context.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill structural information
+        bulk = material.m_create(Bulk)
+        ideal = material.m_create(IdealizedStructure)
         self.mass_density(properties, repr_atoms)
         self.material_hash(material, spg_number, wyckoff_sets)
-        self.number_of_atoms(material, std_atoms)
-        self.atom_labels(material, std_atoms)
-        self.atom_positions(material, std_atoms)
+        self.number_of_atoms(ideal, std_atoms)
+        self.atom_labels(ideal, std_atoms)
+        self.atom_positions(ideal, std_atoms)
         self.atomic_density(properties, repr_atoms)
-        self.bravais_lattice(material, sec_symmetry)
-        self.cell_normalized(material, std_atoms)
-        self.cell_volume(material, std_atoms)
-        self.crystal_system(material, sec_symmetry)
-        self.cell_primitive(material, prim_atoms)
+        self.bravais_lattice(bulk, sec_symmetry)
+        self.lattice_vectors(ideal, std_atoms)
+        self.cell_volume(ideal, std_atoms)
+        self.crystal_system(bulk, sec_symmetry)
+        self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.has_free_wyckoff_parameters(material, symmetry_analyzer)
-        self.lattice_parameters(material, std_atoms)
+        self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
+        self.lattice_parameters(ideal, std_atoms)
         self.material_name(material, names, reduced_counts)
         self.material_classification(material, sec_system)
-        self.periodicity(material)
-        self.point_group(material, sec_symmetry)
-        self.space_group_number(material, spg_number)
-        self.space_group_international_short_symbol(material, symmetry_analyzer)
-        self.structure_type(material, sec_system)
-        self.structure_prototype(material, sec_system)
-        self.strukturbericht_designation(material, sec_system)
-        self.wyckoff_sets(material, wyckoff_sets)
+        self.periodicity(ideal)
+        self.point_group(bulk, sec_symmetry)
+        self.space_group_number(bulk, spg_number)
+        self.space_group_international_short_symbol(bulk, symmetry_analyzer)
+        self.structure_type(bulk, sec_system)
+        self.structure_prototype(bulk, sec_system)
+        self.strukturbericht_designation(bulk, sec_system)
+        self.wyckoff_sets(bulk, wyckoff_sets)
 
 
 class Material2DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 2D structures.
     """
-    def cell_normalized(self, material: Material, std_atoms: Atoms) -> None:
+    def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         cell_normalized *= 1e-10
-        material.cell_normalized = cell_normalized
+        ideal.lattice_vectors = cell_normalized
 
-    def cell_primitive(self, material: Material, prim_atoms: Atoms) -> None:
+    def lattice_vectors_primitive(self, ideal: IdealizedStructure, prim_atoms: Atoms) -> None:
         cell_prim = prim_atoms.get_cell()
         cell_prim *= 1e-10
-        material.cell_primitive = cell_prim
+        ideal.lattice_vectors_primitive = cell_prim
 
-    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodicity: np.array) -> None:
+    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
         # 2D systems only have three lattice parameter: two length and angle between them
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
@@ -744,11 +738,11 @@ class Material2DNormalizer(MaterialNormalizer):
         b = np.linalg.norm(b_vec)
         alpha = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
         alpha = np.arccos(alpha)
-        material.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
+        ideal.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
 
-    def periodicity(self, material: Material, std_atoms: Atoms) -> None:
+    def periodicity(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         # MatID already provides the correct periodicity
-        material.periodicity = std_atoms.get_pbc()
+        ideal.periodicity = std_atoms.get_pbc()
 
     def get_symmetry_analyzer(self, original_system: Atoms) -> SymmetryAnalyzer:
         # Get dimension of system by also taking into account the covalent radii
@@ -787,11 +781,11 @@ class Material2DNormalizer(MaterialNormalizer):
         )
         return symmetry_analyzer
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
-        repr_atoms = ctx.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
+        repr_atoms = context.representative_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
         spg_number = symmetry_analyzer.get_space_group_number()
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
@@ -799,20 +793,21 @@ class Material2DNormalizer(MaterialNormalizer):
         prim_atoms = symmetry_analyzer.get_primitive_system()
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
-        ctx.greatest_common_divisor = greatest_common_divisor
+        context.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill metainfo
-        self.periodicity(material, std_atoms)
+        ideal = material.m_create(IdealizedStructure)
+        self.periodicity(ideal, std_atoms)
         self.material_hash(material, spg_number, wyckoff_sets)
-        self.number_of_atoms(material, std_atoms)
-        self.atom_labels(material, std_atoms)
-        self.atom_positions(material, std_atoms)
-        self.cell_normalized(material, std_atoms)
-        self.cell_primitive(material, prim_atoms)
+        self.number_of_atoms(ideal, std_atoms)
+        self.atom_labels(ideal, std_atoms)
+        self.atom_positions(ideal, std_atoms)
+        self.lattice_vectors(ideal, std_atoms)
+        self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.lattice_parameters(material, std_atoms, material.periodicity)
+        self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
 class Material1DNormalizer(MaterialNormalizer):
@@ -832,19 +827,19 @@ class Material1DNormalizer(MaterialNormalizer):
         hash_val = hash(hash_seed)
         material.material_hash = hash_val
 
-    def cell_normalized(self, material: Material, std_atoms: Atoms) -> None:
+    def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         cell_normalized *= 1e-10
-        material.cell_normalized = cell_normalized
+        ideal.lattice_vectors = cell_normalized
 
-    def lattice_parameters(self, material: Material, std_atoms: Atoms, periodicity: np.array) -> None:
+    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
-        material.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
+        ideal.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-    def periodicity(self, material: Material, prim_atoms: Atoms) -> None:
+    def periodicity(self, ideal: IdealizedStructure, prim_atoms: Atoms) -> None:
         # Get dimension of system by also taking into account the covalent radii
         dimensions = matid.geometry.get_dimensions(prim_atoms, [True, True, True])
         basis_dimensions = np.linalg.norm(prim_atoms.get_cell(), axis=1)
@@ -856,7 +851,7 @@ class Material1DNormalizer(MaterialNormalizer):
         if sum(periodicity) != 1:
             raise ValueError("Could not detect the periodic dimensions in a 1D system.")
 
-        material.periodicity = periodicity
+        ideal.periodicity = periodicity
 
     def get_structure_fingerprint(self, prim_atoms: Atoms) -> str:
         """Calculates a numeric fingerprint that coarsely encodes the atomic
@@ -1000,9 +995,9 @@ class Material1DNormalizer(MaterialNormalizer):
 
         return std_atoms
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_system = ctx.representative_system
+        sec_system = context.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         material = sec_enc.material
         repr_atoms = sec_system.tmp["representative_atoms"]  # Temporary value stored by SystemNormalizer
@@ -1011,20 +1006,21 @@ class Material1DNormalizer(MaterialNormalizer):
         prim_atoms.set_pbc(True)
         names, counts = structure.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
-        ctx.greatest_common_divisor = greatest_common_divisor
+        context.greatest_common_divisor = greatest_common_divisor
         reduced_counts = np.array(counts) / greatest_common_divisor
 
         # Fill metainfo
-        self.periodicity(material, prim_atoms)
-        std_atoms = self.get_std_atoms(material.periodicity, prim_atoms)
-        self.number_of_atoms(material, std_atoms)
-        self.atom_labels(material, std_atoms)
-        self.atom_positions(material, std_atoms)
-        self.cell_normalized(material, std_atoms)
+        ideal = material.m_create(IdealizedStructure)
+        self.periodicity(ideal, prim_atoms)
+        std_atoms = self.get_std_atoms(ideal.periodicity, prim_atoms)
+        self.number_of_atoms(ideal, std_atoms)
+        self.atom_labels(ideal, std_atoms)
+        self.atom_positions(ideal, std_atoms)
+        self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
         self.material_hash_1d(material, std_atoms)
-        self.lattice_parameters(material, std_atoms, material.periodicity)
+        self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
 class MethodNormalizer():
@@ -1159,7 +1155,7 @@ class MethodNormalizer():
         pass
 
     @abstractmethod
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         pass
 
 
@@ -1421,14 +1417,14 @@ class MethodDFTNormalizer(MethodNormalizer):
 
         return shortname
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # Fetch resources
-        repr_method = ctx.representative_method
-        repr_system = ctx.representative_system
+        repr_method = context.representative_method
+        repr_system = context.representative_system
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         method = sec_enc.method
         material = sec_enc.material
-        settings_basis_set = get_basis_set_settings(ctx, self.backend, self.logger)
+        settings_basis_set = get_basis_set_settings(context, self.backend, self.logger)
 
         # Fill metainfo
         self.basis_set_type(method)
@@ -1467,9 +1463,9 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     def gw_type(self, method: Method, repr_method: Section) -> None:
         method.gw_type = repr_method["electronic_structure_method"]
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # Fetch resources
-        repr_method = ctx.representative_method
+        repr_method = context.representative_method
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         method = sec_enc.method
 
@@ -1477,7 +1473,7 @@ class MethodGWNormalizer(MethodDFTNormalizer):
         self.code_name(method)
         self.code_version(method)
         self.functional_type(method)
-        self.gw_type(method, ctx.representative_method)
+        self.gw_type(method, context.representative_method)
         self.gw_starting_point(method, repr_method)
 
 
@@ -1647,7 +1643,7 @@ class PropertiesNormalizer():
         bz_json = json.dumps(brillouin_zone)
         band_structure.brillouin_zone = bz_json
 
-    def band_structure(self, properties: Properties, run_type: str, material_type: str, representative_scc: Section, sec_system: Section) -> None:
+    def band_structure(self, properties: Properties, run_type: str, material_type: str, context: Context, sec_system: Section) -> None:
         """Band structure data following arbitrary path.
 
         Currently this function is only taking into account the normalized band
@@ -1662,6 +1658,7 @@ class PropertiesNormalizer():
         if run_type != RunType.run_type.type.single_point or material_type != Material.material_type.type.bulk:
             return
 
+        representative_scc = context.representative_scc
         orig_atoms = sec_system.tmp["representative_atoms"]
         symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
         prim_atoms = symmetry_analyzer.get_primitive_system()
@@ -1677,6 +1674,7 @@ class PropertiesNormalizer():
             # Loop over bands
             for band_data in bands:
                 band_structure = ElectronicBandStructure()
+                band_structure.scc_index = int(context.representative_scc_idx)
                 kpoints = []
                 energies = []
                 try:
@@ -1770,21 +1768,20 @@ class PropertiesNormalizer():
         energies = json.dumps(energy_dict)
         properties.energies = energies
 
-    def normalize(self, ctx: Context) -> None:
+    def normalize(self, context: Context) -> None:
         # There needs to be a valid SCC in order to extract any properties
-        representative_scc = ctx.representative_scc
+        representative_scc = context.representative_scc
         if representative_scc is None:
             return
 
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         properties = sec_enc.properties
-        properties.scc_index = int(ctx.representative_scc_idx)
-        run_type = ctx.run_type
-        material_type = ctx.material_type
-        sec_system = ctx.representative_system
-        gcd = ctx.greatest_common_divisor
+        run_type = context.run_type
+        material_type = context.material_type
+        sec_system = context.representative_system
+        gcd = context.greatest_common_divisor
 
         # Save metainfo
-        self.band_structure(properties, run_type, material_type, representative_scc, sec_system)
+        self.band_structure(properties, run_type, material_type, context, sec_system)
         self.energies(properties, gcd, representative_scc)

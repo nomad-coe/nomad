@@ -61,34 +61,90 @@ class WyckoffSet(MSection):
     variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False)
 
 
-class Material(MSection):
+class IdealizedStructure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing the data that links an Encyclopedia entry into a
-        specific material.
+        Contains structural information for an idealized representation of the
+        material used in the calculation. This idealization is used for
+        visualizing the material and for calculating the structural properties.
+        The properties of the idealized structure may slightly vary from the
+        original structure used in the calculation.
         """
     )
-
-    # Material-specific
-    material_type = Quantity(
-        type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
-        description="""
-        "Character of physical system's geometry, e.g. bulk, 2D, 1D... ",
-        """
-    )
-    material_hash = Quantity(
+    atom_labels = Quantity(
         type=str,
+        shape=['1..*'],
         description="""
-        A fixed length, unique material identifier in the form of a hash
-        digest.
+        Type (element, species) of each atom.
+        """
+    )
+    atom_positions = Quantity(
+        type=np.dtype('f8'),
+        shape=['number_of_atoms', 3],
+        description="""
+        Atom positions given in coordinates that are relative to the idealized
+        cell.
+        """
+    )
+    lattice_vectors = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Lattice vectors of the idealized structure. For bulk materials it is
+        the Bravais cell. This cell is representative and is idealized to match
+        the detected symmetry properties.
+        """
+    )
+    lattice_vectors_primitive = Quantity(
+        type=np.dtype('f8'),
+        shape=[3, 3],
+        description="""
+        Lattice vectors of the the primitive unit cell in a form to be visualized
+        within the idealized cell. This cell is representative and is
+        idealized to match the detected symmemtry properties.
+        """
+    )
+    lattice_parameters = Quantity(
+        type=np.dtype('f8'),
+        shape=[6],
+        description="""
+        Lattice parameters of the idealized cell. The lattice parameters can
+        only be reported consistently after idealization and may not perfectly
+        correspond to the original simulation cell.
+        """
+    )
+    periodicity = Quantity(
+        type=np.bool,
+        shape=[3],
+        description="""
+        Automatically detected true periodicity of each lattice direction. May
+        not correspond to the periodicity used in the calculation.
         """
     )
     number_of_atoms = Quantity(
         type=int,
         description="""
-        Number of atoms in the bravais cell."
+        Number of atoms in the idealized structure."
+        """
+    )
+    cell_volume = Quantity(
+        type=float,
+        description="""
+        Volume of the idealized cell. The cell volume can only be reported
+        consistently after idealization and may not perfectly correspond to the
+        original simulation cell.
+        """
+    )
+
+
+class Bulk(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Contains information that is specific to bulk crystalline materials.
         """
     )
     bravais_lattice = Quantity(
@@ -123,21 +179,6 @@ class Material(MSection):
         The detected crystal system. One of seven possibilities in three dimensions.
         """
     )
-    formula = Quantity(
-        type=str,
-        description="""
-        Formula giving the composition and occurrences of the elements in the
-        Hill notation for the irreducible unit cell.
-        """
-    )
-    formula_reduced = Quantity(
-        type=str,
-        description="""
-        Formula giving the composition and occurrences of the elements in the
-        Hill notation for the irreducible unit cell. In this reduced form the
-        number of occurences have been divided by the greatest common divisor.
-        """
-    )
     has_free_wyckoff_parameters = Quantity(
         type=bool,
         description="""
@@ -145,26 +186,6 @@ class Material(MSection):
         materials has free Wyckoff parameters, at least some of the atoms are
         not bound to a particular location in the structure but are allowed to
         move with possible restrictions set by the symmetry.
-        """
-    )
-    material_classification = Quantity(
-        type=str,
-        description="""
-        Contains the compound class and classification of the material
-        according to springer materials in JSON format.
-        """
-    )
-    material_name = Quantity(
-        type=str,
-        description="""
-        Most meaningful name for a material.
-        """
-    )
-    periodicity = Quantity(
-        type=np.bool,
-        shape=[3],
-        description="""
-        Periodicity of each lattice direction.
         """
     )
     point_group = Quantity(
@@ -206,69 +227,66 @@ class Material(MSection):
         Classification of the material according to the historically grown "strukturbericht".
         """
     )
-
-    # Calculation-specific
-    atom_labels = Quantity(
-        type=str,
-        shape=['1..*'],
-        description="""
-        Type (element, species) of each atom,
-        """
-    )
-    atom_positions = Quantity(
-        type=np.dtype('f8'),
-        shape=['number_of_atoms', 3],
-        description="""
-        Position of each atom, given in relative coordinates.
-        """
-    )
-    cell_normalized = Quantity(
-        type=np.dtype('f8'),
-        shape=[3, 3],
-        description="""
-        Unit cell in normalized form, meaning the bravais cell. This cell is
-        representative and is idealized to match the detected symmetry
-        properties.
-        """
-    )
-    cell_primitive = Quantity(
-        type=np.dtype('f8'),
-        shape=[3, 3],
-        description="""
-        Definition of the primitive unit cell in a form to be visualized well
-        within the normalized cell. This cell is representative and is
-        idealized to match the detected symmemtry properties.
-        """
-    )
-
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
-    cell_angles_string = Quantity(
+
+class Material(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Section for storing the data that links an Encyclopedia entry into a
+        specific material.
+        """
+    )
+    material_type = Quantity(
+        type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
+        description="""
+        "Broad structural classification for the material, e.g. bulk, 2D, 1D... ",
+        """
+    )
+    material_hash = Quantity(
         type=str,
         description="""
-        A summary of the cell angles, part of material definition.
+        A fixed length, unique material identifier in the form of a hash
+        digest.
         """
     )
-    cell_volume = Quantity(
-        type=float,
+    material_name = Quantity(
+        type=str,
         description="""
-        Cell volume for a specific calculation. The cell volume can only be
-        reported consistently after normalization. Thus it corresponds to the
-        normalized cell that is idealized to fit the detected symmetry and may
-        not perfectly correspond to the original simulation cell.
+        Most meaningful name for a material.
         """
     )
-    lattice_parameters = Quantity(
-        type=np.dtype('f8'),
-        shape=[6],
+    material_classification = Quantity(
+        type=str,
         description="""
-        Lattice parameters of a specific calculation. The lattice parameters
-        can only be reported consistently after normalization. Thus they
-        correspond to the normalized cell that is idealized to fit the detected
-        symmetry and may not perfectly correspond to the original simulation
-        cell.
+        Contains the compound class and classification of the material
+        according to springer materials in JSON format.
         """
     )
+    formula = Quantity(
+        type=str,
+        description="""
+        Formula giving the composition and occurrences of the elements in the
+        Hill notation. For periodic materials the formula is calculated fom the
+        primitive unit cell.
+        """
+    )
+    formula_reduced = Quantity(
+        type=str,
+        description="""
+        Formula giving the composition and occurrences of the elements in the
+        Hill notation whre the number of occurences have been divided by the
+        greatest common divisor.
+        """
+    )
+
+    # The idealized structure for this material
+    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False)
+
+    # Bulk-specific properties
+    bulk = SubSection(sub_section=Bulk.m_def, repeats=False)
 
 
 class Method(MSection):
@@ -498,6 +516,13 @@ class ElectronicBandStructure(MSection):
         Stores information related to an electronic band structure.
         """
     )
+    scc_index = Quantity(
+        type=int,
+        description="""
+        Index of the single configuration calculation that contains the band
+        structure.
+        """
+    )
     fermi_level = Quantity(
         type=float,
         unit=units.J,
@@ -551,6 +576,13 @@ class ElectronicDOS(MSection):
         Stores the electronic density of states (DOS).
         """
     )
+    scc_index = Quantity(
+        type=int,
+        description="""
+        Index of the single configuration calculation that contains the density
+        of states.
+        """
+    )
     fermi_level = Quantity(
         type=float,
         unit=units.J,
@@ -588,12 +620,6 @@ class Properties(MSection):
         are used by the NOMAD Encyclopedia.
         """
     )
-    scc_index = Quantity(
-        type=int,
-        description="""
-        Index of a representative single configuration calculation."
-        """
-    )
     atomic_density = Quantity(
         type=float,
         unit=units.m**(-3),
@@ -626,12 +652,6 @@ class Encyclopedia(MSection):
         name="encyclopedia",
         description="""
         Section which stores information for the NOMAD Encyclopedia.
-        """
-    )
-    mainfile_uri = Quantity(
-        type=str,
-        description="""
-        Path of the main file.
         """
     )
     material = SubSection(sub_section=Material.m_def, repeats=False)

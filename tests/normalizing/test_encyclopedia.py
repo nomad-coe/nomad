@@ -73,17 +73,19 @@ def test_1d_metainfo(one_d: LocalBackend):
     """
     enc = one_d.get_mi2_section(Encyclopedia.m_def)
     # Material
-    assert enc.material.material_type == "1D"
-    assert enc.material.formula == "C6H4"
-    assert enc.material.formula_reduced == "C3H2"
-    assert np.array_equal(enc.material.periodicity, [True, False, False])
+    material = enc.material
+    assert material.material_type == "1D"
+    assert material.formula == "C6H4"
+    assert material.formula_reduced == "C3H2"
 
-    # Representative system
-    assert enc.material.number_of_atoms == 10
-    assert enc.material.atom_labels == ["C", "C", "C", "C", "C", "C", "H", "H", "H", "H"]
-    assert enc.material.atom_positions is not None
-    assert enc.material.cell_normalized is not None
-    assert np.allclose(enc.material.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
+    # Idealized structure
+    ideal = enc.material.idealized_structure
+    assert ideal.number_of_atoms == 10
+    assert ideal.atom_labels == ["C", "C", "C", "C", "C", "C", "H", "H", "H", "H"]
+    assert ideal.atom_positions is not None
+    assert ideal.lattice_vectors is not None
+    assert np.array_equal(ideal.periodicity, [True, False, False])
+    assert np.allclose(ideal.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
 
 
 def test_2d_metainfo(two_d: LocalBackend):
@@ -91,18 +93,20 @@ def test_2d_metainfo(two_d: LocalBackend):
     """
     enc = two_d.get_mi2_section(Encyclopedia.m_def)
     # Material
-    assert enc.material.material_type == "2D"
-    assert enc.material.formula == "C2"
-    assert enc.material.formula_reduced == "C"
-    assert np.array_equal(enc.material.periodicity, [True, True, False])
+    material = enc.material
+    assert material.material_type == "2D"
+    assert material.formula == "C2"
+    assert material.formula_reduced == "C"
 
-    # Representative system
-    assert enc.material.number_of_atoms == 2
-    assert enc.material.atom_labels == ["C", "C"]
-    assert enc.material.atom_positions is not None
-    assert enc.material.cell_normalized is not None
-    assert enc.material.cell_primitive is not None
-    assert np.allclose(enc.material.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
+    # Idealized structure
+    ideal = enc.material.idealized_structure
+    assert ideal.number_of_atoms == 2
+    assert ideal.atom_labels == ["C", "C"]
+    assert ideal.atom_positions is not None
+    assert ideal.lattice_vectors is not None
+    assert ideal.lattice_vectors_primitive is not None
+    assert np.array_equal(ideal.periodicity, [True, True, False])
+    assert np.allclose(ideal.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
 
 
 def test_bulk_metainfo(bulk: LocalBackend):
@@ -110,36 +114,40 @@ def test_bulk_metainfo(bulk: LocalBackend):
     """
     enc = bulk.get_mi2_section(Encyclopedia.m_def)
     # Material
-    assert enc.material.material_type == "bulk"
-    assert enc.material.formula == "Si2"
-    assert enc.material.formula_reduced == "Si"
-    assert enc.material.material_name == "Silicon"
-    assert enc.material.structure_type == "diamond"
-    assert enc.material.structure_prototype == "C"
-    assert enc.material.strukturbericht_designation == "A4"
+    material = enc.material
+    assert material.material_type == "bulk"
+    assert material.formula == "Si2"
+    assert material.formula_reduced == "Si"
+    assert material.material_name == "Silicon"
 
-    # Symmetry
-    assert enc.material.crystal_system == "cubic"
-    assert enc.material.bravais_lattice == "cF"
-    assert enc.material.has_free_wyckoff_parameters is False
-    assert enc.material.point_group == "m-3m"
-    assert enc.material.wyckoff_sets is not None
-    assert enc.material.space_group_number == 227
-    assert enc.material.space_group_international_short_symbol == "Fd-3m"
+    # Bulk
+    bulk = enc.material.bulk
+    assert bulk.crystal_system == "cubic"
+    assert bulk.bravais_lattice == "cF"
+    assert bulk.has_free_wyckoff_parameters is False
+    assert bulk.point_group == "m-3m"
+    assert bulk.wyckoff_sets is not None
+    assert bulk.space_group_number == 227
+    assert bulk.structure_type == "diamond"
+    assert bulk.structure_prototype == "C"
+    assert bulk.strukturbericht_designation == "A4"
+    assert bulk.space_group_international_short_symbol == "Fd-3m"
 
-    # Representative system
-    assert enc.material.number_of_atoms == 8
-    assert enc.material.atom_labels == ["Si", "Si", "Si", "Si", "Si", "Si", "Si", "Si"]
-    assert enc.material.atom_positions is not None
-    assert enc.material.cell_normalized is not None
-    assert enc.material.cell_primitive is not None
-    assert np.array_equal(enc.material.periodicity, [True, True, True])
-    assert enc.material.lattice_parameters is not None
-    assert enc.material.cell_volume == pytest.approx(5.431**3 * 1e-30)
+    # Idealized structure
+    ideal = enc.material.idealized_structure
+    assert ideal.number_of_atoms == 8
+    assert ideal.atom_labels == ["Si", "Si", "Si", "Si", "Si", "Si", "Si", "Si"]
+    assert ideal.atom_positions is not None
+    assert ideal.lattice_vectors is not None
+    assert ideal.lattice_vectors_primitive is not None
+    assert np.array_equal(ideal.periodicity, [True, True, True])
+    assert ideal.lattice_parameters is not None
+    assert ideal.cell_volume == pytest.approx(5.431**3 * 1e-30)
 
-    # Calculation
-    assert enc.properties.atomic_density == pytest.approx(4.99402346512432e+28)
-    assert enc.properties.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
+    # Properties
+    prop = enc.properties
+    assert prop.atomic_density == pytest.approx(4.99402346512432e+28)
+    assert prop.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
 
 
 def test_1d_material_identification():
@@ -404,9 +412,10 @@ def test_1d_structure_structure_at_cell_boundary():
         "C",
     ]
 
-    assert np.allclose(enc.material.atom_positions, expected_pos)
-    assert np.array_equal(enc.material.atom_labels, expected_labels)
-    assert np.allclose(enc.material.cell_normalized, expected_cell)
+    ideal = enc.material.idealized_structure
+    assert np.allclose(ideal.atom_positions, expected_pos)
+    assert np.array_equal(ideal.atom_labels, expected_labels)
+    assert np.allclose(ideal.lattice_vectors, expected_cell)
 
 
 def test_2d_structure_structure_at_cell_boundary():
@@ -444,9 +453,10 @@ def test_2d_structure_structure_at_cell_boundary():
         "C",
     ]
 
-    assert np.allclose(enc.material.atom_positions, expected_pos)
-    assert np.array_equal(enc.material.atom_labels, expected_labels)
-    assert np.allclose(enc.material.cell_normalized, expected_cell)
+    ideal = enc.material.idealized_structure
+    assert np.allclose(ideal.atom_positions, expected_pos)
+    assert np.array_equal(ideal.atom_labels, expected_labels)
+    assert np.allclose(ideal.lattice_vectors, expected_cell)
 
 
 def test_method_dft_metainfo(single_point):
