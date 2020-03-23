@@ -80,12 +80,15 @@ class TOCPacker(Packer):
                         # of array items
                         if len(value) > 0 and isinstance(value[0], dict):
                             toc[key] = self._stack.pop()
+
                     elif isinstance(value, (dict, list, tuple)):
                         toc[key] = self._stack.pop()
-                toc_result['toc'] = toc
+
+                toc_result['toc'] = {key: value for key, value in reversed(list(toc.items()))}
 
             end = self._pos()
             toc_result['pos'] = [start, end]
+
             self._stack.append(toc_result)
 
         elif isinstance(obj, list):

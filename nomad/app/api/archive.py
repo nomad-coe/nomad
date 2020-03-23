@@ -26,6 +26,7 @@ import json
 import orjson
 import importlib
 import urllib.parse
+from collections.abc import Mapping
 
 import metainfo
 
@@ -49,7 +50,7 @@ class ArchiveCalcLogResource(Resource):
     @api.doc('get_archive_logs')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @api.response(200, 'Archive data send')
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
         '''
@@ -67,8 +68,8 @@ class ArchiveCalcLogResource(Resource):
 
         try:
             with upload_files.read_archive(calc_id) as archive:
-                data = archive[calc_id]['processing_logs']
-                return '\n'.join([json.dumps(entry.to_dict()) for entry in data])
+                return [entry.to_dict() for entry in archive[calc_id]['processing_logs']]
+
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
@@ -98,7 +99,10 @@ class ArchiveCalcResource(Resource):
 
         try:
             with upload_files.read_archive(calc_id) as archive:
-                return archive[calc_id].to_dict()
+                return {
+                    key: value.to_dict()
+                    for key, value in archive[calc_id].items()
+                    if isinstance(value, Mapping)}
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:

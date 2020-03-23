@@ -291,7 +291,7 @@ class Api {
         calc_id: calcId
       }))
       .catch(handleApiError)
-      .then(response => response.text)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 
