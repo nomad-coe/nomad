@@ -1419,8 +1419,8 @@ def test_edit_lift_embargo(api, published, other_test_user_auth):
 
     Upload.get(published.upload_id).block_until_complete()
     # should not raise Restricted anymore
-    with files.UploadFiles.get(published.upload_id).archive_file(example_calc.calc_id) as f:
-        f.read()
+    with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
+        archive[example_calc.calc_id].to_dict()
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

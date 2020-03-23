@@ -20,6 +20,7 @@ exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`noma
 '''
 
 import os.path
+import os
 import shutil
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
@@ -56,6 +57,7 @@ def setup():
     can be used.
     '''
     setup_logging()
+    setup_files()
     setup_mongo()
     setup_elastic()
 
@@ -72,6 +74,12 @@ def setup_logging():
         logstash_host=config.logstash.host,
         logstash_port=config.logstash.tcp_port,
         logstash_level=config.logstash.level)
+
+
+def setup_files():
+    for directory in [config.fs.public, config.fs.staging, config.fs.tmp]:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
 
 def setup_mongo():

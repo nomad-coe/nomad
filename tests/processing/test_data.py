@@ -16,7 +16,6 @@ from typing import Generator, Tuple
 import pytest
 from datetime import datetime
 import os.path
-import json
 import re
 import shutil
 
@@ -84,18 +83,18 @@ def assert_processing(upload: Upload, published: bool = False):
         assert calc.tasks_status == SUCCESS
         assert calc.metadata['published'] == published
 
-        with upload_files.archive_file(calc.calc_id) as archive_json:
-            archive = json.load(archive_json)
-        assert 'section_run' in archive
-        assert 'section_entry_info' in archive
+        with upload_files.read_archive(calc.calc_id) as archive:
+            calc_archive = archive[calc.calc_id]
+            assert 'section_run' in calc_archive
+            assert 'section_entry_info' in calc_archive
+            assert 'processing_logs' in calc_archive
 
-        with upload_files.archive_log_file(calc.calc_id, 'rt') as f:
             has_test_event = False
-            for line in f.readlines():
-                log_data = json.loads(line)
+            for log_data in calc_archive['processing_logs']:
                 for key in ['event', 'calc_id', 'level']:
                     key in log_data
                 has_test_event = has_test_event or log_data['event'] == 'a test log entry'
+
             assert has_test_event
         assert len(calc.errors) == 0
 
@@ -228,12 +227,14 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     first_calc = published.all_calcs(0, 1).first()
     old_calc_time = first_calc.metadata['last_processing']
 
-    with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-        old_log_lines = f.readlines()
+    with published.upload_files.read_archive(first_calc.calc_id) as archive:
+        old_logs = archive[first_calc.calc_id]['processing_logs']
+
     old_archive_files = list(
         archive_file
         for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
+
     for archive_file in old_archive_files:
         with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
             f.write('')
@@ -274,21 +275,26 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
 
     # assert changed archive files
-    if with_failure in ['after', 'not-matched']:
-        with pytest.raises(Exception):
-            published.upload_files.archive_file(first_calc.calc_id)
+    if with_failure == 'after':
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs']
+
+    elif with_failure == 'not-matched':
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert len(archive[first_calc.calc_id]) == 0
+
     else:
-        with published.upload_files.archive_file(first_calc.calc_id) as f:
-            assert len(f.readlines()) > 0
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert len(archive[first_calc.calc_id]) > 1  # contains more then logs
 
     # assert changed archive log files
     if with_failure in ['not-matched']:
-        with pytest.raises(Exception):
-            published.upload_files.archive_log_file(first_calc.calc_id)
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert len(archive[first_calc.calc_id]) == 0
+
     else:
-        with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-            new_log_lines = f.readlines()
-        assert old_log_lines != new_log_lines
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert archive[first_calc.calc_id]['processing_logs'] != old_logs
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
@@ -322,9 +328,10 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
     for raw_file in upload_files.raw_file_manifest():
         with upload_files.raw_file(raw_file) as f:
             f.read()
+
     for calc in Calc.objects(upload_id=upload_id):
-        with upload_files.archive_file(calc.calc_id) as f:
-            f.read()
+        with upload_files.read_archive(calc.calc_id) as archive:
+            archive[calc.calc_id].to_dict()
 
 
 def mock_failure(cls, task, monkeypatch):

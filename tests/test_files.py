@@ -17,7 +17,6 @@ import os
 import os.path
 import shutil
 import pytest
-import json
 import itertools
 import zipfile
 import re
@@ -45,7 +44,7 @@ example_file_contents = [
     'examples_template/4.aux']
 example_file_mainfile = 'examples_template/template.json'
 empty_file = 'tests/data/proc/empty.zip'
-example_archive_contents = '{"archive": true}'
+example_archive_contents = {"archive": True, "processing_logs": [{"entry": "test"}]}
 
 example_bucket = 'test_bucket'
 example_data = dict(test_key='test_value')
@@ -251,29 +250,18 @@ class UploadFilesContract(UploadFilesFixtures):
                     assert size > 0
             assert_example_files([os.path.join(prefix, path) for path, _ in raw_files])
 
-    @pytest.mark.parametrize('test_logs', [True, False])
-    def test_archive(self, test_upload: UploadWithFiles, test_logs: bool):
+    @pytest.mark.parametrize('with_access', [False, True])
+    def test_read_archive(self, test_upload: UploadWithFiles, with_access: str):
         _, entries, upload_files = test_upload
         calcs_dict = {entry.calc_id: entry for entry in entries}
-        try:
-            if test_logs:
-                with upload_files.archive_log_file(example_calc_id, 'rt') as f:
-                    assert f.read() == example_archive_contents
-            else:
-                f = upload_files.archive_file(example_calc_id, 'rt')
-                assert json.load(f) == json.loads(example_archive_contents)
 
-            if not upload_files._is_authorized():
-                assert not calcs_dict.get(example_calc_id).with_embargo
-        except Restricted:
-            assert not upload_files._is_authorized()
-            assert calcs_dict.get(example_calc_id).with_embargo
+        access = None
+        if with_access:
+            access = 'restricted' if calcs_dict.get(example_calc_id).with_embargo else 'public'
 
-    def test_archive_size(self, test_upload: UploadWithFiles):
-        _, entries, upload_files = test_upload
-        calcs_dict = {entry.calc_id: entry for entry in entries}
         try:
-            assert upload_files.archive_file_size(example_calc_id) > 0
+            with upload_files.read_archive(example_calc_id, access=access) as archive:
+                assert archive[example_calc_id].to_dict() == example_archive_contents
 
             if not upload_files._is_authorized():
                 assert not calcs_dict.get(example_calc_id).with_embargo
@@ -313,11 +301,7 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithF
             with_embargo=calc_spec == 'r')
 
         upload_files.add_rawfiles(calc_file)
-
-        with upload_files.archive_file(calc.calc_id, 'wt') as f:
-            f.write(example_archive_contents)
-        with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
-            f.write(example_archive_contents)
+        upload_files.write_archive(calc.calc_id, example_archive_contents)
 
         calcs.append(calc)
         prefix += 1
@@ -346,10 +330,6 @@ class TestStagingUploadFiles(UploadFilesContract):
                 content = f.read()
                 if filepath == example_file_mainfile:
                     assert len(content) > 0
-
-    def test_write_archive(self, test_upload: StagingUploadWithFiles):
-        _, _, upload_files = test_upload
-        assert json.load(upload_files.archive_file(example_calc_id, 'rt')) == json.loads(example_archive_contents)
 
     def test_calc_id(self, test_upload: StagingUploadWithFiles):
         _, _, upload_files = test_upload
@@ -453,7 +433,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             calc.with_embargo = False
         upload_files.re_pack(entries)
         assert_upload_files(upload_id, entries, PublicUploadFiles, with_embargo=False)
-        assert len(os.listdir(upload_files.os_path)) == 8
+        assert len(os.listdir(upload_files.os_path)) == 4
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
@@ -481,13 +461,14 @@ def assert_upload_files(
                 f.read()
 
             try:
-                with upload_files.archive_file(calc.calc_id) as f:
-                    f.read()
-                with upload_files.archive_log_file(calc.calc_id) as f:
-                    f.read()
+                archive = upload_files.read_archive(calc.calc_id)
+                assert calc.calc_id in archive
+
             except KeyError:
                 assert no_archive
 
             assert not calc.with_embargo and isinstance(upload_files, PublicUploadFiles)
         except Restricted:
             assert calc.with_embargo or isinstance(upload_files, StagingUploadFiles)
+
+    upload_files.close()

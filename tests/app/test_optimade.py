@@ -31,9 +31,9 @@ def api(session_client):
 
 def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
-    with published.upload_files.archive_file(calc_id) as f:
-        data = json.load(f)
-    assert 'OptimadeEntry' in data, data.keys()
+    with published.upload_files.read_archive(calc_id) as archive:
+        data = archive[calc_id]
+    assert 'OptimadeEntry' in data
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
     assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
 

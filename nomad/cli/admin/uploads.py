@@ -256,11 +256,11 @@ def msgpack(ctx, uploads):
                         yield (calc_id, json.load(f))
 
             for access in ['public', 'restricted']:
-                with upload_files.open_zip_file('archive', access, upload_files._archive_ext) as zf:
-                    archive_name = zf.filename.replace('.zip', '.msg')
+                with upload_files._open_zip_file('archive', access, 'json') as zf:
+                    archive_path = upload_files._file_object('archive', access, 'msg', 'msg').os_path
                     names = [name for name in zf.namelist() if name.endswith('json')]
-                    archive.write_archive(archive_name, len(names), iterator(zf, names))
-                print('wrote msgpack archive %s' % archive_name)
+                    archive.write_archive(archive_path, len(names), iterator(zf, names))
+                print('wrote msgpack archive %s' % archive_path)
 
 
 @uploads.command(help='Reprocess selected uploads.')

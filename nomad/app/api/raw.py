@@ -463,15 +463,13 @@ class RawFileQueryResource(Resource):
                     if upload_files is None or upload_files.upload_id != upload_id:
                         logger.info('opening next upload for raw file streaming', upload_id=upload_id)
                         if upload_files is not None:
-                            upload_files.close_zipfile_cache()
+                            upload_files.close()
 
                         upload_files = UploadFiles.get(upload_id)
 
                         if upload_files is None:
                             logger.error('upload files do not exist', upload_id=upload_id)
                             continue
-
-                        upload_files.open_zipfile_cache()
 
                         def open_file(upload_filename):
                             return upload_files.raw_file(upload_filename, 'rb')
@@ -506,7 +504,7 @@ class RawFileQueryResource(Resource):
                     }
 
                 if upload_files is not None:
-                    upload_files.close_zipfile_cache()
+                    upload_files.close()
 
                 logger.info('streaming raw file manifest')
                 try:
@@ -536,10 +534,6 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
     if upload_files is None:
         abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-    # the zipfile cache allows to access many raw-files from public upload files without
-    # having to re-open the underlying zip files all the time
-    upload_files.open_zipfile_cache()
-
     if strip:
         common_prefix_len = len(utils.common_prefix(files))
     else:
@@ -554,4 +548,4 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
             ) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
     finally:
-        upload_files.close_zipfile_cache()
+        upload_files.close()

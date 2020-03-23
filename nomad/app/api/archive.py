@@ -17,19 +17,21 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 (parsed and normalized) calculation data in nomad's *meta-info* format.
 '''
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 from io import BytesIO
 import os.path
-from flask import send_file, request, g
+from flask import request, g
 from flask_restplus import abort, Resource, fields
 import json
+import orjson
 import importlib
 import urllib.parse
 
 import metainfo
 
 from nomad.files import UploadFiles, Restricted
-from nomad import search, config, archive
+from nomad.archive import query_archive
+from nomad import search, config
 from nomad.app import common
 
 from .auth import authenticate, create_authorization_predicate
@@ -64,12 +66,9 @@ class ArchiveCalcLogResource(Resource):
             abort(404, message='Upload %s does not exist.' % upload_id)
 
         try:
-            return send_file(
-                upload_files.archive_log_file(calc_id, 'rb'),
-                mimetype='text/plain',
-                as_attachment=True,
-                cache_timeout=0,
-                attachment_filename='%s.log' % archive_id)
+            with upload_files.read_archive(calc_id) as archive:
+                data = archive[calc_id]['processing_logs']
+                return '\n'.join([json.dumps(entry.to_dict()) for entry in data])
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
@@ -81,7 +80,7 @@ class ArchiveCalcResource(Resource):
     @api.doc('get_archive_calc')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'Archive data send')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/json'})
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
         '''
@@ -91,19 +90,15 @@ class ArchiveCalcResource(Resource):
         '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
-        upload_file = UploadFiles.get(
+        upload_files = UploadFiles.get(
             upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
 
-        if upload_file is None:
+        if upload_files is None:
             abort(404, message='Archive %s does not exist.' % upload_id)
 
         try:
-            return send_file(
-                upload_file.archive_file(calc_id, 'rb'),
-                mimetype='application/json',
-                as_attachment=True,
-                cache_timeout=0,
-                attachment_filename='%s.json' % archive_id)
+            with upload_files.read_archive(calc_id) as archive:
+                return archive[calc_id].to_dict()
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
@@ -163,7 +158,7 @@ class ArchiveDownloadResource(Resource):
                     calc_id = entry['calc_id']
                     if upload_files is None or upload_files.upload_id != upload_id:
                         if upload_files is not None:
-                            upload_files.close_zipfile_cache()
+                            upload_files.close()
 
                         upload_files = UploadFiles.get(
                             upload_id, create_authorization_predicate(upload_id))
@@ -172,12 +167,15 @@ class ArchiveDownloadResource(Resource):
                             common.logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
-                        upload_files.open_zipfile_cache()
+                    with upload_files.read_archive(calc_id) as archive:
+                        f = BytesIO(orjson.dumps(
+                            archive[calc_id].to_dict(),
+                            option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-                    yield (
-                        '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
-                        lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
-                        lambda calc_id: upload_files.archive_file_size(calc_id))
+                        yield (
+                            '%s.%s' % (calc_id, 'json'), calc_id,
+                            lambda calc_id: f,
+                            lambda calc_id: f.getbuffer().nbytes)
 
                     manifest[calc_id] = {
                         key: entry[key]
@@ -186,7 +184,7 @@ class ArchiveDownloadResource(Resource):
                     }
 
                 if upload_files is not None:
-                    upload_files.close_zipfile_cache()
+                    upload_files.close()
 
                 try:
                     manifest_contents = json.dumps(manifest).encode('utf-8')
@@ -285,42 +283,39 @@ class ArchiveQueryResource(Resource):
 
         data = []
         calcs = results['results']
-        archive_readers: List[archive.ArchiveReader] = []
+        upload_files = None
         current_upload_id = None
         for entry in calcs:
             upload_id = entry['upload_id']
             calc_id = entry['calc_id']
-            if current_upload_id is None or current_upload_id != upload_id:
+            if upload_files is None or current_upload_id != upload_id:
+                if upload_files is not None:
+                    upload_files.close()
+
                 upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
 
                 if upload_files is None:
                     return []
 
-                for archive_reader in archive_readers:
-                    if archive_reader is not None:
-                        archive_reader.close()
-
-                archive_readers = [
-                    archive.ArchiveReader(f) if f is not None else None
-                    for f in upload_files.archive_file_msgs()]
-
                 current_upload_id = upload_id
 
             if entry['with_embargo']:
-                archive_reader = archive_readers[1]
+                access = 'restricted'
             else:
-                archive_reader = archive_readers[0]
+                access = 'public'
 
-            if archive_reader is None:
-                continue
+            try:
+                with upload_files.read_archive(calc_id, access) as archive:
+                    data.append({
+                        'calc_id': calc_id,
+                        'parser_name': entry['parser_name'],
+                        'archive': query_archive(
+                            archive, {calc_id: query_schema})[calc_id]
+                    })
 
-            data.append(
-                {
-                    'calc_id': calc_id,
-                    'parser_name': entry['parser_name'],
-                    'archive': archive.query_archive(
-                        archive_reader, {calc_id: query_schema})[calc_id]
-                })
+            except Restricted:
+                # optimize and not access restricted for same upload again
+                pass
 
         # assign archive data to results
         results['results'] = data

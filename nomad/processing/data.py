@@ -24,7 +24,7 @@ calculations, and files
 
 '''
 
-from typing import cast, List, Any, ContextManager, Tuple, Generator, Dict, cast, Iterable
+from typing import cast, List, Any, Tuple, Generator, Dict, cast, Iterable
 from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
@@ -34,7 +34,6 @@ from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
-import json
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
@@ -109,8 +108,7 @@ class Calc(Proc):
         self._parser_backend: Backend = None
         self._upload: Upload = None
         self._upload_files: ArchiveBasedStagingUploadFiles = None
-        self._calc_proc_logwriter = None
-        self._calc_proc_logwriter_ctx: ContextManager = None
+        self._calc_proc_logs: List[Any] = None
 
     @classmethod
     def from_entry_metadata(cls, entry_metadata):
@@ -153,32 +151,22 @@ class Calc(Proc):
         logger = logger.bind(
             upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
 
-        if self._calc_proc_logwriter_ctx is None:
+        if self._calc_proc_logs is None:
+            self._calc_proc_logs = []
+
+        def save_to_calc_log(logger, method_name, event_dict):
             try:
-                self._calc_proc_logwriter_ctx = self.upload_files.archive_log_file(self.calc_id, 'wt')
-                self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()  # pylint: disable=E1101
-            except KeyError:
-                # cannot open log file
+                dump_dict = dict(event_dict)
+                dump_dict.update(level=method_name.upper())
+                self._calc_proc_logs.append(dump_dict)
+
+            except Exception:
+                # Exceptions here will cause indefinite loop
                 pass
 
-        if self._calc_proc_logwriter_ctx is None:
-            return logger
-        else:
-            def save_to_calc_log(logger, method_name, event_dict):
-                if self._calc_proc_logwriter is not None:
-                    try:
-                        dump_dict = dict(event_dict)
-                        dump_dict.update(level=method_name.upper())
-                        json.dump(dump_dict, self._calc_proc_logwriter, sort_keys=True)
-                        self._calc_proc_logwriter.write('\n')
+            return event_dict
 
-                    except Exception:
-                        # Exceptions here will cause indefinite loop
-                        pass
-
-                return event_dict
-
-            return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
+        return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
     @process
     def re_process_calc(self):
@@ -190,17 +178,6 @@ class Calc(Proc):
         parser = match_parser(self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
 
         if parser is None and not config.reprocess_unmatched:
-            # Remove the logsfile and set a fake logwriter to avoid creating a log file,
-            # because we will probably remove this calc and don't want to have ghost logfiles.
-            if self._calc_proc_logwriter_ctx is not None:
-                self._calc_proc_logwriter_ctx.__exit__(None, None, None)
-                self.upload_files.archive_log_file_object(self.calc_id).delete()
-
-            self._calc_proc_logwriter_ctx = open('/dev/null', 'wt')
-            self._calc_proc_logwriter = self._calc_proc_logwriter_ctx.__enter__()
-            self.get_logger().error(
-                'no parser matches during re-process, will not re-process this calc')
-
             self.errors = ['no parser matches during re-process, will not re-process this calc']
 
             # mock the steps of actual processing
@@ -242,13 +219,6 @@ class Calc(Proc):
                     self._parser_backend.resource.unload()
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
-
-            try:
-                if self._calc_proc_logwriter is not None:
-                    self._calc_proc_logwriter.close()
-                    self._calc_proc_logwriter = None
-            except Exception as e:
-                logger.error('could not close calculation proc log', exc_info=e)
 
     @process
     def process_calc(self):
@@ -295,13 +265,6 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
-            try:
-                if self._calc_proc_logwriter is not None:
-                    self._calc_proc_logwriter.close()
-                    self._calc_proc_logwriter = None
-            except Exception as e:
-                logger.error('could not close calculation proc log', exc_info=e)
-
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
@@ -317,6 +280,11 @@ class Calc(Proc):
             entry_metadata.a_elastic.index()
         except Exception as e:
             self.get_logger().error('could not index after processing failure', exc_info=e)
+
+        try:
+            self.upload_files.write_archive(self.calc_id, {'processing_logs': self._calc_proc_logs})
+        except Exception as e:
+            self.get_logger().error('could not write archive (logs) after processing failure', exc_info=e)
 
         super().fail(*errors, log_level=log_level, **kwargs)
 
@@ -450,21 +418,14 @@ class Calc(Proc):
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
 
-            with self.upload_files.archive_file(self.calc_id, 'wt') as out:
-                json.dump(self._parser_backend.resource.m_to_dict(
-                    lambda section: section.m_def.name in datamodel.root_sections), out, indent=2)
+            archive_data = self._parser_backend.resource.m_to_dict(
+                lambda section: section.m_def.name in datamodel.root_sections)
 
-            log_data.update(archive_size=self.upload_files.archive_file_object(self.calc_id).size)
+            archive_data['processing_logs'] = self._calc_proc_logs
+            self._calc_proc_logs = None
 
-        # close loghandler
-        if self._calc_proc_logwriter is not None:
-            with utils.timer(
-                    logger, 'archived log', step='logs',
-                    input_size=self.mainfile_file.size) as log_data:
-                self._calc_proc_logwriter_ctx.__exit__(None, None, None)  # pylint: disable=E1101
-                self._calc_proc_logwriter = None
-
-                log_data.update(log_size=self.upload_files.archive_log_file_object(self.calc_id).size)
+            archive_size = self.upload_files.write_archive(self.calc_id, archive_data)
+            log_data.update(archive_size=archive_size)
 
     def __str__(self):
         return 'calc %s calc_id=%s upload_id%s' % (super().__str__(), self.calc_id, self.upload_id)

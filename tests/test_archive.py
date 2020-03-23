@@ -2,11 +2,10 @@
 import pytest
 import msgpack
 from io import BytesIO
+import os.path
 
-from nomad import utils
+from nomad import utils, config
 from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
-
-from .utils import assert_exception
 
 
 def create_example_uuid(index: int = 0):
@@ -85,6 +84,25 @@ def test_write_archive_empty():
     write_archive(f, 0, [])
 
 
+def test_short_uuids():
+    f = BytesIO()
+    write_archive(f, 1, [('0', {'archive': 'test'})])
+
+    packed_archive = f.getbuffer()
+    f = BytesIO(packed_archive)
+    with read_archive(f) as archive:
+        assert '0' in archive
+        assert archive['0'].to_dict() == {'archive': 'test'}
+
+
+def test_write_file(raw_files, example_uuid):
+    path = os.path.join(config.fs.tmp, 'test.msg')
+    write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
+    with read_archive(path) as archive:
+        assert example_uuid in archive
+        assert archive[example_uuid].to_dict() == {'archive': 'test'}
+
+
 def test_write_archive_single(example_uuid, example_entry):
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
@@ -147,13 +165,13 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
     assert data[example_uuid]['run'].to_dict() == example_entry['run']
     assert data[example_uuid].to_dict() == example_entry
 
-    with assert_exception(KeyError):
+    with pytest.raises(KeyError):
         data['does not exist']
 
-    with assert_exception(KeyError):
+    with pytest.raises(KeyError):
         data[example_uuid]['does not exist']
 
-    with assert_exception(IndexError):
+    with pytest.raises(IndexError):
         data[example_uuid]['run']['system'][2]
 
 

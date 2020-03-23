@@ -130,7 +130,6 @@ def test_vasp_metainfo():
 
 if __name__ == '__main__':
     import sys
-    import json
     from elasticsearch.helpers import bulk
 
     from nomad import infrastructure
@@ -162,10 +161,11 @@ if __name__ == '__main__':
                 if len(filepath) > 0:
                     with upload_files.raw_file(filepath, 'wt') as f:
                         f.write('this is a generated test file')
-            with upload_files.archive_file(calc.calc_id, 'wt') as f:
-                f.write(json.dumps({'section_run': [{'test': 'this is a generated test files'}]}))
-            with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
-                f.write('this is a generated test file')
+
+            upload_files.write_archive(calc.calc_id, {
+                'section_run': [{'test': 'this is a generated test files'}],
+                'processing_logs': [{'event': 'this is a generated test file'}]
+            })
 
             search_entry = calc.a_elastic.create_index_entry()
             search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)

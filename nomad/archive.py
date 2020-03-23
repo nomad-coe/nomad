@@ -51,7 +51,7 @@ class TOCPacker(Packer):
         super().__init__(*args, **kwargs)
 
     def pack(self, obj, *args, **kwargs):
-        assert isinstance(obj, dict), 'TOC packer can only pack dicts'
+        assert isinstance(obj, dict), 'TOC packer can only pack dicts, %s' % obj.__class__
         self._depth = 0
         self._buffer = StringIO()
         result = super().pack(obj, *args, **kwargs)
@@ -291,17 +291,19 @@ class ArchiveReader(ArchiveObject):
 
         super().__init__(None, f)
 
+        self._toc_entry = None
+
         # this number is determined by the msgpack encoding of the file beginning:
         # { 'toc_pos': <...>
         #              ^11
         self._f.seek(11)
-        toc_position = ArchiveReader._decode_position(self._f.read(10))
+        self.toc_position = ArchiveReader._decode_position(self._f.read(10))
 
         self.use_blocked_toc = use_blocked_toc
         if use_blocked_toc:
             self._f.seek(11)
             self._toc: Dict[str, Any] = {}
-            toc_start = toc_position[0]
+            toc_start = self.toc_position[0]
             self._f.seek(toc_start)
             b = self._f.read(1)[0]
             if b & 0b11110000 == 0b10000000:
@@ -317,7 +319,7 @@ class ArchiveReader(ArchiveObject):
                 raise ArchiveError('Archive top-level TOC is not a msgpack map (dictionary).')
 
         else:
-            self.toc_entry = self._read(toc_position)
+            self.toc_entry = self._read(self.toc_position)
 
     def __enter__(self):
         return self
@@ -354,7 +356,9 @@ class ArchiveReader(ArchiveObject):
         return first, last
 
     def __getitem__(self, key):
-        if self.use_blocked_toc:
+        key = adjust_uuid_size(key)
+
+        if self.use_blocked_toc and self.toc_entry is None:
             positions = self._toc.get(key)
             # TODO use hash algo instead of binary search
             if positions is None:
@@ -385,9 +389,17 @@ class ArchiveReader(ArchiveObject):
         return ArchiveObject(toc, self._f, data_position[0])
 
     def __iter__(self):
+        if self.toc_entry is None:
+            # is not necessarely read when using blocked toc
+            self.toc_entry = self._read(self.toc_position)
+
         return self.toc_entry.__iter__()
 
     def __len__(self):
+        if self.toc_entry is None:
+            # is not necessarely read when using blocked toc
+            self.toc_entry = self._read(self.toc_position)
+
         return self.toc_entry.__len__()
 
     def close(self):
@@ -401,6 +413,9 @@ class ArchiveReader(ArchiveObject):
     def _decode_position(position: bytes) -> Tuple[int, int]:
         return int.from_bytes(position[0:5], byteorder='little', signed=False), \
             int.from_bytes(position[5:], byteorder='little', signed=False)
+
+    def is_closed(self):
+        return self._f.closed
 
 
 def write_archive(

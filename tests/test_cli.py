@@ -17,6 +17,7 @@ import pytest
 import click.testing
 import json
 import datetime
+import zipfile
 
 from nomad import utils, search, processing as proc, files
 from nomad.cli import cli
@@ -79,7 +80,8 @@ class TestAdmin:
         assert calc.metadata['with_embargo']
         assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
         with pytest.raises(Exception):
-            files.UploadFiles.get(upload_id=upload_id).archive_file(calc_id=calc.calc_id)
+            with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id):
+                pass
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
@@ -89,7 +91,8 @@ class TestAdmin:
         assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
         assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
         if lifted:
-            assert files.UploadFiles.get(upload_id=upload_id).archive_file(calc_id=calc.calc_id)
+            with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
+                assert calc.calc_id in archive
 
     def test_index(self, published):
         upload_id = published.upload_id
@@ -168,12 +171,21 @@ class TestAdminUploads:
 
     def test_msgpack(self, published):
         upload_id = published.upload_id
+        upload_files = files.UploadFiles.get(upload_id=upload_id)
+        for access in ['public', 'restricted']:
+            zip_path = upload_files._file_object('archive', access, 'json', 'zip').os_path
+            with zipfile.ZipFile(zip_path, mode='w') as zf:
+                for i in range(0, 2):
+                    with zf.open('%d_%s.json' % (i, access), 'w') as f:
+                        f.write(json.dumps(dict(archive='test')).encode())
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False, obj=utils.POPO())
 
         assert result.exit_code == 0
         assert 'wrote msgpack archive' in result.stdout
+        with upload_files.read_archive('0_public') as archive:
+            assert archive['0_public'].to_dict() == dict(archive='test')
 
     def test_index(self, published):
         upload_id = published.upload_id
@@ -222,8 +234,8 @@ class TestAdminUploads:
             with upload_files.raw_file(raw_file) as f:
                 f.read()
         for calc in Calc.objects(upload_id=upload_id):
-            with upload_files.archive_file(calc.calc_id) as f:
-                f.read()
+            with upload_files.read_archive(calc.calc_id) as archive:
+                assert calc.calc_id in archive
 
     def test_chown(self, published, test_user, other_test_user):
         upload_id = published.upload_id
