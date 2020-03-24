@@ -235,8 +235,8 @@ class Material(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing the data that links an Encyclopedia entry into a
-        specific material.
+        Contains an overview of the type of material that was detected in this
+        entry.
         """
     )
     material_type = Quantity(
@@ -294,11 +294,12 @@ class Method(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing Encyclopedia-specific method information.
+        Contains an overview of the methodology that was detected in this
+        entry.
         """
     )
     method_type = Quantity(
-        type=MEnum("DFT", "GW", "unavailable", DFTU="DFT+U", ),
+        type=MEnum("DFT", "GW", "unavailable", DFTU="DFT+U"),
         description="""
         Generic name for the used methodology.
         """
@@ -307,18 +308,6 @@ class Method(MSection):
         type=MEnum("Numeric AOs", "Gaussians", "(L)APW+lo", "FLAPW (full-potential linearized augmented planewave)", "Plane waves", "Real-space grid", "Local-orbital minimum-basis"),
         description="""
         Basic type of the used basis set.
-        """
-    )
-    code_name = Quantity(
-        type=str,
-        description="""
-        Name of the code used to perform the calculation.
-        """
-    )
-    code_version = Quantity(
-        type=str,
-        description="""
-        Version of the code used for the calculation.
         """
     )
     core_electron_treatment = Quantity(
@@ -397,7 +386,8 @@ class Calculation(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing Encyclopedia-specific calculation information.
+        Contains an overview of the type of calculation that was detected in
+        this entry.
         """
     )
     calculation_type = Quantity(
@@ -616,8 +606,8 @@ class Properties(MSection):
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing all calculation-specific physical quantities that
-        are used by the NOMAD Encyclopedia.
+        Contains derived physical properties that are specific to the NOMAD
+        Encyclopedia.
         """
     )
     atomic_density = Quantity(
@@ -631,14 +621,13 @@ class Properties(MSection):
         type=float,
         unit=units.kg / units.m**3,
         description="""
-        Mass density of the material based on the structural information.
+        Mass density of the material.
         """
     )
     energies = Quantity(
         type=str,
         description="""
-        Code dependent energy values in the JSON format, corrected to be per
-        formula unit.
+        Code dependent energy values, corrected to be per formula unit.
         """
     )
     electronic_band_structure = SubSection(sub_section=ElectronicBandStructure.m_def, repeats=False)

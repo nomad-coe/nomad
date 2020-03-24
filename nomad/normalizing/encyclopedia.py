@@ -1031,12 +1031,6 @@ class MethodNormalizer():
         self.backend = backend
         self.logger = logger
 
-    def code_name(self, method: Method) -> None:
-        method.code_name = self.backend["program_name"]
-
-    def code_version(self, method: Method) -> None:
-        method.code_version = self.backend["program_version"]
-
     def method_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
             mandatory_keys=[
@@ -1045,7 +1039,7 @@ class MethodNormalizer():
             ],
             forbidden_values=[None]
         )
-        method_dict['program_name'] = method.code_name
+        method_dict['program_name'] = self.backend["program_name"]
 
         # The subclasses may define their own method properties that are to be
         # included here.
@@ -1108,8 +1102,8 @@ class MethodNormalizer():
         param_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
 
         # The same code and functional type is required
-        param_dict['program_name'] = method.code_name
-        param_dict['program_version'] = method.code_version
+        param_dict['program_name'] = self.backend["program_name"]
+        param_dict['program_version'] = self.backend["program_version"]
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -1163,36 +1157,9 @@ class MethodDFTNormalizer(MethodNormalizer):
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
-    def basis_set_type(self, method: Method) -> None:
-        """Type of basis set used by the code"""
-        basis_set_type = config.services.unavailable_value
-        archive_basis_set = self.backend["program_basis_set_type"]
-        # TODO: this translation should not be necessary if parsers did their
-        # work correctly (using the metainfo doc as reference) until then we
-        # keep this mapping.
-        basis_set_type_ambiguity = {
-            "numeric AOs": "Numeric AOs",
-            "gaussians": "Gaussians",
-            "plane waves": "Plane waves",
-            "plane_waves": "Plane waves",
-            "real-space grid": "Real-space grid"
-        }
-        if archive_basis_set in basis_set_type_ambiguity:
-            self.logger.info(
-                "Basis set type '{}' does not correspond to valid options in "
-                "metainfo documentation and was corrected."
-                .format(basis_set_type)
-            )
-            archive_basis_set = basis_set_type_ambiguity[archive_basis_set]
-
-        if archive_basis_set is not None:
-            basis_set_type = archive_basis_set
-
-        method.basis_set_type = basis_set_type
-
     def core_electron_treatment(self, method: Method) -> None:
         treatment = config.services.unavailable_value
-        code_name = method.code_name
+        code_name = self.backend["program_name"]
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -1267,22 +1234,6 @@ class MethodDFTNormalizer(MethodNormalizer):
             short_name = self.create_xc_functional_shortname(long_name)
             method.functional_type = short_name
 
-    def smearing_kind(self, method: Method, representative_method: Section) -> None:
-        try:
-            smearing_kind = representative_method['smearing_kind']
-        except KeyError:
-            pass
-        else:
-            method.smearing_kind = smearing_kind
-
-    def smearing_parameter(self, method: Method, representative_method) -> None:
-        try:
-            smearing_width = representative_method['smearing_width']
-        except KeyError:
-            pass
-        else:
-            method.smearing_parameter = smearing_width
-
     def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
         # Extend by DFT settings.
         hash_dict = RestrictedDict(
@@ -1293,7 +1244,7 @@ class MethodDFTNormalizer(MethodNormalizer):
             ),
             optional_keys=(
                 "smearing_kind",
-                "smearing_parameter",
+                "smearing_width",
                 "number_of_eigenvalues_kpoints",
             ),
             forbidden_values=[None]
@@ -1309,11 +1260,13 @@ class MethodDFTNormalizer(MethodNormalizer):
         # _reducible_ k-point-mesh:
         #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
-        if method.smearing_kind is not None:
-            hash_dict['smearing_kind'] = method.smearing_kind
-        if method.smearing_parameter is not None:
-            smearing_parameter = '%.4f' % (method.smearing_parameter * J_to_Ry)
-            hash_dict['smearing_parameter'] = smearing_parameter
+        smearing_kind = repr_method.get('smearing_kind')
+        if smearing_kind is not None:
+            hash_dict['smearing_kind'] = smearing_kind
+        smearing_width = repr_method.get('smearing_width')
+        if smearing_width is not None:
+            smearing_width = '%.4f' % (smearing_width * J_to_Ry)
+            hash_dict['smearing_width'] = smearing_width
         try:
             scc = self.backend[s_scc][-1]
             eigenvalues = scc['eigenvalues']
@@ -1427,14 +1380,9 @@ class MethodDFTNormalizer(MethodNormalizer):
         settings_basis_set = get_basis_set_settings(context, self.backend, self.logger)
 
         # Fill metainfo
-        self.basis_set_type(method)
-        self.code_name(method)
-        self.code_version(method)
         self.core_electron_treatment(method)
         self.functional_long_name(method, repr_method)
         self.functional_type(method)
-        self.smearing_kind(method, repr_method)
-        self.smearing_parameter(method, repr_method)
         self.method_hash(method, settings_basis_set, repr_method)
         self.group_eos_hash(method, material, repr_method)
         self.group_parametervariation_hash(method, settings_basis_set, repr_system, repr_method)
@@ -1470,8 +1418,6 @@ class MethodGWNormalizer(MethodDFTNormalizer):
         method = sec_enc.method
 
         # Fill metainfo
-        self.code_name(method)
-        self.code_version(method)
         self.functional_type(method)
         self.gw_type(method, context.representative_method)
         self.gw_starting_point(method, repr_method)
