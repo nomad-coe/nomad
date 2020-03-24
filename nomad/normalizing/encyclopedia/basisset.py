@@ -8,7 +8,7 @@ from nomad.parsing.backend import Section
 from nomad.utils import RestrictedDict
 
 
-def get_basis_set_settings(context, backend: LocalBackend, logger) -> RestrictedDict:
+def get_basis_set(context, backend: LocalBackend, logger) -> RestrictedDict:
     """Decide which type of basis set settings are applicable to the entry and
     return a corresponding settings as a RestrictedDict.
 
@@ -22,19 +22,19 @@ def get_basis_set_settings(context, backend: LocalBackend, logger) -> Restricted
         RestrictedDict. If no suitable basis set settings could be identified,
         returns None.
     """
-    settings: SettingsBasisSet = None
+    settings: BasisSet = None
     program_name = backend.get('program_name')
     if program_name == "exciting":
-        settings = SettingsBasisSetExciting(context, backend, logger)
+        settings = BasisSetExciting(context, backend, logger)
     elif program_name == "FHI-aims":
-        settings = SettingsBasisSetFHIAims(context, backend, logger)
+        settings = BasisSetFHIAims(context, backend, logger)
     else:
         return None
 
     return settings.to_dict()
 
 
-class SettingsBasisSet(ABC):
+class BasisSet(ABC):
     """Abstract base class for basis set settings. The idea is to create
     subclasses that inherit this class and hierarchically add new mandatory and
     optional settings with the setup()-function.
@@ -69,7 +69,7 @@ class SettingsBasisSet(ABC):
         return mandatory, optional
 
 
-class SettingsBasisSetFHIAims(SettingsBasisSet):
+class BasisSetFHIAims(BasisSet):
     """Basis set settings for 'FHI-Aims' (code-dependent).
     """
     def setup(self) -> Tuple:
@@ -134,7 +134,7 @@ class SettingsBasisSetFHIAims(SettingsBasisSet):
                 yield k
 
 
-class SettingsBasisSetExciting(SettingsBasisSet):
+class BasisSetExciting(BasisSet):
     """Basis set settings for 'Exciting' (code-dependent).
     """
     def setup(self) -> Tuple:

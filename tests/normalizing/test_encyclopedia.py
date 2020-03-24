@@ -21,7 +21,7 @@ from pint import UnitRegistry
 
 from nomad.utils import hash
 from nomad.parsing import LocalBackend
-from nomad.normalizing import structure
+from nomad import atomutils
 from nomad.metainfo.encyclopedia import Encyclopedia
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     run_normalize_for_structure,
@@ -206,7 +206,7 @@ def test_2d_material_identification():
         indices=[0, 1]
     )]
     space_group_number = 191
-    norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets)
     graphene_material_hash = hash(norm_hash_string)
 
     # Graphene orthogonal cell
@@ -298,7 +298,7 @@ def test_2d_material_identification():
         )
     ]
     space_group_number = 11
-    norm_hash_string = structure.get_symmetry_string(space_group_number, wyckoff_sets)
+    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets)
     mos2_material_hash = hash(norm_hash_string)
 
     # MoS2 orthogonal cell

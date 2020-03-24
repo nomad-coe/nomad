@@ -25,8 +25,9 @@ import sqlite3
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
-from nomad.normalizing import structure
+from nomad import atomutils
 from nomad import utils, config
+from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
 # use a regular expression to check atom labels; expression is build from list of
@@ -484,8 +485,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             wyckoff_letters: Array of Wyckoff letters as strings.
             spg_number: Space group number.
         """
-        norm_wyckoff = structure.get_normalized_wyckoff(atom_species, wyckoffs)
-        protoDict = structure.search_aflow_prototype(spg_number, norm_wyckoff)
+        norm_wyckoff = atomutils.get_normalized_wyckoff(atom_species, wyckoffs)
+        protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
         if protoDict is not None:
             aflow_prototype_id = protoDict["aflow_prototype_id"]
             aflow_prototype_url = protoDict["aflow_prototype_url"]
