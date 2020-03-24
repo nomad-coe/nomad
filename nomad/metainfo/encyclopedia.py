@@ -392,15 +392,15 @@ class Method(MSection):
     )
 
 
-class RunType(MSection):
+class Calculation(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Section for storing Encyclopedia-specific run type information.
+        Section for storing Encyclopedia-specific calculation information.
         """
     )
-    run_type = Quantity(
+    calculation_type = Quantity(
         type=MEnum(
             single_point="single point",
             geometry_optimization="geometry optimization",
@@ -413,7 +413,7 @@ class RunType(MSection):
             parameter_variation="parameter variation",
             unavailable="unavailable"),
         description="""
-        Defines the type of run identified for this entry.
+        Defines the type of calculation that was detected for this entry.
         """
     )
 
@@ -657,4 +657,4 @@ class Encyclopedia(MSection):
     material = SubSection(sub_section=Material.m_def, repeats=False)
     method = SubSection(sub_section=Method.m_def, repeats=False)
     properties = SubSection(sub_section=Properties.m_def, repeats=False)
-    run_type = SubSection(sub_section=RunType.m_def, repeats=False)
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False)

@@ -42,7 +42,7 @@ from nomad.metainfo.encyclopedia import (
     Material,
     Method,
     Properties,
-    RunType,
+    Calculation,
     WyckoffSet,
     Bulk,
     WyckoffVariables,
@@ -66,7 +66,7 @@ class Context():
         self,
         material_type: str,
         method_type: str,
-        run_type: str,
+        calc_type: str,
         representative_system,
         representative_method,
         representative_scc,
@@ -74,7 +74,7 @@ class Context():
     ):
         self.material_type = material_type
         self.method_type = method_type
-        self.run_type = run_type
+        self.calc_type = calc_type
         self.representative_system = representative_system
         self.representative_method = representative_method
         self.representative_scc = representative_scc
@@ -93,12 +93,12 @@ class EncyclopediaNormalizer(Normalizer):
         super().__init__(backend)
         self.backend: LocalBackend = backend
 
-    def run_type(self, run_type_sec: RunType) -> str:
+    def calc_type(self, calc: Calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
         """
-        run_enums = RunType.run_type.type
-        run_type = run_enums.unavailable
+        calc_enums = Calculation.calculation_type.type
+        calc_type = calc_enums.unavailable
 
         try:
             sccs = self._backend[s_scc]
@@ -117,9 +117,9 @@ class EncyclopediaNormalizer(Normalizer):
             program_name = self._backend["program_name"]
             if program_name == "elastic":
                 # TODO move to taylor expansion as soon as data is correct in archive
-                run_type = run_enums.elastic_constants
+                calc_type = calc_enums.elastic_constants
             else:
-                run_type = run_enums.single_point
+                calc_type = calc_enums.single_point
 
         # One sequence. Currently calculations with multiple sequences are
         # unsupported.
@@ -134,7 +134,7 @@ class EncyclopediaNormalizer(Normalizer):
                     "Cannot determine encyclopedia run type because missing "
                     "value for frame_sequence_to_sampling_ref."
                 )
-                return run_type
+                return calc_type
 
             # See if local frames are present
             try:
@@ -144,23 +144,23 @@ class EncyclopediaNormalizer(Normalizer):
                     "section_frame_sequence_local_frames not found although a "
                     "frame_sequence exists."
                 )
-                return run_type
+                return calc_type
             if len(frames) == 0:
                 self.logger.info("No frames referenced in section_frame_sequence_local_frames.")
-                return run_type
+                return calc_type
 
             section_sampling_method = self._backend[s_sampling_method][i_sampling_method]
             sampling_method = section_sampling_method["sampling_method"]
 
             if sampling_method == "molecular_dynamics":
-                run_type = run_enums.molecular_dynamics
+                calc_type = calc_enums.molecular_dynamics
             if sampling_method == "geometry_optimization":
-                run_type = run_enums.geometry_optimization
+                calc_type = calc_enums.geometry_optimization
             if sampling_method == "taylor_expansion":
-                run_type = run_enums.phonon_calculation
+                calc_type = calc_enums.phonon_calculation
 
-        run_type_sec.run_type = run_type
-        return run_type
+        calc.calculation_type = calc_type
+        return calc_type
 
     def material_type(self, material: Material) -> tuple:
         # Try to fetch representative system
@@ -296,14 +296,14 @@ class EncyclopediaNormalizer(Normalizer):
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
             sec_enc.m_create(Properties)
-            run_type = sec_enc.m_create(RunType)
+            calc = sec_enc.m_create(Calculation)
 
             # Determine run type, stop if unknown
-            run_type_name = self.run_type(run_type)
-            if run_type_name == config.services.unavailable_value:
+            calc_type = self.calc_type(calc)
+            if calc_type == config.services.unavailable_value:
                 self.logger.info(
                     "Unsupported run type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unsupported_run_type",
+                    enc_status="unsupported_calc_type",
                 )
                 return
 
@@ -338,7 +338,7 @@ class EncyclopediaNormalizer(Normalizer):
             context = Context(
                 material_type=material_type,
                 method_type=method_type,
-                run_type=run_type_name,
+                calc_type=calc_type,
                 representative_system=representative_system,
                 representative_method=representative_method,
                 representative_scc=representative_scc,
@@ -1643,7 +1643,7 @@ class PropertiesNormalizer():
         bz_json = json.dumps(brillouin_zone)
         band_structure.brillouin_zone = bz_json
 
-    def band_structure(self, properties: Properties, run_type: str, material_type: str, context: Context, sec_system: Section) -> None:
+    def band_structure(self, properties: Properties, calc_type: str, material_type: str, context: Context, sec_system: Section) -> None:
         """Band structure data following arbitrary path.
 
         Currently this function is only taking into account the normalized band
@@ -1655,7 +1655,7 @@ class PropertiesNormalizer():
         # that is only available from the symmetry analysis. Once the
         # reciprocal cell is directly reported with the band structure this
         # restriction can go away.
-        if run_type != RunType.run_type.type.single_point or material_type != Material.material_type.type.bulk:
+        if calc_type != Calculation.calculation_type.type.single_point or material_type != Material.material_type.type.bulk:
             return
 
         representative_scc = context.representative_scc
@@ -1777,11 +1777,11 @@ class PropertiesNormalizer():
         # Fetch resources
         sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
         properties = sec_enc.properties
-        run_type = context.run_type
+        calc_type = context.calc_type
         material_type = context.material_type
         sec_system = context.representative_system
         gcd = context.greatest_common_divisor
 
         # Save metainfo
-        self.band_structure(properties, run_type, material_type, context, sec_system)
+        self.band_structure(properties, calc_type, material_type, context, sec_system)
         self.energies(properties, gcd, representative_scc)

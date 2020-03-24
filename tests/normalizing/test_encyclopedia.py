@@ -47,16 +47,16 @@ def test_geometry_optimization(geometry_optimization: LocalBackend):
     """Tests that geometry optimizations are correctly processed."
     """
     enc = geometry_optimization.get_mi2_section(Encyclopedia.m_def)
-    run_type = enc.run_type.run_type
-    assert run_type == "geometry optimization"
+    calc_type = enc.calculation.calculation_type
+    assert calc_type == "geometry optimization"
 
 
 def test_molecular_dynamics(molecular_dynamics: LocalBackend):
     """Tests that geometry optimizations are correctly processed."
     """
     enc = molecular_dynamics.get_mi2_section(Encyclopedia.m_def)
-    run_type = enc.run_type.run_type
-    assert run_type == "molecular dynamics"
+    calc_type = enc.calculation.calculation_type
+    assert calc_type == "molecular dynamics"
 
 
 # Disabled until the method information can be retrieved
@@ -64,8 +64,8 @@ def test_molecular_dynamics(molecular_dynamics: LocalBackend):
     # """Tests that geometry optimizations are correctly processed."
     # """
     # enc = phonon.get_mi2_section(Encyclopedia.m_def)
-    # run_type = enc.run_type.run_type
-    # assert run_type == "phonon calculation"
+    # calc_type = enc.calc_type.calc_type
+    # assert calc_type == "phonon calculation"
 
 
 def test_1d_metainfo(one_d: LocalBackend):
