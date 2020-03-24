@@ -33,7 +33,7 @@ from bs4 import BeautifulSoup
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.normalizing.structure import get_normalized_wyckoff
+from nomad.atomutils import get_normalized_wyckoff
 from nomad.cli.cli import cli
 from nomad import config
 

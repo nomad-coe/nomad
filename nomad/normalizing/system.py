@@ -27,7 +27,6 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 
 from nomad import atomutils
 from nomad import utils, config
-from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
 # use a regular expression to check atom labels; expression is build from list of
