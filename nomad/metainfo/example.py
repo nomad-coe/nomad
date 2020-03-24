@@ -70,6 +70,8 @@ class System(MSection):
         type=bool, shape=[3], default=[False, False, False], categories=[SystemHash],
         description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
 
+    system_type = Quantity(type=str)
+
 
 class SCC(MSection):
 

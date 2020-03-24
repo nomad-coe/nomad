@@ -520,8 +520,6 @@ class MResource():
             self.contents.append(section)
 
     def remove(self, section):
-        import traceback
-        traceback.print_stack()
         assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
         section.m_resource = None
         self.__data.get(section.m_def).remove(section)
@@ -1029,7 +1027,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             raise TypeError('%s is of class Section' % definition)
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
-    def m_to_dict(self, with_meta: bool = False, include_defaults: bool = False) -> Dict[str, Any]:
+    def m_to_dict(
+            self, with_meta: bool = False, include_defaults: bool = False,
+            categories: List[Union['Category', Type['MCategory']]] = None) -> Dict[str, Any]:
         '''
         Returns the data of this section as a json serializeable dictionary.
 
@@ -1037,7 +1037,19 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             with_meta: Include information about the section definition and the sections
                 position in its parent.
             include_defaults: Include default values of unset quantities.
+            categories: A list of category classes or category definitions that is used
+                to filter the included quantities and sub sections.
         '''
+        category_defs: List[Category] = None
+        if categories is not None:
+            category_defs = []
+            for category in categories:
+                if issubclass(category, MCategory):  # type: ignore
+                    category_defs.append(category.m_def)  # type: ignore
+                elif isinstance(category, Category):
+                    category_defs.append(category)
+                else:
+                    raise TypeError('%s is not a category' % category)
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
@@ -1050,6 +1062,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # quantities
             for name, quantity in self.m_def.all_quantities.items():
+                if categories is not None:
+                    if not any(
+                            quantity in category.get_all_definitions()
+                            for category in category_defs):
+                        continue
+
                 if quantity.virtual:
                     continue
 
@@ -1126,6 +1144,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
+                if categories is not None:
+                    if not any(
+                            sub_section_def in category.get_all_definitions()
+                            for category in category_defs):
+                        continue
+
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
@@ -1138,24 +1162,19 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return {key: value for key, value in items()}
 
-    @classmethod
-    def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
-        ''' Creates a section from the given serializable data dictionary.
-
-        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialised dict, e.g
-        loaded from JSON, and turns it into a proper section, i.e. instance of the given
-        section class.
+    def m_update_from_dict(self, dct: Dict[str, Any]) -> None:
         '''
-
-        section_def = cls.m_def
+        Updates this section with the serialized data from the given dict, e.g. data
+        produced by :func:`m_to_dict`.
+        '''
+        section_def = self.m_def
+        section = self
 
         # remove m_def, m_parent_index, m_parent_sub_section metadata,
         # they set themselves automatically
         dct.pop('m_def', None)
         dct.pop('m_parent_index', None)
         dct.pop('m_parent_sub_section', None)
-
-        section = cls()
 
         for name, sub_section_def in section_def.all_sub_sections.items():
             if name in dct:
@@ -1191,6 +1210,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 section.__dict__[name] = quantity_value  # type: ignore
 
+    @classmethod
+    def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
+        ''' Creates a section from the given serializable data dictionary.
+
+        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialised dict, e.g
+        loaded from JSON, and turns it into a proper section, i.e. instance of the given
+        section class.
+        '''
+        section = cls()
+        section.m_update_from_dict(dct)
         return section
 
     def m_to_json(self, **kwargs):

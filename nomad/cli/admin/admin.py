@@ -158,7 +158,8 @@ def lift_embargo(dry, parallel):
                 uploads_to_repack.append(upload)
                 upload.save()
 
-                search.index_all(upload.entries_metadata())
+                with upload.entries_metadata() as entries:
+                    search.index_all(entries)
 
     if not dry:
         __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')

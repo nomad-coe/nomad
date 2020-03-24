@@ -24,7 +24,7 @@ calculations, and files
 
 '''
 
-from typing import cast, List, Any, Tuple, Generator, Dict, cast, Iterable
+from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
 from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
@@ -110,15 +110,7 @@ class Calc(Proc):
         self._upload_files: ArchiveBasedStagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
-    @classmethod
-    def from_entry_metadata(cls, entry_metadata):
-        calc = Calc.create(
-            calc_id=entry_metadata.calc_id,
-            upload_id=entry_metadata.upload_id,
-            mainfile=entry_metadata.mainfile,
-            metadata=entry_metadata.m_to_dict(include_defaults=True))
-
-        return calc
+        self._entry_metadata = None
 
     @classmethod
     def get(cls, id):
@@ -134,6 +126,61 @@ class Calc(Proc):
             self._upload = Upload.get(self.upload_id)
             self._upload.worker_hostname = self.worker_hostname
         return self._upload
+
+    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
+        self.metadata = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
+
+    def create_metadata(self) -> datamodel.EntryMetadata:
+        '''
+        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
+        processing object, not necessarely the user metadata nor the metadata from
+        the archive.
+        '''
+        entry_metadata = datamodel.EntryMetadata()
+        entry_metadata.domain = parser_dict[self.parser].domain
+        entry_metadata.upload_id = self.upload_id
+        entry_metadata.calc_id = self.calc_id
+        entry_metadata.mainfile = self.mainfile
+        entry_metadata.nomad_version = config.version
+        entry_metadata.nomad_commit = config.commit
+        entry_metadata.uploader = self.upload.user_id
+        entry_metadata.upload_time = self.upload.upload_time
+        entry_metadata.upload_name = self.upload.name
+
+        return entry_metadata
+
+    def entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
+        '''
+        Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
+        the user metadata and metadata from the archive.
+
+        Arguments:
+            upload_files:
+                The :class:`nomad.files.UploadFiles` instance to read the archive from.
+            cache:
+                A boolean that indicates if the archive file should be left unclosed,
+                e.g. if this method is called for many entries of the same upload.
+        '''
+        archive = upload_files.read_archive(self.calc_id)
+        entry_metadata = datamodel.EntryMetadata.m_from_dict(
+            archive[self.calc_id][datamodel.EntryArchive.section_metadata.name].to_dict())
+
+        entry_metadata.m_update_from_dict(self.metadata)
+
+        return entry_metadata
+
+    def user_metadata(self) -> datamodel.EntryMetadata:
+        '''
+        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
+        processing object and the user metadata, not necessarely the metadata from
+        the archive.
+        '''
+        entry_metadata = self.create_metadata()
+        entry_metadata.m_update_from_dict(self.metadata)
+
+        return entry_metadata
 
     @property
     def upload_files(self) -> ArchiveBasedStagingUploadFiles:
@@ -176,9 +223,18 @@ class Calc(Proc):
         records.
         '''
         parser = match_parser(self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
+        logger = self.get_logger()
 
         if parser is None and not config.reprocess_unmatched:
             self.errors = ['no parser matches during re-process, will not re-process this calc']
+
+            try:
+                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                with upload_files.read_archive(self.calc_id) as archive:
+                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
+
+            except Exception as e:
+                logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
 
             # mock the steps of actual processing
             self._continue_with('parsing')
@@ -187,7 +243,6 @@ class Calc(Proc):
             self._complete()
             return
 
-        logger = self.get_logger()
         if parser is None:
             self.get_logger().error('no parser matches during re-process, use the old parser')
             self.errors = ['no matching parser found during re-processing']
@@ -198,16 +253,12 @@ class Calc(Proc):
                 parser=parser.name)
 
         try:
-            entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
-            entry_metadata.upload_id = self.upload_id
-            entry_metadata.calc_id = self.calc_id
-            entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            entry_metadata.mainfile = self.mainfile
-            entry_metadata.nomad_version = config.version
-            entry_metadata.nomad_commit = config.commit
-            entry_metadata.last_processing = datetime.utcnow()
-            entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-            self.metadata = entry_metadata.m_to_dict(include_defaults=True)
+            self._entry_metadata = self.user_metadata()
+            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+            self._entry_metadata.nomad_version = config.version
+            self._entry_metadata.nomad_commit = config.commit
+            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
             self.parsing()
             self.normalizing()
@@ -233,23 +284,12 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            calc_metadata = datamodel.EntryMetadata()
-            calc_metadata.domain = parser_dict[self.parser].domain
-            calc_metadata.upload_id = self.upload_id
-            calc_metadata.calc_id = self.calc_id
-            calc_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            calc_metadata.mainfile = self.mainfile
-            calc_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            calc_metadata.nomad_version = config.version
-            calc_metadata.nomad_commit = config.commit
-            calc_metadata.last_processing = datetime.utcnow()
-            calc_metadata.files = self.upload_files.calc_files(self.mainfile)
-            calc_metadata.uploader = self.upload.user_id
-            calc_metadata.upload_time = self.upload.upload_time
-            calc_metadata.upload_name = self.upload.name
-            self.metadata = calc_metadata.m_to_dict(include_defaults=True)  # TODO use embedded doc?
+            self._entry_metadata = self.create_metadata()
+            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
-            if len(calc_metadata.files) >= config.auxfile_cutoff:
+            if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
                     'This calc has many aux files in its directory. '
                     'Have you placed many calculations in the same directory?')
@@ -269,22 +309,28 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
             if self.parser is not None:
                 parser = parser_dict[self.parser]
                 if hasattr(parser, 'code_name'):
-                    entry_metadata.code_name = parser.code_name
+                    self._entry_metadata.code_name = parser.code_name
 
-            entry_metadata.processed = False
-            self.metadata = entry_metadata.m_to_dict(include_defaults=True)
-            entry_metadata.a_elastic.index()
+            self._entry_metadata.processed = False
+            self.apply_entry_metadata(self._entry_metadata)
+            self._entry_metadata.a_elastic.index()
         except Exception as e:
-            self.get_logger().error('could not index after processing failure', exc_info=e)
+            self.get_logger().error(
+                'could not index after processing failure', exc_info=e)
 
         try:
-            self.upload_files.write_archive(self.calc_id, {'processing_logs': self._calc_proc_logs})
+            archive = datamodel.EntryArchive()
+            archive.m_add_sub_section(
+                datamodel.EntryArchive.section_metadata, self._entry_metadata)
+            archive.processing_logs = self._calc_proc_logs
+
+            self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
         except Exception as e:
-            self.get_logger().error('could not write archive (logs) after processing failure', exc_info=e)
+            self.get_logger().error(
+                'could not write archive after processing failure', exc_info=e)
 
         super().fail(*errors, log_level=log_level, **kwargs)
 
@@ -302,7 +348,7 @@ class Calc(Proc):
         context = dict(parser=self.parser, step=self.parser)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
-        self.metadata['parser_name'] = self.parser
+        self._entry_metadata.parser_name = self.parser
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             try:
@@ -315,26 +361,8 @@ class Calc(Proc):
                 self.fail('parser raised system exit', error='system exit', **context)
                 return
 
-        # add the non code specific calc metadata to the backend
-        # all other quantities have been determined by parsers/normalizers
-        self._parser_backend.openNonOverlappingSection('section_entry_info')
-        self._parser_backend.addValue('upload_id', self.upload_id)
-        self._parser_backend.addValue('calc_id', self.calc_id)
-        self._parser_backend.addValue('calc_hash', self.metadata['calc_hash'])
-        self._parser_backend.addValue('mainfile', self.mainfile)
-        self._parser_backend.addValue('parser_name', self.parser)
-        filepaths = self.metadata['files']
-        self._parser_backend.addValue('number_of_files', len(filepaths))
-        self._parser_backend.addValue('filepaths', filepaths)
-        uploader = self.upload.uploader
-        self._parser_backend.addValue(
-            'entry_uploader_name', '%s, %s' % (uploader.first_name, uploader.last_name))
-        self._parser_backend.addValue(
-            'entry_uploader_id', str(uploader.user_id))
-        self._parser_backend.addValue('entry_upload_time', int(self.upload.upload_time.timestamp()))
-        self._parser_backend.closeNonOverlappingSection('section_entry_info')
-
-        self.add_processor_info(self.parser)
+        self._parser_backend.entry_archive.m_add_sub_section(
+            datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
         if self._parser_backend.status[0] != 'ParseSuccess':
             error = self._parser_backend.status[1]
@@ -344,27 +372,25 @@ class Calc(Proc):
     def use_parser_backend(self, processor_name):
         self._parser_backend.reset_status()
         yield self._parser_backend
-        self.add_processor_info(processor_name)
-
-    def add_processor_info(self, processor_name: str) -> None:
-        self._parser_backend.openContext('/section_entry_info/0')
-        self._parser_backend.openNonOverlappingSection('section_archive_processing_info')
-        self._parser_backend.addValue('archive_processor_name', processor_name)
 
         if self._parser_backend.status[0] == 'ParseSuccess':
             warnings = getattr(self._parser_backend, '_warnings', [])
+
             if len(warnings) > 0:
-                self._parser_backend.addValue('archive_processor_status', 'WithWarnings')
-                self._parser_backend.addValue('number_of_archive_processor_warnings', len(warnings))
-                self._parser_backend.addArrayValues('archive_processor_warnings', [str(warning) for warning in warnings])
+                self.get_logger().warn(
+                    'processor completed successful with warnings',
+                    processor=processor_name, warnings=[str(warning) for warning in warnings])
+
             else:
-                self._parser_backend.addValue('archive_processor_status', 'Success')
+                self.get_logger().info(
+                    'processor completed successful',
+                    processor=processor_name)
+
         else:
             errors = self._parser_backend.status[1]
-            self._parser_backend.addValue('archive_processor_error', str(errors))
-
-        self._parser_backend.closeNonOverlappingSection('section_archive_processing_info')
-        self._parser_backend.closeContext('/section_entry_info/0')
+            self.get_logger().error(
+                'processor completed with failure',
+                processor=processor_name, errors=str(errors))
 
     @task
     def normalizing(self):
@@ -401,29 +427,26 @@ class Calc(Proc):
         ''' The *task* that encapsulates all archival related actions. '''
         logger = self.get_logger()
 
-        entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
-        entry_metadata.apply_domain_metadata(self._parser_backend)
-        entry_metadata.processed = True
+        self._entry_metadata.apply_domain_metadata(self._parser_backend)
+        self._entry_metadata.processed = True
 
         # persist the calc metadata
         with utils.timer(logger, 'saved calc metadata', step='metadata'):
-            self.metadata = entry_metadata.m_to_dict(include_defaults=True)
+            self.apply_entry_metadata(self._entry_metadata)
 
         # index in search
         with utils.timer(logger, 'indexed', step='index'):
-            entry_metadata.a_elastic.index()
+            self._entry_metadata.a_elastic.index()
 
         # persist the archive
         with utils.timer(
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
 
-            archive_data = self._parser_backend.resource.m_to_dict(
-                lambda section: section.m_def.name in datamodel.root_sections)
-
-            archive_data['processing_logs'] = self._calc_proc_logs
+            self._parser_backend.entry_archive.processing_logs = self._calc_proc_logs
             self._calc_proc_logs = None
 
+            archive_data = self._parser_backend.entry_archive.m_to_dict()
             archive_size = self.upload_files.write_archive(self.calc_id, archive_data)
             log_data.update(archive_size=archive_size)
 
@@ -587,44 +610,45 @@ class Upload(Proc):
         logger.info('started to publish')
 
         with utils.lnr(logger, 'publish failed'):
-            calcs = self.entries_metadata(self.metadata)
+            with self.entries_metadata(self.metadata) as calcs:
 
-            with utils.timer(
-                    logger, 'upload metadata updated', step='metadata',
-                    upload_size=self.upload_files.size):
-
-                def create_update(calc):
-                    calc.published = True
-                    calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
-                    return UpdateOne(
-                        {'_id': calc.calc_id},
-                        {'$set': {'metadata': calc.m_to_dict(include_defaults=True)}})
-
-                Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
-
-            if isinstance(self.upload_files, StagingUploadFiles):
                 with utils.timer(
-                        logger, 'staged upload files packed', step='pack',
+                        logger, 'upload metadata updated', step='metadata',
                         upload_size=self.upload_files.size):
-                    self.upload_files.pack(calcs)
 
-            with utils.timer(
-                    logger, 'index updated', step='index',
-                    upload_size=self.upload_files.size):
-                search.publish(calcs)
+                    def create_update(calc):
+                        calc.published = True
+                        calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
+                        return UpdateOne(
+                            {'_id': calc.calc_id},
+                            {'$set': {'metadata': calc.m_to_dict(
+                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
 
-            if isinstance(self.upload_files, StagingUploadFiles):
+                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+
+                if isinstance(self.upload_files, StagingUploadFiles):
+                    with utils.timer(
+                            logger, 'staged upload files packed', step='pack',
+                            upload_size=self.upload_files.size):
+                        self.upload_files.pack(calcs)
+
                 with utils.timer(
-                        logger, 'staged upload deleted', step='delete staged',
+                        logger, 'index updated', step='index',
                         upload_size=self.upload_files.size):
-                    self.upload_files.delete()
-                    self.published = True
-                    self.publish_time = datetime.utcnow()
+                    search.publish(calcs)
+
+                if isinstance(self.upload_files, StagingUploadFiles):
+                    with utils.timer(
+                            logger, 'staged upload deleted', step='delete staged',
+                            upload_size=self.upload_files.size):
+                        self.upload_files.delete()
+                        self.published = True
+                        self.publish_time = datetime.utcnow()
+                        self.last_update = datetime.utcnow()
+                        self.save()
+                else:
                     self.last_update = datetime.utcnow()
                     self.save()
-            else:
-                self.last_update = datetime.utcnow()
-                self.save()
 
     @process
     def re_process_upload(self):
@@ -696,7 +720,7 @@ class Upload(Proc):
         self._continue_with('parse_all')
         self._continue_with('cleanup')
 
-        self.upload_files.re_pack(self.entries_metadata())
+        self.upload_files.re_pack(self.user_metadata())
         self.joined = True
         self._complete()
 
@@ -785,7 +809,7 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Generator[Tuple[str, object], None, None]:
+    def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
@@ -908,7 +932,7 @@ class Upload(Proc):
                 logger, 'reprocessed staged upload packed', step='delete staged',
                 upload_size=self.upload_files.size):
 
-            staging_upload_files.pack(self.entries_metadata(), skip_raw=True)
+            staging_upload_files.pack(self.user_metadata(), skip_raw=True)
 
         with utils.timer(
                 logger, 'reprocessed staged upload deleted', step='delete staged',
@@ -982,16 +1006,19 @@ class Upload(Proc):
         ''' All successfully processed calculations. '''
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
-    def entries_metadata(self, user_metadata: dict = None) -> Iterable[datamodel.EntryMetadata]:
+    @contextmanager
+    def entries_metadata(
+            self, user_metadata: dict = None) -> Iterator[Iterable[datamodel.EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
-        processing uploads into datamodel uploads. It will also implicitely transform
-        all calculations of this upload.
+        processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
 
         Arguments:
             user_metadata: A dict of user metadata that is applied to the resulting
                 datamodel data and the respective calculations.
         '''
+        upload_files = self.upload_files
+
         # prepare user metadata per upload and per calc
         if user_metadata is not None:
             entries_metadata_dict: Dict[str, Any] = dict()
@@ -1008,7 +1035,7 @@ class Upload(Proc):
             user_upload_name = upload_metadata.get('upload_name', None)
 
             def get_metadata(calc: Calc):
-                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
+                entry_metadata = calc.entry_metadata(upload_files)
                 entry_user_metadata = dict(upload_metadata)
                 entry_user_metadata.pop('embargo_length', None)  # this is for uploads only
                 entry_user_metadata.update(entries_metadata_dict.get(calc.mainfile, {}))
@@ -1023,13 +1050,25 @@ class Upload(Proc):
             user_upload_time = None
 
             def get_metadata(calc: Calc):
-                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
+                entry_metadata = calc.entry_metadata(upload_files)
                 entry_metadata.upload_time = self.upload_time
                 entry_metadata.upload_name = self.name
 
                 return entry_metadata
 
-        return [get_metadata(calc) for calc in Calc.objects(upload_id=self.upload_id)]
+        try:
+            yield [
+                get_metadata(calc)
+                for calc in Calc.objects(upload_id=self.upload_id)]
+
+        finally:
+            upload_files.close()
+
+    def entry_ids(self) -> Iterable[str]:
+        return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
+
+    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+        return [calc.user_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
 
     def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
         '''

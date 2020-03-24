@@ -318,7 +318,8 @@ def mirror(
             proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
-            search.index_all(upload.entries_metadata())
+            with upload.entries_metadata() as entries:
+                search.index_all(entries)
 
         print(
             'Mirrored %s with %d calcs at %s' %

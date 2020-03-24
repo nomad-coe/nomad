@@ -420,6 +420,14 @@ class TestM1:
 
         self.assert_example_data(new_example_data)
 
+    def test_to_dict_category_filter(self, example_data: Run):
+        system = example_data.systems[0]
+        system.system_type = 'bulk'
+        dct = system.m_to_dict(categories=[SystemHash])
+        assert 'atom_labels' in dct
+        assert 'n_atoms' not in dct  # derived
+        assert 'system_type' not in dct  # not system hash
+
     def test_to_dict_defaults(self, example_data):
         dct = example_data.m_to_dict()
         assert 'nomad_version' not in dct['parsing']

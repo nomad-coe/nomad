@@ -32,9 +32,9 @@ The class :class:`Dataset` is used to represent datasets and their attributes.
 .. autoclass:: nomad.datamodel.Dataset
     :members:
 
-The class :class:`UserMetadata` is used to represent user determined entry metadata.
+The class :class:`MongoMetadata` is used to tag metadata stored in mongodb.
 
-.. autoclass:: nomad.datamodel.UserMetadata
+.. autoclass:: nomad.datamodel.MongoMetadata
     :members:
 
 The class :class:`EntryMetadata` is used to represent all metadata about an entry.
@@ -56,7 +56,7 @@ In addition there are domain specific metadata classes:
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
-from .datamodel import Dataset, User, EditableUserMetadata, UserMetadata, EntryMetadata
+from .datamodel import Dataset, User, EditableUserMetadata, MongoMetadata, EntryMetadata, EntryArchive
 from .optimade import OptimadeEntry, Species
 
 domains = {

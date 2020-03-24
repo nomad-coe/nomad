@@ -19,7 +19,7 @@ import pytest
 import os
 from shutil import copyfile
 
-from nomad import utils, files
+from nomad import utils, files, datamodel
 from nomad.parsing import parser_dict, match_parser, BrokenParser, BadContextUri, Backend
 
 
@@ -153,19 +153,17 @@ class TestBackend(object):
         backend.addValue('program_name', 't0')
         backend.closeSection('section_run', 0)
 
-        g_index = backend.openSection('section_entry_info')
-        assert g_index == 0
-        backend.addValue('parser_name', 'p0')
-        backend.closeSection('section_entry_info', 0)
+        g_index = backend.openSection('section_run')
+        assert g_index == 1
+        backend.addValue('program_name', 't1')
+        backend.closeSection('section_run', 1)
 
-        assert backend.get_sections('section_run') == [0]
-        assert backend.get_sections('section_entry_info') == [0]
+        assert backend.get_sections('section_run') == [0, 1]
 
         output = StringIO()
         json.dump(backend.resource.m_to_dict(), output)
         archive = json.loads(output.getvalue())
-        assert 'section_run' in archive
-        assert 'section_entry_info' in archive
+        assert 'section_run' in archive['EntryArchive']
 
     def test_subsection(self, backend: Backend, no_warn):
         backend.openSection('section_run')
@@ -341,14 +339,12 @@ def parsed_example(request) -> Backend:
 
 
 def add_calculation_info(backend: Backend, **kwargs) -> Backend:
-    backend.openNonOverlappingSection('section_entry_info')
-    backend.addValue('upload_id', 'test_upload_id')
-    backend.addValue('calc_id', 'test_calc_id')
-    backend.addValue('calc_hash', 'test_calc_hash')
-    backend.addValue('mainfile', 'test/mainfile.txt')
-    for key, value in kwargs.items():
-        backend.addValue(key, value)
-    backend.closeNonOverlappingSection('section_entry_info')
+    entry_metadata = backend.entry_archive.m_create(datamodel.EntryMetadata)
+    entry_metadata.upload_id = 'test_upload_id'
+    entry_metadata.calc_id = 'test_calc_id'
+    entry_metadata.calc_hash = 'test_calc_hash'
+    entry_metadata.mainfile = 'test/mainfile.txt'
+    entry_metadata.m_update(**kwargs)
     return backend
 
 

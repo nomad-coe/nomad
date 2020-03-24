@@ -4,7 +4,7 @@ import json
 import click
 import sys
 
-from nomad import config, utils
+from nomad import utils
 from nomad.parsing import Backend, parser_dict, match_parser, MatchingParser
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryMetadata
@@ -47,14 +47,6 @@ def parse(
 
     if not parser_backend.status[0] == 'ParseSuccess':
         logger.error('parsing was not successful', status=parser_backend.status)
-
-    parser_backend.openNonOverlappingSection('section_entry_info')
-    parser_backend.addValue('upload_id', config.services.unavailable_value)
-    parser_backend.addValue('calc_id', config.services.unavailable_value)
-    parser_backend.addValue('calc_hash', "no hash")
-    parser_backend.addValue('mainfile', mainfile)
-    parser_backend.addValue('parser_name', parser_name)
-    parser_backend.closeNonOverlappingSection('section_entry_info')
 
     logger.info('ran parser')
     return parser_backend

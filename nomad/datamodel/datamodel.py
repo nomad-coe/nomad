@@ -26,6 +26,8 @@ from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
+from .metainfo.public import section_run
+from .metainfo.general_experimental import section_experiment
 
 
 def _only_atoms(atoms):
@@ -189,8 +191,8 @@ class EditableUserMetadata(metainfo.MCategory):
     ''' NOMAD entry quantities that can be edited by the user after publish. '''
 
 
-class UserMetadata(metainfo.MCategory):
-    ''' NOMAD entry quantities that are given by the user or determined by user actions. '''
+class MongoMetadata(metainfo.MCategory):
+    ''' NOMAD entry quantities that are stored in mongodb and not necessarely in the archive. '''
     pass
 
 
@@ -249,6 +251,7 @@ class EntryMetadata(metainfo.MSection):
     calc_hash = metainfo.Quantity(
         type=str,
         description='A raw file content based checksum/hash.',
+        categories=[MongoMetadata],
         a_search=Search(
             many_or='append', metric_name='unique_entries', metric='cardinality'))
 
@@ -280,39 +283,48 @@ class EntryMetadata(metainfo.MSection):
     pid = metainfo.Quantity(
         type=int,
         description='The unique, sequentially enumerated, integer persistent identifier',
+        categories=[MongoMetadata],
         a_search=Search(many_or='append'))
 
     raw_id = metainfo.Quantity(
         type=str,
         description='A raw format specific id that was acquired from the files of this entry',
+        categories=[MongoMetadata],
         a_search=Search(many_or='append'))
 
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
         description='The material science domain',
+        categories=[MongoMetadata],
         a_search=Search())
 
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
+        categories=[MongoMetadata],
         a_search=Search())
 
     processed = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
+        categories=[MongoMetadata],
         a_search=Search())
 
     last_processing = metainfo.Quantity(
         type=metainfo.Datetime,
-        description='The datetime of the last attempted processing.')
+        description='The datetime of the last attempted processing.',
+        categories=[MongoMetadata],
+        a_search=Search())
 
     nomad_version = metainfo.Quantity(
         type=str,
         description='The NOMAD version used for the last processing attempt.',
+        categories=[MongoMetadata],
         a_search=Search(many_or='append'))
     nomad_commit = metainfo.Quantity(
         type=str,
         description='The NOMAD commit used for the last processing attempt.',
+        categories=[MongoMetadata],
         a_search=Search(many_or='append'))
     parser_name = metainfo.Quantity(
         type=str,
@@ -320,17 +332,17 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(many_or='append'))
 
     comment = metainfo.Quantity(
-        type=str, categories=[UserMetadata, EditableUserMetadata],
+        type=str, categories=[MongoMetadata, EditableUserMetadata],
         description='A user provided comment.',
         a_search=Search(mapping=Text()))
 
     references = metainfo.Quantity(
-        type=str, shape=['0..*'], categories=[UserMetadata, EditableUserMetadata],
+        type=str, shape=['0..*'], categories=[MongoMetadata, EditableUserMetadata],
         description='User provided references (URLs).',
         a_search=Search())
 
     uploader = metainfo.Quantity(
-        type=user_reference, categories=[UserMetadata],
+        type=user_reference, categories=[MongoMetadata],
         description='The uploader of the entry',
         a_flask=dict(admin_only=True, verify=User),
         a_search=[
@@ -343,7 +355,7 @@ class EntryMetadata(metainfo.MSection):
         ])
 
     coauthors = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[UserMetadata, EditableUserMetadata],
+        type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
         description='A user provided list of co-authors.',
         a_flask=dict(verify=User))
 
@@ -357,7 +369,7 @@ class EntryMetadata(metainfo.MSection):
             many_or='append', search_field='authors.name.keyword', statistic_size=1000))
 
     shared_with = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[UserMetadata, EditableUserMetadata],
+        type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
         description='A user provided list of userts to share the entry with.',
         a_flask=dict(verify=User))
 
@@ -370,24 +382,24 @@ class EntryMetadata(metainfo.MSection):
             many_or='append', search_field='owners.name.keyword'))
 
     with_embargo = metainfo.Quantity(
-        type=bool, default=False, categories=[UserMetadata, EditableUserMetadata],
+        type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',
         a_search=Search())
 
     upload_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[UserMetadata],
+        type=metainfo.Datetime, categories=[MongoMetadata],
         description='The datetime this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
         a_search=Search(order_default=True))
 
     upload_name = metainfo.Quantity(
-        type=str, categories=[UserMetadata],
+        type=str, categories=[MongoMetadata],
         description='The user provided upload name',
         a_search=Search(many_or='append'))
 
     datasets = metainfo.Quantity(
         type=dataset_reference, shape=['0..*'], default=[],
-        categories=[UserMetadata, EditableUserMetadata],
+        categories=[MongoMetadata, EditableUserMetadata],
         description='A list of user curated datasets this entry belongs to.',
         a_flask=dict(verify=Dataset),
         a_search=[
@@ -401,12 +413,12 @@ class EntryMetadata(metainfo.MSection):
                 description='Search for a particular dataset by its id.')])
 
     external_id = metainfo.Quantity(
-        type=str, categories=[UserMetadata],
+        type=str, categories=[MongoMetadata],
         description='A user provided external id.',
         a_search=Search(many_or='split'))
 
     last_edit = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[UserMetadata],
+        type=metainfo.Datetime, categories=[MongoMetadata],
         description='The datetime the user metadata was edited last.',
         a_search=Search())
 
@@ -441,7 +453,24 @@ class EntryMetadata(metainfo.MSection):
 
     def apply_domain_metadata(self, backend):
         assert self.domain is not None, 'all entries must have a domain'
-        domain_section_def = self.m_def.all_sub_sections.get(self.domain).sub_section
+        domain_sub_section_def = self.m_def.all_sub_sections.get(self.domain)
+        domain_section_def = domain_sub_section_def.sub_section
         assert domain_section_def is not None, 'unknown domain %s' % self.domain
-        domain_section = self.m_create(domain_section_def.section_cls)
+
+        # add domain section if not already there
+        domain_section = self.m_get_sub_section(domain_sub_section_def, -1)
+        if domain_section is None:
+            domain_section = self.m_create(domain_section_def.section_cls)
+
         domain_section.apply_domain_metadata(backend)
+
+
+class EntryArchive(metainfo.MSection):
+
+    section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
+    section_experiment = metainfo.SubSection(sub_section=section_experiment)
+    section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
+
+    processing_logs = metainfo.Quantity(
+        type=Any, shape=['0..*'],
+        description='The processing logs for this entry as a list of structlog entries.')

@@ -21,7 +21,6 @@ from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
 
 from .common import get_optional_backend_value
-from .metainfo.general_experimental import section_experiment
 
 
 class EMSMetadata(MSection):
@@ -107,12 +106,9 @@ class EMSMetadata(MSection):
 
         quantities = set()
 
-        for root_section in backend.resource.contents:
-            if not root_section.m_follows(section_experiment.m_def):
-                continue
-
-            quantities.add(root_section.m_def.name)
-            for _, property_def, _ in root_section.m_traverse():
-                quantities.add(property_def.name)
+        root_section = backend.entry_archive.section_experiment
+        quantities.add(root_section.m_def.name)
+        for _, property_def, _ in root_section.m_traverse():
+            quantities.add(property_def.name)
 
         self.quantities = list(quantities)

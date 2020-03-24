@@ -25,7 +25,7 @@ from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import search, utils, datamodel, processing as proc, infrastructure
+from nomad import search, utils, datamodel, processing as proc, infrastructure, files
 from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
@@ -315,6 +315,7 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
         apply_search_parameters(search_request, parsed_query)
         upload_ids = set()
         calc_ids = []
+
         for hit in search_request.execute_scan():
             calc_ids.append(hit['calc_id'])
             upload_ids.add(hit['upload_id'])
@@ -330,11 +331,23 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
     with utils.timer(common.logger, 'edit elastic update executed', size=len(calc_ids)):
         if re_index:
             def elastic_updates():
+                upload_files_cache: Dict[str, files.UploadFiles] = dict()
+
                 for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                    entry_metadata = datamodel.EntryMetadata.m_from_dict(calc['metadata'])
+                    upload_id = calc.upload_id
+                    upload_files = upload_files_cache.get(upload_id)
+                    if upload_files is None:
+                        upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+                        upload_files_cache[upload_id] = upload_files
+
+                    entry_metadata = calc.entry_metadata(upload_files)
                     entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                     entry['_op_type'] = 'index'
+
                     yield entry
+
+                for upload_files in upload_files_cache.values():
+                    upload_files.close()
 
             _, failed = elasticsearch.helpers.bulk(
                 infrastructure.elastic_client, elastic_updates(), stats_only=True)

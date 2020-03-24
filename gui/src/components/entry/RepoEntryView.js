@@ -146,12 +146,12 @@ class RepoEntryView extends React.Component {
                   <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                   <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
                     <Typography noWrap>
-                      {new Date(calcData.upload_time * 1000).toLocaleString()}
+                      {new Date(calcData.upload_time).toLocaleString()}
                     </Typography>
                   </Quantity>
                   <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                     <Typography noWrap>
-                      {new Date(calcData.last_processing * 1000).toLocaleString()}
+                      {new Date(calcData.last_processing).toLocaleString()}
                     </Typography>
                   </Quantity>
                   <Quantity quantity="last_processing" label='processing version' loading={loading} noWrap placeholder="not processed" {...quantityProps}>

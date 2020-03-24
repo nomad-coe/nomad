@@ -26,7 +26,6 @@ import json
 import orjson
 import importlib
 import urllib.parse
-from collections.abc import Mapping
 
 import metainfo
 
@@ -100,9 +99,10 @@ class ArchiveCalcResource(Resource):
         try:
             with upload_files.read_archive(calc_id) as archive:
                 return {
-                    key: value.to_dict()
-                    for key, value in archive[calc_id].items()
-                    if isinstance(value, Mapping)}
+                    key: value
+                    for key, value in archive[calc_id].to_dict().items()
+                    if key != 'processing_logs'}
+
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:

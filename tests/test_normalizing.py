@@ -226,7 +226,8 @@ def assert_normalized(backend: Backend):
         assert metadata.dft.crystal_system is not None
         assert metadata.dft.spacegroup is not None
 
-    exceptions = parser_exceptions.get(backend.get_value('parser_name'), [])
+    parser_name = backend.entry_archive.section_metadata.parser_name
+    exceptions = parser_exceptions.get(parser_name, [])
 
     if metadata.formula != config.services.unavailable_value:
         assert len(metadata.atoms) > 0

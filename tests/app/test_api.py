@@ -33,7 +33,7 @@ from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import EntryMetadata, User, Dataset
 
-from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
+from tests.conftest import create_auth_headers, clear_elastic, clear_raw_files
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
@@ -260,19 +260,19 @@ class TestUploads:
         assert upload_proc is not None
         assert upload_proc.published is True
         assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
-        entries = upload_proc.entries_metadata()
 
-        for entry in entries:
-            for key, transform in {
-                    'comment': lambda e: e.comment,
-                    'with_embargo': lambda e: e.with_embargo,
-                    'references': lambda e: e.references,
-                    'coauthors': lambda e: [u.user_id for u in e.coauthors],
-                    '_uploader': lambda e: e.uploader.user_id,
-                    '_pid': lambda e: e.pid,
-                    'external_id': lambda e: e.external_id}.items():
-                if key in metadata:
-                    assert transform(entry) == metadata[key], key
+        with upload_proc.entries_metadata() as entries:
+            for entry in entries:
+                for key, transform in {
+                        'comment': lambda e: e.comment,
+                        'with_embargo': lambda e: e.with_embargo,
+                        'references': lambda e: e.references,
+                        'coauthors': lambda e: [u.user_id for u in e.coauthors],
+                        '_uploader': lambda e: e.uploader.user_id,
+                        '_pid': lambda e: e.pid,
+                        'external_id': lambda e: e.external_id}.items():
+                    if key in metadata:
+                        assert transform(entry) == metadata[key], key
 
         assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys=additional_keys, published=True)
@@ -614,7 +614,10 @@ class TestArchive(UploadFilesBasedTests):
     def test_get(self, api, upload, auth_headers):
         rv = api.get('/archive/%s/0' % upload, headers=auth_headers)
         assert rv.status_code == 200
-        assert json.loads(rv.data) is not None
+        data = json.loads(rv.data)
+        assert data is not None
+        assert 'section_metadata' in data
+        assert 'section_run' in data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_signed(self, api, upload, _, test_user_signature_token):
@@ -707,7 +710,7 @@ class TestArchive(UploadFilesBasedTests):
 class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
-            self, elastic_infra, normalized: parsing.Backend,
+            self, elastic_infra, raw_files_infra, normalized: parsing.Backend,
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
@@ -748,6 +751,7 @@ class TestRepo():
         yield
 
         example_dataset.a_mongo.delete()
+        clear_raw_files()
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
         if rv.status_code != 200:
@@ -1183,21 +1187,30 @@ class TestEditRepo():
         Dataset.m_def.a_mongo.objects(name='new_ds').delete()
 
     @pytest.fixture(autouse=True)
-    def example_data(self, class_api, test_user, other_test_user):
-        def create_entry(id, user, **kwargs):
-            metadata = dict(uploader=user.user_id, **kwargs)
-            create_test_structure(id, 2, 1, [], 0, metadata=metadata)
+    def example_data(self, class_api, test_user, other_test_user, raw_files):
+        from tests.app.utils import Upload
+
+        uploads = {}
+        for i in range(1, 4):
+            upload_id = 'upload_%d' % i
+            upload = Upload()
+            upload.upload_id = upload_id
+            uploads[upload_id] = upload
 
         entries = [
-            dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, with_embargo=False),
-            dict(calc_id='2', upload_id='upload_2', user=test_user, published=True, with_embargo=True),
-            dict(calc_id='3', upload_id='upload_2', user=test_user, published=False, with_embargo=False),
-            dict(calc_id='4', upload_id='upload_3', user=other_test_user, published=True, with_embargo=False)]
+            dict(upload_id='upload_1', user=test_user, published=True, with_embargo=False),
+            dict(upload_id='upload_2', user=test_user, published=True, with_embargo=True),
+            dict(upload_id='upload_2', user=test_user, published=False, with_embargo=False),
+            dict(upload_id='upload_3', user=other_test_user, published=True, with_embargo=False)]
 
-        i = 0
-        for entry in entries:
-            create_entry(i, **entry)
-            i += 1
+        for i, entry in enumerate(entries):
+            upload = uploads[entry.pop('upload_id')]
+            user = entry.pop('user')
+            metadata = dict(uploader=user.user_id, **entry)
+            upload.create_test_structure(i + 1, 2, 1, [], 0, metadata=metadata)
+
+        for upload in uploads.values():
+            upload.create_upload_files()
 
         search.refresh()
 
@@ -1242,7 +1255,7 @@ class TestEditRepo():
 
     def mongo(self, *args, edited: bool = True, **kwargs):
         for calc_id in args:
-            calc = Calc.objects(calc_id=str(calc_id)).first()
+            calc = Calc.objects(calc_id='test_calc_id_%d' % calc_id).first()
             assert calc is not None
             metadata = calc.metadata
             if edited:
@@ -1254,7 +1267,7 @@ class TestEditRepo():
 
     def elastic(self, *args, **kwargs):
         for calc_id in args:
-            for calc in search.SearchRequest().search_parameters(calc_id=str(calc_id)).execute_scan():
+            for calc in search.SearchRequest().search_parameters(calc_id='test_calc_id_%d' % calc_id).execute_scan():
                 for key, value in kwargs.items():
                     if key in ['authors', 'owners']:
                         ids = [user['user_id'] for user in calc.get(key)]
@@ -1800,13 +1813,16 @@ class TestDataset:
         assert rv.status_code == 404
 
     @pytest.fixture()
-    def example_dataset_with_entry(self, mongo, elastic, example_datasets):
+    def example_dataset_with_entry(self, mongo, elastic, raw_files, example_datasets):
         entry_metadata = EntryMetadata(
             domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
             datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
             metadata=entry_metadata.m_to_dict()).save()
+        upload_files = files.StagingUploadFiles(upload_id='1', create=True)
+        upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
+        upload_files.close()
         entry_metadata.a_elastic.index(refresh=True)
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):

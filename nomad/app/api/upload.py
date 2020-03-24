@@ -27,7 +27,7 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files, datamodel
+from nomad import config, utils, files, search
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.app import common
@@ -41,13 +41,6 @@ from .common import pagination_request_parser, pagination_model, upload_route, m
 ns = api.namespace(
     'uploads',
     description='Uploading data and tracing uploaded data and its processing.')
-
-
-class CalcMetadata(fields.Raw):
-    def format(self, value):
-        entry_metadata = datamodel.EntryMetadata.m_from_dict(value)
-        return entry_metadata.a_elastic.create_index_entry().to_dict()
-
 
 proc_model = api.model('Processing', {
     'tasks': fields.List(fields.String),
@@ -96,7 +89,9 @@ calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'mainfile': fields.String,
     'upload_id': fields.String,
     'parser': fields.String,
-    'metadata': CalcMetadata(description='The repository metadata for this entry.')
+    'metadata': fields.Raw(
+        attribute='_entry_metadata',
+        description='The repository metadata for this entry.')
 })
 
 upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_model, {
@@ -381,13 +376,24 @@ class UploadResource(Resource):
 
             order_by = ('-%s' if order == -1 else '+%s') % order_by
 
-        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by=order_by)
+        # load upload's calcs
+        calcs = list(upload.all_calcs(
+            (page - 1) * per_page, page * per_page, order_by=order_by))
+
+        calc_ids = [calc.calc_id for calc in calcs]
+        search_results = {
+            hit['calc_id']: hit
+            for hit in search.SearchRequest().search_parameter('calc_id', calc_ids).execute_scan()}
+
+        for calc in calcs:
+            calc._entry_metadata = search_results.get(calc.calc_id)
+
         failed_calcs = upload.failed_calcs
         result = ProxyUpload(upload, {
             'pagination': dict(
                 total=upload.total_calcs, page=page, per_page=per_page,
                 successes=upload.processed_calcs - failed_calcs, failures=failed_calcs),
-            'results': [calc for calc in calcs]
+            'results': calcs
         })
 
         return result, 200

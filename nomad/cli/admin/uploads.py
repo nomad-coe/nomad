@@ -146,16 +146,17 @@ def chown(ctx, username, uploads):
         upload.user_id = user.user_id
         calcs = upload.entries_metadata()
 
-        def create_update(calc):
+        def create_update(calc_id):
             return UpdateOne(
-                {'_id': calc.calc_id},
+                {'_id': calc_id},
                 {'$set': {'metadata.uploader': user.user_id}})
 
-        proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+        proc.Calc._get_collection().bulk_write(
+            [create_update(calc_id) for calc_id in upload.entry_ids()])
         upload.save()
 
-        calcs = upload.entries_metadata()
-        search.index_all(calcs, do_refresh=False)
+        with upload.entries_metadata() as calcs:
+            search.index_all(calcs, do_refresh=False)
         search.refresh()
 
 
@@ -192,9 +193,9 @@ def index(ctx, uploads):
 
     i, failed = 0, 0
     for upload in uploads:
-        calcs = upload.entries_metadata()
-        failed += search.index_all(calcs)
-        i += 1
+        with upload.entries_metadata() as calcs:
+            failed += search.index_all(calcs)
+            i += 1
 
         print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
 

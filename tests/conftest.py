@@ -27,19 +27,16 @@ from bravado.client import SwaggerClient
 from flask import request, g
 import elasticsearch.exceptions
 from typing import List
-import numpy as np
 import json
 import logging
 
 from nomad import config, infrastructure, parsing, processing, app, utils
-from nomad.datamodel import User, EntryMetadata
-from nomad.parsing import Backend
+from nomad.datamodel import User
 
 from tests import test_parsing, test_normalizing
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
 from tests.bravado_flask import FlaskTestHttpClient
-from tests.test_normalizing import run_normalize
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
@@ -82,11 +79,16 @@ def raw_files(raw_files_infra):
     try:
         yield
     finally:
-        for directory in directories:
-            try:
-                shutil.rmtree(directory)
-            except FileNotFoundError:
-                pass
+        clear_raw_files()
+
+
+def clear_raw_files():
+    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
+    for directory in directories:
+        try:
+            shutil.rmtree(directory)
+        except FileNotFoundError:
+            pass
 
 
 @pytest.fixture(scope='session')
@@ -634,59 +636,3 @@ def reset_config():
 def reset_infra(mongo, elastic):
     ''' Fixture that resets infrastructure after deleting db or search index. '''
     yield None
-
-
-def create_test_structure(
-        id: int, h: int, o: int, extra: List[str], periodicity: int,
-        optimade: bool = True, metadata: dict = None):
-    ''' Creates a calculation in Elastic and Mongodb with the given properties.
-
-    Does require initialized :func:`elastic_infra` and :func:`mongo_infra`.
-
-    Args:
-        meta_info: A legace metainfo env.
-        id: A number to create ``test_calc_id_<number>`` ids.
-        h: The amount of H atoms
-        o: The amount of O atoms
-        extra: A list of further atoms
-        periodicity: The number of dimensions to repeat the structure in
-        optimade: A boolean. Iff true the entry will have optimade metadata. Default is True.
-        metadata: Additional (user) metadata.
-    '''
-
-    atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
-    test_vector = np.array([0, 0, 0])
-
-    backend = Backend('public', False, True)  # type: ignore
-    backend.openSection('section_run')
-    backend.addValue('program_name', 'test_code')
-    backend.openSection('section_system')
-
-    backend.addArrayValues('atom_labels', np.array(atom_labels))
-    backend.addArrayValues(
-        'atom_positions', np.array([test_vector for i in range(0, len(atom_labels))]))
-    backend.addArrayValues(
-        'lattice_vectors', np.array([test_vector, test_vector, test_vector]))
-    backend.addArrayValues(
-        'configuration_periodic_dimensions',
-        np.array([True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)]))
-
-    backend.closeSection('section_system', 0)
-    backend.closeSection('section_run', 0)
-
-    backend = run_normalize(backend)
-    calc = EntryMetadata(
-        domain='dft', upload_id='test_uload_id', calc_id='test_calc_id_%d' % id,
-        mainfile='test_mainfile', published=True, with_embargo=False)
-    calc.apply_domain_metadata(backend)
-    if metadata is not None:
-        calc.m_update(**metadata)
-
-    if not optimade:
-        calc.dft.optimade = None
-
-    proc_calc = processing.Calc.from_entry_metadata(calc)
-    proc_calc.save()
-    calc.a_elastic.index()
-
-    assert processing.Calc.objects(calc_id__in=[calc.calc_id]).count() == 1

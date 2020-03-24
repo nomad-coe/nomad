@@ -221,3 +221,11 @@ def test_query():
     assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
     # TODO
     # test [:][-1][0:1] ...
+
+
+if __name__ == '__main__':
+    import sys
+    import pprint
+    with open(sys.argv[1], 'rb') as f:
+        data = msgpack.unpack(f)
+        pprint.pprint(data)

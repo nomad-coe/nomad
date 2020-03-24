@@ -23,7 +23,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, utils, processing as proc
+from nomad import config, datamodel, infrastructure, datamodel, utils
 from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities, default_statistics
 
 
@@ -636,14 +636,6 @@ class SearchRequest:
 
     def __str__(self):
         return json.dumps(self._search.to_dict(), indent=2)
-
-
-def to_calc_with_metadata(results: List[Dict[str, Any]]):
-    ''' Translates search results into :class:`EntryMetadata` objects read from mongo. '''
-    ids = [result['calc_id'] for result in results]
-    return [
-        datamodel.EntryMetadata.m_from_dict(calc.metadata)
-        for calc in proc.Calc.objects(calc_id__in=ids)]
 
 
 def flat(obj, prefix=None):

@@ -230,7 +230,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         with open(self._user_metadata_file.os_path, 'wb') as f:
             pickle.dump(data, f)
 
-    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
         ''' Casts to or creates corresponding staging upload files or returns None. '''
         raise NotImplementedError()
 
@@ -308,7 +308,7 @@ class StagingUploadFiles(UploadFiles):
         self._size = 0
         self._shared = DirectoryObject(config.fs.public, upload_id, create=create)
 
-    def to_staging_upload_files(self, create: bool = False) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
         return self
 
     @property
@@ -348,7 +348,11 @@ class StagingUploadFiles(UploadFiles):
         if not self._is_authorized():
             raise Restricted
 
-        return read_archive(self.archive_file_object(calc_id).os_path)
+        try:
+            return read_archive(self.archive_file_object(calc_id).os_path)
+
+        except FileNotFoundError:
+            raise KeyError(calc_id)
 
     def archive_file_object(self, calc_id: str) -> PathObject:
         return self._archive_dir.join_file('%s.%s' % (calc_id, 'msg'))
@@ -678,13 +682,14 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
     def extract(self, include_archive: bool = False) -> None:
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
         for access in ['public', 'restricted']:
-            super().add_rawfiles(
-                self.public_upload_files._zip_file_object('raw', access, 'plain').os_path,
-                force_archive=True)
+            raw_file_zip = self.public_upload_files._zip_file_object('raw', access, 'plain')
+            if raw_file_zip.exists():
+                super().add_rawfiles(raw_file_zip.os_path, force_archive=True)
 
             if include_archive:
                 with self.public_upload_files._open_msg_file('archive', access, 'msg') as archive:
                     for calc_id, data in archive.items():
+                        calc_id = calc_id.strip()
                         self.write_archive(calc_id, data.to_dict())
 
     def add_rawfiles(self, *args, **kwargs) -> None:
@@ -771,13 +776,15 @@ class PublicUploadFiles(UploadFiles):
     def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
         exists = False
         try:
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, is_authorized=lambda: True)
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(
+                self, is_authorized=lambda: True)
             exists = True
         except KeyError:
             if not create:
                 return None
 
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(self, create=True, is_authorized=lambda: True)
+            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(
+                self, create=True, is_authorized=lambda: True)
             staging_upload_files.extract(**kwargs)
 
         if exists and create:
@@ -854,10 +861,10 @@ class PublicUploadFiles(UploadFiles):
         for access in accesses:
             try:
                 archive = self._open_msg_file('archive', access, 'msg')
-                if access == 'restricted' and not self._is_authorized():
-                    raise Restricted
-
                 if calc_id in archive:
+                    if access == 'restricted' and not self._is_authorized():
+                        raise Restricted
+
                     return archive
             except FileNotFoundError:
                 pass

@@ -24,7 +24,6 @@ from nomad.metainfo.search_extension import Search
 
 from .common import get_optional_backend_value
 from .optimade import OptimadeEntry
-from .metainfo.public import section_run
 
 
 xc_treatments = {
@@ -235,14 +234,11 @@ class DFTMetadata(MSection):
         n_total_energies = 0
         n_geometries = 0
 
-        for root_section in backend.resource.contents:
-            if not root_section.m_follows(section_run.m_def):
-                continue
-
-            quantities.add(root_section.m_def.name)
+        for section_run in backend.entry_archive.section_run:
+            quantities.add(section_run.m_def.name)
             n_quantities += 1
 
-            for section, property_def, _ in root_section.m_traverse():
+            for section, property_def, _ in section_run.m_traverse():
                 property_name = property_def.name
                 quantities.add(property_name)
                 n_quantities += 1
@@ -284,8 +280,3 @@ class DFTMetadata(MSection):
         if aflow_id is not None and aflow_label is not None:
             self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
-
-        # optimade
-        optimade = backend.get_mi2_section(OptimadeEntry.m_def)
-        if optimade is not None:
-            self.optimade = optimade.m_copy()

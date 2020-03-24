@@ -34,7 +34,8 @@ def test_index_skeleton_calc(elastic):
 
 
 def test_index_normalized_calc(elastic, normalized: parsing.Backend):
-    entry_metadata = datamodel.EntryMetadata(
+    entry_metadata = normalized.entry_archive.section_metadata
+    entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
 
@@ -49,7 +50,8 @@ def test_index_normalized_calc(elastic, normalized: parsing.Backend):
 
 def test_index_normalized_calc_with_metadata(
         elastic, normalized: parsing.Backend, internal_example_user_metadata: dict):
-    entry_metadata = datamodel.EntryMetadata(
+    entry_metadata = normalized.entry_archive.section_metadata
+    entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
     internal_example_user_metadata.pop('embargo_length')  # is for uploads only
@@ -67,7 +69,8 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 @pytest.fixture()
 def example_search_data(elastic, normalized: parsing.Backend):
-    entry_metadata = datamodel.EntryMetadata(
+    entry_metadata = normalized.entry_archive.section_metadata
+    entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
@@ -78,7 +81,8 @@ def example_search_data(elastic, normalized: parsing.Backend):
 
 @pytest.fixture()
 def example_ems_search_data(elastic, parsed_ems: parsing.Backend):
-    entry_metadata = datamodel.EntryMetadata(
+    entry_metadata = parsed_ems.entry_archive.section_metadata
+    entry_metadata.m_update(
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)
     create_entry(entry_metadata)

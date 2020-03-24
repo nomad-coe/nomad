@@ -44,7 +44,11 @@ example_file_contents = [
     'examples_template/4.aux']
 example_file_mainfile = 'examples_template/template.json'
 empty_file = 'tests/data/proc/empty.zip'
-example_archive_contents = {"archive": True, "processing_logs": [{"entry": "test"}]}
+example_archive_contents = {
+    "section_run": [],
+    "section_metadata": {},
+    "processing_logs": [{"entry": "test"}]
+}
 
 example_bucket = 'test_bucket'
 example_data = dict(test_key='test_value')

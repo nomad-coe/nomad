@@ -40,8 +40,12 @@ from collections import Sequence
 import requests
 from urllib.parse import urlparse
 
-from nomad import config, metainfo, parsing
+from nomad import config
 from nomad.cli.client.client import KeycloakAuthenticator
+from nomad.datamodel import EntryArchive
+
+# TODO this import is necessary to load all metainfo defintions that the parsers are using
+from nomad import parsing  # pylint: disable=unused-import
 
 
 class ArchiveQuery(Sequence):
@@ -123,13 +127,7 @@ class ArchiveQuery(Sequence):
         results = data.get('results', [])
 
         for result in results:
-            parser_name = result['parser_name']
-            parser = parsing.parser_dict[parser_name]
-            metainfo_env = parser.metainfo_env
-
-            root_section_key = next(iter(result['archive']))
-            section_def = metainfo_env.resolve_definition(root_section_key, metainfo.Section)
-            archive = section_def.section_cls.m_from_dict(result['archive'][root_section_key])
+            archive = EntryArchive.m_from_dict(result['archive'])
 
             self._results.append(archive)
 

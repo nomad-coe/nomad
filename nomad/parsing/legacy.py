@@ -168,14 +168,6 @@ class AbstractParserBackend(metaclass=ABCMeta):
         ''' Used to catch parser warnings. '''
         pass
 
-    # The following are extensions to the origin NOMAD-coe parser backend. And allow
-    # access to existing data
-
-    # @property
-    # @abstractmethod
-    # def data(self) -> Results:
-    #     pass
-
     @abstractmethod
     def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
         ''' Return all gIndices for existing sections of the given meta_name and parent section index. '''
@@ -188,19 +180,6 @@ class AbstractParserBackend(metaclass=ABCMeta):
         An index of -1 (default) is only allowed if there is exactly one parent section.
         '''
         pass
-
-    # def add_mi2_section(self, section: MSection):
-    #     ''' Allows to mix a metainfo2 style section into backend. '''
-    #     pass
-
-    # def get_mi2_section(self, section_def: MI2Section):
-    #     ''' Allows to mix a metainfo2 style section into backend. '''
-    #     pass
-
-    # def traverse(self, *args, **kwargs) -> Iterable[Tuple[str, str, Any]]:
-    #     ''' Traverses the backend data and yiels tuples with metainfo name, event type,
-    #     and value '''
-    #     pass
 
     @abstractmethod
     def __getitem__(self, key):
@@ -221,6 +200,7 @@ class Backend(AbstractParserBackend):
         domain: The domain that this backend contains data for.
         env: The metainfo environment (all available definitions).
         resource: The metainfo resource that contains all data.
+        entry_archive: The root section of the archive behind this backend.
         logger: A logger that can be used to log metainfo and backend operation related
             warnings and errors.
     '''
@@ -242,6 +222,8 @@ class Backend(AbstractParserBackend):
         self.env: LegacyMetainfoEnvironment = cast(LegacyMetainfoEnvironment, metainfo)
         self.__legacy_env = None
         self.resource = MResource()
+        self.entry_archive = datamodel.EntryArchive()
+        self.resource.add(self.entry_archive)
 
         self.__open_sections: Dict[Tuple[Section, int], MSection] = {}
         self.strict = False  # TODO
@@ -286,7 +268,7 @@ class Backend(AbstractParserBackend):
                 if section_def is None:
                     raise BadContextUri(context_uri)
                 i = 0
-                for content in self.resource.contents:
+                for content in self.entry_archive.m_contents():
                     if content.m_follows(section_def):
                         if i == index:
                             current = content
@@ -339,7 +321,7 @@ class Backend(AbstractParserBackend):
         section_def = self.resolve_definition(name, Section)
 
         if name in datamodel.root_sections:
-            section = self.resource.create(section_def.section_cls)
+            section = self.entry_archive.m_create(section_def.section_cls)
 
         else:
             sub_section_def = self.resolve_definition(name, SubSection)
@@ -482,14 +464,6 @@ class Backend(AbstractParserBackend):
             return value.m_parent_index
 
         return value
-
-    def add_mi2_section(self, section: MSection):
-        self.resource.add(section)
-
-    def get_mi2_section(self, section_def: Section):
-        for content in self.resource.contents:
-            if content.m_def == section_def:
-                return content
 
     def startedParsingSession(
             self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
