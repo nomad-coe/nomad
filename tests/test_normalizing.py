@@ -17,7 +17,7 @@ import numpy as np
 from ase import Atoms
 import ase.build
 
-from nomad import datamodel, config
+from nomad import datamodel, config, utils
 from nomad.parsing import Backend
 from nomad.normalizing import normalizers
 
@@ -240,6 +240,8 @@ def assert_normalized(backend: Backend):
             continue
 
         assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
+
+    utils.dumps(backend.entry_archive.m_to_dict())
 
 
 def test_normalizer(normalized_example: Backend):

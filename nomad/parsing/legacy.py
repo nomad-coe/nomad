@@ -524,6 +524,8 @@ class LegacyParser(MatchingParser):
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distinguish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
+        if logger is None:
+            logger = utils.get_logger('__name__')
 
         if issubclass(self.parser_class, CoEParser):
             # TODO reuse parser

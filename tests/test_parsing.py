@@ -402,9 +402,12 @@ def parser_in_dir(dir):
 
                 try:
                     backend = parser.run(file_path)
+                    utils.dumps(backend.entry_archive.m_to_dict())
                     backend.resource.unload()
                 except Exception as e:
                     print(file_path, parser, 'FAILURE', e)
+                    import traceback
+                    traceback.print_exc()
                 else:
                     print(file_path, parser, 'SUCCESS')
 

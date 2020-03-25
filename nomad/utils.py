@@ -42,6 +42,7 @@ from structlog.stdlib import LoggerFactory
 import logstash
 from contextlib import contextmanager
 import json
+import orjson
 import uuid
 import time
 import re
@@ -49,11 +50,27 @@ from werkzeug.exceptions import HTTPException
 import hashlib
 import sys
 from datetime import timedelta
+import collections
 
 from nomad import config
 
 default_hash_len = 28
 ''' Length of hashes and hash-based ids (e.g. calc, upload) in nomad. '''
+
+
+def dumps(data):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if data.__class__.__name__ == 'BaseList':
+            return list(data)
+
+        raise TypeError
+
+    return orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
 
 
 def decode_handle_id(handle_str: str):

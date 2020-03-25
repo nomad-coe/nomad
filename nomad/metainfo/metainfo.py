@@ -1051,6 +1051,73 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 else:
                     raise TypeError('%s is not a category' % category)
 
+        def serialize_quantity(quantity, is_set):
+            quantity_type = quantity.type
+
+            serialize: TypingCallable[[Any], Any] = str
+            if isinstance(quantity_type, Reference):
+
+                def reference_serialize(value):
+                    if isinstance(value, MProxy):
+                        return value.m_proxy_url
+                    else:
+                        return quantity_type.serialize(self, quantity, value)
+                serialize = reference_serialize
+
+            elif isinstance(quantity_type, DataType):
+
+                def data_type_serialize(value):
+                    return quantity_type.serialize(self, quantity, value)
+
+                serialize = data_type_serialize
+
+            elif quantity_type in _primitive_types:
+                serialize = _primitive_types[quantity_type]
+
+            elif type(quantity_type) == np.dtype:
+                def serialize_dtype(x):
+                    return x.item()
+
+                serialize = serialize_dtype
+
+            elif isinstance(quantity_type, MEnum):
+                serialize = str
+
+            elif quantity_type == Any:
+                def _serialize(value: Any):
+                    if type(value) not in [str, int, float, bool, list, dict, type(None)]:
+                        raise MetainfoError(
+                            'Only python primitives are allowed for Any typed non '
+                            'virtual quantities: %s of quantity %s in section %s' %
+                            (value, quantity, self))
+
+                    return value
+
+                serialize = _serialize
+
+            else:
+                raise MetainfoError(
+                    'Do not know how to serialize data with type %s for quantity %s' %
+                    (quantity_type, quantity))
+
+            if is_set:
+                value = self.__dict__[quantity.name]
+            else:
+                value = quantity.default
+
+            if type(quantity_type) == np.dtype and len(quantity.shape) > 0:
+                serializable_value = value.tolist()
+
+            else:
+                if len(quantity.shape) == 0:
+                    serializable_value = serialize(value)
+                elif len(quantity.shape) == 1:
+                    serializable_value = [serialize(i) for i in value]
+                else:
+                    raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
+
+            return serializable_value
+
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
             if with_meta:
@@ -1076,71 +1143,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if not include_defaults or not quantity.m_is_set(Quantity.default):
                         continue
 
-                quantity_type = quantity.type
+                try:
+                    yield name, serialize_quantity(quantity, is_set)
 
-                serialize: TypingCallable[[Any], Any] = str
-                if isinstance(quantity_type, Reference):
-
-                    def reference_serialize(value):
-                        if isinstance(value, MProxy):
-                            return value.m_proxy_url
-                        else:
-                            return quantity_type.serialize(self, quantity, value)
-                    serialize = reference_serialize
-
-                elif isinstance(quantity_type, DataType):
-
-                    def data_type_serialize(value):
-                        return quantity_type.serialize(self, quantity, value)
-
-                    serialize = data_type_serialize
-
-                elif quantity_type in _primitive_types:
-                    serialize = _primitive_types[quantity_type]
-
-                elif type(quantity_type) == np.dtype:
-                    def serialize_dtype(x):
-                        return x.item()
-
-                    serialize = serialize_dtype
-
-                elif isinstance(quantity_type, MEnum):
-                    serialize = str
-
-                elif quantity_type == Any:
-                    def _serialize(value: Any):
-                        if type(value) not in [str, int, float, bool, list, dict, type(None)]:
-                            raise MetainfoError(
-                                'Only python primitives are allowed for Any typed non '
-                                'virtual quantities: %s of quantity %s in section %s' %
-                                (value, quantity, self))
-
-                        return value
-
-                    serialize = _serialize
-
-                else:
-                    raise MetainfoError(
-                        'Do not know how to serialize data with type %s for quantity %s' %
-                        (quantity_type, quantity))
-
-                if is_set:
-                    value = self.__dict__[name]
-                else:
-                    value = quantity.default
-
-                if type(quantity_type) == np.dtype and len(quantity.shape) > 0:
-                    serializable_value = value.tolist()
-
-                else:
-                    if len(quantity.shape) == 0:
-                        serializable_value = serialize(value)
-                    elif len(quantity.shape) == 1:
-                        serializable_value = [serialize(i) for i in value]
-                    else:
-                        raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
-
-                yield name, serializable_value
+                except ValueError as e:
+                    raise ValueError('Value error (%s) for %s' % (str(e), quantity))
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():

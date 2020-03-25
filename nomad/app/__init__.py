@@ -37,25 +37,9 @@ from .docs import blueprint as docs_blueprint
 from . import common
 
 
-__new_line = '\n'.encode()
-
-
 # replace the json implementation of flask_restplus
 def output_json(data, code, headers=None):
-    def default(data):
-        if isinstance(data, collections.OrderedDict):
-            return dict(data)
-
-        if isinstance(data, BaseList):
-            return list(data)
-
-        raise TypeError
-
-    # always end the json dumps with a new line
-    # see https://github.com/mitsuhiko/flask/pull/1262
-    dumped = orjson.dumps(
-        data, default=default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS) + __new_line
+    dumped = nomad_utils.dumps(data) + b'\n'
 
     resp = make_response(dumped, code)
     resp.headers.extend(headers or {})
