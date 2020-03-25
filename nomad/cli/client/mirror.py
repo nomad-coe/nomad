@@ -184,7 +184,7 @@ class Mapping:
     '--skip-files', is_flag=True, help='Will not copy/move/link any files.')
 @click.option(
     '--migration', type=str, default=None,
-     help='The name of a migration script used to transform the metadata.')
+    help='The name of a migration script used to transform the metadata.')
 @click.option(
     '--skip-es', is_flag=True, help='Do not add mirrored data to elastic search')
 @click.option(

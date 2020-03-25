@@ -513,12 +513,27 @@ class LegacyParser(MatchingParser):
         self.backend_factory = backend_factory
 
         module_name = self.parser_class_name.split('.')[:-1]
-        parser_class = self.parser_class_name.split('.')[-1]
-        module = importlib.import_module('.'.join(module_name))
-        self.parser_class = getattr(module, parser_class)
+        parser_class_name = self.parser_class_name.split('.')[-1]
+        self.__parser_impl = module_name, parser_class_name
+        self.__parser_class = None
 
-        module = importlib.import_module('.'.join(module_name + ['metainfo']))
-        self.metainfo_env = getattr(module, 'm_env')
+    @property
+    def metainfo_env(self):
+        if self._metainfo_env is None:
+            module_name, _ = self.__parser_impl
+            module = importlib.import_module('.'.join(module_name + ['metainfo']))
+            self._metainfo_env = getattr(module, 'm_env')
+
+        return super().metainfo_env
+
+    @property
+    def parser_class(self):
+        if self.__parser_class is None:
+            module_name, parser_class_name = self.__parser_impl
+            module = importlib.import_module('.'.join(module_name))
+            self.__parser_class = getattr(module, parser_class_name)
+
+        return self.__parser_class
 
     def run(self, mainfile: str, logger=None) -> Backend:
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
@@ -529,7 +544,7 @@ class LegacyParser(MatchingParser):
 
         if issubclass(self.parser_class, CoEParser):
             # TODO reuse parser
-            parser = self.parser_class()
+            parser = self.parser_class()  # pylint: disable=not-callable
             return parser.run(mainfile, logger)
 
         def create_backend(meta_info):
@@ -543,7 +558,7 @@ class LegacyParser(MatchingParser):
         kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
         with utils.legacy_logger(logger):
-            self.parser = self.parser_class(**kwargs)
+            self.parser = self.parser_class(**kwargs)  # pylint: disable=not-callable
 
             with patch.object(sys, 'argv', []):
                 backend = self.parser.parse(mainfile)

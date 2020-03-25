@@ -27,7 +27,11 @@ class Parser(metaclass=ABCMeta):
 
     def __init__(self):
         self.domain = 'dft'
-        self.metainfo_env: Environment = None
+        self._metainfo_env: Environment = None
+
+    @property
+    def metainfo_env(self):
+        return self._metainfo_env
 
     @abstractmethod
     def is_mainfile(
