@@ -25,7 +25,7 @@ import sqlite3
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
-from nomad.normalizing import structure
+from nomad import atomutils
 from nomad import utils, config
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 
@@ -89,12 +89,10 @@ def formula_normalizer(atoms):
 
 
 class SystemNormalizer(SystemBasedNormalizer):
-
     """
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
     """
-
     @staticmethod
     def atom_label_to_num(atom_label):
         # Take first three characters and make first letter capitalized.
@@ -204,10 +202,10 @@ class SystemNormalizer(SystemBasedNormalizer):
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return False
-        if len(atom_positions) != atoms.get_number_of_atoms():
+        if len(atom_positions) != len(atoms):
             self.logger.error(
                 'len of atom position does not match number of atoms',
-                n_atom_positions=len(atom_positions), n_atoms=atoms.get_number_of_atoms())
+                n_atom_positions=len(atom_positions), n_atoms=len(atoms))
             return False
         try:
             atoms.set_positions(1e10 * atom_positions)
@@ -242,19 +240,23 @@ class SystemNormalizer(SystemBasedNormalizer):
         set_value('configuration_raw_gid', configuration_id)
 
         if is_representative:
+            # Save the Atoms as a temporary variable
+            self._backend.add_tmp_value("section_system", "representative_atoms", atoms)
+
             # system type analysis
             if atom_positions is not None:
                 with utils.timer(
                         self.logger, 'system classification executed',
-                        system_size=atoms.get_number_of_atoms()):
-
+                        system_size=len(atoms)):
                     self.system_type_analysis(atoms)
 
+            system_type = self._backend.get_value("system_type")
+
             # symmetry analysis
-            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)):
+            if atom_positions is not None and (lattice_vectors is not None or not any(pbc)) and system_type == "bulk":
                 with utils.timer(
                         self.logger, 'symmetry analysis executed',
-                        system_size=atoms.get_number_of_atoms()):
+                        system_size=len(atoms)):
 
                     self.symmetry_analysis(atoms)
 
@@ -269,7 +271,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             atoms: The structure to analyse
         """
         system_type = config.services.unavailable_value
-        if atoms.get_number_of_atoms() <= config.normalize.system_classification_with_clusters_threshold:
+        if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
                 classifier = Classifier(cluster_threshold=config.normalize.cluster_threshold)
                 cls = classifier.classify(atoms)
@@ -295,22 +297,15 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.addValue('system_type', system_type)
 
-    def symmetry_analysis(self, atoms) -> None:
-        """Analyze the symmetry of the material being simulated.
+    def symmetry_analysis(self, atoms: ase.Atoms) -> None:
+        """Analyze the symmetry of the material being simulated. Only performed
+        for bulk materials.
 
-        We feed in the parsed values in section_system to the
-        the symmetry analyzer. We then use the Matid library
-        to classify the system as 0D, 1D, 2D or 3D and more specific
-        when possible. When lattice vectors or simulation cells are
-        not present we skip this analysis.
+        We feed in the parsed values in section_system to the the symmetry
+        analyzer. The analysis results are written to the backend.
 
         Args:
-            None: We feed in the bakend and atoms object from the
-            SymmetryAndType normalizer.
-
-        Returns:
-            None: The method should write symmetry variables
-            to the backend which is member of this class.
+            atoms: The atomistic structure to analyze.
         """
         # Try to use Matid's symmetry analyzer to analyze the ASE object.
         try:
@@ -333,7 +328,6 @@ class SystemNormalizer(SystemBasedNormalizer):
             prim_equivalent_atoms = symm.get_equivalent_atoms_primitive()
             conv_equivalent_atoms = symm.get_equivalent_atoms_conventional()
             international_short = symm.get_space_group_international_short()
-            point_group = symm.get_point_group()
 
             conv_sys = symm.get_conventional_system()
             conv_pos = conv_sys.get_scaled_positions()
@@ -354,10 +348,12 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return
 
-        # Write data extracted from Matid symmetry analysis to the backend.
+        # Write data extracted from MatID's symmetry analysis to the backend.
         symmetry_gid = self._backend.openSection('section_symmetry')
+        self._backend.add_tmp_value("section_symmetry", "symmetry_analyzer", symm)
+
         # TODO: @dts, should we change the symmetry_method to MATID?
-        self._backend.addValue('symmetry_method', 'Matid (spg)')
+        self._backend.addValue('symmetry_method', 'MatID (spg)')
         self._backend.addValue('space_group_number', space_group_number)
         self._backend.addValue('hall_number', hall_number)
         self._backend.addValue('hall_symbol', hall_symbol)
@@ -488,14 +484,17 @@ class SystemNormalizer(SystemBasedNormalizer):
             wyckoff_letters: Array of Wyckoff letters as strings.
             spg_number: Space group number.
         """
-        norm_wyckoff = structure.get_normalized_wyckoff(atom_species, wyckoffs)
-        protoDict = structure.search_aflow_prototype(spg_number, norm_wyckoff)
+        norm_wyckoff = atomutils.get_normalized_wyckoff(atom_species, wyckoffs)
+        protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
         if protoDict is not None:
             aflow_prototype_id = protoDict["aflow_prototype_id"]
             aflow_prototype_url = protoDict["aflow_prototype_url"]
+            aflow_prototype_notes = protoDict["Notes"]
+            aflow_prototype_name = protoDict["Prototype"]
+            aflow_strukturbericht_designation = protoDict["Strukturbericht Designation"]
             prototype_label = '%d-%s-%s' % (
                 spg_number,
-                protoDict.get("Prototype", "-"),
+                aflow_prototype_name,
                 protoDict.get("Pearsons Symbol", "-")
             )
             pSect = self._backend.openSection("section_prototype")
@@ -503,4 +502,8 @@ class SystemNormalizer(SystemBasedNormalizer):
             self._backend.addValue("prototype_aflow_id", aflow_prototype_id)
             self._backend.addValue("prototype_aflow_url", aflow_prototype_url)
             self._backend.addValue("prototype_assignment_method", "normalized-wyckoff")
+            self._backend.add_tmp_value("section_prototype", "prototype_notes", aflow_prototype_notes)
+            self._backend.add_tmp_value("section_prototype", 'prototype_name', aflow_prototype_name)
+            if aflow_strukturbericht_designation != "None":
+                self._backend.add_tmp_value("section_prototype", 'strukturbericht_designation', aflow_strukturbericht_designation)
             self._backend.closeSection("section_prototype", pSect)

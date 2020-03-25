@@ -38,11 +38,11 @@ from nomad import config, infrastructure, parsing, processing, app, search, util
 from nomad.datamodel import User, CalcWithMetadata
 from nomad.parsing import LocalBackend
 
-from tests import test_parsing, test_normalizing
+from tests import test_parsing
+from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
 from tests.bravado_flask import FlaskTestHttpClient
-from tests.test_normalizing import run_normalize
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
@@ -534,7 +534,7 @@ def parsed(example_mainfile: Tuple[str, str]) -> parsing.LocalBackend:
 @pytest.fixture(scope='session')
 def normalized(parsed: parsing.LocalBackend) -> parsing.LocalBackend:
     """ Provides a normalized calculation in the form of a LocalBackend. """
-    return test_normalizing.run_normalize(parsed)
+    return run_normalize(parsed)
 
 
 @pytest.fixture(scope='function')
@@ -662,6 +662,12 @@ def create_test_structure(
 
     backend.closeSection('section_system', 0)
     backend.closeSection('section_run', 0)
+
+    # Add entry info
+    backend.openSection('section_entry_info')
+    backend.addValue('upload_id', 'test_upload_id')
+    backend.addValue('mainfile', 'test/mainfile.txt')
+    backend.closeSection('section_entry_info', 0)
 
     backend = run_normalize(backend)
     calc = CalcWithMetadata(

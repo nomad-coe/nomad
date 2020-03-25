@@ -33,10 +33,11 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.lnr
 """
 
-from typing import List
+from typing import List, Iterable
 import base64
 import logging
 import structlog
+from collections import OrderedDict
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
 from structlog.stdlib import LoggerFactory
 import logstash
@@ -73,7 +74,8 @@ def decode_handle_id(handle_str: str):
 
 
 def hash(*args, length: int = default_hash_len) -> str:
-    """ Creates a websave hash of the given length based on the repr of the given arguments. """
+    """Creates a websave hash of the given length based on the repr of the given arguments.
+    """
     hash = hashlib.sha512()
     for arg in args:
         hash.update(str(arg).encode('utf-8'))
@@ -82,7 +84,8 @@ def hash(*args, length: int = default_hash_len) -> str:
 
 
 def make_websave(hash, length: int = default_hash_len) -> str:
-    """ Creates a websave string for a hashlib hash object. """
+    """Creates a websave string for a hashlib hash object.
+    """
     if length > 0:
         return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:
@@ -393,7 +396,7 @@ def timer(logger, event, method='info', **kwargs):
     Arguments:
         logger: The logger that should be used to produce the log entry.
         event: The log message/event.
-        method: The log methad that should be used. Must be a valid logger method name.
+        method: The log method that should be used. Must be a valid logger method name.
             Default is 'info'.
         **kwargs: Additional logger data that is passed to the log entry.
 
@@ -546,3 +549,100 @@ def common_prefix(paths):
         common_prefix = ''
 
     return common_prefix
+
+
+class RestrictedDict(OrderedDict):
+    """Dictionary-like container with predefined set of mandatory and optional
+    keys and a set of forbidden values.
+    """
+    def __init__(self, mandatory_keys: Iterable = None, optional_keys: Iterable = None, forbidden_values: Iterable = None, lazy: bool = True):
+        """
+        Args:
+            mandatory_keys: Keys that have to be present.
+            optional_keys: Keys that are optional.
+            forbidden_values: Values that are forbidden. Only supports hashable values.
+            lazy: If false, the values are checked already when inserting. If
+                True, the values should be manually checked by calling the
+                check()-function.
+        """
+        super().__init__()
+
+        if isinstance(mandatory_keys, (list, tuple, set)):
+            self._mandatory_keys = set(mandatory_keys)
+        elif mandatory_keys is None:
+            self._mandatory_keys = set()
+        else:
+            raise ValueError("Please provide the mandatory_keys as a list, tuple or set.")
+
+        if isinstance(optional_keys, (list, tuple, set)):
+            self._optional_keys = set(optional_keys)
+        elif optional_keys is None:
+            self._optional_keys = set()
+        else:
+            raise ValueError("Please provide the optional_keys as a list, tuple or set.")
+
+        if isinstance(forbidden_values, (list, tuple, set)):
+            self._forbidden_values = set(forbidden_values)
+        elif forbidden_values is None:
+            self._forbidden_values = set()
+        else:
+            raise ValueError("Please provide the forbidden_values as a list or tuple of values.")
+
+        self._lazy = lazy
+
+    def __setitem__(self, key, value):
+        if not self._lazy:
+
+            # Check that only the defined keys are used
+            if key not in self._mandatory_keys and key not in self._optional_keys:
+                raise KeyError("The key '{}' is not allowed.".format(key))
+
+            # Check that forbidden values are not used.
+            try:
+                match = value in self._forbidden_values
+            except TypeError:
+                pass  # Unhashable value will not match
+            else:
+                if match:
+                    raise ValueError("The value '{}' is not allowed.".format(key))
+
+        super().__setitem__(key, value)
+
+    def check(self, recursive=False):
+        # Check that only the defined keys are used
+        for key in self.keys():
+            if key not in self._mandatory_keys and key not in self._optional_keys:
+                raise KeyError("The key '{}' is not allowed.".format(key))
+
+        # Check that all mandatory values are all defined
+        for key in self._mandatory_keys:
+            if key not in self:
+                raise KeyError("The mandatory key '{}' is not present.".format(key))
+
+        # Check that forbidden values are not used.
+        for key, value in self.items():
+            match = False
+            try:
+                match = value in self._forbidden_values
+            except TypeError:
+                pass  # Unhashable value will not match
+            else:
+                if match:
+                    raise ValueError("The value '{}' is not allowed but was set for key '{}'.".format(value, key))
+
+        # Check recursively
+        if recursive:
+            for value in self.values():
+                if isinstance(value, RestrictedDict):
+                    value.check(recursive)
+
+    def update(self, other):
+        for key, value in other.items():
+            self.__setitem__(key, value)
+
+    def hash(self) -> str:
+        """Creates a hash code from the contents. Ensures consistent ordering.
+        """
+        hash_str = json.dumps(self, sort_keys=True)
+
+        return hash(hash_str)

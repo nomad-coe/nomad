@@ -60,6 +60,22 @@ class AbstractParserBackend(metaclass=ABCMeta):
     and normalizers.
     """
     @abstractmethod
+    def __getitem__(self, metaname):
+        """Return the data or section corrresponding the the given metainfo
+        name. If given a section name, this function will return a list of
+        Section objects. If given a name of a concrete value, this function
+        will return all instances of that value as a list.
+
+        Args:
+            metaname: The unique name of the metainfo to get.
+
+        Raises:
+            LookupError: if the metaname is not defined in the metainfo
+                environment or the parser has not output any value for it.
+            ParserKeyError: if the parser did not output the queried metainfo.
+        """
+
+    @abstractmethod
     def metaInfoEnv(self):
         """ Returns the meta info used by this backend. """
         pass
@@ -181,6 +197,23 @@ class AbstractParserBackend(metaclass=ABCMeta):
     @property
     @abstractmethod
     def data(self) -> Results:
+        pass
+
+    @abstractmethod
+    def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
+        """Used to save temporary values that are tied to a specific location
+        int the metainfo. You can optionally pass a context string that will
+        indicate the context under which this metainfo was addded.
+
+        Args:
+            section_name: The name of the section under which the temporary
+                variable is to be stored. You must make sure that the corresponding
+                section has been created.
+            name: Identifier for this temporary variable.
+            value: Value for this temporary variable.
+            index: Index of the section under which the variable is placed.
+                Default to -1 which corresponds to the latest opened section.
+        """
         pass
 
     @abstractmethod
@@ -339,6 +372,7 @@ class LegacyParserBackend(AbstractParserBackend):
     Partial implementation of :class:`AbstractParserBackend` that implements some
     methods that are independent from the core backend implementation.
     """
+
     def __init__(self, logger):
         self.logger = logger if logger is not None else get_logger(__name__)
 
@@ -415,6 +449,21 @@ class LocalBackend(LegacyParserBackend, metaclass=DelegatingMeta):
 
     def __getitem__(self, metaname):
         return self.data[metaname]
+
+    def get(self, metaname, default=None):
+        try:
+            return self.data[metaname]
+        except KeyError:
+            return default
+
+    def add_tmp_value(self, section_name: str, name: str, value: Any, index: int = -1) -> None:
+        manager = self.sectionManagers[section_name]
+        if index == -1:
+            index = manager.lastSectionGIndex
+        section = manager.openSections[index]
+        if not hasattr(section, "tmp"):
+            section.tmp = dict()
+        section.tmp[name] = value
 
     def __getattr__(self, name):
         """ Support for unimplemented and unexpected methods. """

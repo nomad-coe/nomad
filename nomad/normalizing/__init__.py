@@ -18,8 +18,10 @@ In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewr
 
 Currently the normalizers are:
 - system.py (contains aspects of format stats, system, system type, and symmetry normalizer)
+- optimade.py
 - fhiaims.py
-- repository.py
+- dos.py
+- encyclopedia.py (used to create the data in NOMAD-coe Encyclopedia)
 
 The normalizers are available via
 
@@ -38,10 +40,12 @@ from .fhiaims import FhiAimsBaseNormalizer
 from .normalizer import Normalizer
 from .optimade import OptimadeNormalizer
 from .system import SystemNormalizer
+from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
     FhiAimsBaseNormalizer,
-    DosNormalizer
+    DosNormalizer,
+    EncyclopediaNormalizer
 ]

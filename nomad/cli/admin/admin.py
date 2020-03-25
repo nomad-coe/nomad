@@ -33,7 +33,7 @@ from bs4 import BeautifulSoup
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.normalizing.structure import get_normalized_wyckoff
+from nomad.atomutils import get_normalized_wyckoff
 from nomad.cli.cli import cli
 from nomad import config
 
@@ -505,9 +505,8 @@ def prototypes_update(ctx, filepath, matches_only):
             )
 
             # Try to first see if the space group can be matched with the one in AFLOW
-            tolerance = config.normalize.symmetry_tolerance
             try:
-                symm = SymmetryAnalyzer(atoms, tolerance)
+                symm = SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()
@@ -527,8 +526,6 @@ def prototypes_update(ctx, filepath, matches_only):
         "prototypes: {}, unmatched: {}, failed: {}"
         .format(n_prototypes, n_unmatched, n_failed)
     )
-
-    aflow_prototypes["matid_symmetry_tolerance"] = tolerance
 
     # Write data file to the specified path
     write_prototype_data_file(aflow_prototypes, filepath)

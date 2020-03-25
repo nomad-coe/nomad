@@ -18,11 +18,16 @@ from typing import List
 from nomad.parsing import AbstractParserBackend
 from nomad.utils import get_logger
 
+s_run = 'section_run'
 s_system = 'section_system'
+s_method = 'section_method'
 s_scc = 'section_single_configuration_calculation'
 s_frame_sequence = 'section_frame_sequence'
+s_sampling_method = "section_sampling_method"
 r_scc_to_system = 'single_configuration_calculation_to_system_ref'
+r_scc_to_method = 'single_configuration_to_calculation_method_ref'
 r_frame_sequence_local_frames = 'frame_sequence_local_frames_ref'
+r_frame_sequence_to_sampling = "frame_sequence_to_sampling_ref"
 
 
 class Normalizer(metaclass=ABCMeta):
@@ -84,7 +89,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     @abstractmethod
     def normalize_system(self, section_system_index: int, is_representative: bool) -> bool:
-        """ Normalize the given section and returns True, iff successful"""
+        """Normalize the given section and returns True, if successful"""
         pass
 
     def __representative_system(self):
@@ -94,6 +99,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         entry. The selection depends on the type of calculation.
         """
         system_idx = None
+        scc_idx = None
+        scc = None
 
         # Try to find a frame sequence, only first found is considered
         try:
@@ -116,7 +123,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if len(frame_seqs) == 0:
             try:
                 sccs = self._backend[s_scc]
-                scc = sccs[-1]
+                scc_idx = -1
+                scc = sccs[scc_idx]
                 system_idx = scc["single_configuration_calculation_to_system_ref"]
             except Exception:
                 sccs = []
@@ -135,6 +143,11 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 self.logger.info(
                     'chose "representative" system for normalization',
                 )
+
+        if scc is not None:
+            self._backend.add_tmp_value("section_run", "representative_scc_idx", scc_idx)
+        if system_idx is not None:
+            self._backend.add_tmp_value("section_run", "representative_system_idx", system_idx)
 
         return system_idx
 
