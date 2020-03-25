@@ -62,7 +62,7 @@ class MethodNormalizer():
         try:
             method_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create method hash, missing required information: {}".format(str(e)))
+            self.logger.info("Could not create method hash: {}".format(e))
         else:
             method.method_hash = method_dict.hash()
 
@@ -72,11 +72,11 @@ class MethodNormalizer():
 
     def group_eos_hash(self, method: Method, material: Material, repr_method: Section):
         eos_dict = RestrictedDict(
-            mandatory_keys=(
+            mandatory_keys=[
                 "upload_id",
                 "method_hash",
                 "formula",
-            ),
+            ],
             forbidden_values=[None]
         )
 
@@ -93,7 +93,7 @@ class MethodNormalizer():
         try:
             eos_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create EOS hash, missing required information: {}".format(str(e)))
+            self.logger.info("Could not create EOS hash: {}".format(e))
         else:
             method.group_eos_hash = eos_dict.hash()
 
@@ -146,7 +146,7 @@ class MethodNormalizer():
         try:
             param_dict.check(recursive=True)
         except (KeyError, ValueError) as e:
-            self.logger.info("Could not create parameter variation hash, missing required information: {}".format(str(e)))
+            self.logger.info("Could not create parameter variation hash: {}".format(e))
         else:
             method.group_parametervariation_hash = param_dict.hash()
 

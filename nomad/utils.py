@@ -562,7 +562,7 @@ class RestrictedDict(OrderedDict):
             optional_keys: Keys that are optional.
             forbidden_values: Values that are forbidden. Only supports hashable values.
             lazy: If false, the values are checked already when inserting. If
-                true, the values are only checked manually by calling the
+                True, the values should be manually checked by calling the
                 check()-function.
         """
         super().__init__()
@@ -595,7 +595,7 @@ class RestrictedDict(OrderedDict):
 
             # Check that only the defined keys are used
             if key not in self._mandatory_keys and key not in self._optional_keys:
-                raise KeyError("The key {} is not allowed.".format(key))
+                raise KeyError("The key '{}' is not allowed.".format(key))
 
             # Check that forbidden values are not used.
             try:
@@ -604,7 +604,7 @@ class RestrictedDict(OrderedDict):
                 pass  # Unhashable value will not match
             else:
                 if match:
-                    raise ValueError("The value {} is not allowed.".format(key))
+                    raise ValueError("The value '{}' is not allowed.".format(key))
 
         super().__setitem__(key, value)
 
@@ -612,22 +612,23 @@ class RestrictedDict(OrderedDict):
         # Check that only the defined keys are used
         for key in self.keys():
             if key not in self._mandatory_keys and key not in self._optional_keys:
-                raise KeyError("The key {} is not allowed.".format(key))
+                raise KeyError("The key '{}' is not allowed.".format(key))
 
         # Check that all mandatory values are all defined
         for key in self._mandatory_keys:
             if key not in self:
-                raise KeyError("The mandatory key {} is not present.".format(key))
+                raise KeyError("The mandatory key '{}' is not present.".format(key))
 
         # Check that forbidden values are not used.
-        for value in self.values():
+        for key, value in self.items():
+            match = False
             try:
                 match = value in self._forbidden_values
             except TypeError:
                 pass  # Unhashable value will not match
             else:
                 if match:
-                    raise ValueError("The value {} is not allowed.".format(key))
+                    raise ValueError("The value '{}' is not allowed but was set for key '{}'.".format(value, key))
 
         # Check recursively
         if recursive:
