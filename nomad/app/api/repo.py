@@ -80,6 +80,8 @@ add_search_parameters(_search_request_parser)
 _search_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 _search_request_parser.add_argument(
+    'interval', type=str, help='Interval to use for upload time aggregation.')
+_search_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
@@ -168,6 +170,7 @@ class RepoCalcsResource(Resource):
             order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
+            interval = args.get('interval', '1M')
             metrics: List[str] = request.args.getlist('metrics')
 
             with_statistics = args.get('statistics', False) or \
@@ -178,7 +181,7 @@ class RepoCalcsResource(Resource):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
-            search_request.date_histogram()
+            search_request.date_histogram(interval=interval)
 
         try:
             assert page >= 1

@@ -5,6 +5,7 @@ import DFTEntryCards from './dft/DFTEntryCards'
 import EMSSearchAggregations from './ems/EMSSearchAggregations'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
+import DFTSearchByPropertyAggregations from './dft/DFTSearchByPropertyAggregations'
 
 export const domains = ({
   dft: {
@@ -23,6 +24,10 @@ export const domains = ({
      * onChange (callback to propagate searchValue changes).
      */
     SearchAggregations: DFTSearchAggregations,
+        /**
+     * A component that is used to render the search aggregations by property.
+     */
+    SearchByPropertyAggregations: DFTSearchByPropertyAggregations,
     /**
      * Metrics are used to show values for aggregations. Each metric has a key (used
      * for API calls), a label (used in the select form), and result string (to show

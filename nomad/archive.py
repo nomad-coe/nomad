@@ -362,22 +362,32 @@ class ArchiveReader(ArchiveObject):
         key = adjust_uuid_size(key)
 
         if self.use_blocked_toc and self.toc_entry is None:
+            if self._n_toc == 0:
+                raise KeyError(key)
+
             positions = self._toc.get(key)
             # TODO use hash algo instead of binary search
             if positions is None:
                 r_start = 0
                 r_end = self._n_toc
-                while positions is None and len(self._toc) < self._n_toc:
-                    i_block = r_start + math.floor((r_end - r_start) / 2)
+                i_block = None
+                while r_start <= r_end:
+                    new_i_block = r_start + math.floor((r_end - r_start) / 2)
+                    if i_block == new_i_block:
+                        break
+                    else:
+                        i_block = new_i_block
+
                     first, last = self._load_toc_block(i_block)
+
                     if key < first:
                         r_end = i_block - 1
                     elif key > last:
                         r_start = i_block + 1
                     else:
-                        positions = self._toc.get(key)
                         break
 
+                positions = self._toc.get(key)
                 if positions is None:
                     raise KeyError(key)
 
@@ -501,7 +511,7 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     return ArchiveReader(file_or_path, **kwargs)
 
 
-def query_archive(f_or_archive_reader: Union[ArchiveReader, BytesIO], query_dict: dict):
+def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict):
 
     def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
         if not isinstance(query_dict, dict):
@@ -517,17 +527,18 @@ def query_archive(f_or_archive_reader: Union[ArchiveReader, BytesIO], query_dict
             key = key.strip()
 
             # process array indices
-            match = re.match(r'([_a-bA-Z0-9]+)\[([0-9]+|:)\]', key)
+            match = re.match(r'(\w+)\[([-?0-9:]+)\]', key)
             if match:
                 archive_key = match.group(1)
                 index_str = match.group(2)
-                match = re.match(r'([0-9]*):([0-9]*)', index_str)
+                match = re.match(r'([-?0-9]*):([-?0-9]*)', index_str)
                 if match:
                     index = (
                         0 if match.group(1) == '' else int(match.group(1)),
                         None if match.group(2) == '' else int(match.group(2)))
                 else:
                     index = int(index_str)  # type: ignore
+                key = archive_key
             else:
                 archive_key = key
                 index = None
@@ -536,7 +547,6 @@ def query_archive(f_or_archive_reader: Union[ArchiveReader, BytesIO], query_dict
             archive_key = key.split('[')[0]
             if main_section:
                 archive_key = adjust_uuid_size(key)
-
             try:
                 if index is None:
                     res[key] = _load_data(val, archive_item[archive_key])
@@ -553,7 +563,7 @@ def query_archive(f_or_archive_reader: Union[ArchiveReader, BytesIO], query_dict
     if isinstance(f_or_archive_reader, ArchiveReader):
         return _load_data(query_dict, f_or_archive_reader, True)
 
-    elif isinstance(f_or_archive_reader, BytesIO):
+    elif isinstance(f_or_archive_reader, (BytesIO, str)):
         with ArchiveReader(f_or_archive_reader) as archive:
             return _load_data(query_dict, archive, True)
 

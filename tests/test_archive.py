@@ -200,15 +200,15 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
 
 def test_query():
     payload = {
-        'calc1': {
-            'secA': {
-                'subsecA1': [{'propA1a': 1.0}]
+        'c1': {
+            's1': {
+                'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]
             },
-            'secB': {'propB1a': ['a', 'b']}
+            's2': {'p1': ['a', 'b']}
         },
-        'calc2': {
-            'secA': {'subsecA1': [{'propA1a': 2.0}]},
-            'secB': {'propB1a': ['c', 'd']}
+        'c2': {
+            's1': {'ss1': [{'p1': 2.0}]},
+            's2': {'p1': ['c', 'd']}
         }
     }
 
@@ -217,10 +217,22 @@ def test_query():
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
-    assert query_archive(f, {'calc1': '*'}) == {'calc1': payload['calc1']}
-    assert query_archive(f, {'calc2': {'secA': {'subsecA1[0]': '*'}}}) == {'calc2': {'secA': {'subsecA1[0]': [{'propA1a': 2.0}]}}}
-    # TODO
-    # test [:][-1][0:1] ...
+    assert query_archive(f, {'c1': '*'}) == {'c1': payload['c1']}
+    assert query_archive(f, {'c1': '*', 'c2': {'s1': '*'}}) == {'c1': payload['c1'], 'c2': {'s1': payload['c2']['s1']}}
+    assert query_archive(f, {'c2': {'s1': {'ss1[0]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][0]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[1:]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[0:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][0:2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[-2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][-2]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:-1]}}}
+    assert query_archive(f, {'c1': {'s1': {'ss1[1:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:-1]}}}
+    assert query_archive(f, {'c2': {'s1': {'ss1[-3:-1]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][-3:-1]}}}
+
+
+def test_read_springer():
+    springer = read_archive(config.normalize.springer_db_path)
+    with pytest.raises(KeyError):
+        springer['doesnotexist']
 
 
 if __name__ == '__main__':

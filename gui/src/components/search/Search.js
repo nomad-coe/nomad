@@ -16,6 +16,7 @@ import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
+import UploadsChart from './UploadsChart'
 
 class Search extends React.Component {
   static tabs = {
@@ -95,6 +96,16 @@ class Search extends React.Component {
       render: props => <DomainVisualization {...props}/>,
       label: 'Meta data',
       description: 'Shows histograms on key metadata'
+    },
+    'property': {
+      render: props => <PropertyVisualization {...props}/>,
+      label: 'Properties',
+      description: 'Shows histograms on key properties'
+    },
+     'users': {
+      render: props => <UsersVisualization {...props}/>,
+      label: 'Users',
+      description: 'Show statistics on user metadata'
     }
   }
 
@@ -212,6 +223,44 @@ class DomainVisualization extends React.Component {
     return <KeepState visible={open} render={() =>
       <domain.SearchAggregations />
     }/>
+  }
+}
+
+class PropertyVisualization extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool
+  }
+
+  static contextType = SearchContext.type
+
+  render() {
+    const {domain} = this.context.state
+    const {open} = this.props
+
+    return <KeepState visible={open} render={() =>
+      <domain.SearchByPropertyAggregations />
+    }/>
+  }
+}
+
+class UsersVisualization extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool
+  }
+
+  static contextType = SearchContext.type
+
+  render () {
+  const {domain} = this.context.state
+  const {open} = this.props
+
+  return <KeepState visible={open} render={() =>
+    <Card>
+      <CardContent>
+        <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+      </CardContent>
+    </Card>
+  }/>
   }
 }
 

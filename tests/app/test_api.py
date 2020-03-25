@@ -24,6 +24,7 @@ import os.path
 from urllib.parse import urlencode
 import base64
 import itertools
+from hashlib import md5
 
 from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
@@ -975,12 +976,19 @@ class TestRepo():
             assert 'values' in data[group]
             # assert len(data[group]['values']) == data['statistics']['total']['all'][group]
 
-    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?date_histogram=true&metrics=dft.total_energies')
+    @pytest.mark.parametrize('query, nbuckets', [
+        (dict(interval='1M', metrics='dft.total_energies'), 1),
+        (dict(interval='1d', metrics='dft.quantities'), 6),
+        (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 1),
+        (dict(until_time='2010-03-20T12:43:54.566414'), 0),
+        (dict(interval='1m', from_time='2020-02-20T12:43:54.566414', metrics='dft.calculations'), 7201)
+    ])
+    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn, query, nbuckets):
+        rv = api.get('/repo/?date_histogram=true&%s' % urlencode(query))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
-        assert len(histogram) > 0
+        assert len(histogram) == nbuckets
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
@@ -1043,7 +1051,10 @@ class TestRepo():
         (1, 'atoms', 'Fe'),
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
-        (0, 'dft.quantities', 'dos')
+        (0, 'dft.quantities', 'dos'),
+        (2, 'dft.quantities_energy', 'energy_total'),
+        (2, 'dft.compound_type', 'ternary'),
+        (0, 'dft.labels_springer_compound_class', 'intermetallic')
     ])
     def test_quantity_search(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         rv = api.get('/repo/quantity/%s' % quantity, headers=test_user_auth)
@@ -1723,6 +1734,26 @@ class TestMirror:
             assert data['datasets'][dataset]['doi'] in data['dois']
         else:
             assert 'dois' not in data
+
+    # TODO
+    # - parametrize to also check raw
+    # - compute the hex digest reference
+    def test_files(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/files/%s?prefix=archive' % published.upload_id
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        assert rv.data is not None
+        assert md5(rv.data).hexdigest() == 'a50a980a4f1bd9892e95410936a36cdf'
+
+    def test_users(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/users'
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        users = json.loads(rv.data)
+        assert users is not None
+        assert len(users) == 3
+        for user in users:
+            assert 'email' not in user
 
 
 class TestDataset:

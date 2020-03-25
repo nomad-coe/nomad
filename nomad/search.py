@@ -337,11 +337,11 @@ class SearchRequest:
                 'metric:%s' % metric_quantity.metric_name,
                 A(metric_quantity.metric, field=field))
 
-    def date_histogram(self, metrics_to_use: List[str] = []):
+    def date_histogram(self, metrics_to_use: List[str] = [], interval: str = '1M'):
         '''
         Adds a date histogram on the given metrics to the statistics part.
         '''
-        histogram = A('date_histogram', field='upload_time', interval='1M', format='yyyy-MM-dd')
+        histogram = A('date_histogram', field='upload_time', interval=interval, format='yyyy-MM-dd')
         self._add_metrics(self._search.aggs.bucket('statistics:date_histogram', histogram), metrics_to_use)
 
         return self

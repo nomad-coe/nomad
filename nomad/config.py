@@ -190,7 +190,9 @@ normalize = NomadConfig(
     # The distance tolerance between atoms for grouping them into the same
     # cluster. Used in detecting system type.
     cluster_threshold=3.1,
-)
+    springer_db_path=os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'normalizing/data/springer.msg'))
 
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
@@ -218,10 +220,6 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
 reprocess_unmatched = True
-
-
-springer_db_relative_path = 'normalizing/data/SM_all08.db'
-springer_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), springer_db_relative_path)
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

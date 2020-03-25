@@ -5,8 +5,7 @@ import { Quantity } from '../search/QuantityHistogram'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
 
-
-class DFTSearchAggregations extends React.Component {
+class DFTSearchByPropertyAggregations extends React.Component {
   static propTypes = {
     info: PropTypes.object
   }
@@ -34,21 +33,21 @@ class DFTSearchAggregations extends React.Component {
     return (
       <Grid container spacing={24}>
         <Grid item xs={4}>
-          <Quantity quantity="dft.code_name" title="Code" scale={0.25} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_energy" title="Energy" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_forces" title="Forces" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_electronic" title="Electronic" scale={1} metric={usedMetric} />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="dft.basis_set" title="Basis set" scale={0.25} metric={usedMetric} />
-          <Quantity quantity="dft.xc_functional" title="XC functionals" scale={0.5} metric={usedMetric} />
-          <Quantity quantity="dft.compound_type" title="Compound type" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_magnetic" title="Magnetic" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_vibrational" title="Vibrational" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_optical" title="Optical" scale={1} metric={usedMetric} />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="dft.system" title="System type" scale={0.25} metric={usedMetric} />
-          <Quantity quantity="dft.crystal_system" title="Crystal system" scale={1} metric={usedMetric} />
-          <Quantity quantity="dft.labels_springer_compound_class" title="Springer compound class" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.labels_springer_classification" title="Springer classification" scale={1} metric={usedMetric} />
         </Grid>
       </Grid>
     )
   }
 }
 
-export default withApi(false, false)(DFTSearchAggregations)
+export default withApi(false, false)(DFTSearchByPropertyAggregations)
