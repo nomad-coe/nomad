@@ -22,3 +22,4 @@ vscode/
 nomad.yaml
 gunicorn.log.conf
 gunicorn.conf
+nomad/normalizing/data/springer.msg

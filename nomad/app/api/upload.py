@@ -380,7 +380,7 @@ class UploadResource(Resource):
 
             order_by = ('-%s' if order == -1 else '+%s') % order_by
 
-        calcs = upload.all_calcs((page - 1) * per_page, page * per_page, order_by=order_by)
+        calcs = list(upload.all_calcs((page - 1) * per_page, page * per_page, order_by=order_by))
         failed_calcs = upload.failed_calcs
         result = ProxyUpload(upload, {
             'pagination': dict(
