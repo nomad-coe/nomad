@@ -338,9 +338,15 @@ class StagingUploadFiles(UploadFiles):
 
     def write_archive(self, calc_id: str, data: Any) -> int:
         ''' Writes the data as archive file and returns the archive file size. '''
-        write_archive(self.archive_file_object(calc_id).os_path, 1, data=[(calc_id, data)])
-        with read_archive(self.archive_file_object(calc_id).os_path) as archive:
-            assert calc_id in archive
+        archive_file_object = self.archive_file_object(calc_id)
+        try:
+            write_archive(archive_file_object.os_path, 1, data=[(calc_id, data)])
+        except Exception as e:
+            # in case of failure, remove the possible corrupted archive file
+            if archive_file_object.exists():
+                archive_file_object.delete()
+
+            raise e
 
         return self.archive_file_object(calc_id).size
 

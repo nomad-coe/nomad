@@ -523,7 +523,7 @@ class MResource():
         assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
         section.m_resource = None
         self.__data.get(section.m_def).remove(section)
-        if section.m_parent is not None:
+        if section.m_parent is None:
             self.contents.remove(section)
 
     def all(self, section_cls: Type[MSectionBound]) -> List[MSectionBound]:

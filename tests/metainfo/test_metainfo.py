@@ -510,6 +510,14 @@ class TestM1:
 
         assert len(resource.all(System)) == 2
 
+    def test_resource_move(self):
+        resource = MResource()
+        run = resource.create(Run)
+        system = run.m_create(System)
+
+        run = Run()
+        run.m_add_sub_section(Run.systems, system)
+
     def test_mapping(self):
         run = Run()
         run.m_create(Parsing).parser_name = 'test'
