@@ -127,8 +127,11 @@ class EncyclopediaNormalizer(Normalizer):
         system = None
         material_type = config.services.unavailable_value
         material_enums = Material.material_type.type
-        system_idx = self._backend["section_run"][0].tmp["representative_system_idx"]
-        if system_idx is not None:
+        try:
+            system_idx = self._backend["section_run"][0].tmp["representative_system_idx"]
+        except (AttributeError, KeyError):
+            pass
+        else:
             # Try to find system type information from backend for the selected system.
             try:
                 system = self._backend[s_system][system_idx]
