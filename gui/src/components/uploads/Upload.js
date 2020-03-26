@@ -611,7 +611,7 @@ class Upload extends React.Component {
       data={data}
       onChange={this.handleChange}
       actions={actions}
-      showEntryActions={entry => entry.processed}
+      showEntryActions={entry => entry.processed || !running}
       {...this.state.params}
     />
   }
