@@ -124,6 +124,11 @@ class TestM2:
         assert len(Run.m_def.all_sub_sections_by_section[System.m_def]) == 1
         assert Run.m_def.all_sub_sections_by_section[System.m_def][0].sub_section == System.m_def
 
+    def test_unset_sub_section(self):
+        run = Run()
+        assert run.systems == []
+        assert run.parsing is None
+
     def test_properties(self):
         assert len(Run.m_def.all_properties) == 6
 

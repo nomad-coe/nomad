@@ -399,6 +399,11 @@ class Calc(Proc):
     @task
     def normalizing(self):
         ''' The *task* that encapsulates all normalizing related actions. '''
+
+        # allow normalizer to access and add data to the entry metadata
+        self._parser_backend.entry_archive.m_add_sub_section(
+            datamodel.EntryArchive.section_metadata, self._entry_metadata)
+
         for normalizer in normalizers:
             if normalizer.domain != parser_dict[self.parser].domain:
                 continue
@@ -459,7 +464,9 @@ class Calc(Proc):
         else:
             entry_archive = datamodel.EntryArchive()
 
-        entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if entry_archive.section_metadata is None:
+            entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+
         entry_archive.processing_logs = self._calc_proc_logs
 
         try:
