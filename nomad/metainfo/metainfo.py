@@ -1550,7 +1550,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             key = key.replace('.', '/')
             return self.m_resolve(key)
         except ReferenceError:
-            raise KeyError()
+            raise KeyError(key)
 
     def __iter__(self):
         return self.m_def.all_properties.__iter__()

@@ -130,7 +130,7 @@ class MongoDocument(SectionAnnotation):
         '''
         mongo_instance = self.objects(**kwargs).first()
         if mongo_instance is None:
-            raise KeyError()
+            raise KeyError(str(kwargs))
         return self.to_metainfo(mongo_instance)
 
     def to_metainfo(self, mongo_instance):

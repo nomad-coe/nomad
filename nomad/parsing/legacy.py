@@ -458,7 +458,7 @@ class Backend(AbstractParserBackend):
         value = section.m_get(quantity_def)
 
         if value is None:
-            raise KeyError()
+            raise KeyError(quantity_def.name)
 
         if isinstance(quantity_def.type, Reference):
             return value.m_parent_index
