@@ -181,7 +181,7 @@ class DatasetReference(metainfo.Reference):
         if isinstance(value, metainfo.MProxy):
             return value.m_proxy_url
         else:
-            return value.user_id
+            return value.dataset_id
 
 
 dataset_reference = DatasetReference()
