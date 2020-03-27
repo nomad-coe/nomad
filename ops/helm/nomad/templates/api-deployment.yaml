@@ -94,6 +94,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-app
         app.kubernetes.io/instance: {{ .Release.Name }}
+        date: "{{ .Release.Time.Seconds }}"
     spec:
       containers:
       - name: {{ include "nomad.name" . }}-app

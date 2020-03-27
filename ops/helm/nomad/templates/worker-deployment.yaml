@@ -18,6 +18,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
         app.kubernetes.io/instance: {{ .Release.Name }}
+        date: "{{ .Release.Time.Seconds }}"
     spec:
       affinity:
         podAntiAffinity:
