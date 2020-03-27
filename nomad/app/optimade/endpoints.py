@@ -43,7 +43,7 @@ def base_request_args():
 
 def base_search_request():
     ''' Creates a search request for all public and optimade enabled data. '''
-    return search.SearchRequest().owner('all', None).query(
+    return search.SearchRequest().owner('all', None).search_parameter('processed', True).query(
         Q('exists', field='dft.optimade.elements'))  # TODO use the elastic annotations when done
 
 

@@ -97,7 +97,7 @@ class Upload():
 
         entry_metadata.m_update(
             domain='dft', upload_id=self.upload_id, calc_id='test_calc_id_%d' % id,
-            mainfile='test_mainfile', published=True, with_embargo=False)
+            mainfile='test_mainfile', published=True, processed=True, with_embargo=False)
 
         entry_metadata.apply_domain_metadata(backend)
 
