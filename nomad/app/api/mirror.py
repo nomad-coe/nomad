@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The mirror API of the nomad@FAIRDI APIs. Allows to export upload metadata.
-"""
+'''
 
-from flask import request
+from flask import request, send_file
 from flask_restplus import Resource, abort, fields
 
 from nomad import processing as proc
 from nomad.datamodel import Dataset
 from nomad.doi import DOI
+from nomad.files import PublicUploadFiles
+from nomad import infrastructure
 
 from .api import api
 from .auth import authenticate
@@ -44,7 +46,7 @@ mirror_query_model = api.model('MirrorQuery', {
         description='Mongoengine query that is used to search for uploads to mirror.')
 })
 
-_Dataset = Dataset.m_def.m_x('me').me_cls
+_Dataset = Dataset.m_def.a_mongo.mongo_cls
 
 
 @ns.route('/')
@@ -82,9 +84,9 @@ class MirrorUploadResource(Resource):
     @api.doc('get_upload_mirror')
     @authenticate(admin_only=True)
     def get(self, upload_id):
-        """
+        '''
         Export upload (and all calc) metadata for mirrors.
-        """
+        '''
         try:
             upload = proc.Upload.get(upload_id)
         except KeyError:
@@ -115,3 +117,83 @@ class MirrorUploadResource(Resource):
             'dois': dois,
             'upload_files_path': upload.upload_files.os_path
         }, 200
+
+
+_mirror_files_parser = api.parser()
+_mirror_files_parser.add_argument(
+    'prefix', type='str', help='File to download archive or raw', location='args')
+
+
+@upload_route(ns, '/files')
+class MirrorFilesResource(Resource):
+    @api.doc('download_files_mirror')
+    @api.expect(_mirror_files_parser, validate=True)
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.response(404, 'The upload or calculation does not exist')
+    @authenticate(admin_only=True)
+    def get(self, upload_id):
+        '''
+        Download archive and raw files for mirrors
+        '''
+        try:
+            args = request.args
+            prefix = args.get('prefix')
+            assert prefix in ('archive', 'raw')
+
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        try:
+            upload_files = PublicUploadFiles(upload_id)
+
+            if prefix == 'raw':
+                ext = 'plain'
+                ending = 'zip'
+
+            elif prefix == 'archive':
+                ext = 'msg'
+                ending = 'msg'
+
+            elif prefix == 'legacy-archive':
+                ext = 'json'
+                ending = 'zip'
+
+            else:
+                abort(400, message='Unsupported prefix.')
+
+            fileobj = upload_files._file_object(prefix, 'public', ext, ending)
+            if not fileobj.exists():
+                raise KeyError
+
+            return send_file(
+                open(fileobj.os_path, 'rb'),
+                mimetype='application/zip',
+                as_attachment=True,
+                cache_timeout=0,
+                attachment_filename=fileobj.os_path)
+
+        except KeyError:
+            abort(404, message='Upload %d does not exist' % upload_id)
+
+
+@ns.route('/users')
+class MirrorUsersResource(Resource):
+    @api.doc('downlod_users_mirror')
+    @api.response(400, 'Unsuccessful userlist query')
+    @authenticate(admin_only=True)
+    def get(self):
+        '''
+        Download user list for mirrors
+        '''
+        try:
+            users = infrastructure.keycloak.search_user(query='')
+            result = dict()
+            for user in users:
+                credentials = user.m_to_dict()
+                credentials.pop('email', None)
+                result[user.username] = credentials
+
+            return result, 200
+
+        except Exception:
+            abort(400, message='Failed to fetch users')

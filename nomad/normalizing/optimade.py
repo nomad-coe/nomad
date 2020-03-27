@@ -12,36 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict
+from typing import Any, Dict, cast
 import numpy as np
 import re
 import ase.data
 from string import ascii_uppercase
 import pint.quantity
 
+from nomad.parsing.legacy import Backend
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.metainfo import units
-from nomad.metainfo.optimade import OptimadeEntry, Species
+from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
 
-    """
+    '''
     This normalizer performs all produces a section all data necessary for the Optimade API.
     It assumes that the :class:`SystemNormalizer` was run before.
-    """
+    '''
     def __init__(self, backend):
         super().__init__(backend, only_representatives=True)
 
-    def get_optimade_data(self, index) -> OptimadeEntry:
-        """
+    def add_optimade_data(self, index) -> OptimadeEntry:
+        '''
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
-        """
-        optimade = OptimadeEntry()
+        '''
+
+        backend = cast(Backend, self._backend)
+        if backend.entry_archive.section_metadata is None:
+            backend.entry_archive.m_create(EntryMetadata)
+        if backend.entry_archive.section_metadata.dft is None:
+            backend.entry_archive.section_metadata.m_create(DFTMetadata)
+        optimade = backend.entry_archive.section_metadata.dft.m_create(OptimadeEntry)
 
         def get_value(key: str, default: Any = None, numpy: bool = False, unit=None) -> Any:
             try:
@@ -125,8 +132,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             return False
 
         try:
-            optimade = self.get_optimade_data(index)
-            self._backend.add_mi2_section(optimade)
+            self.add_optimade_data(index)
             return True
 
         except Exception as e:

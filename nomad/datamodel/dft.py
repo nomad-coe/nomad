@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 DFT specific metadata
-"""
+'''
 
-from typing import List
 import re
-from elasticsearch_dsl import Integer, Object, InnerDoc, Keyword
-import ase.data
-
-from nomadcore.local_backend import ParserEvent
 
 from nomad import utils, config
-from nomad.metainfo import optimade, MSection, Section, Quantity, MEnum
-from nomad.metainfo.elastic import elastic_mapping, elastic_obj
+from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
+from nomad.metainfo.search_extension import Search
 
-from .base import CalcWithMetadata, DomainQuantity, Domain, get_optional_backend_value
+from .common import get_optional_backend_value
+from .optimade import OptimadeEntry
 
 
 xc_treatments = {
@@ -39,13 +35,65 @@ xc_treatments = {
     'vdw': 'vdW',
     'lda': 'LDA',
 }
-""" https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional """
+''' https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional '''
 
 basis_sets = {
     'gaussians': 'gaussians',
     'realspacegrid': 'real-space grid',
     'planewaves': 'plane waves'
 }
+
+compound_types = [
+    'unary',
+    'binary',
+    'ternary',
+    'quaternary',
+    'quinary',
+    'sexinary',
+    'septenary',
+    'octanary',
+    'nonary',
+    'decinary'
+]
+
+_energy_quantities = [
+    'energy_total',
+    'energy_total_T0',
+    'energy_free',
+    'energy_electrostatic',
+    'energy_X',
+    'energy_XC',
+    'energy_sum_eigenvalues']
+
+_electronic_quantities = [
+    'dos_values',
+    'eigenvalues_values',
+    'volumetric_data_values',
+    'electronic_kinetic_energy',
+    'total_charge',
+    'atomic_multipole_values']
+
+_forces_quantities = [
+    'atom_forces_free',
+    'atom_forces_raw',
+    'atom_forces_T0',
+    'atom_forces',
+    'stress_tensor']
+
+_vibrational_quantities = [
+    'thermodynamical_property_heat_capacity_C_v',
+    'vibrational_free_energy_at_constant_volume',
+    'band_energies']
+
+_magnetic_quantities = [
+    'spin_S2'
+]
+
+_optical_quantities = [
+    'excitation_energies',
+    'oscillator_strengths',
+    'transition_dipole_moments'
+]
 
 version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
@@ -71,84 +119,164 @@ def simplify_version(version):
 
 
 class Label(MSection):
-    """
+    '''
     Label that further classify a structure.
 
     Attributes:
         label: The label as a string
         type: The type of the label
         source: The source that this label was taken from.
-    """
 
-    m_def = Section(a_elastic=dict(type=InnerDoc))
-
-    label = Quantity(type=str, a_elastic=dict(type=Keyword))
+    '''
+    label = Quantity(type=str, a_search=Search())
 
     type = Quantity(type=MEnum(
         'compound_class', 'classification', 'prototype', 'prototype_id'),
-        a_elastic=dict(type=Keyword))
+        a_search=Search())
 
     source = Quantity(
         type=MEnum('springer', 'aflow_prototype_library'),
-        a_elastic=dict(type=Keyword))
+        a_search=Search())
 
 
-ESLabel = elastic_mapping(Label.m_def, InnerDoc)
+class DFTMetadata(MSection):
+    m_def = Section(a_domain='dft')
 
+    basis_set = Quantity(
+        type=str, default='not processed',
+        description='The used basis set functions.',
+        a_search=Search(statistic_size=20, default_statistic=True))
 
-class DFTCalcWithMetadata(CalcWithMetadata):
+    xc_functional = Quantity(
+        type=str, default='not processed',
+        description='The libXC based xc functional classification used in the simulation.',
+        a_search=Search(statistic_size=20, default_statistic=True))
 
-    def __init__(self, **kwargs):
-        self.formula: str = None
-        self.atoms: List[str] = []
-        self.n_atoms: int = 0
-        self.basis_set: str = None
-        self.xc_functional: str = None
-        self.system: str = None
-        self.crystal_system: str = None
-        self.spacegroup: str = None
-        self.spacegroup_symbol: str = None
-        self.code_name: str = None
-        self.code_version: str = None
+    system = Quantity(
+        type=str, default='not processed',
+        description='The system type of the simulated system.',
+        a_search=Search(default_statistic=True))
 
-        self.n_geometries = 0
-        self.n_calculations = 0
-        self.n_total_energies = 0
-        self.n_quantities = 0
-        self.quantities = []
-        self.geometries = []
-        self.group_hash: str = None
+    compound_type = Quantity(
+        type=str, default='not processed',
+        description='The compound type of the simulated system.',
+        a_search=Search(statistic_size=11, default_statistic=True)
+    )
 
-        self.labels: List[Label] = []
-        self.optimade: optimade.OptimadeEntry = None
+    crystal_system = Quantity(
+        type=str, default='not processed',
+        description='The crystal system type of the simulated system.',
+        a_search=Search(default_statistic=True))
 
-        super().__init__(**kwargs)
+    spacegroup = Quantity(
+        type=int, default='not processed',
+        description='The spacegroup of the simulated system as number.',
+        a_search=Search())
 
-    def update(self, **kwargs):
-        super().update(**kwargs)
+    spacegroup_symbol = Quantity(
+        type=str, default='not processed',
+        description='The spacegroup as international short symbol.',
+        a_search=Search())
 
-        if len(self.labels) > 0:
-            self.labels = [Label.m_from_dict(label) for label in self.labels]
+    code_name = Quantity(
+        type=str, default='not processed',
+        description='The name of the used code.',
+        a_search=Search(statistic_size=40, default_statistic=True))
 
-        if self.optimade is not None and isinstance(self.optimade, dict):
-            self.optimade = optimade.OptimadeEntry.m_from_dict(self.optimade)
+    code_version = Quantity(
+        type=str, default='not processed',
+        description='The version of the used code.',
+        a_search=Search())
 
-    def __getitem__(self, key):
-        value = super().__getitem__(key)
+    n_geometries = Quantity(
+        type=int, description='Number of unique geometries.',
+        a_search=Search(metric_name='geometries', metric='sum'))
 
-        if key == 'labels':
-            return [item.m_to_dict() for item in value]
+    n_calculations = Quantity(
+        type=int,
+        description='Number of single configuration calculation sections',
+        a_search=Search(metric_name='calculations', metric='sum'))
 
-        if key == 'optimade':
-            return value.m_to_dict()
+    n_total_energies = Quantity(
+        type=int, description='Number of total energy calculations',
+        a_search=Search(metric_name='total_energies', metric='sum'))
 
-        return value
+    n_quantities = Quantity(
+        type=int, description='Number of metainfo quantities parsed from the entry.',
+        a_search=Search(metric='sum', metric_name='quantities'))
+
+    quantities = Quantity(
+        type=str, shape=['0..*'],
+        description='All quantities that are used by this entry.',
+        a_search=Search(
+            metric_name='distinct_quantities', metric='cardinality', many_and='append'))
+
+    quantities_energy = Quantity(
+        type=str, shape=['0..*'],
+        description='Energy-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_electronic = Quantity(
+        type=str, shape=['0..*'],
+        description='Electronic structure-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_forces = Quantity(
+        type=str, shape=['0..*'],
+        description='Forces-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_vibrational = Quantity(
+        type=str, shape=['0..*'],
+        description='Vibrational-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_magnetic = Quantity(
+        type=str, shape=['0..*'],
+        description='Magnetic-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    quantities_optical = Quantity(
+        type=str, shape=['0..*'],
+        description='Optical-related quantities.',
+        a_search=Search(many_and='append', default_statistic=True))
+
+    geometries = Quantity(
+        type=str, shape=['0..*'],
+        description='Hashes for each simulated geometry',
+        a_search=Search(metric_name='unique_geometries', metric='cardinality'))
+
+    group_hash = Quantity(
+        type=str,
+        description='Hashes that describe unique geometries simulated by this code run.',
+        a_search=Search(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
+
+    labels = SubSection(
+        sub_section=Label, repeats=True,
+        description='The labels taken from AFLOW prototypes and springer.',
+        a_search='labels')
+
+    labels_springer_compound_class = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer compund classification.',
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
+
+    labels_springer_classification = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer classification by property.',
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
+
+    optimade = SubSection(
+        sub_section=OptimadeEntry,
+        description='Metadata used for the optimade API.',
+        a_search='optimade')
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels
+        entry = self.m_parent
 
         logger = utils.get_logger(__name__).bind(
-            upload_id=self.upload_id, calc_id=self.calc_id, mainfile=self.mainfile)
+            upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
         # code and code specific ids
         self.code_name = backend.get_value('program_name', 0)
@@ -157,74 +285,103 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         except KeyError:
             self.code_version = config.services.unavailable_value
 
-        self.raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', 0)
+        raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', None)
+        if raw_id is not None:
+            entry.raw_id = raw_id
 
         # metadata (system, method, chemistry)
-        self.atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
-        if hasattr(self.atoms, 'tolist'):
-            self.atoms = self.atoms.tolist()
-        self.n_atoms = len(self.atoms)
-        self.atoms = list(set(normalized_atom_labels(set(self.atoms))))
-        self.atoms.sort()
+        atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
+        if hasattr(atoms, 'tolist'):
+            atoms = atoms.tolist()
+        entry.n_atoms = len(atoms)
+        atoms = list(set(normalized_atom_labels(set(atoms))))
+        atoms.sort()
+        entry.atoms = atoms
+        self.compound_type = compound_types[len(atoms) - 1] if len(atoms) <= 10 else '>decinary'
 
         self.crystal_system = get_optional_backend_value(
             backend, 'crystal_system', 'section_symmetry', logger=logger)
         self.spacegroup = get_optional_backend_value(
             backend, 'space_group_number', 'section_symmetry', 0, logger=logger)
         self.spacegroup_symbol = get_optional_backend_value(
-            backend, 'international_short_symbol', 'section_symmetry', 0, logger=logger)
+            backend, 'international_short_symbol', 'section_symmetry', logger=logger)
         self.basis_set = map_basis_set_to_basis_set_label(
             get_optional_backend_value(backend, 'program_basis_set_type', 'section_run', logger=logger))
         self.system = get_optional_backend_value(
             backend, 'system_type', 'section_system', logger=logger)
-        self.formula = get_optional_backend_value(
+        entry.formula = get_optional_backend_value(
             backend, 'chemical_composition_bulk_reduced', 'section_system', logger=logger)
         self.xc_functional = map_functional_name_to_xc_treatment(
             get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
 
         # grouping
         self.group_hash = utils.hash(
-            self.formula,
+            entry.formula,
             self.spacegroup,
             self.basis_set,
             self.xc_functional,
             self.code_name,
             self.code_version,
-            self.with_embargo,
-            self.comment,
-            self.references,
-            self.uploader,
-            self.coauthors)
+            entry.with_embargo,
+            entry.uploader)
 
         # metrics and quantities
         quantities = set()
         geometries = set()
+        quantities_energy = set()
+        quantities_electronic = set()
+        quantities_forces = set()
+        quantities_vibrational = set()
+        quantities_magnetic = set()
+        quantities_optical = set()
+
         n_quantities = 0
         n_calculations = 0
         n_total_energies = 0
         n_geometries = 0
 
-        for meta_info, event, value in backend.traverse():
-            quantities.add(meta_info)
+        for section_run in backend.entry_archive.section_run:
+            quantities.add(section_run.m_def.name)
+            n_quantities += 1
 
-            if event == ParserEvent.add_value or event == ParserEvent.add_array_value:
+            for section, property_def, _ in section_run.m_traverse():
+                property_name = property_def.name
+                quantities.add(property_name)
                 n_quantities += 1
 
-                if meta_info == 'energy_total':
+                if property_name in _energy_quantities:
+                    quantities_energy.add(property_name)
+                elif property_name in _electronic_quantities:
+                    quantities_electronic.add(property_name)
+                elif property_name in _forces_quantities:
+                    quantities_forces.add(property_name)
+                elif property_name in _vibrational_quantities:
+                    quantities_vibrational.add(property_name)
+                elif property_name in _magnetic_quantities:
+                    quantities_magnetic.add(property_name)
+                elif property_name in _optical_quantities:
+                    quantities_optical.add(property_name)
+
+                if property_name == 'energy_total':
                     n_total_energies += 1
 
-                if meta_info == 'configuration_raw_gid':
-                    geometries.add(value)
+                if property_name == 'configuration_raw_gid':
+                    geometries.add(section.m_get(property_def))
 
-            elif event == ParserEvent.open_section:
-                if meta_info == 'section_single_configuration_calculation':
+                if property_name == 'section_single_configuration_calculation':
                     n_calculations += 1
 
-                if meta_info == 'section_system':
+                if property_name == 'section_system':
                     n_geometries += 1
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
+        self.quantities_energy = list(quantities_energy)
+        self.quantities_electronic = list(quantities_electronic)
+        self.quantities_forces = list(quantities_forces)
+        self.quantities_vibrational = list(quantities_vibrational)
+        self.quantities_magnetic = list(quantities_magnetic)
+        self.quantities_optical = list(quantities_optical)
         self.n_quantities = n_quantities
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
@@ -241,6 +398,8 @@ class DFTCalcWithMetadata(CalcWithMetadata):
             self.labels.append(Label(label=compound, type='compound_class', source='springer'))
         for classification in classifications:
             self.labels.append(Label(label=classification, type='classification', source='springer'))
+        self.labels_springer_compound_class = list(compounds)
+        self.labels_springer_classification = list(classifications)
 
         aflow_id = get_optional_backend_value(backend, 'prototype_aflow_id', 'section_prototype')
         aflow_label = get_optional_backend_value(backend, 'prototype_label', 'section_prototype')
@@ -248,91 +407,3 @@ class DFTCalcWithMetadata(CalcWithMetadata):
         if aflow_id is not None and aflow_label is not None:
             self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
-
-        # optimade
-        self.optimade = backend.get_mi2_section(optimade.OptimadeEntry.m_def)
-
-
-def only_atoms(atoms):
-    numbers = [ase.data.atomic_numbers[atom] for atom in atoms]
-    only_atoms = [ase.data.chemical_symbols[number] for number in sorted(numbers)]
-    return ''.join(only_atoms)
-
-
-def _elastic_label_value(label):
-    if isinstance(label, str):
-        return label
-    else:
-        return elastic_obj(label, ESLabel)
-
-
-Domain(
-    'DFT', DFTCalcWithMetadata,
-    quantities=dict(
-        formula=DomainQuantity(
-            'The chemical (hill) formula of the simulated system.',
-            order_default=True),
-        atoms=DomainQuantity(
-            'The atom labels of all atoms in the simulated system.',
-            aggregations=len(ase.data.chemical_symbols), multi=True),
-        only_atoms=DomainQuantity(
-            'The atom labels concatenated in species-number order. Used with keyword search '
-            'to facilitate exclusive searches.',
-            elastic_value=only_atoms, metadata_field='atoms', multi=True),
-        basis_set=DomainQuantity(
-            'The used basis set functions.', aggregations=20),
-        xc_functional=DomainQuantity(
-            'The xc functional type used for the simulation.', aggregations=20),
-        system=DomainQuantity(
-            'The system type of the simulated system.', aggregations=10),
-        crystal_system=DomainQuantity(
-            'The crystal system type of the simulated system.', aggregations=10),
-        code_name=DomainQuantity(
-            'The code name.', aggregations=40),
-        spacegroup=DomainQuantity('The spacegroup of the simulated system as number'),
-        spacegroup_symbol=DomainQuantity('The spacegroup as international short symbol'),
-        geometries=DomainQuantity(
-            'Hashes that describe unique geometries simulated by this code run.', multi=True),
-        group_hash=DomainQuantity(
-            'A hash from key metadata used to group similar entries.'),
-        quantities=DomainQuantity(
-            'All quantities that are used by this calculation',
-            metric=('quantities', 'value_count'), multi=True),
-        n_total_energies=DomainQuantity(
-            'Number of total energy calculations',
-            elastic_mapping=Integer()),
-        n_calculations=DomainQuantity(
-            'Number of single configuration calculation sections',
-            elastic_mapping=Integer()),
-        n_quantities=DomainQuantity(
-            'Number of overall parsed quantities',
-            elastic_mapping=Integer()),
-        n_geometries=DomainQuantity(
-            'Number of unique geometries',
-            elastic_mapping=Integer()),
-        n_atoms=DomainQuantity(
-            'Number of atoms in the simulated system',
-            elastic_mapping=Integer()),
-        labels=DomainQuantity(
-            'Search based for springer classification and aflow prototypes',
-            elastic_field='labels.label',
-            elastic_mapping=Object(ESLabel),
-            elastic_value=lambda labels: [_elastic_label_value(label) for label in labels],
-            multi=True),
-        optimade=DomainQuantity(
-            'Search based on optimade\'s filter query language',
-            elastic_mapping=Object(optimade.ESOptimadeEntry),
-            elastic_value=lambda entry: elastic_obj(entry, optimade.ESOptimadeEntry)
-        )),
-    metrics=dict(
-        total_energies=('n_total_energies', 'sum'),
-        calculations=('n_calculations', 'sum'),
-        quantities=('n_quantities', 'sum'),
-        geometries=('n_geometries', 'sum'),
-        unique_geometries=('geometries', 'cardinality'),
-        groups=('group_hash', 'cardinality')
-    ),
-    groups=dict(
-        groups=('group_hash', 'groups')),
-    default_statistics=[
-        'atoms', 'basis_set', 'xc_functional', 'system', 'crystal_system', 'code_name'])

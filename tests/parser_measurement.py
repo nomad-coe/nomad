@@ -6,14 +6,14 @@ if __name__ == '__main__':
     from nomad.parsing import parser_dict
     from nomad.cli.parse import normalize_all
     from nomad.metainfo.legacy import LegacyMetainfoEnvironment
-    from nomad.parsing.metainfo import MetainfoBackend
+    from nomad.parsing.legacy import Backend
 
     mainfile_path = sys.argv[1]
     config.console_log_level = logging.CRITICAL
     utils.configure_logging()
 
     def backend_factory(env, logger):
-        return MetainfoBackend(LegacyMetainfoEnvironment(env), logger=logger)
+        return Backend(LegacyMetainfoEnvironment(env), logger=logger)
 
     logger = utils.get_logger(__name__)
     parser = parser_dict['parsers/vasp']

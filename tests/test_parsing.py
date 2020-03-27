@@ -19,13 +19,16 @@ import pytest
 import os
 from shutil import copyfile
 
-from nomad import utils, files
-from nomad.parsing import JSONStreamWriter, parser_dict, match_parser, BrokenParser
-from nomad.parsing import LocalBackend, BadContextURI
+from nomad import utils, files, datamodel
+from nomad.parsing import parser_dict, match_parser, BrokenParser, BadContextUri, Backend
+
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
+    ('parsers/eels', 'tests/data/parsers/eels.txt'),
+    ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
+    ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
@@ -75,17 +78,18 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 46
+correct_num_output_files = 50
 
 
-class TestLocalBackend(object):
+class TestBackend(object):
 
     @pytest.fixture(scope='function')
-    def backend(self, meta_info):
-        return LocalBackend(meta_info, debug=True)
+    def backend(self):
+        return Backend('common')
 
-    def test_meta_info(self, meta_info, no_warn):
-        assert 'section_topology' in meta_info
+    def test_meta_info(self, no_warn):
+        from nomad.datamodel.metainfo import m_env
+        assert 'section_topology' in m_env.all_definitions_by_name
 
     def test_section(self, backend, no_warn):
         g_index = backend.openSection('section_run')
@@ -121,18 +125,18 @@ class TestLocalBackend(object):
         backend.closeNonOverlappingSection('section_system')
 
         backend.openNonOverlappingSection('section_system')
-        assert backend.openSection('section_symmetry') == 1
-        backend.closeSection('section_symmetry', 1)
+        assert backend.openSection('section_symmetry') == 0
+        backend.closeSection('section_symmetry', 0)
         backend.closeNonOverlappingSection('section_system')
 
         assert backend.get_sections('section_system') == [0, 1, 2]
-        assert backend.get_sections('section_symmetry') == [0, 1]
+        assert backend.get_sections('section_symmetry') == [0, 0]
         assert backend.get_sections('section_symmetry', 0) == [0]
         assert backend.get_sections('section_symmetry', 1) == []
-        assert backend.get_sections('section_symmetry', 2) == [1]
+        assert backend.get_sections('section_symmetry', 2) == [0]
 
     def test_section_override(self, backend, no_warn):
-        """ Test whether we can overwrite values already in the backend."""
+        ''' Test whether we can overwrite values already in the backend.'''
         expected_value = ['Cl', 'Zn']
         backend.openSection('section_run')
         backend.openSection('section_system')
@@ -141,9 +145,7 @@ class TestLocalBackend(object):
         backend.closeSection('section_system', 0)
 
         backend.closeSection('section_run', 0)
-        output = StringIO()
-        backend.write_json(output)
-        assert backend.get_value('atom_labels').tolist() == expected_value
+        assert backend.get_value('atom_labels') == expected_value
 
     def test_two_sections(self, backend, no_warn):
         g_index = backend.openSection('section_run')
@@ -151,21 +153,19 @@ class TestLocalBackend(object):
         backend.addValue('program_name', 't0')
         backend.closeSection('section_run', 0)
 
-        g_index = backend.openSection('section_entry_info')
-        assert g_index == 0
-        backend.addValue('parser_name', 'p0')
-        backend.closeSection('section_entry_info', 0)
+        g_index = backend.openSection('section_run')
+        assert g_index == 1
+        backend.addValue('program_name', 't1')
+        backend.closeSection('section_run', 1)
 
-        assert backend.get_sections('section_run') == [0]
-        assert backend.get_sections('section_entry_info') == [0]
+        assert backend.get_sections('section_run') == [0, 1]
 
         output = StringIO()
-        backend.write_json(output)
+        json.dump(backend.resource.m_to_dict(), output)
         archive = json.loads(output.getvalue())
-        assert 'section_run' in archive
-        assert 'section_entry_info' in archive
+        assert 'section_run' in archive['EntryArchive']
 
-    def test_subsection(self, backend: LocalBackend, no_warn):
+    def test_subsection(self, backend: Backend, no_warn):
         backend.openSection('section_run')
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
@@ -180,12 +180,13 @@ class TestLocalBackend(object):
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
 
-        runs = backend.data['section_run']
+        from nomad.datamodel.metainfo.public import section_run
+        runs = backend.resource.all(section_run)
         assert len(runs) == 2
         assert len(runs[0]['section_method']) == 2
         assert len(runs[1]['section_method']) == 1
 
-    def test_open_section_of_specific_parent(self, backend: LocalBackend, no_warn):
+    def test_open_section_of_specific_parent(self, backend: Backend, no_warn):
         run_index = backend.openSection('section_run')
         scc_index = backend.openSection('section_single_configuration_calculation')
         backend.closeSection('section_single_configuration_calculation', scc_index)
@@ -193,14 +194,15 @@ class TestLocalBackend(object):
         backend.closeSection('section_dos', dos_index)
         backend.closeSection('section_run', run_index)
 
-        runs = backend.data['section_run']
+        from nomad.datamodel.metainfo.public import section_run
+        runs = backend.resource.all(section_run)
         assert len(runs) == 1
         run = runs[0]
         assert len(run['section_single_configuration_calculation']) == 1
         assert 'section_dos' in run['section_single_configuration_calculation'][0]
         assert len(run['section_single_configuration_calculation'][0]['section_dos']) == 1
 
-    def test_open_section_of_specific_parent2(self, backend: LocalBackend, no_warn):
+    def test_open_section_of_specific_parent2(self, backend: Backend, no_warn):
         run_index = backend.openSection('section_run')
         scc_index = backend.openSection('section_single_configuration_calculation')
         backend.closeSection('section_single_configuration_calculation', scc_index)
@@ -213,15 +215,15 @@ class TestLocalBackend(object):
         backend.closeSection('section_dos', dos_index)
         backend.closeSection('section_run', run_index)
 
-        runs = backend.data['section_run']
+        from nomad.datamodel.metainfo.public import section_run
+        runs = backend.resource.all(section_run)
         assert len(runs) == 1
         run = runs[0]
         assert len(run['section_single_configuration_calculation']) == 2
-        assert 'section_dos' in run['section_single_configuration_calculation'][0]
-        assert len(run['section_single_configuration_calculation'][0]['section_dos']) == 1
-        assert 'section_dos' not in run['section_single_configuration_calculation'][1]
+        assert len(run['section_single_configuration_calculation'][0].section_dos) == 1
+        assert len(run['section_single_configuration_calculation'][1].section_dos) == 0
 
-    def test_context(self, backend: LocalBackend, no_warn):
+    def test_context(self, backend: Backend, no_warn):
         backend.openSection('section_run')
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
@@ -241,11 +243,12 @@ class TestLocalBackend(object):
         backend.openContext('/section_run/0/section_method/0')
         backend.closeContext('/section_run/0/section_method/0')
 
-        runs = backend.data['section_run']
+        from nomad.datamodel.metainfo.public import section_run
+        runs = backend.resource.all(section_run)
         assert runs[0]['program_name'] == 't1'
         assert runs[1]['program_name'] == 't2'
 
-    def test_multi_context(self, backend: LocalBackend, no_warn):
+    def test_multi_context(self, backend: Backend, no_warn):
         backend.openSection('section_run')
         backend.closeSection('section_run', -1)
 
@@ -259,19 +262,21 @@ class TestLocalBackend(object):
         backend.closeSection('section_method', -1)
         backend.closeContext('/section_run/0')
 
-        assert len(backend.data['section_method']) == 1
+        from nomad.datamodel.metainfo.public import section_run
+        runs = backend.resource.all(section_run)
+        assert len(runs[0].section_method) == 2
 
-    def test_bad_context(self, backend: LocalBackend, no_warn):
+    def test_bad_context(self, backend: Backend, no_warn):
         try:
             backend.openContext('section_run/0')
             assert False
-        except BadContextURI:
+        except BadContextUri:
             pass
 
         try:
             backend.openContext('dsfds')
             assert False
-        except BadContextURI:
+        except BadContextUri:
             pass
 
 
@@ -280,42 +285,6 @@ def create_reference(data, pretty):
         return json.dumps(data, indent=2)
     else:
         return json.dumps(data, separators=(',', ':'))
-
-
-@pytest.mark.parametrize("pretty", [False, True])
-def test_stream_generator(pretty, no_warn):
-    example_data = [
-        {
-            'key1': 'value',
-            'key2': 1
-        },
-        {
-            'key': {
-                'key': 'value'
-            }
-        }
-    ]
-
-    out = StringIO()
-    writer = JSONStreamWriter(out, pretty=pretty)
-    writer.open_array()
-    writer.open_object()
-    writer.key('key1')
-    writer.value('value')
-    writer.key('key2')
-    writer.value(1)
-    writer.close_object()
-    writer.open_object()
-    writer.key('key')
-    writer.open_object()
-    writer.key('key')
-    writer.value('value')
-    writer.close_object()
-    writer.close_object()
-    writer.close_array()
-    writer.close()
-
-    assert create_reference(example_data, pretty) == out.getvalue()
 
 
 def assert_parser_result(backend, error=False):
@@ -328,55 +297,54 @@ def assert_parser_result(backend, error=False):
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
-    """Assert working directory has not been changed from parser."""
+    '''Assert working directory has not been changed from parser.'''
     assert previous_wd == current_wd
 
 
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    result.domain = parser.domain
     return add_calculation_info(result, parser_name=parser_name)
 
 
 @pytest.fixture
-def parsed_vasp_example() -> LocalBackend:
+def parsed_vasp_example() -> Backend:
     return run_parser(
         'parsers/vasp', 'dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
 @pytest.fixture
-def parsed_template_example() -> LocalBackend:
+def parsed_template_example() -> Backend:
     return run_parser(
         'parsers/template', 'tests/data/parsers/template.json')
 
 
 @pytest.fixture(scope="session")
-def parsed_template_no_system() -> LocalBackend:
+def parsed_template_no_system() -> Backend:
     return run_parser(
         'parsers/template', 'tests/data/parsers/template_no_system.json')
 
 
-def parse_file(parser_name_and_mainfile) -> LocalBackend:
+def parse_file(parser_name_and_mainfile) -> Backend:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
-def parsed_example(request) -> LocalBackend:
+def parsed_example(request) -> Backend:
     parser_name, mainfile = request.param
     result = run_parser(parser_name, mainfile)
     return result
 
 
-def add_calculation_info(backend: LocalBackend, **kwargs) -> LocalBackend:
-    backend.openNonOverlappingSection('section_entry_info')
-    backend.addValue('upload_id', 'test_upload_id')
-    backend.addValue('calc_id', 'test_calc_id')
-    backend.addValue('calc_hash', 'test_calc_hash')
-    backend.addValue('mainfile', 'test/mainfile.txt')
-    for key, value in kwargs.items():
-        backend.addValue(key, value)
-    backend.closeNonOverlappingSection('section_entry_info')
+def add_calculation_info(backend: Backend, **kwargs) -> Backend:
+    entry_metadata = backend.entry_archive.m_create(datamodel.EntryMetadata)
+    entry_metadata.upload_id = 'test_upload_id'
+    entry_metadata.calc_id = 'test_calc_id'
+    entry_metadata.calc_hash = 'test_calc_hash'
+    entry_metadata.mainfile = 'test/mainfile.txt'
+    entry_metadata.m_update(**kwargs)
     return backend
 
 
@@ -412,10 +380,43 @@ def test_match(raw_files, with_latin_1_file, no_warn):
 
     matched_mainfiles = {}
     for mainfile in upload_files.raw_file_manifest():
-        parser = match_parser(mainfile, upload_files)
+        parser = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser
 
     assert len(matched_mainfiles) == correct_num_output_files, ', '.join([
         '%s: %s' % (parser.name, mainfile)
         for mainfile, parser in matched_mainfiles.items()])
+
+
+def parser_in_dir(dir):
+    for root, _, files in os.walk(dir):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+
+            if 'test' not in file_path:
+                continue
+
+            parser = match_parser(file_path)
+            if parser is not None:
+
+                try:
+                    backend = parser.run(file_path)
+                    utils.dumps(backend.entry_archive.m_to_dict())
+                    backend.resource.unload()
+                except Exception as e:
+                    print(file_path, parser, 'FAILURE', e)
+                    import traceback
+                    traceback.print_exc()
+                else:
+                    print(file_path, parser, 'SUCCESS')
+
+
+if __name__ == '__main__':
+    import sys
+    import os
+
+    assert len(sys.argv) == 2 and os.path.isdir(sys.argv[1]), \
+        'One argument with an directory path is required.'
+
+    parser_in_dir(sys.argv[1])

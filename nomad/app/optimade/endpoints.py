@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Dict, Any
 from flask_restplus import Resource, abort
 from flask import request
 from elasticsearch_dsl import Q
 
-from nomad import search
-from nomad.metainfo.optimade import OptimadeEntry
+from nomad import search, files, datamodel
+from nomad.datamodel import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
@@ -41,9 +42,34 @@ def base_request_args():
 
 
 def base_search_request():
-    """ Creates a search request for all public and optimade enabled data. """
-    return search.SearchRequest().owner('all', None).query(
-        Q('exists', field='optimade.nelements'))  # TODO use the elastic annotations when done
+    ''' Creates a search request for all public and optimade enabled data. '''
+    return search.SearchRequest().owner('all', None).search_parameter('processed', True).query(
+        Q('exists', field='dft.optimade.elements'))  # TODO use the elastic annotations when done
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    ''' Translates search results into :class:`EntryMetadata` objects read from archive. '''
+
+    upload_files_cache: Dict[str, files.UploadFiles] = {}
+
+    def transform(result):
+        calc_id, upload_id = result['calc_id'], result['upload_id']
+        upload_files = upload_files_cache.get(upload_id)
+
+        if upload_files is None:
+            upload_files = files.UploadFiles.get(upload_id)
+            upload_files_cache[upload_id] = upload_files
+
+        archive = upload_files.read_archive(calc_id)  # , access='public')
+        metadata = archive[calc_id]['section_metadata'].to_dict()
+        return datamodel.EntryMetadata.m_from_dict(metadata)
+
+    result = [transform(result) for result in results]
+
+    for upload_files in upload_files_cache.values():
+        upload_files.close()
+
+    return result
 
 
 @ns.route('/calculations')
@@ -53,7 +79,7 @@ class CalculationList(Resource):
     @api.expect(entry_listing_endpoint_parser, validate=True)
     @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
-        """ Retrieve a list of calculations that match the given Optimade filter expression. """
+        ''' Retrieve a list of calculations that match the given Optimade filter expression. '''
         request_fields = base_request_args()
 
         try:
@@ -65,7 +91,7 @@ class CalculationList(Resource):
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
 
-        search_request = base_search_request().include('calc_id')
+        search_request = base_search_request().include('calc_id', 'upload_id')
 
         if filter is not None:
             try:
@@ -79,7 +105,7 @@ class CalculationList(Resource):
         # order_by='optimade.%s' % sort)  # TODO map the Optimade property
 
         available = result['pagination']['total']
-        results = search.to_calc_with_metadata(result['results'])
+        results = to_calc_with_metadata(result['results'])
         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
         return dict(
@@ -106,7 +132,7 @@ class Calculation(Resource):
     @api.expect(single_entry_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self, id: str):
-        """ Retrieve a single calculation for the given id. """
+        ''' Retrieve a single calculation for the given id. '''
         request_fields = base_request_args()
         search_request = base_search_request().search_parameters(calc_id=id)
 
@@ -115,7 +141,7 @@ class Calculation(Resource):
             per_page=1)
 
         available = result['pagination']['total']
-        results = search.to_calc_with_metadata(result['results'])
+        results = to_calc_with_metadata(result['results'])
         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
         if available == 0:
@@ -134,7 +160,7 @@ class CalculationInfo(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
     def get(self):
-        """ Returns information relating to the API implementation- """
+        ''' Returns information relating to the API implementation- '''
         base_request_args()
 
         result = {
@@ -144,7 +170,7 @@ class CalculationInfo(Resource):
                 for attr in OptimadeEntry.m_def.all_properties.values()},
             'formats': ['json'],
             'output_fields_by_format': {
-                'json': OptimadeEntry.m_def.all_properties.keys()}
+                'json': list(OptimadeEntry.m_def.all_properties.keys())}
         }
 
         return dict(
@@ -160,7 +186,7 @@ class Info(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self):
-        """ Returns information relating to the API implementation- """
+        ''' Returns information relating to the API implementation- '''
         base_request_args()
 
         result = {

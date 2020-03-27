@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module describes all configurable parameters for the nomad python code. The
 configuration is used for all executed python code including API, worker, CLI, and other
 scripts. To use the configuration in your own scripts or new modules, simply import
@@ -30,7 +30,7 @@ over defaults.
 .. autoclass:: nomad.config.NomadConfig
 .. autofunction:: nomad.config.apply
 .. autofunction:: nomad.config.load_config
-"""
+'''
 
 import logging
 import os
@@ -46,10 +46,10 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
 class NomadConfig(dict):
-    """
+    '''
     A class for configuration categories. It is a dict subclass that uses attributes as
     key/value pairs.
-    """
+    '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -208,10 +208,10 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.10'
+version = '0.8.0'
 commit = gitinfo.commit
 release = 'devel'
-domain = 'DFT'
+default_domain = 'dft'
 service = 'unknown nomad service'
 auxfile_cutoff = 100
 parser_matching_size = 9128
@@ -244,11 +244,11 @@ logger = logging.getLogger(__name__)
 
 
 def apply(key, value) -> None:
-    """
+    '''
     Changes the config according to given key and value. The keys are interpreted as paths
     to config values with ``_`` as a separator. E.g. ``fs_staging`` leading to
     ``config.fs.staging``
-    """
+    '''
     path = list(reversed(key.split('_')))
     child_segment = None
     current_value = None
@@ -297,13 +297,13 @@ def apply(key, value) -> None:
 
 
 def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')) -> None:
-    """
+    '''
     Loads the configuration from the ``config_file`` and environment.
 
     Arguments:
         config_file: Override the configfile, default is file stored in env variable
             NOMAD_CONFIG or ``nomad.yaml``.
-    """
+    '''
     # load yaml and override defaults (only when not in test)
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:

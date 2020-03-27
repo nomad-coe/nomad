@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 A command that generates various statistics.
-"""
+'''
 
 from matplotlib import scale as mscale
 from matplotlib import transforms as mtransforms
@@ -34,7 +34,7 @@ def codes(client, minimum=1, **kwargs):
     data = client.repo.search(per_page=1, **kwargs).response().result
 
     x_values = sorted([
-        code for code, values in data.statistics['code_name'].items()
+        code for code, values in data.statistics['dft.code_name'].items()
         if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
     return data.statistics, x_values, 'code_name', 'code'
@@ -61,7 +61,7 @@ def error_fig(client):
 
         return {
             code: values[metric]
-            for code, values in result.quantities['code_name'].items()
+            for code, values in result.quantities['dft.code_name'].items()
             if code != 'not processed' and (not labels or code in labels) > 0}
 
     # get the data
@@ -382,39 +382,39 @@ def statistics_table(html, geometries, public_path):
     from nomad.cli.client import create_client
     client = create_client()
 
-    geometry_metric = 'unique_geometries' if not geometries else 'geometries'
+    geometry_metric = 'dft.unique_geometries' if not geometries else 'dft.geometries'
 
     # search scc with system type
     data_all = client.repo.search(
-        per_page=1, metrics=['calculations'], statistics=True).response().result
+        per_page=1, metrics=['dft.calculations'], statistics=True).response().result
 
     entries = get_statistic(data_all, 'total', 'all', 'code_runs')
-    calculations = get_statistic(data_all, 'total', 'all', 'calculations')
-    calculations_1d = get_statistic(data_all, 'system', '1D', 'calculations') \
-        + get_statistic(data_all, 'system', 'atom', 'calculations') \
-        + get_statistic(data_all, 'system', 'molecule / cluster', 'calculations')
+    calculations = get_statistic(data_all, 'total', 'all', 'dft.calculations')
+    calculations_1d = get_statistic(data_all, 'dft.system', '1D', 'dft.calculations') \
+        + get_statistic(data_all, 'dft.system', 'atom', 'dft.calculations') \
+        + get_statistic(data_all, 'dft.system', 'molecule / cluster', 'dft.calculations')
 
-    calculations_2d = get_statistic(data_all, 'system', '2D / surface', 'calculations')
-    calculations_2d += get_statistic(data_all, 'system', '2D', 'calculations')
-    calculations_2d += get_statistic(data_all, 'system', 'surface', 'calculations')
-    calculations_3d = get_statistic(data_all, 'system', 'bulk', 'calculations')
+    calculations_2d = get_statistic(data_all, 'dft.system', '2D / surface', 'dft.calculations')
+    calculations_2d += get_statistic(data_all, 'dft.system', '2D', 'dft.calculations')
+    calculations_2d += get_statistic(data_all, 'dft.system', 'surface', 'dft.calculations')
+    calculations_3d = get_statistic(data_all, 'dft.system', 'bulk', 'dft.calculations')
 
-    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'quantities']).response().result
+    metrics_all = client.repo.search(per_page=1, metrics=[geometry_metric, 'dft.quantities']).response().result
     geometries = get_statistic(metrics_all, 'total', 'all', geometry_metric)
-    quantities = get_statistic(metrics_all, 'total', 'all', 'quantities')
+    quantities = get_statistic(metrics_all, 'total', 'all', 'dft.quantities')
 
     # search calcs quantities=section_k_band
     band_structures = get_statistic(
-        client.repo.search(per_page=1, quantities=['section_k_band']).response().result,
+        client.repo.search(per_page=1, **{'dft.quantities': ['section_k_band']}).response().result,
         'total', 'all', 'code_runs')
 
     # search calcs quantities=section_dos
     dos = get_statistic(
-        client.repo.search(per_page=1, quantities=['section_dos']).response().result,
+        client.repo.search(per_page=1, **{'dft.quantities': ['section_dos']}).response().result,
         'total', 'all', 'code_runs')
 
     phonons = get_statistic(
-        client.repo.search(per_page=1, code_name='Phonopy').response().result,
+        client.repo.search(per_page=1, **{'dft.code_name': 'Phonopy'}).response().result,
         'total', 'all', 'code_runs')
 
     # files and sized

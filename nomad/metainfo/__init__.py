@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The NOMAD meta-info allows to define schemas for physics data independent of the used
 storage format. It allows to define physics quantities with types, complex shapes
 (vetors, matrices, etc.), units, links, and descriptions. It allows to organize large
@@ -32,15 +32,15 @@ Starting example
     from nomad.metainfo import MSection, Quantity, SubSection, Units
 
     class System(MSection):
-        \"\"\"
+        \'\'\'
         A system section includes all quantities that describe a single a simulated
         system (a.k.a. geometry).
-        \"\"\"
+        \'\'\'
 
         n_atoms = Quantity(
-            type=int, description='''
+            type=int, description=\'\'\'
             A Defines the number of atoms in the system.
-            ''')
+            \'\'\')
 
         atom_labels = Quantity(type=MEnum(ase.data.chemical_symbols), shape['n_atoms'])
         atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
@@ -146,7 +146,7 @@ A `section class` looks like this:
 .. code-block:: python
 
     class SectionName(BaseSection):
-        ''' Section description '''
+        \'\'\' Section description \'\'\'
         m_def = Section(**section_attributes)
 
         quantity_name = Quantity(**quantity_attributes)
@@ -186,7 +186,7 @@ category looks like this:
 .. code-block:: python
 
     class CategoryName(MCategory):
-        ''' Category description '''
+        \'\'\' Category description \'\'\'
         m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
 
 Packages
@@ -272,9 +272,35 @@ A more complex example
 .. literalinclude:: ../nomad/metainfo/example.py
     :language: python
 
-"""
+'''
 
-from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Environment, MEnum, Datetime, MProxy, MetainfoError, DeriveError, \
-    MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
-    units
+
+from .metainfo import (
+    MSectionBound,
+    MSection,
+    MCategory,
+    Definition,
+    Property,
+    Quantity,
+    SubSection,
+    Section,
+    Category,
+    Package,
+    Environment,
+    MEnum,
+    Datetime,
+    MProxy,
+    MetainfoError,
+    DeriveError,
+    MetainfoReferenceError,
+    DataType,
+    Reference,
+    MResource,
+    m_package,
+    units,
+    Annotation,
+    DefinitionAnnotation,
+    SectionAnnotation,
+    SectionProxy,
+    derived,
+    constraint)

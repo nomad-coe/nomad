@@ -52,7 +52,7 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
         query &= Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:
-        code_queries = [es.Q('match', code_name=code_name) for code_name in code]
+        code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
         code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
 
         code_search = es.Search(index=config.elastic.index_name)
@@ -144,20 +144,19 @@ def chown(ctx, username, uploads):
 
     for upload in uploads:
         upload.user_id = user.user_id
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
+        calcs = upload.entries_metadata()
 
-        def create_update(calc):
+        def create_update(calc_id):
             return UpdateOne(
-                {'_id': calc.calc_id},
+                {'_id': calc_id},
                 {'$set': {'metadata.uploader': user.user_id}})
 
-        proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+        proc.Calc._get_collection().bulk_write(
+            [create_update(calc_id) for calc_id in upload.entry_ids()])
         upload.save()
 
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
-        search.index_all(calcs, do_refresh=False)
+        with upload.entries_metadata() as calcs:
+            search.index_all(calcs, do_refresh=False)
         search.refresh()
 
 
@@ -194,10 +193,9 @@ def index(ctx, uploads):
 
     i, failed = 0, 0
     for upload in uploads:
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
-        failed += search.index_all(calcs)
-        i += 1
+        with upload.entries_metadata() as calcs:
+            failed += search.index_all(calcs)
+            i += 1
 
         print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
 
@@ -259,11 +257,11 @@ def msgpack(ctx, uploads):
                         yield (calc_id, json.load(f))
 
             for access in ['public', 'restricted']:
-                with upload_files.open_zip_file('archive', access, upload_files._archive_ext) as zf:
-                    archive_name = zf.filename.replace('.zip', '.msg')
+                with upload_files._open_zip_file('archive', access, 'json') as zf:
+                    archive_path = upload_files._file_object('archive', access, 'msg', 'msg').os_path
                     names = [name for name in zf.namelist() if name.endswith('json')]
-                    archive.write_archive(archive_name, len(names), iterator(zf, names))
-                print('wrote msgpack archive %s' % archive_name)
+                    archive.write_archive(archive_path, len(names), iterator(zf, names))
+                print('wrote msgpack archive %s' % archive_path)
 
 
 @uploads.command(help='Reprocess selected uploads.')

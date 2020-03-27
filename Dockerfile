@@ -37,7 +37,7 @@ RUN pip install hjson
 RUN pip install scipy
 RUN pip install scikit-learn==0.20.2
 RUN pip install ase==3.15.0
-RUN pip install Pint==0.7.2
+RUN pip install Pint
 RUN pip install matid
 RUN pip install mdtraj==1.9.1
 RUN pip install mdanalysis==0.16.2

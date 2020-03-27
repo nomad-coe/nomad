@@ -142,7 +142,7 @@ class ArchiveEntryView extends React.Component {
 
   updateMetaInfo() {
     if (this.props.api && this.props.info && !this.state.metaInfo) {
-      this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
+      this.props.api.getMetaInfo(this.props.info.domains.find(domain => domain.name === 'dft').metainfo.all_package).then(metaInfo => {  // TODO handle the domain specificity
         if (!this.unmounted) {
           this.setState({metaInfo: metaInfo})
         }

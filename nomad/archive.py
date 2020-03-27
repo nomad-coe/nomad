@@ -33,12 +33,12 @@ class ArchiveError(Exception):
 
 
 class TOCPacker(Packer):
-    """
+    '''
     A special msgpack packer that records a TOC while packing.
 
     Uses a combination of the pure python msgpack fallback packer and the "real"
     c-based packing.
-    """
+    '''
     def __init__(self, toc_depth: int, *args, **kwargs):
         self.toc_depth = toc_depth
         self.toc: Dict[str, Any] = None
@@ -51,7 +51,7 @@ class TOCPacker(Packer):
         super().__init__(*args, **kwargs)
 
     def pack(self, obj, *args, **kwargs):
-        assert isinstance(obj, dict), 'TOC packer can only pack dicts'
+        assert isinstance(obj, dict), 'TOC packer can only pack dicts, %s' % obj.__class__
         self._depth = 0
         self._buffer = StringIO()
         result = super().pack(obj, *args, **kwargs)
@@ -80,12 +80,15 @@ class TOCPacker(Packer):
                         # of array items
                         if len(value) > 0 and isinstance(value[0], dict):
                             toc[key] = self._stack.pop()
+
                     elif isinstance(value, (dict, list, tuple)):
                         toc[key] = self._stack.pop()
-                toc_result['toc'] = toc
+
+                toc_result['toc'] = {key: value for key, value in reversed(list(toc.items()))}
 
             end = self._pos()
             toc_result['pos'] = [start, end]
+
             self._stack.append(toc_result)
 
         elif isinstance(obj, list):
@@ -291,17 +294,19 @@ class ArchiveReader(ArchiveObject):
 
         super().__init__(None, f)
 
+        self._toc_entry = None
+
         # this number is determined by the msgpack encoding of the file beginning:
         # { 'toc_pos': <...>
         #              ^11
         self._f.seek(11)
-        toc_position = ArchiveReader._decode_position(self._f.read(10))
+        self.toc_position = ArchiveReader._decode_position(self._f.read(10))
 
         self.use_blocked_toc = use_blocked_toc
         if use_blocked_toc:
             self._f.seek(11)
             self._toc: Dict[str, Any] = {}
-            toc_start = toc_position[0]
+            toc_start = self.toc_position[0]
             self._f.seek(toc_start)
             b = self._f.read(1)[0]
             if b & 0b11110000 == 0b10000000:
@@ -317,7 +322,7 @@ class ArchiveReader(ArchiveObject):
                 raise ArchiveError('Archive top-level TOC is not a msgpack map (dictionary).')
 
         else:
-            self.toc_entry = self._read(toc_position)
+            self.toc_entry = self._read(self.toc_position)
 
     def __enter__(self):
         return self
@@ -354,14 +359,19 @@ class ArchiveReader(ArchiveObject):
         return first, last
 
     def __getitem__(self, key):
-        if self.use_blocked_toc:
+        key = adjust_uuid_size(key)
+
+        if self.use_blocked_toc and self.toc_entry is None:
+            if self._n_toc == 0:
+                raise KeyError(key)
+
             positions = self._toc.get(key)
             # TODO use hash algo instead of binary search
             if positions is None:
                 r_start = 0
                 r_end = self._n_toc
                 i_block = None
-                while positions is None:
+                while r_start <= r_end:
                     new_i_block = r_start + math.floor((r_end - r_start) / 2)
                     if i_block == new_i_block:
                         break
@@ -369,14 +379,15 @@ class ArchiveReader(ArchiveObject):
                         i_block = new_i_block
 
                     first, last = self._load_toc_block(i_block)
+
                     if key < first:
                         r_end = i_block - 1
                     elif key > last:
                         r_start = i_block + 1
                     else:
-                        positions = self._toc.get(key)
                         break
 
+                positions = self._toc.get(key)
                 if positions is None:
                     raise KeyError(key)
 
@@ -391,9 +402,17 @@ class ArchiveReader(ArchiveObject):
         return ArchiveObject(toc, self._f, data_position[0])
 
     def __iter__(self):
+        if self.toc_entry is None:
+            # is not necessarely read when using blocked toc
+            self.toc_entry = self._read(self.toc_position)
+
         return self.toc_entry.__iter__()
 
     def __len__(self):
+        if self.toc_entry is None:
+            # is not necessarely read when using blocked toc
+            self.toc_entry = self._read(self.toc_position)
+
         return self.toc_entry.__len__()
 
     def close(self):
@@ -408,11 +427,14 @@ class ArchiveReader(ArchiveObject):
         return int.from_bytes(position[0:5], byteorder='little', signed=False), \
             int.from_bytes(position[5:], byteorder='little', signed=False)
 
+    def is_closed(self):
+        return self._f.closed
+
 
 def write_archive(
         path_or_file: Union[str, BytesIO], n_entries: int, data: Iterable[Tuple[str, Any]],
         entry_toc_depth: int = 2) -> None:
-    """
+    '''
     Writes a msgpack-based archive file. The file contents will be a valid msgpack-object.
     The data will contain extra table-of-contents (TOC) objects that map some keys to
     positions in the file. Data can be partially read from these positions and deserialized
@@ -465,14 +487,14 @@ def write_archive(
         data: The file contents as an iterator of entry id, data tuples.
         entry_toc_depth: The depth of the table of contents in each entry. Only objects will
             count for calculating the depth.
-    """
+    '''
     with ArchiveWriter(path_or_file, n_entries, entry_toc_depth=entry_toc_depth) as writer:
         for uuid, entry in data:
             writer.add(uuid, entry)
 
 
 def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
-    """
+    '''
     Allows to read a msgpack-based archive.
 
     Arguments:
@@ -484,12 +506,12 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
         A mapping (dict-like) that can be used to access the archive data. The mapping
         will lazyly load data as it is used. The mapping needs to be closed or used within
         a 'with' statement to free the underlying file resource after use.
-    """
+    '''
 
     return ArchiveReader(file_or_path, **kwargs)
 
 
-def query_archive(f, query_dict: dict):
+def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict):
 
     def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
         if not isinstance(query_dict, dict):
@@ -505,17 +527,18 @@ def query_archive(f, query_dict: dict):
             key = key.strip()
 
             # process array indices
-            match = re.match(r'([_a-bA-Z0-9]+)\[([0-9]+|:)\]', key)
+            match = re.match(r'(\w+)\[([-?0-9:]+)\]', key)
             if match:
                 archive_key = match.group(1)
                 index_str = match.group(2)
-                match = re.match(r'([0-9]*):([0-9]*)', index_str)
+                match = re.match(r'([-?0-9]*):([-?0-9]*)', index_str)
                 if match:
                     index = (
                         0 if match.group(1) == '' else int(match.group(1)),
                         None if match.group(2) == '' else int(match.group(2)))
                 else:
                     index = int(index_str)  # type: ignore
+                key = archive_key
             else:
                 archive_key = key
                 index = None
@@ -524,7 +547,6 @@ def query_archive(f, query_dict: dict):
             archive_key = key.split('[')[0]
             if main_section:
                 archive_key = adjust_uuid_size(key)
-
             try:
                 if index is None:
                     res[key] = _load_data(val, archive_item[archive_key])
@@ -538,8 +560,15 @@ def query_archive(f, query_dict: dict):
 
         return res
 
-    with ArchiveReader(f) as archive:
-        return _load_data(query_dict, archive, True)
+    if isinstance(f_or_archive_reader, ArchiveReader):
+        return _load_data(query_dict, f_or_archive_reader, True)
+
+    elif isinstance(f_or_archive_reader, (BytesIO, str)):
+        with ArchiveReader(f_or_archive_reader) as archive:
+            return _load_data(query_dict, archive, True)
+
+    else:
+        raise TypeError('%s is neither a file-like nor ArchiveReader' % f_or_archive_reader)
 
 
 if __name__ == '__main__':

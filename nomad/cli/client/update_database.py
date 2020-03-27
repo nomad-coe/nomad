@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Automatically synchronizes nomad it with a given database. It creates a list of paths
 to mainfiles in nomad and compares it with paths in the external database. The missing
 paths in nomad will then be downloaded from the external database and subsequently
 uploaded to nomad. The downloaded files are by default saved in '/nomad/fairdi/external'.
-"""
+'''
 
 import requests
 import re

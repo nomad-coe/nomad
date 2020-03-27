@@ -25,14 +25,17 @@ from nomad import utils, processing as proc, search, config, files, infrastructu
 from nomad.datamodel import Dataset, User
 from nomad.doi import DOI
 from nomad.cli.admin.uploads import delete_upload
+from nomad.datamodel import MongoMetadata, EntryMetadata
 
 from .client import client
 
 
-__in_test = False
-""" Will be monkeypatched by tests to alter behavior for testing. """
+__mongo_properties = set(d.name for d in MongoMetadata.m_def.definitions)
 
-_Dataset = Dataset.m_def.m_x('me').me_cls
+__in_test = False
+''' Will be monkeypatched by tests to alter behavior for testing. '''
+
+_Dataset = Dataset.m_def.a_mongo.mongo_cls
 __logger = utils.get_logger(__name__)
 
 
@@ -81,8 +84,28 @@ def transform_reference(reference):
     return reference['value']
 
 
+def v0Dot7(upload_data):
+    ''' Inplace transforms v0.7.x upload data into v0.8.x upload data. '''
+    print(__mongo_properties)
+    for calc in upload_data['calcs']:
+        calc_metadata = calc['metadata']
+        if 'pid' in calc_metadata:
+            calc_metadata['pid'] = str(calc_metadata['pid'])
+        metadata = {
+            key: value
+            for key, value in calc_metadata.items()
+            if key in __mongo_properties
+        }
+        entry_metadata = EntryMetadata(**metadata)
+        calc['metadata'] = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[MongoMetadata])
+
+    return upload_data
+
+
 def v0Dot6(upload_data):
-    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+    ''' Inplace transforms v0.6.x upload data into v0.7.x upload data. '''
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)
@@ -136,12 +159,11 @@ class Mapping:
         or use the --config nomad parameter.''')
 @click.argument('QUERY', nargs=1, required=False)
 @click.option(
-    '--move', is_flag=True, default=False,
+    '--move', is_flag=True,
     help='Instead of copying the underlying upload files, we move it and replace it with a symlink.')
 @click.option(
-    '--link', is_flag=True, default=False,
-    help='Instead of copying the underlying upload files, we create symlinks in the target.'
-)
+    '--link', is_flag=True,
+    help='Instead of copying the underlying upload files, we create symlinks in the target.')
 @click.option(
     '--source-mapping', type=str, default=None,
     help=(
@@ -155,28 +177,27 @@ class Mapping:
         '"mapped" in all paths used for the target. Allows to handle local mounts '
         'paths in target deployment. E.g. use ".volumes/fs:/nomad/fairdi/<target>/fs".'))
 @click.option(
-    '--dry', is_flag=True, default=False,
-    help='Do not actually mirror data, just fetch data and report.')
+    '--dry', is_flag=True, help='Do not actually mirror data, just fetch data and report.')
 @click.option(
-    '--files-only', is_flag=True, default=False,
+    '--files-only', is_flag=True,
     help=(
         'Will only copy/move files and not even look at the calculations. Useful, '
         'when moving metadata via mongo dump/restore.'))
 @click.option(
+    '--skip-files', is_flag=True, help='Will not copy/move/link any files.')
+@click.option(
     '--migration', type=str, default=None,
-    help='The name of a migration script used to transform the metadata.'
-)
+    help='The name of a migration script used to transform the metadata.')
 @click.option(
-    '--staging', is_flag=True, default=False,
-    help='Mirror non published uploads. Only works with --move or --link.'
-)
+    '--skip-es', is_flag=True, help='Do not add mirrored data to elastic search')
 @click.option(
-    '--replace', is_flag=True, default=False,
-    help='Replace existing uploads.'
-)
+    '--staging', is_flag=True, help='Mirror non published uploads. Only works with --move or --link.')
+@click.option(
+    '--replace', is_flag=True, help='Replace existing uploads.')
 def mirror(
-        query, move: bool, link: bool, dry: bool, files_only: bool, source_mapping: str,
-        target_mapping: str, migration: str, staging: bool, replace: bool):
+        query, move: bool, link: bool, dry: bool, files_only: bool, skip_files: bool,
+        source_mapping: str, target_mapping: str, migration: str, staging: bool,
+        skip_es: bool, replace: bool):
 
     if staging and not (move or link):
         print('--with-staging requires either --move or --link')
@@ -186,6 +207,8 @@ def mirror(
     if migration is not None:
         if migration == 'v0.6.x':
             migration_func = v0Dot6
+        if migration == 'v0.7.x':
+            migration_func = v0Dot7
         else:
             print('Migration %s does not exist.' % migration)
             sys.exit(1)
@@ -271,34 +294,35 @@ def mirror(
                     continue
 
         # copy/link/mv file
-        upload_files_path = upload_data.upload_files_path
-        if __in_test:
-            tmp = os.path.join(config.fs.tmp, 'to_mirror')
-            os.rename(upload_files_path, tmp)
-            upload_files_path = tmp
+        if not skip_files:
+            upload_files_path = upload_data.upload_files_path
+            if __in_test:
+                tmp = os.path.join(config.fs.tmp, 'to_mirror')
+                os.rename(upload_files_path, tmp)
+                upload_files_path = tmp
 
-        upload_files_path = source_mapping_obj.apply(upload_files_path)
+            upload_files_path = source_mapping_obj.apply(upload_files_path)
 
-        target_upload_files_path = files.PathObject(
-            config.fs.public if not staging else config.fs.staging,
-            upload_id, create_prefix=False, prefix=True).os_path
-        target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
+            target_upload_files_path = files.PathObject(
+                config.fs.public if not staging else config.fs.staging,
+                upload_id, create_prefix=False, prefix=True).os_path
+            target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
-        if not os.path.exists(target_upload_files_path):
-            if move:
-                os.rename(upload_files_path, target_upload_files_path)
-                os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
+            if not os.path.exists(target_upload_files_path):
+                if move:
+                    os.rename(upload_files_path, target_upload_files_path)
+                    os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
 
-            elif link:
-                os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/')), exist_ok=True)
-                os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
+                elif link:
+                    os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/')), exist_ok=True)
+                    os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
 
-            else:
-                os.makedirs(target_upload_files_path)
-                for to_copy in os.listdir(upload_files_path):
-                    shutil.copyfile(
-                        os.path.join(upload_files_path, to_copy),
-                        os.path.join(target_upload_files_path, to_copy))
+                else:
+                    os.makedirs(target_upload_files_path)
+                    for to_copy in os.listdir(upload_files_path):
+                        shutil.copyfile(
+                            os.path.join(upload_files_path, to_copy),
+                            os.path.join(target_upload_files_path, to_copy))
 
         if not files_only:
             # create mongo
@@ -318,7 +342,9 @@ def mirror(
             proc.Calc._get_collection().insert(upload_data.calcs)
 
             # index es
-            search.index_all(upload.to_upload_with_metadata().calcs)
+            if not skip_es:
+                with upload.entries_metadata() as entries:
+                    search.index_all(entries)
 
         print(
             'Mirrored %s with %d calcs at %s' %

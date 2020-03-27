@@ -10,7 +10,7 @@ import qs from 'qs'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
 
-export const help = domain => `
+export const help = `
 The *raw files* tab, will show you all files that belong to the entry and offers a download
 on individual, or all files. The files can be selected and downloaded. You can also
 view the contents of some files directly here on this page.

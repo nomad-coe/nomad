@@ -1,81 +1,27 @@
 import React from 'react'
-import PropTypes from 'prop-types'
-import { withStyles, Grid, Card, CardContent } from '@material-ui/core'
-import PeriodicTable from '../search/PeriodicTable'
-import QuantityHistogram from '../search/QuantityHistogram'
+import { Grid } from '@material-ui/core'
+import { Quantity } from '../search/QuantityHistogram'
+import SearchContext from '../search/SearchContext'
 
 class EMSSearchAggregations extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    statistics: PropTypes.object.isRequired,
-    metric: PropTypes.string.isRequired,
-    searchValues: PropTypes.object.isRequired,
-    onChange: PropTypes.func.isRequired
-  }
-
-  static styles = theme => ({
-    root: {},
-    quantity: {
-      marginTop: theme.spacing.unit * 2
-    },
-    quantityGrid: {
-      marginBottom: theme.spacing.unit * 2
-    }
-  })
-
-  handleAtomsChanged(atoms) {
-    const searchValues = {...this.props.searchValues}
-    searchValues.atoms = atoms
-    if (searchValues.atoms.length === 0) {
-      delete searchValues.atoms
-    }
-    this.props.onChange({searchValues: searchValues})
-  }
-
-  handleQuantityChanged(quantity, selection) {
-    const searchValues = {...this.props.searchValues}
-    if (selection) {
-      searchValues[quantity] = selection
-    } else {
-      delete searchValues[quantity]
-    }
-    this.props.onChange({searchValues: searchValues})
-  }
+  static contextType = SearchContext.type
 
   render() {
-    const { classes, statistics, metric, searchValues } = this.props
-
-    const quantity = (key, title) => (<QuantityHistogram
-      classes={{root: classes.quantity}} title={title || key} width={300}
-      data={statistics[key]} metric={metric}
-      value={searchValues[key]}
-      onChanged={(selection) => this.handleQuantityChanged(key, selection)}/>)
+    const {state: {usedMetric}} = this.context
 
     return (
-      <div className={classes.root}>
-        <Card>
-          <CardContent>
-            <PeriodicTable
-              aggregations={statistics.atoms} metric={metric}
-              values={searchValues.atoms || []}
-              onChanged={(selection) => this.handleAtomsChanged(selection)}
-            />
-          </CardContent>
-        </Card>
-
-        <Grid container spacing={24} className={classes.quantityGrid}>
-          <Grid item xs={6}>
-            {quantity('method', 'Method')}
-            {quantity('probing_method', 'Probing')}
-          </Grid>
-          <Grid item xs={6}>
-            {quantity('sample_microstructure', 'Sample structure')}
-            {quantity('sample_constituents', 'Sample constituents')}
-          </Grid>
+      <Grid container spacing={24}>
+        <Grid item xs={6}>
+          <Quantity quantity="ems.method" title="Method" scale={1} metric={usedMetric} />
+          <Quantity quantity="ems.probing_method" title="Probing" scale={1} metric={usedMetric} />
         </Grid>
-      </div>
+        <Grid item xs={6}>
+          <Quantity quantity="ems.sample_microstructure" title="Sample structure" scale={1} metric={usedMetric} />
+          <Quantity quantity="ems.sample_constituents" title="Sample constituents" scale={1} metric={usedMetric} />
+        </Grid>
+      </Grid>
     )
   }
 }
 
-export default withStyles(EMSSearchAggregations.styles)(EMSSearchAggregations)
+export default EMSSearchAggregations

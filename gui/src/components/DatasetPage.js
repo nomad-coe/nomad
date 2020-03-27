@@ -9,7 +9,6 @@ import SearchContext from './search/SearchContext'
 import { Typography } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
 import { withRouter } from 'react-router'
-import { withDomain } from './domains'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -22,8 +21,7 @@ class DatasetPage extends React.Component {
     api: PropTypes.object.isRequired,
     datasetId: PropTypes.string.isRequired,
     raiseError: PropTypes.func.isRequired,
-    history: PropTypes.object.isRequired,
-    domain: PropTypes.object.isRequired
+    history: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -91,7 +89,7 @@ class DatasetPage extends React.Component {
   }
 
   render() {
-    const { classes, datasetId, domain } = this.props
+    const { classes, datasetId } = this.props
     const { dataset, update, empty } = this.state
 
     return (
@@ -119,9 +117,6 @@ class DatasetPage extends React.Component {
         >
           <Search
             resultTab="entries" tabs={['entries', 'groups', 'datasets']}
-            entryListProps={{
-              selectedColumns: [...domain.defaultSearchResultColumns, 'published', 'authors']
-            }}
           />
         </SearchContext>
       </div>
@@ -129,4 +124,4 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default compose(withRouter, withDomain, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)

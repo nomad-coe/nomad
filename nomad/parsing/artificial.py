@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Parser for creating artificial test, brenchmark, and demonstration data.
-"""
+'''
 
 import json
 import os.path
@@ -27,26 +27,20 @@ import time
 import os
 import signal
 
-from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
-import nomad_meta_info
+from nomad import metainfo
 
-from nomad.parsing.backend import LocalBackend
-from nomad.parsing.parser import Parser, MatchingParser
-
-
-file_dir = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-meta_info_path = os.path.normpath(os.path.join(file_dir, 'vasp.nomadmetainfo.json'))
-meta_info_env, _ = loadJsonFile(filePath=meta_info_path, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
+from .legacy import Backend
+from .parser import Parser, MatchingParser
 
 
 class ArtificalParser(Parser):
-    """ Base class for artifical parsers based on VASP metainfo. """
+    ''' Base class for artifical parsers based on VASP metainfo. '''
     def __init__(self):
         super().__init__()
         self.backend = None
 
     def init_backend(self):
-        self.backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)
+        self.backend = Backend(metainfo='vasp')
 
     @property
     def name(self):
@@ -54,11 +48,11 @@ class ArtificalParser(Parser):
 
 
 class EmptyParser(MatchingParser):
-    """
+    '''
     Implementation that produces an empty code_run
-    """
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
-        backend = LocalBackend(metaInfoEnv=meta_info_env, debug=False)  # type: ignore
+    '''
+    def run(self, mainfile: str, logger=None) -> Backend:
+        backend = Backend(metainfo='vasp')
         backend.openSection('section_run')
         backend.addValue('program_name', self.code_name)
         backend.closeSection('section_run', 0)
@@ -66,11 +60,16 @@ class EmptyParser(MatchingParser):
 
 
 class TemplateParser(ArtificalParser):
-    """
+    '''
     A parser that generates data based on a template given via the
     mainfile. The template is basically some archive json. Only
-    """
+    '''
     name = 'parsers/template'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from nomad.datamodel.metainfo import m_env as metainfo_env
+        self._metainfo_env = metainfo_env
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
@@ -78,11 +77,11 @@ class TemplateParser(ArtificalParser):
         return filename.endswith('template.json')
 
     def transform_value(self, name, value):
-        """ allow subclasses to modify values """
+        ''' allow subclasses to modify values '''
         return value
 
     def transform_section(self, name, section):
-        """ allow subclasses to modify sections """
+        ''' allow subclasses to modify sections '''
         return section
 
     def add_section(self, section):
@@ -100,8 +99,8 @@ class TemplateParser(ArtificalParser):
             else:
                 value = self.transform_value(key, value)
                 if isinstance(value, list):
-                    shape = meta_info_env[key].get('shape')
-                    if shape is None or len(shape) == 0:
+                    quantity_def = self.backend.env.resolve_definition(key, metainfo.Quantity)
+                    if quantity_def.is_scalar:
                         for single_value in value:
                             self.backend.addValue(key, single_value, index)
                     else:
@@ -111,7 +110,7 @@ class TemplateParser(ArtificalParser):
 
         self.backend.closeSection(name, index)
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
@@ -130,7 +129,7 @@ class TemplateParser(ArtificalParser):
 
 
 class ChaosParser(ArtificalParser):
-    """
+    '''
     Parser that emulates typical error situations. Files can contain a json string (or
     object with key `chaos`) with one of the following string values:
     - exit
@@ -139,7 +138,7 @@ class ChaosParser(ArtificalParser):
     - exception
     - segfault
     - random
-    """
+    '''
     name = 'parsers/chaos'
 
     def is_mainfile(
@@ -147,7 +146,7 @@ class ChaosParser(ArtificalParser):
             compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         self.init_backend()
 
         chaos_json = json.load(open(mainfile, 'r'))
@@ -212,7 +211,7 @@ class GenerateRandomParser(TemplateParser):
         return os.path.basename(filename).startswith('random_')
 
     def transform_section(self, name, section):
-        """ allow subclasses to modify sections """
+        ''' allow subclasses to modify sections '''
         if name == 'section_system':
             atoms = []
             atom_positions = []
@@ -243,7 +242,7 @@ class GenerateRandomParser(TemplateParser):
         else:
             return value
 
-    def run(self, mainfile: str, logger=None) -> LocalBackend:
+    def run(self, mainfile: str, logger=None) -> Backend:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')

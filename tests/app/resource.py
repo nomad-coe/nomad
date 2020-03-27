@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 API endpoints that cause various scenerios to test general API aspects like logging,
 error handling, etc.
-"""
+'''
 
 from flask_restplus import Resource
 

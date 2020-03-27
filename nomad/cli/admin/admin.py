@@ -159,9 +159,8 @@ def lift_embargo(dry, parallel):
                 uploads_to_repack.append(upload)
                 upload.save()
 
-                upload_with_metadata = upload.to_upload_with_metadata()
-                calcs = upload_with_metadata.calcs
-                search.index_all(calcs)
+                with upload.entries_metadata() as entries:
+                    search.index_all(entries)
 
     if not dry:
         __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
@@ -182,10 +181,8 @@ def index(threads, dry):
         with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
             for calc in proc.Calc.objects():
                 eta.add()
-                entry = None
-                entry = search.Entry.from_calc_with_metadata(
-                    datamodel.CalcWithMetadata(**calc.metadata))
-                entry = entry.to_dict(include_meta=True)
+                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
+                entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                 entry['_op_type'] = 'index'
                 yield entry
 
@@ -332,24 +329,24 @@ RewriteCond %{QUERY_STRING} ^pid=([^&]+)$
 RewriteRule ^/NomadRepository-1.1/views/calculation.zul$ /{0}/gui/entry/pid/%1? [R=301]
 
 AllowEncodedSlashes On
-'''.format(prefix, host, port))
+'''.format(prefix, host, port))  # type: ignore
 
 
 def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
-    """Writes the prototype data file in a compressed format to a python
+    '''Writes the prototype data file in a compressed format to a python
     module.
 
     Args:
         aflow_prototypes
-    """
+    '''
     class NoIndent(object):
         def __init__(self, value):
             self.value = value
 
     class NoIndentEncoder(json.JSONEncoder):
-        """A custom JSON encoder that can pretty-print objects wrapped in the
+        '''A custom JSON encoder that can pretty-print objects wrapped in the
         NoIndent class.
-        """
+        '''
         def __init__(self, *args, **kwargs):
             super(NoIndentEncoder, self).__init__(*args, **kwargs)
             self.kwargs = dict(kwargs)

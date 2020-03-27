@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -183,7 +182,7 @@ class UploadListUnstyled extends React.Component {
 
   render() {
     const { classes, data, total, uploads_after, onChange, actions } = this.props
-    const uploads = data.uploads || {values: []}
+    const uploads = data.uploads_grouped || {values: []}
     const results = Object.keys(uploads.values).map(id => {
       return {
         id: id,
@@ -205,10 +204,10 @@ class UploadListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_after: null})}>
+        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>
@@ -229,6 +228,6 @@ class UploadListUnstyled extends React.Component {
   }
 }
 
-const UploadList = compose(withRouter, withDomain, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
+const UploadList = compose(withRouter, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
 
 export default UploadList

@@ -11,7 +11,6 @@ import { withErrors } from '../errors'
 import { withRouter } from 'react-router'
 import { debug } from '../../config'
 import EntryList, { EntryListUnstyled } from '../search/EntryList'
-import { withDomain } from '../domains'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
 import PublishedIcon from '@material-ui/icons/Public'
@@ -107,7 +106,6 @@ class Upload extends React.Component {
     api: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
-    domain: PropTypes.object.isRequired,
     open: PropTypes.bool,
     history: PropTypes.object.isRequired
   }
@@ -613,7 +611,7 @@ class Upload extends React.Component {
       data={data}
       onChange={this.handleChange}
       actions={actions}
-      showEntryActions={entry => entry.processed}
+      showEntryActions={entry => entry.processed || !running}
       {...this.state.params}
     />
   }
@@ -698,4 +696,4 @@ class Upload extends React.Component {
   }
 }
 
-export default compose(withRouter, withErrors, withApi(true, false), withDomain, withStyles(Upload.styles))(Upload)
+export default compose(withRouter, withErrors, withApi(true, false), withStyles(Upload.styles))(Upload)

@@ -45,12 +45,17 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
     'sphinx.ext.napoleon',
+    'sphinx.ext.autosectionlabel',
+    'sphinx_click.ext',
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
     'sphinxcontrib.autohttp.flaskqref',
     'celery.contrib.sphinx',
     'm2r'
 ]
+
+# Prefix the automatically generated labels with the document name
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
