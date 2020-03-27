@@ -29,6 +29,15 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.8.0
+- new underlying datamodel that allows to maintain multiple domains
+- mulitple domains supported the GUI
+- new metainfo implementation
+- new archive based on new metainfo
+- client library that serves archive data as objects (with tab completion) not dictionaries
+- properties and user tab in the search GUI
+- improved performance on most parsers
+
 ### v0.7.9
 - Everything to run a simple NOMAD OASIS based on the central user-management
 - minor bugfixes
