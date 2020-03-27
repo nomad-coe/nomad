@@ -601,7 +601,8 @@ class TestM1:
         section = TestSection()
         assert section.int_quantity == 0
         assert section.float_quantity == 0.0
-        assert section.bool_quantity == False
+        assert section.bool_quantity is False
+
 
 class TestDatatypes:
 

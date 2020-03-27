@@ -57,7 +57,7 @@ proc_model = api.model('Processing', {
 
 calc_metadata_model = api.inherit('CalcMetaData', metadata_model, {
     'mainfile': fields.String(description='The calculation main output file is used to identify the calculation in the upload.'),
-    '_pid': fields.Integer(description='Assign a specific pid. It must be unique.'),
+    '_pid': fields.String(description='Assign a specific pid. It must be unique.'),
     'external_id': fields.String(description='External user provided id. Does not have to be unique necessarily.')
 })
 

@@ -270,7 +270,7 @@ class TestUploads:
                         'references': lambda e: e.references,
                         'coauthors': lambda e: [u.user_id for u in e.coauthors],
                         '_uploader': lambda e: e.uploader.user_id,
-                        '_pid': lambda e: e.pid,
+                        '_pid': lambda e: str(e.pid),
                         'external_id': lambda e: e.external_id}.items():
                     if key in metadata:
                         assert transform(entry) == metadata[key], key
@@ -451,7 +451,7 @@ class TestUploads:
         rv = api.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=dict(_pid=256))),
+            data=json.dumps(dict(operation='publish', metadata=dict(_pid='256'))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -732,7 +732,7 @@ class TestRepo():
 
         entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
-            with_embargo=False, pid=2, upload_time=today_datetime - datetime.timedelta(days=5),
+            with_embargo=False, pid='2', upload_time=today_datetime - datetime.timedelta(days=5),
             external_id='external_2')
         entry_metadata.m_update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA')
@@ -741,12 +741,12 @@ class TestRepo():
 
         entry_metadata.m_update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
-            with_embargo=False, pid=3, external_id='external_3')
+            with_embargo=False, pid='3', external_id='external_3')
         entry_metadata.a_elastic.index(refresh=True)
 
         entry_metadata.m_update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
-            with_embargo=True, pid=4, external_id='external_4')
+            with_embargo=True, pid='4', external_id='external_4')
         entry_metadata.a_elastic.index(refresh=True)
 
         yield

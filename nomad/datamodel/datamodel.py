@@ -281,7 +281,7 @@ class EntryMetadata(metainfo.MSection):
                 many_or='append', name='files', search_field='files.keyword')])
 
     pid = metainfo.Quantity(
-        type=int,
+        type=str,
         description='The unique, sequentially enumerated, integer persistent identifier',
         categories=[MongoMetadata],
         a_search=Search(many_or='append'))

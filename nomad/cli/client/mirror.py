@@ -88,9 +88,12 @@ def v0Dot7(upload_data):
     ''' Inplace transforms v0.7.x upload data into v0.8.x upload data. '''
     print(__mongo_properties)
     for calc in upload_data['calcs']:
+        calc_metadata = calc['metadata']
+        if 'pid' in calc_metadata:
+            calc_metadata['pid'] = str(calc_metadata['pid'])
         metadata = {
             key: value
-            for key, value in calc['metadata'].items()
+            for key, value in calc_metadata.items()
             if key in __mongo_properties
         }
         entry_metadata = EntryMetadata(**metadata)

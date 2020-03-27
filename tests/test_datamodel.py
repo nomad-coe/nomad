@@ -75,7 +75,7 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
 
     entry.upload_time = datetime.datetime.utcnow()
     entry.calc_hash = utils.create_uuid()
-    entry.pid = pid
+    entry.pid = str(pid)
     entry.mainfile = random.choice(filepaths)
     entry.files = list([entry.mainfile] + random.choices(filepaths, k=random.choice(low_numbers_for_files)))
     entry.uploader = _gen_user()
