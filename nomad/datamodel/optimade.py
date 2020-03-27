@@ -170,7 +170,7 @@ class OptimadeEntry(MSection):
         ''')
 
     dimension_types = Quantity(
-        type=int, shape=[3],
+        type=int, shape=[3], default=[0, 0, 0],
         links=optimade_links('h.6.2.8'),
         a_search=Search(value=lambda a: sum(a.dimension_types)),
         a_optimade=Optimade(query=True, entry=True),
