@@ -592,6 +592,16 @@ class TestM1:
         assert copy.systems[0].m_parent_index == 0
         assert copy.systems[0].m_parent_sub_section is run.systems[0].m_parent_sub_section
 
+    def test_default_defaults(self):
+        class TestSection(MSection):
+            int_quantity = Quantity(type=int)
+            float_quantity = Quantity(type=float)
+            bool_quantity = Quantity(type=bool)
+
+        section = TestSection()
+        assert section.int_quantity == 0
+        assert section.float_quantity == 0.0
+        assert section.bool_quantity == False
 
 class TestDatatypes:
 
