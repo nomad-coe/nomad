@@ -197,7 +197,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://localhost:8000/fairdi/nomad/latest/api'
+    url='http://repository.nomad-coe.eu/app/api'
 )
 
 datacite = NomadConfig(

@@ -135,6 +135,13 @@ spec:
               name: {{ .Values.keycloak.clientSecret }}
               key: password
         {{ end }}
+        {{ if .Values.client.passwordSecret }}
+        - name: NOMAD_CLIENT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.client.passwordSecret }}
+              key: password
+        {{ end }}
         {{ if .Values.keycloak.passwordSecret }}
         - name: NOMAD_KEYCLOAK_PASSWORD
           valueFrom:

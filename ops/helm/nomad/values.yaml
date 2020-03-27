@@ -131,6 +131,9 @@ mail:
   port: 25
   from: 'webmaster@nomad-coe.eu'
 
+client:
+  username: admin
+
 keycloak:
   serverExternalUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
@@ -147,10 +150,6 @@ volumes:
   staging: /nomad/fairdi/latest/fs/staging
   tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
-
-## Everything else
-# The domain configuration, currently there is DFT and EMS
-domain: DFT
 
 springerDbPath: /nomad/fairdi/db/data/springer.msg
 

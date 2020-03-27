@@ -10,7 +10,6 @@ metadata:
 data:
   nomad.yaml: |
     release: "{{ .Release.Name }}"
-    domain: "{{ .Values.domain }}"
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
@@ -54,6 +53,8 @@ data:
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
+    client:
+      user: "{{ .Values.client.username }}"
     keycloak:
       server_url: "{{ .Values.keycloak.serverUrl }}"
       realm_name: "{{ .Values.keycloak.realmName }}"

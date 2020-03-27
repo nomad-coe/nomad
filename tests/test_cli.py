@@ -29,7 +29,7 @@ from tests.utils import assert_exception
 # TODO there is much more to test
 
 
-@pytest.mark.usefixtures('reset_config', 'no_warn')
+@pytest.mark.usefixtures('reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra')
 class TestAdmin:
     def test_reset(self):
         result = click.testing.CliRunner().invoke(
