@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
-import { domains } from '../domains'  // TODO this causes a weird import bug
+import { domains } from '../domains' // TODO this causes a weird import bug
 import ChipInput from 'material-ui-chip-input'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
@@ -14,7 +14,6 @@ import { compose } from 'recompose'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
 import ClearIcon from '@material-ui/icons/Cancel'
-
 
 function renderInput(inputProps) {
   const { classes, autoFocus, value, onChange, onAdd, onDelete, chips, ref, ...other } = inputProps
@@ -163,7 +162,7 @@ class SearchBar extends React.Component {
     const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
     const additionalSearchKeyRE = new RegExp(reStr)
     const match = value.match(additionalSearchKeyRE)
-    if (match && this.props.domain.additionalSearchKeys[match[1]]) {
+    if (match && domain.additionalSearchKeys[match[1]]) {
       suggestions.push({
         key: match[1],
         value: valueWithCase.substring(match[0].length)
