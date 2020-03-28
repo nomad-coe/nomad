@@ -205,7 +205,9 @@ class Backend(AbstractParserBackend):
             warnings and errors.
     '''
 
-    def __init__(self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None, logger=None):
+    def __init__(
+            self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None,
+            logger=None):
         assert metainfo is not None
 
         if logger is None:
@@ -221,7 +223,7 @@ class Backend(AbstractParserBackend):
 
         self.env: LegacyMetainfoEnvironment = cast(LegacyMetainfoEnvironment, metainfo)
         self.__legacy_env = None
-        self.resource = MResource()
+        self.resource = MResource(logger=logger)
         self.entry_archive = datamodel.EntryArchive()
         self.resource.add(self.entry_archive)
 

@@ -22,6 +22,9 @@ from nomad.metainfo.metainfo import (
     MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
     DefinitionAnnotation, Reference, MProxy, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
+from nomad import utils
+
+from tests import utils as test_utils
 
 
 def assert_section_def(section_def: Section):
@@ -544,6 +547,13 @@ class TestM1:
         assert scc.an_int == 1
         assert scc.an_int.__class__ == np.int32
         assert scc.an_int.item() == 1  # pylint: disable=no-member
+
+    def test_np_allow_wrong_shape(self, caplog):
+        resource = MResource(logger=utils.get_logger(__name__))
+        scc = resource.create(SCC)
+        scc.energy_total_0 = np.array([1.0, 1.0, 1.0])
+        scc.m_to_dict()
+        test_utils.assert_log(caplog, 'WARN', 'wrong shape')
 
     def test_proxy(self):
         class OtherSection(MSection):

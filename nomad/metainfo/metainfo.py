@@ -492,9 +492,10 @@ class MResource():
     Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
     '''
 
-    def __init__(self):
+    def __init__(self, logger=None):
         self.__data: Dict['Section', List['MSection']] = dict()
         self.contents: List['MSection'] = []
+        self.logger = logger
 
     def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
         '''
@@ -547,6 +548,10 @@ class MResource():
             section.m_def.name: section.m_to_dict()
             for section in self.contents
             if filter(section)}
+
+    def warning(self, *args, **kwargs):
+        if self.logger is not None:
+            self.logger.warn(*args, **kwargs)
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -1075,8 +1080,20 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize = _primitive_types[quantity_type]
 
             elif type(quantity_type) == np.dtype:
-                def serialize_dtype(x):
-                    return x.item()
+                is_scalar = quantity.is_scalar
+
+                def serialize_dtype(value):
+                    if isinstance(value, np.ndarray):
+                        if is_scalar:
+                            self.m_warning('numpy quantity has wrong shape', quantity=str(quantity))
+
+                        return value.tolist()
+
+                    else:
+                        if not is_scalar:
+                            self.m_warning('numpy quantity has wrong shape', quantity=str(quantity))
+
+                        return value.item()
 
                 serialize = serialize_dtype
 
@@ -1105,18 +1122,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 value = quantity.default
 
-            if type(quantity_type) == np.dtype and len(quantity.shape) > 0:
-                serializable_value = value.tolist()
-
+            if type(quantity_type) == np.dtype:
+                return serialize(value)
+            elif len(quantity.shape) == 0:
+                return serialize(value)
+            elif len(quantity.shape) == 1:
+                return [serialize(i) for i in value]
             else:
-                if len(quantity.shape) == 0:
-                    serializable_value = serialize(value)
-                elif len(quantity.shape) == 1:
-                    serializable_value = [serialize(i) for i in value]
-                else:
-                    raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
-
-            return serializable_value
+                raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
@@ -1147,6 +1160,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     yield name, serialize_quantity(quantity, is_set)
 
                 except ValueError as e:
+                    import traceback
+                    traceback.print_exc()
                     raise ValueError('Value error (%s) for %s' % (str(e), quantity))
 
             # sub sections
@@ -1532,6 +1547,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             warnings.extend(more_warnings)
 
         return errors, warnings
+
+    def m_warning(self, *args, **kwargs):
+        if self.m_resource is not None:
+            self.m_resource.warning(*args, **kwargs)
 
     def __repr__(self):
         m_section_name = self.m_def.name
