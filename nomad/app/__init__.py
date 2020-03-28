@@ -114,6 +114,9 @@ def handle(error: Exception):
         if local_logger is None:
             local_logger = nomad_utils.get_logger(__name__)
 
+        # TODO the error seems not to be the actual exception, therefore
+        # there might be no stacktrace. Maybe there is a way to get the actual
+        # exception/stacktrace
         local_logger.error('internal server error', exc_info=error)
 
     return response

@@ -86,7 +86,6 @@ def transform_reference(reference):
 
 def v0Dot7(upload_data):
     ''' Inplace transforms v0.7.x upload data into v0.8.x upload data. '''
-    print(__mongo_properties)
     for calc in upload_data['calcs']:
         calc_metadata = calc['metadata']
         if 'pid' in calc_metadata:
