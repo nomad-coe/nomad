@@ -337,7 +337,7 @@ def mirror(
                         if doi is not None and DOI.objects(doi=doi).first() is None:
                             fix_time(doi, ['create_time'])
                             DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
-                if len(upload_data.cacls) > 0:
+                if len(upload_data.calcs) > 0:
                     for calc in upload_data.calcs:
                         fix_time(calc, ['create_time', 'complete_time'])
                         fix_time(calc['metadata'], ['upload_time', 'last_processing'])
