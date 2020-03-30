@@ -20,6 +20,7 @@ import os
 import os.path
 from bravado.exception import HTTPBadRequest
 import datetime
+import traceback
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
 from nomad.datamodel import Dataset, User
@@ -324,21 +325,43 @@ def mirror(
                             os.path.join(target_upload_files_path, to_copy))
 
         if not files_only:
-            # create mongo
-            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            if upload_data.datasets is not None:
-                for dataset in upload_data.datasets.values():
-                    fix_time(dataset, ['created'])
-                    _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
-            if upload_data.dois is not None:
-                for doi in upload_data.dois.values():
-                    if doi is not None and DOI.objects(doi=doi).first() is None:
-                        fix_time(doi, ['create_time'])
-                        DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
-            for calc in upload_data.calcs:
-                fix_time(calc, ['create_time', 'complete_time'])
-                fix_time(calc['metadata'], ['upload_time', 'last_processing'])
-            proc.Calc._get_collection().insert(upload_data.calcs)
+            try:
+                # create mongo
+                upload = proc.Upload.from_json(upload_data.upload, created=True)
+                if upload_data.datasets is not None:
+                    for dataset in upload_data.datasets.values():
+                        fix_time(dataset, ['created'])
+                        _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
+                if upload_data.dois is not None:
+                    for doi in upload_data.dois.values():
+                        if doi is not None and DOI.objects(doi=doi).first() is None:
+                            fix_time(doi, ['create_time'])
+                            DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
+                if len(upload_data.cacls) > 0:
+                    for calc in upload_data.calcs:
+                        fix_time(calc, ['create_time', 'complete_time'])
+                        fix_time(calc['metadata'], ['upload_time', 'last_processing'])
+                    proc.Calc._get_collection().insert(upload_data.calcs)
+                upload.save()
+            except Exception as e:
+                traceback.print_exc()
+
+                print(
+                    'Could not mirror %s with %d calcs at %s' %
+                    (upload_id, n_calcs, upload_data.upload_files_path))
+
+                print(
+                    'Rolling back %s, files might need to be removed manually' % upload_id)
+
+                # rollback
+                try:
+                    if upload:
+                        upload.delete
+                        proc.Calc.objects(upload_id=upload.upload_id).delete()
+                except Exception:
+                    pass
+
+                continue
 
             # index es
             if not skip_es:
