@@ -695,8 +695,6 @@ class Upload(Proc):
         TODO this implementation does not do any re-matching. This will be more complex
         due to handling of new or missing matches.
         '''
-        assert self.published
-
         logger = self.get_logger()
         logger.info('started to re-process')
 
@@ -705,8 +703,21 @@ class Upload(Proc):
 
         # extract the published raw files into a staging upload files instance
         self._continue_with('extracting')
-        public_upload_files = cast(PublicUploadFiles, self.upload_files)
-        staging_upload_files = public_upload_files.to_staging_upload_files(create=True)
+
+        if self.published:
+            try:
+                staging_upload_files = StagingUploadFiles(self.upload_id)
+                # public files exist and there is a staging directory, it is probably old
+                # and we delete it first
+                staging_upload_files.delete()
+                logger.warn('deleted old staging files')
+
+            except KeyError as e:
+                logger.info('reprocessing published files')
+        else:
+            logger.info('reprocessing staging files')
+
+        staging_upload_files = self.upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
         try:
@@ -733,8 +744,9 @@ class Upload(Proc):
             # try to remove the staging copy in failure case
             logger.error('failed to trigger re-process of all calcs', exc_info=e)
 
-            if staging_upload_files is not None and staging_upload_files.exists():
-                staging_upload_files.delete()
+            if self.published:
+                if staging_upload_files is not None and staging_upload_files.exists():
+                    staging_upload_files.delete()
 
             raise e
 
@@ -956,23 +968,26 @@ class Upload(Proc):
 
     def _cleanup_after_re_processing(self):
         logger = self.get_logger()
-        logger.info('started to repack re-processed upload')
+        if self.published:
+            staging_upload_files = self.upload_files.to_staging_upload_files()
+            logger.info('started to repack re-processed upload')
 
-        staging_upload_files = self.upload_files.to_staging_upload_files()
+            with utils.timer(
+                    logger, 'reprocessed staged upload packed', step='repack staged',
+                    upload_size=self.upload_files.size):
 
-        with utils.timer(
-                logger, 'reprocessed staged upload packed', step='delete staged',
-                upload_size=self.upload_files.size):
+                staging_upload_files.pack(self.user_metadata(), skip_raw=True)
 
-            staging_upload_files.pack(self.user_metadata(), skip_raw=True)
+            with utils.timer(
+                    logger, 'reprocessed staged upload deleted', step='delete staged',
+                    upload_size=self.upload_files.size):
 
-        with utils.timer(
-                logger, 'reprocessed staged upload deleted', step='delete staged',
-                upload_size=self.upload_files.size):
+                staging_upload_files.delete()
+                self.last_update = datetime.utcnow()
+                self.save()
 
-            staging_upload_files.delete()
-            self.last_update = datetime.utcnow()
-            self.save()
+        else:
+            logger.info('no cleanup after re-processing unpublished upload')
 
     @task
     def cleanup(self):

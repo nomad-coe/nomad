@@ -207,7 +207,6 @@ def test_process_non_existing(proc_infra, test_user, with_error):
     assert upload.tasks_status == FAILURE
     assert len(upload.errors) > 0
 
-
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, with_failure):
@@ -300,6 +299,36 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         assert entry_metadata.atoms[0] == 'Si'
     else:
         assert entry_metadata.atoms == []
+
+
+@pytest.mark.parametrize('publish,old_staging', [
+    (False, False), (True, True), (True, False)])
+def test_re_process_staging(non_empty_processed, publish, old_staging):
+    upload = non_empty_processed
+
+    if publish:
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+        if old_staging:
+            StagingUploadFiles(upload.upload_id, create=True)
+
+    upload.reset()
+    upload.re_process_upload()
+    try:
+        upload.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    assert_processing(upload, published=publish)
+    if publish:
+        with pytest.raises(KeyError):
+            StagingUploadFiles(upload.upload_id)
+    else:
+        StagingUploadFiles(upload.upload_id)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
