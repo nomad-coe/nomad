@@ -99,6 +99,7 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-app
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
+        imagePullPolicy: Always
         volumeMounts:
         - mountPath: /app/nomad.yaml
           name: nomad-conf
@@ -181,7 +182,6 @@ spec:
         nomadtype: {{ .Values.app.nomadNodeType }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
-      imagePullPolicy: always
       volumes:
       - name: gunicorn-log-conf
         configMap:

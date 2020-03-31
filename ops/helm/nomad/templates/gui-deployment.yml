@@ -111,6 +111,7 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-gui
         image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
+        imagePullPolicy: Always
         command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
         ports:
         - containerPort: 80
@@ -140,7 +141,6 @@ spec:
         nomadtype: public
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
-      imagePullPolicy: always
       volumes:
       - name: nginx-conf
         configMap:

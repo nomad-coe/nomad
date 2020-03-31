@@ -31,6 +31,7 @@ spec:
       containers:
       - name: {{ include "nomad.name" . }}-worker
         image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
+        imagePullPolicy: Always
         resources:
           limits:
             memory: "{{ .Values.worker.memlimit }}Gi"
@@ -99,7 +100,6 @@ spec:
         nomadtype: {{ .Values.worker.nomadNodeType }}
       imagePullSecrets:
       - name: {{ .Values.images.secret }}
-      imagePullPolicy: always
       volumes:
       - name: nomad-conf
         configMap:
