@@ -463,7 +463,8 @@ class EntryMetadata(metainfo.MSection):
         if domain_section is None:
             domain_section = self.m_create(domain_section_def.section_cls)
 
-        domain_section.apply_domain_metadata(backend)
+        if backend is not None:
+            domain_section.apply_domain_metadata(backend)
 
 
 class EntryArchive(metainfo.MSection):

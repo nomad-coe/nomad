@@ -328,6 +328,11 @@ class Calc(Proc):
 
             self._entry_metadata.processed = False
             self.apply_entry_metadata(self._entry_metadata)
+            if self._parser_backend and self._parser_backend.resource:
+                backend = self._parser_backend
+            else:
+                backend = None
+            self._entry_metadata.apply_domain_metadata(backend)
             self._entry_metadata.a_elastic.index()
         except Exception as e:
             self.get_logger().error(

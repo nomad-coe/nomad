@@ -123,6 +123,12 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
+def test_processing_two_runs(test_user, proc_infra):
+    processed = run_processing(
+        ('test_upload_id', 'tests/data/proc/examples_template_tworuns.zip',), test_user)
+    assert_processing(processed)
+
+
 def test_processing_with_large_dir(test_user, proc_infra):
     upload_path = 'tests/data/proc/examples_large_dir.zip'
     upload_id = upload_path[:-4]
@@ -206,6 +212,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
     assert upload.current_task == 'extracting'
     assert upload.tasks_status == FAILURE
     assert len(upload.errors) > 0
+
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
@@ -369,6 +376,7 @@ def mock_failure(cls, task, monkeypatch):
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
+    upload_id, _ = uploaded
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -399,6 +407,15 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
                 assert calc.tasks_status == FAILURE
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0
+
+    calc = Calc.objects(upload_id=upload_id).first()
+    if calc is not None:
+        with upload.upload_files.read_archive(calc.calc_id) as archive:
+            calc_archive = archive[calc.calc_id]
+            assert 'section_metadata' in calc_archive
+            assert 'processing_logs' in calc_archive
+            if task != 'parsing':
+                assert 'section_run' in calc_archive
 
 # TODO timeout
 # consume_ram, segfault, and exit are not testable with the celery test worker

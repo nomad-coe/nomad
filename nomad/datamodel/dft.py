@@ -169,7 +169,7 @@ class DFTMetadata(MSection):
         a_search=Search(default_statistic=True))
 
     spacegroup = Quantity(
-        type=int, default='not processed',
+        type=int, default=-1,
         description='The spacegroup of the simulated system as number.',
         a_search=Search())
 
