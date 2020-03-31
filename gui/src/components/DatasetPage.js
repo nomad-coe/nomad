@@ -57,7 +57,7 @@ class DatasetPage extends React.Component {
       per_page: 1
     }).then(data => {
       const entry = data.results[0]
-      const dataset = entry && entry.datasets.find(ds => ds.id + '' === datasetId)
+      const dataset = entry && entry.datasets.find(ds => ds.dataset_id + '' === datasetId)
       if (!dataset) {
         this.setState({dataset: {}, empty: true})
       }
@@ -96,7 +96,7 @@ class DatasetPage extends React.Component {
       <div>
         <div className={classes.header}>
           <div className={classes.description}>
-            <Typography variant="h4">{dataset.name || (empty && 'Empty or non existing dataset') ||'loading ...'}</Typography>
+            <Typography variant="h4">{dataset.name || (empty && 'Empty or non existing dataset') || 'loading ...'}</Typography>
             <Typography>
               dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
             </Typography>

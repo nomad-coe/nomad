@@ -121,8 +121,8 @@ class RepoEntryView extends React.Component {
                     {calcData.datasets &&
                       <div>
                         {calcData.datasets.map(ds => (
-                          <Typography key={ds.id}>
-                            <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
+                          <Typography key={ds.dataset_id}>
+                            <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
                             {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
                           </Typography>))}
                       </div>}

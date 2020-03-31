@@ -43,7 +43,8 @@ export class EntryListUnstyled extends React.Component {
     actions: PropTypes.element,
     showEntryActions: PropTypes.func,
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
-    domain: PropTypes.object
+    domain: PropTypes.object,
+    user: PropTypes.object
   }
 
   static styles = theme => ({
@@ -232,8 +233,8 @@ export class EntryListUnstyled extends React.Component {
             <Quantity quantity='datasets' placeholder='no datasets' data={row}>
               <div>
                 {(row.datasets || []).map(ds => (
-                  <Typography key={ds.id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
+                  <Typography key={ds.dataset_id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
                     {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : <React.Fragment/>}
                   </Typography>))}
               </div>

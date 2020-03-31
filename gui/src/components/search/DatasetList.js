@@ -250,7 +250,7 @@ class DatasetListUnstyled extends React.Component {
     const { classes, data, total, datasets_after, onChange, actions } = this.props
     const datasets = data.datasets_grouped || {values: []}
     const results = Object.keys(datasets.values).map(id => {
-      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
+      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.dataset_id === id)
       return {
         ...exampleDataset,
         id: id,
