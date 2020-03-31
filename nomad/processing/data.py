@@ -256,9 +256,10 @@ class Calc(Proc):
             return
 
         if parser is None:
-            self.get_logger().error('no parser matches during re-process, use the old parser')
-            self.errors = ['no matching parser found during re-processing']
-        if self.parser != parser.name:
+            self.get_logger().warn('no parser matches during re-process, use the old parser')
+            self.warnings = ['no matching parser found during re-processing']
+
+        elif self.parser != parser.name:
             self.parser = parser.name
             logger.info(
                 'different parser matches during re-process, use new parser',
