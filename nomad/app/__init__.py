@@ -120,7 +120,7 @@ def handle(error: Exception):
         # TODO the error seems not to be the actual exception, therefore
         # there might be no stacktrace. Maybe there is a way to get the actual
         # exception/stacktrace
-        local_logger.error('internal server error', error=str(error), value=str(error), exc_info=error)
+        local_logger.error('internal server error', error=str(error), exc_info=error)
 
     return response
 
