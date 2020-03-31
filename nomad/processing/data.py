@@ -323,9 +323,16 @@ class Calc(Proc):
         # processing failure
         try:
             if self.parser is not None:
-                parser = parser_dict[self.parser]
-                if hasattr(parser, 'code_name'):
-                    self._entry_metadata.code_name = parser.code_name
+                try:
+                    parser = parser_dict[self.parser]
+                    if hasattr(parser, 'code_name'):
+                        self._entry_metadata.code_name = parser.code_name
+                except KeyError:
+                    # This only happens in re-processing. The parser was removed.
+                    # The old parser was probably only used to keep this entry matching
+                    # and in the system (retain its PID). With the current nomad this is
+                    # not parsable anyhow.
+                    self._entry_metadata.code_name = config.services.unavailable_value
 
             self._entry_metadata.processed = False
             self.apply_entry_metadata(self._entry_metadata)
