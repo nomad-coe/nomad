@@ -32,8 +32,9 @@ from .admin import admin, __run_processing
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
+@click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
 @click.pass_context
-def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str]):
+def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str], query_mongo):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -67,15 +68,19 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
 
     ctx.obj.query = query
     ctx.obj.uploads = proc.Upload.objects(query)
+    ctx.obj.query_mongo = query_mongo
 
 
 def query_uploads(ctx, uploads):
     try:
         json_query = json.loads(' '.join(uploads))
-        request = search.SearchRequest()
-        request.q = ESQ(json_query)
-        request.quantity('upload_id', size=10000)
-        uploads = list(request.execute()['quantities']['upload_id']['values'])
+        if ctx.obj.query_mongo:
+            uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
+        else:
+            request = search.SearchRequest()
+            request.q = ESQ(json_query)
+            request.quantity('upload_id', size=10000)
+            uploads = list(request.execute()['quantities']['upload_id']['values'])
     except Exception:
         pass
 

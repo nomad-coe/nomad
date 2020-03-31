@@ -140,6 +140,17 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '%d uploads selected' % count in result.stdout
 
+    def test_query_mongo(self, published):
+        upload_id = published.upload_id
+
+        query = dict(upload_id=upload_id)
+        result = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', '--query-mongo', 'ls', json.dumps(query)],
+            catch_exceptions=False, obj=utils.POPO())
+
+        assert result.exit_code == 0
+        assert '1 uploads selected' in result.stdout
+
     def test_ls(self, published):
         upload_id = published.upload_id
 
