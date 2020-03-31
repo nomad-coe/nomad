@@ -419,8 +419,9 @@ class Calc(Proc):
                         normalizer(backend).normalize(logger=logger)
                     except Exception as e:
                         self._parser_backend.finishedParsingSession('ParseFailure', [str(e)])
-                        self.fail(
-                            'normalizer failed with exception', exc_info=e, error=str(e), **context)
+                        logger.error(
+                            'normalizer failed with exception', exc_info=e,
+                            error=str(e), **context)
                         break
                     else:
                         if self._parser_backend.status[0] != 'ParseSuccess':
