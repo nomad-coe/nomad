@@ -94,6 +94,7 @@ class Calc(Proc):
     meta: Any = {
         'indexes': [
             'upload_id',
+            'parser',
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
