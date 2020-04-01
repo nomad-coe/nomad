@@ -22,14 +22,14 @@ uploaded to nomad. The downloaded files are by default saved in '/nomad/fairdi/e
 import requests
 import re
 import subprocess
-from urllib.parse import urlparse
+from urllib import parse as urllib_parse
 import os
 import datetime
 import click
 import tarfile
 import threading
 import time
-from typing import Union, Dict, List, Tuple, Any
+import typing
 
 from .client import client
 from nomad import config
@@ -92,7 +92,7 @@ class DbUpdater:
             return response.raise_for_status()
         return response
 
-    def get_paths(self, root: str) -> List[str]:
+    def get_paths(self, root: str) -> typing.List[str]:
         response = self._open_page(root)
         paths = []
         for url in re.findall('<a href="([^"]+)">', str(response.content)):
@@ -113,7 +113,7 @@ class DbUpdater:
         return False
 
     def _depth(self, path: str) -> int:
-        return urlparse(path).path.rstrip('/').count('/')
+        return urllib_parse.urlparse(path).path.rstrip('/').count('/')
 
     def _rules_ok(self, path: str) -> bool:
         ok = True
@@ -143,7 +143,7 @@ class DbUpdater:
                 line = f.readline()
         return data
 
-    def _write_to_file(self, data: List, filename: str):
+    def _write_to_file(self, data: typing.List, filename: str):
         with open(filename, 'w') as f:
             for i in range(len(data)):
                 if isinstance(data[i], str):
@@ -213,10 +213,10 @@ class DbUpdater:
         else:
             self._gen_nomad_list()
 
-    def _reduce_list(self, ilist: List[str]):
+    def _reduce_list(self, ilist: typing.List[str]):
         olist = []
         for e in ilist:
-            p = urlparse(e).path.strip('/')
+            p = urllib_parse.urlparse(e).path.strip('/')
             olist.append(os.path.join(*p.split('/')[1:self.max_depth]))
         olist = list(set(olist))
         olist.sort()
@@ -238,7 +238,7 @@ class DbUpdater:
             self._write_to_file(self.in_nomad, fn)
 
         # add the root back
-        u = urlparse(self.root_url)
+        u = urllib_parse.urlparse(self.root_url)
         up = u.path.strip('/').split('/')[0]
         root = '%s://%s/%s' % (u.scheme, u.netloc, up)
         self.update_list = [os.path.join(root, e) for e in self.update_list]
@@ -288,8 +288,8 @@ class DbUpdater:
 
         return size
 
-    def get_files(self, path: str) -> Tuple[str, float]:
-        dirname = urlparse(path).path
+    def get_files(self, path: str) -> typing.Tuple[str, float]:
+        dirname = urllib_parse.urlparse(path).path
         dirname = self._to_namesafe(dirname)
         dirname = os.path.join(self._local_path, dirname)
 
@@ -304,7 +304,7 @@ class DbUpdater:
 
         return dirname, size
 
-    def _tar_files(self, dirs: List[str], tarname: str):
+    def _tar_files(self, dirs: typing.List[str], tarname: str):
         if os.path.isfile(tarname):
             return
 
@@ -320,7 +320,7 @@ class DbUpdater:
             os.remove(tarname)
             print('Error writing tar file %s. %s' % (tarname, e))
 
-    def _make_name(self, dirs: List[str]) -> Tuple[str, str]:
+    def _make_name(self, dirs: typing.List[str]) -> typing.Tuple[str, str]:
         # name will be first and last entries
         d1 = self._to_namesafe(dirs[0].lstrip(self._local_path))
         d2 = self._to_namesafe(dirs[-1].lstrip(self._local_path))
@@ -331,7 +331,7 @@ class DbUpdater:
 
         return tarname, uploadname
 
-    def _cleanup(self, ilist: Union[str, List[str]]):
+    def _cleanup(self, ilist: typing.Union[str, typing.List[str]]):
         if isinstance(ilist, str):
             ilist = [ilist]
         for name in ilist:
@@ -346,7 +346,7 @@ class DbUpdater:
             return False
         return True
 
-    def _get_status_upload(self, uploadname: str) -> Tuple[str, int]:
+    def _get_status_upload(self, uploadname: str) -> typing.Tuple[str, int]:
         res = self.client.uploads.get_uploads(name=uploadname, state='all').response().result
         entries = res.results
         status = None
@@ -362,7 +362,7 @@ class DbUpdater:
 
         return status, upload_id
 
-    def get_payload(self, uid: int) -> Dict[str, Any]:
+    def get_payload(self, uid: int) -> typing.Dict[str, typing.Any]:
         timenow = datetime.datetime.utcnow()
         if self.db_name == 'aflowlib':
             return dict(
@@ -409,7 +409,7 @@ class DbUpdater:
             local_path=os.path.abspath(file_path), name=name).response().result
         return res.upload_id
 
-    def download_proc(self, plist: List[str]):
+    def download_proc(self, plist: typing.List[str]):
         size = 0.0
         max_zip_size = config.max_upload_size
         dirs = []

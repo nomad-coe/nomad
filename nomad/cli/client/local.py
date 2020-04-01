@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path
 import os
 import io
 import requests
 import click
-from typing import Union, Callable
+import typing
 import sys
 import bravado.exception
 import json
 
 from nomad import config, utils
-from nomad.files import ArchiveBasedStagingUploadFiles
-from nomad.datamodel import EntryMetadata
-from nomad.parsing import Backend
-from nomad.cli.parse import parse, normalize, normalize_all
+from nomad import files
+from nomad import datamodel
+from nomad.cli import parse as cli_parse
 
 from .client import client
 
@@ -102,7 +100,7 @@ class CalcProcReproduction:
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_files = ArchiveBasedStagingUploadFiles(
+        self.upload_files = files.ArchiveBasedStagingUploadFiles(
             upload_id='tmp_%s' % archive_id, upload_path=local_path, create=True,
             is_authorized=lambda: True)
 
@@ -124,29 +122,29 @@ class CalcProcReproduction:
     def __exit__(self, *args):
         self.upload_files.delete()
 
-    def parse(self, parser_name: str = None, **kwargs) -> Backend:
+    def parse(self, parser_name: str = None, **kwargs):
         '''
         Run the given parser on the downloaded calculation. If no parser is given,
         do parser matching and use the respective parser.
         '''
-        return parse(
+        return cli_parse.parse(
             self.upload_files.raw_file_object(self.mainfile).os_path,
             parser_name=parser_name, logger=self.logger, **kwargs)
 
-    def normalize(self, normalizer: Union[str, Callable], parser_backend: Backend = None):
+    def normalize(self, normalizer: typing.Union[str, typing.Callable], parser_backend=None):
         '''
         Parse the downloaded calculation and run the given normalizer.
         '''
         if parser_backend is None:
             parser_backend = self.parse()
 
-        return normalize(parser_backend=parser_backend, normalizer=normalizer, logger=self.logger)
+        return cli_parse.normalize(parser_backend=parser_backend, normalizer=normalizer, logger=self.logger)
 
-    def normalize_all(self, parser_backend: Backend = None):
+    def normalize_all(self, parser_backend=None):
         '''
         Parse the downloaded calculation and run the whole normalizer chain.
         '''
-        return normalize_all(parser_backend=parser_backend, logger=self.logger)
+        return cli_parse.normalize_all(parser_backend=parser_backend, logger=self.logger)
 
 
 @client.command(help='Run processing locally.')
@@ -175,6 +173,6 @@ def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **
             json.dump(backend.resource.m_to_dict(), sys.stdout, indent=2)
 
         if show_metadata:
-            metadata = EntryMetadata(domain='dft')  # TODO take domain from matched parser
+            metadata = datamodel.EntryMetadata(domain='dft')  # TODO take domain from matched parser
             metadata.apply_domain_metadata(backend)
             json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

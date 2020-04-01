@@ -14,7 +14,6 @@
 
 import sys
 import os
-import os.path
 import click
 
 from nomad.cli.cli import cli

@@ -23,7 +23,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import click
 import json
-from datetime import datetime
+import datetime
 import subprocess
 
 from nomad import config
@@ -336,7 +336,7 @@ def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power,
             x_axis = dates
             kwargs.update(
                 ylim=dict(bottom=1),
-                format_xlabel=lambda x: datetime.fromtimestamp(int(x) / 1000).strftime('%b %y'))
+                format_xlabel=lambda x: datetime.datetime.fromtimestamp(int(x) / 1000).strftime('%b %y'))
         else:
             assert False, 'x axis can only be "code" or "time"'
 
@@ -575,7 +575,7 @@ def statistics_table(html, geometries, public_path):
                 </p>
             </div>
         '''.format(
-            datetime.now().strftime('%b %Y'),
+            datetime.datetime.now().strftime('%b %Y'),
             entries,
             calculations,
             geometries,

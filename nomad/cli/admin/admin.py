@@ -11,37 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Callable, List
+import typing
 import click
 import datetime
-from elasticsearch_dsl import Q
-import elasticsearch.helpers
+import elasticsearch_dsl
+import elasticsearch
 import sys
 import io
 import re
 import uuid
 import json
-from io import StringIO
 import threading
 
 import numpy as np
 import requests
-from ase import Atoms
-import ase.io
-from bs4 import BeautifulSoup
-from matid import SymmetryAnalyzer
+import ase
+import bs4
+import matid
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.normalizing.aflow_prototypes import get_normalized_wyckoff
+from nomad import normalizing
 from nomad.cli.cli import cli
-from nomad import config
-from nomad.normalizing.springer import update_springer_data
 
 
 def __run_processing(
-        uploads, parallel: int, process: Callable[[proc.Upload], None], label: str,
-        reprocess_running: bool = False):
+        uploads, parallel: int, process, label: str, reprocess_running: bool = False):
     if isinstance(uploads, (tuple, list)):
         uploads_count = len(uploads)
 
@@ -50,7 +44,7 @@ def __run_processing(
         uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
 
     cv = threading.Condition()
-    threads: List[threading.Thread] = []
+    threads: typing.List[threading.Thread] = []
 
     state = dict(
         completed_count=0,
@@ -137,7 +131,7 @@ def lift_embargo(dry, parallel):
     infrastructure.setup_elastic()
 
     request = search.SearchRequest()
-    request.q = Q('term', with_embargo=True) & Q('term', published=True)
+    request.q = elasticsearch_dsl.Q('term', with_embargo=True) & elasticsearch_dsl.Q('term', published=True)
     request.quantity('upload_id', 1000)
     result = request.execute()
 
@@ -413,7 +407,7 @@ def prototypes_update(ctx, filepath, matches_only):
             newdict = {}
 
             # Make prototype plaintext
-            prototype = BeautifulSoup(protodict["Prototype"], "html5lib").getText()
+            prototype = bs4.BeautifulSoup(protodict["Prototype"], "html5lib").getText()
 
             # Add to new dictionary
             newdict['Notes'] = protodict['Notes']
@@ -425,12 +419,12 @@ def prototypes_update(ctx, filepath, matches_only):
             newdict['aflow_prototype_id'] = protodict['AFLOW Prototype']
             newdict['aflow_prototype_url'] = 'http://www.aflowlib.org/CrystalDatabase/' + protodict['href'][2:]
 
-            # Download cif or poscar if possible make ASE Atoms object if possible
+            # Download cif or poscar if possible make ASE ase.Atoms object if possible
             # to obtain labels, positions, cell
             cifurl = 'http://www.aflowlib.org/CrystalDatabase/CIF/' + protodict['href'][2:-5] + '.cif'
             r = requests.get(cifurl, allow_redirects=True)
             cif_str = r.content.decode("utf-8")
-            cif_file = StringIO()
+            cif_file = io.StringIO()
             cif_file.write(cif_str)
             cif_file.seek(0)
             try:
@@ -442,7 +436,7 @@ def prototypes_update(ctx, filepath, matches_only):
                     poscarurl = 'http://www.aflowlib.org/CrystalDatabase/POSCAR/' + protodict['href'][2:-5] + '.poscar'
                     r = requests.get(poscarurl, allow_redirects=True)
                     poscar_str = r.content.decode("utf-8")
-                    poscar_file = StringIO()
+                    poscar_file = io.StringIO()
                     poscar_file.write(poscar_str)
                     poscar_file.seek(0)
                     atoms = ase.io.read(poscar_file, format='vasp')
@@ -496,7 +490,7 @@ def prototypes_update(ctx, filepath, matches_only):
             pos = np.array(prototype["atom_positions"])
             labels = prototype["atom_labels"]
             cell = np.array(prototype["lattice_vectors"])
-            atoms = Atoms(
+            atoms = ase.Atoms(
                 symbols=labels,
                 positions=pos,
                 cell=cell,
@@ -506,7 +500,7 @@ def prototypes_update(ctx, filepath, matches_only):
             # Try to first see if the space group can be matched with the one in AFLOW
             tolerance = config.normalize.symmetry_tolerance
             try:
-                symm = SymmetryAnalyzer(atoms, tolerance)
+                symm = matid.SymmetryAnalyzer(atoms, tolerance)
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()
@@ -517,7 +511,7 @@ def prototypes_update(ctx, filepath, matches_only):
                 # letters to the data.
                 if spg_number == aflow_spg_number:
                     atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
+                    normalized_wyckoff_matid = normalizing.aflow_prototypes.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
                     prototype["normalized_wyckoff_matid"] = normalized_wyckoff_matid
                 else:
                     n_unmatched += 1
@@ -537,4 +531,4 @@ def prototypes_update(ctx, filepath, matches_only):
 @click.option('--max-n-query', default=10, type=int, help='Number of unsuccessful springer request before returning an error. Default is 10.')
 @click.option('--retry-time', default=120, type=int, help='Time in seconds to retry after unsuccessful request. Default is 120.')
 def springer_update(max_n_query, retry_time):
-    update_springer_data(max_n_query, retry_time)
+    normalizing.springer.update_springer_data(max_n_query, retry_time)

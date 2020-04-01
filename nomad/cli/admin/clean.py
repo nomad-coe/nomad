@@ -15,11 +15,11 @@
 import click
 import os
 import shutil
-from tabulate import tabulate
-from elasticsearch_dsl import A
+import tabulate
+import elasticsearch_dsl
 
 from nomad import config as nomad_config, infrastructure, processing
-from nomad.search import Search
+from nomad import search as nomad_search
 
 from .admin import admin
 
@@ -53,7 +53,7 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
 
             for upload in missing_uploads:
                 mongo_client[nomad_config.mongo.db_name]['calc'].remove(dict(upload_id=upload))
-                Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
+                elasticsearch_dsl.Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
         else:
             print('Found %s uploads that have calcs in mongo, but there is no upload entry.' % len(missing_uploads))
             print('List first 10:')
@@ -103,8 +103,8 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
                 print(path)
 
     if not skip_es:
-        search = Search(index=nomad_config.elastic.index_name)
-        search.aggs.bucket('uploads', A('terms', field='upload_id', size=12000))
+        search = nomad_search.Search(index=nomad_config.elastic.index_name)
+        search.aggs.bucket('uploads', elasticsearch_dsl.A('terms', field='upload_id', size=12000))
         response = search.execute()
 
         to_delete = list(
@@ -122,8 +122,8 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
                     'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
                     (calcs, len(to_delete)))
             for upload, _ in to_delete:
-                Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
+                nomad_search.Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
         else:
             print('Found %d calcs in %d uploads from ES with no upload in mongo.' % (calcs, len(to_delete)))
             print('List first 10:')
-            tabulate(to_delete, headers=['id', '#calcs'])
+            tabulate.tabulate(to_delete, headers=['id', '#calcs'])

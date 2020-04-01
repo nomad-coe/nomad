@@ -17,26 +17,24 @@ import sys
 import shutil
 import json
 import os
-import os.path
-from bravado.exception import HTTPBadRequest
+import bravado.exception
 import datetime
 import traceback
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
-from nomad.datamodel import Dataset, User
-from nomad.doi import DOI
-from nomad.cli.admin.uploads import delete_upload
-from nomad.datamodel import MongoMetadata, EntryMetadata
+from nomad import datamodel
+from nomad import doi as nomad_doi
+from nomad.cli.admin import uploads as admin_uploads
 
 from .client import client
 
 
-__mongo_properties = set(d.name for d in MongoMetadata.m_def.definitions)
+__mongo_properties = set(d.name for d in datamodel.MongoMetadata.m_def.definitions)
 
 __in_test = False
 ''' Will be monkeypatched by tests to alter behavior for testing. '''
 
-_Dataset = Dataset.m_def.a_mongo.mongo_cls
+_Dataset = datamodel.Dataset.m_def.a_mongo.mongo_cls
 __logger = utils.get_logger(__name__)
 
 
@@ -48,7 +46,7 @@ def fix_time(data, keys):
 
 
 def tarnsform_user_id(source_user_id):
-    target_user = User.repo_users().get(str(source_user_id))
+    target_user = datamodel.User.repo_users().get(str(source_user_id))
     if target_user is None:
         __logger.error('user does not exist in target', source_user_id=source_user_id)
         raise KeyError
@@ -96,10 +94,10 @@ def v0Dot7(upload_data):
             for key, value in calc_metadata.items()
             if key in __mongo_properties
         }
-        entry_metadata = EntryMetadata(**metadata)
+        entry_metadata = datamodel.EntryMetadata(**metadata)
         calc['metadata'] = entry_metadata.m_to_dict(
             include_defaults=True,
-            categories=[MongoMetadata])
+            categories=[datamodel.MongoMetadata])
 
     return upload_data
 
@@ -249,7 +247,7 @@ def mirror(
                     raise KeyError()
 
                 if replace and not dry:
-                    delete_upload(upload=upload, skip_files=True)
+                    admin_uploads.delete_upload(upload=upload, skip_files=True)
 
                 else:
                     if len(query) > 0:
@@ -263,7 +261,7 @@ def mirror(
             try:
                 upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
                 n_calcs = len(upload_data.calcs)
-            except HTTPBadRequest:
+            except bravado.exception.HTTPBadRequest:
                 print('Could not mirror %s, it is probably not published.' % upload_id)
                 n_calcs = 0
                 continue
@@ -273,7 +271,7 @@ def mirror(
                 proc.Calc.objects(upload_id=upload_id).delete()
                 proc.Upload.objects(upload_id=upload_id).delete()
                 _Dataset.objects().delete()
-                DOI.objects().delete()
+                nomad_doi.DOI.objects().delete()
                 search.delete_upload(upload_id)
         else:
             n_calcs = 0
@@ -334,9 +332,9 @@ def mirror(
                         _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
                 if upload_data.dois is not None:
                     for doi in upload_data.dois.values():
-                        if doi is not None and DOI.objects(doi=doi).first() is None:
+                        if doi is not None and datamodel.DOI.objects(doi=doi).first() is None:
                             fix_time(doi, ['create_time'])
-                            DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
+                            datamodel.DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
                 if len(upload_data.calcs) > 0:
                     for calc in upload_data.calcs:
                         fix_time(calc, ['create_time', 'complete_time'])

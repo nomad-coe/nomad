@@ -1,15 +1,14 @@
-from typing import Union, Callable, cast
-import os.path
+import typing
+import os
 import json
 import click
 import sys
 
 from nomad import utils
-from nomad.parsing import Backend, parser_dict, match_parser, MatchingParser
-from nomad.normalizing import normalizers
-from nomad.datamodel import EntryMetadata
-
-from nomadcore import simple_parser
+from nomad import parsing
+from nomad import normalizing
+from nomad import datamodel
+import nomadcore
 
 from .cli import cli
 
@@ -17,8 +16,8 @@ from .cli import cli
 def parse(
         mainfile_path: str,
         parser_name: str = None,
-        backend_factory: Callable = None,
-        strict: bool = True, logger=None) -> Backend:
+        backend_factory: typing.Callable = None,
+        strict: bool = True, logger=None):
     '''
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
@@ -28,11 +27,11 @@ def parse(
     if logger is None:
         logger = utils.get_logger(__name__)
     if parser_name is not None:
-        parser = parser_dict.get(parser_name)
+        parser = parsing.parser_dict.get(parser_name)
         assert parser is not None, 'the given parser must exist'
     else:
-        parser = match_parser(mainfile_path, strict=strict)
-        if isinstance(parser, MatchingParser):
+        parser = parsing.match_parser(mainfile_path, strict=strict)
+        if isinstance(parser, parsing.MatchingParser):
             parser_name = parser.name
         else:
             parser_name = parser.__class__.__name__
@@ -53,19 +52,19 @@ def parse(
 
 
 def normalize(
-        normalizer: Union[str, Callable], parser_backend: Backend = None,
-        logger=None) -> Backend:
+        normalizer: typing.Union[str, typing.Callable], parser_backend=None,
+        logger=None):
 
     if logger is None:
         logger = utils.get_logger(__name__)
 
     if isinstance(normalizer, str):
         normalizer = next(
-            normalizer_instance for normalizer_instance in normalizers
+            normalizer_instance for normalizer_instance in normalizing.normalizers
             if normalizer_instance.__class__.__name__ == normalizer)
 
     assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
-    normalizer_instance = cast(Callable, normalizer)(parser_backend)
+    normalizer_instance = typing.cast(typing.Callable, normalizer)(parser_backend)
     logger = logger.bind(normalizer=normalizer_instance.__class__.__name__)
     logger.info('identified normalizer')
 
@@ -74,11 +73,11 @@ def normalize(
     return parser_backend
 
 
-def normalize_all(parser_backend: Backend = None, logger=None) -> Backend:
+def normalize_all(parser_backend=None, logger=None):
     '''
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
-    for normalizer in normalizers:
+    for normalizer in normalizing.normalizers:
         if normalizer.domain == parser_backend.domain:
             parser_backend = normalize(
                 normalizer, parser_backend=parser_backend, logger=logger)
@@ -98,7 +97,7 @@ def _parse(
         mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser,
         annotate):
 
-    simple_parser.annotate = annotate
+    nomadcore.simple_parser.annotate = annotate
 
     utils.configure_logging()
     kwargs = dict(strict=not not_strict, parser_name=parser)
@@ -112,6 +111,6 @@ def _parse(
         json.dump(backend.resource.m_to_dict(), sys.stdout, indent=2)
 
     if show_metadata:
-        metadata = EntryMetadata(domain='dft')  # TODO take domain from matched parser
+        metadata = datamodel.EntryMetadata(domain='dft')  # TODO take domain from matched parser
         metadata.apply_domain_metadata(backend)
         json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

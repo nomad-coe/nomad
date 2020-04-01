@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List
+import typing
 import click
-from tabulate import tabulate
-from mongoengine import Q
-from elasticsearch_dsl import Q as ESQ
-from pymongo import UpdateOne
+import tabulate
+import mongoengine
+import pymongo
 import elasticsearch_dsl as es
 import json
 
@@ -34,23 +32,25 @@ from .admin import admin, __run_processing
 @click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
 @click.pass_context
-def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str], query_mongo):
+def uploads(
+        ctx, user: str, staging: bool, processing: bool, outdated: bool,
+        code: typing.List[str], query_mongo: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    query = Q()
+    query = mongoengine.Q()
     if user is not None:
-        query &= Q(user_id=user)
+        query &= mongoengine.Q(user_id=user)
     if staging:
-        query &= Q(published=False)
+        query &= mongoengine.Q(published=False)
     if processing:
-        query &= Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING)
+        query &= mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING)
 
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
             {'metadata.nomad_version': {'$ne': config.version}})
-        query &= Q(upload_id__in=uploads)
+        query &= mongoengine.Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:
         code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
@@ -64,7 +64,7 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
             upload['key']
             for upload in code_search.execute().aggs['uploads']['buckets']]
 
-        query &= Q(upload_id__in=uploads)
+        query &= mongoengine.Q(upload_id__in=uploads)
 
     ctx.obj.query = query
     ctx.obj.uploads = proc.Upload.objects(query)
@@ -86,7 +86,7 @@ def query_uploads(ctx, uploads):
 
     query = ctx.obj.query
     if len(uploads) > 0:
-        query &= Q(upload_id__in=uploads)
+        query &= mongoengine.Q(upload_id__in=uploads)
 
     return query, proc.Upload.objects(query)
 
@@ -131,7 +131,7 @@ def ls(ctx, uploads, calculations, ids, json):
         return
 
     print('%d uploads selected, showing no more than first 10' % uploads.count())
-    print(tabulate(
+    print(tabulate.tabulate(
         [row(upload) for upload in uploads[:10]],
         headers=headers))
 
@@ -152,7 +152,7 @@ def chown(ctx, username, uploads):
         calcs = upload.entries_metadata()
 
         def create_update(calc_id):
-            return UpdateOne(
+            return pymongo.UpdateOne(
                 {'_id': calc_id},
                 {'$set': {'metadata.uploader': user.user_id}})
 
@@ -333,7 +333,7 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
                 process.on_process_complete(None)
                 process.save()
 
-    running_query = query & (Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING))
+    running_query = query & (mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING))
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))

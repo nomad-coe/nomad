@@ -10,9 +10,6 @@
 # distributed under the License is distributed on an"AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
-
-import os.path
 import os
 import time
 import click
@@ -20,7 +17,7 @@ import urllib.parse
 import requests
 
 from nomad import utils, config
-from nomad.processing import FAILURE, SUCCESS
+from nomad import processing
 
 from .client import client
 
@@ -68,7 +65,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
             click.echo('could not upload the file: %s' % str(e))
             return
 
-    while upload is not None and upload.tasks_status not in [SUCCESS, FAILURE]:
+    while upload is not None and upload.tasks_status not in [processing.SUCCESS, processing.FAILURE]:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         calcs = upload.calcs.pagination
         if calcs is None:
@@ -76,7 +73,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         else:
             total, successes, failures = (calcs.total, calcs.successes, calcs.failures)
 
-        ret = '\n' if upload.tasks_status in (SUCCESS, FAILURE) else '\r'
+        ret = '\n' if upload.tasks_status in (processing.SUCCESS, processing.FAILURE) else '\r'
 
         print(
             'status: %s; task: %s; parsing: %d/%d/%d                %s' %
@@ -84,7 +81,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
 
         time.sleep(1)
 
-    if upload.tasks_status == FAILURE:
+    if upload.tasks_status == processing.FAILURE:
         click.echo('There have been errors:')
         for error in upload.errors:
             click.echo('    %s' % error)

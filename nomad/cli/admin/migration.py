@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Any
-from mongoengine import Document, IntField, StringField, DictField
-from pymongo import UpdateOne
+
+import typing
+import mongoengine
+import pymongo
 import time
 import datetime
 import json
 
 from nomad import utils, processing as proc, search
-from nomad.datamodel import EntryMetadata
-from nomad.cli.client.mirror import transform_reference, tarnsform_user_id, transform_dataset
+from nomad import datamodel
+from nomad.cli.client import mirror
 
 
 __logger = utils.get_logger(__name__)
 
 
-class SourceCalc(Document):
+class SourceCalc(mongoengine.Document):
     '''
     Mongo document used as a calculation, upload, and metadata db and index
     build from a given source db. Each :class:`SourceCacl` entry relates
@@ -36,12 +37,12 @@ class SourceCalc(Document):
     specific path segment that identifies an upload on the CoE repo FS(s) without
     any prefixes (e.g. $EXTRACTED, /data/upload, etc.)
     '''
-    pid = IntField(primary_key=True)
-    mainfile = StringField()
-    upload = StringField()
-    metadata = DictField()
+    pid = mongoengine.IntField(primary_key=True)
+    mainfile = mongoengine.StringField()
+    upload = mongoengine.StringField()
+    metadata = mongoengine.DictField()
 
-    migration_version = IntField(default=-1)
+    migration_version = mongoengine.IntField(default=-1)
 
     extracted_prefix = '$EXTRACTED/'
     sites = ['/data/nomad/extracted/', '/nomad/repository/extracted/']
@@ -67,7 +68,7 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
     # iterate the source index in bulk
     size = SourceCalc.objects(**kwargs).count()
     count = 0
-    important_changes: Dict[str, Any] = dict(missing_calcs=dict(), replaced=dict(), lifted_embargo=list())
+    important_changes: typing.Dict[str, typing.Any] = dict(missing_calcs=dict(), replaced=dict(), lifted_embargo=list())
 
     try:
         for start in range(0, size, bulk_size):
@@ -96,16 +97,16 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
                         important_changes['missing_calcs'].setdefault(source.upload, []).append(source.pid)
                         continue
 
-                target_metadata = EntryMetadata(**target.metadata)
-                source_metadata_normalized: Dict[str, Any] = dict(
+                target_metadata = datamodel.EntryMetadata(**target.metadata)
+                source_metadata_normalized: typing.Dict[str, typing.Any] = dict(
                     comment=source.metadata.get('comment'),
-                    references={transform_reference(ref) for ref in source.metadata['references']},
-                    coauthors={tarnsform_user_id(user['id']) for user in source.metadata['coauthors']},
-                    shared_with={tarnsform_user_id(user['id']) for user in source.metadata['shared_with']},
-                    datasets={transform_dataset(ds) for ds in source.metadata['datasets']},
+                    references={mirror.transform_reference(ref) for ref in source.metadata['references']},
+                    coauthors={mirror.tarnsform_user_id(user['id']) for user in source.metadata['coauthors']},
+                    shared_with={mirror.tarnsform_user_id(user['id']) for user in source.metadata['shared_with']},
+                    datasets={mirror.transform_dataset(ds) for ds in source.metadata['datasets']},
                     with_embargo=source.metadata['with_embargo'])
 
-                target_metadata_normalized: Dict[str, Any] = dict(
+                target_metadata_normalized: typing.Dict[str, typing.Any] = dict(
                     comment=target_metadata.comment,
                     references=set(target_metadata.references),
                     coauthors=set(target_metadata.coauthors),
@@ -115,7 +116,7 @@ def update_user_metadata(bulk_size: int = 1000, update_index: bool = False, **kw
 
                 if source_metadata_normalized != target_metadata_normalized:
                     # do a full update of all metadata!
-                    update = UpdateOne(
+                    update = pymongo.UpdateOne(
                         dict(_id=target.calc_id),
                         {
                             "$set": {
