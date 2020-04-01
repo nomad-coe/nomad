@@ -52,7 +52,7 @@ class EmptyParser(MatchingParser):
     Implementation that produces an empty code_run
     '''
     def run(self, mainfile: str, logger=None) -> Backend:
-        backend = Backend(metainfo='vasp')
+        backend = Backend(metainfo=self.code_name, domain=self.domain, logger=logger)
         backend.openSection('section_run')
         backend.addValue('program_name', self.code_name)
         backend.closeSection('section_run', 0)

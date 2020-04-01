@@ -97,6 +97,7 @@ class Calc(Proc):
             ('upload_id', 'tasks_status'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
+            'parser',
             'metadata.published',
             'metadata.datasets'
             'metadata.pid'
@@ -139,7 +140,8 @@ class Calc(Proc):
         the archive.
         '''
         entry_metadata = datamodel.EntryMetadata()
-        entry_metadata.domain = parser_dict[self.parser].domain
+        if self.parser is not None:
+            entry_metadata.domain = parser_dict[self.parser].domain
         entry_metadata.upload_id = self.upload_id
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
@@ -260,10 +262,15 @@ class Calc(Proc):
             self.warnings = ['no matching parser found during re-processing']
 
         elif self.parser != parser.name:
-            self.parser = parser.name
-            logger.info(
-                'different parser matches during re-process, use new parser',
-                parser=parser.name)
+            if parser_dict[self.parser].name == parser.name:
+                # parser was just renamed
+                self.parser = parser.name
+
+            else:
+                self.parser = parser.name
+                logger.info(
+                    'different parser matches during re-process, use new parser',
+                    parser=parser.name)
 
         try:
             self._entry_metadata = self.user_metadata()
@@ -318,29 +325,19 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
-    def fail(self, *errors, log_level=logging.ERROR, **kwargs):
+    def on_fail(self):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            if self.parser is not None:
-                try:
-                    parser = parser_dict[self.parser]
-                    if hasattr(parser, 'code_name'):
-                        self._entry_metadata.code_name = parser.code_name
-                except KeyError:
-                    # This only happens in re-processing. The parser was removed.
-                    # The old parser was probably only used to keep this entry matching
-                    # and in the system (retain its PID). With the current nomad this is
-                    # not parsable anyhow.
-                    self._entry_metadata.code_name = config.services.unavailable_value
-
             self._entry_metadata.processed = False
+
             self.apply_entry_metadata(self._entry_metadata)
             if self._parser_backend and self._parser_backend.resource:
                 backend = self._parser_backend
             else:
                 backend = None
             self._entry_metadata.apply_domain_metadata(backend)
+
             self._entry_metadata.a_elastic.index()
         except Exception as e:
             self.get_logger().error(
@@ -351,8 +348,6 @@ class Calc(Proc):
         except Exception as e:
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
-
-        super().fail(*errors, log_level=log_level, **kwargs)
 
     def on_process_complete(self, process_name):
         # the save might be necessary to correctly read the join condition from the db
@@ -470,6 +465,13 @@ class Calc(Proc):
             log_data.update(archive_size=archive_size)
 
     def write_archive(self, backend: Backend):
+        def filter_processing_logs(logs):
+            if len(logs) > 100:
+                return [
+                    log for log in logs
+                    if log.get('level') != 'DEBUG']
+            return logs
+
         if self._calc_proc_logs is None:
             self._calc_proc_logs = []
 
@@ -481,7 +483,7 @@ class Calc(Proc):
         if entry_archive.section_metadata is None:
             entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
-        entry_archive.processing_logs = self._calc_proc_logs
+        entry_archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
 
         try:
             return self.upload_files.write_archive(self.calc_id, entry_archive.m_to_dict())
@@ -492,7 +494,7 @@ class Calc(Proc):
             # most likely failed due to domain data, try to write metadata and processing logs
             entry_archive = datamodel.EntryArchive()
             entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
-            entry_archive.processing_logs = self._calc_proc_logs
+            entry_archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
             self.upload_files.write_archive(self.calc_id, entry_archive.m_to_dict())
             raise e
 

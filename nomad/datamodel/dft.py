@@ -278,6 +278,14 @@ class DFTMetadata(MSection):
         logger = utils.get_logger(__name__).bind(
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
+        if backend is None:
+            if entry.parser_name is not None:
+                from nomad.parsing import parser_dict
+                parser = parser_dict.get(entry.parser_name)
+                if hasattr(parser, 'code_name'):
+                    self.code_name = parser.code_name
+            return
+
         # code and code specific ids
         self.code_name = backend.get_value('program_name', 0)
         try:

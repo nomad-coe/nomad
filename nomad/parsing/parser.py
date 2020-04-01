@@ -70,7 +70,7 @@ class BrokenParser(Parser):
     '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'parser/broken'
+        self.name = 'parsers/broken'
         self.code_name = 'currupted mainfile'
         self._patterns = [
             re.compile(r'^pid=[0-9]+'),  # some 'mainfile' contain list of log-kinda information with pids

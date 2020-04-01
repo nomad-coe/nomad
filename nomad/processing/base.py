@@ -269,9 +269,14 @@ class Proc(Document, metaclass=ProcMetaclass):
             errors_str = "; ".join([str(error) for error in errors])
             Proc.log(logger, log_level, 'task failed', errors=errors_str)
 
+        self.on_fail()
+
         logger.info('process failed')
 
         self.save()
+
+    def on_fail(self):
+        pass
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         ''' Allows to save warnings. Takes strings or exceptions as args. '''

@@ -51,6 +51,9 @@ class EMSMetadata(MSection):
     group_hash = Quantity(type=str, a_search=Search())
 
     def apply_domain_metadata(self, backend):
+        if backend is None:
+            return
+
         entry = self.m_parent
         logger = utils.get_logger(__name__).bind(
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)

@@ -126,8 +126,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         except KeyError as e:
             self.logger.error(
-                'Could not read all input data', normalizer=self.__class__.__name__,
-                section='section_system', g_index=g_index, key_error=str(e))
+                'could read a system property', normalizer=self.__class__.__name__,
+                section='section_system', g_index=g_index, key_error=str(e), exc_info=e)
             return False
 
         except Exception as e:
