@@ -13,7 +13,7 @@ import { maxLogsToShow } from '../../config'
 class LogEntryUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    entry: PropTypes.string.isRequired
+    entry: PropTypes.object.isRequired
   }
 
   static styles = theme => ({

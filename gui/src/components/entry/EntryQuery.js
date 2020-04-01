@@ -2,10 +2,11 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withApi } from '../api'
+import { withApi, DoesNotExist } from '../api'
 import { withRouter } from 'react-router'
+import qs from 'qs'
 
-class ResolvePID extends React.Component {
+class EntryQuery extends React.Component {
   static styles = theme => ({
     root: {
       padding: theme.spacing.unit * 3
@@ -14,9 +15,9 @@ class ResolvePID extends React.Component {
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    pid: PropTypes.string.isRequired,
     api: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -24,12 +25,22 @@ class ResolvePID extends React.Component {
     doesNotExist: false
   }
 
-  state = {...ResolvePID.defaultState}
+  state = {...EntryQuery.defaultState}
 
   update() {
-    const { pid, api, history } = this.props
-    api.resolvePid(pid).then(entry => {
-      history.push(`/entry/id/${entry.upload_id}/${entry.calc_id}`)
+    const { api, history, location } = this.props
+
+    let queryParams = null
+    if (location && location.search) {
+      queryParams = qs.parse(location.search.substring(1))
+    }
+    api.search({...queryParams}).then(data => {
+      if (data.results && data.results.length > 0) {
+        const { calc_id, upload_id } = data.results[0]
+        history.push(`/entry/id/${upload_id}/${calc_id}`)
+      } else {
+        throw new DoesNotExist()
+      }
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
         this.setState({doesNotExist: true})
@@ -44,8 +55,8 @@ class ResolvePID extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.pid !== this.props.pid || prevProps.api !== this.props.api) {
-      this.setState({...ResolvePID.defaultState})
+    if (prevProps.location.search !== this.props.location.search || prevProps.api !== this.props.api) {
+      this.setState({...EntryQuery.defaultState})
       this.update()
     }
   }
@@ -74,4 +85,4 @@ class ResolvePID extends React.Component {
   }
 }
 
-export default compose(withRouter, withApi(false), withStyles(ResolvePID.styles))(ResolvePID)
+export default compose(withRouter, withApi(false), withStyles(EntryQuery.styles))(EntryQuery)

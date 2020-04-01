@@ -35,6 +35,7 @@ import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
+import EntryQuery from './entry/EntryQuery'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -410,7 +411,7 @@ export default class App extends React.Component {
     'entry_query': {
       exact: true,
       path: '/entry/query',
-      render: props => <EntryPage {...props} query />
+      render: props => <EntryQuery {...props} query />
     },
     'dataset': {
       path: '/dataset/id/:datasetId',
