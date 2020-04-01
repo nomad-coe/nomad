@@ -98,8 +98,10 @@ class Calc(Proc):
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'parser',
+            'metadata.processed',
+            'metadata.last_processing',
             'metadata.published',
-            'metadata.datasets'
+            'metadata.datasets',
             'metadata.pid'
         ]
     }

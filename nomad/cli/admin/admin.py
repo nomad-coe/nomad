@@ -40,7 +40,8 @@ from nomad.normalizing.springer import update_springer_data
 
 
 def __run_processing(
-        uploads, parallel: int, process: Callable[[proc.Upload], None], label: str):
+        uploads, parallel: int, process: Callable[[proc.Upload], None], label: str,
+        reprocess_running: bool = False):
     if isinstance(uploads, (tuple, list)):
         uploads_count = len(uploads)
 
@@ -64,7 +65,7 @@ def __run_processing(
         logger.info('%s started' % label, upload_id=upload.upload_id)
 
         completed = False
-        if upload.process_running:
+        if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
                 current_process=upload.current_process,

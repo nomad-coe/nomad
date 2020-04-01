@@ -272,10 +272,13 @@ def msgpack(ctx, uploads):
 @uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+@click.option('--reprocess-running', is_flag=True, help='Also reprocess already running processes.')
 @click.pass_context
-def re_process(ctx, uploads, parallel: int):
+def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
     _, uploads = query_uploads(ctx, uploads)
-    __run_processing(uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing')
+    __run_processing(
+        uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing',
+        reprocess_running=reprocess_running)
 
 
 @uploads.command(help='Repack selected uploads.')
