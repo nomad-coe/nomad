@@ -119,7 +119,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
-            self.logger.error('system has neither atom species nor labels')
+            self.logger.warn('system has neither atom species nor labels')
             return False
 
         # If there are no atom labels we create them from atom species data.
