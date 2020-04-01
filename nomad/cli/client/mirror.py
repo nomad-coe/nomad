@@ -332,9 +332,9 @@ def mirror(
                         _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
                 if upload_data.dois is not None:
                     for doi in upload_data.dois.values():
-                        if doi is not None and datamodel.DOI.objects(doi=doi).first() is None:
+                        if doi is not None and nomad_doi.DOI.objects(doi=doi).first() is None:
                             fix_time(doi, ['create_time'])
-                            datamodel.DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
+                            nomad_doi.DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
                 if len(upload_data.calcs) > 0:
                     for calc in upload_data.calcs:
                         fix_time(calc, ['create_time', 'complete_time'])
