@@ -78,7 +78,7 @@ def query_uploads(ctx, uploads):
             uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
         else:
             request = search.SearchRequest()
-            request.q = ESQ(json_query)
+            request.q = es.Q(json_query)
             request.quantity('upload_id', size=10000)
             uploads = list(request.execute()['quantities']['upload_id']['values'])
     except Exception:
