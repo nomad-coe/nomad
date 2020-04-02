@@ -8,7 +8,7 @@ import { withApi } from '../api'
 import { compose } from 'recompose'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
-import { withRouter, matchPath } from 'react-router-dom'
+import { matchPath } from 'react-router-dom'
 
 export const help = `
 The *raw files* tab, will show you all files that belong to the entry and offers a download
@@ -43,12 +43,11 @@ class EntryPage extends React.Component {
   render() {
     const { classes, location, match, history } = this.props
     const { path } = match
-    const { calcId, uploadId } = match.params
 
-    const tabMatch = matchPath(location.pathname, {
-      path: `${path}/:tab`
+    const entryMatch = matchPath(location.pathname, {
+      path: `${path}/:uploadId?/:calcId?/:tab?`
     })
-    const tab = tabMatch ? tabMatch.params.tab : 'raw'
+    const { tab, calcId, uploadId } = entryMatch.params
 
     if (calcId && uploadId) {
       const calcProps = { calcId: calcId, uploadId: uploadId }
@@ -56,8 +55,8 @@ class EntryPage extends React.Component {
         <div className={classes.root}>
           <Tabs
             className={classes.tabs}
-            value={tab}
-            onChange={(_, value) => history.push(`${match.url}/${value}`)}
+            value={tab || 'raw'}
+            onChange={(_, value) => history.push(`${match.url}/${uploadId}/${calcId}/${value}`)}
             indicatorColor="primary"
             textColor="primary"
             variant="fullWidth"
@@ -68,7 +67,7 @@ class EntryPage extends React.Component {
           </Tabs>
 
           <div className={classes.content}>
-            <KeepState visible={tab === 'raw'} render={props => <RepoEntryView {...props} />} {...calcProps} />
+            <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
             <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
             <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
           </div>
@@ -80,4 +79,4 @@ class EntryPage extends React.Component {
   }
 }
 
-export default compose(withRouter, withApi(false, true), withStyles(EntryPage.styles))(EntryPage)
+export default compose(withApi(false, true), withStyles(EntryPage.styles))(EntryPage)

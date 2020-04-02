@@ -8,7 +8,7 @@ import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
   Snackbar, SnackbarContent } from '@material-ui/core'
-import { Switch, Route, Link, withRouter } from 'react-router-dom'
+import { Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
@@ -365,102 +365,57 @@ class LicenseAgreementUnstyled extends React.Component {
 
 const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
 
-export default class App extends React.PureComponent {
-  static routes = {
+class App extends React.PureComponent {
+  routes = {
     'about': {
       exact: true,
-      singleton: true,
       path: '/',
-      render: props => <About {...props} />
+      component: About
     },
     'faq': {
       exact: true,
-      singleton: true,
       path: '/faq',
-      render: props => <FAQ {...props} />
+      component: FAQ
     },
     'search': {
       exact: true,
-      singleton: true,
       path: '/search',
-      render: props => <SearchPage {...props} />
+      component: SearchPage
     },
     'userdata': {
       exact: true,
-      singleton: true,
       path: '/userdata',
-      render: props => <UserdataPage {...props} />
+      component: UserdataPage
     },
     'entry': {
-      path: '/entry/id/:uploadId/:calcId',
-      key: (props) => `entry/id/${props.match.params.uploadId}/${props.match.params.uploadId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.uploadId && match.params.calcId) {
-          return (<EntryPage {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/entry/id',
+      component: EntryPage
     },
     'entry_query': {
       exact: true,
       path: '/entry/query',
-      render: props => <EntryQuery {...props} query />
-    },
-    'dataset': {
-      path: '/dataset/id/:datasetId',
-      key: (props) => `dataset/id/${props.match.params.datasetId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.datasetId) {
-          return (<DatasetPage {...rest} datasetId={match.params.datasetId} />)
-        } else {
-          return ''
-        }
-      }
+      component: EntryQuery
     },
     'entry_pid': {
-      path: '/entry/pid/:pid/:handle?',
-      key: (props) => `entry/pid/${props.match.params.pid}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.pid) {
-          const {pid, handle} = match.params
-          return (<ResolvePID {...rest} pid={handle ? pid + '/' + handle : pid} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/entry/pid',
+      component: ResolvePID
+    },
+    'dataset': {
+      path: '/dataset/id',
+      component: DatasetPage
     },
     'dataset_doi': {
-      path: '/dataset/doi/:doi*',
-      key: (props) => `dataset/doi/${props.match.params.doi}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.doi) {
-          return (<ResolveDOI {...rest} doi={match.params.doi} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/dataset/doi',
+      component: ResolveDOI
     },
     'uploads': {
       exact: true,
-      singleton: true,
       path: '/uploads',
-      render: props => <UploadPage {...props} />
+      component: UploadPage
     },
     'metainfo': {
-      exact: true,
       path: '/metainfo',
-      singleton: true,
-      render: props => <MetaInfoBrowser {...props} />
-    },
-    'metainfoEntry': {
-      path: '/metainfo/:metainfo',
-      key: props => `metainfo/${props.match.params.metainfo}`,
-      render: props => <MetaInfoBrowser metainfo={props.match.params.metainfo} {...props} />
+      component: MetaInfoBrowser
     }
   }
 
@@ -470,18 +425,16 @@ export default class App extends React.PureComponent {
         <ErrorSnacks>
           <ApiProvider>
             <Navigation>
-              <Switch>
-                {Object.keys(App.routes).map(routeKey => {
-                  const route = App.routes[routeKey]
-                  const { path, exact } = route
-                  return <Route key={routeKey} exact={exact} path={path}
-                    // eslint-disable-next-line react/no-children-prop
-                    children={props => (
-                      <KeepState visible={props.match && true} render={route.render} {...props} />
-                    )}
-                  />
-                })}
-              </Switch>
+              {Object.keys(this.routes).map(routeKey => {
+                const route = this.routes[routeKey]
+                const { path, exact } = route
+                return <Route key={routeKey} exact={exact} path={path}
+                  // eslint-disable-next-line react/no-children-prop
+                  children={props => {
+                    return <KeepState visible={props.match && true} render={route.component} {...props} />
+                  }}
+                />
+              })}
             </Navigation>
           </ApiProvider>
         </ErrorSnacks>
@@ -490,3 +443,6 @@ export default class App extends React.PureComponent {
     )
   }
 }
+
+const AppWithRouter = withRouter(App)
+export default AppWithRouter

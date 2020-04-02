@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi } from '../api'
-import { withRouter } from 'react-router'
+import { matchPath } from 'react-router'
 
 class ResolveDOI extends React.Component {
   static styles = theme => ({
@@ -14,14 +14,20 @@ class ResolveDOI extends React.Component {
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    doi: PropTypes.string.isRequired,
     api: PropTypes.object.isRequired,
-    history: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired
+    raiseError: PropTypes.func.isRequired,
+    location: PropTypes.object.isRequired,
+    match: PropTypes.object.isRequired,
+    history: PropTypes.object.isRequired
   }
 
   update() {
-    const { doi, api, history, raiseError } = this.props
+    const { location, match, api, history, raiseError } = this.props
+    const doiMatch = matchPath(location.pathname, {
+      path: `${match.path}/:doi*`
+    })
+    let { doi } = doiMatch.params
+
     api.resolveDoi(doi).then(dataset => {
       history.push(`/dataset/id/${dataset.dataset_id}`)
     }).catch(raiseError)
@@ -32,7 +38,7 @@ class ResolveDOI extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.doi !== this.props.doi || prevProps.api !== this.props.api) {
+    if (prevProps.location.pathname !== this.props.location.pathname || prevProps.api !== this.props.api) {
       this.update()
     }
   }
@@ -46,4 +52,4 @@ class ResolveDOI extends React.Component {
   }
 }
 
-export default compose(withRouter, withApi(false), withStyles(ResolveDOI.styles))(ResolveDOI)
+export default compose(withApi(false), withStyles(ResolveDOI.styles))(ResolveDOI)

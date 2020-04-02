@@ -102,7 +102,7 @@ class Search extends React.Component {
       label: 'Properties',
       description: 'Shows histograms on key properties'
     },
-     'users': {
+    'users': {
       render: props => <UsersVisualization {...props}/>,
       label: 'Users',
       description: 'Show statistics on user metadata'
@@ -250,17 +250,17 @@ class UsersVisualization extends React.Component {
 
   static contextType = SearchContext.type
 
-  render () {
-  const {domain} = this.context.state
-  const {open} = this.props
+  render() {
+    const {domain} = this.context.state
+    const {open} = this.props
 
-  return <KeepState visible={open} render={() =>
-    <Card>
-      <CardContent>
-        <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-      </CardContent>
-    </Card>
-  }/>
+    return <KeepState visible={open} render={() =>
+      <Card>
+        <CardContent>
+          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+        </CardContent>
+      </Card>
+    }/>
   }
 }
 

@@ -8,7 +8,7 @@ import Search from './search/Search'
 import SearchContext from './search/SearchContext'
 import { Typography } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
-import { withRouter } from 'react-router'
+import { matchPath } from 'react-router'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -19,8 +19,9 @@ class DatasetPage extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     api: PropTypes.object.isRequired,
-    datasetId: PropTypes.string.isRequired,
     raiseError: PropTypes.func.isRequired,
+    location: PropTypes.object.isRequired,
+    match: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired
   }
 
@@ -48,8 +49,18 @@ class DatasetPage extends React.Component {
     update: 0
   }
 
+  datasetId() {
+    const { location, match } = this.props
+    const pidMatch = matchPath(location.pathname, {
+      path: `${match.path}/:datasetId`
+    })
+    let { datasetId } = pidMatch.params
+    return datasetId
+  }
+
   update() {
-    const {datasetId, raiseError, api} = this.props
+    const { api, raiseError } = this.props
+    const datasetId = this.datasetId()
     api.search({
       owner: 'all',
       dataset_id: datasetId,
@@ -75,7 +86,7 @@ class DatasetPage extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.api !== this.props.api || prevProps.datasetId !== this.props.datasetId) {
+    if (prevProps.location.pathname !== this.props.location.pathname || prevProps.api !== this.props.api) {
       this.setState({dataset: {}, empty: false}, () => this.update())
     }
   }
@@ -89,8 +100,9 @@ class DatasetPage extends React.Component {
   }
 
   render() {
-    const { classes, datasetId } = this.props
+    const { classes } = this.props
     const { dataset, update, empty } = this.state
+    const datasetId = this.datasetId()
 
     return (
       <div>
@@ -124,4 +136,4 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default compose(withRouter, withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+export default compose(withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
