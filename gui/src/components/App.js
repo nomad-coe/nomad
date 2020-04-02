@@ -365,13 +365,8 @@ class LicenseAgreementUnstyled extends React.Component {
 
 const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props)
-    this.renderChildren.bind(this)
-  }
-
-  routes = {
+export default class App extends React.PureComponent {
+  static routes = {
     'about': {
       exact: true,
       singleton: true,
@@ -469,17 +464,6 @@ export default class App extends React.Component {
     }
   }
 
-  renderChildren(routeKey, props) {
-    return (
-      <React.Fragment>
-        {Object.keys(this.routes).map(route => <KeepState key={route}
-          visible={routeKey === route}
-          render={(props) => this.routes[route].render(props)}
-          {...props} />)}
-      </React.Fragment>
-    )
-  }
-
   render() {
     return (
       <MuiThemeProvider theme={nomadTheme}>
@@ -487,14 +471,16 @@ export default class App extends React.Component {
           <ApiProvider>
             <Navigation>
               <Switch>
-                {Object.keys(this.routes).map(route => (
-                  // eslint-disable-next-line react/jsx-key
-                  <Route key={'nop'}
+                {Object.keys(App.routes).map(routeKey => {
+                  const route = App.routes[routeKey]
+                  const { path, exact } = route
+                  return <Route key={routeKey} exact={exact} path={path}
                     // eslint-disable-next-line react/no-children-prop
-                    children={props => this.renderChildren(route, props)}
-                    exact={this.routes[route].exact}
-                    path={this.routes[route].path} />
-                ))}
+                    children={props => (
+                      <KeepState visible={props.match && true} render={route.render} {...props} />
+                    )}
+                  />
+                })}
               </Switch>
             </Navigation>
           </ApiProvider>
