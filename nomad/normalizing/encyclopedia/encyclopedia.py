@@ -46,7 +46,7 @@ class EncyclopediaNormalizer(Normalizer):
     """
     This normalizer emulates the functionality of the old Encyclopedia backend.
     The data used by the encyclopedia have been assigned under new metainfo
-    within a new section called "Encyclopedia". In the future these separate
+    within a new section called "encyclopedia". In the future these separate
     metainfos could be absorbed into the existing metainfo hiearchy.
     """
     def __init__(self, backend: LocalBackend):
