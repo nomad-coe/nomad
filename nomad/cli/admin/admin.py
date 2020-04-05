@@ -229,59 +229,53 @@ def nginx_conf(prefix):
 server {{
     listen        80;
     server_name   www.example.com;
+    proxy_set_header Host $host;
 
-    location /{0} {{
-        return 301 /example-nomad/gui;
+    location / {{
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/gui {{
-        root      /app/;
-        rewrite ^{1}/gui/(.*)$ /nomad/$1 break;
-        try_files $uri {1}/gui/index.html;
+    location ~ {1}\\/?(gui)?$ {{
+        rewrite ^ {1}/gui/ permanent;
     }}
 
-    location {1}/gui/service-worker.js {{
+    location {1}/gui/ {{
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index;
+        proxy_pass http://app:8000;
+    }}
+
+    location @redirect_to_index {{
+        rewrite ^ {1}/gui/index.html break;
+        proxy_pass http://app:8000;
+    }}
+
+    location ~ \\/gui\\/(service-worker\\.js|meta\\.json)$ {{
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
         if_modified_since off;
         expires off;
         etag off;
-        root      /app/;
-        rewrite ^{1}/gui/service-worker.js /nomad/service-worker.js break;
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/gui/meta.json {{
-        add_header Last-Modified $date_gmt;
-        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-        if_modified_since off;
-        expires off;
-        etag off;
-        root      /app/;
-        rewrite ^{1}/gui/meta.json /nomad/meta.json break;
-    }}
-
-    location {1}/api {{
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
-    }}
-
-    location {1}/api/uploads {{
+    location ~ \\/api\\/uploads\\/?$ {{
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/api/raw {{
+    location ~ \\/api\\/(raw|archive) {{
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
+        proxy_pass http://app:8000;
     }}
-}}
-    '''.format(prefix.lstrip('/'), prefix))
+
+    location ~ \\/api\\/mirror {{
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_pass http://app:8000;
+    }}
+}}'''.format(prefix))
 
 
 @ops.command(help=('Generate a proxy pass config for apache2 reverse proxy servers.'))

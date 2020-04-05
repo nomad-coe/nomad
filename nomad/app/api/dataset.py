@@ -34,7 +34,7 @@ ns = api.namespace(
 
 dataset_model = generate_flask_restplus_model(api, Dataset.m_def)
 dataset_list_model = api.model('DatasetList', {
-    'pagination': fields.Nested(model=pagination_model),
+    'pagination': fields.Nested(model=pagination_model, skip_none=True),
     'results': fields.List(fields.Nested(model=dataset_model, skip_none=True))
 })
 

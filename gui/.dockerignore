@@ -1,9 +1,0 @@
-.vscode/
-.git/
-node_modules/
-build/
-public/metainfo/
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*

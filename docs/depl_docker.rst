@@ -1,1 +1,1 @@
-.. mdinclude:: ../ops/docker-compose/nomad/README.md
+.. mdinclude:: ../ops/docker-compose/infrastructure/README.md

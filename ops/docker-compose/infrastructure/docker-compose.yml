@@ -66,52 +66,8 @@ services:
             - nomad_mongo:/data/db
         command: mongod --logpath=/dev/null # --quiet
 
-    # nomad processing worker
-    worker:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-        container_name: nomad_worker
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_worker
-        links:
-            - keycloak
-            - rabbitmq
-            - elastic
-            - mongo
-        volumes:
-            - nomad_files:/app/.volumes/fs
-        command: python -m celery worker -l info -A nomad.processing -Q celery,cacls,uploads
-
-    # nomad app
-    app:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
-        container_name: nomad_api
-        environment:
-            <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_api
-        links:
-            - keycloak
-            - rabbitmq
-            - elastic
-            - mongo
-        volumes:
-            - nomad_files:/app/.volumes/fs
-        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.app:app
-
-    # nomad gui
-    gui:
-        restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:latest
-        container_name: nomad_gui
-        command: nginx -g 'daemon off;'
-        links:
-            - app
-
 volumes:
     nomad_keycloak:
     nomad_mongo:
     nomad_elastic:
     nomad_rabbitmq:
-    nomad_files:

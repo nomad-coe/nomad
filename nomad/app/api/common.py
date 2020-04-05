@@ -78,7 +78,7 @@ search_model_fields = {
 search_model = api.model('Search', search_model_fields)
 
 query_model_fields = {
-    qualified_name: fields.Raw(description=quantity.description)
+    qualified_name: quantity.flask_field
     for qualified_name, quantity in search.search_quantities.items()}
 
 query_model_fields.update(**{

@@ -15,48 +15,32 @@
 version: '3.4'
 
 services:
-    # keycloak for user management
-    keycloak:
-        environment:
-            - DB_VENDOR=h2
-
     # broker for celery
     rabbitmq:
-        restart: 'no'
         ports:
             - 5672:5672
 
     # the search engine
     elastic:
-        restart: 'no'
         ports:
             - 9200:9200
 
     # the user data db
     mongo:
-        restart: 'no'
         ports:
             - 27017:27017
 
-    # nomad processing worker
-    worker:
-        restart: 'no'
-        build: ../../../
-        image: nomad/backend
-
-    # nomad app
-    app:
-        restart: 'no'
-        image: nomad/backend
-        depends_on:
-            - worker
+    # used for centralized logging
+    elk:
+        restart: always
+        build: ../../containers/elk/
+        image: nomad/elk
+        container_name: nomad_elk
+        expose:
+            - 5000 # logstash beats
+        volumes:
+            - nomad_elk:/var/lib/elasticsearch
         ports:
-            - 8000:8000
-
-    # nomad gui
-    gui:
-        restart: 'no'
-        build: ../../../gui
-        image: nomad/frontend
-        ports:
-            - 8080:8000
+            - 5601:5601  # kibana web
+            - 15000:5000   # allow nomad services to logstash outside of docker
+            - 29200:9200  # allows metricbeat config to access es

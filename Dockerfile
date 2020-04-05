@@ -23,7 +23,7 @@
 # We use slim for the final image
 FROM python:3.6-slim as final
 
-# First, build everything in a build image
+# First, build all python stuff in a python build image
 FROM python:3.6-stretch as build
 RUN mkdir /install
 
@@ -71,10 +71,21 @@ RUN \
     find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
-# Second, create a slim final image
+# Second built the GUI in a gui build image
+FROM node:latest as gui_build
+RUN mkdir -p /app
+WORKDIR /app
+ENV PATH /app/node_modules/.bin:$PATH
+COPY gui/package.json /app/package.json
+COPY gui/yarn.lock /app/yarn.lock
+RUN yarn
+COPY gui /app
+RUN yarn run build
+
+# Third, create a slim final image
 FROM final
 
-RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl
 
 # copy the sources for tests, coverage, qa, etc.
 COPY . /app
@@ -89,12 +100,17 @@ RUN echo "copy 2"
 COPY --from=build /install/docs/.build /app/docs/.build
 RUN echo "copy 3"
 # copy the nomad command
-COPY --from=build /usr/local/bin/nomad /usr/local/bin/nomad
+COPY --from=build /usr/local/bin/nomad /usr/bin/nomad
 RUN echo "copy 4"
+# copy the gui
+RUN mkdir -p /app/gui
+COPY --from=gui_build /app/build /app/gui/build
+RUN echo "copy 5"
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad
 RUN chown -R nomad /app
+RUN chmod a+rx run.sh
 USER nomad
 
 VOLUME /app/.volumes/fs

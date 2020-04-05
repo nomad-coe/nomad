@@ -106,14 +106,15 @@ def setup_elastic():
     try:
         from nomad.search import entry_document
         entry_document.init(index=config.elastic.index_name)
-        entry_document._index._name = config.elastic.index_name
-        logger.info('initialized elastic index', index_name=config.elastic.index_name)
     except RequestError as e:
         if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
             # happens if two services try this at the same time
             pass
         else:
             raise e
+
+    entry_document._index._name = config.elastic.index_name
+    logger.info('initialized elastic index', index_name=config.elastic.index_name)
 
     return elastic_client
 

@@ -80,7 +80,7 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
 })
 
 upload_list_model = api.model('UploadList', {
-    'pagination': fields.Nested(model=pagination_model),
+    'pagination': fields.Nested(model=pagination_model, skip_none=True),
     'results': fields.List(fields.Nested(model=upload_model, skip_none=True))
 })
 
@@ -103,7 +103,7 @@ upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_
         'pagination': fields.Nested(model=api.inherit('UploadCalculationPagination', pagination_model, {
             'successes': fields.Integer,
             'failures': fields.Integer,
-        })),
+        }), skip_none=True),
         'results': fields.List(fields.Nested(model=calc_model, skip_none=True))
     }), skip_none=True)
 })

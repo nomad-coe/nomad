@@ -74,6 +74,28 @@ data:
     worker_connections = 1000
     workers = {{ .Values.app.worker }}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-gui-env-js
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-gui-env-js
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  env.js: |
+    window.nomadEnv = {
+      "appBase": "{{ .Values.proxy.external.path }}",
+      "keycloakBase": "{{ .Values.keycloak.serverExternalUrl }}",
+      "keycloakRealm": "{{ .Values.keycloak.realmName }}",
+      "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
+      "matomoSiteId": {{ .Values.gui.matomoSiteId }},
+      "matomoUrl": "{{ .Values.gui.matomoUrl }}",
+      "sendTrackingData": {{ .Values.gui.sendTrackingData }},
+      "debug": {{ .Values.gui.debug }}
+    };
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -94,12 +116,15 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-app
         app.kubernetes.io/instance: {{ .Release.Name }}
-        date: "{{ .Release.Time.Seconds }}"
+      {{ if .Values.roll }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{ end }}
     spec:
       containers:
       - name: {{ include "nomad.name" . }}-app
-        image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
-        imagePullPolicy: Always
+        image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
         - mountPath: /app/nomad.yaml
           name: nomad-conf
@@ -116,6 +141,10 @@ spec:
           name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
+        - mountPath: /app/gui/build/env.js
+          readOnly: true
+          subPath: env.js
+          name: gui-env-js
         env:
         - name: NOMAD_SERVICE
           value: "app"
@@ -163,7 +192,7 @@ spec:
               name: {{ .Values.datacite.secret }}
               key: user
         {{ end }}
-        command: ["python", "-m", "gunicorn.app.wsgiapp", "--config", "gunicorn.conf", "--log-config", "gunicorn.log.conf", "-b 0.0.0.0:8000", "nomad.app:app"]
+        command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
@@ -181,7 +210,7 @@ spec:
       nodeSelector:
         nomadtype: {{ .Values.app.nomadNodeType }}
       imagePullSecrets:
-      - name: {{ .Values.images.secret }}
+      - name: {{ .Values.image.secret }}
       volumes:
       - name: gunicorn-log-conf
         configMap:
@@ -192,6 +221,9 @@ spec:
       - name: nomad-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-configmap
+      - name: gui-env-js
+        configMap:
+          name: {{ include "nomad.fullname" . }}-gui-env-js
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}

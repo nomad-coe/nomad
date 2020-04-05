@@ -43,7 +43,7 @@ def run_app(**kwargs):
     from nomad import infrastructure
     from nomad.app.__main__ import run_dev_server
     infrastructure.setup()
-    run_dev_server(port=8000, **kwargs)
+    run_dev_server(port=config.services.api_port, **kwargs)
 
 
 def run_worker():

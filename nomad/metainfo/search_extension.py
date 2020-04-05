@@ -166,3 +166,15 @@ class Search(Elastic):
     @property
     def many(self):
         return self.many_and is not None or self.many_or is not None
+
+    @property
+    def flask_field(self):
+        from flask_restplus import fields
+        value_field = fields.String
+        if self.definition.type == int:
+            value_field = fields.Integer
+
+        if self.many:
+            return fields.List(value_field(), description=self.description)
+        else:
+            return value_field(description=self.description)

@@ -15,20 +15,25 @@
 version: '3.4'
 
 services:
-    # broker for celery
-    rabbitmq:
-        ports:
-            - 5672:5672
+    # keycloak for user management
+    keycloak:
+        volumes:
+            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
+            - /nomad/backup/fairdi/keycloak:/export
 
     # the search engine
     elastic:
         ports:
             - 9200:9200
+        volumes:
+            - /scratch/fairdi/db/elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
         ports:
             - 27017:27017
+        volumes:
+            - /scratch/fairdi/db/mongo:/data/db
 
     # used for centralized logging
     elk:
@@ -39,41 +44,8 @@ services:
         expose:
             - 5000 # logstash beats
         volumes:
-            - nomad_elk:/var/lib/elasticsearch
+            - /nomad/fairdi/db/elk:/var/lib/elasticsearch
         ports:
             - 5601:5601  # kibana web
-            - 15000:5000   # allow nomad services to logstash outside of docker
-            - 29200:9200  # allows metricbeat config to access es
-
-    # nomad processing worker
-    worker:
-        restart: 'no'
-        build: ../../../
-        image: nomad/backend
-        environment:
-            NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOG_LEVEL: INFO
-        links:
-            - elk
-
-    # nomad app
-    app:
-        restart: 'no'
-        image: nomad/backend
-        environment:
-            NOMAD_LOGSTASH_LEVEL: DEBUG
-            NOMAD_CONSOLE_LOG_LEVEL: INFO
-        depends_on:
-            - worker
-        ports:
-            - 8000:8000
-        links:
-            - elk
-
-    # nomad gui
-    gui:
-        restart: 'no'
-        build: ../../../gui
-        image: nomad/frontend
-        ports:
-            - 8080:8000
+            - 5000:5000
+            - 9201:9200  # allows metricbeat config to access es

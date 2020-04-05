@@ -123,11 +123,22 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
         assert len(search.results) <= search.pagination.total
 
         print('performing archive paginated search')
-        result = client.archive.archive_query(page=1, per_page=10, **query).response().result
+        result = client.archive.post_archive_query(payload={
+            'pagination': {
+                'page': 1,
+                'per_page': 10
+            },
+            'query': query
+        }).response().result
         assert len(result.results) > 0
 
         print('performing archive scrolled search')
-        result = client.archive.archive_query(scroll=True, **query).response().result
+        result = client.archive.post_archive_query(payload={
+            'scroll': {
+                'scroll': True
+            },
+            'query': query
+        }).response().result
         assert len(result.results) > 0
 
         print('performing download')

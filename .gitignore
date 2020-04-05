@@ -22,5 +22,5 @@ target/
 .vscode/
 vscode/
 nomad.yaml
-gunicorn.log.conf
-gunicorn.conf
+./gunicorn.log.conf
+./gunicorn.conf

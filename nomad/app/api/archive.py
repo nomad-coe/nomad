@@ -214,7 +214,7 @@ class ArchiveDownloadResource(Resource):
 
 
 _archive_query_model = api.inherit('ArchiveSearch', search_model, {
-    'query': fields.Nested(query_model, description='The query used to find the requested entries.'),
+    'query': fields.Nested(query_model, description='The query used to find the requested entries.', skip_none=True),
     'query_schema': fields.Raw(description='The query schema that defines what archive data to retrive.')
 })
 
@@ -225,9 +225,8 @@ class ArchiveQueryResource(Resource):
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
-    @api.response(200, 'Archive data send')
     @api.expect(_archive_query_model)
-    @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
+    @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Archive search results sent')
     @authenticate()
     def post(self):
         '''

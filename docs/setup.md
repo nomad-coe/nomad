@@ -131,39 +131,31 @@ must run to make use of nomad. We use *docker* and *docker-compose* to create a
 unified environment that is easy to build and to run.
 
 You can use *docker* to run all necessary 3rd-party components and run all nomad
-services manually from your python environment. Or you can run everything within
-docker containers. The former is often preferred during development, since it allows
+services manually from your python environment. You can also run nomad in docker,
+but using Python is often preferred during development, since it allows
 you change things, debug, and re-run things quickly. The later one brings you
-closer to the environment that will be used to run nomad in production.
+closer to the environment that will be used to run nomad in production. For
+development we recommend to skip the next step.
 
 ### Docker images for nomad
-There are currently two different images and respectively two different docker files:
-`Dockerfile`, and `gui/Dockerfile`.
-
 Nomad comprises currently two services,
 the *worker* (does the actual processing), and the *app*. Those services can be
 run from one image that have the nomad python code and all dependencies installed. This
-is covered by the `Dockerfile`.
+is covered by the `Dockerfile` in the root directory
+of the nomad sources. The gui is served also served from the *app* which entails the react-js frontend code.
 
-The gui is served via containers based on the `gui/Dockerfile` which contains the
-react-js frontend code. Before this image can be build, make sure to execute
-
+Before building the image, make sure to execute
 ```
-cd gui
 ./gitinfo.sh
-cd ..
 ```
-
-This allows to gui to present some information about the current git revision without
+This allows the app to present some information about the current git revision without
 having to copy the git itself to the docker build context.
-
-The images are build via *docker-compose* and don't have to be created manually.
 
 ### Run necessary 3-rd party services with docker-compose
 
 You can run all containers with:
 ```
-cd ops/docker-compose/nomad
+cd ops/docker-compose/infrastructure
 docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongo elastic rabbitmq
 ```
 
