@@ -625,14 +625,14 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
 
-        with utils.lnr(logger, 'staged upload delete failed'):
+        with utils.lnr(logger, 'upload delete failed'):
             with utils.timer(
                     logger, 'upload deleted from index', step='index',
                     upload_size=self.upload_files.size):
                 search.delete_upload(self.upload_id)
 
             with utils.timer(
-                    logger, 'staged upload deleted', step='files',
+                    logger, 'upload deleted', step='files',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
 

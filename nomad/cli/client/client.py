@@ -90,13 +90,16 @@ def handle_common_errors(func):
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
 @click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
 @click.option('--no-token', is_flag=True, help='replaces token with basic auth, e.g. to work with v0.6.x or older API versions')
-def client(url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
+@click.pass_context
+def client(ctx, url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
     logger = utils.get_logger(__name__)
 
     logger.info('Used nomad is %s' % url)
     logger.info('Used user is %s' % user)
 
     nomad_config.client.url = url
+
+    ctx.obj.user = user
 
     global _create_client
 

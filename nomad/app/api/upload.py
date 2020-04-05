@@ -419,7 +419,7 @@ class UploadResource(Resource):
         if upload.user_id != str(g.user.user_id) and not g.user.is_admin:
             abort(401, message='Upload with id %s does not belong to you.' % upload_id)
 
-        if upload.published:
+        if upload.published and not g.user.is_admin:
             abort(400, message='The upload is already published')
 
         if upload.tasks_running:

@@ -175,7 +175,10 @@ class DatasetResource(Resource):
             abort(404, 'Dataset with name %s does not exist for current user' % name)
 
         if result.doi is not None and len(result.doi) > 0:
-            abort(400, 'Dataset with name %s has a DOI and cannot be deleted' % name)
+            if g.user.is_admin:
+                DOI.objects(doi__in=result.doi).delete()
+            else:
+                abort(400, 'Dataset with name %s has a DOI and cannot be deleted' % name)
 
         # edit all affected entries
         edit(

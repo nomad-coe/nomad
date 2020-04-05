@@ -183,11 +183,11 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             assert doi
             has_doi = True
 
-        if not has_doi:
+        if not has_doi or ctx.obj.user == 'admin':
             print('deleting dataset')
             result = client.datasets.delete_dataset(name=dataset).response().result
 
-        if not skip_mirror:
+        if not skip_mirror and ctx.obj.user == 'admin':
             print('getting upload mirror')
             # get_upload_mirror gives 404
             payload = dict(query=dict(upload_id=upload.upload_id))
@@ -196,7 +196,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             assert len(client.mirror.get_upload_mirror(upload_id=upload.upload_id).response().result.calcs) > 0
 
     finally:
-        if not published:
+        if not published or ctx.obj.user == 'admin':
             print('delete the upload again')
             client.uploads.delete_upload(upload_id=upload.upload_id).response()
             while upload.process_running:

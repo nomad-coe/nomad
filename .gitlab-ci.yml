@@ -104,7 +104,7 @@ deploy:
     - helm dependency update ops/helm/nomad
     - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/ci-dev-values.yaml --set proxy.external.path=/dev/nomad/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n $CI_DEV_CLUSTER_PROXY/dev/nomad/$RELEASE_NAME/api -u admin -w $CI_NOMAD_ADMIN_PASSWORD integrationtests --skip-doi
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n $CI_DEV_CLUSTER_PROXY/dev/nomad/$RELEASE_NAME/api -u admin -w $CI_NOMAD_ADMIN_PASSWORD integrationtests
 
   except:
     - /^dev-.*$/
