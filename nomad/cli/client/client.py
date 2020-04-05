@@ -18,39 +18,12 @@ import click
 from bravado import requests_client as bravado_requests_client
 from bravado import client as bravado_client
 from urllib import parse as urllib_parse
-from keycloak import KeycloakOpenID
-import time
 
 from nomad import config as nomad_config
 from nomad import utils
+from nomad import client as nomad_client
+
 from nomad.cli.cli import cli
-
-
-class KeycloakAuthenticator(bravado_requests_client.Authenticator):
-    def __init__(self, host, user, password, **kwargs):
-        super().__init__(host=host)
-        self.user = user
-        self.password = password
-        self.token = None
-        self.__oidc = KeycloakOpenID(**kwargs)
-
-    def apply(self, request=None):
-        if self.token is None:
-            self.token = self.__oidc.token(username=self.user, password=self.password)
-            self.token['time'] = time.time()
-        elif self.token['expires_in'] < int(time.time()) - self.token['time'] + 10:
-            try:
-                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
-                self.token['time'] = time.time()
-            except Exception:
-                self.token = self.__oidc.token(username=self.user, password=self.password)
-                self.token['time'] = time.time()
-
-        if request:
-            request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
-            return request
-        else:
-            return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
 def create_client():
@@ -81,7 +54,7 @@ def __create_client(
     if user is not None:
         host = urllib_parse.urlparse(nomad_config.client.url).netloc.split(':')[0]
         if use_token:
-            http_client.authenticator = KeycloakAuthenticator(
+            http_client.authenticator = nomad_client.KeycloakAuthenticator(
                 host=host,
                 user=user,
                 password=password,

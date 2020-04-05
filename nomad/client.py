@@ -41,11 +41,37 @@ import requests
 from urllib.parse import urlparse
 
 from nomad import config
-from nomad.cli.client.client import KeycloakAuthenticator
 from nomad.datamodel import EntryArchive
 
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
 from nomad import parsing  # pylint: disable=unused-import
+
+
+class KeycloakAuthenticator(bravado_requests_client.Authenticator):
+    def __init__(self, host, user, password, **kwargs):
+        super().__init__(host=host)
+        self.user = user
+        self.password = password
+        self.token = None
+        self.__oidc = KeycloakOpenID(**kwargs)
+
+    def apply(self, request=None):
+        if self.token is None:
+            self.token = self.__oidc.token(username=self.user, password=self.password)
+            self.token['time'] = time.time()
+        elif self.token['expires_in'] < int(time.time()) - self.token['time'] + 10:
+            try:
+                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
+                self.token['time'] = time.time()
+            except Exception:
+                self.token = self.__oidc.token(username=self.user, password=self.password)
+                self.token['time'] = time.time()
+
+        if request:
+            request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
+            return request
+        else:
+            return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
 class ArchiveQuery(Sequence):

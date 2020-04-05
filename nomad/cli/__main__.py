@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad.utils import POPO
-
 from .cli import cli
 
 if __name__ == '__main__':
-    cli(obj=POPO())  # pylint: disable=E1120,E1123
+    cli()  # pylint: disable=E1120,E1123

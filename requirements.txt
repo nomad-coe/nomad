@@ -80,3 +80,4 @@ essential_generators
 jinja2
 bs4
 html5lib
+fastentrypoints

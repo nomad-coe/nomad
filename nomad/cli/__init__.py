@@ -33,13 +33,15 @@ lazy_import.lazy_module('nomad.utils')
 lazy_import.lazy_module('nomad.parsing')
 lazy_import.lazy_module('nomad.normalizing')
 lazy_import.lazy_module('nomad.datamodel')
+lazy_import.lazy_module('nomad.search')
+lazy_import.lazy_module('nomad.metainfo')
+lazy_import.lazy_module('nomad.processing')
+lazy_import.lazy_module('nomad.client')
 lazy_import.lazy_module('nomadcore')
 
-from nomad.utils import POPO  # noqa
-
-from . import dev, admin, client, parse  # noqa
+from . import dev, parse, admin, client  # noqa
 from .cli import cli  # noqa
 
 
 def run_cli():
-    cli(obj=POPO())  # pylint: disable=E1120,E1123
+    cli()  # pylint: disable=E1120,E1123

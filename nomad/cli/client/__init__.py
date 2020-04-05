@@ -36,6 +36,7 @@ lazy_import.lazy_module('time')
 lazy_import.lazy_module('matplotlib.scale')
 lazy_import.lazy_module('matplotlib.pyplot')
 lazy_import.lazy_module('matplotlib.ticker')
+lazy_import.lazy_module('matplotlib.transforms')
 lazy_import.lazy_module('numpy')
 lazy_import.lazy_module('nomad.config')
 lazy_import.lazy_module('nomad.utils')
@@ -46,6 +47,7 @@ lazy_import.lazy_module('nomad.datamodel')
 lazy_import.lazy_module('nomad.parsing')
 lazy_import.lazy_module('nomad.infrastructure')
 lazy_import.lazy_module('nomad.doi')
+lazy_import.lazy_module('nomad.client')
 
 from . import local, upload, integrationtests, mirror, statistics, update_database  # noqa
 from .client import create_client  # noqa

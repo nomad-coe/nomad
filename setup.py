@@ -6,6 +6,8 @@ try:  # for pip >= 10
 except ImportError:  # for pip <= 9.0.3
     from pip.req import parse_requirements
 
+import fastentrypoints
+
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
 install_reqs = parse_requirements('requirements.txt', session='hack')
 # reqs is a list of requirement

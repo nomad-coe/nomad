@@ -19,8 +19,9 @@ import json
 import datetime
 import zipfile
 
-from nomad import utils, search, processing as proc, files
+from nomad import search, processing as proc, files
 from nomad.cli import cli
+from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
 
 from tests.app.test_app import BlueprintClient
@@ -32,7 +33,7 @@ from tests.app.test_app import BlueprintClient
 class TestAdmin:
     def test_reset(self, reset_infra):
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False)
         assert result.exit_code == 0
 
         # allow other test to re-establish a connection
@@ -40,12 +41,12 @@ class TestAdmin:
 
     def test_reset_not_sure(self):
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'reset'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
     # def test_remove(self, reset_infra):
     #     result = click.testing.CliRunner().invoke(
-    #         cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False, obj=utils.POPO())
+    #         cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False)
     #     assert result.exit_code == 0
     #     # allow other test to re-establish a connection
     #     mongoengine.disconnect_all()
@@ -59,7 +60,7 @@ class TestAdmin:
         assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert not published.upload_files.exists()
@@ -85,7 +86,7 @@ class TestAdmin:
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
-            catch_exceptions=False, obj=utils.POPO())
+            catch_exceptions=False)
 
         assert result.exit_code == 0
         assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
@@ -103,7 +104,7 @@ class TestAdmin:
         assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 0
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
@@ -114,7 +115,7 @@ class TestAdmin:
         calc = Calc.objects(upload_id=upload_id).first()
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
@@ -135,7 +136,7 @@ class TestAdminUploads:
             codes_args.append('--code')
             codes_args.append(code)
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '%d uploads selected' % count in result.stdout
@@ -146,7 +147,7 @@ class TestAdminUploads:
         query = dict(upload_id=upload_id)
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', '--query-mongo', 'ls', json.dumps(query)],
-            catch_exceptions=False, obj=utils.POPO())
+            catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -155,7 +156,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -164,7 +165,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -173,7 +174,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
@@ -191,7 +192,7 @@ class TestAdminUploads:
                         f.write(json.dumps(dict(archive='test')).encode())
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'wrote msgpack archive' in result.stdout
@@ -207,7 +208,7 @@ class TestAdminUploads:
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
@@ -220,7 +221,7 @@ class TestAdminUploads:
         assert calc.metadata['nomad_version'] != 'test_version'
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 're-processing' in result.stdout
@@ -235,7 +236,7 @@ class TestAdminUploads:
         calc.save()
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 're-pack' in result.stdout
@@ -254,7 +255,7 @@ class TestAdminUploads:
         assert calc.metadata['uploader'] == other_test_user.user_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'chown', test_user.username, upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'chown', test_user.username, upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'changing' in result.stdout
@@ -269,7 +270,7 @@ class TestAdminUploads:
         upload_id = non_empty_processed.upload_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'reset', '--with-calcs', upload_id], catch_exceptions=False, obj=utils.POPO())
+            cli, ['admin', 'uploads', 'reset', '--with-calcs', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'reset' in result.stdout
@@ -287,7 +288,7 @@ class TestClient:
         result = click.testing.CliRunner().invoke(
             cli,
             ['client', 'upload', '--offline', '--name', 'test_upload', non_empty_example_upload],
-            catch_exceptions=False, obj=utils.POPO())
+            catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '1/0/1' in result.output
@@ -298,13 +299,13 @@ class TestClient:
             assert stream
             rv = client.get(url[url.index('/api/raw'):], headers=headers)
             assert rv.status_code == 200
-            return utils.POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
+            return POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
 
         monkeypatch.setattr('requests.get', requests_get)
         result = click.testing.CliRunner().invoke(
             cli,
             ['client', 'local', '%s/%s' % (published.upload_id, list(published.calcs)[0].calc_id)],
-            catch_exceptions=False, obj=utils.POPO())
+            catch_exceptions=False)
 
         assert result.exit_code == 0
 
@@ -312,7 +313,7 @@ class TestClient:
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--dry'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['client', 'mirror', '--dry'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert published.upload_id in result.output
@@ -328,13 +329,13 @@ class TestClient:
 
         if move:
             result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--move'], catch_exceptions=False, obj=utils.POPO())
+                cli, ['client', 'mirror', '--move'], catch_exceptions=False)
         elif link:
             result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--link'], catch_exceptions=False, obj=utils.POPO())
+                cli, ['client', 'mirror', '--link'], catch_exceptions=False)
         else:
             result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False, obj=utils.POPO())
+                cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert published.upload_id in result.output
@@ -363,7 +364,7 @@ class TestClient:
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--staging', '--link'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['client', 'mirror', '--staging', '--link'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert non_empty_processed.upload_id in result.output
@@ -386,7 +387,7 @@ class TestClient:
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--files-only'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['client', 'mirror', '--files-only'], catch_exceptions=False)
 
         assert result.exit_code == 0, result.output
         assert published.upload_id in result.output
@@ -415,7 +416,7 @@ class TestClient:
         monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror'], catch_exceptions=False, obj=utils.POPO())
+            cli, ['client', 'mirror'], catch_exceptions=False)
 
         assert result.exit_code == 0, result.output
         assert published_wo_user_metadata.upload_id in result.output
@@ -426,7 +427,7 @@ class TestClient:
     def test_statistics(self, client, proc_infra, admin_user_bravado_client):
 
         result = click.testing.CliRunner().invoke(
-            cli, ['client', 'statistics-table'], catch_exceptions=True, obj=utils.POPO())
+            cli, ['client', 'statistics-table'], catch_exceptions=True)
 
         assert result.exit_code == 0, result.output
         assert 'Calculations, e.g. total energies' in result.output

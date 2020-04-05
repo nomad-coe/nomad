@@ -16,8 +16,8 @@
 A command that generates various statistics.
 '''
 
-from matplotlib import scale as mscale
-from matplotlib import transforms as mtransforms
+import matplotlib.scale as mscale
+import matplotlib.transforms as mtransforms
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np

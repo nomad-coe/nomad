@@ -29,13 +29,13 @@ from nomad.cli.admin import uploads as admin_uploads
 from .client import client
 
 
-__mongo_properties = set(d.name for d in datamodel.MongoMetadata.m_def.definitions)
-
 __in_test = False
 ''' Will be monkeypatched by tests to alter behavior for testing. '''
 
-_Dataset = datamodel.Dataset.m_def.a_mongo.mongo_cls
-__logger = utils.get_logger(__name__)
+
+# will be initialized in mirror command func
+_Dataset = None
+__logger = None
 
 
 def fix_time(data, keys):
@@ -85,6 +85,7 @@ def transform_reference(reference):
 
 def v0Dot7(upload_data):
     ''' Inplace transforms v0.7.x upload data into v0.8.x upload data. '''
+    __mongo_properties = set(d.name for d in datamodel.MongoMetadata.m_def.definitions)
     for calc in upload_data['calcs']:
         calc_metadata = calc['metadata']
         if 'pid' in calc_metadata:
@@ -196,6 +197,12 @@ def mirror(
         query, move: bool, link: bool, dry: bool, files_only: bool, skip_files: bool,
         source_mapping: str, target_mapping: str, migration: str, staging: bool,
         skip_es: bool, replace: bool):
+
+    # init global vars
+    global _Dataset
+    global __logger
+    _Dataset = datamodel.Dataset.m_def.a_mongo.mongo_cls
+    __logger = utils.get_logger(__name__)
 
     if staging and not (move or link):
         print('--with-staging requires either --move or --link')
