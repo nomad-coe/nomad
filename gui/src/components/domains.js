@@ -7,6 +7,8 @@ import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
 import DFTSearchByPropertyAggregations from './dft/DFTSearchByPropertyAggregations'
 
+/* eslint-disable react/display-name */
+
 export const domains = ({
   dft: {
     name: 'DFT',
@@ -24,7 +26,7 @@ export const domains = ({
      * onChange (callback to propagate searchValue changes).
      */
     SearchAggregations: DFTSearchAggregations,
-        /**
+    /**
      * A component that is used to render the search aggregations by property.
      */
     SearchByPropertyAggregations: DFTSearchByPropertyAggregations,

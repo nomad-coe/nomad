@@ -193,7 +193,7 @@ class UploadPage extends React.Component {
   }
 
   update(newPage) {
-    const { data: { pagination: { page, per_page }}} = this.state
+    const {data: {pagination: {page, per_page}}} = this.state
     this.props.api.getUploads('all', newPage || page, per_page)
       .then(uploads => {
         this.setState({
@@ -226,8 +226,8 @@ class UploadPage extends React.Component {
   }
 
   renderUploads(openUpload) {
-    const { classes } = this.props
-    const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
+    const {classes} = this.props
+    const {data: {results, pagination: {total, per_page, page}}, uploading} = this.state
 
     const renderUpload = upload => <Upload
       open={openUpload === upload.upload_id}

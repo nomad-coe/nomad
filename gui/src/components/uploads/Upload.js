@@ -107,7 +107,8 @@ class Upload extends React.Component {
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
     open: PropTypes.bool,
-    history: PropTypes.object.isRequired
+    history: PropTypes.object.isRequired,
+    domain: PropTypes.object
   }
 
   static styles = theme => ({

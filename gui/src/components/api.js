@@ -322,6 +322,8 @@ class Api {
       }))
       .catch(handleApiError)
       .then(response => {
+        /* global Blob */
+        /* eslint no-undef: "error" */
         if (response.data instanceof Blob) {
           if (response.data.type.endsWith('empty')) {
             return {
@@ -397,7 +399,9 @@ class Api {
         // this helps to keep consistent values, e.g. in the metadata search view
         if (response.statistics) {
           const empty = {}
-          Object.keys(response.statistics.total.all).forEach(metric => empty[metric] = 0)
+          Object.keys(response.statistics.total.all).forEach(metric => {
+            empty[metric] = 0
+          })
           Object.keys(response.statistics)
             .filter(key => !['total', 'authors', 'atoms'].includes(key))
             .forEach(key => {

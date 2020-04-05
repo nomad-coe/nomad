@@ -56,7 +56,7 @@ function ReloadSnack() {
   >
     <SnackbarContent
       style={{backgroundColor: amber[700]}}
-      message={<span>There is a new NOMAD version. Please press your browser's reload (or even shift+reload) button.</span>}
+      message={<span>There is a new NOMAD version. Please press your browser&apos;s reload (or even shift+reload) button.</span>}
     />
   </Snackbar>
 }

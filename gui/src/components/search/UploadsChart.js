@@ -98,7 +98,7 @@ class UploadsHistogramUnstyled extends React.Component {
     }
   ]
 
-  timeInterval = Object.assign({}, ...this.intervals.map(e => ( {[e.value]: e.number})))
+  timeInterval = Object.assign({}, ...this.intervals.map(e => ({[e.value]: e.number})))
 
   componentDidMount() {
     const from_time = new Date(this.startDate).getTime()
@@ -120,9 +120,7 @@ class UploadsHistogramUnstyled extends React.Component {
 
   handleIntervalChange(newInterval) {
     // TODO: add a refresh button so directly updating interval is not necessary
-    this.state.interval = newInterval
-    //this.setState({interval: newInterval})
-    this.handleQueryChange()
+    this.setState({interval: newInterval}, () => this.handleQueryChange())
   }
 
   handleTimeChange(newTime, key, target) {
@@ -136,7 +134,7 @@ class UploadsHistogramUnstyled extends React.Component {
       key === 'from_time' ? this.setState({from_time: date.getTime()}) : this.setState({until_time: date.getTime()})
     }
     if (target === 'picker' || target === 'all') {
-      document.getElementById(key).value = date.toISOString().substring(0,10)
+      document.getElementById(key).value = date.toISOString().substring(0, 10)
     }
   }
 
@@ -145,21 +143,21 @@ class UploadsHistogramUnstyled extends React.Component {
     if (selected === this.state.time) {
       this.props.onChanged(null, null, null)
     } else {
-      const deltaT =  this.timeInterval[this.state.interval]
+      const deltaT = this.timeInterval[this.state.interval]
       this.handleTimeChange(selected, 'from_time', 'all')
       this.handleTimeChange(selected + deltaT, 'until_time', 'all')
       this.handleQueryChange()
     }
   }
 
-  resolveDate (name) {
+  resolveDate(name) {
     const date = new Date(parseInt(name, 10))
     const year = date.toLocaleDateString(undefined, {year: 'numeric'})
     const month = date.toLocaleDateString(undefined, {month: 'short'})
     const day = date.toLocaleDateString(undefined, {day: 'numeric'})
     const hour = date.toLocaleTimeString(undefined, {hour: 'numeric'})
     const min = date.toLocaleTimeString(undefined, {minute: 'numeric'})
-    const sec= date.toLocaleTimeString(undefined, {second: 'numeric'})
+    const sec = date.toLocaleTimeString(undefined, {second: 'numeric'})
 
     const intervals = {
       '1y': year,
@@ -173,54 +171,54 @@ class UploadsHistogramUnstyled extends React.Component {
     return intervals[this.state.interval]
   }
 
-  hover (svg, bar) {
+  hover(svg, bar) {
     const textOffset = 25
 
     const tooltip = svg.append('g')
-    .attr('class', 'tooltip')
-    .style('display', 'none')
+      .attr('class', 'tooltip')
+      .style('display', 'none')
 
     const hoverBox = tooltip.append('rect')
-    .attr('width', 10)
-    .attr('height', 20)
-    .attr('fill', 'white')
-    .style('opacity', 0.0)
+      .attr('width', 10)
+      .attr('height', 20)
+      .attr('fill', 'white')
+      .style('opacity', 0.0)
 
     const text = tooltip.append('text')
-    .attr('x', textOffset)
-    .attr('dy', '1.2em')
-    .style('text-anchor', 'start')
-    .attr('font-size', '12px')
-    //.attr('font-weight', 'bold')
+      .attr('x', textOffset)
+      .attr('dy', '1.2em')
+      .style('text-anchor', 'start')
+      .attr('font-size', '12px')
+    // .attr('font-weight', 'bold')
 
     bar
-    .on('mouseover', () => {
-      tooltip.style('display', null)
-      let { width } = text.node().getBBox()
-      hoverBox.attr('width', `${ width + textOffset }px`)
-    })
-    .on('mouseout', () => tooltip.style('display', 'none'))
-    .on('mousemove', function(d) {
-      let xPosition = d3.mouse(this)[0] - 15
-      let yPosition = d3.mouse(this)[1] - 25
+      .on('mouseover', () => {
+        tooltip.style('display', null)
+        let { width } = text.node().getBBox()
+        hoverBox.attr('width', `${width + textOffset}px`)
+      })
+      .on('mouseout', () => tooltip.style('display', 'none'))
+      .on('mousemove', function(d) {
+        let xPosition = d3.mouse(this)[0] - 15
+        let yPosition = d3.mouse(this)[1] - 25
 
-      tooltip.attr('transform', `translate( ${ xPosition }, ${ yPosition })`)
-      tooltip.attr('data-html', 'true')
-      tooltip.select('text').text( new Date(d.time).toISOString() + ': ' + d.value )
-    })
+        tooltip.attr('transform', `translate( ${xPosition}, ${yPosition})`)
+        tooltip.attr('data-html', 'true')
+        tooltip.select('text').text(new Date(d.time).toISOString() + ': ' + d.value)
+      })
   }
 
-  updateChart () {
+  updateChart() {
     let data = []
-    if (! this.props.data) {
+    if (!this.props.data) {
       return
     } else {
       data = Object.keys(this.props.data).map(key => ({
         time: parseInt(key, 10),
         name: this.resolveDate(key),
         value: this.props.data[key][this.props.metric]
-    }))}
-
+      }))
+    }
 
     data.sort((a, b) => d3.ascending(a.time, b.time))
     if (data.length > 0) {
@@ -228,13 +226,13 @@ class UploadsHistogramUnstyled extends React.Component {
       this.handleTimeChange(this.state.until_time, 'until_time', 'picker')
     }
 
-    const scalePower  = this.state.scalePower
+    const scalePower = this.state.scalePower
     const width = this.container.current.offsetWidth
     const height = this.props.height
-    const margin = Math.round(0.1*height)
+    const margin = Math.round(0.1 * height)
 
     const x = scaleBand().rangeRound([margin, width]).padding(0.1)
-    const y = scalePow().range([height-margin, margin]).exponent(scalePower)
+    const y = scalePow().range([height - margin, margin]).exponent(scalePower)
 
     const max = d3.max(data, d => d.value) || 0
     x.domain(data.map(d => d.name))
@@ -247,36 +245,36 @@ class UploadsHistogramUnstyled extends React.Component {
     const xAxis = d3.axisBottom(x)
     svg.select('.xaxis').remove()
     svg.append('g')
-    .attr('transform', `translate(0,${height-margin})`)
-    .attr('class', 'xaxis')
-    .call(xAxis)
+      .attr('transform', `translate(0,${height - margin})`)
+      .attr('class', 'xaxis')
+      .call(xAxis)
 
     svg.select('.xlabel').remove()
     svg.append('text')
-    .attr('class', 'xlabel')
-    .attr("x", width)
-    .attr("y", height-4)
-    .attr('dy', ".35em")
-    .attr('font-size', '12px')
-    .style('text-anchor', 'end')
+      .attr('class', 'xlabel')
+      .attr('x', width)
+      .attr('y', height - 4)
+      .attr('dy', '.35em')
+      .attr('font-size', '12px')
+      .style('text-anchor', 'end')
 
     const yAxis = d3.axisLeft(y)
     svg.select('.yaxis').remove()
     svg.append('g')
-    .attr('transform', `translate(${margin}, 0)`)
-    .attr('class', 'yaxis')
-    .call(yAxis)
+      .attr('transform', `translate(${margin}, 0)`)
+      .attr('class', 'yaxis')
+      .call(yAxis)
 
     const {label, shortLabel} = this.props.metricsDefinitions[this.props.metric]
     svg.select('.ylabel').remove()
     svg.append('text')
-    .attr('class','ylabel')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('dy', "1em")
-    .attr('text-anchor', 'start')
-    .attr('font-size', '12px')
-    .text(`${shortLabel ? shortLabel : label}`)
+      .attr('class', 'ylabel')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('dy', '1em')
+      .attr('text-anchor', 'start')
+      .attr('font-size', '12px')
+      .text(`${shortLabel || label}`)
 
     let withData = svg
       .selectAll('.bar').remove().exit()
@@ -300,9 +298,9 @@ class UploadsHistogramUnstyled extends React.Component {
 
     svg.select('.tooltip').remove()
     svg.call(this.hover, item)
-}
+  }
 
-  render () {
+  render() {
     return (
       <div>
         <Grid container justify='space-around' spacing={24}>
@@ -314,10 +312,10 @@ class UploadsHistogramUnstyled extends React.Component {
               onChange={(event) => this.setState({scalePower: event.target.value})}
               label= 'scale'
             > {this.scales.map(item => (
-              <MenuItem
-                value={item.value}
-                key={item.label}> {item.label}
-              </MenuItem>))}
+                <MenuItem
+                  value={item.value}
+                  key={item.label}> {item.label}
+                </MenuItem>))}
             </Select>
           </Grid>
           <Grid item xs={3}>
@@ -327,17 +325,17 @@ class UploadsHistogramUnstyled extends React.Component {
               type="date"
               onChange={(event) => this.handleTimeChange(event.target.value, 'from_time', 'state')}
               InputLabelProps={{
-                shrink: true,
+                shrink: true
               }}
             />
           </Grid>
           <Grid item xs={3}>
             <Select
-                id='interval'
-                value={this.state.interval}
-                onChange={(event) => this.handleIntervalChange(event.target.value)}
-                label= 'interval'
-              > {this.intervals.map(item => (
+              id='interval'
+              value={this.state.interval}
+              onChange={(event) => this.handleIntervalChange(event.target.value)}
+              label= 'interval'
+            > {this.intervals.map(item => (
                 <MenuItem value={item.value} key={item.value}>
                   {item.label}
                 </MenuItem>))}
@@ -350,7 +348,7 @@ class UploadsHistogramUnstyled extends React.Component {
               type="date"
               onChange={(event) => this.handleTimeChange(event.target.value, 'until_time', 'state')}
               InputLabelProps={{
-                shrink: true,
+                shrink: true
               }}
             />
           </Grid>
@@ -366,7 +364,6 @@ class UploadsHistogramUnstyled extends React.Component {
 export const UploadsHistogram = withStyles(UploadsHistogramUnstyled.styles)(UploadsHistogramUnstyled)
 
 class UploadersListUnstyled extends React.Component {
-
   static propTypes = {
     classes: PropTypes.object.isRequired
   }
@@ -379,18 +376,18 @@ class UploadersListUnstyled extends React.Component {
 
   static contextType = SearchContext.type
 
-  render () {
+  render() {
     const {state: {usedMetric}} = this.context
 
     return (
-        <Grid>
-          <Quantity quantity="uploader" title="Top Uploaders" scale={1} metric={usedMetric} />
-        </Grid>
+      <Grid>
+        <Quantity quantity="uploader" title="Top Uploaders" scale={1} metric={usedMetric} />
+      </Grid>
     )
   }
 }
 
-export const  UploadersList = withStyles(UploadersListUnstyled.styles)(UploadersListUnstyled)
+export const UploadersList = withStyles(UploadersListUnstyled.styles)(UploadersListUnstyled)
 
 class UploadsChart extends React.Component {
   static propTypes = {
@@ -407,7 +404,7 @@ class UploadsChart extends React.Component {
 
   render() {
     const {classes, metricsDefinitions, ...props} = this.props
-    const {state: {response, usedMetric, query, }, setQuery} = this.context
+    const {state: {response, usedMetric, query}, setQuery} = this.context
 
     return (
       <Grid container spacing={24}>
@@ -427,7 +424,7 @@ class UploadsChart extends React.Component {
           <UploadersList />
         </Grid>
       </Grid>
-      )
+    )
   }
 }
 

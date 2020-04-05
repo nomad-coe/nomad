@@ -161,7 +161,8 @@ export class EntryListUnstyled extends React.Component {
     }
   }
 
-  componentWillUpdate(prevProps) {
+  // TODO was this really intentional
+  UNSAFE_componentWillUpdate(prevProps) {
     if (prevProps.data !== this.props.data) {
       this.setState({selected: []})
     }

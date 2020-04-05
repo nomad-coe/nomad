@@ -5,7 +5,6 @@ import { Quantity } from '../search/QuantityHistogram'
 import SearchContext from '../search/SearchContext'
 import { withApi } from '../api'
 
-
 class DFTSearchAggregations extends React.Component {
   static propTypes = {
     info: PropTypes.object

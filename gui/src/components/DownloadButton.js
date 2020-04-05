@@ -39,7 +39,7 @@ class DownloadButton extends React.Component {
 
   handleClick(event) {
     event.stopPropagation()
-    this.setState({ anchorEl: event.currentTarget });
+    this.setState({ anchorEl: event.currentTarget })
   }
 
   async handleSelect(choice) {

@@ -35,7 +35,7 @@ const _mapping = {
   'oscillator_strengths': 'Oscillator strengths',
   'transition_dipole_moments': 'Transition dipole moments'}
 
-function map_key (name) {
+function mapKey(name) {
   if (name in _mapping) {
     return _mapping[name]
   }
@@ -102,7 +102,7 @@ class QuantityHistogramUnstyled extends React.Component {
 
     const data = Object.keys(this.props.data)
       .map(key => ({
-        name: map_key(key),
+        name: mapKey(key),
         value: this.props.data[key][this.props.metric]
       }))
 
@@ -246,7 +246,6 @@ class QuantityHistogramUnstyled extends React.Component {
 }
 
 export const QuantityHistogram = withStyles(QuantityHistogramUnstyled.styles)(QuantityHistogramUnstyled)
-
 
 class QuantityUnstyled extends React.Component {
   static propTypes = {

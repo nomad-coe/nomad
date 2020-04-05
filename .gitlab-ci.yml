@@ -55,6 +55,14 @@ linting:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
+gui_linting:
+  stage: test
+  image: node
+  script:
+    - cd gui
+    - yarn
+    - yarn run eslint 'src/**/*.js'
+
 tests:
   stage: test
   image: $TEST_IMAGE

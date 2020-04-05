@@ -51,7 +51,7 @@ function getSuggestionValue(suggestion) {
 
 const styles = theme => ({
   container: {
-    position: 'relative',
+    position: 'relative'
   },
   suggestionsContainerOpen: {
     position: 'absolute',
