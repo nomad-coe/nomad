@@ -37,6 +37,10 @@ def test_query(api, published_wo_user_metadata):
     assert_results(query_archive())
 
 
+def test_query_query(api, published_wo_user_metadata):
+    assert_results(query_archive(query=dict(upload_id=[published_wo_user_metadata.upload_id])))
+
+
 def test_query_schema(api, published_wo_user_metadata):
     q_schema = {'section_run': {'section_system': '*'}}
     assert_results(

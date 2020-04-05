@@ -320,6 +320,9 @@ class ArchiveQueryResource(Resource):
                 # optimize and not access restricted for same upload again
                 pass
 
+        if upload_files is not None:
+            upload_files.close()
+
         # assign archive data to results
         results['results'] = data
 
