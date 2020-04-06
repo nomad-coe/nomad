@@ -60,7 +60,7 @@ python-json-logger
 
 # dev/ops related
 setuptools
-sphinx
+sphinx==2.4.4
 sphinxcontrib.httpdomain
 sphinx-click
 sphinx_rtd_theme
