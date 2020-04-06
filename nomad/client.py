@@ -82,12 +82,13 @@ class ArchiveQuery(Sequence):
             self,
             query: dict = None, query_schema: dict = None,
             url: str = None, username: str = None, password: str = None,
-            scroll: bool = False,
+            scroll: bool = False, per_page: int = 10,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None, **kwargs):
 
         self.scroll = scroll
         self._scroll_id = None
         self._page = 1
+        self._per_page = per_page
 
         self.query: Dict[str, Any] = {
             'query': {}
@@ -133,7 +134,8 @@ class ArchiveQuery(Sequence):
                 scroll_config['scroll_id'] = self._scroll_id
 
         else:
-            self.query.setdefault('pagination', {})['page'] = self._page
+            self.query.setdefault('pagination', {}).update(
+                page=self._page, per_page=self._per_page)
 
         response = requests.post(url, headers=self.authentication, json=self.query)
         if response.status_code != 200:

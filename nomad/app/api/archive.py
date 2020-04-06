@@ -30,7 +30,7 @@ import urllib.parse
 import metainfo
 
 from nomad.files import UploadFiles, Restricted
-from nomad.archive import query_archive
+from nomad.archive import query_archive, ArchiveQueryError
 from nomad import search, config
 from nomad.app import common
 
@@ -265,7 +265,7 @@ class ArchiveQueryResource(Resource):
             search_request.owner('all')
 
         apply_search_parameters(search_request, query)
-        search_request.include('calc_id', 'upload_id', 'with_embargo', 'parser_name')
+        search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         try:
             if scroll:
@@ -288,11 +288,18 @@ class ArchiveQueryResource(Resource):
         calcs = results['results']
         upload_files = None
         current_upload_id = None
+        check_restricted = g.user is not None
         for entry in calcs:
+            with_embargo = entry['with_embargo']
+            if (not entry['published'] or with_embargo) and not check_restricted:
+                continue
+
             upload_id = entry['upload_id']
             calc_id = entry['calc_id']
+
             if upload_files is None or current_upload_id != upload_id:
                 if upload_files is not None:
+                    check_restricted = g.user is not None  # maybe the user has restricted access for the next upload
                     upload_files.close()
 
                 upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
@@ -302,7 +309,7 @@ class ArchiveQueryResource(Resource):
 
                 current_upload_id = upload_id
 
-            if entry['with_embargo']:
+            if with_embargo:
                 access = 'restricted'
             else:
                 access = 'public'
@@ -315,10 +322,11 @@ class ArchiveQueryResource(Resource):
                         'archive': query_archive(
                             archive, {calc_id: query_schema})[calc_id]
                     })
+            except ArchiveQueryError as e:
+                abort(400, str(e))
 
             except Restricted:
-                # optimize and not access restricted for same upload again
-                pass
+                check_restricted = False
 
         if upload_files is not None:
             upload_files.close()
