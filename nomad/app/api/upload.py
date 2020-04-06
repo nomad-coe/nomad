@@ -541,14 +541,14 @@ class UploadCommandResource(Resource):
 
         # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
         # It is also easier for the user to unterstand IMHO.
-        upload_command = 'curl %s -T <local_file>' % upload_url
+        upload_command = 'curl "%s" -T <local_file>' % upload_url
 
-        upload_command_form = 'curl %s -X PUT -F file=@<local_file>' % upload_url
+        upload_command_form = 'curl "%s" -X PUT -F file=@<local_file>' % upload_url
 
         upload_command_with_name = 'curl "%s" -X PUT -T <local_file>' % upload_url_with_name
 
         upload_progress_command = upload_command + ' | xargs echo'
-        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H %s -T - | xargs echo' % upload_url
+        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H "%s" -T - | xargs echo' % upload_url
 
         return dict(
             upload_url=upload_url,
