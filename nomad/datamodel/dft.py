@@ -259,12 +259,12 @@ class DFTMetadata(MSection):
     labels_springer_compound_class = Quantity(
         type=str, shape=['0..*'],
         description='Springer compund classification.',
-        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=10))
 
     labels_springer_classification = Quantity(
         type=str, shape=['0..*'],
         description='Springer classification by property.',
-        a_search=Search(many_and='append', default_statistic=True, statistic_size=15))
+        a_search=Search(many_and='append', default_statistic=True, statistic_size=10))
 
     optimade = SubSection(
         sub_section=OptimadeEntry,

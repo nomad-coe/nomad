@@ -34,6 +34,7 @@ class SearchContext extends React.Component {
     this.handleQueryChange = this.handleQueryChange.bind(this)
     this.handleMetricChange = this.handleMetricChange.bind(this)
     this.handleDomainChange = this.handleDomainChange.bind(this)
+    this.handleStatisticsToRefreshChange = this.handleStatisticsToRefreshChange.bind(this)
     this.state.query = this.props.initialQuery || {}
     if (this.props.initialRequest) {
       this.state.request = {...this.state.request, ...this.props.initialRequest}
@@ -56,7 +57,8 @@ class SearchContext extends React.Component {
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
     domain: domains.dft,
-    query: {}
+    query: {},
+    statisticsToRefresh: []
   }
 
   handleRequestChange(changes) {
@@ -99,9 +101,15 @@ class SearchContext extends React.Component {
     }
   }
 
+  handleStatisticsToRefreshChange(statistics) {
+    let currentValue = this.state.statisticsToRefresh
+    currentValue.push(statistics)
+    this.setState({statisticsToRefresh: currentValue})
+  }
+
   update() {
     const {api, raiseError} = this.props
-    const {request, query, metric, domain} = this.state
+    const {request, query, metric, domain, statisticsToRefresh} = this.state
     const search = {
       ...request,
       ...query,
@@ -109,7 +117,7 @@ class SearchContext extends React.Component {
       metrics: metric === this.defaultMetric ? [] : [metric],
       ...(this.props.query || {})}
 
-    api.search(search)
+    api.search(search, statisticsToRefresh)
       .then(response => {
         // find the first statistic to determine which metric is used
         const {statistics} = response
@@ -153,7 +161,8 @@ class SearchContext extends React.Component {
       setRequest: this.handleRequestChange,
       setQuery: this.handleQueryChange,
       setMetric: this.handleMetricChange,
-      setDomain: this.handleDomainChange
+      setDomain: this.handleDomainChange,
+      setStatisticsToRefresh: this.handleStatisticsToRefreshChange
     }
     return <SearchContext.type.Provider value={value} >
       {children}

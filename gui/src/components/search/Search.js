@@ -17,6 +17,7 @@ import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
 import UploadsChart from './UploadsChart'
+import UploadersList from './UploadersList'
 
 class Search extends React.Component {
   static tabs = {
@@ -255,11 +256,14 @@ class UsersVisualization extends React.Component {
     const {open} = this.props
 
     return <KeepState visible={open} render={() =>
-      <Card>
-        <CardContent>
-          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-        </CardContent>
-      </Card>
+      <div>
+        <Card>
+          <CardContent>
+            <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+          </CardContent>
+        </Card>
+        <UploadersList />
+      </div>
     }/>
   }
 }

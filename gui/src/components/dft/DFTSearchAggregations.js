@@ -12,6 +12,11 @@ class DFTSearchAggregations extends React.Component {
 
   static contextType = SearchContext.type
 
+  componentDidMount() {
+    const {setStatisticsToRefresh} = this.context
+    setStatisticsToRefresh('dft.labels_springer_compound_class')
+  }
+
   render() {
     const {info} = this.props
     const {state: {response: {statistics}, usedMetric}} = this.context

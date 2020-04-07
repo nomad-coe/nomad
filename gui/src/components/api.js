@@ -386,7 +386,7 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async search(search) {
+  async search(search, statisticsToRefresh = []) {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
@@ -399,11 +399,12 @@ class Api {
         // this helps to keep consistent values, e.g. in the metadata search view
         if (response.statistics) {
           const empty = {}
+          const refreshList = ['total', 'authors', 'atoms'].concat(statisticsToRefresh)
           Object.keys(response.statistics.total.all).forEach(metric => {
             empty[metric] = 0
           })
           Object.keys(response.statistics)
-            .filter(key => !['total', 'authors', 'atoms'].includes(key))
+            .filter(key => !refreshList.includes(key))
             .forEach(key => {
               if (!this.statistics[key]) {
                 this.statistics[key] = new Set()

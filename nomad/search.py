@@ -281,19 +281,25 @@ class SearchRequest:
         self._add_metrics(self._search.aggs, metrics_to_use)
         return self
 
-    def default_statistics(self, metrics_to_use: List[str] = []):
+    def default_statistics(self, metrics_to_use: List[str] = [], statistics_order: str = '_key'):
         '''
         Configures the domain's default statistics.
         '''
+        mode = 'desc'
+        if statistics_order == '_key':
+            mode = 'asc'
+        order = {statistics_order: mode}
+
         for search_quantity in default_statistics[self._domain]:
             self.statistic(
                 search_quantity.qualified_name,
                 search_quantity.statistic_size,
-                metrics_to_use=metrics_to_use)
+                metrics_to_use=metrics_to_use,
+                order=order)
 
         return self
 
-    def statistic(self, quantity_name: str, size: int, metrics_to_use: List[str] = []):
+    def statistic(self, quantity_name: str, size: int, metrics_to_use: List[str] = [], order: Dict[str, str] = dict(_key='asc')):
         '''
         This can be used to display statistics over the searched entries and allows to
         implement faceted search on the top values for each quantity.
@@ -319,7 +325,7 @@ class SearchRequest:
                 The basic doc_count metric ``code_runs`` is always given.
         '''
         quantity = search_quantities[quantity_name]
-        terms = A('terms', field=quantity.search_field, size=size, order=dict(_key='asc'))
+        terms = A('terms', field=quantity.search_field, size=size, order=order)
 
         buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
         self._add_metrics(buckets, metrics_to_use)

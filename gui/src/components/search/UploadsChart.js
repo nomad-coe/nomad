@@ -1,6 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Select, MenuItem } from '@material-ui/core'
+import Button from '@material-ui/core/Button'
+import RefreshIcon from '@material-ui/icons/Refresh'
 import Grid from '@material-ui/core/Grid'
 import TextField from '@material-ui/core/TextField'
 import * as d3 from 'd3'
@@ -9,14 +11,12 @@ import { nomadSecondaryColor } from '../../config.js'
 import SearchContext from './SearchContext'
 import { compose } from 'recompose'
 import { withApi } from '../api'
-import { Quantity } from './QuantityHistogram'
 
 class UploadsHistogramUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     height: PropTypes.number.isRequired,
     data: PropTypes.object,
-    interval: PropTypes.string,
     metric: PropTypes.string.isRequired,
     metricsDefinitions: PropTypes.object.isRequired,
     onChanged: PropTypes.func.isRequired,
@@ -34,7 +34,6 @@ class UploadsHistogramUnstyled extends React.Component {
     super(props)
     this.state = {
       scalePower: this.props.defaultScale || 1.0,
-      interval: this.props.interval || '1M',
       time: null,
       from_time: 0,
       until_time: 0
@@ -65,41 +64,6 @@ class UploadsHistogramUnstyled extends React.Component {
     }
   ]
 
-  intervals = [
-    {
-      label: 'Yearly',
-      value: '1y',
-      number: 31536000000
-    },
-    {
-      label: 'Monthly',
-      value: '1M',
-      number: 2678400000
-    },
-    {
-      label: 'Daily',
-      value: '1d',
-      number: 86400000
-    },
-    {
-      label: 'Hourly',
-      value: '1h',
-      number: 3600000
-    },
-    {
-      label: 'Minute',
-      value: '1m',
-      number: 60000
-    },
-    {
-      label: 'Second',
-      value: '1s',
-      number: 1000
-    }
-  ]
-
-  timeInterval = Object.assign({}, ...this.intervals.map(e => ({[e.value]: e.number})))
-
   componentDidMount() {
     const from_time = new Date(this.startDate).getTime()
     const until_time = new Date().getTime()
@@ -112,15 +76,9 @@ class UploadsHistogramUnstyled extends React.Component {
   }
 
   handleQueryChange() {
-    const interval = this.state.interval
     const from_time = new Date(this.state.from_time)
     const until_time = new Date(this.state.until_time)
-    this.props.onChanged(from_time.toISOString(), until_time.toISOString(), interval)
-  }
-
-  handleIntervalChange(newInterval) {
-    // TODO: add a refresh button so directly updating interval is not necessary
-    this.setState({interval: newInterval}, () => this.handleQueryChange())
+    this.props.onChanged(from_time.toISOString(), until_time.toISOString())
   }
 
   handleTimeChange(newTime, key, target) {
@@ -130,45 +88,54 @@ class UploadsHistogramUnstyled extends React.Component {
     } else {
       date = new Date(newTime)
     }
+
     if (target === 'state' || target === 'all') {
-      key === 'from_time' ? this.setState({from_time: date.getTime()}) : this.setState({until_time: date.getTime()})
+      if (key === 'from_time') {
+        if (this.state.from_time !== date.getTime()) {
+          this.setState({from_time: date.getTime()})
+        }
+      } else if (key === 'until_time') {
+        if (this.state.until_time !== date.getTime()) {
+          this.setState({until_time: date.getTime()})
+        }
+      }
     }
+
     if (target === 'picker' || target === 'all') {
       document.getElementById(key).value = date.toISOString().substring(0, 10)
     }
   }
 
-  handleItemClicked(item) {
+  handleItemClicked(item, deltaT) {
     const selected = item.time
     if (selected === this.state.time) {
-      this.props.onChanged(null, null, null)
+      this.props.onChanged(null, null)
     } else {
-      const deltaT = this.timeInterval[this.state.interval]
       this.handleTimeChange(selected, 'from_time', 'all')
       this.handleTimeChange(selected + deltaT, 'until_time', 'all')
       this.handleQueryChange()
     }
   }
 
-  resolveDate(name) {
+  resolveDate(name, deltaT) {
     const date = new Date(parseInt(name, 10))
     const year = date.toLocaleDateString(undefined, {year: 'numeric'})
+    const quarter = Math.floor((date.getMonth() + 3) / 3)
     const month = date.toLocaleDateString(undefined, {month: 'short'})
+    const week = (date) => {
+      const first = new Date(date.getFullYear(), 0, 1)
+      return Math.ceil((((date - first) / 86400000) + first.getDay() + 1) / 7)
+    }
     const day = date.toLocaleDateString(undefined, {day: 'numeric'})
     const hour = date.toLocaleTimeString(undefined, {hour: 'numeric'})
     const min = date.toLocaleTimeString(undefined, {minute: 'numeric'})
     const sec = date.toLocaleTimeString(undefined, {second: 'numeric'})
 
-    const intervals = {
-      '1y': year,
-      '1M': month,
-      '1d': day,
-      '1h': hour,
-      '1m': min,
-      '1s': sec
-    }
+    const times = [31536000, 7776000, 2419200, 604800, 864000, 3600, 60, 1]
+    const diffs = times.map(t => Math.abs(t - (deltaT / 1000)))
 
-    return intervals[this.state.interval]
+    const intervals = [year, 'Q' + quarter, month, 'W' + week, day, hour, min, sec]
+    return intervals[diffs.indexOf(Math.min(...diffs))]
   }
 
   hover(svg, bar) {
@@ -215,7 +182,7 @@ class UploadsHistogramUnstyled extends React.Component {
     } else {
       data = Object.keys(this.props.data).map(key => ({
         time: parseInt(key, 10),
-        name: this.resolveDate(key),
+        // name: this.resolveDate(key),
         value: this.props.data[key][this.props.metric]
       }))
     }
@@ -226,10 +193,17 @@ class UploadsHistogramUnstyled extends React.Component {
       this.handleTimeChange(this.state.until_time, 'until_time', 'picker')
     }
 
+    let deltaT = 31536000000
+    if (data.length > 1) {
+      deltaT = data[1].time - data[0].time
+    }
+
+    data.forEach(d => { d.name = this.resolveDate(d.time, deltaT) })
+
     const scalePower = this.state.scalePower
     const width = this.container.current.offsetWidth
     const height = this.props.height
-    const margin = Math.round(0.1 * height)
+    const margin = Math.round(0.15 * height)
 
     const x = scaleBand().rangeRound([margin, width]).padding(0.1)
     const y = scalePow().range([height - margin, margin]).exponent(scalePower)
@@ -258,7 +232,7 @@ class UploadsHistogramUnstyled extends React.Component {
       .attr('font-size', '12px')
       .style('text-anchor', 'end')
 
-    const yAxis = d3.axisLeft(y)
+    const yAxis = d3.axisLeft(y).ticks(Math.min(max, 5), '.0s')
     svg.select('.yaxis').remove()
     svg.append('g')
       .attr('transform', `translate(${margin}, 0)`)
@@ -294,16 +268,17 @@ class UploadsHistogramUnstyled extends React.Component {
 
     item
       .style('cursor', 'pointer')
-      .on('click', d => this.handleItemClicked(d))
+      .on('click', d => this.handleItemClicked(d, deltaT))
 
     svg.select('.tooltip').remove()
+
     svg.call(this.hover, item)
   }
 
   render() {
     return (
       <div>
-        <Grid container justify='space-around' spacing={24}>
+        <Grid container justify='space-between' alignItems='flex-end'>
           <Grid item xs={2}>
             <Select
               margin='none'
@@ -318,7 +293,7 @@ class UploadsHistogramUnstyled extends React.Component {
                 </MenuItem>))}
             </Select>
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={2}>
             <TextField
               id='from_time'
               label="from time"
@@ -329,19 +304,7 @@ class UploadsHistogramUnstyled extends React.Component {
               }}
             />
           </Grid>
-          <Grid item xs={3}>
-            <Select
-              id='interval'
-              value={this.state.interval}
-              onChange={(event) => this.handleIntervalChange(event.target.value)}
-              label= 'interval'
-            > {this.intervals.map(item => (
-                <MenuItem value={item.value} key={item.value}>
-                  {item.label}
-                </MenuItem>))}
-            </Select>
-          </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={2}>
             <TextField
               id='until_time'
               label="until time"
@@ -351,6 +314,14 @@ class UploadsHistogramUnstyled extends React.Component {
                 shrink: true
               }}
             />
+          </Grid>
+          <Grid item xs={2}>
+            <Button
+              variant='outlined'
+              color='default'
+              onClick={() => this.handleQueryChange()}
+            > Refresh <RefreshIcon/>
+            </Button>
           </Grid>
         </Grid>
         <div ref={this.container}>
@@ -362,32 +333,6 @@ class UploadsHistogramUnstyled extends React.Component {
 }
 
 export const UploadsHistogram = withStyles(UploadsHistogramUnstyled.styles)(UploadsHistogramUnstyled)
-
-class UploadersListUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired
-  }
-
-  static styles = theme => ({
-    root: {
-      marginTop: theme.spacing.unit * 2
-    }
-  })
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {state: {usedMetric}} = this.context
-
-    return (
-      <Grid>
-        <Quantity quantity="uploader" title="Top Uploaders" scale={1} metric={usedMetric} />
-      </Grid>
-    )
-  }
-}
-
-export const UploadersList = withStyles(UploadersListUnstyled.styles)(UploadersListUnstyled)
 
 class UploadsChart extends React.Component {
   static propTypes = {
@@ -401,6 +346,11 @@ class UploadsChart extends React.Component {
   })
 
   static contextType = SearchContext.type
+
+  componentDidMount() {
+    const {setStatisticsToRefresh} = this.context
+    setStatisticsToRefresh('date_histogram')
+  }
 
   render() {
     const {classes, metricsDefinitions, ...props} = this.props
@@ -416,12 +366,8 @@ class UploadsChart extends React.Component {
             data={response.statistics.date_histogram}
             metric={usedMetric}
             metricsDefinitions={metricsDefinitions}
-            interval={'1M'}
-            onChanged={(from_time, until_time, interval) => setQuery({...query, from_time: from_time, until_time: until_time, interval: interval})}
+            onChanged={(from_time, until_time) => setQuery({...query, from_time: from_time, until_time: until_time})}
             {...props} />
-        </Grid>
-        <Grid item xs={12}>
-          <UploadersList />
         </Grid>
       </Grid>
     )

@@ -35,11 +35,17 @@ const _mapping = {
   'oscillator_strengths': 'Oscillator strengths',
   'transition_dipole_moments': 'Transition dipole moments'}
 
-function mapKey(name) {
-  if (name in _mapping) {
-    return _mapping[name]
+function mapKey(key) {
+  let name = key
+  const maxLength = 17
+  if (key in _mapping) {
+    name = _mapping[key]
   }
-  return name
+  if (name.length > maxLength) {
+    return name.substring(0, maxLength) + '...'
+  } else {
+    return name
+  }
 }
 
 class QuantityHistogramUnstyled extends React.Component {
@@ -82,10 +88,10 @@ class QuantityHistogramUnstyled extends React.Component {
   }
 
   handleItemClicked(item) {
-    if (this.props.value === item.name) {
+    if (this.props.value === item.key) {
       this.props.onChanged(null)
     } else {
-      this.props.onChanged(item.name)
+      this.props.onChanged(item.key)
     }
   }
 
@@ -102,6 +108,7 @@ class QuantityHistogramUnstyled extends React.Component {
 
     const data = Object.keys(this.props.data)
       .map(key => ({
+        key: key,
         name: mapKey(key),
         value: this.props.data[key][this.props.metric]
       }))
@@ -147,8 +154,8 @@ class QuantityHistogramUnstyled extends React.Component {
 
     withData.exit().remove()
 
-    const rectColor = d => selected === d.name ? nomadPrimaryColor.main : nomadSecondaryColor.light
-    const textColor = d => selected === d.name ? '#FFF' : '#000'
+    const rectColor = d => selected === d.key ? nomadPrimaryColor.main : nomadSecondaryColor.light
+    const textColor = d => selected === d.key ? '#FFF' : '#000'
 
     let item = withData.enter()
       .append('g')

@@ -29,7 +29,7 @@ from nomad import search, utils, datamodel, processing as proc, infrastructure, 
 from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime, DotKeyNested
+from nomad.app.common import RFC3339DateTime, DotKeyNested, rfc3339DateTime
 
 from .api import api
 from .auth import authenticate
@@ -73,6 +73,29 @@ class RepoCalcResource(Resource):
         return result, 200
 
 
+def resolve_interval(from_time, until_time):
+    if from_time is None:
+        from_time = datetime.fromtimestamp(0)
+    if until_time is None:
+        until_time = datetime.utcnow()
+    dt = rfc3339DateTime.parse(until_time) - rfc3339DateTime.parse(from_time)
+
+    if dt.days >= 1826:
+        return '1y'
+    elif dt.days >= 731:
+        return '1q'
+    elif dt.days >= 121:
+        return '1M'
+    elif dt.days >= 28:
+        return '1w'
+    elif dt.days >= 4:
+        return '1d'
+    elif dt.total_seconds() >= 14400:
+        return '1h'
+    else:
+        return '1m'
+
+
 _search_request_parser = api.parser()
 add_pagination_parameters(_search_request_parser)
 add_scroll_parameters(_search_request_parser)
@@ -87,6 +110,8 @@ _search_request_parser.add_argument(
         'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
 _search_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
+_search_request_parser.add_argument(
+    'statistics_order', type=str, help='Statistics order (can be _key or _count)')
 _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search_extension.groups:
@@ -170,17 +195,25 @@ class RepoCalcsResource(Resource):
             order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
-            interval = args.get('interval', '1M')
+            interval = args.get('interval', 'auto')
             metrics: List[str] = request.args.getlist('metrics')
 
             with_statistics = args.get('statistics', False) or \
                 any(args.get(group_name, False) for group_name in search_extension.groups)
+            statistics_order = args.get('statistics_order', '_key')
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
+            if interval == 'auto':
+                try:
+                    from_time = args.get('from_time', None)
+                    until_time = args.get('until_time', None)
+                    interval = resolve_interval(from_time, until_time)
+                except Exception:
+                    abort(400, message='encountered error resolving time interval')
             search_request.date_histogram(interval=interval)
 
         try:
@@ -197,7 +230,7 @@ class RepoCalcsResource(Resource):
                 abort(400, message='there is no metric %s' % metric)
 
         if with_statistics:
-            search_request.default_statistics(metrics_to_use=metrics)
+            search_request.default_statistics(metrics_to_use=metrics, statistics_order=statistics_order)
 
             additional_metrics = [
                 group_quantity.metric_name
@@ -253,7 +286,6 @@ class RepoCalcsResource(Resource):
                 del(code_args['statistics'])
             results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
             results['python'] = query_api_python('archive', 'query', query_string=code_args)
-
             return results, 200
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
