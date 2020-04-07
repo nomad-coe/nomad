@@ -370,7 +370,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         sec_orig.wyckoff_letters_original = orig_wyckoff
         sec_orig.equivalent_atoms_original = orig_equivalent_atoms
 
-        # self.springer_classification(atoms, space_group_number)  # Springer Normalizer
+        self.springer_classification(atoms, space_group_number)  # Springer Normalizer
         self.prototypes(system, conv_num, conv_wyckoff, space_group_number)
 
     def springer_classification(self, atoms, space_group_number):

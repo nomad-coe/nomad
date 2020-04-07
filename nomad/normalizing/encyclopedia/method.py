@@ -283,7 +283,8 @@ class MethodDFTNormalizer(MethodNormalizer):
         except (KeyError, IndexError):
             pass
         else:
-            hash_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
+            if kpt is not None:
+                hash_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
 
         # SCF convergence settings
         conv_thr = repr_method.scf_threshold_energy_change
