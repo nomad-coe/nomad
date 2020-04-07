@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import ase.build
+import pytest
 
 from nomad import datamodel, config, utils
 from nomad.parsing import Backend
-from nomad.normalizing import normalizers
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -247,62 +247,65 @@ def test_vasp_incar_system():
 def test_aflow_prototypes():
     '''Tests that some basis structures are matched with the correct AFLOW prototypes
     '''
+    def get_proto(atoms):
+        entry_archive = run_normalize_for_structure(atoms)
+        try:
+            sec_proto = entry_archive.section_run[0].section_system[0].section_prototype[0]
+            prototype_aflow_id = sec_proto.prototype_aflow_id
+            prototype_label = sec_proto.prototype_label
+        except Exception:
+            prototype_aflow_id = None
+            prototype_label = None
+
+        return prototype_aflow_id, prototype_label
+
     # No prototype info for non-bulk structures
-    backend = run_normalize_for_structure(ase.build.molecule("H2O"))
-    assert len(backend["section_prototype"]) == 0
+    water = ase.build.molecule("H2O")
+    prototype_aflow_id, prototype_label = get_proto(water)
+    assert prototype_aflow_id is None
+    assert prototype_label is None
 
     # No prototype info for bulk structure without match
     rattled = ase.build.bulk("C", crystalstructure="diamond", a=3.57, cubic=True)
     rattled.rattle(stdev=2, seed=42)
     rattled.wrap()
-    backend = run_normalize_for_structure(rattled)
-    assert len(backend["section_prototype"]) == 0
+    aflow_id, prototype_label = get_proto(rattled)
+    assert aflow_id is None
+    assert prototype_label is None
 
     # Diamond
     diamond = ase.build.bulk("C", crystalstructure="diamond", a=3.57)
-    backend = run_normalize_for_structure(diamond)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(diamond)
     assert prototype_aflow_id == "A_cF8_227_a"
     assert prototype_label == "227-C-cF8"
 
     # BCC
     bcc = ase.build.bulk("Fe", crystalstructure="bcc", a=2.856)
-    backend = run_normalize_for_structure(bcc)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(bcc)
     assert prototype_aflow_id == "A_cI2_229_a"
     assert prototype_label == "229-W-cI2"
 
     # FCC
     fcc = ase.build.bulk("Ge", crystalstructure="fcc", a=5.658)
-    backend = run_normalize_for_structure(fcc)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(fcc)
     assert prototype_aflow_id == "A_cF4_225_a"
     assert prototype_label == "225-Cu-cF4"
 
     # Rocksalt
     rocksalt = ase.build.bulk("NaCl", crystalstructure="rocksalt", a=5.64)
-    backend = run_normalize_for_structure(rocksalt)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(rocksalt)
     assert prototype_aflow_id == "AB_cF8_225_a_b"
     assert prototype_label == "225-ClNa-cF8"
 
     # Zincblende
     zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42, cubic=True)
-    backend = run_normalize_for_structure(zincblende)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(zincblende)
     assert prototype_aflow_id == "AB_cF8_216_c_a"
     assert prototype_label == "216-SZn-cF8"
 
     # Wurtzite
     wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
-    backend = run_normalize_for_structure(wurtzite)
-    prototype_aflow_id = backend.get_value("prototype_aflow_id")
-    prototype_label = backend.get_value("prototype_label")
+    prototype_aflow_id, prototype_label = get_proto(wurtzite)
     assert prototype_aflow_id == "AB_hP4_186_b_b"
     assert prototype_label == "186-SZn-hP4"
 
