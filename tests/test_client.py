@@ -53,13 +53,20 @@ def test_query_query(api, published_wo_user_metadata):
     ({'section_run[0]': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system])
 ])
 def test_query_schema(api, published_wo_user_metadata, q_schema, sub_sections):
-    assert_results(query_archive(query_schema=q_schema), sub_section_defs=sub_sections)
+    assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
 
 
 def test_query_scroll(api, published_wo_user_metadata):
     assert_results(query_archive(scroll=True))
 
 
-def test_query_authentication(api, published, other_test_user_auth, test_user_auth):
-    assert_results(query_archive(authentication=other_test_user_auth))
+def test_query_authentication(api, published, other_test_user_auth, test_user_auth, other_test_user):
+    # The published test uploads uploader in calc and upload's user id do not match
+    # due to testing the uploader change via publish metadata.
+    # TODO this is a workarround and should be changed in conftest, especially since we do not need this
+    # feature anymore.
+    published.user_id = other_test_user.user_id
+    published.save()
+
+    assert_results(query_archive(authentication=other_test_user_auth), total=1)
     assert_results(query_archive(authentication=test_user_auth), total=0)

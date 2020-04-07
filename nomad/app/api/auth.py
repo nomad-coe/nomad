@@ -320,11 +320,15 @@ def create_authorization_predicate(upload_id, calc_id=None):
             if g.user.user_id == upload.user_id:
                 return True
 
-            try:
-                calc = processing.Calc.get(calc_id)
-            except KeyError:
-                return False
-            return g.user.user_id in calc.metadata.get('shared_with', [])
+            # TODO I doubt if shared_with is actually working
+            if calc_id is not None:
+                try:
+                    calc = processing.Calc.get(calc_id)
+                except KeyError:
+                    return False
+                return g.user.user_id in calc.metadata.get('shared_with', [])
+
+            return False
 
         except KeyError as e:
             logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)
