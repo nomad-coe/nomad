@@ -257,6 +257,15 @@ def test_query(query, ref):
         assert query_archive(f, query) == ref
 
 
+@pytest.mark.parametrize('key', ['simple', '  fixedsize', 'z6qp-VxV5uacug_1xTBhm5xxU2yZ'])
+def test_keys(key):
+    f = BytesIO()
+    write_archive(f, 1, [(key, dict(example='content'))])
+    packed_archive = f.getbuffer()
+    f = BytesIO(packed_archive)
+    assert key.strip() in query_archive(f, {key: '*'})
+
+
 def test_read_springer():
     springer = read_archive(config.normalize.springer_db_path)
     with pytest.raises(KeyError):

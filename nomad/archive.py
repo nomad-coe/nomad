@@ -534,7 +534,7 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     return ArchiveReader(file_or_path, **kwargs)
 
 
-__query_archive_key_pattern = re.compile(r'(\w+)(\[([-?0-9]*)(:([-?0-9]*))?\])?')
+__query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*))?\])?$')
 
 
 def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict, **kwargs):

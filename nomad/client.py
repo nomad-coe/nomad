@@ -42,8 +42,10 @@ from urllib.parse import urlparse
 from bravado import requests_client as bravado_requests_client
 import time
 from keycloak import KeycloakOpenID
+from io import StringIO
 
 from nomad import config
+from nomad import metainfo as mi
 from nomad.datamodel import EntryArchive
 
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
@@ -77,6 +79,32 @@ class KeycloakAuthenticator(bravado_requests_client.Authenticator):
             return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
+class ApiStatistics(mi.MSection):
+
+    nentries = mi.Quantity(
+        type=int,
+        description='Number queries entries')
+
+    last_response_nentries = mi.Quantity(
+        type=int,
+        description='Number of entries loaded in the last api call')
+
+    last_response_size = mi.Quantity(
+        type=int, unit=mi.units.bytes,
+        description='Bytes loaded in the last api call')
+
+    loaded_nentries = mi.Quantity(
+        type=int,
+        description='Number of downloaded entries')
+
+    def __repr__(self):
+        out = StringIO()
+        for quantity in self.m_def.all_quantities.values():
+            out.write('%s: %s\n' % (quantity.description, self.m_get(quantity)))
+
+        return out.getvalue()
+
+
 class ArchiveQuery(Sequence):
     def __init__(
             self,
@@ -106,6 +134,7 @@ class ArchiveQuery(Sequence):
 
         self._total = -1
         self._results: List[dict] = []
+        self._api_statistics = ApiStatistics()
 
     @property
     def authentication(self):
@@ -161,6 +190,17 @@ class ArchiveQuery(Sequence):
             archive = EntryArchive.m_from_dict(result['archive'])
 
             self._results.append(archive)
+
+        self._api_statistics.last_response_size = len(response.content)
+        self._api_statistics.nentries = self._total
+        self._api_statistics.last_response_nentries = len(results)
+        self._api_statistics.loaded_nentries = len(self._results)
+
+    def __repr__(self):
+        if self._total == -1:
+            self.call_api()
+
+        return str(self._api_statistics)
 
     def __getitem__(self, key):
         if key >= self.__len__():
