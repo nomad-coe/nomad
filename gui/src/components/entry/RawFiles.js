@@ -209,8 +209,8 @@ class RawFiles extends React.Component {
       downloadUrl = `raw/calc/${uploadId}/${calcId}/*?strip=true`
     } else if (selectedFiles.length > 0) {
       // use a prefix to shorten the url
-      const prefix = selectedFiles[0].substring(0, selectedFiles[0].lastIndexOf("/"))
-      const files = selectedFiles.map(path => path.substring(path.lastIndexOf("/") + 1)).join(',')
+      const prefix = selectedFiles[0].substring(0, selectedFiles[0].lastIndexOf('/'))
+      const files = selectedFiles.map(path => path.substring(path.lastIndexOf('/') + 1)).join(',')
       downloadUrl = `raw/${uploadId}?files=${encodeURIComponent(files)}&prefix=${prefix}&strip=true`
     }
 

@@ -14,7 +14,7 @@
 
 import click
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
+from concurrent import futures as concurrent_futures
 
 from nomad import config
 from .admin import admin
@@ -43,7 +43,7 @@ def run_app(**kwargs):
     from nomad import infrastructure
     from nomad.app.__main__ import run_dev_server
     infrastructure.setup()
-    run_dev_server(port=8000, **kwargs)
+    run_dev_server(port=config.services.api_port, **kwargs)
 
 
 def run_worker():
@@ -54,7 +54,7 @@ def run_worker():
 
 @run.command(help='Run both app and worker.')
 def appworker():
-    executor = ProcessPoolExecutor(2)
+    executor = concurrent_futures.ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_app)
     loop.run_in_executor(executor, run_worker)

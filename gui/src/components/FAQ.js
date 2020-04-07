@@ -30,7 +30,7 @@ class FAQ extends React.Component {
 
           ### How can I be sure that my data will be cited properly?
 
-          Sharing means a change of culture. Making data open access is comparable to a
+          Sharing means a change of culture. Making data open access is comparable to a
           publication where references to other work are common practice ever since.
           Likewise, using someone's data requires proper citation. We recommend the uploader
           to provide references to their data (publications, websites) and the users to
@@ -43,7 +43,7 @@ class FAQ extends React.Component {
           associated with your data might not change right away, but it will be updated
           eventually.
 
-          ### I'd like to install NOMAD on my local computers to be only used by my group
+          ### I'd like to install NOMAD on my local computers to be only used by my group
 
           Local NOMAD deployments are not actively supported at the moment. However, all
           [NOMAD software](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR) is

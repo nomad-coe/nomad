@@ -104,7 +104,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -118,10 +118,10 @@ services:
             - ./nomad.yaml:/app/nomad.yaml
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
-    # nomad app (api)
+    # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -133,22 +133,23 @@ services:
         volumes:
             - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
-        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.app:app
+            - ./env.js:/app/gui/build/env.js
+            - ./gunicorn.log.conf:/app/gunicorn.log.conf
+            - ./gunicorn.conf:/app/gunicorn.conf
+        command: ["./run.sh", "/nomad-oasis"]
 
-    # nomad gui (serving the js)
+    # nomad gui (a reverse proxy for nomad)
     gui:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:stable
+        image: nginx:1.13.9-alpine
         container_name: nomad_oasis_gui
         command: nginx -g 'daemon off;'
         volumes:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
-            - ./env.js:/app/nomad/env.js
         links:
             - app
         ports:
             - 80:80
-        command: ["./run.sh", "/example-nomad"]
 
 volumes:
     nomad_oasis_mongo:
@@ -161,7 +162,7 @@ There are no mandatory changes necessary.
 
 A few things to notice:
 - All services use docker volumes for storage. This could be changed to host mounts.
-- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`.
+- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`, `gunicorn.conf`, `gunicorn.log.conf`.
 - The only exposed port is `80`. This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
 - All container will be named `nomad_oasis_*`. These names can be used to later reference the container with the `docker` cmd.
@@ -214,24 +215,18 @@ You need to change:
 
 ### nginx.conf
 
-The GUI container also serves as a proxy that forwards request to the app container. The
+The GUI container serves as a proxy that forwards request to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
 ```
 server {
     listen        80;
-    server_name   <your-host>;
+    server_name   www.example.com;
 
     location /nomad-oasis {
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
         proxy_pass http://app:8000;
-    }
-
-    location /nomad-oasis/gui {
-        root      /app/;
-        rewrite ^/nomad-oasis/gui/(.*)$ /nomad/$1 break;
-        try_files $uri /nomad-oasis/gui/index.html;
     }
 
     location /nomad-oasis/gui/service-worker.js {
@@ -240,8 +235,7 @@ server {
         if_modified_since off;
         expires off;
         etag off;
-        root      /app/;
-        rewrite ^/nomad-oasis/gui/service-worker.js /nomad/service-worker.js break;
+        proxy_pass http://app:8000;
     }
 
     location /nomad-oasis/api/uploads {
@@ -269,6 +263,12 @@ A few things to notice:
 - You can use the server to server additional content if you like.
 - `client_max_body_size` sets a limit to the possible upload size.
 - If you operate the GUI container behind another proxy, keep in mind that your proxy should not buffer requests/responses to allow streaming of large requests/responses for `../api/uploads` and `../api/raw`.
+
+### gunicorn
+
+Simply create empty `gunicorn.conf` and `gunicorn.log.conf` in the beginning. Gunicorn
+is the WSGI-server that runs the nomad app. Consult the [gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html)
+for configuration options.
 
 ## Starting and stopping
 

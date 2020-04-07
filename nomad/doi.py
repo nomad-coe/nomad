@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module contains all functions necessary to manage DOI via datacite.org and its
 MDS API (https://support.datacite.org/docs/mds-api-guide).
-"""
+'''
 import xml.etree.ElementTree as ET
 import datetime
 import requests
@@ -28,7 +28,7 @@ from nomad import config, utils
 
 
 def edit_url(doi: str, url: str = None):
-    """ Changes the URL of an already findable DOI. """
+    ''' Changes the URL of an already findable DOI. '''
     if url is None:
         url = 'https://repository.nomad-coe.eu/app/gui/datasets/doi/%s' % doi
 
@@ -70,7 +70,7 @@ class DOI(Document):
 
     @staticmethod
     def create(title: str, user: User) -> 'DOI':
-        """ Creates a unique DOI with the NOMAD DOI prefix. """
+        ''' Creates a unique DOI with the NOMAD DOI prefix. '''
         # TODO We use a collection of all DOIs in mongo to ensure uniqueness. We attempt
         # to create new DOIs based on a counter per day until we find a non existing DOI.
         # This might be bad if many DOIs per day are to be expected.

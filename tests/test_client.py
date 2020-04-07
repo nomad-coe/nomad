@@ -1,43 +1,57 @@
-# Copyright 2018 Markus Scheidgen
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an"AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from typing import List
+import pytest
 
-import time
+from nomad.client import query_archive
+from nomad.metainfo import MSection, SubSection
+from nomad.datamodel.metainfo.public import section_run
 
-from nomad.processing import SUCCESS
-from nomad.datamodel import CalcWithMetadata
-
-from tests.test_files import example_file
-from tests.test_search import create_entry
+from tests.app.test_app import BlueprintClient
 
 
-def test_get_upload_command(bravado, no_warn):
-    assert bravado.uploads.get_upload_command().response().result.upload_command is not None
+# TODO with the existing published_wo_user_metadata fixture there is only one entry
+# that does not allow to properly test pagination and scrolling
+
+@pytest.fixture(scope='function')
+def api(client, monkeypatch):
+    monkeypatch.setattr('nomad.config.client.url', '')
+    api = BlueprintClient(client, '/api')
+    monkeypatch.setattr('nomad.client.requests', api)
+    return api
 
 
-def test_upload(bravado, proc_infra, no_warn):
-    with open(example_file, 'rb') as f:
-        upload = bravado.uploads.upload(file=f, name='test_upload').response().result
+def assert_results(
+        results: List[MSection],
+        sub_sections: List[SubSection] = None,
+        total=1):
+    assert len(results) == total
+    for result in results:
+        if sub_sections:
+            for sub_section in result.m_def.all_sub_sections.values():
+                if sub_section in sub_sections:
+                    assert len(result.m_get_sub_sections(sub_section)) > 0
+                else:
+                    assert len(result.m_get_sub_sections(sub_section)) == 0
 
-    while upload.tasks_running:
-        upload = bravado.uploads.get_upload(upload_id=upload.upload_id).response().result
-        time.sleep(0.1)
 
-    assert upload.tasks_status == SUCCESS
+def test_query(api, published_wo_user_metadata):
+    assert_results(query_archive())
 
 
-def test_get_repo_calc(bravado, proc_infra, raw_files):
-    create_entry(CalcWithMetadata(calc_id=0, upload_id='test_upload', published=True, with_embargo=False))
-    repo = bravado.repo.get_repo_calc(upload_id='test_upload', calc_id='0').response().result
-    assert repo is not None
-    assert repo['calc_id'] is not None
+def test_query_query(api, published_wo_user_metadata):
+    assert_results(query_archive(query=dict(upload_id=[published_wo_user_metadata.upload_id])))
+
+
+def test_query_schema(api, published_wo_user_metadata):
+    q_schema = {'section_run': {'section_system': '*'}}
+    assert_results(
+        query_archive(query_schema=q_schema),
+        sub_sections=[section_run.section_system])
+
+
+def test_query_scroll(api, published_wo_user_metadata):
+    assert_results(query_archive(scroll=True))
+
+
+def test_query_authentication(api, published, other_test_user_auth, test_user_auth):
+    assert_results(query_archive(authentication=other_test_user_auth))
+    assert_results(query_archive(authentication=test_user_auth), total=0)

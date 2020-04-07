@@ -2,19 +2,21 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
-  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton } from '@material-ui/core'
+  FormGroup, Checkbox, FormControlLabel, Popover, CardContent, IconButton, FormLabel } from '@material-ui/core'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
 import SearchContext from './SearchContext'
 import { DisableOnLoading } from '../api'
-import { withDomain } from '../domains'
+import { domains } from '../domains'
 import KeepState from '../KeepState'
 import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
+import SearchIcon from '@material-ui/icons/Search'
+import UploadsChart from './UploadsChart'
 
 class Search extends React.Component {
   static tabs = {
@@ -24,15 +26,15 @@ class Search extends React.Component {
     },
     'groups': {
       label: 'Grouped entries',
-      render: () => <SearchGroupList />
+      render: (props) => <SearchGroupList {...props} />
     },
     'uploads': {
       label: 'Uploads',
-      render: () => <SearchUploadList />
+      render: (props) => <SearchUploadList {...props}/>
     },
     'datasets': {
       label: 'Datasets',
-      render: () => <SearchDatasetList />
+      render: (props) => <SearchDatasetList {...props}/>
     }
   }
 
@@ -54,6 +56,17 @@ class Search extends React.Component {
       maxWidth: 1024,
       margin: 'auto',
       width: '100%'
+    },
+    searchIcon: {
+      margin: `${theme.spacing.unit}px 0`,
+      padding: `6px 0 2px 0`
+    },
+    domainButton: {
+      margin: theme.spacing.unit
+    },
+    metricButton: {
+      margin: theme.spacing.unit,
+      marginRight: 0
     },
     searchBar: {
       width: '100%'
@@ -83,6 +96,16 @@ class Search extends React.Component {
       render: props => <DomainVisualization {...props}/>,
       label: 'Meta data',
       description: 'Shows histograms on key metadata'
+    },
+    'property': {
+      render: props => <PropertyVisualization {...props}/>,
+      label: 'Properties',
+      description: 'Shows histograms on key properties'
+    },
+    'users': {
+      render: props => <UsersVisualization {...props}/>,
+      label: 'Users',
+      description: 'Show statistics on user metadata'
     }
   }
 
@@ -118,9 +141,9 @@ class Search extends React.Component {
 
     this.setState({resultTab: tab}, () => {
       setRequest({
-        uploads: tab === 'uploads' ? true : undefined,
-        datasets: tab === 'datasets' ? true : undefined,
-        groups: tab === 'groups' ? true : undefined
+        uploads_grouped: tab === 'uploads' ? true : undefined,
+        datasets_grouped: tab === 'datasets' ? true : undefined,
+        'dft.groups_grouped': tab === 'groups' ? true : undefined
       })
     })
   }
@@ -128,24 +151,25 @@ class Search extends React.Component {
   render() {
     const {classes, entryListProps, tabs} = this.props
     const {resultTab, openVisualization} = this.state
+    const {domain} = this.context.state
     // const {state: {request: {uploads, datasets, groups}}} = this.context
 
     return <DisableOnLoading>
       <div className={classes.root}>
         <div className={classes.search}>
-          <div style={{display: 'flex'}}>
-            <div style={{flexGrow: 1}}>
-              <OwnerSelect />
-            </div>
-            <FormGroup row>
-              <VisualizationSelect
-                classes={{button: classes.selectButton}}
-                value={openVisualization}
-                onChange={this.handleVisualizationChange}
-              />
-              <MetricSelect classes={{button: classes.selectButton}} />
-            </FormGroup>
-          </div>
+          <FormGroup row>
+            <FormControl className={classes.searchIcon}><FormLabel><SearchIcon/></FormLabel></FormControl>
+            <DomainSelect classes={{root: classes.domainButton}} />
+            <OwnerSelect />
+            <div style={{flexGrow: 1}} />
+            <VisualizationSelect
+              classes={{button: classes.selectButton}}
+              value={openVisualization}
+              onChange={this.handleVisualizationChange}
+            />
+            <MetricSelect classes={{root: classes.metricButton}} />
+          </FormGroup>
+
           <SearchBar classes={{autosuggestRoot: classes.searchBar}} />
         </div>
 
@@ -166,7 +190,7 @@ class Search extends React.Component {
               textColor="primary"
               onChange={(event, value) => this.handleTabChange(value)}
             >
-              {tabs.map(tab => <Tab
+              {tabs.filter(tab => domain.searchTabs.includes(tab)).map(tab => <Tab
                 key={tab}
                 label={Search.tabs[tab].label}
                 value={tab}
@@ -176,7 +200,7 @@ class Search extends React.Component {
             {tabs.map(tab => <KeepState
               key={tab}
               visible={resultTab === tab}
-              render={() => Search.tabs[tab].render(entryListProps)}
+              render={() => Search.tabs[tab].render({domain: domain, ...entryListProps})}
             />)}
           </Paper>
         </div>
@@ -185,21 +209,60 @@ class Search extends React.Component {
   }
 }
 
-class DomainVisualizationUnstyled extends React.Component {
+class DomainVisualization extends React.Component {
   static propTypes = {
-    domain: PropTypes.object.isRequired,
     open: PropTypes.bool
   }
 
+  static contextType = SearchContext.type
+
   render() {
-    const {open, domain} = this.props
+    const {domain} = this.context.state
+    const {open} = this.props
 
     return <KeepState visible={open} render={() =>
       <domain.SearchAggregations />
     }/>
   }
 }
-const DomainVisualization = withDomain(DomainVisualizationUnstyled)
+
+class PropertyVisualization extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool
+  }
+
+  static contextType = SearchContext.type
+
+  render() {
+    const {domain} = this.context.state
+    const {open} = this.props
+
+    return <KeepState visible={open} render={() =>
+      <domain.SearchByPropertyAggregations />
+    }/>
+  }
+}
+
+class UsersVisualization extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool
+  }
+
+  static contextType = SearchContext.type
+
+  render() {
+    const {domain} = this.context.state
+    const {open} = this.props
+
+    return <KeepState visible={open} render={() =>
+      <Card>
+        <CardContent>
+          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+        </CardContent>
+      </Card>
+    }/>
+  }
+}
 
 class ElementsVisualization extends React.Component {
   static propTypes = {
@@ -222,7 +285,7 @@ class ElementsVisualization extends React.Component {
     this.setState({exclusive: !this.state.exclusive}, () => {
       const {state: {query}, setQuery} = this.context
       if (this.state.exclusive) {
-        setQuery({...query, only_atoms: query.atoms, atoms: []})
+        setQuery({...query, only_atoms: query['atoms'], atoms: []})
       } else {
         setQuery({...query, atoms: query.only_atoms, only_atoms: []})
       }
@@ -259,12 +322,7 @@ class ElementsVisualization extends React.Component {
   }
 }
 
-class MetricSelectUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    domain: PropTypes.object.isRequired
-  }
-
+class MetricSelect extends React.Component {
   static contextType = SearchContext.type
 
   constructor(props) {
@@ -291,20 +349,20 @@ class MetricSelectUnstyled extends React.Component {
 
   handleToggle = (value) => {
     const {setMetric} = this.context
+    this.setState({anchorEl: null})
     setMetric(value)
   }
 
   render() {
-    const {classes, domain} = this.props
-    const {state: {metric}} = this.context
+    const {metric, domain} = this.context.state
     const {anchorEl} = this.state
 
     const metricsDefinitions = domain.searchMetrics
     const {label, shortLabel} = metricsDefinitions[metric]
     return <React.Fragment>
       <Tooltip title="Select the metric used to represent data">
-        <Button size="small" className={classes.button} onClick={this.handleClick}>
-          {shortLabel || label}
+        <Button size="small" onClick={this.handleClick} {...this.props} >
+          {shortLabel || label} &#9662;
         </Button>
       </Tooltip>
       <Popover
@@ -340,8 +398,6 @@ class MetricSelectUnstyled extends React.Component {
   }
 }
 
-const MetricSelect = withDomain(MetricSelectUnstyled)
-
 class VisualizationSelect extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -364,6 +420,80 @@ class VisualizationSelect extends React.Component {
           </Button>
         </Tooltip>
       })}
+    </React.Fragment>
+  }
+}
+
+class DomainSelect extends React.Component {
+  static contextType = SearchContext.type
+
+  constructor(props) {
+    super(props)
+    this.handleClick = this.handleClick.bind(this)
+    this.handleClose = this.handleClose.bind(this)
+  }
+
+  state = {
+    anchorEl: null
+  }
+
+  handleClick = event => {
+    this.setState({
+      anchorEl: event.currentTarget
+    })
+  }
+
+  handleClose = () => {
+    this.setState({
+      anchorEl: null
+    })
+  }
+
+  handleToggle = (value) => {
+    const { setDomain } = this.context
+    setDomain(value)
+    this.handleClose()
+  }
+
+  render() {
+    const {domain} = this.context.state
+    const {anchorEl} = this.state
+
+    return <React.Fragment>
+      <Tooltip title="Select the domain to search in">
+        <Button size="small" onClick={this.handleClick} {...this.props}>
+          {domain.name} &#9662;
+        </Button>
+      </Tooltip>
+      <Popover
+        open={anchorEl !== null}
+        anchorEl={anchorEl}
+        onClose={this.handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center'
+        }}
+      >
+        <List>
+          {Object.keys(domains).map(key => {
+            const {label, searchTooltip} = domains[key]
+            return (
+              <ListItem
+                key={key} role={undefined} dense button
+                onClick={() => this.handleToggle(key)}
+              >
+                <Tooltip title={searchTooltip || ''}>
+                  <ListItemText primary={label} />
+                </Tooltip>
+              </ListItem>
+            )
+          })}
+        </List>
+      </Popover>
     </React.Fragment>
   }
 }
@@ -474,10 +604,10 @@ class SearchDatasetList extends React.Component {
 
     return <DatasetList data={response}
       total={response.statistics.total.all.datasets}
-      datasets_after={response.datasets && response.datasets.after}
+      datasets_after={response.datasets_grouped && response.datasets_grouped.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }
@@ -489,11 +619,11 @@ class SearchGroupList extends React.Component {
     const {state: {response}, setRequest} = this.context
 
     return <GroupList data={response}
-      total={response.statistics.total.all.groups}
-      groups_after={response.groups && response.groups.after}
+      total={response.statistics.total.all['dft.groups']}
+      groups_after={response['dft.groups_grouped'] && response['dft.groups_grouped'].after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }
@@ -506,10 +636,10 @@ class SearchUploadList extends React.Component {
 
     return <UploadList data={response}
       total={response.statistics.total.all.uploads}
-      uploads_after={response.uploads && response.uploads.after}
+      uploads_after={response.uploads_grouped && response.uploads_grouped.after}
       onChange={setRequest}
       actions={<ReRunSearchButton/>}
-      {...response}
+      {...response} {...this.props}
     />
   }
 }

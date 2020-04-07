@@ -12,80 +12,56 @@ data:
     server {
       listen        80;
       server_name   www.example.com;
+      proxy_set_header Host $host;
 
-      location {{ .Values.proxy.external.path }} {
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+      proxy_connect_timeout {{ .Values.proxy.timeout }};
+      proxy_read_timeout {{ .Values.proxy.timeout }};
+
+      location / {
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-        proxy_connect_timeout {{ .Values.proxy.timeout }};
-        proxy_read_timeout {{ .Values.proxy.timeout }};
       }
 
-      location {{ .Values.proxy.external.path }}/gui {
-        root      /app/;
-        rewrite ^{{ .Values.proxy.external.path }}/gui/(.*)$ /nomad/$1 break;
-        try_files $uri {{ .Values.proxy.external.path }}/gui/index.html;
+      location ~ {{ .Values.proxy.external.path }}\/?(gui)?$ {
+        rewrite ^ {{ .Values.proxy.external.path }}/gui/ permanent;
       }
 
-      location {{ .Values.proxy.external.path }}/gui/service-worker.js {
+      location {{ .Values.proxy.external.path }}/gui/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location @redirect_to_index {
+        rewrite ^ {{ .Values.proxy.external.path }}/gui/index.html break;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location ~ \/gui\/(service-worker\.js|meta\.json)$ {
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
         if_modified_since off;
         expires off;
         etag off;
-        root      /app/;
-        rewrite ^{{ .Values.proxy.external.path }}/gui/service-worker.js /nomad/service-worker.js break;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location {{ .Values.proxy.external.path }}/gui/meta.json {
-        add_header Last-Modified $date_gmt;
-        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-        if_modified_since off;
-        expires off;
-        etag off;
-        root      /app/;
-        rewrite ^{{ .Values.proxy.external.path }}/gui/meta.json /nomad/meta.json break;
-      }
-
-      location {{ .Values.proxy.external.path }}/api/uploads {
+      location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-        proxy_connect_timeout {{ .Values.proxy.timeout }};
-        proxy_send_timeout {{ .Values.proxy.timeout }};
       }
 
-      location {{ .Values.proxy.external.path }}/api/raw {
+      location ~ \/api\/(raw|archive) {
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-        proxy_connect_timeout {{ .Values.proxy.timeout }};
-        proxy_read_timeout {{ .Values.proxy.timeout }};
       }
 
-      location {{ .Values.proxy.external.path }}/api/mirror {
+      location ~ \/api\/mirror {
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+        proxy_read_timeout {{ .Values.proxy.mirrorTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-        proxy_connect_timeout {{ .Values.proxy.timeout }};
-        proxy_read_timeout {{ .Values.proxy.timeout }};
       }
     }
-  env.js: |
-    window.nomadEnv = {
-      "appBase": "{{ .Values.proxy.external.path }}",
-      "keycloakBase": "{{ .Values.keycloak.serverExternalUrl }}",
-      "keycloakRealm": "{{ .Values.keycloak.realmName }}",
-      "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
-      "matomoSiteId": {{ .Values.gui.matomoSiteId }},
-      "matomoUrl": "{{ .Values.gui.matomoUrl }}",
-      "sendTrackingData": {{ .Values.gui.sendTrackingData }},
-      "debug": {{ .Values.gui.debug }}
-    };
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -107,21 +83,21 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-gui
         app.kubernetes.io/instance: {{ .Release.Name }}
+      {{ if .Values.roll }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{ end }}
     spec:
       containers:
       - name: {{ include "nomad.name" . }}-gui
-        image: "{{ .Values.images.frontend.name }}:{{ .Values.images.frontend.tag }}"
-        command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
+        image: "nginx:1.13.9-alpine"
+        command: ["nginx", "-g", "daemon off;"]
         ports:
         - containerPort: 80
         volumeMounts:
         - mountPath: /etc/nginx/conf.d
           readOnly: true
           name: nginx-conf
-        - mountPath: /app/nomad/env.js
-          readOnly: true
-          subPath: env.js
-          name: nomad-app
         - mountPath: /var/log/nginx
           name: log
         livenessProbe:
@@ -138,9 +114,6 @@ spec:
           periodSeconds: 3
       nodeSelector:
         nomadtype: public
-      imagePullSecrets:
-      - name: {{ .Values.images.secret }}
-      imagePullPolicy: always
       volumes:
       - name: nginx-conf
         configMap:
@@ -148,11 +121,5 @@ spec:
           items:
           - key: nginx.conf
             path: default.conf
-      - name: nomad-app
-        configMap:
-          name: {{ include "nomad.fullname" . }}-gui-config
-          items:
-          - key: env.js
-            path: env.js
       - name: log
         emptyDir: {}

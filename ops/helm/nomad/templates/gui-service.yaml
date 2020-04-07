@@ -8,16 +8,19 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  {{ if .Values.nodePort }}
   type: NodePort
   externalIPs:
     - {{ .Values.proxy.nodeIP }}
+  {{ end }}
   ports:
-    - nodePort: {{ .Values.proxy.nodePort }}
-      port: 80
+    - port: 80
       targetPort: 80
       protocol: TCP
       name: http
-
+      {{ if .Values.nodePort }}
+      nodePort: {{ .Values.proxy.nodePort }}
+      {{ end }}
   selector:
     app.kubernetes.io/name: {{ include "nomad.name" . }}-gui
     app.kubernetes.io/instance: {{ .Release.Name }}

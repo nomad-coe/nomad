@@ -14,16 +14,15 @@
 
 import time
 import json
+import pytest
 
 from nomad import utils
-
-from tests import utils as test_utils
 
 
 def test_decode_handle_id():
     assert utils.decode_handle_id('a1') == 321
     assert utils.decode_handle_id('6i370') == 6884576
-    with test_utils.assert_exception(ValueError):
+    with pytest.raises(ValueError):
         utils.decode_handle_id('zz')
 
 
@@ -72,3 +71,8 @@ def test_common_prefix():
     assert utils.common_prefix(['a', 'a']) == ''
     assert utils.common_prefix(['a', 'ab']) == ''
     assert utils.common_prefix(['/a', '/a']) == '/'
+
+
+def test_uuid():
+    uuid = utils.create_uuid()
+    assert uuid is not None

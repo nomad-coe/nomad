@@ -13,24 +13,26 @@
 # limitations under the License.
 
 from typing import Dict
+from elasticsearch_dsl import Q
+
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import Transformer, Quantity
-from elasticsearch_dsl import Q
-from nomad.metainfo.optimade import OptimadeEntry
+
+from nomad.datamodel import OptimadeEntry
 
 
 class FilterException(Exception):
-    """ Raised on parsing a filter expression with syntactic of semantic errors. """
+    ''' Raised on parsing a filter expression with syntactic of semantic errors. '''
     pass
 
 
 quantities: Dict[str, Quantity] = {
     q.name: Quantity(
-        q.name, es_field='optimade.%s' % q.name,
-        elastic_mapping_type=q.m_annotations['elastic']['type'])
+        q.name, es_field='dft.optimade.%s' % q.name,
+        elastic_mapping_type=q.a_search.mapping.__class__)
 
     for q in OptimadeEntry.m_def.all_quantities.values()
-    if 'elastic' in q.m_annotations}
+    if 'search' in q.m_annotations}
 
 quantities['elements'].length_quantity = quantities['nelements']
 quantities['dimension_types'].length_quantity = quantities['dimension_types']
@@ -43,7 +45,7 @@ _transformer = Transformer(quantities=quantities.values())
 
 
 def parse_filter(filter_str: str) -> Q:
-    """ Parses the given optimade filter str and returns a suitable elastic search query.
+    ''' Parses the given optimade filter str and returns a suitable elastic search query.
 
     Arguments:
         filter_str: Can be direct user input with no prior processing.
@@ -51,7 +53,7 @@ def parse_filter(filter_str: str) -> Q:
     Raises:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
-    """
+    '''
 
     try:
         parse_tree = _parser.parse(filter_str)

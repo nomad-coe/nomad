@@ -2,13 +2,16 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 import numpy as np
 from typing import Tuple, List
+from pint import UnitRegistry
 
-from nomad.parsing.backend import LocalBackend
-from nomad.parsing.backend import Section
+from nomad.parsing.legacy import Backend
+from nomad.metainfo import Section
 from nomad.utils import RestrictedDict
 
+ureg = UnitRegistry()
 
-def get_basis_set(context, backend: LocalBackend, logger) -> RestrictedDict:
+
+def get_basis_set(context, backend: Backend, logger) -> RestrictedDict:
     """Decide which type of basis set settings are applicable to the entry and
     return a corresponding settings as a RestrictedDict.
 
@@ -23,7 +26,7 @@ def get_basis_set(context, backend: LocalBackend, logger) -> RestrictedDict:
         returns None.
     """
     settings: BasisSet = None
-    program_name = backend.get('program_name')
+    program_name = backend.entry_archive.section_run[0].program_name
     if program_name == "exciting":
         settings = BasisSetExciting(context, backend, logger)
     elif program_name == "FHI-aims":
@@ -83,7 +86,7 @@ class BasisSetFHIAims(BasisSet):
 
     def to_dict(self):
         # Get basis set settings for each species
-        aims_bs = self._backend.get('x_fhi_aims_section_controlIn_basis_set')
+        aims_bs = self._ctx.representative_method.x_fhi_aims_section_controlIn_basis_set
         if aims_bs is not None:
             bs_by_species = {}
             for this_aims_bs in aims_bs:
@@ -158,17 +161,17 @@ class BasisSetExciting(BasisSet):
         """
         # Add the muffin-tin settings for each species ordered alphabetically by atom label
         try:
-            groups = self._backend["x_exciting_section_atoms_group"]
-            groups = sorted(groups, key=lambda group: group["x_exciting_geometry_atom_labels"])
+            groups = self._ctx.representative_system.x_exciting_section_atoms_group
+            groups = sorted(groups, key=lambda group: group.x_exciting_geometry_atom_labels)
             muffin_tin_settings = OrderedDict()
             for group in groups:
-                label = group["x_exciting_geometry_atom_labels"]
+                label = group.x_exciting_geometry_atom_labels
                 try:
-                    muffin_tin_settings["{}_muffin_tin_radius".format(label)] = "%.6f" % (1e+10 * group['x_exciting_muffin_tin_radius'])
+                    muffin_tin_settings["{}_muffin_tin_radius".format(label)] = "%.6f" % (group.x_exciting_muffin_tin_radius.to(ureg.angstrom).magnitude)
                 except KeyError:
                     muffin_tin_settings["{}_muffin_tin_radius".format(label)] = None
                 try:
-                    muffin_tin_settings["{}_muffin_tin_points".format(label)] = "%d" % group['x_exciting_muffin_tin_points']
+                    muffin_tin_settings["{}_muffin_tin_points".format(label)] = "%d" % group.x_exciting_muffin_tin_points
                 except KeyError:
                     muffin_tin_settings["{}_muffin_tin_points".format(label)] = None
             self.settings["muffin_tin_settings"] = muffin_tin_settings
@@ -178,19 +181,19 @@ class BasisSetExciting(BasisSet):
         # Other important method settings
         system = self._ctx.representative_system
         try:
-            self.settings['rgkmax'] = "%.6f" % (system['x_exciting_rgkmax'])
+            self.settings['rgkmax'] = "%.6f" % (system.x_exciting_rgkmax.magnitude)
         except KeyError:
             pass
         try:
-            self.settings['gkmax'] = "%.6f" % (1e-10 * system['x_exciting_gkmax'])
+            self.settings['gkmax'] = "%.6f" % (1e-10 * system.x_exciting_gkmax.magnitude)
         except KeyError:
             pass
         try:
-            self.settings['lo'] = "%d" % (system['x_exciting_lo'])
+            self.settings['lo'] = "%d" % (system.x_exciting_lo)
         except KeyError:
             pass
         try:
-            self.settings['lmaxapw'] = "%d" % (system['x_exciting_lmaxapw'])
+            self.settings['lmaxapw'] = "%d" % (system.x_exciting_lmaxapw)
         except KeyError:
             pass
 

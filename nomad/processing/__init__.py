@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Processing comprises everything that is necessary to take an uploaded user file,
 processes it, and store all necessary data for *repository*, *archive*, and potential
 future services (e.g. *encyclopedia*).
@@ -54,7 +54,7 @@ classes do represent the processing state, as well as the respective entity.
     :members:
 .. autoclass:: nomad.processing.data.Calc
     :members:
-"""
+'''
 
 from nomad.processing.base import app, InvalidId, ProcNotRegistered, SUCCESS, FAILURE, \
     RUNNING, PENDING, PROCESS_COMPLETED, PROCESS_RUNNING, ProcessAlreadyRunning

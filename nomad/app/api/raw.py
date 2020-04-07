@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation files.
-"""
+'''
 
 from typing import IO, Any, Union, List
 import os.path
@@ -71,13 +71,13 @@ _raw_file_from_path_parser.add_argument(
 
 
 class FileView:
-    """
+    '''
     File-like wrapper that restricts the contents to a portion of the file.
     Arguments:
         f: the file-like
         offset: the offset
         length: the amount of bytes
-    """
+    '''
     def __init__(self, f, offset, length):
         self.f = f
         self.f_offset = offset
@@ -110,10 +110,10 @@ class FileView:
 
 def get_raw_file_from_upload_path(
         upload_files, upload_filepath, authorization_predicate, mainfile: str = None):
-    """
+    '''
     Helper method used by func:`RawFileFromUploadPathResource.get` and
     func:`RawFileFromCalcPathResource.get`.
-    """
+    '''
     upload_filepath = upload_filepath.rstrip('/')
 
     if upload_filepath[-1:] == '*':
@@ -197,7 +197,7 @@ class RawFileFromUploadPathResource(Resource):
     @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, path: str):
-        """ Get a single raw calculation file, directory contents, or whole directory sub-tree
+        ''' Get a single raw calculation file, directory contents, or whole directory sub-tree
         from a given upload.
 
         The 'upload_id' parameter needs to identify an existing upload.
@@ -223,7 +223,7 @@ class RawFileFromUploadPathResource(Resource):
         match the given path at the start, will be returned as a .zip file body.
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
-        """
+        '''
         # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
         if path is not None:
             path = urllib.parse.unquote(path)
@@ -258,7 +258,7 @@ class RawFileFromCalcPathResource(Resource):
     @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str, path: str):
-        """ Get a single raw calculation file, calculation contents, or all files for a
+        ''' Get a single raw calculation file, calculation contents, or all files for a
         given calculation.
 
         The 'upload_id' parameter needs to identify an existing upload.
@@ -266,7 +266,7 @@ class RawFileFromCalcPathResource(Resource):
 
         This endpoint behaves exactly like /raw/<upload_id>/<path>, but the path is
         now relative to the calculation and not the upload.
-        """
+        '''
         # TODO this is a quick fix, since swagger cannot deal with not encoded path parameters
         if path is not None:
             path = urllib.parse.unquote(path)
@@ -300,11 +300,11 @@ class RawFileFromCalcEmptyPathResource(RawFileFromCalcPathResource):
     @api.expect(_raw_file_from_path_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id: str, calc_id: str):
-        """ Get calculation contents.
+        ''' Get calculation contents.
 
         This is basically /raw/calc/<upload_id>/<calc_id>/<path> with an empty path, since
         having an empty path parameter is not possible.
-        """
+        '''
         return super().get(upload_id, calc_id, None)
 
 
@@ -336,11 +336,11 @@ class RawFilesResource(Resource):
     @api.expect(_raw_files_request_model, validate=True)
     @authenticate()
     def post(self, upload_id):
-        """ Download multiple raw calculation files in a .zip file.
+        ''' Download multiple raw calculation files in a .zip file.
 
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
-        """
+        '''
         json_data = request.get_json()
         compress = json_data.get('compress', False)
         files = [file.strip() for file in json_data['files']]
@@ -353,12 +353,12 @@ class RawFilesResource(Resource):
     @api.expect(_raw_files_request_parser, validate=True)
     @authenticate(signature_token=True)
     def get(self, upload_id):
-        """
+        '''
         Download multiple raw calculation files.
         Download multiple raw calculation files in a .zip file.
         Zip files are streamed; instead of 401 errors, the zip file will just not contain
         any files that the user is not authorized to access.
-        """
+        '''
         args = _raw_files_request_parser.parse_args()
 
         files_str = args.get('files')
@@ -401,7 +401,7 @@ class RawFileQueryResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
-        """ Download a .zip file with all raw-files for all entries that match the given
+        ''' Download a .zip file with all raw-files for all entries that match the given
         search parameters.
 
         See ``/repo`` endpoint for documentation on the search
@@ -411,7 +411,7 @@ class RawFileQueryResource(Resource):
         any files that the user is not authorized to access.
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
-        """
+        '''
         logger = common.logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
 
         patterns: List[str] = None
@@ -463,15 +463,13 @@ class RawFileQueryResource(Resource):
                     if upload_files is None or upload_files.upload_id != upload_id:
                         logger.info('opening next upload for raw file streaming', upload_id=upload_id)
                         if upload_files is not None:
-                            upload_files.close_zipfile_cache()
+                            upload_files.close()
 
                         upload_files = UploadFiles.get(upload_id)
 
                         if upload_files is None:
                             logger.error('upload files do not exist', upload_id=upload_id)
                             continue
-
-                        upload_files.open_zipfile_cache()
 
                         def open_file(upload_filename):
                             return upload_files.raw_file(upload_filename, 'rb')
@@ -506,7 +504,7 @@ class RawFileQueryResource(Resource):
                     }
 
                 if upload_files is not None:
-                    upload_files.close_zipfile_cache()
+                    upload_files.close()
 
                 logger.info('streaming raw file manifest')
                 try:
@@ -536,10 +534,6 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
     if upload_files is None:
         abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-    # the zipfile cache allows to access many raw-files from public upload files without
-    # having to re-open the underlying zip files all the time
-    upload_files.open_zipfile_cache()
-
     if strip:
         common_prefix_len = len(utils.common_prefix(files))
     else:
@@ -554,4 +548,4 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
             ) for filename in files],
             zipfile_name='%s.zip' % upload_id, compress=compress)
     finally:
-        upload_files.close_zipfile_cache()
+        upload_files.close()

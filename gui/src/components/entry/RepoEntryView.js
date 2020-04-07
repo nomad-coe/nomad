@@ -5,9 +5,9 @@ import { withApi } from '../api'
 import { compose } from 'recompose'
 import ApiDialogButton from '../ApiDialogButton'
 import Quantity from '../Quantity'
-import { withDomain } from '../domains'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
+import { domains } from '../domains'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -30,8 +30,7 @@ class RepoEntryView extends React.Component {
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
-    calcId: PropTypes.string.isRequired,
-    domain: PropTypes.object.isRequired
+    calcId: PropTypes.string.isRequired
   }
 
   static defaultState = {
@@ -69,13 +68,19 @@ class RepoEntryView extends React.Component {
   }
 
   render() {
-    const { classes, domain, ...calcProps } = this.props
+    const { classes, ...calcProps } = this.props
     const calcData = this.state.calcData || calcProps
     const loading = !this.state.calcData
     const { uploadId, calcId } = calcProps
     const quantityProps = {data: calcData, loading: loading}
 
     const authors = loading ? null : calcData.authors
+    const domain = calcData.domain && domains[calcData.domain]
+
+    let entryHeader = 'Entry metadata'
+    if (domain) {
+      entryHeader = domain.entryTitle(calcData)
+    }
 
     if (this.state.doesNotExist) {
       return <Typography className={classes.error}>
@@ -89,22 +94,23 @@ class RepoEntryView extends React.Component {
           <Grid item xs={7}>
             <Card>
               <CardHeader
-                title="Metadata"
+                title={entryHeader}
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
               <CardContent classes={{root: classes.cardContent}}>
-                <domain.EntryOverview data={calcData} loading={loading} />
+                {domain && <domain.EntryOverview data={calcData} loading={loading} />}
               </CardContent>
               <Divider />
               <CardContent>
                 <Quantity column>
                   <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                   <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                    <div style={{display: 'inline-grid'}}>
-                      {(calcData.references || []).map(ref => <Typography key={ref} noWrap>
-                        <a href={ref}>{ref}</a>
-                      </Typography>)}
-                    </div>
+                    {calcData.references &&
+                      <div style={{display: 'inline-grid'}}>
+                        {calcData.references.map(ref => <Typography key={ref} noWrap>
+                          <a href={ref}>{ref}</a>
+                        </Typography>)}
+                      </div>}
                   </Quantity>
                   <Quantity quantity='authors' {...quantityProps}>
                     <Typography>
@@ -112,13 +118,14 @@ class RepoEntryView extends React.Component {
                     </Typography>
                   </Quantity>
                   <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                    <div>
-                      {(calcData.datasets || []).map(ds => (
-                        <Typography key={ds.id}>
-                          <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
-                          {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
-                        </Typography>))}
-                    </div>
+                    {calcData.datasets &&
+                      <div>
+                        {calcData.datasets.map(ds => (
+                          <Typography key={ds.dataset_id}>
+                            <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                            {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                          </Typography>))}
+                      </div>}
                   </Quantity>
                 </Quantity>
               </CardContent>
@@ -130,21 +137,21 @@ class RepoEntryView extends React.Component {
               <CardHeader title="Ids / processing" />
               <CardContent classes={{root: classes.cardContent}}>
                 <Quantity column style={{maxWidth: 350}}>
-                  <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard {...quantityProps} />
+                  <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps} />
                   <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="mainfile" loading={loading} noWrap ellipsisFront {...quantityProps} withClipboard />
-                  <Quantity quantity="calc_hash" label={`${domain.entryLabel} hash`} loading={loading} noWrap {...quantityProps} />
+                  <Quantity quantity="calc_hash" label={`${domain ? domain.entryLabel : 'entry'} hash`} loading={loading} noWrap {...quantityProps} />
                   <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                   <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
                     <Typography noWrap>
-                      {new Date(calcData.upload_time * 1000).toLocaleString()}
+                      {new Date(calcData.upload_time).toLocaleString()}
                     </Typography>
                   </Quantity>
                   <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                     <Typography noWrap>
-                      {new Date(calcData.last_processing * 1000).toLocaleString()}
+                      {new Date(calcData.last_processing).toLocaleString()}
                     </Typography>
                   </Quantity>
                   <Quantity quantity="last_processing" label='processing version' loading={loading} noWrap placeholder="not processed" {...quantityProps}>
@@ -158,10 +165,10 @@ class RepoEntryView extends React.Component {
           </Grid>
         </Grid>
 
-        <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />
+        {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />}
       </div>
     )
   }
 }
 
-export default compose(withApi(false, true), withDomain, withStyles(RepoEntryView.styles))(RepoEntryView)
+export default compose(withApi(false, true), withStyles(RepoEntryView.styles))(RepoEntryView)

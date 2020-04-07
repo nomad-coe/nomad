@@ -12,39 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module contains classes that allow to represent the core
-nomad data entities :class:`Upload` and :class:`Calc` on a high level of abstraction
+nomad data entities (entries/calculations, users, datasets) on a high level of abstraction
 independent from their representation in the different modules
 :py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.parsing`,
 :py:mod:`nomad.search`, :py:mod:`nomad.app`, :py:mod:`nomad.migration`.
 
 It is not about representing every detail, but those parts that are directly involved in
-api, processing, migration, mirroring, or other 'infrastructure' operations.
-
-Transformations between different implementations of the same entity can be build
-and used. To ease the number of necessary transformations the classes
-:class:`UploadWithMetadata` and :class:`CalcWithMetadata` can act as intermediate
-representations. Therefore, implement only transformation from and to these
-classes. These are the implemented transformations:
-
-.. image:: datamodel_transformations.png
-
-.. autoclass:: nomad.datamodel.UploadWithMetadata
-    :members:
-.. autoclass:: nomad.datamodel.CalcWithMetadata
-    :members:
-
-The class :class:`CalcWithMetadata` only defines non domain specific metadata quantities
-about ids, user metadata, etc. To define domain specific quantities :class:`CalcWithMetadata`
-must be subclassed. The classes
-:class:`Domain` and :class:`DomainQuantity` can be used to further define domain specific
-quantities.
-
-.. autoclass:: nomad.datamodel.Domain
-    :members:
-.. autoclass:: nomad.datamodel.DomainQuantity
-    :members:
+api, processing, mirroring, or other 'infrastructure' operations.
 
 The class :class:`User` is used to represent users and their attributes.
 
@@ -55,15 +31,45 @@ The class :class:`Dataset` is used to represent datasets and their attributes.
 
 .. autoclass:: nomad.datamodel.Dataset
     :members:
-"""
 
-import sys
+The class :class:`MongoMetadata` is used to tag metadata stored in mongodb.
 
-from nomad.datamodel.base import UploadWithMetadata, CalcWithMetadata, Domain, DomainQuantity
-from nomad.datamodel import ems, dft
-from nomad.datamodel.dft import DFTCalcWithMetadata
-from nomad.datamodel.ems import EMSEntryWithMetadata
-from nomad.datamodel.metainfo import Dataset, User, UserMetadata
+.. autoclass:: nomad.datamodel.MongoMetadata
+    :members:
 
-# Override the CalcWithMetadata with the domain specific decendant
-setattr(sys.modules['nomad.datamodel'], 'CalcWithMetadata', Domain.instance.domain_entry_class)
+The class :class:`EntryMetadata` is used to represent all metadata about an entry.
+
+.. autoclass:: nomad.datamodel.EntryMetadata
+    :members:
+
+In addition there are domain specific metadata classes:
+
+.. autoclass:: nomad.datamodel.dft.DFTMetadata
+    :members:
+
+.. autoclass:: nomad.datamodel.dft.EMSMetadata
+    :members:
+
+.. autoclass:: nomad.datamodel.OptimadeEntry
+    :members:
+'''
+
+from .dft import DFTMetadata
+from .ems import EMSMetadata
+from .datamodel import Dataset, User, EditableUserMetadata, MongoMetadata, EntryMetadata, EntryArchive
+from .optimade import OptimadeEntry, Species
+
+domains = {
+    'dft': {
+        'metadata': DFTMetadata,
+        'metainfo_all_package': 'all.nomadmetainfo.json',
+        'root_section': 'section_run'
+    },
+    'ems': {
+        'metadata': EMSMetadata,
+        'metainfo_all_package': 'all.experimental.nomadmetainfo.json',
+        'root_section': 'section_experiment'
+    }
+}
+
+root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry']

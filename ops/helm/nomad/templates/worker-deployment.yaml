@@ -18,6 +18,10 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "nomad.name" . }}-worker
         app.kubernetes.io/instance: {{ .Release.Name }}
+      {{ if .Values.roll }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{ end }}
     spec:
       affinity:
         podAntiAffinity:
@@ -29,7 +33,8 @@ spec:
                 app.kubernetes.io/instance: {{ .Release.Name }}
       containers:
       - name: {{ include "nomad.name" . }}-worker
-        image: "{{ .Values.images.nomad.name }}:{{ .Values.images.nomad.tag }}"
+        image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
           limits:
             memory: "{{ .Values.worker.memlimit }}Gi"
@@ -92,13 +97,12 @@ spec:
             - bash
             - -c
             - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
-          initialDelaySeconds: 5
-          periodSeconds: 120
+          initialDelaySeconds: 15
+          periodSeconds: 30
       nodeSelector:
         nomadtype: {{ .Values.worker.nomadNodeType }}
       imagePullSecrets:
-      - name: {{ .Values.images.secret }}
-      imagePullPolicy: always
+      - name: {{ .Values.image.secret }}
       volumes:
       - name: nomad-conf
         configMap:

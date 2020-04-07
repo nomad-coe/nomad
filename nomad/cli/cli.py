@@ -19,7 +19,78 @@ import os
 from nomad import config as nomad_config, infrastructure
 
 
-@click.group(help='''This is the entry point to nomad\'s command line interface CLI.
+class LazyCommand(click.Command):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.orig_callback = self.callback
+        self.callback = self.lazy_callback
+
+    def lazy_callback(self, *args, **kwargs):
+        for group_callback, group_args, group_kwargs in self.ctx.obj.group_invocations:
+            group_callback(*group_args, **group_kwargs)
+        return self.orig_callback(*args, **kwargs)
+
+    def invoke(self, ctx):
+        self.ctx = ctx
+        return super().invoke(ctx)
+
+
+class LazyGroup(click.Group):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.orig_callback = self.callback
+
+        self.callback = self.lazy_callback
+        self.ctx = None
+
+    def lazy_callback(self, *args, **kwargs):
+        self.ctx.obj.group_invocations.append((self.orig_callback, args, kwargs))
+        return None
+
+    def command(self, *args, **kwargs):
+        kwargs.setdefault('cls', LazyCommand)
+        return super().command(*args, **kwargs)
+
+    def group(self, *args, **kwargs):
+        kwargs.setdefault('cls', LazyGroup)
+        return super().group(*args, **kwargs)
+
+    def invoke(self, ctx):
+        if ctx.obj is None:
+            ctx.obj = POPO()
+            ctx.obj.group_invocations = []
+
+        self.ctx = ctx
+        return super().invoke(ctx)
+
+
+class POPO(dict):
+    '''
+    A dict subclass that uses attributes as key/value pairs.
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+
+@click.group(
+    cls=LazyGroup,
+    help='''This is the entry point to nomad\'s command line interface CLI.
                      It uses a sub-command structure similar to the git command.''')
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)

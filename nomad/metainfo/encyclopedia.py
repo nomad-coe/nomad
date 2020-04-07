@@ -81,7 +81,7 @@ class IdealizedStructure(MSection):
         """
     )
     atom_positions = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=['number_of_atoms', 3],
         description="""
         Atom positions given in coordinates that are relative to the idealized
@@ -89,7 +89,7 @@ class IdealizedStructure(MSection):
         """
     )
     lattice_vectors = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[3, 3],
         description="""
         Lattice vectors of the idealized structure. For bulk materials it is
@@ -98,7 +98,7 @@ class IdealizedStructure(MSection):
         """
     )
     lattice_vectors_primitive = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[3, 3],
         description="""
         Lattice vectors of the the primitive unit cell in a form to be visualized
@@ -107,7 +107,7 @@ class IdealizedStructure(MSection):
         """
     )
     lattice_parameters = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[6],
         description="""
         Lattice parameters of the idealized cell. The lattice parameters can
@@ -445,7 +445,7 @@ class BandGap(MSection):
         """
     )
     conduction_band_min_k_point = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[3],
         unit=units.m**(-1),
         description="""
@@ -453,7 +453,7 @@ class BandGap(MSection):
         """
     )
     valence_band_max_k_point = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[3],
         unit=units.m**(-1),
         description="""
@@ -472,7 +472,7 @@ class BandSegment(MSection):
         """
     )
     energies = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=["1..2", "1..*", "1..*"],
         unit=units.m**(-1),
         description="""
@@ -482,7 +482,7 @@ class BandSegment(MSection):
         """
     )
     k_points = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=["1..*", 3],
         unit=units.m**(-1),
         description="""
@@ -521,7 +521,7 @@ class ElectronicBandStructure(MSection):
         """
     )
     reciprocal_cell = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=[3, 3],
         unit=units.m**(-1),
         description="""
@@ -574,14 +574,14 @@ class ElectronicDOS(MSection):
         """
     )
     fermi_level = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit=units.J,
         description="""
         Fermi level reported for the density of states.
         """
     )
     energies = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=["1..*"],
         unit=units.J,
         description="""
@@ -590,7 +590,7 @@ class ElectronicDOS(MSection):
         """
     )
     values = Quantity(
-        type=np.dtype('f8'),
+        type=np.dtype(np.float64),
         shape=["1..2", "1..*"],
         unit=units.J**(-1),
         description="""
@@ -634,11 +634,10 @@ class Properties(MSection):
     electronic_dos = SubSection(sub_section=ElectronicDOS.m_def, repeats=False)
 
 
-class Encyclopedia(MSection):
+class section_encyclopedia(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
-        name="encyclopedia",
         description="""
         Section which stores information for the NOMAD Encyclopedia.
         """

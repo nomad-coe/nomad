@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Typography, Tooltip, IconButton } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+import _ from 'lodash'
 
 class Quantity extends React.Component {
   static propTypes = {
@@ -79,22 +80,14 @@ class Quantity extends React.Component {
     }
 
     if (!loading) {
-      if (!(data && quantity && !data[quantity])) {
-        if (!children || children.length === 0) {
-          const value = data && quantity ? data[quantity] : null
-          if (value) {
-            clipboardContent = value
-            content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-              {value}
-            </Typography>
-          } else {
-            content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-              <i>{placeholder || 'unavailable'}</i>
-            </Typography>
-          }
-        } else {
-          content = children
-        }
+      const value = data && quantity && _.get(data, quantity)
+      if (children && children.length !== 0) {
+        content = children
+      } else if (value) {
+        clipboardContent = value
+        content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+          {value}
+        </Typography>
       } else {
         content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
           <i>{placeholder || 'unavailable'}</i>

@@ -25,7 +25,6 @@
           {
             "_name": "section_single_configuration_calculation",
             "_gIndex": 0,
-            "single_configuration_calculation_to_system_ref": 0,
             "single_configuration_to_calculation_method_ref": 0,
             "energy_free": -1.5936767191492225e-18,
             "energy_total": -1.5935696296699573e-18,

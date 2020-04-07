@@ -20,12 +20,12 @@ from ase import Atoms
 from nomad.metainfo.encyclopedia import (
     Calculation,
     Properties,
-    Encyclopedia,
     Material,
     ElectronicBandStructure,
     BandGap,
 )
-from nomad.parsing.backend import Section, LocalBackend
+from nomad.parsing.legacy import Backend
+from nomad.metainfo import Section
 from nomad.normalizing.encyclopedia.context import Context
 from nomad import atomutils
 from nomad import config
@@ -37,7 +37,7 @@ class PropertiesNormalizer():
     """A base class that is used for processing calculated quantities that
     should be extracted to Encyclopedia.
     """
-    def __init__(self, backend: LocalBackend, logger):
+    def __init__(self, backend: Backend, logger):
         self.backend = backend
         self.logger = logger
 
@@ -80,7 +80,7 @@ class PropertiesNormalizer():
         found.
         """
         # Handle spin channels separately to find gaps for spin up and down
-        reciprocal_cell = band_structure.reciprocal_cell
+        reciprocal_cell = band_structure.reciprocal_cell.magnitude
         fermi_level = band_structure.fermi_level
         n_channels = energies.shape[0]
 
@@ -215,14 +215,14 @@ class PropertiesNormalizer():
             return
 
         representative_scc = context.representative_scc
-        orig_atoms = sec_system.tmp["representative_atoms"]
-        symmetry_analyzer = sec_system["section_symmetry"][0].tmp["symmetry_analyzer"]
+        orig_atoms = sec_system.m_cache["representative_atoms"]
+        symmetry_analyzer = sec_system.section_symmetry[0].m_cache["symmetry_analyzer"]
         prim_atoms = symmetry_analyzer.get_primitive_system()
 
         # Try to find an SCC with band structure data, give priority to
         # normalized data
         for src_name in ["section_k_band_normalized", "section_k_band"]:
-            bands = representative_scc.get(src_name)
+            bands = getattr(representative_scc, src_name)
             if bands is None:
                 continue
             norm = "_normalized" if src_name == "section_k_band_normalized" else ""
@@ -242,7 +242,7 @@ class PropertiesNormalizer():
                 for segment_src in segments:
                     try:
                         seg_k_points = segment_src["band_k_points" + norm]
-                        seg_energies = segment_src["band_energies" + norm]
+                        seg_energies = segment_src["band_energies" + norm].magnitude
                         seg_labels = segment_src['band_segm_labels' + norm]
                     except KeyError:
                         return
@@ -315,9 +315,9 @@ class PropertiesNormalizer():
                 "energy_free": "Free E",
             }
             for energy_name, label in energies_entries.items():
-                result = representative_scc.get(energy_name)
+                result = getattr(representative_scc, energy_name)
                 if result is not None:
-                    energy_dict[label] = result / gcd
+                    energy_dict[label] = result.magnitude / gcd
 
             if len(energy_dict) == 0:
                 energy_dict = None
@@ -331,7 +331,7 @@ class PropertiesNormalizer():
             return
 
         # Fetch resources
-        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        sec_enc = self.backend.entry_archive.section_encyclopedia
         properties = sec_enc.properties
         calc_type = context.calc_type
         material_type = context.material_type

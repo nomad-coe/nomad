@@ -19,15 +19,21 @@ from ase import Atoms
 import numpy as np
 import json
 import re
-import os
-import sqlite3
-
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
 from nomad import atomutils
 from nomad import utils, config
-from nomad.normalizing.normalizer import SystemBasedNormalizer
+from nomad.datamodel.metainfo.public import (
+    section_symmetry,
+    section_std_system,
+    section_primitive_system,
+    section_original_system,
+    section_prototype,
+)
+
+from .normalizer import SystemBasedNormalizer
+from .springer import query_springer_data
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
@@ -35,45 +41,23 @@ atom_label_re = re.compile('|'.join(
     sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True)))
 
 
-springer_db_connection = None
-
-
-def open_springer_database():
-    """
-    Create a global connection to the Springer database in a way that
-    each worker opens the database just once.
-    """
-    global springer_db_connection
-    if springer_db_connection is None:
-        # filepath definition in 'nomad-FAIR/nomad/config.py'
-        db_file = config.springer_db_path
-        if not os.path.exists(db_file):
-            utils.get_logger(__name__).error('Springer database not found')
-            return None
-        springer_db_connection = sqlite3.connect(db_file, check_same_thread=False, uri=True)
-        # we lift the thread check because we share the connection among workers
-        # 'uri=True': open a database in read-only mode
-
-    return springer_db_connection
-
-
 def normalized_atom_labels(atom_labels):
-    """
+    '''
     Normalizes the given atom labels: they either are labels right away, or contain
     additional numbers (to distinguish same species but different labels, see meta-info),
     or we replace them with ase placeholder atom for unknown elements 'X'.
-    """
+    '''
     return [
         ase.data.chemical_symbols[0] if match is None else match.group(0)
         for match in [re.search(atom_label_re, atom_label) for atom_label in atom_labels]]
 
 
 def formula_normalizer(atoms):
-    """
+    '''
     Reads the chemical symbols in ase.atoms and returns a normalized formula.
     Formula normalization is on the basis of atom counting,
     e.g., Tc ->  Tc100, SZn -> S50Zn50, Co2Nb -> Co67Nb33
-    """
+    '''
     #
     chem_symb = atoms.get_chemical_symbols()
     atoms_counter = Counter(chem_symb)  # dictionary
@@ -89,10 +73,10 @@ def formula_normalizer(atoms):
 
 
 class SystemNormalizer(SystemBasedNormalizer):
-    """
+    '''
     This normalizer performs all system (atoms, cells, etc.) related normalizations
     of the legacy NOMAD-coe *stats* normalizer.
-    """
+    '''
     @staticmethod
     def atom_label_to_num(atom_label):
         # Take first three characters and make first letter capitalized.
@@ -105,18 +89,18 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         return 0
 
-    def normalize_system(self, index, is_representative) -> bool:
-        """
+    def normalize_system(self, system, is_representative) -> bool:
+        '''
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
 
         Returns: True, iff the normalization was successful
-        """
+        '''
 
         def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
             try:
-                value = self._backend.get_value(key, index)
+                value = self._backend.get_value(key, system.m_parent_index)
                 if not numpy and type(value).__module__ == np.__name__:
                     value = value.tolist()
 
@@ -140,7 +124,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         atom_species = get_value('atom_species', numpy=False)
         if atom_labels is None and atom_species is None:
-            self.logger.error('system has neither atom species nor labels')
+            self.logger.warn('system has neither atom species nor labels')
             return False
 
         # If there are no atom labels we create them from atom species data.
@@ -208,7 +192,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 n_atom_positions=len(atom_positions), n_atoms=len(atoms))
             return False
         try:
-            atoms.set_positions(1e10 * atom_positions)
+            atoms.set_positions(1e10 * atom_positions.magnitude)
         except Exception as e:
             self.logger.error(
                 'cannot use positions with ase atoms', exc_info=e, error=str(e))
@@ -225,7 +209,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('no lattice vectors but periodicity', pbc=pbc)
         else:
             try:
-                atoms.set_cell(1e10 * np.array(lattice_vectors))
+                atoms.set_cell(1e10 * lattice_vectors.magnitude)
             except Exception as e:
                 self.logger.error(
                     'cannot use lattice_vectors with ase atoms', exc_info=e, error=str(e))
@@ -241,7 +225,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if is_representative:
             # Save the Atoms as a temporary variable
-            self._backend.add_tmp_value("section_system", "representative_atoms", atoms)
+            system.m_cache["representative_atoms"] = atoms
 
             # system type analysis
             if atom_positions is not None:
@@ -258,18 +242,18 @@ class SystemNormalizer(SystemBasedNormalizer):
                         self.logger, 'symmetry analysis executed',
                         system_size=len(atoms)):
 
-                    self.symmetry_analysis(atoms)
+                    self.symmetry_analysis(system, atoms)
 
         return True
 
     def system_type_analysis(self, atoms: Atoms) -> None:
-        """
+        '''
         Determine the system type with MatID. Write the system type to the
         backend.
 
         Args:
             atoms: The structure to analyse
-        """
+        '''
         system_type = config.services.unavailable_value
         if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
@@ -297,8 +281,8 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         self._backend.addValue('system_type', system_type)
 
-    def symmetry_analysis(self, atoms: ase.Atoms) -> None:
-        """Analyze the symmetry of the material being simulated. Only performed
+    def symmetry_analysis(self, system, atoms: ase.Atoms) -> None:
+        '''Analyze the symmetry of the material being simulated. Only performed
         for bulk materials.
 
         We feed in the parsed values in section_system to the the symmetry
@@ -306,8 +290,12 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         Args:
             atoms: The atomistic structure to analyze.
-        """
-        # Try to use Matid's symmetry analyzer to analyze the ASE object.
+
+        Returns:
+            None: The method should write symmetry variables
+            to the backend which is member of this class.
+        '''
+        # Try to use MatID's symmetry analyzer to analyze the ASE object.
         try:
             symm = SymmetryAnalyzer(atoms, symmetry_tol=config.normalize.symmetry_tolerance)
 
@@ -349,141 +337,89 @@ class SystemNormalizer(SystemBasedNormalizer):
             return
 
         # Write data extracted from MatID's symmetry analysis to the backend.
-        symmetry_gid = self._backend.openSection('section_symmetry')
-        self._backend.add_tmp_value("section_symmetry", "symmetry_analyzer", symm)
+        sec_symmetry = system.m_create(section_symmetry)
+        sec_symmetry.m_cache["symmetry_analyzer"] = symm
 
         # TODO: @dts, should we change the symmetry_method to MATID?
-        self._backend.addValue('symmetry_method', 'MatID (spg)')
-        self._backend.addValue('space_group_number', space_group_number)
-        self._backend.addValue('hall_number', hall_number)
-        self._backend.addValue('hall_symbol', hall_symbol)
-        self._backend.addValue('international_short_symbol', international_short)
-        self._backend.addValue('point_group', point_group)
-        self._backend.addValue('crystal_system', crystal_system)
-        self._backend.addValue('bravais_lattice', bravais_lattice)
-        self._backend.addArrayValues('origin_shift', origin_shift)
-        self._backend.addArrayValues('transformation_matrix', transform)
+        sec_symmetry.symmetry_method = 'MatID (spg)'
+        sec_symmetry.space_group_number = space_group_number
+        sec_symmetry.hall_number = hall_number
+        sec_symmetry.hall_symbol = hall_symbol
+        sec_symmetry.international_short_symbol = international_short
+        sec_symmetry.point_group = point_group
+        sec_symmetry.crystal_system = crystal_system
+        sec_symmetry.bravais_lattice = bravais_lattice
+        sec_symmetry.origin_shift = origin_shift
+        sec_symmetry.transformation_matrix = transform
 
-        std_gid = self._backend.openSection('section_std_system')
-        self._backend.addArrayValues('lattice_vectors_std', conv_cell)
-        self._backend.addArrayValues('atom_positions_std', conv_pos)
-        self._backend.addArrayValues('atomic_numbers_std', conv_num)
-        self._backend.addArrayValues('wyckoff_letters_std', conv_wyckoff)
-        self._backend.addArrayValues('equivalent_atoms_std', conv_equivalent_atoms)
-        self._backend.closeSection('section_std_system', std_gid)
+        sec_std = sec_symmetry.m_create(section_std_system)
+        sec_std.lattice_vectors_std = conv_cell
+        sec_std.atom_positions_std = conv_pos
+        sec_std.atomic_numbers_std = conv_num
+        sec_std.wyckoff_letters_std = conv_wyckoff
+        sec_std.equivalent_atoms_std = conv_equivalent_atoms
 
-        prim_gid = self._backend.openSection('section_primitive_system')
-        self._backend.addArrayValues('lattice_vectors_primitive', prim_cell)
-        self._backend.addArrayValues('atom_positions_primitive', prim_pos)
-        self._backend.addArrayValues('atomic_numbers_primitive', prim_num)
-        self._backend.addArrayValues('wyckoff_letters_primitive', prim_wyckoff)
-        self._backend.addArrayValues('equivalent_atoms_primitive', prim_equivalent_atoms)
-        self._backend.closeSection('section_primitive_system', prim_gid)
+        sec_prim = sec_symmetry.m_create(section_primitive_system)
+        sec_prim.lattice_vectors_primitive = prim_cell
+        sec_prim.atom_positions_primitive = prim_pos
+        sec_prim.atomic_numbers_primitive = prim_num
+        sec_prim.wyckoff_letters_primitive = prim_wyckoff
+        sec_prim.equivalent_atoms_primitive = prim_equivalent_atoms
 
-        orig_gid = self._backend.openSection('section_original_system')
-        self._backend.addArrayValues('wyckoff_letters_original', orig_wyckoff)
-        self._backend.addArrayValues('equivalent_atoms_original', orig_equivalent_atoms)
-        self._backend.closeSection('section_original_system', orig_gid)
-        self._backend.closeSection('section_symmetry', symmetry_gid)
+        sec_orig = sec_symmetry.m_create(section_original_system)
+        sec_orig.wyckoff_letters_original = orig_wyckoff
+        sec_orig.equivalent_atoms_original = orig_equivalent_atoms
 
-        self.springer_classification(atoms, space_group_number)  # Springer Normalizer
-
-        self.prototypes(conv_num, conv_wyckoff, space_group_number)
-
-        self._backend.closeSection('section_symmetry', symmetry_gid)
+        # self.springer_classification(atoms, space_group_number)  # Springer Normalizer
+        self.prototypes(system, conv_num, conv_wyckoff, space_group_number)
 
     def springer_classification(self, atoms, space_group_number):
-        # SPRINGER NORMALIZER
         normalized_formula = formula_normalizer(atoms)
-        #
-        springer_db_connection = open_springer_database()
-        if springer_db_connection is None:
-            return
+        springer_data = query_springer_data(normalized_formula, space_group_number)
 
-        cur = springer_db_connection.cursor()
-
-        # SQL QUERY
-        # (this replaces the four queries done in the old 'classify4me_SM_normalizer.py')
-        cur.execute("""
-            SELECT
-                entry.entry_id,
-                entry.alphabetic_formula,
-                GROUP_CONCAT(DISTINCT compound_classes.compound_class_name),
-                GROUP_CONCAT(DISTINCT classification.classification_name)
-            FROM entry
-            LEFT JOIN entry_compound_class as ecc ON ecc.entry_nr = entry.entry_nr
-            LEFT JOIN compound_classes ON ecc.compound_class_nr = compound_classes.compound_class_nr
-            LEFT JOIN entry_classification as ec ON ec.entry_nr = entry.entry_nr
-            LEFT JOIN classification ON ec.classification_nr = classification.classification_nr
-            LEFT JOIN entry_reference as er ON er.entry_nr = entry.entry_nr
-            LEFT JOIN reference ON reference.reference_nr = er.entry_nr
-            WHERE entry.normalized_formula = ( %r ) and entry.space_group_number = '%d'
-            GROUP BY entry.entry_id;
-            """ % (normalized_formula, space_group_number))
-
-        results = cur.fetchall()
-        # 'results' is a list of tuples, i.e. '[(a,b,c,d), ..., (a,b,c,d)]'
-        # All SQL queries done
-
-        # Storing 'results' in a dictionary
-        dbdict = {}
-        for ituple in results:
-            # 'spr' means 'springer'
-            spr_id = ituple[0]
-            spr_aformula = ituple[1]  # alphabetical formula
-            spr_url = 'http://materials.springer.com/isp/crystallographic/docs/' + spr_id
-            spr_compound = ituple[2].split(',')  # split to convert string to list
-            spr_classification = ituple[3].split(',')
-            #
-            spr_compound.sort()
-            spr_classification.sort()
-            #
-            dbdict[spr_id] = {'spr_id': spr_id,
-                              'spr_aformula': spr_aformula,
-                              'spr_url': spr_url,
-                              'spr_compound': spr_compound,
-                              'spr_classification': spr_classification}
-        # =============
-
-        # SPRINGER's METAINFO UPDATE
-        # LAYOUT: Five sections under 'section_springer_material' for each material ID:
-        #     id, alphabetical formula, url, compound_class, clasification.
-        # As per Markus/Luca's emails, we don't expose Springer bib references (Springer's paywall)
-        for material in dbdict.values():
+        for material in springer_data.values():
             self._backend.openNonOverlappingSection('section_springer_material')
 
             self._backend.addValue('springer_id', material['spr_id'])
             self._backend.addValue('springer_alphabetical_formula', material['spr_aformula'])
             self._backend.addValue('springer_url', material['spr_url'])
-            self._backend.addArrayValues('springer_compound_class', material['spr_compound'])
-            self._backend.addArrayValues('springer_classification', material['spr_classification'])
+
+            compound_classes = material['spr_compound']
+            if compound_classes is None:
+                compound_classes = []
+            self._backend.addArrayValues('springer_compound_class', compound_classes)
+
+            classifications = material['spr_classification']
+            if classifications is None:
+                classifications = []
+            self._backend.addArrayValues('springer_classification', classifications)
 
             self._backend.closeNonOverlappingSection('section_springer_material')
 
         # Check the 'springer_classification' and 'springer_compound_class' information
         # found is the same for all springer_id's
-        dkeys = list(dbdict.keys())
-        if len(dkeys) != 0:
-            class_0 = dbdict[dkeys[0]]['spr_classification']
-            comp_0 = dbdict[spr_id]['spr_compound']
+        springer_data_keys = list(springer_data.keys())
+        if len(springer_data_keys) != 0:
+            class_0 = springer_data[springer_data_keys[0]]['spr_classification']
+            comp_0 = springer_data[springer_data_keys[0]]['spr_compound']
 
             # compare 'class_0' and 'comp_0' against the rest
-            for ii in range(1, len(dkeys)):
-                class_test = (class_0 == dbdict[dkeys[ii]]['spr_classification'])
-                comp_test = (comp_0 == dbdict[dkeys[ii]]['spr_compound'])
+            for ii in range(1, len(springer_data_keys)):
+                class_test = (class_0 == springer_data[springer_data_keys[ii]]['spr_classification'])
+                comp_test = (comp_0 == springer_data[springer_data_keys[ii]]['spr_compound'])
 
                 if (class_test or comp_test) is False:
-                    self.logger.warning('Mismatch in Springer classification or compounds')
+                    self.logger.info('Mismatch in Springer classification or compounds')
 
-    def prototypes(self, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
-        """Tries to match the material to an entry in the AFLOW prototype data.
+    def prototypes(self, system, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
+        '''Tries to match the material to an entry in the AFLOW prototype data.
         If a match is found, a section_prototype is added to section_system.
 
         Args:
             atomic_numbers: Array of atomic numbers.
             wyckoff_letters: Array of Wyckoff letters as strings.
             spg_number: Space group number.
-        """
+        '''
         norm_wyckoff = atomutils.get_normalized_wyckoff(atom_species, wyckoffs)
         protoDict = atomutils.search_aflow_prototype(spg_number, norm_wyckoff)
         if protoDict is not None:
@@ -497,13 +433,12 @@ class SystemNormalizer(SystemBasedNormalizer):
                 aflow_prototype_name,
                 protoDict.get("Pearsons Symbol", "-")
             )
-            pSect = self._backend.openSection("section_prototype")
-            self._backend.addValue("prototype_label", prototype_label)
-            self._backend.addValue("prototype_aflow_id", aflow_prototype_id)
-            self._backend.addValue("prototype_aflow_url", aflow_prototype_url)
-            self._backend.addValue("prototype_assignment_method", "normalized-wyckoff")
-            self._backend.add_tmp_value("section_prototype", "prototype_notes", aflow_prototype_notes)
-            self._backend.add_tmp_value("section_prototype", 'prototype_name', aflow_prototype_name)
+            sec_prototype = system.m_create(section_prototype)
+            sec_prototype.prototype_label = prototype_label
+            sec_prototype.prototype_aflow_id = aflow_prototype_id
+            sec_prototype.prototype_aflow_url = aflow_prototype_url
+            sec_prototype.prototype_assignment_method = "normalized-wyckoff"
+            sec_prototype.m_cache["prototype_notes"] = aflow_prototype_notes
+            sec_prototype.m_cache["prototype_name"] = aflow_prototype_name
             if aflow_strukturbericht_designation != "None":
-                self._backend.add_tmp_value("section_prototype", 'strukturbericht_designation', aflow_strukturbericht_designation)
-            self._backend.closeSection("section_prototype", pSect)
+                sec_prototype.m_cache["strukturbericht_designation"] = aflow_strukturbericht_designation

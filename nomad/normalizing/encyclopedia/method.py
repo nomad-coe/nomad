@@ -16,23 +16,19 @@ from typing import List
 from abc import abstractmethod
 from collections import OrderedDict
 import numpy as np
+from pint import UnitRegistry
 
-from nomad.normalizing.normalizer import (
-    s_method,
-    s_scc,
-)
 from nomad.metainfo.encyclopedia import (
-    Encyclopedia,
     Material,
     Method,
 )
-from nomad.parsing.backend import Section
+from nomad.metainfo import Section
 from nomad.normalizing.encyclopedia.basisset import get_basis_set
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.utils import RestrictedDict
 from nomad import config
 
-J_to_Ry = 4.587425e+17
+ureg = UnitRegistry()
 
 
 class MethodNormalizer():
@@ -42,6 +38,7 @@ class MethodNormalizer():
     def __init__(self, backend, logger):
         self.backend = backend
         self.logger = logger
+        self.section_run = backend.entry_archive.section_run[0]
 
     def method_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
@@ -51,7 +48,7 @@ class MethodNormalizer():
             ],
             forbidden_values=[None]
         )
-        method_dict['program_name'] = self.backend["program_name"]
+        method_dict['program_name'] = self.section_run.program_name
 
         # The subclasses may define their own method properties that are to be
         # included here.
@@ -81,7 +78,7 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        eos_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+        eos_dict['upload_id'] = self.backend.entry_archive.section_metadata.upload_id
 
         # Method
         eos_dict["method_hash"] = method.method_hash
@@ -111,7 +108,7 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        param_dict['upload_id'] = self.backend["section_entry_info"][0]["upload_id"]
+        param_dict['upload_id'] = self.backend.entry_archive.section_metadata.upload_id
 
         # The same code and functional type is required
         param_dict['program_name'] = self.backend["program_name"]
@@ -127,12 +124,12 @@ class MethodNormalizer():
         geom_dict['atom_labels'] = ', '.join(atom_labels)
         atom_positions = sec_sys['atom_positions']
         geom_dict['atom_positions'] = np.array2string(
-            atom_positions * 1e10,  # convert to Angstrom
+            atom_positions.to(ureg.angstrom).magnitude,  # convert to Angstrom
             formatter={'float_kind': lambda x: "%.6f" % x},
         ).replace('\n', '')
         cell = sec_sys['lattice_vectors']
         geom_dict['simulation_cell'] = np.array2string(
-            cell * 1e10,  # convert to Angstrom
+            cell.to(ureg.angstrom).magnitude,  # convert to Angstrom
             formatter={'float_kind': lambda x: "%.6f" % x},
         ).replace('\n', '')
         param_dict['settings_geometry'] = geom_dict
@@ -187,7 +184,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         and parameters as a string: see
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
-        xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.backend[s_method])
+        xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.section_run.section_method)
         if xc_functional is config.services.unavailable_value:
             self.logger.warning(
                 "Metainfo for 'XC_functional' not found, and could not "
@@ -203,33 +200,33 @@ class MethodDFTNormalizer(MethodNormalizer):
         """
         linked_methods = [repr_method]
         try:
-            refs = repr_method["section_method_to_method_refs"]
+            refs = repr_method.section_method_to_method_refs
         except KeyError:
             pass
         else:
             for ref in refs:
-                method_to_method_kind = ref["method_to_method_kind"]
-                method_to_method_ref = ref["method_to_method_ref"]
+                method_to_method_kind = ref.method_to_method_kind
+                referenced_method = ref.method_to_method_ref
                 if method_to_method_kind == "core_settings":
-                    linked_methods.append(methods[method_to_method_ref])
+                    linked_methods.append(referenced_method)
 
         xc_functional = config.services.unavailable_value
         for method in linked_methods:
             try:
-                section_xc_functionals = method["section_XC_functionals"]
+                section_xc_functionals = method.section_XC_functionals
             except KeyError:
                 pass
             else:
                 components = {}
                 for component in section_xc_functionals:
                     try:
-                        cname = component['XC_functional_name']
+                        cname = component.XC_functional_name
                     except KeyError:
                         pass
                     else:
                         this_component = ''
-                        if 'XC_functional_weight' in component:
-                            this_component = str(component['XC_functional_weight']) + '*'
+                        if component.XC_functional_weight is not None and component.XC_functional_weight != 0.0:
+                            this_component = str(component.XC_functional_weight) + '*'
                         this_component += cname
                         components[cname] = this_component
                 result_array = []
@@ -272,26 +269,26 @@ class MethodDFTNormalizer(MethodNormalizer):
         # _reducible_ k-point-mesh:
         #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
-        smearing_kind = repr_method.get('smearing_kind')
+        smearing_kind = repr_method.smearing_kind
         if smearing_kind is not None:
             hash_dict['smearing_kind'] = smearing_kind
-        smearing_width = repr_method.get('smearing_width')
+        smearing_width = repr_method.smearing_width
         if smearing_width is not None:
-            smearing_width = '%.4f' % (smearing_width * J_to_Ry)
+            smearing_width = '%.4f' % (smearing_width)
             hash_dict['smearing_width'] = smearing_width
         try:
-            scc = self.backend[s_scc][-1]
-            eigenvalues = scc['eigenvalues']
-            kpt = eigenvalues[-1]['eigenvalues_kpoints']
+            scc = self.section_run.section_single_configuration_calculation[-1]
+            eigenvalues = scc.section_eigenvalues
+            kpt = eigenvalues[-1].eigenvalues_kpoints
         except (KeyError, IndexError):
             pass
         else:
             hash_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
 
         # SCF convergence settings
-        conv_thr = repr_method.get('scf_threshold_energy_change', None)
+        conv_thr = repr_method.scf_threshold_energy_change
         if conv_thr is not None:
-            conv_thr = '%.13f' % (conv_thr * J_to_Ry)
+            conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
             hash_dict['scf_threshold_energy_change'] = conv_thr
 
         return hash_dict
@@ -318,9 +315,9 @@ class MethodDFTNormalizer(MethodNormalizer):
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
         param_dict['functional_long_name'] = method.functional_long_name
-        conv_thr = repr_method.get('scf_threshold_energy_change', None)
+        conv_thr = repr_method.scf_threshold_energy_change
         if conv_thr is not None:
-            conv_thr = '%.13f' % (conv_thr * J_to_Ry)
+            conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
         param_dict['scf_threshold_energy_change'] = conv_thr
 
         # Pseudopotentials are kept constant, if applicable
@@ -386,7 +383,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         # Fetch resources
         repr_method = context.representative_method
         repr_system = context.representative_system
-        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        sec_enc = self.backend.entry_archive.section_encyclopedia
         method = sec_enc.method
         material = sec_enc.material
         settings_basis_set = get_basis_set(context, self.backend, self.logger)
@@ -405,15 +402,14 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     """
     def gw_starting_point(self, method: Method, repr_method: Section) -> None:
         try:
-            ref = repr_method["section_method_to_method_refs"][0]
-            method_to_method_kind = ref["method_to_method_kind"]
-            method_to_method_ref = ref["method_to_method_ref"]
+            ref = repr_method.section_method_to_method_refs[0]
+            method_to_method_kind = ref.method_to_method_kind
+            start_method = ref.method_to_method_ref
         except KeyError:
             pass
         else:
             if method_to_method_kind == "starting_point":
-                methods = self.backend[s_method]
-                start_method = methods[method_to_method_ref]
+                methods = self.section_run.section_method
                 xc_functional = MethodDFTNormalizer.functional_long_name_from_method(start_method, methods)
                 method.gw_starting_point = xc_functional
 
@@ -426,7 +422,7 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         repr_method = context.representative_method
-        sec_enc = self.backend.get_mi2_section(Encyclopedia.m_def)
+        sec_enc = self.backend.entry_archive.section_encyclopedia
         method = sec_enc.method
 
         # Fill metainfo

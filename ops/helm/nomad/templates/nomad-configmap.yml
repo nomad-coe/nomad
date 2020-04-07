@@ -10,7 +10,6 @@ metadata:
 data:
   nomad.yaml: |
     release: "{{ .Release.Name }}"
-    domain: "{{ .Values.domain }}"
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
@@ -25,7 +24,7 @@ data:
       api_port: {{ .Values.proxy.external.port }}
       api_base_path: "{{ .Values.proxy.external.path }}"
       api_secret: "{{ .Values.api.secret }}"
-      https: {{ .Values.app.https }}
+      https: {{ .Values.proxy.external.https }}
       upload_limit: {{ .Values.api.uploadLimit }}
       admin_user_id: {{ .Values.keycloak.admin_user_id }}
     rabbitmq:
@@ -54,12 +53,15 @@ data:
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: 7200
+    client:
+      user: "{{ .Values.client.username }}"
     keycloak:
       server_url: "{{ .Values.keycloak.serverUrl }}"
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
       client_id: "{{ .Values.keycloak.clientId }}"
-    springer_db_path: "{{ .Values.springerDbPath }}"
+    normalize:
+      springer_db_path: "{{ .Values.springerDbPath }}"
     datacite:
       enabled: {{ .Values.datacite.enabled }}
       prefix: "{{ .Values.datacite.prefix }}"

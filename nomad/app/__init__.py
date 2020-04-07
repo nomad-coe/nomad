@@ -12,35 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official api, and
 we will soon at the optimade api. The app module also servers documentation, gui, and
 alive.
-"""
-from flask import Flask, Blueprint, jsonify, url_for, abort, request
-from flask_restplus import Api
+'''
+from flask import Flask, Blueprint, jsonify, url_for, abort, request, make_response
+from flask_restplus import Api, representations
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
 import os.path
 import random
 from structlog import BoundLogger
+import orjson
+import collections
+from mongoengine.base.datastructures import BaseList
 
 from nomad import config, utils as nomad_utils
 
-from .api import blueprint as api
-from .optimade import blueprint as optimade
-from .docs import blueprint as docs
+from .api import blueprint as api_blueprint, api
+from .optimade import blueprint as optimade_blueprint, api as optimade
+from .docs import blueprint as docs_blueprint
+from .gui import blueprint as gui_blueprint
 from . import common
+
+
+# replace the json implementation of flask_restplus
+def output_json(data, code, headers=None):
+    dumped = nomad_utils.dumps(data) + b'\n'
+
+    resp = make_response(dumped, code)
+    resp.headers.extend(headers or {})
+    return resp
+
+
+api.representation('application/json')(output_json)
+optimade.representation('application/json')(output_json)
 
 
 @property  # type: ignore
 def specs_url(self):
-    """
+    '''
     Fixes issue where swagger-ui makes a call to swagger.json over HTTP.
     This can ONLY be used on servers that actually use HTTPS.  On servers that use HTTP,
     this code should not be used at all.
-    """
+    '''
     return url_for(self.endpoint('specs'), _external=True, _scheme='https')
 
 
@@ -49,7 +66,7 @@ if config.services.https:
 
 
 app = Flask(__name__)
-""" The Flask app that serves all APIs. """
+''' The Flask app that serves all APIs. '''
 
 app.config.APPLICATION_ROOT = common.base_path  # type: ignore
 app.config.RESTPLUS_MASK_HEADER = False  # type: ignore
@@ -72,9 +89,10 @@ app.wsgi_app = DispatcherMiddleware(  # type: ignore
 
 CORS(app)
 
-app.register_blueprint(api, url_prefix='/api')
-app.register_blueprint(optimade, url_prefix='/optimade')
-app.register_blueprint(docs, url_prefix='/docs')
+app.register_blueprint(api_blueprint, url_prefix='/api')
+app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
+app.register_blueprint(docs_blueprint, url_prefix='/docs')
+app.register_blueprint(gui_blueprint, url_prefix='/gui')
 
 
 @app.errorhandler(Exception)
@@ -82,6 +100,9 @@ def handle(error: Exception):
     status_code = getattr(error, 'code', 500)
     if not isinstance(status_code, int):
         status_code = 500
+    if status_code < 100:
+        status_code = 500
+
     name = getattr(error, 'name', 'Internal Server Error')
     description = getattr(error, 'description', 'No description available')
     data = dict(
@@ -98,14 +119,17 @@ def handle(error: Exception):
         if local_logger is None:
             local_logger = nomad_utils.get_logger(__name__)
 
-        local_logger.error('internal server error', exc_info=error)
+        # TODO the error seems not to be the actual exception, therefore
+        # there might be no stacktrace. Maybe there is a way to get the actual
+        # exception/stacktrace
+        local_logger.error('internal server error', error=str(error), exc_info=error)
 
     return response
 
 
 @app.route('/alive')
 def alive():
-    """ Simple endpoint to utilize kubernetes liveness/readiness probing. """
+    ''' Simple endpoint to utilize kubernetes liveness/readiness probing. '''
     return "I am, alive!"
 
 

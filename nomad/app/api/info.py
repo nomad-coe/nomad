@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 API endpoint that deliver backend configuration details.
-"""
+'''
 
 from flask_restplus import Resource, fields
 
@@ -34,7 +34,7 @@ domain_quantity_model = api.model('DomainQuantity', {
 
 metainfo_model = api.model('Metainfo', {
     'all_package': fields.String(description='Name of the metainfo package that references all available packages, i.e. the complete metainfo.'),
-    'root_sections': fields.List(fields.String, description='Name of the topmost section, e.g. section_run for computational material science data.')
+    'root_section': fields.String(description='Name of the topmost section, e.g. section_run for computational material science data.')
 })
 
 domain_model = api.model('Domain', {
@@ -56,7 +56,7 @@ info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
     'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
-    'domain': fields.Nested(model=domain_model),
+    'domains': fields.List(fields.Nested(model=domain_model)),
     'version': fields.String,
     'release': fields.String,
     'git': fields.Nested(model=git_info_model),
@@ -69,26 +69,28 @@ class InfoResource(Resource):
     @api.doc('get_info')
     @api.marshal_with(info_model, skip_none=True, code=200, description='Info send')
     def get(self):
-        """ Return information about the nomad backend and its configuration. """
+        ''' Return information about the nomad backend and its configuration. '''
+        codes = [
+            parser.code_name
+            for parser in parsing.parser_dict.values()
+            if isinstance(parser, parsing.MatchingParser) and parser.domain == 'dft']
+
         return {
             'parsers': [
                 key[key.index('/') + 1:]
                 for key in parsing.parser_dict.keys()],
-            'codes': sorted(set([
-                parser.code_name
-                for parser in parsing.parser_dict.values()
-                if isinstance(parser, parsing.MatchingParser) and parser.domain == datamodel.Domain.instance.name]), key=lambda x: x.lower()),
+            'codes': sorted(set(codes), key=lambda x: x.lower()),
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
-            'domain': {
-                'name': datamodel.Domain.instance.name,
-                'quantities': [quantity for quantity in datamodel.Domain.instance.quantities.values()],
-                'metrics_names': datamodel.Domain.instance.metrics_names,
-                'aggregations_names': datamodel.Domain.instance.aggregations_names,
-                'metainfo': {
-                    'all_package': datamodel.Domain.instance.metainfo_all_package,
-                    'root_sections': datamodel.Domain.instance.root_sections
+            'domains': [
+                {
+                    'name': domain_name,
+                    'metainfo': {
+                        'all_package': domain['metainfo_all_package'],
+                        'root_section': domain['root_section']
+                    }
                 }
-            },
+                for domain_name, domain in datamodel.domains.items()
+            ],
             'version': config.version,
             'release': config.release,
             'git': {

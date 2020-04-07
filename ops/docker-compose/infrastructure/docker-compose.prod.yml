@@ -1,0 +1,51 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: '3.4'
+
+services:
+    # keycloak for user management
+    keycloak:
+        volumes:
+            - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
+            - /nomad/backup/fairdi/keycloak:/export
+
+    # the search engine
+    elastic:
+        ports:
+            - 9200:9200
+        volumes:
+            - /scratch/fairdi/db/elastic:/usr/share/elasticsearch/data
+
+    # the user data db
+    mongo:
+        ports:
+            - 27017:27017
+        volumes:
+            - /scratch/fairdi/db/mongo:/data/db
+
+    # used for centralized logging
+    elk:
+        restart: always
+        build: ../../containers/elk/
+        image: nomad/elk
+        container_name: nomad_elk
+        expose:
+            - 5000 # logstash beats
+        volumes:
+            - /nomad/fairdi/db/elk:/var/lib/elasticsearch
+        ports:
+            - 5601:5601  # kibana web
+            - 5000:5000
+            - 9201:9200  # allows metricbeat config to access es

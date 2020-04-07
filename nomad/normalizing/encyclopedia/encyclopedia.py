@@ -14,25 +14,15 @@
 
 from typing import Any
 
-from nomad.normalizing.normalizer import (
-    Normalizer,
-    s_run,
-    s_scc,
-    s_system,
-    s_method,
-    s_frame_sequence,
-    r_frame_sequence_to_sampling,
-    s_sampling_method,
-    r_frame_sequence_local_frames,
-)
+from nomad.normalizing.normalizer import Normalizer
 from nomad.metainfo.encyclopedia import (
-    Encyclopedia,
+    section_encyclopedia,
     Material,
     Method,
     Properties,
     Calculation,
 )
-from nomad.parsing.backend import LocalBackend
+from nomad.parsing.legacy import Backend
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.encyclopedia.material import MaterialBulkNormalizer, Material2DNormalizer, Material1DNormalizer
 from nomad.normalizing.encyclopedia.method import MethodDFTNormalizer, MethodGWNormalizer
@@ -49,9 +39,9 @@ class EncyclopediaNormalizer(Normalizer):
     within a new section called "encyclopedia". In the future these separate
     metainfos could be absorbed into the existing metainfo hiearchy.
     """
-    def __init__(self, backend: LocalBackend):
+    def __init__(self, backend: Backend):
         super().__init__(backend)
-        self.backend: LocalBackend = backend
+        self.backend: Backend = backend
 
     def calc_type(self, calc: Calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
@@ -61,11 +51,11 @@ class EncyclopediaNormalizer(Normalizer):
         calc_type = calc_enums.unavailable
 
         try:
-            sccs = self._backend[s_scc]
+            sccs = self.section_run.section_single_configuration_calculation
         except Exception:
             sccs = []
         try:
-            frame_sequences = self._backend[s_frame_sequence]
+            frame_sequences = self.section_run.section_frame_sequence
         except Exception:
             frame_sequences = []
 
@@ -88,7 +78,7 @@ class EncyclopediaNormalizer(Normalizer):
 
             # See if sampling_method is present
             try:
-                i_sampling_method = frame_seq[r_frame_sequence_to_sampling]
+                section_sampling_method = frame_seq.frame_sequence_to_sampling_ref
             except KeyError:
                 self.logger.info(
                     "Cannot determine encyclopedia run type because missing "
@@ -98,7 +88,7 @@ class EncyclopediaNormalizer(Normalizer):
 
             # See if local frames are present
             try:
-                frames = frame_seq[r_frame_sequence_local_frames]
+                frames = frame_seq.frame_sequence_local_frames_ref
             except KeyError:
                 self.logger.info(
                     "section_frame_sequence_local_frames not found although a "
@@ -109,8 +99,7 @@ class EncyclopediaNormalizer(Normalizer):
                 self.logger.info("No frames referenced in section_frame_sequence_local_frames.")
                 return calc_type
 
-            section_sampling_method = self._backend[s_sampling_method][i_sampling_method]
-            sampling_method = section_sampling_method["sampling_method"]
+            sampling_method = section_sampling_method.sampling_method
 
             if sampling_method == "molecular_dynamics":
                 calc_type = calc_enums.molecular_dynamics
@@ -128,14 +117,14 @@ class EncyclopediaNormalizer(Normalizer):
         material_type = config.services.unavailable_value
         material_enums = Material.material_type.type
         try:
-            system_idx = self._backend["section_run"][0].tmp["representative_system_idx"]
+            system_idx = self.section_run.m_cache["representative_system_idx"]
         except (AttributeError, KeyError):
             pass
         else:
             # Try to find system type information from backend for the selected system.
             try:
-                system = self._backend[s_system][system_idx]
-                stype = system["system_type"]
+                system = self.section_run.section_system[system_idx]
+                stype = system.system_type
             except KeyError:
                 pass
             else:
@@ -144,7 +133,7 @@ class EncyclopediaNormalizer(Normalizer):
                 # For bulk systems we also ensure that the symmetry information is available
                 if stype == material_enums.bulk:
                     try:
-                        system["section_symmetry"][0]
+                        system.section_symmetry[0]
                     except (KeyError, IndexError):
                         self.logger.info("Symmetry information is not available for a bulk system. No Encylopedia entry created.")
                     else:
@@ -156,16 +145,18 @@ class EncyclopediaNormalizer(Normalizer):
     def method_type(self, method: Method) -> tuple:
         repr_method = None
         method_id = config.services.unavailable_value
-        methods = self._backend[s_method]
+        methods = self.section_run.section_method
         n_methods = len(methods)
 
         if n_methods == 1:
             repr_method = methods[0]
-            method_id = repr_method.get("electronic_structure_method", config.services.unavailable_value)
+            method_id = repr_method.electronic_structure_method
+            if method_id is None:
+                method_id = config.services.unavailable_value
         elif n_methods > 1:
-            for sec_method in self._backend[s_method]:
+            for sec_method in methods:
                 # GW
-                electronic_structure_method = sec_method.get("electronic_structure_method", None)
+                electronic_structure_method = sec_method.electronic_structure_method
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
                     method_id = "GW"
@@ -175,23 +166,20 @@ class EncyclopediaNormalizer(Normalizer):
                 # linked methods, try to get electronic_structure_method from
                 # each.
                 try:
-                    refs = sec_method["section_method_to_method_refs"]
+                    refs = sec_method.section_method_to_method_refs
                 except KeyError:
                     pass
                 else:
                     linked_methods = [sec_method]
                     for ref in refs:
-                        method_to_method_kind = ref["method_to_method_kind"]
-                        method_to_method_ref = ref["method_to_method_ref"]
+                        method_to_method_kind = ref.method_to_method_kind
+                        method_to_method_ref = ref.method_to_method_ref
                         if method_to_method_kind == "core_settings":
-                            linked_methods.append(methods[method_to_method_ref])
+                            linked_methods.append(method_to_method_ref)
 
                     for i_method in linked_methods:
-                        try:
-                            electronic_structure_method = i_method["electronic_structure_method"]
-                        except KeyError:
-                            pass
-                        else:
+                        electronic_structure_method = i_method.electronic_structure_method
+                        if electronic_structure_method is not None:
                             repr_method = sec_method
                             method_id = electronic_structure_method
 
@@ -231,7 +219,7 @@ class EncyclopediaNormalizer(Normalizer):
             super().normalize(logger)
 
             # Initialise metainfo structure
-            sec_enc = Encyclopedia()
+            sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
             sec_enc.m_create(Properties)
@@ -251,7 +239,7 @@ class EncyclopediaNormalizer(Normalizer):
             representative_system, material_type = self.material_type(material)
             if material_type != material_enums.bulk and material_type != material_enums.two_d and material_type != material_enums.one_d:
                 self.logger.info(
-                    "Unsupported system type for encyclopedia, encyclopedia metainfo not created.",
+                    "Unsupported material type for encyclopedia, encyclopedia metainfo not created.",
                     enc_status="unsupported_material_type",
                 )
                 return
@@ -267,8 +255,8 @@ class EncyclopediaNormalizer(Normalizer):
 
             # Get representative scc
             try:
-                representative_scc_idx = self._backend[s_run][0].tmp["representative_scc_idx"]
-                representative_scc = self._backend[s_scc][representative_scc_idx]
+                representative_scc_idx = self.section_run.m_cache["representative_scc_idx"]
+                representative_scc = self.section_run.section_single_configuration_calculation[representative_scc_idx]
             except (KeyError, IndexError):
                 representative_scc = None
                 representative_scc_idx = None
@@ -285,8 +273,8 @@ class EncyclopediaNormalizer(Normalizer):
             )
 
             # Put the encyclopedia section into backend
-            self._backend.add_mi2_section(sec_enc)
             self.fill(context)
+
         except Exception:
             self.logger.error(
                 "Failed to create an Encyclopedia entry due to an unhandlable exception.",

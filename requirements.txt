@@ -7,10 +7,14 @@ hjson
 scipy
 scikit-learn==0.20.2
 ase==3.19.0
-Pint==0.7.2
+Pint
 matid==0.5.9
 
 # infrastructue related
+orjson
+elasticsearch==6.4.0
+elasticsearch-dsl==6.4.0
+msgpack<0.6.0
 elasticsearch==6.4.0
 elasticsearch-dsl==6.4.0
 pyyaml
@@ -38,7 +42,6 @@ zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
-ujson==1.35
 bravado
 pyjwt[crypto]
 jsonschema[format]
@@ -77,3 +80,4 @@ essential_generators
 jinja2
 bs4
 html5lib
+fastentrypoints

@@ -11,35 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Callable, List
+import typing
 import click
 import datetime
-from elasticsearch_dsl import Q
-import elasticsearch.helpers
+import elasticsearch_dsl
+import elasticsearch
 import sys
 import io
 import re
 import uuid
 import json
-from io import StringIO
 import threading
 
 import numpy as np
 import requests
-from ase import Atoms
-import ase.io
-from bs4 import BeautifulSoup
+import ase
+import bs4
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
-from nomad.atomutils import get_normalized_wyckoff
+from nomad import normalizing
 from nomad.cli.cli import cli
-from nomad import config
 
 
 def __run_processing(
-        uploads, parallel: int, process: Callable[[proc.Upload], None], label: str):
+        uploads, parallel: int, process, label: str, reprocess_running: bool = False):
     if isinstance(uploads, (tuple, list)):
         uploads_count = len(uploads)
 
@@ -48,7 +44,7 @@ def __run_processing(
         uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
 
     cv = threading.Condition()
-    threads: List[threading.Thread] = []
+    threads: typing.List[threading.Thread] = []
 
     state = dict(
         completed_count=0,
@@ -63,7 +59,7 @@ def __run_processing(
         logger.info('%s started' % label, upload_id=upload.upload_id)
 
         completed = False
-        if upload.process_running:
+        if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
                 current_process=upload.current_process,
@@ -135,7 +131,7 @@ def lift_embargo(dry, parallel):
     infrastructure.setup_elastic()
 
     request = search.SearchRequest()
-    request.q = Q('term', with_embargo=True) & Q('term', published=True)
+    request.q = elasticsearch_dsl.Q('term', with_embargo=True) & elasticsearch_dsl.Q('term', published=True)
     request.quantity('upload_id', 1000)
     result = request.execute()
 
@@ -158,9 +154,8 @@ def lift_embargo(dry, parallel):
                 uploads_to_repack.append(upload)
                 upload.save()
 
-                upload_with_metadata = upload.to_upload_with_metadata()
-                calcs = upload_with_metadata.calcs
-                search.index_all(calcs)
+                with upload.entries_metadata() as entries:
+                    search.index_all(entries)
 
     if not dry:
         __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
@@ -181,10 +176,8 @@ def index(threads, dry):
         with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
             for calc in proc.Calc.objects():
                 eta.add()
-                entry = None
-                entry = search.Entry.from_calc_with_metadata(
-                    datamodel.CalcWithMetadata(**calc.metadata))
-                entry = entry.to_dict(include_meta=True)
+                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
+                entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                 entry['_op_type'] = 'index'
                 yield entry
 
@@ -236,59 +229,53 @@ def nginx_conf(prefix):
 server {{
     listen        80;
     server_name   www.example.com;
+    proxy_set_header Host $host;
 
-    location /{0} {{
-        return 301 /example-nomad/gui;
+    location / {{
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/gui {{
-        root      /app/;
-        rewrite ^{1}/gui/(.*)$ /nomad/$1 break;
-        try_files $uri {1}/gui/index.html;
+    location ~ {1}\\/?(gui)?$ {{
+        rewrite ^ {1}/gui/ permanent;
     }}
 
-    location {1}/gui/service-worker.js {{
+    location {1}/gui/ {{
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index;
+        proxy_pass http://app:8000;
+    }}
+
+    location @redirect_to_index {{
+        rewrite ^ {1}/gui/index.html break;
+        proxy_pass http://app:8000;
+    }}
+
+    location ~ \\/gui\\/(service-worker\\.js|meta\\.json)$ {{
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
         if_modified_since off;
         expires off;
         etag off;
-        root      /app/;
-        rewrite ^{1}/gui/service-worker.js /nomad/service-worker.js break;
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/gui/meta.json {{
-        add_header Last-Modified $date_gmt;
-        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-        if_modified_since off;
-        expires off;
-        etag off;
-        root      /app/;
-        rewrite ^{1}/gui/meta.json /nomad/meta.json break;
-    }}
-
-    location {1}/api {{
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
-    }}
-
-    location {1}/api/uploads {{
+    location ~ \\/api\\/uploads\\/?$ {{
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
+        proxy_pass http://app:8000;
     }}
 
-    location {1}/api/raw {{
+    location ~ \\/api\\/(raw|archive) {{
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
-        proxy_pass http://api:8000;
+        proxy_pass http://app:8000;
     }}
-}}
-    '''.format(prefix.lstrip('/'), prefix))
+
+    location ~ \\/api\\/mirror {{
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_pass http://app:8000;
+    }}
+}}'''.format(prefix))
 
 
 @ops.command(help=('Generate a proxy pass config for apache2 reverse proxy servers.'))
@@ -331,24 +318,24 @@ RewriteCond %{QUERY_STRING} ^pid=([^&]+)$
 RewriteRule ^/NomadRepository-1.1/views/calculation.zul$ /{0}/gui/entry/pid/%1? [R=301]
 
 AllowEncodedSlashes On
-'''.format(prefix, host, port))
+'''.format(prefix, host, port))  # type: ignore
 
 
 def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
-    """Writes the prototype data file in a compressed format to a python
+    '''Writes the prototype data file in a compressed format to a python
     module.
 
     Args:
         aflow_prototypes
-    """
+    '''
     class NoIndent(object):
         def __init__(self, value):
             self.value = value
 
     class NoIndentEncoder(json.JSONEncoder):
-        """A custom JSON encoder that can pretty-print objects wrapped in the
+        '''A custom JSON encoder that can pretty-print objects wrapped in the
         NoIndent class.
-        """
+        '''
         def __init__(self, *args, **kwargs):
             super(NoIndentEncoder, self).__init__(*args, **kwargs)
             self.kwargs = dict(kwargs)
@@ -414,7 +401,7 @@ def prototypes_update(ctx, filepath, matches_only):
             newdict = {}
 
             # Make prototype plaintext
-            prototype = BeautifulSoup(protodict["Prototype"], "html5lib").getText()
+            prototype = bs4.BeautifulSoup(protodict["Prototype"], "html5lib").getText()
 
             # Add to new dictionary
             newdict['Notes'] = protodict['Notes']
@@ -426,12 +413,12 @@ def prototypes_update(ctx, filepath, matches_only):
             newdict['aflow_prototype_id'] = protodict['AFLOW Prototype']
             newdict['aflow_prototype_url'] = 'http://www.aflowlib.org/CrystalDatabase/' + protodict['href'][2:]
 
-            # Download cif or poscar if possible make ASE Atoms object if possible
+            # Download cif or poscar if possible make ASE ase.Atoms object if possible
             # to obtain labels, positions, cell
             cifurl = 'http://www.aflowlib.org/CrystalDatabase/CIF/' + protodict['href'][2:-5] + '.cif'
             r = requests.get(cifurl, allow_redirects=True)
             cif_str = r.content.decode("utf-8")
-            cif_file = StringIO()
+            cif_file = io.StringIO()
             cif_file.write(cif_str)
             cif_file.seek(0)
             try:
@@ -443,7 +430,7 @@ def prototypes_update(ctx, filepath, matches_only):
                     poscarurl = 'http://www.aflowlib.org/CrystalDatabase/POSCAR/' + protodict['href'][2:-5] + '.poscar'
                     r = requests.get(poscarurl, allow_redirects=True)
                     poscar_str = r.content.decode("utf-8")
-                    poscar_file = StringIO()
+                    poscar_file = io.StringIO()
                     poscar_file.write(poscar_str)
                     poscar_file.seek(0)
                     atoms = ase.io.read(poscar_file, format='vasp')
@@ -497,7 +484,7 @@ def prototypes_update(ctx, filepath, matches_only):
             pos = np.array(prototype["atom_positions"])
             labels = prototype["atom_labels"]
             cell = np.array(prototype["lattice_vectors"])
-            atoms = Atoms(
+            atoms = ase.Atoms(
                 symbols=labels,
                 positions=pos,
                 cell=cell,
@@ -517,7 +504,7 @@ def prototypes_update(ctx, filepath, matches_only):
                 # letters to the data.
                 if spg_number == aflow_spg_number:
                     atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
+                    normalized_wyckoff_matid = normalizing.aflow_prototypes.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
                     prototype["normalized_wyckoff_matid"] = normalized_wyckoff_matid
                 else:
                     n_unmatched += 1
@@ -529,3 +516,10 @@ def prototypes_update(ctx, filepath, matches_only):
 
     # Write data file to the specified path
     write_prototype_data_file(aflow_prototypes, filepath)
+
+
+@admin.command(help='Updates the springer database in nomad.config.springer_msg_db_path.')
+@click.option('--max-n-query', default=10, type=int, help='Number of unsuccessful springer request before returning an error. Default is 10.')
+@click.option('--retry-time', default=120, type=int, help='Time in seconds to retry after unsuccessful request. Default is 120.')
+def springer_update(max_n_query, retry_time):
+    normalizing.springer.update_springer_data(max_n_query, retry_time)

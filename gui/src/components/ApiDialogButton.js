@@ -91,10 +91,10 @@ class ApiDialogUnstyled extends React.Component {
             <div className={classes.code}>
               <div className={classes.json}>
                 <ReactJson
-                    src={data}
-                    enableClipboard={false}
-                    collapsed={2}
-                    displayObjectSize={false}
+                  src={data}
+                  enableClipboard={false}
+                  collapsed={2}
+                  displayObjectSize={false}
                 />
               </div>
             </div>
@@ -154,10 +154,10 @@ class ApiDialogButtonUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         {component ? component({onClick: this.handleShowDialog}) : <Tooltip title="Show API code">
-            <IconButton onClick={this.handleShowDialog}>
-              <CodeIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton onClick={this.handleShowDialog}>
+            <CodeIcon />
+          </IconButton>
+        </Tooltip>
         }
         <ApiDialog
           {...dialogProps} open={showDialog}

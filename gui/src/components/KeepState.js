@@ -1,10 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
+import { withRouter } from 'react-router-dom'
 
 /**
  * This is a kinda-HOC that allows to keep a component alive while not being visible.
  */
-export default class KeepState extends React.Component {
+class KeepState extends React.Component {
   static propTypes = {
     visible: PropTypes.bool,
     render: PropTypes.func.isRequired
@@ -23,7 +24,9 @@ export default class KeepState extends React.Component {
   }
 
   componentDidMount() {
-    this.update()
+    if (this.props.visible) {
+      this.update()
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -46,3 +49,6 @@ export default class KeepState extends React.Component {
     }
   }
 }
+
+const KeepStateWithRouter = withRouter(KeepState)
+export default KeepStateWithRouter

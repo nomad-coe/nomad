@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Iterable
 import pytest
 import time
 import json
@@ -24,20 +24,21 @@ import os.path
 from urllib.parse import urlencode
 import base64
 import itertools
+from hashlib import md5
 
 from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
 from nomad import search, parsing, files, config, utils, infrastructure
+from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
-from nomad.datamodel import UploadWithMetadata, CalcWithMetadata, User, Dataset
+from nomad.datamodel import EntryMetadata, User, Dataset
 
-from tests.conftest import create_auth_headers, clear_elastic, create_test_structure
+from tests.conftest import create_auth_headers, clear_elastic, clear_raw_files
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
-from tests.utils import assert_exception
 
 from tests.app.test_app import BlueprintClient
 
@@ -56,12 +57,11 @@ def test_user_signature_token(api, test_user_auth):
     return json.loads(rv.data)['signature_token']
 
 
-def get_upload_with_metadata(upload: dict) -> UploadWithMetadata:
-    """ Create a :class:`UploadWithMetadata` from a API upload json record. """
-    return UploadWithMetadata(
-        upload_id=upload['upload_id'], calcs=[
-            CalcWithMetadata(calc_id=calc['calc_id'], mainfile=calc['mainfile'])
-            for calc in upload['calcs']['results']])
+def get_upload_entries_metadata(upload: dict) -> Iterable[EntryMetadata]:
+    ''' Create a iterable of :class:`EntryMetadata` from a API upload json record. '''
+    return [
+        EntryMetadata(domain='dft', calc_id=entry['calc_id'], mainfile=entry['mainfile'])
+        for entry in upload['calcs']['results']]
 
 
 def assert_zip_file(rv, files: int = -1, basename: bool = None):
@@ -90,6 +90,7 @@ class TestInfo:
         assert 'codes' in data
         assert 'parsers' in data
         assert len(data['parsers']) >= len(data['codes'])
+        assert len(data['domains']) >= 1
         assert rv.status_code == 200
 
 
@@ -222,6 +223,8 @@ class TestUploads:
             assert calc['tasks_status'] == SUCCESS
             assert calc['current_task'] == 'archiving'
             assert len(calc['tasks']) == 3
+
+            assert 'atoms' in calc['metadata']
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
@@ -230,15 +233,13 @@ class TestUploads:
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
 
-        upload_with_metadata = get_upload_with_metadata(upload)
-        assert_upload_files(upload_with_metadata, files.StagingUploadFiles)
-        assert_search_upload(upload_with_metadata, additional_keys=['atoms', 'system'])
+        entries = get_upload_entries_metadata(upload)
+        assert_upload_files(upload_id, entries, files.StagingUploadFiles)
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
     def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
-
-        upload_with_metadata = get_upload_with_metadata(upload)
 
         rv = api.post(
             '/uploads/%s' % upload_id,
@@ -260,10 +261,22 @@ class TestUploads:
         assert upload_proc is not None
         assert upload_proc.published is True
         assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
-        upload_with_metadata = upload_proc.to_upload_with_metadata()
 
-        assert_upload_files(upload_with_metadata, files.PublicUploadFiles, published=True)
-        assert_search_upload(upload_with_metadata, additional_keys=additional_keys, published=True)
+        with upload_proc.entries_metadata() as entries:
+            for entry in entries:
+                for key, transform in {
+                        'comment': lambda e: e.comment,
+                        'with_embargo': lambda e: e.with_embargo,
+                        'references': lambda e: e.references,
+                        'coauthors': lambda e: [u.user_id for u in e.coauthors],
+                        '_uploader': lambda e: e.uploader.user_id,
+                        '_pid': lambda e: str(e.pid),
+                        'external_id': lambda e: e.external_id}.items():
+                    if key in metadata:
+                        assert transform(entry) == metadata[key], key
+
+        assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
+        assert_search_upload(entries, additional_keys=additional_keys, published=True)
 
     def block_until_completed(self, api, upload_id: str, test_user_auth):
         while True:
@@ -438,7 +451,7 @@ class TestUploads:
         rv = api.post(
             '/uploads/%s' % upload['upload_id'],
             headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=dict(_pid=256))),
+            data=json.dumps(dict(operation='publish', metadata=dict(_pid='256'))),
             content_type='application/json')
         assert rv.status_code == 401
 
@@ -501,6 +514,7 @@ class TestUploads:
 
 
 today = datetime.datetime.utcnow().date()
+today_datetime = datetime.datetime(*today.timetuple()[:6])
 
 
 class UploadFilesBasedTests:
@@ -587,9 +601,9 @@ class UploadFilesBasedTests:
         calc_specs = 'r' if restricted else 'p'
         Upload.create(user=test_user, upload_id='test_upload')
         if in_staging:
-            _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
         else:
-            _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
 
         yield 'test_upload', authorized, auth_headers
 
@@ -601,7 +615,10 @@ class TestArchive(UploadFilesBasedTests):
     def test_get(self, api, upload, auth_headers):
         rv = api.get('/archive/%s/0' % upload, headers=auth_headers)
         assert rv.status_code == 200
-        assert json.loads(rv.data) is not None
+        data = json.loads(rv.data)
+        assert data is not None
+        assert 'section_metadata' in data
+        assert 'section_run' in data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_signed(self, api, upload, _, test_user_signature_token):
@@ -668,60 +685,74 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_get_code_from_query(self, api, processeds, test_user_auth):
-        query_params = {'atoms': 'Si', 'res_type': 'json', 'order': 1, 'per_page': 5}
-        url = '/archive/query?%s' % urlencode(query_params)
-        rv = api.get(url, headers=test_user_auth)
+    def test_archive_query(self, api, published_wo_user_metadata):
+        schema = {
+            'section_run': {
+                'section_single_configuration_calculation': {
+                    'energy_total': '*'}}}
+        data = {'results': [schema], 'per_page': 5}
+        uri = '/archive/query'
+        rv = api.post(uri, content_type='application/json', data=json.dumps(data))
+
         assert rv.status_code == 200
-        data = json.loads(rv.data)
-        assert isinstance(data, dict)
-        assert data['results'] is not None
-        assert data['python'] is not None
+        data = rv.get_json()
+
+        assert data
+        results = data.get('results', None)
+        assert len(results) > 0
+        for result in results:
+            assert 'calc_id' in result
+            assert 'parser_name' in result
+            assert 'archive' in result
+
+        # TODO assert archive contents
 
 
 class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
-            self, elastic_infra, normalized: parsing.LocalBackend,
+            self, elastic_infra, raw_files_infra, normalized: parsing.Backend,
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 
         example_dataset = Dataset(
             dataset_id='ds_id', name='ds_name', user_id=test_user.user_id, doi='ds_doi')
-        example_dataset.m_x('me').create()
+        example_dataset.a_mongo.create()
 
-        calc_with_metadata = CalcWithMetadata(
-            upload_id='example_upload_id', calc_id='0', upload_time=today)
-        calc_with_metadata.files = ['test/mainfile.txt']
-        calc_with_metadata.apply_domain_metadata(normalized)
+        entry_metadata = EntryMetadata(
+            domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
+        entry_metadata.files = ['test/mainfile.txt']
+        entry_metadata.apply_domain_metadata(normalized)
 
-        calc_with_metadata.update(datasets=[example_dataset.dataset_id])
+        entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='1', uploader=test_user.user_id, published=True, with_embargo=False)
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        entry_metadata.a_elastic.index(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
-            with_embargo=False, pid=2, upload_time=today - datetime.timedelta(days=5),
+            with_embargo=False, pid='2', upload_time=today_datetime - datetime.timedelta(days=5),
             external_id='external_2')
-        calc_with_metadata.update(
-            atoms=['Fe'], comment='this is a specific word', formula='AAA', basis_set='zzz')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+        entry_metadata.m_update(
+            atoms=['Fe'], comment='this is a specific word', formula='AAA')
+        entry_metadata.dft.basis_set = 'zzz'
+        entry_metadata.a_elastic.index(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='3', uploader=other_test_user.user_id, published=False,
-            with_embargo=False, pid=3, external_id='external_3')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+            with_embargo=False, pid='3', external_id='external_3')
+        entry_metadata.a_elastic.index(refresh=True)
 
-        calc_with_metadata.update(
+        entry_metadata.m_update(
             calc_id='4', uploader=other_test_user.user_id, published=True,
-            with_embargo=True, pid=4, external_id='external_4')
-        search.Entry.from_calc_with_metadata(calc_with_metadata).save(refresh=True)
+            with_embargo=True, pid='4', external_id='external_4')
+        entry_metadata.a_elastic.index(refresh=True)
 
         yield
 
-        example_dataset.m_x('me').me_obj.delete()
+        example_dataset.a_mongo.delete()
+        clear_raw_files()
 
     def assert_search(self, rv: Any, number_of_calcs: int) -> dict:
         if rv.status_code != 200:
@@ -773,27 +804,27 @@ class TestRepo():
         assert rv.status_code == 404
 
     def test_search_datasets(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&datasets=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&datasets_grouped=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
-        datasets = data.get('datasets', None)
+        datasets = data.get('datasets_grouped', None)
         assert datasets is not None
         values = datasets['values']
         assert values['ds_id']['total'] == 4
-        assert values['ds_id']['examples'][0]['datasets'][0]['id'] == 'ds_id'
+        assert values['ds_id']['examples'][0]['datasets'][0]['dataset_id'] == 'ds_id'
         assert 'after' in datasets
         assert 'datasets' in data['statistics']['total']['all']
+        assert data['statistics']['total']['all']['datasets'] > 0
 
     def test_search_uploads(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
-        rv = api.get('/repo/?owner=all&uploads=true', headers=other_test_user_auth)
+        rv = api.get('/repo/?owner=all&uploads_grouped=true', headers=other_test_user_auth)
         data = self.assert_search(rv, 4)
 
-        uploads = data.get('uploads', None)
+        uploads = data.get('uploads_grouped', None)
         assert uploads is not None
         values = uploads['values']
-        # the 4 uploads have "example upload id", but 3 have newer upload time. Therefore,
-        # only 3 calc will be in the last (and therefore used) bucket of 'example_upload_id'.
-        assert values['example_upload_id']['total'] == 3
+
+        assert values['example_upload_id']['total'] == 4
         assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
         assert 'after' in uploads
         assert 'uploads' in data['statistics']['total']['all']
@@ -813,10 +844,11 @@ class TestRepo():
         auth = dict(none=None, test_user=test_user_auth, other_test_user=other_test_user_auth).get(auth)
         rv = api.get('/repo/?owner=%s' % owner, headers=auth)
         data = self.assert_search(rv, calcs)
-        results = data.get('results', None)
         if calcs > 0:
-            for key in ['uploader', 'calc_id', 'formula', 'upload_id']:
-                assert key in results[0]
+            results = data.get('results', None)
+            result = search.flat(results[0])
+            for key in ['uploader.name', 'calc_id', 'formula', 'upload_id']:
+                assert key in result
 
     @pytest.mark.parametrize('calcs, start, end', [
         (2, today - datetime.timedelta(days=6), today),
@@ -840,8 +872,8 @@ class TestRepo():
         self.assert_search(rv, calcs)
 
     @pytest.mark.parametrize('calcs, quantity, value, user', [
-        (2, 'system', 'bulk', 'test_user'),
-        (0, 'system', 'atom', 'test_user'),
+        (2, 'dft.system', 'bulk', 'test_user'),
+        (0, 'dft.system', 'atom', 'test_user'),
         (1, 'atoms', 'Br', 'test_user'),
         (1, 'atoms', 'Fe', 'test_user'),
         (0, 'atoms', ['Fe', 'Br', 'A', 'B'], 'test_user'),
@@ -854,8 +886,8 @@ class TestRepo():
         (2, 'files', 'test/mainfile.txt', 'test_user'),
         (2, 'paths', 'mainfile.txt', 'test_user'),
         (2, 'paths', 'test', 'test_user'),
-        (2, 'quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
-        (0, 'quantities', 'dos', 'test_user'),
+        (2, 'dft.quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
+        (0, 'dft.quantities', 'dos', 'test_user'),
         (2, 'external_id', 'external_2,external_3', 'other_test_user'),
         (1, 'external_id', 'external_2', 'test_user'),
         (1, 'external_id', 'external_2,external_3', 'test_user'),
@@ -878,19 +910,19 @@ class TestRepo():
         assert statistics is not None
         if quantity == 'system' and calcs != 0:
             # for simplicity we only assert on quantities for this case
-            assert 'system' in statistics
-            assert len(statistics['system']) == 1
-            assert value in statistics['system']
+            assert 'dft.system' in statistics
+            assert len(statistics['dft.system']) == 1
+            assert value in statistics['dft.system']
 
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
         rv = api.get('/repo/?exclude=atoms,only_atoms')
         assert rv.status_code == 200
-        result = json.loads(rv.data)['results'][0]
+        result = search.flat(json.loads(rv.data)['results'][0])
         assert 'atoms' not in result
         assert 'only_atoms' not in result
-        assert 'basis_set' in result
+        assert 'dft.basis_set' in result
 
-    metrics_permutations = [[], search.metrics_names] + [[metric] for metric in search.metrics_names]
+    metrics_permutations = [[], search_extension.metrics] + [[metric] for metric in search_extension.metrics]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
         rv = api.get('/repo/?owner=admin', headers=admin_user_auth)
@@ -919,9 +951,16 @@ class TestRepo():
 
     @pytest.mark.parametrize('metrics', metrics_permutations)
     def test_search_aggregation_metrics(self, api, example_elastic_calcs, no_warn, metrics):
-        rv = api.get('/repo/?%s' % urlencode(dict(metrics=metrics, statistics=True, datasets=True, uploads=True), doseq=True))
+        rv = api.get('/repo/?%s' % urlencode({
+            'metrics': metrics,
+            'group_statistics': True,
+            'dft.groups_grouped': True,
+            'datasets_grouped': True,
+            'uploads_grouped': True}, doseq=True))
+
         assert rv.status_code == 200
         data = json.loads(rv.data)
+
         for name, quantity in data.get('statistics').items():
             for metrics_result in quantity.values():
                 assert 'code_runs' in metrics_result
@@ -931,12 +970,25 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
-    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?date_histogram=true&metrics=total_energies')
+        for group in ['dft.groups_grouped', 'uploads_grouped', 'datasets_grouped']:
+            assert group in data
+            assert 'after' in data[group]
+            assert 'values' in data[group]
+            # assert len(data[group]['values']) == data['statistics']['total']['all'][group]
+
+    @pytest.mark.parametrize('query, nbuckets', [
+        # (dict(interval='1M', metrics='dft.total_energies'), 1), TODO this fails all first 5 day in the month, because one of the example data is set 5 day before now
+        (dict(interval='1d', metrics='dft.quantities'), 6),
+        (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 1),
+        (dict(until_time='2010-03-20T12:43:54.566414'), 0),
+        (dict(interval='1m', from_time='2020-02-20T12:43:54.566414', metrics='dft.calculations'), 7201)
+    ])
+    def test_search_date_histogram(self, api, example_elastic_calcs, no_warn, query, nbuckets):
+        rv = api.get('/repo/?date_histogram=true&%s' % urlencode(query))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
-        assert len(histogram) > 0
+        assert len(histogram) == nbuckets
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
@@ -950,7 +1002,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('first, order_by, order', [
         ('1', 'formula', -1), ('2', 'formula', 1),
-        ('2', 'basis_set', -1), ('1', 'basis_set', 1),
+        ('2', 'dft.basis_set', -1), ('1', 'dft.basis_set', 1),
         (None, 'authors', -1)])
     def test_search_order(self, api, example_elastic_calcs, no_warn, first, order_by, order):
         rv = api.get('/repo/?&order_by=%s&order=%d' % (order_by, order))
@@ -993,13 +1045,16 @@ class TestRepo():
         assert rv.status_code == 401
 
     @pytest.mark.parametrize('calcs, quantity, value', [
-        (2, 'system', 'bulk'),
-        (0, 'system', 'atom'),
+        (2, 'dft.system', 'bulk'),
+        (0, 'dft.system', 'atom'),
         (1, 'atoms', 'Br'),
         (1, 'atoms', 'Fe'),
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
-        (0, 'quantities', 'dos')
+        (0, 'dft.quantities', 'dos'),
+        (2, 'dft.quantities_energy', 'energy_total'),
+        (2, 'dft.compound_type', 'ternary'),
+        (0, 'dft.labels_springer_compound_class', 'intermetallic')
     ])
     def test_quantity_search(self, api, example_elastic_calcs, no_warn, test_user_auth, calcs, quantity, value):
         rv = api.get('/repo/quantity/%s' % quantity, headers=test_user_auth)
@@ -1039,9 +1094,14 @@ class TestRepo():
             after = quantity['after']
 
     def test_quantities_search(self, api, example_elastic_calcs, no_warn, test_user_auth):
-        rv = api.get('/repo/quantities?%s' % urlencode(dict(quantities=['system', 'atoms'], size=1), doseq=True), headers=test_user_auth)
+        rv = api.get(
+            '/repo/quantities?%s' % urlencode(
+                dict(quantities=['dft.system', 'atoms'], size=1), doseq=True),
+            headers=test_user_auth)
         assert rv.status_code == 200
-        # TODO actual assertions
+        data = json.loads(rv.data)
+        assert 'dft.system' in data['quantities']
+        assert 'atoms' in data['quantities']
 
     @pytest.mark.parametrize('pid_or_handle, with_login, success', [
         ('2', True, True), ('2', False, True),
@@ -1120,39 +1180,48 @@ class TestEditRepo():
     def example_datasets(self, test_user, other_test_user):
         self.example_dataset = Dataset(
             dataset_id='example_ds', name='example_ds', user_id=test_user.user_id)
-        self.example_dataset.m_x('me').create()
+        self.example_dataset.a_mongo.create()
 
         self.other_example_dataset = Dataset(
             dataset_id='other_example_ds', name='other_example_ds',
             user_id=other_test_user.user_id)
-        self.other_example_dataset.m_x('me').create()
+        self.other_example_dataset.a_mongo.create()
 
         yield
 
-        self.example_dataset.m_x('me').me_obj.delete()
-        self.other_example_dataset.m_x('me').me_obj.delete()
+        self.example_dataset.a_mongo.delete()
+        self.other_example_dataset.a_mongo.delete()
 
     @pytest.fixture(autouse=True)
     def remove_new_dataset(self):
         yield 'new_ds'
-        Dataset.m_def.m_x('me').objects(name='new_ds').delete()
+        Dataset.m_def.a_mongo.objects(name='new_ds').delete()
 
     @pytest.fixture(autouse=True)
-    def example_data(self, meta_info, class_api, test_user, other_test_user):
-        def create_entry(id, user, **kwargs):
-            metadata = dict(uploader=user.user_id, **kwargs)
-            create_test_structure(meta_info, id, 2, 1, [], 0, metadata=metadata)
+    def example_data(self, class_api, test_user, other_test_user, raw_files):
+        from tests.app.utils import Upload
+
+        uploads = {}
+        for i in range(1, 4):
+            upload_id = 'upload_%d' % i
+            upload = Upload()
+            upload.upload_id = upload_id
+            uploads[upload_id] = upload
 
         entries = [
-            dict(calc_id='1', upload_id='upload_1', user=test_user, published=True, embargo=False),
-            dict(calc_id='2', upload_id='upload_2', user=test_user, published=True, embargo=True),
-            dict(calc_id='3', upload_id='upload_2', user=test_user, published=False, embargo=False),
-            dict(calc_id='4', upload_id='upload_3', user=other_test_user, published=True, embargo=False)]
+            dict(upload_id='upload_1', user=test_user, published=True, with_embargo=False),
+            dict(upload_id='upload_2', user=test_user, published=True, with_embargo=True),
+            dict(upload_id='upload_2', user=test_user, published=False, with_embargo=False),
+            dict(upload_id='upload_3', user=other_test_user, published=True, with_embargo=False)]
 
-        i = 0
-        for entry in entries:
-            create_entry(i, **entry)
-            i += 1
+        for i, entry in enumerate(entries):
+            upload = uploads[entry.pop('upload_id')]
+            user = entry.pop('user')
+            metadata = dict(uploader=user.user_id, **entry)
+            upload.create_test_structure(i + 1, 2, 1, [], 0, metadata=metadata)
+
+        for upload in uploads.values():
+            upload.create_upload_files()
 
         search.refresh()
 
@@ -1197,7 +1266,7 @@ class TestEditRepo():
 
     def mongo(self, *args, edited: bool = True, **kwargs):
         for calc_id in args:
-            calc = Calc.objects(calc_id=str(calc_id)).first()
+            calc = Calc.objects(calc_id='test_calc_id_%d' % calc_id).first()
             assert calc is not None
             metadata = calc.metadata
             if edited:
@@ -1209,7 +1278,7 @@ class TestEditRepo():
 
     def elastic(self, *args, **kwargs):
         for calc_id in args:
-            for calc in search.SearchRequest().search_parameters(calc_id=str(calc_id)).execute_scan():
+            for calc in search.SearchRequest().search_parameters(calc_id='test_calc_id_%d' % calc_id).execute_scan():
                 for key, value in kwargs.items():
                     if key in ['authors', 'owners']:
                         ids = [user['user_id'] for user in calc.get(key)]
@@ -1228,6 +1297,7 @@ class TestEditRepo():
             shared_with=[other_test_user.user_id])
         rv = self.perform_edit(**edit_data, query=dict(upload_id='upload_1'))
         result = json.loads(rv.data)
+        assert rv.status_code == 200
         actions = result.get('actions')
         for key in edit_data:
             assert key in actions
@@ -1309,7 +1379,7 @@ class TestEditRepo():
         data = json.loads(rv.data)
         assert not data['success']
         assert self.example_dataset.name in data['message']
-        assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is not None
+        assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is not None
 
     def test_edit_ds_remove(self):
         rv = self.perform_edit(
@@ -1317,18 +1387,18 @@ class TestEditRepo():
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
         assert rv.status_code == 200
-        with assert_exception(KeyError):
-            assert Dataset.m_def.m_x('me').get(dataset_id=self.example_dataset.dataset_id) is None
+        with pytest.raises(KeyError):
+            assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is None
 
     def test_edit_ds_user_namespace(self, test_user):
-        assert Dataset.m_def.m_x('me').objects(
+        assert Dataset.m_def.a_mongo.objects(
             name=self.other_example_dataset.name).first() is not None
 
         rv = self.perform_edit(
             datasets=[self.other_example_dataset.name], query=dict(upload_id='upload_1'))
 
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
-        new_dataset = Dataset.m_def.m_x('me').objects(
+        new_dataset = Dataset.m_def.a_mongo.objects(
             name=self.other_example_dataset.name,
             user_id=test_user.user_id).first()
         assert new_dataset is not None
@@ -1337,7 +1407,7 @@ class TestEditRepo():
     def test_edit_new_ds(self, test_user):
         rv = self.perform_edit(datasets=['new_dataset'], query=dict(upload_id='upload_1'))
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
-        new_dataset = Dataset.m_def.m_x('me').objects(name='new_dataset').first()
+        new_dataset = Dataset.m_def.a_mongo.objects(name='new_dataset').first()
         assert new_dataset is not None
         assert new_dataset.user_id == test_user.user_id
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
@@ -1368,13 +1438,13 @@ def test_edit_lift_embargo(api, published, other_test_user_auth):
                 }
             }
         }))
-    assert rv.status_code == 200
+    assert rv.status_code == 200, rv.data
     assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
 
     Upload.get(published.upload_id).block_until_complete()
     # should not raise Restricted anymore
-    with files.UploadFiles.get(published.upload_id).archive_file(example_calc.calc_id) as f:
-        f.read()
+    with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
+        archive[example_calc.calc_id].to_dict()
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -1665,14 +1735,34 @@ class TestMirror:
         else:
             assert 'dois' not in data
 
+    # TODO
+    # - parametrize to also check raw
+    # - compute the hex digest reference
+    def test_files(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/files/%s?prefix=archive' % published.upload_id
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        assert rv.data is not None
+        assert md5(rv.data).hexdigest() == 'a50a980a4f1bd9892e95410936a36cdf'
+
+    def test_users(self, api, published, admin_user_auth, no_warn):
+        url = '/mirror/users'
+        rv = api.get(url, headers=admin_user_auth)
+        assert rv.status_code == 200
+        users = json.loads(rv.data)
+        assert users is not None
+        assert len(users) == 3
+        for user in users:
+            assert 'email' not in user
+
 
 class TestDataset:
 
     @pytest.fixture()
     def example_datasets(self, mongo, test_user):
-        Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').m_x('me').create()
-        Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').m_x('me').create()
-        Dataset(dataset_id='3', user_id=test_user.user_id, name='weird+/*?& name').m_x('me').create()
+        Dataset(dataset_id='1', user_id=test_user.user_id, name='ds1').a_mongo.create()
+        Dataset(dataset_id='2', user_id=test_user.user_id, name='ds2', doi='test_doi').a_mongo.create()
+        Dataset(dataset_id='3', user_id=test_user.user_id, name='weird+/*?& name').a_mongo.create()
 
     def assert_dataset(self, dataset, name: str = None, doi: bool = False):
         assert 'dataset_id' in dataset
@@ -1754,14 +1844,17 @@ class TestDataset:
         assert rv.status_code == 404
 
     @pytest.fixture()
-    def example_dataset_with_entry(self, mongo, elastic, example_datasets):
-        calc = CalcWithMetadata(
-            calc_id='1', upload_id='1', published=True, with_embargo=False, datasets=['1'])
+    def example_dataset_with_entry(self, mongo, elastic, raw_files, example_datasets):
+        entry_metadata = EntryMetadata(
+            domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
+            datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=calc.to_dict()).save()
-        search.Entry.from_calc_with_metadata(calc).save()
-        search.refresh()
+            metadata=entry_metadata.m_to_dict()).save()
+        upload_files = files.StagingUploadFiles(upload_id='1', create=True)
+        upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
+        upload_files.close()
+        entry_metadata.a_elastic.index(refresh=True)
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)
@@ -1792,11 +1885,12 @@ class TestDataset:
         assert rv.status_code == 400
 
     def test_assign_doi_unpublished(self, api, test_user_auth, example_datasets):
-        calc = CalcWithMetadata(
-            calc_id='1', upload_id='1', published=False, with_embargo=False, datasets=['1'])
+        entry_metadata = EntryMetadata(
+            domain='dft', calc_id='1', upload_id='1', published=False, with_embargo=False,
+            datasets=['1'])
         Calc(
             calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=calc.to_dict()).save()
+            metadata=entry_metadata.m_to_dict()).save()
         rv = api.post('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 400
 

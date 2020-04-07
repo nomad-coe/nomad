@@ -1,6 +1,6 @@
 
 import React, { Component } from 'react'
-import { withRouter } from 'react-router-dom'
+import { matchPath } from 'react-router-dom'
 import Viewer from './Viewer'
 import PropTypes from 'prop-types'
 import { withApi } from '../api'
@@ -9,7 +9,7 @@ import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLa
 import { compose } from 'recompose'
 import { schema } from '../MetaInfoRepository'
 
-export const help = domain => `
+export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
 NOMAD. You could say it is the archive *schema*. You can browse this schema and
 all its definitions here.
@@ -50,10 +50,11 @@ const MenuProps = {
 class MetaInfoBrowser extends Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    metainfo: PropTypes.string,
     api: PropTypes.object.isRequired,
     loading: PropTypes.number,
     raiseError: PropTypes.func.isRequired,
+    location: PropTypes.object.isRequired,
+    match: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired
   }
 
@@ -87,13 +88,23 @@ class MetaInfoBrowser extends Component {
     this.handleSearch = this.handleSearch.bind(this)
   }
 
+  metainfo() {
+    const { location } = this.props
+    const match = matchPath(location.pathname, {
+      path: `${this.props.match.path}/:metainfo?`
+    })
+    console.log('#####', match.params)
+    return match.params.metainfo
+  }
+
   update(pkg) {
     this.props.api.getInfo().then(info => {
-      this.props.api.getMetaInfo(pkg || info.domain.metainfo.all_package).then(metainfos => {
-        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+      const domain = info.domains.find(domain => domain.name === 'dft') // TODO deal with domains
+      this.props.api.getMetaInfo(pkg || domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.metainfo() || domain.metainfo.root_section
         const definition = metainfos.get(metainfoName)
         if (!definition) {
-          this.props.history.push(`/metainfo/${info.domain.metainfo.root_sections[0]}`)
+          this.props.history.push(`/metainfo/${domain.metainfo.root_section}`)
         } else {
           this.setState({loadedPackage: pkg, metainfos: metainfos})
         }
@@ -107,11 +118,12 @@ class MetaInfoBrowser extends Component {
 
   init() {
     this.props.api.getInfo().then(info => {
-      this.props.api.getMetaInfo(info.domain.metainfo.all_package).then(metainfos => {
-        const metainfoName = this.props.metainfo || info.domain.metainfo.root_sections[0]
+      const domain = info.domains.find(domain => domain.name === 'dft') // TODO deal with domains
+      this.props.api.getMetaInfo(domain.metainfo.all_package).then(metainfos => {
+        const metainfoName = this.metainfo() || domain.metainfo.root_section
         const definition = metainfos.get(metainfoName)
         this.setState({
-          domainRootSection: info.domain.metainfo.root_sections[0],
+          domainRootSection: domain.metainfo.root_section,
           allMetainfos: metainfos,
           selectedPackage: definition.package.name})
         this.update(definition.package.name)
@@ -124,7 +136,7 @@ class MetaInfoBrowser extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.metainfo !== prevProps.metainfo) {
+    if (prevProps.location.pathname !== this.props.location.pathname) {
       this.setState(this.initialState)
       this.init()
     }
@@ -153,7 +165,7 @@ class MetaInfoBrowser extends Component {
       return <div />
     }
 
-    const metainfoName = this.props.metainfo || domainRootSection || 'section_run'
+    const metainfoName = this.metainfo() || domainRootSection || 'section_run'
     const metainfo = metainfos.resolve(metainfos.createProxy(metainfoName))
 
     return <div>
@@ -190,4 +202,4 @@ class MetaInfoBrowser extends Component {
   }
 }
 
-export default compose(withRouter, withApi(false), withStyles(MetaInfoBrowser.styles))(MetaInfoBrowser)
+export default compose(withApi(false), withStyles(MetaInfoBrowser.styles))(MetaInfoBrowser)

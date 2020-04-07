@@ -1,0 +1,14 @@
+import sys
+from nomad.metainfo import Environment
+from nomad.metainfo.legacy import LegacyMetainfoEnvironment
+
+{%- for package in env.packages %}
+import {{ package.a_legacy.python_module }}
+{%- endfor %}
+
+m_env = LegacyMetainfoEnvironment()
+
+{%- for package in env.packages %}
+m_env.m_add_sub_section(Environment.packages, sys.modules['{{ package.a_legacy.python_module }}'].m_package)  # type: ignore
+{%- endfor %}
+

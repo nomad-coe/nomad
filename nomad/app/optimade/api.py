@@ -26,7 +26,7 @@ base_url = 'http://%s/%s/optimade' % (
 
 
 def url(endpoint: str = None, **kwargs):
-    """ Returns the full optimade api url (for a given endpoint) including query parameters. """
+    ''' Returns the full optimade api url (for a given endpoint) including query parameters. '''
     if endpoint is None:
         url = base_url
     else:
@@ -43,7 +43,7 @@ api = Api(
     version='1.0', title='NOMAD\'s OPTiMaDe API implementation',
     description='NOMAD\'s OPTiMaDe API implementation, version 0.10.0.',
     validate=True)
-""" Provides the flask restplust api instance for the optimade api"""
+''' Provides the flask restplust api instance for the optimade api'''
 
 
 # For some unknown reason it is necessary for each fr api to have a handler.

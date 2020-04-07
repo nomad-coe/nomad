@@ -291,7 +291,7 @@ class Api {
         calc_id: calcId
       }))
       .catch(handleApiError)
-      .then(response => response.text)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 
@@ -322,6 +322,8 @@ class Api {
       }))
       .catch(handleApiError)
       .then(response => {
+        /* global Blob */
+        /* eslint no-undef: "error" */
         if (response.data instanceof Blob) {
           if (response.data.type.endsWith('empty')) {
             return {
@@ -388,7 +390,7 @@ class Api {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
-        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        exclude: ['atoms', 'only_atoms', 'dft.files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
         ...search}))
       .catch(handleApiError)
       .then(response => response.body)
@@ -397,7 +399,9 @@ class Api {
         // this helps to keep consistent values, e.g. in the metadata search view
         if (response.statistics) {
           const empty = {}
-          Object.keys(response.statistics.total.all).forEach(metric => empty[metric] = 0)
+          Object.keys(response.statistics.total.all).forEach(metric => {
+            empty[metric] = 0
+          })
           Object.keys(response.statistics)
             .filter(key => !['total', 'authors', 'atoms'].includes(key))
             .forEach(key => {

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The *parsing* module is an interface for the existing NOMAD-coe parsers.
 This module redefines some of the old NOMAD-coe python-common functionality to create a
 more coherent interface to the parsers.
@@ -60,16 +60,15 @@ Parsers and calculation files are matched via regular expressions.
 .. autofunction:: nomad.parsing.match_parser
 
 Parsers in NOMAD-coe use a *backend* to create output. There are different NOMAD-coe
-basends. In nomad@FAIRDI, we only currently only use a single backed. A version of
-NOMAD-coe's *LocalBackend*. It stores all parser results in memory. The following
+basends. In nomad@FAIRDI, we only currently only use a single backed. The following
 classes provide a interface definition for *backends* as an ABC and a concrete implementation
-based on NOMAD-coe's *python-common* module.
+based on nomad@fairdi's metainfo:
 
 .. autoclass:: nomad.parsing.AbstractParserBackend
     :members:
-.. autoclass:: nomad.parsing.LocalBackend
+.. autoclass:: nomad.parsing.Backend
     :members:
-"""
+'''
 
 from typing import Callable, IO, Union, Dict
 import magic
@@ -78,12 +77,13 @@ import bz2
 import lzma
 import os.path
 
-from nomad import files, config
+from nomad import config
 
-from nomad.parsing.backend import AbstractParserBackend, LocalBackend, LegacyLocalBackend, JSONStreamWriter, BadContextURI, WrongContextState
-from nomad.parsing.metainfo import MetainfoBackend
-from nomad.parsing.parser import Parser, LegacyParser, VaspOutcarParser, BrokenParser, MissingParser, MatchingParser
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
+from nomad.parsing.legacy import (
+    AbstractParserBackend, Backend, BackendError, BadContextUri, LegacyParser, VaspOutcarParser)
+from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser
+from nomad.parsing.artificial import (
+    TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser)
 
 
 _compressions = {
@@ -95,8 +95,8 @@ _compressions = {
 encoding_magic = magic.Magic(mime_encoding=True)
 
 
-def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFiles], strict=True) -> 'Parser':
-    """
+def match_parser(mainfile_path: str, strict=True) -> 'Parser':
+    '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
     the file.
@@ -105,20 +105,14 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
     and beginning file contents.
 
     Arguments:
-        mainfile: The upload relative path to the mainfile
-        upload_files: Either a :class:`files.StagingUploadFiles` object or a directory name.
-            Directory name + mainfile needs to point to the file.
+        mainfile_path: Path to the mainfile
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
 
     Returns: The parser, or None if no parser could be matched.
-    """
+    '''
+    mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
         return None
-
-    if isinstance(upload_files, str):
-        mainfile_path = os.path.join(upload_files, mainfile)
-    else:
-        mainfile_path = upload_files.raw_file_object(mainfile).os_path
 
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
@@ -147,9 +141,6 @@ def match_parser(mainfile: str, upload_files: Union[str, files.StagingUploadFile
 
     for parser in parsers:
         if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
-            continue
-
-        if parser.domain != config.domain:
             continue
 
         if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
@@ -182,7 +173,7 @@ parsers = [
     ),
     LegacyParser(
         name='parsers/vasp', code_name='VASP',
-        parser_class_name='vaspparser.VASPRunParserInterface',
+        parser_class_name='vaspparser.VASPRunParser',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_re=(
             r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
@@ -415,50 +406,76 @@ parsers = [
             r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
     LegacyParser(
-        name='parsers/skeleton', code_name='skeleton', domain='EMS',
+        name='parsers/skeleton', code_name='skeleton', domain='ems',
         parser_class_name='skeletonparser.SkeletonParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=(r'skeleton experimental metadata format')
     ),
     LegacyParser(
-        name='parsers/mpes', code_name='mpes', domain='EMS',
+        name='parsers/mpes', code_name='mpes', domain='ems',
         parser_class_name='mpesparser.MPESParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=(r'.*.meta'),
         mainfile_contents_re=(r'"data_repository_name": "zenodo.org"')
     ),
     LegacyParser(
-        name='parsers/aptfim', code_name='mpes', domain='EMS',
+        name='parsers/aptfim', code_name='mpes', domain='ems',
         parser_class_name='aptfimparser.APTFIMParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=(r'.*.aptfim')
     ),
     LegacyParser(
-        name='parsers/qbox', code_name='qbox', domain='DFT',
+        name='parsers/eels', code_name='eels', domain='ems',
+        parser_class_name='eelsparser.EelsParserInterface',
+        mainfile_mime_re=r'text/.*',
+        mainfile_name_re=(r'.*.txt'),
+        mainfile_contents_re=(r'api_permalink = https://api\.eelsdb\.eu')
+    ),
+    LegacyParser(
+        name='parsers/qbox', code_name='qbox', domain='dft',
         parser_class_name='qboxparser.QboxParser',
         mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(r'http://qboxcode.org')
     ),
     LegacyParser(
-        name='parsers/dmol', code_name='DMol3', domain='DFT',
+        name='parsers/dmol', code_name='DMol3', domain='dft',
         parser_class_name='dmol3parser.Dmol3Parser',
         mainfile_name_re=r'.*\.outmol',
         mainfile_contents_re=r'Materials Studio DMol\^3'
     ),
     LegacyParser(
-        name='parser/fleur', code_name='fleur', domain='DFT',
+        name='parsers/fleur', code_name='fleur', domain='dft',
         parser_class_name='fleurparser.FleurParser',
         mainfile_contents_re=r'This output is generated by fleur.'
     ),
     LegacyParser(
-        name='parser/molcas', code_name='MOLCAS', domain='DFT',
+        name='parsers/molcas', code_name='MOLCAS', domain='dft',
         parser_class_name='molcasparser.MolcasParser',
         mainfile_contents_re=r'M O L C A S'
     ),
     LegacyParser(
-        name='parser/onetep', code_name='ONETEP', domain='DFT',
+        name='parsers/onetep', code_name='ONETEP', domain='dft',
         parser_class_name='onetepparser.OnetepParser',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+    )
+]
+
+empty_parsers = [
+    EmptyParser(
+        name='missing/octopus', code_name='Octopus', domain='dft',
+        mainfile_name_re=r'(inp)|(.*/inp)'
+    ),
+    EmptyParser(
+        name='missing/crystal', code_name='Crystal', domain='dft',
+        mainfile_name_re=r'.*\.cryst\.out'
+    ),
+    EmptyParser(
+        name='missing/wien2k', code_name='WIEN2k', domain='dft',
+        mainfile_name_re=r'.*\.scf'
+    ),
+    EmptyParser(
+        name='missing/fhi-aims', code_name='FHI-aims', domain='dft',
+        mainfile_name_re=r'.*\.fhiaims'
     )
 ]
 
@@ -466,28 +483,18 @@ if config.use_empty_parsers:
     # There are some entries with PIDs that have mainfiles which do not match what
     # the actual parsers expect. We use the EmptyParser to produce placeholder entries
     # to keep the PIDs. These parsers will not match for new, non migrated data.
-    parsers.extend([
-        EmptyParser(
-            name='missing/octopus', code_name='Octopus', domain='DFT',
-            mainfile_name_re=r'(inp)|(.*/inp)'
-        ),
-        EmptyParser(
-            name='missing/crystal', code_name='Crystal',
-            mainfile_name_re=r'.*\.cryst\.out'
-        ),
-        EmptyParser(
-            name='missing/wien2k', code_name='WIEN2k',
-            mainfile_name_re=r'.*\.scf'
-        ),
-        EmptyParser(
-            name='missing/fhi-aims', code_name='FHI-aims', domain='DFT',
-            mainfile_name_re=r'.*\.fhiaims'
-        )
-    ])
+    parsers.extend(empty_parsers)
 
 parsers.append(BrokenParser())
 
-""" Instantiation and constructor based config of all parsers. """
+''' Instantiation and constructor based config of all parsers. '''
 
-parser_dict = {parser.name: parser for parser in parsers}  # type: ignore
-""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
+parser_dict = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
+''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
+
+# renamed parsers
+parser_dict['parser/broken'] = parser_dict['parsers/broken']
+parser_dict['parser/fleur'] = parser_dict['parsers/fleur']
+parser_dict['parser/molcas'] = parser_dict['parsers/molcas']
+parser_dict['parser/octopus'] = parser_dict['parsers/octopus']
+parser_dict['parser/onetep'] = parser_dict['parsers/onetep']

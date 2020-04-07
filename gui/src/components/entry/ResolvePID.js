@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi } from '../api'
-import { withRouter } from 'react-router'
+import { withRouter, matchPath } from 'react-router'
 
 class ResolvePID extends React.Component {
   static styles = theme => ({
@@ -14,9 +14,10 @@ class ResolvePID extends React.Component {
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    pid: PropTypes.string.isRequired,
-    api: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
+    match: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
+    api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -27,11 +28,16 @@ class ResolvePID extends React.Component {
   state = {...ResolvePID.defaultState}
 
   update() {
-    const { pid, api, history } = this.props
+    const { location, match, api, history } = this.props
+    const pidMatch = matchPath(location.pathname, {
+      path: `${match.path}/:pid/:handle?`
+    })
+    let { pid, handle } = pidMatch.params
+    pid = handle ? pid + '/' + handle : pid
+
     api.resolvePid(pid).then(entry => {
       history.push(`/entry/id/${entry.upload_id}/${entry.calc_id}`)
     }).catch(error => {
-      this.setState({calcData: null})
       if (error.name === 'DoesNotExist') {
         this.setState({doesNotExist: true})
       } else {
@@ -45,7 +51,7 @@ class ResolvePID extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.pid !== this.props.pid || prevProps.api !== this.props.api) {
+    if (prevProps.location.pathname !== this.props.location.pathname || prevProps.api !== this.props.api) {
       this.setState({...ResolvePID.defaultState})
       this.update()
     }

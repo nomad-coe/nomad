@@ -13,7 +13,7 @@ import { maxLogsToShow } from '../../config'
 class LogEntryUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    entry: PropTypes.string.isRequired
+    entry: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -28,14 +28,8 @@ class LogEntryUnstyled extends React.Component {
 
   render() {
     const { classes, entry } = this.props
-    let data
-    try {
-      data = JSON.parse(entry)
-    } catch (e) {
-      return <ExpansionPanelSummary>
-        <Typography>{entry}</Typography>
-      </ExpansionPanelSummary>
-    }
+    const data = entry
+
     const summaryProps = {}
     if (data.level === 'ERROR' || data.level === 'CRITICAL') {
       summaryProps.color = 'error'
@@ -135,11 +129,10 @@ class ArchiveLogView extends React.Component {
 
     let content = 'loading ...'
     if (data) {
-      const lines = data.split('\n')
       content = <div>
-        {lines.slice(0, maxLogsToShow).map((entry, i) => <LogEntry key={i} entry={entry}/>)}
-        {lines.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
-          There are {lines.length - maxLogsToShow} more log entries. Download the log to see all of them.
+        {data.slice(0, maxLogsToShow).map((entry, i) => <LogEntry key={i} entry={entry}/>)}
+        {data.length > maxLogsToShow && <Typography classes={{root: classes.moreLogs}}>
+          There are {data.length - maxLogsToShow} more log entries. Download the log to see all of them.
         </Typography>}
       </div>
     }

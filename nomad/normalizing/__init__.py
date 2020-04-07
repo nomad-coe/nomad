@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 After parsing calculations have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
@@ -31,7 +31,7 @@ There is one ABC for all normalizer:
 
 .. autoclass::nomad.normalizing.normalizer.Normalizer
     :members:
-"""
+'''
 
 from typing import List, Any, Iterable, Type
 

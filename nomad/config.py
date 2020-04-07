@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 This module describes all configurable parameters for the nomad python code. The
 configuration is used for all executed python code including API, worker, CLI, and other
 scripts. To use the configuration in your own scripts or new modules, simply import
@@ -30,7 +30,7 @@ over defaults.
 .. autoclass:: nomad.config.NomadConfig
 .. autofunction:: nomad.config.apply
 .. autofunction:: nomad.config.load_config
-"""
+'''
 
 import logging
 import os
@@ -46,10 +46,10 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
 class NomadConfig(dict):
-    """
+    '''
     A class for configuration categories. It is a dict subclass that uses attributes as
     key/value pairs.
-    """
+    '''
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -145,12 +145,46 @@ services = NomadConfig(
     upload_limit=10,
     force_raw_file_decoding=False,
     download_scan_size=500,
-    download_scan_timeout=u'30m'
+    download_scan_timeout=u'30m',
 )
 
 tests = NomadConfig(
     default_timeout=30
 )
+
+
+def api_url(ssl: bool = True):
+    return '%s://%s/%s/api' % (
+        'https' if services.https and ssl else 'http',
+        services.api_host.strip('/'),
+        services.api_base_path.strip('/'))
+
+
+def gui_url():
+    base = api_url(True)[:-3]
+    if base.endswith('/'):
+        base = base[:-1]
+    return '%s/gui' % base
+
+
+def check_config():
+    """Used to check that the current configuration is valid. Should only be
+    called once after the final config is loaded.
+
+    Raises:
+        AssertionError: if there is a contradiction or invalid values in the
+            config file settings.
+    """
+    # The AFLOW symmetry information is checked once on import
+    proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
+    symmetry_tolerance = normalize.symmetry_tolerance
+    if proto_symmetry_tolerance != symmetry_tolerance:
+        raise AssertionError(
+            "The AFLOW prototype information is outdated due to changed tolerance "
+            "for symmetry detection. Please update the AFLOW prototype information "
+            "by running the CLI command 'nomad admin ops prototype-update "
+            "--matches-only'."
+        )
 
 
 mail = NomadConfig(
@@ -194,13 +228,17 @@ normalize = NomadConfig(
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
     # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
-    fermi_level_precision=300 * 1.38064852E-23
+    fermi_level_precision=300 * 1.38064852E-23,
+    springer_db_path=os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'normalizing/data/springer.msg'
+    )
 )
 
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://localhost:8000/fairdi/nomad/latest/api'
+    url='http://repository.nomad-coe.eu/app/api'
 )
 
 datacite = NomadConfig(
@@ -211,10 +249,10 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.7.10'
+version = '0.8.0'
 commit = gitinfo.commit
 release = 'devel'
-domain = 'DFT'
+default_domain = 'dft'
 service = 'unknown nomad service'
 auxfile_cutoff = 100
 parser_matching_size = 9128
@@ -223,43 +261,6 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
 reprocess_unmatched = True
-
-springer_db_relative_path = 'normalizing/data/SM_all08.db'
-springer_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), springer_db_relative_path)
-
-
-def api_url(ssl: bool = True):
-    return '%s://%s/%s/api' % (
-        'https' if services.https and ssl else 'http',
-        services.api_host.strip('/'),
-        services.api_base_path.strip('/'))
-
-
-def gui_url():
-    base = api_url(True)[:-3]
-    if base.endswith('/'):
-        base = base[:-1]
-    return '%s/gui' % base
-
-
-def check_config():
-    """Used to check that the current configuration is valid. Should only be
-    called once after the final config is loaded.
-
-    Raises:
-        AssertionError: if there is a contradiction or invalid values in the
-            config file settings.
-    """
-    # The AFLOW symmetry information is checked once on import
-    proto_symmetry_tolerance = normalize.prototype_symmetry_tolerance
-    symmetry_tolerance = normalize.symmetry_tolerance
-    if proto_symmetry_tolerance != symmetry_tolerance:
-        raise AssertionError(
-            "The AFLOW prototype information is outdated due to changed tolerance "
-            "for symmetry detection. Please update the AFLOW prototype information "
-            "by running the CLI command 'nomad admin ops prototype-update "
-            "--matches-only'."
-        )
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
@@ -284,11 +285,11 @@ logger = logging.getLogger(__name__)
 
 
 def apply(key, value) -> None:
-    """
+    '''
     Changes the config according to given key and value. The keys are interpreted as paths
     to config values with ``_`` as a separator. E.g. ``fs_staging`` leading to
     ``config.fs.staging``
-    """
+    '''
     path = list(reversed(key.split('_')))
     child_segment = None
     current_value = None
@@ -337,13 +338,13 @@ def apply(key, value) -> None:
 
 
 def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')) -> None:
-    """
+    '''
     Loads the configuration from the ``config_file`` and environment.
 
     Arguments:
         config_file: Override the configfile, default is file stored in env variable
             NOMAD_CONFIG or ``nomad.yaml``.
-    """
+    '''
     # load yaml and override defaults (only when not in test)
     if os.path.exists(config_file):
         with open(config_file, 'r') as stream:

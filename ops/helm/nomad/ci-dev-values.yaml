@@ -1,0 +1,41 @@
+image:
+  pullPolicy: "Always"
+
+proxy:
+  external:
+    host: "labdev-nomad.esc.rzg.mpg.de"
+
+ingress:
+  enabled: true
+
+gui:
+  debug: true
+
+worker:
+  replicas: 1
+  routing: "queue"
+
+elastic:
+  host: elastic
+
+mongo:
+  host: mongo
+
+logstash:
+  host: logstash
+
+dbname: nomad_dev_v0_8
+
+keycloak:
+  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
+  passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_public'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/dev/v0_8/fs/public
+  staging: /nomad/fairdi/dev/v0_8/fs/staging
+  tmp: /nomad/fairdi/dev/v0_8/fs/tmp
+  nomad: /nomad

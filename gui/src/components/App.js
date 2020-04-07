@@ -8,7 +8,7 @@ import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
 import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
   Snackbar, SnackbarContent } from '@material-ui/core'
-import { Switch, Route, Link, withRouter } from 'react-router-dom'
+import { Route, Link, withRouter } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
@@ -23,7 +23,6 @@ import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
 import { guiBase, consent, nomadTheme } from '../config'
-import { DomainProvider, withDomain } from './domains'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
@@ -31,12 +30,12 @@ import Markdown from './Markdown'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
-import { capitalize } from '../utils'
 import { amber } from '@material-ui/core/colors'
 import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
+import EntryQuery from './entry/EntryQuery'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -57,7 +56,7 @@ function ReloadSnack() {
   >
     <SnackbarContent
       style={{backgroundColor: amber[700]}}
-      message={<span>There is a new NOMAD version. Please press your browser's reload (or even shift+reload) button.</span>}
+      message={<span>There is a new NOMAD version. Please press your browser&apos;s reload (or even shift+reload) button.</span>}
     />
   </Snackbar>
 }
@@ -68,8 +67,7 @@ class NavigationUnstyled extends React.Component {
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
     loading: PropTypes.number.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    domain: PropTypes.object.isRequired
+    raiseError: PropTypes.func.isRequired
   }
 
   static styles = theme => ({
@@ -164,7 +162,7 @@ class NavigationUnstyled extends React.Component {
     '/uploads': 'Upload and Publish Data',
     '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
-    '/entry': capitalize(this.props.domain.entryLabel),
+    '/entry': 'Entry',
     '/dataset': 'Dataset'
   }
 
@@ -309,7 +307,7 @@ class NavigationUnstyled extends React.Component {
   }
 }
 
-const Navigation = compose(withRouter, withErrors, withApi(false), withDomain, withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
+const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
 class LicenseAgreementUnstyled extends React.Component {
   static propTypes = {
@@ -367,119 +365,58 @@ class LicenseAgreementUnstyled extends React.Component {
 
 const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props)
-    this.renderChildren.bind(this)
-  }
-
+class App extends React.PureComponent {
   routes = {
     'about': {
       exact: true,
-      singleton: true,
       path: '/',
-      render: props => <About {...props} />
+      component: About
     },
     'faq': {
       exact: true,
-      singleton: true,
       path: '/faq',
-      render: props => <FAQ {...props} />
+      component: FAQ
     },
     'search': {
       exact: true,
-      singleton: true,
       path: '/search',
-      render: props => <SearchPage {...props} />
+      component: SearchPage
     },
     'userdata': {
       exact: true,
-      singleton: true,
       path: '/userdata',
-      render: props => <UserdataPage {...props} />
+      component: UserdataPage
     },
     'entry': {
-      path: '/entry/id/:uploadId/:calcId',
-      key: (props) => `entry/id/${props.match.params.uploadId}/${props.match.params.uploadId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.uploadId && match.params.calcId) {
-          return (<EntryPage {...rest} uploadId={match.params.uploadId} calcId={match.params.calcId} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/entry/id',
+      component: EntryPage
     },
     'entry_query': {
       exact: true,
       path: '/entry/query',
-      render: props => <EntryPage {...props} query />
-    },
-    'dataset': {
-      path: '/dataset/id/:datasetId',
-      key: (props) => `dataset/id/${props.match.params.datasetId}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.datasetId) {
-          return (<DatasetPage {...rest} datasetId={match.params.datasetId} />)
-        } else {
-          return ''
-        }
-      }
+      component: EntryQuery
     },
     'entry_pid': {
-      path: '/entry/pid/:pid/:handle?',
-      key: (props) => `entry/pid/${props.match.params.pid}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.pid) {
-          const {pid, handle} = match.params
-          return (<ResolvePID {...rest} pid={handle ? pid + '/' + handle : pid} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/entry/pid',
+      component: ResolvePID
+    },
+    'dataset': {
+      path: '/dataset/id',
+      component: DatasetPage
     },
     'dataset_doi': {
-      path: '/dataset/doi/:doi*',
-      key: (props) => `dataset/doi/${props.match.params.doi}`,
-      render: props => {
-        const { match, ...rest } = props
-        if (match && match.params.doi) {
-          return (<ResolveDOI {...rest} doi={match.params.doi} />)
-        } else {
-          return ''
-        }
-      }
+      path: '/dataset/doi',
+      component: ResolveDOI
     },
     'uploads': {
       exact: true,
-      singleton: true,
       path: '/uploads',
-      render: props => <UploadPage {...props} />
+      component: UploadPage
     },
     'metainfo': {
-      exact: true,
       path: '/metainfo',
-      singleton: true,
-      render: props => <MetaInfoBrowser {...props} />
-    },
-    'metainfoEntry': {
-      path: '/metainfo/:metainfo',
-      key: props => `metainfo/${props.match.params.metainfo}`,
-      render: props => <MetaInfoBrowser metainfo={props.match.params.metainfo} {...props} />
+      component: MetaInfoBrowser
     }
-  }
-
-  renderChildren(routeKey, props) {
-    return (
-      <React.Fragment>
-        {Object.keys(this.routes).map(route => <KeepState key={route}
-          visible={routeKey === route}
-          render={(props) => this.routes[route].render(props)}
-          {...props} />)}
-      </React.Fragment>
-    )
   }
 
   render() {
@@ -487,20 +424,18 @@ export default class App extends React.Component {
       <MuiThemeProvider theme={nomadTheme}>
         <ErrorSnacks>
           <ApiProvider>
-            <DomainProvider>
-              <Navigation>
-                <Switch>
-                  {Object.keys(this.routes).map(route => (
-                    // eslint-disable-next-line react/jsx-key
-                    <Route key={'nop'}
-                      // eslint-disable-next-line react/no-children-prop
-                      children={props => this.renderChildren(route, props)}
-                      exact={this.routes[route].exact}
-                      path={this.routes[route].path} />
-                  ))}
-                </Switch>
-              </Navigation>
-            </DomainProvider>
+            <Navigation>
+              {Object.keys(this.routes).map(routeKey => {
+                const route = this.routes[routeKey]
+                const { path, exact } = route
+                return <Route key={routeKey} exact={exact} path={path}
+                  // eslint-disable-next-line react/no-children-prop
+                  children={props => {
+                    return <KeepState visible={props.match && true} render={route.component} {...props} />
+                  }}
+                />
+              })}
+            </Navigation>
           </ApiProvider>
         </ErrorSnacks>
         <LicenseAgreement />
@@ -508,3 +443,6 @@ export default class App extends React.Component {
     )
   }
 }
+
+const AppWithRouter = withRouter(App)
+export default AppWithRouter

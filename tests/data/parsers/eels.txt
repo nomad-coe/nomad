@@ -1,0 +1,37 @@
+├── acquisition_mode = STEM
+├── api_permalink = https://api.eelsdb.eu/spectra/alumina-alpha-4/
+├── author
+│   ├── name = PD Dr. Peter A. van Aken
+│   ├── profile_api_url = https://api.eelsdb.eu/author/vanaken/
+│   └── profile_url = https://eelsdb.eu/author/vanaken/
+├── beamenergy = 100 kV
+├── collection = 6.5 mrad
+├── comment_count = 0
+├── convergence = 6.5 mrad
+├── darkcurrent = Yes
+├── description = - Background subtracted. - Note the absence of the peak at 92 eV (non-dipole transitions due to channeling conditions observed only along <0001>, cf paper quoted).- Calibration could not be accurate. Analyst: Stefan Nufer. Temperature: Room. BEAM/Crystal: <1-100>. 
+├── detector = Parallel: 666 Gatan
+├── download_link = https://eelsdb.eu/wp-content/uploads/2015/09/Dspec.132290.1.msa
+├── edges = ['Al_L2,3']
+├── elements = ['Al', 'O']
+├── formula = Al2O3 (alpha)
+├── gainvariation = Yes
+├── guntype = Cold FEG
+├── id = 21575
+├── integratetime = 10 secs
+├── keywords = ['imported from old site']
+├── max_energy = 152.8 eV
+├── microscope = VG HB-501
+├── min_energy = 71.7 eV
+├── other_links = [{'url': 'http://pc-web.cemes.fr/eelsdb/index.php?page=displayspec.php&id=51', 'title': 'Old EELS DB'}]
+├── permalink = https://eelsdb.eu/spectra/alumina-alpha-4/
+├── probesize = 1 nm^2
+├── published = 2005-04-20 00:00:00
+├── readouts = 1
+├── reference
+│   └── freetext = Nufer, Gemming, Koestlmeier, Ruehle, Ultramicroscopy, 88, 253-263, 2001
+├── resolution = 0.7 eV
+├── stepSize = 0.1 eV/pixel
+├── thickness = 0.22 t/&lambda;
+├── title = Alumina alpha
+└── type = Core Loss

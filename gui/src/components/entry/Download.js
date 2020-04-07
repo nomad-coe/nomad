@@ -11,7 +11,7 @@ class Download extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     fileName: PropTypes.string,
-    url: PropTypes.string.isRequired,
+    url: PropTypes.string,
     component: PropTypes.any,
     children: PropTypes.oneOfType([
       PropTypes.arrayOf(PropTypes.node),

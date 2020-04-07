@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 A command that runs some example operations on a working nomad@FAIRDI installation
 as a final integration test.
-"""
+'''
 
 import time
 import os
@@ -123,11 +123,22 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
         assert len(search.results) <= search.pagination.total
 
         print('performing archive paginated search')
-        result = client.archive.archive_query(page=1, per_page=10, **query).response().result
+        result = client.archive.post_archive_query(payload={
+            'pagination': {
+                'page': 1,
+                'per_page': 10
+            },
+            'query': query
+        }).response().result
         assert len(result.results) > 0
 
         print('performing archive scrolled search')
-        result = client.archive.archive_query(scroll=True, **query).response().result
+        result = client.archive.post_archive_query(payload={
+            'scroll': {
+                'scroll': True
+            },
+            'query': query
+        }).response().result
         assert len(result.results) > 0
 
         print('performing download')
@@ -172,11 +183,11 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             assert doi
             has_doi = True
 
-        if not has_doi:
+        if not has_doi or ctx.obj.user == 'admin':
             print('deleting dataset')
             result = client.datasets.delete_dataset(name=dataset).response().result
 
-        if not skip_mirror:
+        if not skip_mirror and ctx.obj.user == 'admin':
             print('getting upload mirror')
             # get_upload_mirror gives 404
             payload = dict(query=dict(upload_id=upload.upload_id))
@@ -185,7 +196,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             assert len(client.mirror.get_upload_mirror(upload_id=upload.upload_id).response().result.calcs) > 0
 
     finally:
-        if not published:
+        if not published or ctx.obj.user == 'admin':
             print('delete the upload again')
             client.uploads.delete_upload(upload_id=upload.upload_id).response()
             while upload.process_running:

@@ -20,9 +20,8 @@ from matid.symmetry.wyckoffset import WyckoffSet
 from pint import UnitRegistry
 
 from nomad.utils import hash
-from nomad.parsing import LocalBackend
 from nomad import atomutils
-from nomad.metainfo.encyclopedia import Encyclopedia
+from nomad.datamodel import EntryArchive
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     run_normalize_for_structure,
     geometry_optimization,
@@ -43,24 +42,24 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 ureg = UnitRegistry()
 
 
-def test_geometry_optimization(geometry_optimization: LocalBackend):
+def test_geometry_optimization(geometry_optimization: EntryArchive):
     """Tests that geometry optimizations are correctly processed."
     """
-    enc = geometry_optimization.get_mi2_section(Encyclopedia.m_def)
+    enc = geometry_optimization.section_encyclopedia
     calc_type = enc.calculation.calculation_type
     assert calc_type == "geometry optimization"
 
 
-def test_molecular_dynamics(molecular_dynamics: LocalBackend):
+def test_molecular_dynamics(molecular_dynamics: EntryArchive):
     """Tests that geometry optimizations are correctly processed."
     """
-    enc = molecular_dynamics.get_mi2_section(Encyclopedia.m_def)
+    enc = molecular_dynamics.section_encyclopedia
     calc_type = enc.calculation.calculation_type
     assert calc_type == "molecular dynamics"
 
 
 # Disabled until the method information can be retrieved
-# def test_phonon(phonon: LocalBackend):
+# def test_phonon(phonon: EntryArchive):
     # """Tests that geometry optimizations are correctly processed."
     # """
     # enc = phonon.get_mi2_section(Encyclopedia.m_def)
@@ -68,10 +67,10 @@ def test_molecular_dynamics(molecular_dynamics: LocalBackend):
     # assert calc_type == "phonon calculation"
 
 
-def test_1d_metainfo(one_d: LocalBackend):
+def test_1d_metainfo(one_d: EntryArchive):
     """Tests that metainfo for 1D systems is correctly processed.
     """
-    enc = one_d.get_mi2_section(Encyclopedia.m_def)
+    enc = one_d.section_encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "1D"
@@ -88,10 +87,10 @@ def test_1d_metainfo(one_d: LocalBackend):
     assert np.allclose(ideal.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
 
 
-def test_2d_metainfo(two_d: LocalBackend):
+def test_2d_metainfo(two_d: EntryArchive):
     """Tests that metainfo for 2D systems is correctly processed.
     """
-    enc = two_d.get_mi2_section(Encyclopedia.m_def)
+    enc = two_d.section_encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "2D"
@@ -109,10 +108,10 @@ def test_2d_metainfo(two_d: LocalBackend):
     assert np.allclose(ideal.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
 
 
-def test_bulk_metainfo(bulk: LocalBackend):
+def test_bulk_metainfo(bulk: EntryArchive):
     """Tests that metainfo for bulk systems is correctly processed.
     """
-    enc = bulk.get_mi2_section(Encyclopedia.m_def)
+    enc = bulk.section_encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "bulk"
@@ -153,23 +152,20 @@ def test_bulk_metainfo(bulk: LocalBackend):
 def test_1d_material_identification():
     # Original nanotube
     nanotube1 = ase.build.nanotube(4, 4, vacuum=4)
-    backend = run_normalize_for_structure(nanotube1)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(nanotube1).section_encyclopedia
     hash1 = enc.material.material_hash
 
     # Rotated copy
     nanotube2 = nanotube1.copy()
     nanotube2.rotate(90, "z", rotate_cell=True)
-    backend = run_normalize_for_structure(nanotube2)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(nanotube2).section_encyclopedia
     hash2 = enc.material.material_hash
     assert hash2 == hash1
 
     # Longer copy
     nanotube3 = nanotube1.copy()
     nanotube3 *= [1, 1, 2]
-    backend = run_normalize_for_structure(nanotube3)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(nanotube3).section_encyclopedia
     hash3 = enc.material.material_hash
     assert hash3 == hash1
 
@@ -180,8 +176,7 @@ def test_1d_material_identification():
         pos = nanotube4.get_positions()
         pos += 0.2 * np.random.rand(pos.shape[0], pos.shape[1])
         nanotube4.set_positions(pos)
-        backend = run_normalize_for_structure(nanotube4)
-        enc = backend.get_mi2_section(Encyclopedia.m_def)
+        enc = run_normalize_for_structure(nanotube4).section_encyclopedia
         hash4 = enc.material.material_hash
         assert hash4 == hash1
 
@@ -191,8 +186,7 @@ def test_1d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     nanotube5.set_positions(pos)
-    backend = run_normalize_for_structure(nanotube5)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(nanotube5).section_encyclopedia
     hash5 = enc.material.material_hash
     assert hash5 != hash1
 
@@ -225,15 +219,13 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    backend = run_normalize_for_structure(graphene)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(graphene).section_encyclopedia
     assert enc.material.material_hash == graphene_material_hash
 
     # Graphene orthogonal supercell
     graphene2 = graphene.copy()
     graphene2 *= [2, 1, 2]
-    backend = run_normalize_for_structure(graphene2)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(graphene2).section_encyclopedia
     assert enc.material.material_hash == graphene_material_hash
 
     # Graphene primitive cell
@@ -250,8 +242,7 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    backend = run_normalize_for_structure(graphene3)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(graphene3).section_encyclopedia
     assert enc.material.material_hash == graphene_material_hash
 
     # Slightly distorted system should match
@@ -261,8 +252,8 @@ def test_2d_material_identification():
         pos = graphene4.get_positions()
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         graphene4.set_positions(pos)
-        backend = run_normalize_for_structure(graphene4)
-        enc = backend.get_mi2_section(Encyclopedia.m_def)
+        entry_archive = run_normalize_for_structure(graphene4)
+        enc = entry_archive.section_encyclopedia
         hash4 = enc.material.material_hash
         assert hash4 == graphene_material_hash
 
@@ -272,8 +263,7 @@ def test_2d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     graphene5.set_positions(pos)
-    backend = run_normalize_for_structure(graphene5)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(graphene5).section_encyclopedia
     hash5 = enc.material.material_hash
     assert hash5 != graphene_material_hash
 
@@ -319,37 +309,33 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    backend = run_normalize_for_structure(atoms)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    entry_archive = run_normalize_for_structure(atoms)
+    enc = entry_archive.section_encyclopedia
     assert enc.material.material_hash == mos2_material_hash
 
     # MoS2 orthogonal supercell
     atoms *= [2, 3, 1]
-    backend = run_normalize_for_structure(atoms)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(atoms).section_encyclopedia
     assert enc.material.material_hash == mos2_material_hash
 
 
 def test_bulk_material_identification():
     # Original system
     wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
-    backend = run_normalize_for_structure(wurtzite)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(wurtzite).section_encyclopedia
     hash1 = enc.material.material_hash
 
     # Rotated
     wurtzite2 = wurtzite.copy()
     wurtzite2.rotate(90, "z", rotate_cell=True)
-    backend = run_normalize_for_structure(wurtzite2)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(wurtzite2).section_encyclopedia
     hash2 = enc.material.material_hash
     assert hash2 == hash1
 
     # Supercell
     wurtzite3 = wurtzite.copy()
     wurtzite3 *= [2, 3, 1]
-    backend = run_normalize_for_structure(wurtzite3)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(wurtzite3).section_encyclopedia
     hash3 = enc.material.material_hash
     assert hash3 == hash1
 
@@ -360,8 +346,7 @@ def test_bulk_material_identification():
         pos = wurtzite4.get_positions()
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         wurtzite4.set_positions(pos)
-        backend = run_normalize_for_structure(wurtzite4)
-        enc = backend.get_mi2_section(Encyclopedia.m_def)
+        enc = run_normalize_for_structure(wurtzite4).section_encyclopedia
         hash4 = enc.material.material_hash
         assert hash4 == hash1
 
@@ -371,8 +356,7 @@ def test_bulk_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     wurtzite5.set_positions(pos)
-    backend = run_normalize_for_structure(wurtzite5)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(wurtzite5).section_encyclopedia
     hash5 = enc.material.material_hash
     assert hash5 != hash1
 
@@ -395,8 +379,7 @@ def test_1d_structure_structure_at_cell_boundary():
         ],
         pbc=True
     )
-    backend = run_normalize_for_structure(atoms)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(atoms).section_encyclopedia
 
     expected_cell = [
         [0, 0, 0],
@@ -436,8 +419,7 @@ def test_2d_structure_structure_at_cell_boundary():
         ],
         pbc=True
     )
-    backend = run_normalize_for_structure(atoms)
-    enc = backend.get_mi2_section(Encyclopedia.m_def)
+    enc = run_normalize_for_structure(atoms).section_encyclopedia
 
     expected_cell = [
         [2e-10, 0, 0],
@@ -460,14 +442,14 @@ def test_2d_structure_structure_at_cell_boundary():
 
 
 def test_method_dft_metainfo(single_point):
-    enc = single_point.get_mi2_section(Encyclopedia.m_def)
+    enc = single_point.section_encyclopedia
     assert enc.method.core_electron_treatment == "full all electron"
     assert enc.method.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
     assert enc.method.functional_type == "GGA"
 
 
 def test_method_gw_metainfo(gw):
-    enc = gw.get_mi2_section(Encyclopedia.m_def)
+    enc = gw.section_encyclopedia
     assert enc.method.gw_type == "G0W0"
     assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
 
@@ -480,7 +462,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
         assert bs.reciprocal_cell.shape == (3, 3)
 
     # Unpolarized, no gaps
-    enc = bands_unpolarized_no_gap.get_mi2_section(Encyclopedia.m_def)
+    enc = bands_unpolarized_no_gap.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=1)
@@ -489,7 +471,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert bs.band_gap_spin_down is None
 
     # Polarized, no gaps
-    enc = bands_polarized_no_gap.get_mi2_section(Encyclopedia.m_def)
+    enc = bands_polarized_no_gap.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=2)
@@ -498,7 +480,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert bs.band_gap_spin_down is None
 
     # Unpolarized, finite gap, indirect
-    enc = bands_unpolarized_gap_indirect.get_mi2_section(Encyclopedia.m_def)
+    enc = bands_unpolarized_gap_indirect.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=1)
@@ -509,7 +491,7 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     assert bs.band_gap_spin_down is None
 
     # Polarized, finite gap, indirect
-    enc = bands_polarized_gap_indirect.get_mi2_section(Encyclopedia.m_def)
+    enc = bands_polarized_gap_indirect.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=2)
@@ -531,7 +513,7 @@ def test_hashes_exciting(hash_exciting):
     """Tests that the hashes has been successfully created for calculations
     from exciting.
     """
-    enc = hash_exciting.get_mi2_section(Encyclopedia.m_def)
+    enc = hash_exciting.section_encyclopedia
     method_hash = enc.method.method_hash
     group_eos_hash = enc.method.group_eos_hash
     group_parametervariation_hash = enc.method.group_parametervariation_hash
@@ -544,11 +526,12 @@ def test_hashes_undefined(hash_vasp):
     """Tests that the hashes are not present when the method settings cannot be
     determined at a sufficient accuracy.
     """
-    # VASP
-    enc = hash_vasp.get_mi2_section(Encyclopedia.m_def)
+    enc = hash_vasp.section_encyclopedia
     method_hash = enc.method.method_hash
     group_eos_hash = enc.method.group_eos_hash
-    group_parametervariation_hash = enc.method.group_parametervariation_hash
+
+    # If the method cannot be determined accurately, the method hash and group
+    # hash cannot be set. Parametervariation has may still be valid, as it does
+    # not really need the method to be accurately defined.
     assert method_hash is None
     assert group_eos_hash is None
-    assert group_parametervariation_hash is None

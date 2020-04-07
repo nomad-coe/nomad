@@ -1,5 +1,7 @@
 .DS_Store
-.*env/
+.env/
+.pyenv/
+.pytest/
 .python-version
 .ipynb_checkpoints/
 __pycache__
@@ -20,6 +22,5 @@ target/
 .vscode/
 vscode/
 nomad.yaml
-gunicorn.log.conf
-gunicorn.conf
-nomad/normalizing/data/springer.msg
+./gunicorn.log.conf
+./gunicorn.conf

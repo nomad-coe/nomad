@@ -35,17 +35,30 @@ class DosNormalizer(Normalizer):
                     # section dos without doc_values
                     continue
 
-                system_index = self._backend.get_value(
-                    'single_configuration_calculation_to_system_ref', scc_index)
+                try:
+                    system_index = self._backend.get_value(
+                        'single_configuration_calculation_to_system_ref', scc_index)
+                except KeyError:
+                    system_index = scc_index
 
-                atom_positions = self._backend.get_value('atom_positions', system_index)
-                lattice_vectors = self._backend.get_value('lattice_vectors', system_index)
+                try:
+                    atom_positions = self._backend.get_value('atom_positions', system_index)
+                    lattice_vectors = self._backend.get_value('lattice_vectors', system_index)
+                except IndexError:
+                    self.logger.error('referenced system for dos calculation could not be found')
+                    return
+                except KeyError as e:
+                    self.logger.error('required quantity %s is not available' % e.args[0])
+                    return
 
                 number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = np.linalg.det(lattice_vectors)
+                unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
 
                 # Final quantities
                 dos_normed = dos / (number_of_atoms * unit_cell_volume)
 
                 # Add quantities to NOMAD's Metainfo
+                scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc_index
+                self._backend.openContext(scc_url)
                 self._backend.addArrayValues('dos_values_normalized', dos_normed, dos_index)
+                self._backend.closeContext(scc_url)

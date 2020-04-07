@@ -22,7 +22,6 @@ learn more about NOMAD's archive format [here](/metainfo).
 `
 
 class MetainfoDialogUnstyled extends React.PureComponent {
-
   static propTypes = {
     classes: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
@@ -45,7 +44,7 @@ class MetainfoDialogUnstyled extends React.PureComponent {
 
   render() {
     const {classes, metaInfoData, onClose} = this.props
-    return  <Dialog open className={classes.root}>
+    return <Dialog open className={classes.root}>
       <DialogTitle>
         {metaInfoData.name}
       </DialogTitle>
@@ -142,7 +141,7 @@ class ArchiveEntryView extends React.Component {
 
   updateMetaInfo() {
     if (this.props.api && this.props.info && !this.state.metaInfo) {
-      this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
+      this.props.api.getMetaInfo(this.props.info.domains.find(domain => domain.name === 'dft').metainfo.all_package).then(metaInfo => { // TODO handle the domain specificity
         if (!this.unmounted) {
           this.setState({metaInfo: metaInfo})
         }
