@@ -29,6 +29,7 @@ from tests.app.test_app import BlueprintClient
 # TODO there is much more to test
 
 
+@pytest.mark.usefixtures('reset_config', 'nomad_logging')
 class TestParse:
     def test_parser(self, example_mainfile):
         _, mainfile_path = example_mainfile
