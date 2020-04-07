@@ -29,13 +29,11 @@ import elasticsearch.exceptions
 from typing import List
 import json
 import logging
-import numpy as np
 
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User
 
 from tests import test_parsing
-from nomad.parsing.legacy import Backend
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file

@@ -44,13 +44,13 @@ def normalized_vasp_example(parsed_vasp_example: Backend) -> EntryArchive:
 
 
 @pytest.fixture
-def normalized_example(parsed_example: Backend) -> EntryArchive:
-    return run_normalize(parsed_example).entry_archive
+def normalized_example(parsed_example: Backend) -> Backend:
+    return run_normalize(parsed_example)
 
 
 @pytest.fixture
-def normalized_template_example(parsed_template_example) -> EntryArchive:
-    return run_normalize(parsed_template_example).entry_archive
+def normalized_template_example(parsed_template_example) -> Backend:
+    return run_normalize(parsed_template_example)
 
 
 def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
