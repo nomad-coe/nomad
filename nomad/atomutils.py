@@ -17,7 +17,7 @@ import fractions
 import itertools
 from math import gcd as gcd
 from functools import reduce
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -310,7 +310,7 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
         Dictionary containing the AFLOW prototype information.
     """
     structure_type_info = None
-    type_descriptions = aflow_prototypes["prototypes_by_spacegroup"].get(space_group, [])
+    type_descriptions: Any = aflow_prototypes["prototypes_by_spacegroup"].get(space_group, [])
     for type_description in type_descriptions:
         current_norm_wyckoffs = type_description.get("normalized_wyckoff_matid")
         if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
