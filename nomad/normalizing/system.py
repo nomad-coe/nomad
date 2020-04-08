@@ -24,13 +24,6 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 
 from nomad import atomutils
 from nomad import utils, config
-from nomad.datamodel.metainfo.public import (
-    section_symmetry,
-    section_std_system,
-    section_primitive_system,
-    section_original_system,
-    section_prototype,
-)
 
 from .normalizer import SystemBasedNormalizer
 from .springer import query_springer_data
