@@ -19,46 +19,52 @@ import numpy as np
 class DosNormalizer(Normalizer):
 
     def normalize(self, logger=None) -> None:
+
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
+        # Do nothing if section_run is not present
+        if self.section_run is None:
+            return
+
         # 'scc': single_configuration_calculation
-        section_scc_indices = self._backend.get_sections('section_single_configuration_calculation')
+        section_sccs = self.section_run.section_single_configuration_calculation
+        if section_sccs is None:
+            return
 
-        for scc_index in section_scc_indices:
-            section_dos_indices = self._backend.get_sections('section_dos', scc_index)
+        for scc in section_sccs:
+            section_dos = scc.section_dos
+            if section_dos is None:
+                continue
 
-            for dos_index in section_dos_indices:
-                try:
-                    dos = self._backend.get_value('dos_values', dos_index)  # a numpy.ndarray
-                except KeyError:
-                    # section dos without doc_values
+            for dos in section_dos:
+                dos_values = dos.dos_values
+                if dos_values is None:
+                    # section dos without dos_values
                     continue
 
-                try:
-                    system_index = self._backend.get_value(
-                        'single_configuration_calculation_to_system_ref', scc_index)
-                except KeyError:
-                    system_index = scc_index
-
-                try:
-                    atom_positions = self._backend.get_value('atom_positions', system_index)
-                    lattice_vectors = self._backend.get_value('lattice_vectors', system_index)
-                except IndexError:
+                system = scc.single_configuration_calculation_to_system_ref
+                if system is None:
                     self.logger.error('referenced system for dos calculation could not be found')
+                    continue
+
+                atom_positions = system.atom_positions
+                lattice_vectors = system.lattice_vectors
+                if atom_positions is None:
+                    self.logger.error('required quantity atom_positions is not available')
                     return
-                except KeyError as e:
-                    self.logger.error('required quantity %s is not available' % e.args[0])
+                if lattice_vectors is None:
+                    self.logger.error('required quantity lattice_vectors is not available')
                     return
 
                 number_of_atoms = np.shape(atom_positions)[0]
                 unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
 
                 # Final quantities
-                dos_normed = dos / (number_of_atoms * unit_cell_volume)
+                dos_normed = dos_values / (number_of_atoms * unit_cell_volume)
 
                 # Add quantities to NOMAD's Metainfo
-                scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc_index
+                scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
                 self._backend.openContext(scc_url)
-                self._backend.addArrayValues('dos_values_normalized', dos_normed, dos_index)
+                dos.dos_values_normalized = dos_normed
                 self._backend.closeContext(scc_url)

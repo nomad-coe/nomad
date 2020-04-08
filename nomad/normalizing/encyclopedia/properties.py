@@ -233,19 +233,22 @@ class PropertiesNormalizer():
                 band_structure.scc_index = int(context.representative_scc_idx)
                 kpoints = []
                 energies = []
-                try:
-                    segments = band_data['section_k_band_segment' + norm]
-                except KeyError:
+                segments = band_data['section_k_band_segment' + norm]
+                if not segments:
                     return
 
                 # Loop over segments
                 for segment_src in segments:
                     try:
                         seg_k_points = segment_src["band_k_points" + norm]
-                        seg_energies = segment_src["band_energies" + norm].magnitude
+                        seg_energies = segment_src["band_energies" + norm]
                         seg_labels = segment_src['band_segm_labels' + norm]
-                    except KeyError:
+                    except Exception:
                         return
+                    if seg_k_points is None or seg_energies is None or seg_labels is None:
+                        return
+                    else:
+                        seg_energies = seg_energies.magnitude
                     if "?" in seg_labels:
                         return
 

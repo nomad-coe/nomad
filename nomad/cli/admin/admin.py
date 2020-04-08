@@ -30,6 +30,7 @@ import bs4
 from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
+from nomad import atomutils
 from nomad import normalizing
 from nomad.cli.cli import cli
 
@@ -504,7 +505,7 @@ def prototypes_update(ctx, filepath, matches_only):
                 # letters to the data.
                 if spg_number == aflow_spg_number:
                     atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = normalizing.aflow_prototypes.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
+                    normalized_wyckoff_matid = atomutils.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
                     prototype["normalized_wyckoff_matid"] = normalized_wyckoff_matid
                 else:
                     n_unmatched += 1

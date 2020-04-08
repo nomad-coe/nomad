@@ -313,12 +313,18 @@ class Backend(AbstractParserBackend):
         #     del(self.__open_sections[(section.m_def, -1)])
         # del(self.__open_sections[(section.m_def, section.m_parent_index)])
 
-    def openSection(self, name, parent_index: int = -1):
+    def openSection(self, name, parent_index: int = -1, return_section=False):
         '''
         It will assume that there is a sub-section def with the given name.
         It will use the latest opened section of the sub-sections parent as the parent
         for the new section.
         An Exception will be known root sections, e.g. 'section_run'.
+
+        Args:
+            name: The section name
+            parent_index: Index of the parent section in which the section will
+                be opened in.
+            return_section: If True, returns the section instead of the section index.
         '''
         section_def = self.resolve_definition(name, Section)
 
@@ -335,6 +341,9 @@ class Backend(AbstractParserBackend):
             section = parent.m_create(section_def.section_cls, sub_section_def)
 
         self.__open(section)
+
+        if return_section:
+            return section
         return section.m_parent_index
 
     def get_open_section_for_quantity(self, name, g_index):

@@ -17,7 +17,6 @@ import pytest
 from ase import Atoms
 
 from nomad.parsing.legacy import Backend
-from nomad.datamodel import EntryArchive
 from nomad.normalizing import normalizers
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -39,8 +38,8 @@ def run_normalize(backend: Backend) -> Backend:
 
 
 @pytest.fixture
-def normalized_vasp_example(parsed_vasp_example: Backend) -> EntryArchive:
-    return run_normalize(parsed_vasp_example).entry_archive
+def normalized_vasp_example(parsed_vasp_example: Backend) -> Backend:
+    return run_normalize(parsed_vasp_example)
 
 
 @pytest.fixture
@@ -53,7 +52,7 @@ def normalized_template_example(parsed_template_example) -> Backend:
     return run_normalize(parsed_template_example)
 
 
-def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
+def run_normalize_for_structure(atoms: Atoms) -> Backend:
     template = parsed_template_no_system()
 
     # Fill structural information
@@ -64,163 +63,163 @@ def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
     template.addArrayValues("configuration_periodic_dimensions", atoms.get_pbc())
     template.closeSection("section_system", gid)
 
-    return run_normalize(template).entry_archive
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
-def single_point(two_d) -> EntryArchive:
+def single_point(two_d) -> Backend:
     return two_d
 
 
 @pytest.fixture(scope='session')
-def gw(two_d) -> EntryArchive:
+def gw(two_d) -> Backend:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/gw.json"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def geometry_optimization() -> EntryArchive:
+def geometry_optimization() -> Backend:
     parser_name = "parsers/template"
     filepath = "tests/data/normalizers/fcc_crystal_structure.json"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def molecular_dynamics(bulk) -> EntryArchive:
+def molecular_dynamics(bulk) -> Backend:
     return bulk
 
 
 @pytest.fixture(scope='session')
-def phonon() -> EntryArchive:
+def phonon() -> Backend:
     parser_name = "parsers/phonopy"
     filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def bulk() -> EntryArchive:
+def bulk() -> Backend:
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def two_d() -> EntryArchive:
+def two_d() -> Backend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def surface() -> EntryArchive:
+def surface() -> Backend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def molecule() -> EntryArchive:
+def molecule() -> Backend:
     parser_name = "parsers/fhi-aims"
     filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def atom() -> EntryArchive:
+def atom() -> Backend:
     parser_name = "parsers/gaussian"
     filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def one_d() -> EntryArchive:
+def one_d() -> Backend:
     parser_name = "parsers/exciting"
     filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def bands_unpolarized_gap_indirect() -> EntryArchive:
+def bands_unpolarized_gap_indirect() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/band_structure/unpolarized_gap/vasprun.xml.bands.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def bands_polarized_no_gap() -> EntryArchive:
+def bands_polarized_no_gap() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/band_structure/polarized_no_gap/vasprun.xml.bands.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def bands_unpolarized_no_gap() -> EntryArchive:
+def bands_unpolarized_no_gap() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/band_structure/unpolarized_no_gap/vasprun.xml.bands.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def bands_polarized_gap_indirect() -> EntryArchive:
+def bands_polarized_gap_indirect() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/band_structure/polarized_gap/vasprun.xml.bands.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def dos_polarized_vasp() -> EntryArchive:
+def dos_polarized_vasp() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/dos/polarized_vasp/vasprun.xml.relax2.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def dos_unpolarized_vasp() -> EntryArchive:
+def dos_unpolarized_vasp() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/dos/unpolarized_vasp/vasprun.xml.xz"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def hash_exciting() -> EntryArchive:
+def hash_exciting() -> Backend:
     parser_name = "parsers/exciting"
     filepath = "tests/data/normalizers/hashes/exciting/INFO.OUT"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
-    return backend.entry_archive
+    return backend
 
 
 @pytest.fixture(scope='session')
-def hash_vasp(bands_unpolarized_gap_indirect) -> EntryArchive:
+def hash_vasp(bands_unpolarized_gap_indirect) -> Backend:
     return bands_unpolarized_gap_indirect

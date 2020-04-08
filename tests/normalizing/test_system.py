@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import ase.build
-import pytest
 
 from nomad import datamodel, config, utils
 from nomad.parsing import Backend
@@ -48,31 +47,22 @@ vasp_parser = (
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
-symmetry_keys = ['dft.spacegroup', 'dft.spacegroup_symbol', 'dft.crystal_system']
 calc_metadata_keys = [
-    'dft.code_name', 'dft.code_version', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'formula'] + symmetry_keys
+    'dft.code_name', 'dft.code_version', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'formula']
 
 parser_exceptions = {
     'parsers/wien2k': ['dft.xc_functional'],
-    'parsers/nwchem': symmetry_keys,
-    'parsers/bigdft': symmetry_keys,
-    'parsers/gaussian': symmetry_keys,
-    'parsers/abinit': ['formula', 'dft.system'] + symmetry_keys,
-    'parsers/dl-poly': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys,
+    'parsers/abinit': ['formula', 'dft.system'],
+    'parsers/dl-poly': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/lib-atoms': ['dft.basis_set', 'dft.xc_functional'],
-    'parsers/orca': symmetry_keys,
-    'parsers/octopus': symmetry_keys,
     'parsers/phonopy': ['dft.basis_set', 'dft.xc_functional'],
-    'parsers/gpaw2': symmetry_keys,
-    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional'] + symmetry_keys,
-    'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'] + symmetry_keys,
-    'parsers/turbomole': symmetry_keys,
-    'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys,
-    'parsers/dmol': ['dft.system'] + symmetry_keys,
-    'parser/molcas': symmetry_keys,
-    'parsers/band': ['dft.system'] + symmetry_keys,
+    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional'],
+    'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
+    'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/dmol': ['dft.system'],
+    'parsers/band': ['dft.system'],
     'parsers/qbox': ['dft.xc_functional'],
-    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'] + symmetry_keys
+    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
@@ -85,6 +75,7 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(backend: Backend):
+
     metadata = datamodel.EntryMetadata(domain=backend.domain)
     metadata.apply_domain_metadata(backend)
     assert metadata.formula is not None
@@ -96,8 +87,6 @@ def assert_normalized(backend: Backend):
         assert metadata.dft.basis_set is not None
         assert metadata.dft.xc_functional is not None
         assert metadata.dft.system is not None
-        assert metadata.dft.crystal_system is not None
-        assert metadata.dft.spacegroup is not None
 
     parser_name = backend.entry_archive.section_metadata.parser_name
     exceptions = parser_exceptions.get(parser_name, [])
@@ -157,13 +146,14 @@ def test_symmetry_classification_fcc():
     expected_bravais_lattice = 'cF'
     expected_point_group = 'm-3m'
     expected_origin_shift = [0, 0, 0]
-    crystal_system = backend['crystal_system']
+    sec_symmetry = backend.entry_archive.section_run[0].section_system[0].section_symmetry[0]
+    crystal_system = sec_symmetry.crystal_system
     assert crystal_system == expected_crystal_system
-    bravais_lattice = backend['bravais_lattice']
+    bravais_lattice = sec_symmetry.bravais_lattice
     assert bravais_lattice == expected_bravais_lattice
-    point_group = backend['point_group']
+    point_group = sec_symmetry.point_group
     assert point_group == expected_point_group
-    origin_shift = backend['origin_shift']
+    origin_shift = sec_symmetry.origin_shift
     assert all(origin_shift == expected_origin_shift)
 
 
@@ -171,17 +161,17 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
     # Atom
-    assert atom["system_type"] == "atom"
+    assert atom.get_value("system_type") == "atom"
     # Molecule
-    assert molecule["system_type"] == "molecule / cluster"
+    assert molecule.get_value("system_type") == "molecule / cluster"
     # 1D system
-    assert one_d["system_type"] == "1D"
+    assert one_d.get_value("system_type") == "1D"
     # 2D system
-    assert two_d["system_type"] == "2D"
+    assert two_d.get_value("system_type") == "2D"
     # Surface
-    assert surface["system_type"] == "surface"
+    assert surface.get_value("system_type") == "surface"
     # Bulk system
-    assert bulk["system_type"] == "bulk"
+    assert bulk.get_value("system_type") == "bulk"
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
@@ -191,28 +181,25 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
     def check_representative_frames(backend):
         # For systems with multiple frames the first and two last should be processed.
         try:
-            frames = backend["frame_sequence_local_frames_ref"]
-        except KeyError:
-            sccs = backend["section_single_configuration_calculation"]
-            scc = sccs[-1]
-            repr_system = scc["single_configuration_calculation_to_system_ref"]
+            frames = backend.entry_archive.section_run[0].section_frame_sequence[0].frame_sequence_local_frames_ref
+        except Exception:
+            scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[-1]
+            repr_system = scc.single_configuration_calculation_to_system_ref
         else:
-            sampling_method = backend["sampling_method"]
+            sampling_method = backend.entry_archive.section_run[0].section_sampling_method[0].sampling_method
             if sampling_method == "molecular_dynamics":
                 scc = frames[0]
             else:
                 scc = frames[-1]
-
-            repr_system = scc["single_configuration_calculation_to_system_ref"]
+            repr_system = scc.single_configuration_calculation_to_system_ref
 
         # Check that only the representative system has been labels with
         # "is_representative"
-        for system in backend["section_system"]:
-            if system == repr_system:
-                assert system["is_representative"] is True
+        for system in backend.entry_archive.section_run[0].section_system:
+            if system.m_parent_index == repr_system.m_parent_index:
+                assert system.is_representative is True
             else:
-                with pytest.raises(KeyError):
-                    system["is_representative"]
+                assert system.is_representative is False
 
     check_representative_frames(single_point)
     check_representative_frames(molecular_dynamics)
@@ -225,7 +212,8 @@ def test_reduced_chemical_formula():
     backend = parse_file(glucose_atom_labels)
     backend = run_normalize(backend)
     expected_red_chem_formula = 'C6H12O6'
-    reduced_chemical_formula = backend['chemical_composition_bulk_reduced']
+    sec_system = backend.entry_archive.section_run[0].section_system[0]
+    reduced_chemical_formula = sec_system.chemical_composition_bulk_reduced
     assert expected_red_chem_formula == reduced_chemical_formula
 
 
@@ -239,7 +227,7 @@ def test_vasp_incar_system():
 
     # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
     # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
-    backend_value = backend['x_vasp_incar_SYSTEM']  # OK
+    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
 
     assert expected_value == backend_value
 
@@ -248,9 +236,9 @@ def test_aflow_prototypes():
     '''Tests that some basis structures are matched with the correct AFLOW prototypes
     '''
     def get_proto(atoms):
-        entry_archive = run_normalize_for_structure(atoms)
+        backend = run_normalize_for_structure(atoms)
         try:
-            sec_proto = entry_archive.section_run[0].section_system[0].section_prototype[0]
+            sec_proto = backend.entry_archive.section_run[0].section_system[0].section_prototype[0]
             prototype_aflow_id = sec_proto.prototype_aflow_id
             prototype_label = sec_proto.prototype_label
         except Exception:

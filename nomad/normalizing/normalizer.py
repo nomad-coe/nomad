@@ -34,7 +34,10 @@ class Normalizer(metaclass=ABCMeta):
 
     def __init__(self, backend: Backend) -> None:
         self._backend = backend
-        self.section_run = backend.entry_archive.section_run[0]
+        try:
+            self.section_run = backend.entry_archive.section_run[0]
+        except (AttributeError, IndexError):
+            self.section_run = None
         self.logger = get_logger(__name__)
 
     @abstractmethod
@@ -164,6 +167,10 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
+
+        # If no section run detected, do nothing
+        if self.section_run is None:
+            return
 
         # Process representative system first
         repr_sys_idx = None

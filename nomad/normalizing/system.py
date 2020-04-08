@@ -227,7 +227,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             # Save the Atoms as a temporary variable
             system.m_cache["representative_atoms"] = atoms
 
-            # system type analysis
+            # System type analysis
             if atom_positions is not None:
                 with utils.timer(
                         self.logger, 'system classification executed',
@@ -236,12 +236,11 @@ class SystemNormalizer(SystemBasedNormalizer):
 
             system_type = self._backend.get_value("system_type")
 
-            # symmetry analysis
+            # Symmetry analysis
             if atom_positions is not None and (lattice_vectors is not None or not any(pbc)) and system_type == "bulk":
                 with utils.timer(
                         self.logger, 'symmetry analysis executed',
                         system_size=len(atoms)):
-
                     self.symmetry_analysis(system, atoms)
 
         return True
@@ -336,11 +335,11 @@ class SystemNormalizer(SystemBasedNormalizer):
             self.logger.error('matid symmetry analysis fails with exception', exc_info=e)
             return
 
-        # Write data extracted from MatID's symmetry analysis to the backend.
-        sec_symmetry = system.m_create(section_symmetry)
+        # Write data extracted from MatID's symmetry analysis to the
+        # representative section_system.
+        sec_symmetry = self._backend.openSection("section_symmetry", return_section=True)
         sec_symmetry.m_cache["symmetry_analyzer"] = symm
 
-        # TODO: @dts, should we change the symmetry_method to MATID?
         sec_symmetry.symmetry_method = 'MatID (spg)'
         sec_symmetry.space_group_number = space_group_number
         sec_symmetry.hall_number = hall_number
@@ -352,21 +351,21 @@ class SystemNormalizer(SystemBasedNormalizer):
         sec_symmetry.origin_shift = origin_shift
         sec_symmetry.transformation_matrix = transform
 
-        sec_std = sec_symmetry.m_create(section_std_system)
+        sec_std = self._backend.openSection("section_std_system", return_section=True)
         sec_std.lattice_vectors_std = conv_cell
         sec_std.atom_positions_std = conv_pos
         sec_std.atomic_numbers_std = conv_num
         sec_std.wyckoff_letters_std = conv_wyckoff
         sec_std.equivalent_atoms_std = conv_equivalent_atoms
 
-        sec_prim = sec_symmetry.m_create(section_primitive_system)
+        sec_prim = self._backend.openSection("section_primitive_system", return_section=True)
         sec_prim.lattice_vectors_primitive = prim_cell
         sec_prim.atom_positions_primitive = prim_pos
         sec_prim.atomic_numbers_primitive = prim_num
         sec_prim.wyckoff_letters_primitive = prim_wyckoff
         sec_prim.equivalent_atoms_primitive = prim_equivalent_atoms
 
-        sec_orig = sec_symmetry.m_create(section_original_system)
+        sec_orig = self._backend.openSection("section_original_system", return_section=True)
         sec_orig.wyckoff_letters_original = orig_wyckoff
         sec_orig.equivalent_atoms_original = orig_equivalent_atoms
 
@@ -433,7 +432,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 aflow_prototype_name,
                 protoDict.get("Pearsons Symbol", "-")
             )
-            sec_prototype = system.m_create(section_prototype)
+            sec_prototype = self._backend.openSection("section_prototype", return_section=True)
             sec_prototype.prototype_label = prototype_label
             sec_prototype.prototype_aflow_id = aflow_prototype_id
             sec_prototype.prototype_aflow_url = aflow_prototype_url

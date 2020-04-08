@@ -64,7 +64,7 @@ class EncyclopediaNormalizer(Normalizer):
 
         # No sequences, only a few calculations
         if n_scc <= 3 and n_frame_seq == 0:
-            program_name = self._backend["program_name"]
+            program_name = self.section_run.program_name
             if program_name == "elastic":
                 # TODO move to taylor expansion as soon as data is correct in archive
                 calc_type = calc_enums.elastic_constants
@@ -77,9 +77,8 @@ class EncyclopediaNormalizer(Normalizer):
             frame_seq = frame_sequences[0]
 
             # See if sampling_method is present
-            try:
-                section_sampling_method = frame_seq.frame_sequence_to_sampling_ref
-            except KeyError:
+            section_sampling_method = frame_seq.frame_sequence_to_sampling_ref
+            if section_sampling_method is None:
                 self.logger.info(
                     "Cannot determine encyclopedia run type because missing "
                     "value for frame_sequence_to_sampling_ref."
@@ -87,15 +86,8 @@ class EncyclopediaNormalizer(Normalizer):
                 return calc_type
 
             # See if local frames are present
-            try:
-                frames = frame_seq.frame_sequence_local_frames_ref
-            except KeyError:
-                self.logger.info(
-                    "section_frame_sequence_local_frames not found although a "
-                    "frame_sequence exists."
-                )
-                return calc_type
-            if len(frames) == 0:
+            frames = frame_seq.frame_sequence_local_frames_ref
+            if not frames:
                 self.logger.info("No frames referenced in section_frame_sequence_local_frames.")
                 return calc_type
 
@@ -215,6 +207,15 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
+        # Do nothing if section_run is not present
+        if self.section_run is None:
+            self.logger.info(
+                "Required data is missing or is invalid.",
+                enc_status="invalid_data",
+                invalid_metainfo="section_run",
+            )
+            return
+
         try:
             super().normalize(logger)
 
