@@ -82,27 +82,27 @@ class KeycloakAuthenticator(bravado_requests_client.Authenticator):
 class ApiStatistics(mi.MSection):
 
     nentries = mi.Quantity(
-        type=int,
+        type=int, default=0,
         description='Number queries entries')
 
     last_response_nentries = mi.Quantity(
-        type=int,
+        type=int, default=0,
         description='Number of entries loaded in the last api call')
 
     last_response_data_size = mi.Quantity(
-        type=int, unit=mi.units.bytes,
+        type=int, unit=mi.units.bytes, default=0,
         description='Bytes loaded in the last api call')
 
     loaded_data_size = mi.Quantity(
-        type=int, unit=mi.units.bytes,
+        type=int, unit=mi.units.bytes, default=0,
         description='Bytes loaded from this query')
 
     loaded_nentries = mi.Quantity(
-        type=int,
+        type=int, default=0,
         description='Number of downloaded entries')
 
     napi_calls = mi.Quantity(
-        type=int,
+        type=int, default=0,
         description='Number of made api calls')
 
     def __repr__(self):

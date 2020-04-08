@@ -189,20 +189,20 @@ class DFTMetadata(MSection):
         a_search=Search())
 
     n_geometries = Quantity(
-        type=int, description='Number of unique geometries.',
+        type=int, default=0, description='Number of unique geometries.',
         a_search=Search(metric_name='geometries', metric='sum'))
 
     n_calculations = Quantity(
-        type=int,
+        type=int, default=0,
         description='Number of single configuration calculation sections',
         a_search=Search(metric_name='calculations', metric='sum'))
 
     n_total_energies = Quantity(
-        type=int, description='Number of total energy calculations',
+        type=int, default=0, description='Number of total energy calculations',
         a_search=Search(metric_name='total_energies', metric='sum'))
 
     n_quantities = Quantity(
-        type=int, description='Number of metainfo quantities parsed from the entry.',
+        type=int, default=0, description='Number of metainfo quantities parsed from the entry.',
         a_search=Search(metric='sum', metric_name='quantities'))
 
     quantities = Quantity(
