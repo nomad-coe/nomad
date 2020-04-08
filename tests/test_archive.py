@@ -1,11 +1,25 @@
+# Copyright 2018 Markus Scheidgen, Alvin Noe Ladines
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+from typing import Dict, Any
 import pytest
 import msgpack
 from io import BytesIO
 import os.path
 
 from nomad import utils, config
-from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, query_archive
+from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive
 
 
 def create_example_uuid(index: int = 0):
@@ -198,35 +212,58 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
             reader.get(create_example_uuid(i)) is not None
 
 
-def test_query():
-    payload = {
-        'c1': {
-            's1': {
-                'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]
-            },
-            's2': {'p1': ['a', 'b']}
+test_query_example: Dict[Any, Any] = {
+    'c1': {
+        's1': {
+            'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]
         },
-        'c2': {
-            's1': {'ss1': [{'p1': 2.0}]},
-            's2': {'p1': ['c', 'd']}
-        }
+        's2': [{'p1': ['a', 'b'], 'p2': True}]
+    },
+    'c2': {
+        's1': {
+            'ss1': [{'p1': 2.0}]
+        },
+        's2': [{'p1': ['c', 'd']}]
     }
+}
 
+
+@pytest.mark.parametrize('query,ref', [
+    ({'c1': '*'}, {'c1': test_query_example['c1']}),
+    ({'c1': '*', 'c2': {'s1': '*'}}, {'c1': test_query_example['c1'], 'c2': {'s1': test_query_example['c2']['s1']}}),
+    ({'c2': {'s1': {'ss1[0]': '*'}}}, {'c2': {'s1': {'ss1': test_query_example['c2']['s1']['ss1'][0:1]}}}),
+    ({'c1': {'s1': {'ss1[1:]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:]}}}),
+    ({'c1': {'s1': {'ss1[:2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:2]}}}),
+    ({'c1': {'s1': {'ss1[0:2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][0:2]}}}),
+    ({'c1': {'s1': {'ss1[-2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][-2:-1]}}}),
+    ({'c1': {'s1': {'ss1[:-1]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:-1]}}}),
+    ({'c1': {'s1': {'ss1[1:-1]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:-1]}}}),
+    ({'c2': {'s1': {'ss1[-3:-1]': '*'}}}, {'c2': {'s1': {'ss1': test_query_example['c2']['s1']['ss1'][-3:-1]}}}),
+    ({'c1': {'s2[0]': {'p1': '*'}}}, {'c1': {'s2': [{'p1': test_query_example['c1']['s2'][0]['p1']}]}}),
+    ({'c1': {'s3': '*'}}, {'c1': {}}),
+    ({'c1': {'s1[0]': '*'}}, ArchiveQueryError())
+])
+def test_query(query, ref):
     f = BytesIO()
-    write_archive(f, 2, [(k, v) for k, v in payload.items()], entry_toc_depth=1)
+    write_archive(f, 2, [(k, v) for k, v in test_query_example.items()], entry_toc_depth=1)
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
-    assert query_archive(f, {'c1': '*'}) == {'c1': payload['c1']}
-    assert query_archive(f, {'c1': '*', 'c2': {'s1': '*'}}) == {'c1': payload['c1'], 'c2': {'s1': payload['c2']['s1']}}
-    assert query_archive(f, {'c2': {'s1': {'ss1[0]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][0]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[1:]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:2]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[0:2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][0:2]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[-2]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][-2]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][:-1]}}}
-    assert query_archive(f, {'c1': {'s1': {'ss1[1:-1]': '*'}}}) == {'c1': {'s1': {'ss1': payload['c1']['s1']['ss1'][1:-1]}}}
-    assert query_archive(f, {'c2': {'s1': {'ss1[-3:-1]': '*'}}}) == {'c2': {'s1': {'ss1': payload['c2']['s1']['ss1'][-3:-1]}}}
+    if isinstance(ref, Exception):
+        with pytest.raises(ref.__class__):
+            query_archive(f, query)
+
+    else:
+        assert query_archive(f, query) == ref
+
+
+@pytest.mark.parametrize('key', ['simple', '  fixedsize', 'z6qp-VxV5uacug_1xTBhm5xxU2yZ'])
+def test_keys(key):
+    f = BytesIO()
+    write_archive(f, 1, [(key, dict(example='content'))])
+    packed_archive = f.getbuffer()
+    f = BytesIO(packed_archive)
+    assert key.strip() in query_archive(f, {key: '*'})
 
 
 def test_read_springer():

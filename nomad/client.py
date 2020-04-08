@@ -36,14 +36,16 @@ and a query schema similar to the archive json format can be provided to filter 
 '''
 
 from typing import Dict, Union, Any, List
-from collections import Sequence
+import collections.abc
 import requests
 from urllib.parse import urlparse
 from bravado import requests_client as bravado_requests_client
 import time
 from keycloak import KeycloakOpenID
+from io import StringIO
 
 from nomad import config
+from nomad import metainfo as mi
 from nomad.datamodel import EntryArchive
 
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
@@ -77,26 +79,61 @@ class KeycloakAuthenticator(bravado_requests_client.Authenticator):
             return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
-class ArchiveQuery(Sequence):
+class ApiStatistics(mi.MSection):
+
+    nentries = mi.Quantity(
+        type=int, default=0,
+        description='Number queries entries')
+
+    last_response_nentries = mi.Quantity(
+        type=int, default=0,
+        description='Number of entries loaded in the last api call')
+
+    last_response_data_size = mi.Quantity(
+        type=int, unit=mi.units.bytes, default=0,
+        description='Bytes loaded in the last api call')
+
+    loaded_data_size = mi.Quantity(
+        type=int, unit=mi.units.bytes, default=0,
+        description='Bytes loaded from this query')
+
+    loaded_nentries = mi.Quantity(
+        type=int, default=0,
+        description='Number of downloaded entries')
+
+    napi_calls = mi.Quantity(
+        type=int, default=0,
+        description='Number of made api calls')
+
+    def __repr__(self):
+        out = StringIO()
+        for quantity in self.m_def.all_quantities.values():
+            out.write('%s: %s\n' % (quantity.description, self.m_get(quantity)))
+
+        return out.getvalue()
+
+
+class ArchiveQuery(collections.abc.Sequence):
     def __init__(
             self,
-            query: dict = None, query_schema: dict = None,
+            query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
-            scroll: bool = False,
-            authentication: Union[Dict[str, str], KeycloakAuthenticator] = None, **kwargs):
+            scroll: bool = False, per_page: int = 10, max: int = None,
+            authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
         self.scroll = scroll
         self._scroll_id = None
-        self._page = 1
+        self.page = 1
+        self.per_page = per_page
+        self.max = max
 
         self.query: Dict[str, Any] = {
             'query': {}
         }
         if query is not None:
             self.query['query'].update(query)
-        if query_schema is not None:
-            self.query['query_schema'] = query_schema
-        self.query['query'].update(kwargs)
+        if required is not None:
+            self.query['query_schema'] = required
 
         self.password = password
         self.username = username
@@ -104,7 +141,9 @@ class ArchiveQuery(Sequence):
         self._authentication = authentication
 
         self._total = -1
+        self._capped_total = -1
         self._results: List[dict] = []
+        self._statistics = ApiStatistics()
 
     @property
     def authentication(self):
@@ -133,7 +172,8 @@ class ArchiveQuery(Sequence):
                 scroll_config['scroll_id'] = self._scroll_id
 
         else:
-            self.query.setdefault('pagination', {})['page'] = self._page
+            self.query.setdefault('pagination', {}).update(
+                page=self.page, per_page=self.per_page)
 
         response = requests.post(url, headers=self.authentication, json=self.query)
         if response.status_code != 200:
@@ -151,7 +191,12 @@ class ArchiveQuery(Sequence):
         else:
             pagination = data['pagination']
             self._total = pagination['total']
-            self._page = pagination['page'] + 1
+            self.page = pagination['page'] + 1
+
+        if self.max is not None:
+            self._capped_total = min(self.max, self._total)
+        else:
+            self._capped_total = self._total
 
         results = data.get('results', [])
 
@@ -160,20 +205,55 @@ class ArchiveQuery(Sequence):
 
             self._results.append(archive)
 
+        try:
+            data_size = len(response.content)
+            self._statistics.last_response_data_size = data_size
+            self._statistics.loaded_data_size += data_size
+            self._statistics.nentries = self._total
+            self._statistics.last_response_nentries = len(results)
+            self._statistics.loaded_nentries = len(self._results)
+            self._statistics.napi_calls += 1
+        except Exception:
+            # fails in test due to mocked requests library
+            pass
+
+    def __repr__(self):
+        if self._total == -1:
+            self.call_api()
+
+        return str(self._statistics)
+
     def __getitem__(self, key):
+        if isinstance(key, slice):
+            return [self[i] for i in range(*key.indices(len(self)))]
+
         if key >= self.__len__():
             raise IndexError()
 
-        while len(self._results) < key:
+        while len(self._results) < key + 1:
             self.call_api()
 
         return self._results[key]
 
     def __len__(self):  # pylint: disable=invalid-length-returned
+        if self._capped_total == -1:
+            self.call_api()
+
+        return self._capped_total
+
+    @property
+    def total(self):
         if self._total == -1:
             self.call_api()
 
         return self._total
+
+    @property
+    def statistics(self):
+        if self._total == -1:
+            self.call_api()
+
+        return self._statistics
 
 
 def query_archive(*args, **kwargs):

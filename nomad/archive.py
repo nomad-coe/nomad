@@ -1,3 +1,17 @@
+# Copyright 2018 Markus Scheidgen, Alvin Noe Ladines
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
@@ -29,6 +43,15 @@ def adjust_uuid_size(uuid):
 
 
 class ArchiveError(Exception):
+    ''' An error that indicates a broken archive. '''
+    pass
+
+
+class ArchiveQueryError(Exception):
+    '''
+    An error that indicates that an archive query is either not valid or does not fit to
+    the queried archive.
+    '''
     pass
 
 
@@ -511,60 +534,88 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     return ArchiveReader(file_or_path, **kwargs)
 
 
-def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict):
+__query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*))?\])?$')
+
+
+def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict, **kwargs):
+
+    def _to_son(data):
+        if isinstance(data, (ArchiveList, List)):
+            data = [_to_son(item) for item in data]
+
+        elif isinstance(data, ArchiveObject):
+            data = data.to_dict()
+
+        return data
 
     def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject, main_section: bool = False):
         if not isinstance(query_dict, dict):
-            if isinstance(archive_item, ArchiveObject):
-                return archive_item.to_dict()
-            elif isinstance(archive_item, ArchiveList):
-                return list(archive_item)
-            else:
-                return archive_item
+            return _to_son(archive_item)
 
-        res = {}
+        result = {}
         for key, val in query_dict.items():
             key = key.strip()
 
             # process array indices
-            match = re.match(r'(\w+)\[([-?0-9:]+)\]', key)
+            match = __query_archive_key_pattern.match(key)
+            index: Tuple[int, int] = None
             if match:
-                archive_key = match.group(1)
-                index_str = match.group(2)
-                match = re.match(r'([-?0-9]*):([-?0-9]*)', index_str)
-                if match:
-                    index = (
-                        0 if match.group(1) == '' else int(match.group(1)),
-                        None if match.group(2) == '' else int(match.group(2)))
+                key = match.group(1)
+
+                if match.group(2) is not None:
+                    first_index, last_index = None, None
+                    group = match.group(3)
+                    first_index = None if group == '' else int(group)
+
+                    if match.group(4) is not None:
+                        group = match.group(5)
+                        last_index = None if group == '' else int(group)
+                        index = (0 if first_index is None else first_index, last_index)
+
+                    else:
+                        index = (first_index, first_index + 1)  # one item
+
                 else:
-                    index = int(index_str)  # type: ignore
-                key = archive_key
+                    index = None
+
             else:
-                archive_key = key
-                index = None
+                raise ArchiveQueryError('invalid key format: %s' % key)
 
             # support for shorter uuids
-            archive_key = key.split('[')[0]
             if main_section:
                 archive_key = adjust_uuid_size(key)
-            try:
-                if index is None:
-                    res[key] = _load_data(val, archive_item[archive_key])
-                elif isinstance(index, int):
-                    res[key] = _load_data(val, archive_item[archive_key])[index]
-                else:
-                    res[key] = _load_data(val, archive_item[archive_key])[index[0]: index[1]]
+            else:
+                archive_key = key
 
-            except Exception:
+            try:
+                archive_child = archive_item[archive_key]
+                is_list = isinstance(archive_child, (ArchiveList, list))
+
+                if index is None and is_list:
+                    index = (0, None)
+                elif index is not None and not is_list:
+                    raise ArchiveQueryError('cannot use list key on none list %s' % key)
+
+                if index is None:
+                    pass
+                else:
+                    archive_child = archive_child[index[0]: index[1]]
+
+                if isinstance(archive_child, (ArchiveList, list)):
+                    result[key] = [_load_data(val, item) for item in archive_child]
+                else:
+                    result[key] = _load_data(val, archive_child)
+
+            except (KeyError, IndexError):
                 continue
 
-        return res
+        return result
 
     if isinstance(f_or_archive_reader, ArchiveReader):
         return _load_data(query_dict, f_or_archive_reader, True)
 
     elif isinstance(f_or_archive_reader, (BytesIO, str)):
-        with ArchiveReader(f_or_archive_reader) as archive:
+        with ArchiveReader(f_or_archive_reader, **kwargs) as archive:
             return _load_data(query_dict, archive, True)
 
     else:

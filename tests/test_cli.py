@@ -29,6 +29,15 @@ from tests.app.test_app import BlueprintClient
 # TODO there is much more to test
 
 
+@pytest.mark.usefixtures('reset_config', 'nomad_logging')
+class TestParse:
+    def test_parser(self, example_mainfile):
+        _, mainfile_path = example_mainfile
+        result = click.testing.CliRunner().invoke(
+            cli, ['parse', mainfile_path], catch_exceptions=False)
+        assert result.exit_code == 0
+
+
 @pytest.mark.usefixtures('reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra')
 class TestAdmin:
     def test_reset(self, reset_infra):

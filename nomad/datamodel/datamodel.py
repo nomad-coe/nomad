@@ -442,7 +442,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(many_and='append', derived=_only_atoms))
 
     n_atoms = metainfo.Quantity(
-        type=int, categories=[DomainMetadata],
+        type=int, categories=[DomainMetadata], default=0,
         description='The number of atoms in the entry\'s material',
         a_search=Search())
 

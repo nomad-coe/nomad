@@ -1812,15 +1812,6 @@ class Quantity(Property):
         if self.synonym_for is not None:
             self._synonym = self.m_parent.all_quantities[self.synonym_for]
 
-        if self.type == int and self.is_scalar and self.default is None:
-            self.default = 0
-
-        if self.type == float and self.is_scalar and self.default is None:
-            self.default = 0.0
-
-        if self.type == bool and self.is_scalar and self.default is None:
-            self.default = False
-
         # replace the quantity implementation with an optimized version for the most
         # primitive quantities if applicable
         is_primitive = not self.synonym_for and not self.derived

@@ -110,7 +110,7 @@ class OptimadeEntry(MSection):
         ''')
 
     nelements = Quantity(
-        type=int,
+        type=int, default=0,
         links=optimade_links('h.6.2.2'),
         a_search=Search(),
         a_optimade=Optimade(query=True, entry=True),
@@ -200,7 +200,7 @@ class OptimadeEntry(MSection):
         ''')
 
     nsites = Quantity(
-        type=int,
+        type=int, default=0,
         links=optimade_links('h.6.2.11'),
         a_search=Search(),
         a_optimade=Optimade(query=True, entry=True), description='''
