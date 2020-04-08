@@ -225,7 +225,7 @@ class MethodDFTNormalizer(MethodNormalizer):
                         pass
                     else:
                         this_component = ''
-                        if component.XC_functional_weight is not None and component.XC_functional_weight != 0.0:
+                        if component.XC_functional_weight is not None:
                             this_component = str(component.XC_functional_weight) + '*'
                         this_component += cname
                         components[cname] = this_component

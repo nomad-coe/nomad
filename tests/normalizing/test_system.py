@@ -199,7 +199,7 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
             if system.m_parent_index == repr_system.m_parent_index:
                 assert system.is_representative is True
             else:
-                assert system.is_representative is False
+                assert system.is_representative is None
 
     check_representative_frames(single_point)
     check_representative_frames(molecular_dynamics)
