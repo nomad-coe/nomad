@@ -20,6 +20,7 @@ from elasticsearch_dsl import Keyword, Text, analyzer, tokenizer
 import ase.data
 
 from nomad import metainfo, config
+from nomad.metainfo.encyclopedia import section_encyclopedia
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
@@ -471,6 +472,7 @@ class EntryArchive(metainfo.MSection):
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=section_experiment)
     section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
+    section_encyclopedia = metainfo.SubSection(sub_section=section_encyclopedia)
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],

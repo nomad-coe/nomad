@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<input>
+
+  <title>Si</title>
+
+  <structure speciespath='../../../../input-data/species'>
+    <crystal scale='0.9795861087156'>
+<basevect> 7.30774100622  0.00000000000  0.00000000000 </basevect>
+<basevect> 3.65387050311  6.32868935568  0.00000000000 </basevect>
+<basevect> 3.65387050311  2.10956311850  5.96674554596 </basevect>
+    </crystal>
+    <species speciesfile='Si.xml' rmt='2.1'>
+<atom coord='0.000000000 0.000000000 0.000000000'/>
+<atom coord='0.250000000 0.250000000 0.250000000'/>
+    </species>
+  </structure>
+
+  <groundstate 
+   onsite='49.4470328129'
+   rgkmax='12'
+   gmaxvr='30'
+   ngridk='24 24 24'
+   epsengy='1d-7'
+   epspot='1d-4'
+   epschg='1d-7'
+   swidth='0.0005'
+   do='fromscratch'
+   lmaxmat='12'
+   lmaxapw='12'   
+   lmaxvr='12'
+   maxscl='100'
+   fracinr='1d-12'
+   xctype='GGA_PBE'
+   SymmetricKineticEnergy='true'
+   ValenceRelativity='iora*'
+   useDM='true'
+   PrelimLinSteps='1'
+  >
+    <solver type='Lapack'  
+            ArpackUserDefinedShift='true'
+            ArpackShift='-5.5d0'
+            epsarpack='1d-12'
+            ArpackLinSolve='LDL' />
+  </groundstate>
+
+</input>
+

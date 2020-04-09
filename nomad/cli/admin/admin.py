@@ -27,9 +27,10 @@ import numpy as np
 import requests
 import ase
 import bs4
-import matid
+from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
+from nomad import atomutils
 from nomad import normalizing
 from nomad.cli.cli import cli
 
@@ -492,9 +493,8 @@ def prototypes_update(ctx, filepath, matches_only):
             )
 
             # Try to first see if the space group can be matched with the one in AFLOW
-            tolerance = config.normalize.symmetry_tolerance
             try:
-                symm = matid.SymmetryAnalyzer(atoms, tolerance)
+                symm = SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()
@@ -505,7 +505,7 @@ def prototypes_update(ctx, filepath, matches_only):
                 # letters to the data.
                 if spg_number == aflow_spg_number:
                     atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = normalizing.aflow_prototypes.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
+                    normalized_wyckoff_matid = atomutils.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
                     prototype["normalized_wyckoff_matid"] = normalized_wyckoff_matid
                 else:
                     n_unmatched += 1
@@ -514,8 +514,6 @@ def prototypes_update(ctx, filepath, matches_only):
         "prototypes: {}, unmatched: {}, failed: {}"
         .format(n_prototypes, n_unmatched, n_failed)
     )
-
-    aflow_prototypes["matid_symmetry_tolerance"] = tolerance
 
     # Write data file to the specified path
     write_prototype_data_file(aflow_prototypes, filepath)

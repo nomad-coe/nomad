@@ -6,9 +6,9 @@ h5py
 hjson
 scipy
 scikit-learn==0.20.2
-ase==3.15.0
+ase==3.19.0
 Pint
-matid
+matid==0.5.9
 
 # infrastructue related
 orjson

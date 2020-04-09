@@ -127,12 +127,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         return optimade
 
-    def normalize_system(self, index, is_representative):
+    def normalize_system(self, system, is_representative):
         if not is_representative:
             return False
 
         try:
-            self.add_optimade_data(index)
+            self.add_optimade_data(system.m_parent_index)
             return True
 
         except Exception as e:

@@ -26,7 +26,7 @@ build:
   stage: build
   before_script:
     - git submodule sync
-    - git submodule update --init
+    - git submodule update --init --jobs=4
     # create the version information
     - ./gitinfo.sh
   script:

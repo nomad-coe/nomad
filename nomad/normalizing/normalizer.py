@@ -15,13 +15,14 @@
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from nomad.parsing import AbstractParserBackend
+from nomad.parsing import Backend
 from nomad.utils import get_logger
+from nomad.metainfo import MSection
 
 
 class Normalizer(metaclass=ABCMeta):
     '''
-    A base class for normalizers. Normalizers work on a :class:`AbstractParserBackend` instance
+    A base class for normalizers. Normalizers work on a :class:`Backend` instance
     for read and write. Normalizer instances are reused.
 
     Arguments:
@@ -31,8 +32,12 @@ class Normalizer(metaclass=ABCMeta):
     domain = 'dft'
     ''' The domain this normalizer should be used in. Default for all normalizer is 'DFT'. '''
 
-    def __init__(self, backend: AbstractParserBackend) -> None:
+    def __init__(self, backend: Backend) -> None:
         self._backend = backend
+        try:
+            self.section_run = backend.entry_archive.section_run[0]
+        except (AttributeError, IndexError):
+            self.section_run = None
         self.logger = get_logger(__name__)
 
     @abstractmethod
@@ -52,7 +57,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
     Args:
         only_representatives: Will only normalize the `representative` systems.
     '''
-    def __init__(self, backend: AbstractParserBackend, only_representatives: bool = False):
+    def __init__(self, backend: Backend, only_representatives: bool = False):
         super().__init__(backend)
         self.only_representatives = only_representatives
 
@@ -67,17 +72,17 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             'configuration_periodic_dimensions'
         ]
 
-    def _normalize_system(self, g_index, is_representative):
-        context = '/section_run/0/section_system/%d' % g_index
+    def _normalize_system(self, system, is_representative):
+        context = '/section_run/0/section_system/%d' % system.m_parent_index
 
         self._backend.openContext(context)
         try:
-            return self.normalize_system(g_index, is_representative)
+            return self.normalize_system(system, is_representative)
         finally:
             self._backend.closeContext(context)
 
     @abstractmethod
-    def normalize_system(self, section_system_index: int, is_representative: bool) -> bool:
+    def normalize_system(self, system: MSection, is_representative: bool) -> bool:
         ''' Normalize the given section and returns True, iff successful'''
         pass
 
@@ -87,67 +92,96 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         Attempt to find a single section_system that is representative for the
         entry. The selection depends on the type of calculation.
         '''
+        system = None
+        scc_idx = None
+        scc = None
+
         # Try to find a frame sequence, only first found is considered
         try:
-            frame_seq = self._backend['section_frame_sequence'][-1]
-            sec_sampling_method = frame_seq['frame_sequence_to_sampling_ref']
-            sampling_method = sec_sampling_method['sampling_method']
-            frames = frame_seq['frame_sequence_local_frames_ref']
-            if sampling_method == 'molecular_dynamics':
+            frame_seqs = self.section_run.section_frame_sequence
+            frame_seq = frame_seqs[0]
+            sec_sampling_method = frame_seq.frame_sequence_to_sampling_ref
+            sampling_method = sec_sampling_method.sampling_method
+            frames = frame_seq.frame_sequence_local_frames_ref
+            if sampling_method == "molecular_dynamics":
                 scc = frames[0]
+                scc_idx = scc.m_parent_index
             else:
                 scc = frames[-1]
-            return scc['single_configuration_calculation_to_system_ref']
+                scc_idx = scc.m_parent_index
+            system = scc.single_configuration_calculation_to_system_ref
+            if system is None:
+                frame_seqs = []
         except Exception:
-            pass
+            frame_seqs = []
 
-        # If no frame sequences detected, try use system of last scc
+        # If no frame sequences detected, try to find scc
+        if len(frame_seqs) == 0:
+            try:
+                sccs = self.section_run.section_single_configuration_calculation
+                scc_idx = -1
+                scc = sccs[scc_idx]
+                system = scc.single_configuration_calculation_to_system_ref
+                if system is None:
+                    sccs = []
+            except Exception:
+                sccs = []
+
+            # If no sccs exist, try to find systems
+            if len(sccs) == 0:
+                try:
+                    systems = self.section_run.section_system
+                    system = systems[-1]
+                except Exception:
+                    sccs = []
+
+            if system is None:
+                self.logger.error('no "representative" section system found')
+            else:
+                self.logger.info(
+                    'chose "representative" system for normalization',
+                )
+
+        if scc is not None:
+            self.section_run.m_cache["representative_scc_idx"] = scc_idx
+        if system is not None:
+            self.section_run.m_cache["representative_system_idx"] = system.m_parent_index
+
+        return system
+
+    def __normalize_system(self, system, representative, logger=None) -> bool:
         try:
-            sccs = self._backend['section_single_configuration_calculation']
-            scc = sccs[-1]
-            return scc['single_configuration_calculation_to_system_ref']
-        except Exception:
-            pass
-
-        # If no sccs exist, use last system
-        try:
-            systems = self._backend['section_system']
-            return systems[-1]
-        except Exception:
-            pass
-
-        self.logger.error('no "representative" section system found')
-
-        return None
-
-    def __normalize_system(self, g_index, representative, logger=None) -> bool:
-        try:
-            return self._normalize_system(g_index, representative)
+            return self._normalize_system(system, representative)
 
         except KeyError as e:
             self.logger.error(
-                'could read a system property', normalizer=self.__class__.__name__,
-                section='section_system', g_index=g_index, key_error=str(e), exc_info=e)
+                'could not read a system property', normalizer=self.__class__.__name__,
+                section='section_system', g_index=system.m_parent_index, key_error=str(e), exc_info=e)
             return False
 
         except Exception as e:
             self.logger.error(
                 'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                section='section_system', g_index=g_index, exc_info=e, error=str(e))
+                section='section_system', g_index=system.m_parent_index, exc_info=e, error=str(e))
             raise e
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
 
+        # If no section run detected, do nothing
+        if self.section_run is None:
+            return
+
         # Process representative system first
-        representative_system = self.__representative_system()
-        if representative_system is not None:
-            representative_system_idx = representative_system.m_parent_index
+        repr_sys_idx = None
+        repr_sys = self.__representative_system()
+        if repr_sys is not None:
+            repr_sys_idx = repr_sys.m_parent_index
             self.logger.info('chose "representative" section system')
-            self.__normalize_system(representative_system_idx, True, logger)
+            self.__normalize_system(repr_sys, True, logger)
 
         # All the rest if requested
         if not self.only_representatives:
-            for system in self._backend['section_system']:
-                if system != representative_system:
-                    self.__normalize_system(system.m_parent_index, False, logger)
+            for isys, system in enumerate(self._backend.entry_archive.section_run[0].section_system):
+                if isys != repr_sys_idx:
+                    self.__normalize_system(system, False, logger)

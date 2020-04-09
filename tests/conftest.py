@@ -33,7 +33,8 @@ import logging
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User
 
-from tests import test_parsing, test_normalizing
+from tests import test_parsing
+from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
 from tests.bravado_flask import FlaskTestHttpClient
@@ -541,7 +542,7 @@ def parsed_ems() -> parsing.Backend:
 @pytest.fixture(scope='session')
 def normalized(parsed: parsing.Backend) -> parsing.Backend:
     ''' Provides a normalized calculation in the form of a Backend. '''
-    return test_normalizing.run_normalize(parsed)
+    return run_normalize(parsed)
 
 
 @pytest.fixture(scope='function')

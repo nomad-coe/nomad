@@ -596,6 +596,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         self.m_parent_index = -1
         self.m_resource = m_resource
         self.m_mod_count = 0
+        self.m_cache: dict = {}  # Dictionary for caching temporary values that are not persisted to the Archive
 
         # get missing m_def from class
         cls = self.__class__
@@ -647,8 +648,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             m_def = Section()
             setattr(cls, 'm_def', m_def)
 
-        # transfer name m_def
-        m_def.name = cls.__name__
+        # Use class name if name is not explicitly defined
+        if m_def.name is None:
+            m_def.name = cls.__name__
         m_def._section_cls = cls
 
         # add base sections

@@ -19,7 +19,7 @@ from nomad import processing, files
 from nomad.datamodel import EntryMetadata, MongoMetadata, EntryArchive
 from nomad.parsing import Backend
 
-from tests.test_normalizing import run_normalize
+from tests.normalizing.conftest import run_normalize
 
 
 class Upload():

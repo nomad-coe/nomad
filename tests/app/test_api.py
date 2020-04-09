@@ -1017,9 +1017,9 @@ class TestRepo():
     @pytest.mark.parametrize('n_results, size', [(2, None), (2, 5), (1, 1)])
     def test_search_scroll(self, api, example_elastic_calcs, no_warn, n_results, size):
         if size is not None:
-            rv = api.get('/repo/?scroll=1,&per_page=%d' % size)
+            rv = api.get('/repo/?scroll=1m,&per_page=%d' % size)
         else:
-            rv = api.get('/repo/?scroll=1')
+            rv = api.get('/repo/?scroll=1m')
 
         assert rv.status_code == 200
         data = json.loads(rv.data)
@@ -1032,7 +1032,7 @@ class TestRepo():
 
         has_another_page = False
         while scroll_id is not None:
-            rv = api.get('/repo/?scroll=1&scroll_id=%s' % scroll_id)
+            rv = api.get('/repo/?scroll=1m&scroll_id=%s' % scroll_id)
             data = json.loads(rv.data)
             scroll_id = data.get('scroll', {}).get('scroll_id', None)
             has_another_page |= len(data.get('results')) > 0
