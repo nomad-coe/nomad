@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lazy_import
+from nomad.cli import lazy_import
 
 lazy_import.lazy_module('typing')
 lazy_import.lazy_module('click')

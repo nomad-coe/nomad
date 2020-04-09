@@ -138,7 +138,6 @@ if __name__ == '__main__':
     print('  first arg is number of calcs (code runs)')
     print('  second arg is number uploads to spread calcs over')
 
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 

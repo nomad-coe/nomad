@@ -16,7 +16,7 @@ data:
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
     logstash:
-      enabled: true
+      enabled: {{ .Values.logstash.enabled }}
       host: "{{ .Values.logstash.host }}"
       tcp_port: {{ .Values.logstash.port }}
     services:

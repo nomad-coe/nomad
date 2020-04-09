@@ -29,7 +29,6 @@ import aniso8601
 from datetime import datetime
 import pytz
 import docstring_parser
-import flask_restplus.inputs
 
 
 m_package: 'Package' = None
@@ -393,6 +392,7 @@ class _Datetime(DataType):
 
         try:
             # TODO necessary?
+            import flask_restplus.inputs
             return flask_restplus.inputs.datetime_from_rfc822(datetime_str)
         except ValueError:
             pass

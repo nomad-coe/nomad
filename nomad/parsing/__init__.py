@@ -71,10 +71,6 @@ based on nomad@fairdi's metainfo:
 '''
 
 from typing import Callable, IO, Union, Dict
-import magic
-import gzip
-import bz2
-import lzma
 import os.path
 
 from nomad import config
@@ -85,14 +81,24 @@ from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingPa
 from nomad.parsing.artificial import (
     TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser)
 
+try:
+    # these packages are not available without parsing extra, which is ok, if the
+    # parsers are only initialized to load their metainfo definitions
+    import magic
+    import gzip
+    import bz2
+    import lzma
 
-_compressions = {
-    b'\x1f\x8b\x08': ('gz', gzip.open),
-    b'\x42\x5a\x68': ('bz2', bz2.open),
-    b'\xfd\x37\x7a': ('xz', lzma.open)
-}
+    _compressions = {
+        b'\x1f\x8b\x08': ('gz', gzip.open),
+        b'\x42\x5a\x68': ('bz2', bz2.open),
+        b'\xfd\x37\x7a': ('xz', lzma.open)
+    }
 
-encoding_magic = magic.Magic(mime_encoding=True)
+    encoding_magic = magic.Magic(mime_encoding=True)
+
+except ImportError:
+    pass
 
 
 def match_parser(mainfile_path: str, strict=True) -> 'Parser':

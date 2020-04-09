@@ -40,7 +40,7 @@ import unidecode
 
 from nomad import config, utils
 
-logger = None
+logger = utils.get_logger(__name__)
 
 elastic_client = None
 ''' The elastic search client. '''
@@ -56,24 +56,9 @@ def setup():
     Will create client instances for the databases and has to be called before they
     can be used.
     '''
-    setup_logging()
     setup_files()
     setup_mongo()
     setup_elastic()
-
-
-def setup_logging():
-    utils.configure_logging()
-
-    global logger
-    logger = utils.get_logger(__name__)
-
-    logger.info(
-        'setup logging',
-        logstash=config.logstash.enabled,
-        logstash_host=config.logstash.host,
-        logstash_port=config.logstash.tcp_port,
-        logstash_level=config.logstash.level)
 
 
 def setup_files():

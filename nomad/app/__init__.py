@@ -34,6 +34,7 @@ from nomad import config, utils as nomad_utils
 from .api import blueprint as api_blueprint, api
 from .optimade import blueprint as optimade_blueprint, api as optimade
 from .docs import blueprint as docs_blueprint
+from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
 from . import common
 
@@ -92,6 +93,7 @@ CORS(app)
 app.register_blueprint(api_blueprint, url_prefix='/api')
 app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
+app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
 
 

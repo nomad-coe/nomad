@@ -85,11 +85,6 @@ conda -c conda-forge install --name nomad_env libmagic
 The next steps can be done using the `setup.sh` script. If you prefere to understand all
 the steps and run them manually, read on:
 
-### Install python dependencies
-We use *pip* to manage required python packages.
-```
-pip install -r requirements.txt
-```
 
 ### Install NOMAD-coe dependencies.
 Nomad is based on python modules from the NOMAD-coe project.
@@ -111,9 +106,9 @@ The `-e` option will install the NOMAD-coe dependencies with symbolic links allo
 to change the downloaded dependency code without having to reinstall after.
 
 ### Install nomad
-Finally, you can add nomad to the environment itself.
+Finally, you can add nomad to the environment itself (including all extras)
 ```
-pip install -e .
+pip install -e .[all]
 ```
 
 ## Build and run the infrastructure with docker

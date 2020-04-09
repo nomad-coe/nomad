@@ -16,7 +16,7 @@ import click
 import logging
 import os
 
-from nomad import config as nomad_config, infrastructure
+from nomad import config as nomad_config, utils
 
 
 class LazyCommand(click.Command):
@@ -97,15 +97,27 @@ class POPO(dict):
 @click.option('--config', help='the config file to use')
 @click.pass_context
 def cli(ctx, verbose: bool, debug: bool, config: str):
+    nomad_config.service = os.environ.get('NOMAD_SERVICE', 'cli')
+
     if config is not None:
         nomad_config.load_config(config_file=config)
 
     if debug:
-        nomad_config.console_log_level = logging.DEBUG
+        utils.set_console_log_level(logging.DEBUG)
     elif verbose:
-        nomad_config.console_log_level = logging.INFO
+        utils.set_console_log_level(logging.INFO)
     else:
-        nomad_config.console_log_level = logging.WARNING
+        utils.set_console_log_level(logging.WARNING)
 
-    nomad_config.service = os.environ.get('NOMAD_SERVICE', 'admin')
-    infrastructure.setup_logging()
+
+def run_cli():
+    try:
+        return cli()  # pylint: disable=E1120,E1123
+    except ImportError:
+        import sys
+        print(
+            'You are accessing functionality that requires extra dependencies.\n'
+            'Check the NOMAD documentation or install all extra dependencies:\n'
+            '  pip install nomad[all]', file=sys.stderr)
+
+        sys.exit(1)

@@ -31,7 +31,6 @@ from matid import SymmetryAnalyzer
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 from nomad import atomutils
-from nomad import normalizing
 from nomad.cli.cli import cli
 
 
@@ -116,7 +115,6 @@ def reset(remove, i_am_really_sure):
         print('You do not seem to be really sure about what you are doing.')
         sys.exit(1)
 
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -127,7 +125,6 @@ def reset(remove, i_am_really_sure):
 @click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def lift_embargo(dry, parallel):
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -166,7 +163,6 @@ def lift_embargo(dry, parallel):
 @click.option('--threads', type=int, default=1, help='Number of threads to use.')
 @click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
 def index(threads, dry):
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -523,4 +519,5 @@ def prototypes_update(ctx, filepath, matches_only):
 @click.option('--max-n-query', default=10, type=int, help='Number of unsuccessful springer request before returning an error. Default is 10.')
 @click.option('--retry-time', default=120, type=int, help='Time in seconds to retry after unsuccessful request. Default is 120.')
 def springer_update(max_n_query, retry_time):
-    normalizing.springer.update_springer_data(max_n_query, retry_time)
+    from nomad.cli.admin import springer
+    springer.update_springer_data(max_n_query, retry_time)

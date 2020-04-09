@@ -1,26 +1,45 @@
-# science/physics related
+# install
+pip
+wheel
+pyyaml
 numpy
+fastentrypoints
 cython>=0.19
+future
+
+# nomad
+cachetools
+docstring-parser
+Pint
+orjson
+click
+requests
+bravado
+pytz
+aniso8601
+ase==3.19.0
+python-keycloak
+elasticsearch-dsl==6.4.0
+
+# [parsing]
 pandas
 h5py
 hjson
 scipy
 scikit-learn==0.20.2
-ase==3.19.0
-Pint
 matid==0.5.9
+python-magic
+panedr==0.2
+parmed==3.0.0
+mdtraj==1.9.1
+mdanalysis==0.16.2
+nomadcore
 
-# infrastructue related
-orjson
+# [infrastructure]
+optimade
+structlog
 elasticsearch==6.4.0
-elasticsearch-dsl==6.4.0
 msgpack<0.6.0
-elasticsearch==6.4.0
-elasticsearch-dsl==6.4.0
-pyyaml
-future
-enum34
-requests
 celery[redis]
 mongoengine==0.18.2
 Werkzeug==0.16.1
@@ -33,32 +52,27 @@ passlib
 python-logstash
 gitpython
 gunicorn[eventlet]
-structlog
-recommonmark
 m2r
-requests
-click
 zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
-bravado
 pyjwt[crypto]
 jsonschema[format]
-python-magic
 runstats
 pyyaml
 tabulate
-cachetools
+bs4
+html5lib
 zipfile37
-python-keycloak
 basicauth
 inflection
-docstring-parser
 unidecode
 python-json-logger
+recommonmark
+jinja2
 
-# dev/ops related
+# [dev]
 setuptools
 sphinx==2.4.4
 sphinxcontrib.httpdomain
@@ -77,7 +91,3 @@ rope
 mongomock==3.17.0
 names
 essential_generators
-jinja2
-bs4
-html5lib
-fastentrypoints

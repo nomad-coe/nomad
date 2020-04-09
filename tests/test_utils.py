@@ -17,6 +17,7 @@ import json
 import pytest
 
 from nomad import utils
+from nomad.utils import structlogging
 
 
 def test_decode_handle_id():
@@ -46,9 +47,9 @@ def test_sleep_timer():
 
 
 def test_sanitize_logevent():
-    assert utils.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
-    assert utils.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
-    assert utils.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
+    assert structlogging.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
+    assert structlogging.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
+    assert structlogging.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
 
 
 def test_logging(no_warn):
@@ -76,3 +77,8 @@ def test_common_prefix():
 def test_uuid():
     uuid = utils.create_uuid()
     assert uuid is not None
+
+
+def test_class_logger():
+    logger = utils.ClassicLogger(__name__, test='value')
+    logger.warn('hello world', test='other value')

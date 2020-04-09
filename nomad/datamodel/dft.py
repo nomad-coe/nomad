@@ -18,7 +18,7 @@ DFT specific metadata
 
 import re
 
-from nomad import utils, config
+from nomad import config
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
@@ -272,6 +272,7 @@ class DFTMetadata(MSection):
         a_search='optimade')
 
     def apply_domain_metadata(self, backend):
+        from nomad import utils
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
 

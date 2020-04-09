@@ -34,10 +34,10 @@ import nomad.patch  # pylint: disable=unused-import
 
 
 if config.logstash.enabled:
-    utils.configure_logging()
+    from nomad.utils import structlogging
 
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
-        utils.add_logstash_handler(logger)
+        structlogging.add_logstash_handler(logger)
         return logger
 
     after_setup_task_logger.connect(initialize_logstash)

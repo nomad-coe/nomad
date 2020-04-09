@@ -32,7 +32,6 @@ def import_command(path_to_users_file):
     with open(path_to_users_file, 'rt') as f:
         users = json.load(f)
 
-    infrastructure.setup_logging()
     logger = utils.get_logger(__name__)
 
     for user_dict in users:

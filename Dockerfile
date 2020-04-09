@@ -14,8 +14,7 @@
 
 # This dockerfile describes an image that can be used to run the
 # - nomad processing worker
-# - nomad upload handler that initiates processing after upload
-# - nomad api
+# - nomad app (incl serving the gui)
 
 # The dockerfile is multistaged to use a fat, more convinient build image and
 # copy only necessities to a slim final image
@@ -27,16 +26,20 @@ FROM python:3.6-slim as final
 FROM python:3.6-stretch as build
 RUN mkdir /install
 
-# Install some specific dependencies to make use of docker layer caching
+# Install some specific dependencies necessary for the build process
 RUN pip install --upgrade pip
+RUN pip install fastentrypoints
+RUN pip install pyyaml
 RUN pip install numpy
+
+# Install some specific dependencies to make use of docker layer caching
 RUN pip install cython>=0.19
 RUN pip install pandas
 RUN pip install h5py
 RUN pip install hjson
 RUN pip install scipy
 RUN pip install scikit-learn==0.20.2
-RUN pip install ase==3.15.0
+RUN pip install ase==3.19.0
 RUN pip install Pint
 RUN pip install matid
 RUN pip install mdtraj==1.9.1
@@ -46,24 +49,12 @@ RUN pip install mdanalysis==0.16.2
 RUN apt-get update && apt-get install -y make
 RUN apt-get update && apt-get install -y vim
 
-# We also install the -dev dependencies, to use this image for test and qa
-COPY requirements.txt /install/requirements.txt
+# Copy files and install nomad@FAIRDI
 WORKDIR /install
-RUN pip install -r requirements.txt
-
-# Use docker build --build-args CACHEBUST=2 to not cache this (e.g. when you know deps have changed)
-ARG CACHEBUST=1
-
-# Install all NOMAD-CoE dependencies. This is done separately because most of
-# the time this comes directly from docker cache
-COPY ./dependencies /install/dependencies
-COPY ./dependencies.sh /install/dependencies.sh
-COPY ./.gitmodules /install/.gitmodules
-RUN sh dependencies.sh
-
-# Copy rest of files and install nomad@FAIRDI
 COPY . /install
-RUN pip install .
+RUN python setup.py compile
+RUN pip install .[all]
+RUN python setup.py sdist
 WORKDIR /install/docs
 RUN make html
 RUN \
@@ -99,13 +90,16 @@ RUN echo "copy 2"
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
 RUN echo "copy 3"
+# copy the source distribution, its files will be served by the API
+COPY --from=build /install/dist /app/dist
+RUN echo "copy 4"
 # copy the nomad command
 COPY --from=build /usr/local/bin/nomad /usr/bin/nomad
-RUN echo "copy 4"
+RUN echo "copy 5"
 # copy the gui
 RUN mkdir -p /app/gui
 COPY --from=gui_build /app/build /app/gui/build
-RUN echo "copy 5"
+RUN echo "copy 6"
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad

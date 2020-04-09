@@ -16,7 +16,7 @@
 Experimental material science specific metadata
 '''
 
-from nomad import utils, config
+from nomad import config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
 
@@ -51,6 +51,8 @@ class EMSMetadata(MSection):
     group_hash = Quantity(type=str, a_search=Search())
 
     def apply_domain_metadata(self, backend):
+        from nomad import utils
+
         if backend is None:
             return
 

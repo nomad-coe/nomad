@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Dict
 from collections import Counter
-from typing import Any
 import ase
 from ase import Atoms
 import numpy as np
@@ -22,11 +22,10 @@ import re
 from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
-from nomad import atomutils
+from nomad import atomutils, archive
 from nomad import utils, config
 
 from .normalizer import SystemBasedNormalizer
-from .springer import query_springer_data
 
 # use a regular expression to check atom labels; expression is build from list of
 # all labels sorted desc to find Br and not B when searching for Br.
@@ -434,3 +433,22 @@ class SystemNormalizer(SystemBasedNormalizer):
             sec_prototype.m_cache["prototype_name"] = aflow_prototype_name
             if aflow_strukturbericht_designation != "None":
                 sec_prototype.m_cache["strukturbericht_designation"] = aflow_strukturbericht_designation
+
+
+def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
+    ''' Queries a msgpack database for springer-related quantities. '''
+    if config.normalize.springer_db_path is None:
+        return {}
+
+    entries = archive.query_archive(config.normalize.springer_db_path, {str(space_group_number): {normalized_formula: '*'}})
+    db_dict = {}
+    entries = entries.get(str(space_group_number), {}).get(normalized_formula, {})
+
+    for sp_id, entry in entries.items():
+        db_dict[sp_id] = {
+            'spr_id': sp_id,
+            'spr_aformula': entry['aformula'],
+            'spr_url': entry['url'],
+            'spr_compound': entry['compound'],
+            'spr_classification': entry['classification']}
+    return db_dict

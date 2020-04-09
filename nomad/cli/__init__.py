@@ -19,13 +19,14 @@ that offers various functionality to the command line user.
 Use it from the command line with ``nomad --help`` or ``python -m nomad.cli --help`` to learn
 more.
 '''
-import lazy_import
+from nomad.cli import lazy_import
 
 lazy_import.lazy_module('click')
 lazy_import.lazy_module('logging')
 lazy_import.lazy_module('os')
 lazy_import.lazy_module('typing')
 lazy_import.lazy_module('json')
+lazy_import.lazy_module('orjson')
 lazy_import.lazy_module('sys')
 lazy_import.lazy_module('nomad.config')
 lazy_import.lazy_module('nomad.infrastructure')
@@ -41,8 +42,4 @@ lazy_import.lazy_module('nomadcore')
 lazy_import.lazy_module('nomadcore.simple_parser')
 
 from . import dev, parse, admin, client  # noqa
-from .cli import cli  # noqa
-
-
-def run_cli():
-    cli()  # pylint: disable=E1120,E1123
+from .cli import run_cli, cli  # noqa
