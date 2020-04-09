@@ -186,8 +186,8 @@ class ArchiveQuery(collections.abc.Sequence):
                 errors = response.json().get('errors')
                 if message:
                     raise QueryError('%s: %s' % (message, errors))
-                else:
-                    raise QueryError('The query is invalid for unknown reasons.')
+
+                raise QueryError('The query is invalid for unknown reasons.')
 
             raise response.raise_for_status()
 
