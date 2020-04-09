@@ -318,9 +318,16 @@ def query_api_clientlib(**kwargs):
     Creates a string of python code to execute a search query on the archive using
     the client library.
     '''
+    def normalize_value(key, value):
+        quantity = search.search_quantities.get(key)
+        if quantity.many and not isinstance(value, list):
+            return [value]
+
+        return value
+
     kwargs = {
-        key: value for key, value in kwargs.items()
-        if key in _search_quantities and (key != 'domain' or value != [config.default_domain])
+        key: normalize_value(key, value) for key, value in kwargs.items()
+        if key in search.search_quantities and (key != 'domain' or value != config.default_domain)
     }
 
     out = io.StringIO()
