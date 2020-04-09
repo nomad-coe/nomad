@@ -138,43 +138,6 @@ class UploadsHistogramUnstyled extends React.Component {
     return intervals[diffs.indexOf(Math.min(...diffs))]
   }
 
-  hover(svg, bar) {
-    const textOffset = 25
-
-    const tooltip = svg.append('g')
-      .attr('class', 'tooltip')
-      .style('display', 'none')
-
-    const hoverBox = tooltip.append('rect')
-      .attr('width', 10)
-      .attr('height', 20)
-      .attr('fill', 'white')
-      .style('opacity', 0.0)
-
-    const text = tooltip.append('text')
-      .attr('x', textOffset)
-      .attr('dy', '1.2em')
-      .style('text-anchor', 'start')
-      .attr('font-size', '12px')
-    // .attr('font-weight', 'bold')
-
-    bar
-      .on('mouseover', () => {
-        tooltip.style('display', null)
-        let { width } = text.node().getBBox()
-        hoverBox.attr('width', `${width + textOffset}px`)
-      })
-      .on('mouseout', () => tooltip.style('display', 'none'))
-      .on('mousemove', function(d) {
-        let xPosition = d3.mouse(this)[0] - 15
-        let yPosition = d3.mouse(this)[1] - 25
-
-        tooltip.attr('transform', `translate( ${xPosition}, ${yPosition})`)
-        tooltip.attr('data-html', 'true')
-        tooltip.select('text').text(new Date(d.time).toISOString() + ': ' + d.value)
-      })
-  }
-
   updateChart() {
     let data = []
     if (!this.props.data) {
@@ -244,9 +207,8 @@ class UploadsHistogramUnstyled extends React.Component {
     svg.append('text')
       .attr('class', 'ylabel')
       .attr('x', 0)
-      .attr('y', 0)
+      .attr('y', 10)
       .attr('dy', '1em')
-      .attr('text-anchor', 'start')
       .attr('font-size', '12px')
       .text(`${shortLabel || label}`)
 
@@ -271,8 +233,44 @@ class UploadsHistogramUnstyled extends React.Component {
       .on('click', d => this.handleItemClicked(d, deltaT))
 
     svg.select('.tooltip').remove()
+    let tooltip = svg.append('g')
+    tooltip
+      .attr('class', 'tooltip')
+      .style('visibility', 'hidden')
 
-    svg.call(this.hover, item)
+    tooltip.append('rect')
+      .attr('x', 0)
+      .attr('rx', 6)
+      .attr('ry', 6)
+      .attr('width', 100)
+      .attr('height', 40)
+      .attr('fill', 'grey')
+      .style('opacity', 1.0)
+
+    let tooltipText = tooltip.append('text')
+      .attr('dy', '1.2em')
+      .attr('font-family', 'Arial, Helvetica, sans-serif')
+      .attr('font-size', '10px')
+      .attr('fill', 'white')
+      .style('text-anchor', 'middle')
+
+    item
+      .on('mouseover', function(d) {
+        tooltip.style('visibility', 'visible')
+        const date = new Date(d.time)
+        const value = `${date.toLocaleDateString()}\n
+          ${date.toLocaleTimeString()}
+          ${d.value} ${shortLabel || label}`
+        tooltipText.selectAll('tspan')
+          .data((value).split(/\n/)).join('tspan')
+          .attr('x', 50)
+          .attr('y', (d, i) => `${i * 1.2}em`)
+          .text(d => d)
+        const xPosition = x(d.name) + 20
+        const yPosition = y(d.value) - 20
+        tooltip.attr('transform', `translate( ${xPosition}, ${yPosition})`)
+      })
+      .on('mouseout', () => tooltip.style('visibility', 'hidden'))
   }
 
   render() {
