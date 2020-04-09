@@ -188,9 +188,11 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
     for _, setup_data in results.items():
         if 'parsers' in setup_data['meta']['setup.py']:
             parsing = kwargs.setdefault('extras_require', {}).setdefault('parsing', [])
+            all = kwargs.setdefault('extras_require', {}).setdefault('all', [])
             for require in setup_data['kwargs'].get('install_requires', []):
                 if require not in parsing:
                     parsing.append(require)
+                    all.append(require)
 
     def replace_own_packages(requires):
         ''' replaces nomad dependencies with their requirements '''
