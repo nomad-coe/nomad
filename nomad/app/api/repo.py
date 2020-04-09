@@ -35,7 +35,7 @@ from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\
     add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl, _search_quantities
+    query_api_python, query_api_curl, query_api_clientlib, _search_quantities
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -67,8 +67,11 @@ class RepoCalcResource(Resource):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         result = calc.to_dict()
-        result['python'] = query_api_python('archive', upload_id, calc_id)
-        result['curl'] = query_api_curl('archive', upload_id, calc_id)
+        result['code'] = {
+            'python': query_api_python('archive', upload_id, calc_id),
+            'curl': query_api_curl('archive', upload_id, calc_id),
+            'clientlib': query_api_clientlib(upload_id=[upload_id], calc_id=[calc_id])
+        }
 
         return result, 200
 
@@ -251,8 +254,11 @@ class RepoCalcsResource(Resource):
             code_args = dict(request.args)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
-            results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
-            results['python'] = query_api_python('archive', 'query', query_string=code_args)
+            results['code'] = {
+                'curl': query_api_curl('archive', 'query', query_string=code_args),
+                'python': query_api_python('archive', 'query', query_string=code_args),
+                'clientlib': query_api_clientlib(**code_args)
+            }
 
             return results, 200
         except search.ScrollIdNotFound:

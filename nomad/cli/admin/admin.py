@@ -27,7 +27,7 @@ import numpy as np
 import requests
 import ase
 import bs4
-from matid import SymmetryAnalyzer
+import matid
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 from nomad import atomutils
@@ -490,7 +490,7 @@ def prototypes_update(ctx, filepath, matches_only):
 
             # Try to first see if the space group can be matched with the one in AFLOW
             try:
-                symm = SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
+                symm = matid.SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()

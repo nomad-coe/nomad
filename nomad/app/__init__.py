@@ -25,9 +25,9 @@ from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
 import os.path
 import random
 from structlog import BoundLogger
-import orjson
 import collections
 from mongoengine.base.datastructures import BaseList
+import orjson
 
 from nomad import config, utils as nomad_utils
 
@@ -39,9 +39,24 @@ from .gui import blueprint as gui_blueprint
 from . import common
 
 
+def dump_json(data):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if data.__class__.__name__ == 'BaseList':
+            return list(data)
+
+        raise TypeError
+
+    return orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+
+
 # replace the json implementation of flask_restplus
 def output_json(data, code, headers=None):
-    dumped = nomad_utils.dumps(data) + b'\n'
+    dumped = dump_json(data) + b'\n'
 
     resp = make_response(dumped, code)
     resp.headers.extend(headers or {})

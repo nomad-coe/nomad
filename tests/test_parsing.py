@@ -21,6 +21,7 @@ from shutil import copyfile
 
 from nomad import utils, files, datamodel
 from nomad.parsing import parser_dict, match_parser, BrokenParser, BadContextUri, Backend
+from nomad.app import dump_json
 
 
 parser_examples = [
@@ -402,7 +403,8 @@ def parser_in_dir(dir):
 
                 try:
                     backend = parser.run(file_path)
-                    utils.dumps(backend.entry_archive.m_to_dict())
+                    # check if the result can be dumped
+                    dump_json(backend.entry_archive.m_to_dict())
                     backend.resource.unload()
                 except Exception as e:
                     print(file_path, parser, 'FAILURE', e)

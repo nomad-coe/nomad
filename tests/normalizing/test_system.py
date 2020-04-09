@@ -14,8 +14,9 @@
 
 import ase.build
 
-from nomad import datamodel, config, utils
+from nomad import datamodel, config
 from nomad.parsing import Backend
+from nomad.app import dump_json
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -103,7 +104,8 @@ def assert_normalized(backend: Backend):
 
         assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
 
-    utils.dumps(backend.entry_archive.m_to_dict())
+    # check if the result can be dumped
+    dump_json(backend.entry_archive.m_to_dict())
 
 
 def test_normalizer(normalized_example: Backend):

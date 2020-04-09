@@ -38,7 +38,6 @@ from collections import OrderedDict
 import base64
 from contextlib import contextmanager
 import json
-import orjson
 import uuid
 import time
 import re
@@ -103,21 +102,6 @@ def set_console_log_level(level):
     for handler in root.handlers:
         if isinstance(handler, (logging.StreamHandler, logging.FileHandler)):
             handler.setLevel(level)
-
-
-def dumps(data):
-    def default(data):
-        if isinstance(data, collections.OrderedDict):
-            return dict(data)
-
-        if data.__class__.__name__ == 'BaseList':
-            return list(data)
-
-        raise TypeError
-
-    return orjson.dumps(
-        data, default=default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
 
 
 def decode_handle_id(handle_str: str):

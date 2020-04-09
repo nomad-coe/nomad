@@ -38,6 +38,27 @@ class ApiDialogUnstyled extends React.Component {
     }
   })
 
+  renderCode(title, code) {
+    const {classes} = this.props
+    return <React.Fragment>
+      <Typography>{title}</Typography>
+      <div className={classes.codeContainer}>
+        <div className={classes.code}>
+          <Markdown text={'```\n' + code + '\n```'} />
+        </div>
+        <div className={classes.codeActions}>
+          <CopyToClipboard text={code} onCopy={() => null}>
+            <Tooltip title="Copy to clipboard">
+              <IconButton>
+                <ClipboardIcon />
+              </IconButton>
+            </Tooltip>
+          </CopyToClipboard>
+        </div>
+      </div>
+    </React.Fragment>
+  }
+
   render() {
     const { classes, title, data, onClose, ...dialogProps } = this.props
 
@@ -46,45 +67,12 @@ class ApiDialogUnstyled extends React.Component {
         <DialogTitle>{title || 'API Code'}</DialogTitle>
 
         <DialogContent classes={{root: classes.content}}>
-          <Typography>Access the archive as JSON via <i>curl</i>:</Typography>
-          <div className={classes.codeContainer}>
-            <div className={classes.code}>
-              <Markdown>{`
-                \`\`\`
-                  ${data.curl}
-                \`\`\`
-              `}</Markdown>
-            </div>
-            <div className={classes.codeActions}>
-              <CopyToClipboard text={data.curl} onCopy={() => null}>
-                <Tooltip title="Copy to clipboard">
-                  <IconButton>
-                    <ClipboardIcon />
-                  </IconButton>
-                </Tooltip>
-              </CopyToClipboard>
-            </div>
-          </div>
-
-          <Typography>Access the archive in <i>python</i>:</Typography>
-          <div className={classes.codeContainer}>
-            <div className={classes.code}>
-              <Markdown>{`
-                \`\`\`
-                  ${data.python}
-                \`\`\`
-              `}</Markdown>
-            </div>
-            <div className={classes.codeActions}>
-              <CopyToClipboard text={data.python} onCopy={() => null}>
-                <Tooltip title="Copy to clipboard">
-                  <IconButton>
-                    <ClipboardIcon />
-                  </IconButton>
-                </Tooltip>
-              </CopyToClipboard>
-            </div>
-          </div>
+          { data.code && data.code.curl &&
+            this.renderCode(<span>Access the archive as JSON via <i>curl</i>:</span>, data.code.curl)}
+          { data.code && data.code.python &&
+            this.renderCode(<span>Access the archive in <i>python</i>:</span>, data.code.python)}
+          { data.code && data.code.clientlib &&
+            this.renderCode(<span>Access the archive with the <i>NOMAD client library</i>:</span>, data.code.clientlib)}
 
           <Typography>The repository API response as JSON:</Typography>
           <div className={classes.codeContainer}>
