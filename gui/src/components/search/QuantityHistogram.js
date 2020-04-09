@@ -35,11 +35,17 @@ const _mapping = {
   'oscillator_strengths': 'Oscillator strengths',
   'transition_dipole_moments': 'Transition dipole moments'}
 
-function mapKey(name) {
-  if (name in _mapping) {
-    return _mapping[name]
+function mapKey(key, short = true) {
+  let name = key
+  const maxLength = 17
+  if (key in _mapping) {
+    name = _mapping[key]
   }
-  return name
+  if (name.length > maxLength && short) {
+    return name.substring(0, maxLength) + '...'
+  } else {
+    return name
+  }
 }
 
 class QuantityHistogramUnstyled extends React.Component {
@@ -82,10 +88,10 @@ class QuantityHistogramUnstyled extends React.Component {
   }
 
   handleItemClicked(item) {
-    if (this.props.value === item.name) {
+    if (this.props.value === item.key) {
       this.props.onChanged(null)
     } else {
-      this.props.onChanged(item.name)
+      this.props.onChanged(item.key)
     }
   }
 
@@ -102,6 +108,7 @@ class QuantityHistogramUnstyled extends React.Component {
 
     const data = Object.keys(this.props.data)
       .map(key => ({
+        key: key,
         name: mapKey(key),
         value: this.props.data[key][this.props.metric]
       }))
@@ -142,19 +149,21 @@ class QuantityHistogramUnstyled extends React.Component {
     svg.attr('height', height)
 
     let withData = svg
-      .selectAll('g')
+      .selectAll('.item')
       .data(data, data => data.name)
 
     withData.exit().remove()
 
-    const rectColor = d => selected === d.name ? nomadPrimaryColor.main : nomadSecondaryColor.light
-    const textColor = d => selected === d.name ? '#FFF' : '#000'
+    const rectColor = d => selected === d.key ? nomadPrimaryColor.main : nomadSecondaryColor.light
+    const textColor = d => selected === d.key ? '#FFF' : '#000'
 
     let item = withData.enter()
       .append('g')
+      .attr('class', 'item')
 
     item
       .append('rect')
+      .attr('class', 'bar')
       .attr('x', x(0))
       .attr('y', d => y(d.name))
       .attr('width', d => x(d.value) - x(0))
@@ -188,12 +197,55 @@ class QuantityHistogramUnstyled extends React.Component {
       .style('cursor', 'pointer')
       .on('click', d => this.handleItemClicked(d))
 
+    svg.select('.tooltip').remove()
+    let tooltip = svg.append('g')
+    tooltip
+      .attr('class', 'tooltip')
+      .style('visibility', 'hidden')
+
+    tooltip.append('rect')
+      .attr('class', 'tooltipbox')
+      .attr('rx', 6)
+      .attr('ry', 6)
+      .attr('width', 120)
+      .attr('height', y.bandwidth())
+      .attr('fill', 'grey')
+      .style('opacity', 1.0)
+
+    tooltip.append('text')
+      .attr('class', 'tooltiptext')
+      .attr('dy', '1.2em')
+      .attr('font-family', 'Arial, Helvetica, sans-serif')
+      .attr('font-size', '12px')
+      .attr('fill', 'white')
+
+    item
+      .on('mouseover', function(d, i) {
+        const xPosition = x(0)
+        const yPosition = y(d.name)
+        const key = mapKey(d.key, false)
+        svg.select('.tooltip')
+          .style('visibility', 'visible')
+          .attr('transform', `translate( ${xPosition}, ${yPosition})`)
+          .select('.tooltiptext')
+          .text(key)
+
+        const width = 10 * key.length
+        svg.select('.tooltip')
+          .select('.tooltipbox')
+          .attr('width', width)
+      })
+      .on('mouseout', function() {
+        svg.select('.tooltip')
+          .style('visibility', 'hidden')
+      })
+
     const t = d3.transition().duration(500)
 
     item = withData.transition(t)
 
     item
-      .select('rect')
+      .select('.bar')
       .attr('y', d => y(d.name))
       .attr('width', d => x(d.value) - x(0))
       .attr('height', y.bandwidth())
