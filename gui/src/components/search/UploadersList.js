@@ -21,8 +21,7 @@ class UploadersList extends React.Component {
   static contextType = SearchContext.type
 
   componentDidMount() {
-    const {state: {query}, setQuery, setStatisticsToRefresh} = this.context
-    setQuery({...query, statistics_order: '_count'})
+    const {setStatisticsToRefresh} = this.context
     setStatisticsToRefresh('uploader')
   }
 

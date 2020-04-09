@@ -64,6 +64,9 @@ class Search(Elastic):
         default_statistic: Indicates this quantity to be part of the default statistics.
         statistics_size:
             The maximum number of values in a statistic. Default is 10.
+        statistics_order:
+            The order key that is passed to elastic search to determine the order of
+            the statistic values.
         group: Indicates that his quantity can be used to group results. The value will
             be the name of the group.
         search_field: The qualified field in the elastic mapping that is used to search.
@@ -81,6 +84,7 @@ class Search(Elastic):
             group: str = None, metric: str = None, metric_name: str = None,
             default_statistic: bool = False,
             statistic_size: int = 10,
+            statistic_order: str = '_key',
             derived: Callable[[Any], Any] = None,
             search_field: str = None,
             **kwargs):
@@ -97,6 +101,7 @@ class Search(Elastic):
         self.metric = metric
         self.metric_name = metric_name
         self.statistic_size = statistic_size
+        self.statistic_order = statistic_order
         self.search_field = search_field
 
         self.derived = derived

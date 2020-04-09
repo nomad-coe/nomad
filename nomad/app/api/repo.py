@@ -114,8 +114,6 @@ _search_request_parser.add_argument(
 _search_request_parser.add_argument(
     'statistics', type=bool, help=('Return statistics.'))
 _search_request_parser.add_argument(
-    'statistics_order', type=str, help='Statistics order (can be _key or _count)')
-_search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search_extension.groups:
     _search_request_parser.add_argument(
@@ -203,7 +201,6 @@ class RepoCalcsResource(Resource):
 
             with_statistics = args.get('statistics', False) or \
                 any(args.get(group_name, False) for group_name in search_extension.groups)
-            statistics_order = args.get('statistics_order', '_key')
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
@@ -233,7 +230,7 @@ class RepoCalcsResource(Resource):
                 abort(400, message='there is no metric %s' % metric)
 
         if with_statistics:
-            search_request.default_statistics(metrics_to_use=metrics, statistics_order=statistics_order)
+            search_request.default_statistics(metrics_to_use=metrics)
 
             additional_metrics = [
                 group_quantity.metric_name

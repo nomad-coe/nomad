@@ -351,7 +351,8 @@ class EntryMetadata(metainfo.MSection):
                 description='Search uploader with exact names.',
                 metric_name='uploaders', metric='cardinality',
                 many_or='append', search_field='uploader.name.keyword',
-                default_statistic=True, statistic_size=10),
+                default_statistic=True, statistic_size=10,
+                statistic_order='_count'),
             Search(
                 name='uploader_id', search_field='uploader.user_id')
         ])
