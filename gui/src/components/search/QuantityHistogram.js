@@ -6,8 +6,8 @@ import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
 import SearchContext from '../search/SearchContext'
 
-const unprocessed_label = 'not processed'
-const unavailable_label = 'unavailable'
+const unprocessedLabel = 'not processed'
+const unavailableLabel = 'unavailable'
 
 const _mapping = {
   'energy_total': 'Total energy',
@@ -64,6 +64,20 @@ class QuantityHistogramUnstyled extends React.Component {
     root: {},
     content: {
       paddingTop: 0
+    },
+    tooltip: {
+      textAlign: 'center',
+      position: 'absolute'
+    },
+    tooltipContent: {
+      display: 'inline',
+      color: '#fff',
+      padding: '4px 8px',
+      fontSize: '0.625rem',
+      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+      lineHeight: '1.4em',
+      borderRadius: '4px',
+      backgroundColor: '#616161'
     }
   })
 
@@ -100,10 +114,14 @@ class QuantityHistogramUnstyled extends React.Component {
       return
     }
 
-    const { scalePower } = this.state
+    const {classes} = this.props
+
+    const {scalePower} = this.state
     const selected = this.props.value
 
     const width = this.container.current.offsetWidth
+    const left = this.container.current.offsetLeft
+    const top = this.container.current.offsetTop
     const height = Object.keys(this.props.data).length * 32
 
     const data = Object.keys(this.props.data)
@@ -113,28 +131,15 @@ class QuantityHistogramUnstyled extends React.Component {
         value: this.props.data[key][this.props.metric]
       }))
 
-    data.sort((a, b) => {
-      const nameA = a.name
-      const nameB = b.name
-
-      if (nameA === nameB) {
-        return 0
-      }
-
-      if (nameA === unprocessed_label) {
-        return 1
-      }
-      if (nameB === unprocessed_label) {
-        return -1
-      }
-      if (nameA === unavailable_label) {
-        return 1
-      }
-      if (nameB === unavailable_label) {
-        return -1
-      }
-      return nameA.localeCompare(nameB)
-    })
+    // keep the data sorting, but put unavailable and not processed to the end
+    const unavailableIndex = data.findIndex(d => d.name === unavailableLabel)
+    const unprocessedIndex = data.findIndex(d => d.name === unprocessedLabel)
+    if (unavailableIndex !== -1) {
+      data.push(data.splice(unavailableIndex, 1)[0])
+    }
+    if (unprocessedIndex !== -1) {
+      data.push(data.splice(unprocessedIndex, 1)[0])
+    }
 
     const y = scaleBand().rangeRound([0, height]).padding(0.1)
     const x = scalePow().range([0, width]).exponent(scalePower)
@@ -143,6 +148,16 @@ class QuantityHistogramUnstyled extends React.Component {
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
     y.domain(data.map(d => d.name))
+
+    const tooltip = d3.select(this.container.current)
+      .append('div')
+      .attr('class', classes.tooltip)
+      .style('width', width + 'px')
+      .style('opacity', 0)
+
+    const tooltipContent = tooltip
+      .append('div')
+      .attr('class', classes.tooltipContent)
 
     let svg = d3.select(this.svgEl.current)
     svg.attr('width', width)
@@ -197,47 +212,20 @@ class QuantityHistogramUnstyled extends React.Component {
       .style('cursor', 'pointer')
       .on('click', d => this.handleItemClicked(d))
 
-    svg.select('.tooltip').remove()
-    let tooltip = svg.append('g')
-    tooltip
-      .attr('class', 'tooltip')
-      .style('visibility', 'hidden')
-
-    tooltip.append('rect')
-      .attr('class', 'tooltipbox')
-      .attr('rx', 6)
-      .attr('ry', 6)
-      .attr('width', 120)
-      .attr('height', y.bandwidth())
-      .attr('fill', 'grey')
-      .style('opacity', 1.0)
-
-    tooltip.append('text')
-      .attr('class', 'tooltiptext')
-      .attr('dy', '1.2em')
-      .attr('font-family', 'Arial, Helvetica, sans-serif')
-      .attr('font-size', '12px')
-      .attr('fill', 'white')
-
     item
-      .on('mouseover', function(d, i) {
-        const xPosition = x(0)
-        const yPosition = y(d.name)
-        const key = mapKey(d.key, false)
-        svg.select('.tooltip')
-          .style('visibility', 'visible')
-          .attr('transform', `translate( ${xPosition}, ${yPosition})`)
-          .select('.tooltiptext')
-          .text(key)
-
-        const width = 10 * key.length
-        svg.select('.tooltip')
-          .select('.tooltipbox')
-          .attr('width', width)
+      .on('mouseover', function(d) {
+        tooltip.transition()
+          .duration(200)
+          .style('opacity', 0.9)
+        tooltip
+          .style('left', left + 'px')
+          .style('top', (y(d.name) + top + 32) + 'px')
+        tooltipContent.html(mapKey(d.key, false))
       })
-      .on('mouseout', function() {
-        svg.select('.tooltip')
-          .style('visibility', 'hidden')
+      .on('mouseout', function(d) {
+        tooltip.transition()
+          .duration(500)
+          .style('opacity', 0)
       })
 
     const t = d3.transition().duration(500)
