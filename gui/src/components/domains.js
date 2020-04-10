@@ -1,11 +1,13 @@
 import React from 'react'
-import DFTSearchAggregations from './dft/DFTSearchAggregations'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryCards from './dft/DFTEntryCards'
-import EMSSearchAggregations from './ems/EMSSearchAggregations'
+import EMSSearchAggregations from './ems/EMSVisualizations'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
-import DFTSearchByPropertyAggregations from './dft/DFTSearchByPropertyAggregations'
+import DFTSystemVisualizations from './dft/DFTSystemVisualizations'
+import DFTPropertyVisualizations from './dft/DFTPropertyVisualizations'
+import DFTMethodVisualizations from './dft/DFTMethodVisualizations'
+import EMSVisualizations from './ems/EMSVisualizations'
 
 /* eslint-disable react/display-name */
 
@@ -20,21 +22,26 @@ export const domains = ({
     entryTitle: data => data.dft && data.dft.code_name ? data.dft.code_name + ' run' : 'Code run',
     searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
     /**
-     * A component that is used to render the search aggregations. The components needs
-     * to work with props: aggregations (the aggregation data from the api),
-     * searchValues (currently selected search values), metric (the metric key to use),
-     * onChange (callback to propagate searchValue changes).
+     * A set of components and metadata that is used to present tabs of search visualizations
+     * in addition to the globally available elements and users view.
      */
-    SearchAggregations: DFTSearchAggregations,
-    /**
-     * A component that is used to render the search aggregations by property.
-     */
-    SearchByPropertyAggregations: DFTSearchByPropertyAggregations,
-    /**
-     * Metrics are used to show values for aggregations. Each metric has a key (used
-     * for API calls), a label (used in the select form), and result string (to show
-     * the overall amount in search results).
-     */
+    searchVisualizations: {
+      'system': {
+        render: props => <DFTSystemVisualizations {...props}/>,
+        label: 'System',
+        description: 'Shows histograms on system metadata'
+      },
+      'method': {
+        render: props => <DFTMethodVisualizations {...props}/>,
+        label: 'Method',
+        description: 'Shows histograms on method metadata'
+      },
+      'properties': {
+        render: props => <DFTPropertyVisualizations {...props}/>,
+        label: 'Properties',
+        description: 'Shows histograms on the availability of key properties'
+      }
+    },
     searchMetrics: {
       code_runs: {
         label: 'Entries',
@@ -157,6 +164,13 @@ export const domains = ({
     entryLabelPlural: 'entries',
     entryTitle: () => 'Experiment',
     searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
+    searchVisualizations: {
+      'metadata': {
+        render: props => <EMSVisualizations {...props} />,
+        label: 'Metadata',
+        description: 'Shows histograms on system metadata'
+      }
+    },
     /**
      * A component that is used to render the search aggregations. The components needs
      * to work with props: aggregations (the aggregation data from the api),

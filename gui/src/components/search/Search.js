@@ -87,21 +87,11 @@ class Search extends React.Component {
     }
   })
 
-  static visalizations = {
+  static defaultVisalizations = {
     'elements': {
       render: props => <ElementsVisualization {...props}/>,
       label: 'Elements',
       description: 'Shows data as a heatmap over the periodic table'
-    },
-    'domain': {
-      render: props => <DomainVisualization {...props}/>,
-      label: 'Meta data',
-      description: 'Shows histograms on key metadata'
-    },
-    'property': {
-      render: props => <PropertyVisualization {...props}/>,
-      label: 'Properties',
-      description: 'Shows histograms on key properties'
     },
     'users': {
       render: props => <UsersVisualization {...props}/>,
@@ -153,7 +143,10 @@ class Search extends React.Component {
     const {classes, entryListProps, tabs} = this.props
     const {resultTab, openVisualization} = this.state
     const {domain} = this.context.state
-    // const {state: {request: {uploads, datasets, groups}}} = this.context
+
+    const visualizations = {}
+    Object.assign(visualizations, Search.defaultVisalizations)
+    Object.assign(visualizations, domain.searchVisualizations)
 
     return <DisableOnLoading>
       <div className={classes.root}>
@@ -167,6 +160,7 @@ class Search extends React.Component {
               classes={{button: classes.selectButton}}
               value={openVisualization}
               onChange={this.handleVisualizationChange}
+              visualizations={visualizations}
             />
             <MetricSelect classes={{root: classes.metricButton}} />
           </FormGroup>
@@ -175,12 +169,12 @@ class Search extends React.Component {
         </div>
 
         <div className={classes.visalizations}>
-          {Object.keys(Search.visalizations).map(key => {
-            return Search.visalizations[key].render({
-              key: key, open: openVisualization === key
-            })
-          })
-          }
+          {Object.keys(visualizations).map(key => (
+            <KeepState
+              key={key}
+              visible={openVisualization === key}
+              render={visualizations[key].render} />
+          ))}
         </div>
 
         <div className={classes.searchResults}>
@@ -210,40 +204,6 @@ class Search extends React.Component {
   }
 }
 
-class DomainVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-    const {open} = this.props
-
-    return <KeepState visible={open} render={() =>
-      <domain.SearchAggregations />
-    }/>
-  }
-}
-
-class PropertyVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-    const {open} = this.props
-
-    return <KeepState visible={open} render={() =>
-      <domain.SearchByPropertyAggregations />
-    }/>
-  }
-}
-
 class UsersVisualization extends React.Component {
   static propTypes = {
     open: PropTypes.bool
@@ -253,26 +213,19 @@ class UsersVisualization extends React.Component {
 
   render() {
     const {domain} = this.context.state
-    const {open} = this.props
 
-    return <KeepState visible={open} render={() =>
-      <div>
-        <Card>
-          <CardContent>
-            <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-          </CardContent>
-        </Card>
-        <UploadersList />
-      </div>
-    }/>
+    return <div>
+      <Card>
+        <CardContent>
+          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+        </CardContent>
+      </Card>
+      <UploadersList />
+    </div>
   }
 }
 
 class ElementsVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
   static contextType = SearchContext.type
 
   constructor(props) {
@@ -306,23 +259,20 @@ class ElementsVisualization extends React.Component {
   }
 
   render() {
-    const {open} = this.props
     const {state: {response: {statistics}, query, metric}} = this.context
 
-    return <KeepState visible={open} render={() =>
-      <Card>
-        <CardContent>
-          <PeriodicTable
-            aggregations={statistics.atoms}
-            metric={metric}
-            exclusive={this.state.exclusive}
-            values={[...(query.atoms || []), ...(query.only_atoms || [])]}
-            onChanged={this.handleAtomsChanged}
-            onExclusiveChanged={this.handleExclusiveChanged}
-          />
-        </CardContent>
-      </Card>
-    }/>
+    return <Card>
+      <CardContent>
+        <PeriodicTable
+          aggregations={statistics.atoms}
+          metric={metric}
+          exclusive={this.state.exclusive}
+          values={[...(query.atoms || []), ...(query.only_atoms || [])]}
+          onChanged={this.handleAtomsChanged}
+          onExclusiveChanged={this.handleExclusiveChanged}
+        />
+      </CardContent>
+    </Card>
   }
 }
 
@@ -406,14 +356,15 @@ class VisualizationSelect extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     value: PropTypes.string,
+    visualizations: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired
   }
 
   render() {
-    const {classes, value, onChange} = this.props
+    const {classes, value, onChange, visualizations} = this.props
     return <React.Fragment>
-      {Object.keys(Search.visalizations).map(key => {
-        const visualization = Search.visalizations[key]
+      {Object.keys(visualizations).map(key => {
+        const visualization = visualizations[key]
         return <Tooltip key={key} title={visualization.description}>
           <Button
             size="small" variant="outlined" className={classes.button}

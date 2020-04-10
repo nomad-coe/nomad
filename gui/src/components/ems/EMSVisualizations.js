@@ -3,7 +3,7 @@ import { Grid } from '@material-ui/core'
 import { Quantity } from '../search/QuantityHistogram'
 import SearchContext from '../search/SearchContext'
 
-class EMSSearchAggregations extends React.Component {
+export default class EMSVisualizations extends React.Component {
   static contextType = SearchContext.type
 
   render() {
@@ -23,5 +23,3 @@ class EMSSearchAggregations extends React.Component {
     )
   }
 }
-
-export default EMSSearchAggregations

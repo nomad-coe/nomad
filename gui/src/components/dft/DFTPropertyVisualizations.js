@@ -3,9 +3,8 @@ import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { Quantity } from '../search/QuantityHistogram'
 import SearchContext from '../search/SearchContext'
-import { withApi } from '../api'
 
-class DFTSearchByPropertyAggregations extends React.Component {
+export default class DFTPropertyVisualizations extends React.Component {
   static propTypes = {
     info: PropTypes.object
   }
@@ -38,21 +37,19 @@ class DFTSearchByPropertyAggregations extends React.Component {
     return (
       <Grid container spacing={24}>
         <Grid item xs={4}>
-          <Quantity quantity="dft.quantities_energy" title="Energy" scale={1} metric={usedMetric} />
-          <Quantity quantity="dft.quantities_forces" title="Forces" scale={1} metric={usedMetric} />
-          <Quantity quantity="dft.quantities_electronic" title="Electronic" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_energy" title="Energy" scale={1} metric={usedMetric} sort tooltips />
+          <Quantity quantity="dft.quantities_electronic" title="Electronic" scale={1} metric={usedMetric} sort tooltips />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="dft.quantities_magnetic" title="Magnetic" scale={1} metric={usedMetric} />
-          <Quantity quantity="dft.quantities_vibrational" title="Vibrational" scale={1} metric={usedMetric} />
-          <Quantity quantity="dft.quantities_optical" title="Optical" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.quantities_forces" title="Forces" scale={1} metric={usedMetric} sort tooltips />
+          <Quantity quantity="dft.quantities_vibrational" title="Vibrational" scale={1} metric={usedMetric} sort tooltips />
+          <Quantity quantity="dft.quantities_optical" title="Optical" scale={1} metric={usedMetric} sort tooltips />
         </Grid>
         <Grid item xs={4}>
-          <Quantity quantity="dft.labels_springer_classification" title="Springer classification" scale={1} metric={usedMetric} />
+          <Quantity quantity="dft.labels_springer_classification" title="Springer classification" scale={1} metric={usedMetric} tooltips />
+          <Quantity quantity="dft.quantities_magnetic" title="Magnetic" scale={1} metric={usedMetric} sort tooltips />
         </Grid>
       </Grid>
     )
   }
 }
-
-export default withApi(false, false)(DFTSearchByPropertyAggregations)
