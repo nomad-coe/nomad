@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
@@ -6,7 +6,7 @@ import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, 
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
-import SearchContext from './SearchContext'
+import SearchContext, { searchContext } from './SearchContext'
 import { DisableOnLoading } from '../api'
 import { domains } from '../domains'
 import KeepState from '../KeepState'
@@ -169,12 +169,7 @@ class Search extends React.Component {
         </div>
 
         <div className={classes.visalizations}>
-          {Object.keys(visualizations).map(key => (
-            <KeepState
-              key={key}
-              visible={openVisualization === key}
-              render={visualizations[key].render} />
-          ))}
+          {Object.keys(visualizations).filter(key => openVisualization === key).map(key => visualizations[key].render({key: key}))}
         </div>
 
         <div className={classes.searchResults}>
@@ -204,44 +199,32 @@ class Search extends React.Component {
   }
 }
 
-class UsersVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-
-    return <div>
-      <Card>
-        <CardContent>
-          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-        </CardContent>
-      </Card>
-      <UploadersList />
-    </div>
-  }
+function UsersVisualization(props) {
+  const {state: {domain}, setStatistics} = useContext(searchContext)
+  useEffect(() => {
+    setStatistics(['uploader'])
+  })
+  return <div>
+    <Card>
+      <CardContent>
+        <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+      </CardContent>
+    </Card>
+    <UploadersList />
+  </div>
 }
 
-class ElementsVisualization extends React.Component {
-  static contextType = SearchContext.type
+function ElementsVisualization(props) {
+  const [exclusive, setExclusive] = useState(false)
+  const {state: {response: {statistics}, query, metric}, setQuery, setStatistics} = useContext(searchContext)
+  useEffect(() => {
+    setStatistics(['atoms'])
+  })
 
-  constructor(props) {
-    super(props)
-    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
-    this.handleAtomsChanged = this.handleAtomsChanged.bind(this)
-  }
-
-  state = {
-    exclusive: false
-  }
-
-  handleExclusiveChanged() {
-    this.setState({exclusive: !this.state.exclusive}, () => {
+  const handleExclusiveChanged = () => {
+    setExclusive(!exclusive, () => {
       const {state: {query}, setQuery} = this.context
-      if (this.state.exclusive) {
+      if (exclusive) {
         setQuery({...query, only_atoms: query['atoms'], atoms: []})
       } else {
         setQuery({...query, atoms: query.only_atoms, only_atoms: []})
@@ -249,31 +232,25 @@ class ElementsVisualization extends React.Component {
     })
   }
 
-  handleAtomsChanged(atoms) {
-    if (this.state.exclusive) {
-      this.setState({exclusive: false})
+  const handleAtomsChanged = atoms => {
+    if (exclusive) {
+      setExclusive(false)
     }
-
-    const {state: {query}, setQuery} = this.context
     setQuery({...query, atoms: atoms, only_atoms: []})
   }
 
-  render() {
-    const {state: {response: {statistics}, query, metric}} = this.context
-
-    return <Card>
-      <CardContent>
-        <PeriodicTable
-          aggregations={statistics.atoms}
-          metric={metric}
-          exclusive={this.state.exclusive}
-          values={[...(query.atoms || []), ...(query.only_atoms || [])]}
-          onChanged={this.handleAtomsChanged}
-          onExclusiveChanged={this.handleExclusiveChanged}
-        />
-      </CardContent>
-    </Card>
-  }
+  return <Card>
+    <CardContent>
+      <PeriodicTable
+        aggregations={statistics.atoms}
+        metric={metric}
+        exclusive={exclusive}
+        values={[...(query.atoms || []), ...(query.only_atoms || [])]}
+        onChanged={handleAtomsChanged}
+        onExclusiveChanged={handleExclusiveChanged}
+      />
+    </CardContent>
+  </Card>
 }
 
 class MetricSelect extends React.Component {

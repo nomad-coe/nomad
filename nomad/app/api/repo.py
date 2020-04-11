@@ -112,7 +112,8 @@ _search_request_parser.add_argument(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
 _search_request_parser.add_argument(
-    'statistics', type=bool, help=('Return statistics.'))
+    'statistics', type=str, action='append', help=(
+        'Quantities for which to aggregate values and their metrics.'))
 _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search_extension.groups:
@@ -198,9 +199,7 @@ class RepoCalcsResource(Resource):
             date_histogram = args.get('date_histogram', False)
             interval = args.get('interval', 'auto')
             metrics: List[str] = request.args.getlist('metrics')
-
-            with_statistics = args.get('statistics', False) or \
-                any(args.get(group_name, False) for group_name in search_extension.groups)
+            statistics = args.get('statistics', [])
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
@@ -229,20 +228,16 @@ class RepoCalcsResource(Resource):
             if metric not in search_extension.metrics:
                 abort(400, message='there is no metric %s' % metric)
 
-        if with_statistics:
-            search_request.default_statistics(metrics_to_use=metrics)
+        if len(statistics) > 0:
+            search_request.statistics(statistics, metrics_to_use=metrics)
 
-            additional_metrics = [
-                group_quantity.metric_name
-                for group_name, group_quantity in search_extension.groups.items()
-                if args.get(group_name, False)]
-
-            total_metrics = metrics + additional_metrics
-
+        group_metrics = [
+            group_quantity.metric_name
+            for group_name, group_quantity in search_extension.groups.items()
+            if args.get(group_name, False)]
+        total_metrics = metrics + group_metrics
+        if len(total_metrics) > 0:
             search_request.totals(metrics_to_use=total_metrics)
-            search_request.statistic('authors', 1000)
-        elif len(metrics) > 0:
-            search_request.totals(metrics_to_use=metrics)
 
         if 'exclude' in parsed_args:
             excludes = parsed_args['exclude']
@@ -268,7 +263,7 @@ class RepoCalcsResource(Resource):
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                if with_statistics:
+                if 'statistics' in results:
                     statistics = results['statistics']
                     if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
                         del(statistics['code_name']['currupted mainfile'])

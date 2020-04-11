@@ -340,7 +340,6 @@ def query_api_clientlib(**kwargs):
     out.write('})\n')
     out.write('print(results)\n')
 
-    print(out.getvalue())
     return out.getvalue()
 
 

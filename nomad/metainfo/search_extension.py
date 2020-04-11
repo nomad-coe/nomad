@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Any, Dict, List
+from typing import Callable, Any, Dict
 
 from nomad.metainfo.elastic_extension import Elastic
 
@@ -32,9 +32,6 @@ groups: Dict[str, 'Search'] = {}
 
 order_default_quantities: Dict[str, 'Search'] = {}
 ''' The quantity for each domain (key) that is the default quantity to order search results by. '''
-
-default_statistics: Dict[str, List['Search']] = {}
-''' A list of default statistics for each domain (key) '''
 
 
 # TODO multi, split are more flask related
@@ -61,7 +58,6 @@ class Search(Elastic):
             elastic search aggregation (e.g. sum, cardinality, etc.).
         metric_name: If this quantity is indicated to function as a metric, the metric
             needs a name. By default the quantities name is used.
-        default_statistic: Indicates this quantity to be part of the default statistics.
         statistics_size:
             The maximum number of values in a statistic. Default is 10.
         statistics_order:
@@ -82,7 +78,6 @@ class Search(Elastic):
             many_and: str = None, many_or: str = None,
             order_default: bool = False,
             group: str = None, metric: str = None, metric_name: str = None,
-            default_statistic: bool = False,
             statistic_size: int = 10,
             statistic_order: str = '_key',
             derived: Callable[[Any], Any] = None,
@@ -97,7 +92,6 @@ class Search(Elastic):
         self.many_or = many_or
         self.order_default = order_default
         self.group = group
-        self.default_statistic = default_statistic
         self.metric = metric
         self.metric_name = metric_name
         self.statistic_size = statistic_size
@@ -150,9 +144,6 @@ class Search(Elastic):
             self.group = prefix_and_dot + self.group
             assert self.group not in groups, 'Groups must be unique'
             groups[self.group] = self
-
-        if self.default_statistic:
-            default_statistics.setdefault(domain_or_all, []).append(self)
 
         if self.order_default:
             assert order_default_quantities.get(domain_or_all) is None, 'Only one quantity can be the order default'

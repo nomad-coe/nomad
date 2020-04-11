@@ -351,7 +351,7 @@ class EntryMetadata(metainfo.MSection):
                 description='Search uploader with exact names.',
                 metric_name='uploaders', metric='cardinality',
                 many_or='append', search_field='uploader.name.keyword',
-                default_statistic=True, statistic_size=10,
+                statistic_size=10,
                 statistic_order='_count'),
             Search(
                 name='uploader_id', search_field='uploader.user_id')
@@ -434,7 +434,7 @@ class EntryMetadata(metainfo.MSection):
         type=str, shape=['n_atoms'], default=[], categories=[DomainMetadata],
         description='The atom labels of all atoms of the entry\'s material.',
         a_search=Search(
-            many_and='append', default_statistic=True, statistic_size=len(ase.data.chemical_symbols)))
+            many_and='append', statistic_size=len(ase.data.chemical_symbols)))
 
     only_atoms = metainfo.Quantity(
         type=str, categories=[DomainMetadata],

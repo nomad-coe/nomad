@@ -95,6 +95,8 @@ _optical_quantities = [
     'transition_dipole_moments'
 ]
 
+_searchable_quantities = set(_energy_quantities + _electronic_quantities + _forces_quantities + _vibrational_quantities + _magnetic_quantities + _optical_quantities)
+
 version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
 
@@ -145,28 +147,28 @@ class DFTMetadata(MSection):
     basis_set = Quantity(
         type=str, default='not processed',
         description='The used basis set functions.',
-        a_search=Search(statistic_size=20, default_statistic=True))
+        a_search=Search(statistic_size=20))
 
     xc_functional = Quantity(
         type=str, default='not processed',
         description='The libXC based xc functional classification used in the simulation.',
-        a_search=Search(statistic_size=20, default_statistic=True))
+        a_search=Search(statistic_size=20))
 
     system = Quantity(
         type=str, default='not processed',
         description='The system type of the simulated system.',
-        a_search=Search(default_statistic=True))
+        a_search=Search())
 
     compound_type = Quantity(
         type=str, default='not processed',
         description='The compound type of the simulated system.',
-        a_search=Search(statistic_size=11, default_statistic=True)
+        a_search=Search(statistic_size=11)
     )
 
     crystal_system = Quantity(
         type=str, default='not processed',
         description='The crystal system type of the simulated system.',
-        a_search=Search(default_statistic=True))
+        a_search=Search())
 
     spacegroup = Quantity(
         type=int, default=-1,
@@ -181,7 +183,7 @@ class DFTMetadata(MSection):
     code_name = Quantity(
         type=str, default='not processed',
         description='The name of the used code.',
-        a_search=Search(statistic_size=40, default_statistic=True))
+        a_search=Search(statistic_size=40))
 
     code_version = Quantity(
         type=str, default='not processed',
@@ -211,35 +213,10 @@ class DFTMetadata(MSection):
         a_search=Search(
             metric_name='distinct_quantities', metric='cardinality', many_and='append'))
 
-    quantities_energy = Quantity(
+    searchable_quantities = Quantity(
         type=str, shape=['0..*'],
         description='Energy-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
-
-    quantities_electronic = Quantity(
-        type=str, shape=['0..*'],
-        description='Electronic structure-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
-
-    quantities_forces = Quantity(
-        type=str, shape=['0..*'],
-        description='Forces-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
-
-    quantities_vibrational = Quantity(
-        type=str, shape=['0..*'],
-        description='Vibrational-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
-
-    quantities_magnetic = Quantity(
-        type=str, shape=['0..*'],
-        description='Magnetic-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
-
-    quantities_optical = Quantity(
-        type=str, shape=['0..*'],
-        description='Optical-related quantities.',
-        a_search=Search(many_and='append', default_statistic=True))
+        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities)))
 
     geometries = Quantity(
         type=str, shape=['0..*'],
@@ -260,14 +237,14 @@ class DFTMetadata(MSection):
         type=str, shape=['0..*'],
         description='Springer compund classification.',
         a_search=Search(
-            many_and='append', default_statistic=True, statistic_size=10,
+            many_and='append', statistic_size=10,
             statistic_order='_count'))
 
     labels_springer_classification = Quantity(
         type=str, shape=['0..*'],
         description='Springer classification by property.',
         a_search=Search(
-            many_and='append', default_statistic=True, statistic_size=10,
+            many_and='append', statistic_size=10,
             statistic_order='_count'))
 
     optimade = SubSection(
@@ -340,13 +317,8 @@ class DFTMetadata(MSection):
 
         # metrics and quantities
         quantities = set()
+        searchable_quantities = set()
         geometries = set()
-        quantities_energy = set()
-        quantities_electronic = set()
-        quantities_forces = set()
-        quantities_vibrational = set()
-        quantities_magnetic = set()
-        quantities_optical = set()
 
         n_quantities = 0
         n_calculations = 0
@@ -362,18 +334,8 @@ class DFTMetadata(MSection):
                 quantities.add(property_name)
                 n_quantities += 1
 
-                if property_name in _energy_quantities:
-                    quantities_energy.add(property_name)
-                elif property_name in _electronic_quantities:
-                    quantities_electronic.add(property_name)
-                elif property_name in _forces_quantities:
-                    quantities_forces.add(property_name)
-                elif property_name in _vibrational_quantities:
-                    quantities_vibrational.add(property_name)
-                elif property_name in _magnetic_quantities:
-                    quantities_magnetic.add(property_name)
-                elif property_name in _optical_quantities:
-                    quantities_optical.add(property_name)
+                if property_name in _searchable_quantities:
+                    searchable_quantities.add(property_name)
 
                 if property_name == 'energy_total':
                     n_total_energies += 1
@@ -389,12 +351,7 @@ class DFTMetadata(MSection):
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
-        self.quantities_energy = list(quantities_energy)
-        self.quantities_electronic = list(quantities_electronic)
-        self.quantities_forces = list(quantities_forces)
-        self.quantities_vibrational = list(quantities_vibrational)
-        self.quantities_magnetic = list(quantities_magnetic)
-        self.quantities_optical = list(quantities_optical)
+        self.searchable_quantities = list(searchable_quantities)
         self.n_quantities = n_quantities
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies

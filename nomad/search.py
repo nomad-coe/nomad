@@ -24,7 +24,7 @@ from datetime import datetime
 import json
 
 from nomad import config, datamodel, infrastructure, datamodel, utils
-from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities, default_statistics
+from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities
 
 
 path_analyzer = analyzer(
@@ -45,7 +45,6 @@ entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
 
 for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
-    default_statistics.setdefault(domain, []).extend(default_statistics.get('__all__'))
 
 
 def delete_upload(upload_id):
@@ -281,11 +280,12 @@ class SearchRequest:
         self._add_metrics(self._search.aggs, metrics_to_use)
         return self
 
-    def default_statistics(self, metrics_to_use: List[str] = []):
+    def statistics(self, statistics: List[str], metrics_to_use: List[str] = []):
         '''
         Configures the domain's default statistics.
         '''
-        for search_quantity in default_statistics[self._domain]:
+        for statistic in statistics:
+            search_quantity = search_quantities[statistic]
             statistic_order = search_quantity.statistic_order
             self.statistic(
                 search_quantity.qualified_name,

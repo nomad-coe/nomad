@@ -1,12 +1,11 @@
 import React from 'react'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryCards from './dft/DFTEntryCards'
-import EMSSearchAggregations from './ems/EMSVisualizations'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
-import DFTSystemVisualizations from './dft/DFTSystemVisualizations'
-import DFTPropertyVisualizations from './dft/DFTPropertyVisualizations'
-import DFTMethodVisualizations from './dft/DFTMethodVisualizations'
+import {
+  DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
+} from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
 
 /* eslint-disable react/display-name */
@@ -171,13 +170,6 @@ export const domains = ({
         description: 'Shows histograms on system metadata'
       }
     },
-    /**
-     * A component that is used to render the search aggregations. The components needs
-     * to work with props: aggregations (the aggregation data from the api),
-     * searchValues (currently selected search values), metric (the metric key to use),
-     * onChange (callback to propagate searchValue changes).
-     */
-    SearchAggregations: EMSSearchAggregations,
     /**
      * Metrics are used to show values for aggregations. Each metric has a key (used
      * for API calls), a label (used in the select form), and result string (to show

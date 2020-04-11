@@ -93,8 +93,6 @@ class QuantityHistogramUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    // TODO this just a workaround for bad layout on initial rendering
-    this.updateChart()
     this.updateChart()
   }
 
@@ -354,7 +352,8 @@ class QuantityUnstyled extends React.Component {
     quantity: PropTypes.string.isRequired,
     metric: PropTypes.string.isRequired,
     title: PropTypes.string,
-    scale: PropTypes.number
+    scale: PropTypes.number,
+    data: PropTypes.object
   }
   static styles = theme => ({
     root: {
@@ -365,15 +364,17 @@ class QuantityUnstyled extends React.Component {
   static contextType = SearchContext.type
 
   render() {
-    const {classes, scale, quantity, title, ...props} = this.props
+    const {classes, scale, quantity, title, data, ...props} = this.props
     const {state: {response, query}, setQuery} = this.context
+
+    const usedData = data || response.statistics[quantity]
 
     return <QuantityHistogram
       classes={{root: classes.root}}
       width={300}
       defaultScale={scale || 1}
       title={title || quantity}
-      data={response.statistics[quantity]}
+      data={usedData}
       value={query[quantity]}
       onChanged={selection => setQuery({...query, [quantity]: selection})}
       {...props} />
