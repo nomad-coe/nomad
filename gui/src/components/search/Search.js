@@ -345,7 +345,7 @@ class VisualizationSelect extends React.Component {
         return <Tooltip key={key} title={visualization.description}>
           <Button
             size="small" variant="outlined" className={classes.button}
-            color={value === key ? 'primary' : null}
+            color={value === key ? 'primary' : 'default'}
             onClick={() => onChange(key)}
           >
             {visualization.label}
