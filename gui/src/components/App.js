@@ -4,11 +4,11 @@ import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
-import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
+import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
   Snackbar, SnackbarContent } from '@material-ui/core'
-import { Route, Link, withRouter } from 'react-router-dom'
+import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
@@ -61,6 +61,38 @@ function ReloadSnack() {
   </Snackbar>
 }
 
+const useMainMenuItemStyles = makeStyles(theme => ({
+  itemText: {
+    color: 'black',
+    paddingRight: theme.spacing(2),
+    paddingLeft: theme.spacing(2)
+  },
+  itemIcon: {
+    minWidth: 0
+  }
+}))
+
+function MainMenuItem({tooltip, title, path, icon}) {
+  const {pathname} = useLocation()
+  const classes = useMainMenuItemStyles()
+  const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
+  return <Tooltip title={tooltip}>
+    <MenuItem component={Link} to={path} selected={selected} dense>
+      <ListItemIcon className={classes.itemIcon}>
+        {icon}
+      </ListItemIcon>
+      <ListItemText className={classes.itemText} primary={title}/>
+    </MenuItem>
+  </Tooltip>
+}
+
+MainMenuItem.propTypes = {
+  'tooltip': PropTypes.string.isRequired,
+  'title': PropTypes.string.isRequired,
+  'path': PropTypes.string.isRequired,
+  'icon': PropTypes.element.isRequired
+}
+
 class NavigationUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -75,7 +107,7 @@ class NavigationUnstyled extends React.Component {
       minWidth: 1024
     },
     title: {
-      marginLeft: theme.spacing.unit,
+      marginLeft: theme.spacing(1),
       flexGrow: 1,
       display: 'flex',
       alignItems: 'center',
@@ -94,20 +126,20 @@ class NavigationUnstyled extends React.Component {
       backgroundColor: '#20335D'
     },
     menuButton: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     },
     helpButton: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     },
     hide: {
       display: 'none'
     },
     toolbar: {
-      paddingRight: theme.spacing.unit * 3
+      paddingRight: theme.spacing(3)
     },
     logo: {
-      height: theme.spacing.unit * 7,
-      marginRight: theme.spacing.unit * 2
+      height: theme.spacing(7),
+      marginRight: theme.spacing(2)
     },
     menu: {
       display: 'inline-flex',
@@ -116,7 +148,7 @@ class NavigationUnstyled extends React.Component {
       backgroundColor: 'white'
     },
     content: {
-      marginTop: theme.spacing.unit * 13,
+      marginTop: theme.spacing(13),
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
       width: '100%',
@@ -241,55 +273,43 @@ class NavigationUnstyled extends React.Component {
                 </div>
               </Toolbar>
               <MenuList classes={{root: classes.menu}}>
-                <Tooltip title="Find and download data">
-                  <MenuItem component={Link} to="/search" selected={ pathname.startsWith('/search') } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <SearchIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Search"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Upload and publish data">
-                  <MenuItem component={Link} to="/uploads" selected={ pathname === '/uploads' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <BackupIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Upload"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Manage your data">
-                  <MenuItem component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <UserDataIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Your data"/>
-                  </MenuItem>
-                </Tooltip>
+                <MainMenuItem
+                  title="Search"
+                  path="/search"
+                  tooltip="Find and download data"
+                  icon={<SearchIcon/>}
+                />
+                <MainMenuItem
+                  title="Upload"
+                  path="/uploads"
+                  tooltip="Upload and publish data"
+                  icon={<BackupIcon/>}
+                />
+                <MainMenuItem
+                  title="Your data"
+                  path="/userdata"
+                  tooltip="Manage your data"
+                  icon={<UserDataIcon/>}
+                />
                 <div className={classes.divider} />
-                <Tooltip title="NOMAD Repository and Archive">
-                  <MenuItem component={Link} to="/" selected={ pathname === '/' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <AboutIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Overview"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Frequently Asked Questions (FAQ)">
-                  <MenuItem component={Link} to="/faq" selected={ pathname === '/faq' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <FAQIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="FAQ"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Browse the archive schema">
-                  <MenuItem component={Link} to="/metainfo" selected={ pathname === '/metainfo' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <MetainfoIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Meta Info"/>
-                  </MenuItem>
-                </Tooltip>
+                <MainMenuItem
+                  title="Overview"
+                  path="/"
+                  tooltip="NOMAD Repository and Archive"
+                  icon={<AboutIcon/>}
+                />
+                <MainMenuItem
+                  title="FAQ"
+                  path="/faq"
+                  tooltip="Frequently Asked Questions (FAQ)"
+                  icon={<FAQIcon/>}
+                />
+                <MainMenuItem
+                  title="Meta Info"
+                  path="/metainfo"
+                  tooltip="Browse the archive schema"
+                  icon={<MetainfoIcon/>}
+                />
               </MenuList>
               {loading ? <LinearProgress color="secondary" /> : ''}
             </AppBar>

@@ -357,7 +357,7 @@ class QuantityUnstyled extends React.Component {
   }
   static styles = theme => ({
     root: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     }
   })
 

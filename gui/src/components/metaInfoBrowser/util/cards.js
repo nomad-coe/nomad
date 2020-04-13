@@ -14,7 +14,7 @@ export class CardButton extends React.Component {
   }
   render() {
     return (
-      <MIButton size="tiny" {...{...this.props, position: undefined}}/>
+      <MIButton size="medium" {...{...this.props, position: undefined}}/>
     )
   }
 }
@@ -142,8 +142,8 @@ class CardUnstyled extends React.Component {
             {this.getButtons('center', true)}
           </div>
           <div className={classes.right}>
-            <MIButton icon="minimize" size="tiny" onClick={this.handleMinimize}/>
-            <MIButton icon="add" size="tiny" onClick={this.handleMaximize}/>
+            <MIButton icon="minimize" size="medium" onClick={this.handleMinimize}/>
+            <MIButton icon="add" size="medium" onClick={this.handleMaximize}/>
             {this.getButtons('right')}
           </div>
         </div>
@@ -183,26 +183,26 @@ class CardCompartmentUnstyled extends React.Component {
     },
     minHeader: {
       position: 'relative',
-      minHeight: 16 + theme.spacing.unit,
+      minHeight: 16 + theme.spacing(1),
       overflowY: 'hidden'
     },
     foldButton: {
       position: 'absolute',
       top: 0,
       right: 0,
-      margin: theme.spacing.unit * 0.5
+      margin: theme.spacing(0.5)
     },
     content: {
 
     },
     padded: {
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     },
     label: {
       fontSize: 10,
       textTransform: 'uppercase',
-      paddingTop: theme.spacing.unit * 0.5,
-      paddingLeft: theme.spacing.unit * 0.5,
+      paddingTop: theme.spacing(0.5),
+      paddingLeft: theme.spacing(0.5),
       color: grey[600]
     }
   })
@@ -228,7 +228,7 @@ class CardCompartmentUnstyled extends React.Component {
               ? <Typography classes={{root: classes.label}}>{label}</Typography>
               : ''}
             {foldable
-              ? <MIButton size="tiniest" classes={{tiniest: classes.foldButton}}
+              ? <MIButton size="small" classes={{small: classes.foldButton}}
                 onClick={onToggleCompartment} icon={visible ? 'minimize' : 'add'}/>
               : ''}
           </div>
@@ -259,7 +259,7 @@ class PopoverCardButtonUnstyled extends React.Component {
       display: 'inline'
     },
     content: {
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     },
     iconButton: {
 
@@ -305,16 +305,16 @@ class MIButtonUnstyled extends React.Component {
     onClick: PropTypes.func
   }
   static styles = theme => ({
-    small: {
+    normal: {
       padding: 3
     },
-    tiny: {
+    medium: {
       padding: 3,
       '& .material-icons': {
         fontSize: 18
       }
     },
-    tiniest: {
+    small: {
       padding: 3,
       '& .material-icons': {
         fontSize: 12
@@ -323,19 +323,17 @@ class MIButtonUnstyled extends React.Component {
   })
   render() {
     const {classes, size, onClick, icon} = this.props
-    let buttonClass = classes.small
+    let buttonClass = classes.normal
     if (!size) {
       buttonClass = classes.small
-    } else if (size === 'tiny') {
-      buttonClass = classes.tiny
-    } else if (size === 'tiniest') {
-      buttonClass = classes.tiniest
+    } else if (size === 'medium') {
+      buttonClass = classes.medium
+    } else if (size === 'small') {
+      buttonClass = classes.small
     }
-    return (
-      <IconButton size="small" {...this.props} classes={{root: buttonClass}}
-        onClick={onClick}>
-        <Icon>{icon}</Icon>
-      </IconButton>)
+    return <IconButton size="small" {...this.props} classes={{root: buttonClass}} onClick={onClick}>
+      <Icon>{icon}</Icon>
+    </IconButton>
   }
 }
 

@@ -25,7 +25,7 @@ class RawFiles extends React.Component {
   static styles = theme => ({
     root: {},
     formLabel: {
-      padding: theme.spacing.unit * 2
+      padding: theme.spacing(2)
     },
     shownFile: {
       color: theme.palette.secondary.main,
@@ -40,7 +40,7 @@ class RawFiles extends React.Component {
       overflowX: 'auto',
       color: theme.palette.primary.contrastText,
       backgroundColor: theme.palette.primary.dark,
-      marginTop: theme.spacing.unit,
+      marginTop: theme.spacing(1),
       padding: '3px 6px',
       fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
       fontSize: 12

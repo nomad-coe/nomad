@@ -658,9 +658,9 @@ class LoginRequiredUnstyled extends React.Component {
     root: {
       display: 'flex',
       alignItems: 'center',
-      padding: theme.spacing.unit * 2,
+      padding: theme.spacing(2),
       '& p': {
-        marginRight: theme.spacing.unit * 2
+        marginRight: theme.spacing(2)
       }
     }
   })

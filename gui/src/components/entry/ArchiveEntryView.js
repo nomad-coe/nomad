@@ -32,7 +32,7 @@ class MetainfoDialogUnstyled extends React.PureComponent {
   static styles = theme => ({
     root: {},
     metaInfoDescription: {
-      margin: `${theme.spacing.unit}px 0`
+      margin: `${theme.spacing(1)}px 0`
     }
   })
 
@@ -87,11 +87,11 @@ class ArchiveEntryView extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingTop: theme.spacing.unit * 2,
-      paddingBottom: theme.spacing.unit * 2
+      paddingTop: theme.spacing(2),
+      paddingBottom: theme.spacing(2)
     },
     error: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     downloadFab: {
       zIndex: 1,

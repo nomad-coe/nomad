@@ -21,7 +21,7 @@ class LoginLogout extends React.Component {
       display: 'flex',
       alignItems: 'center',
       '& p': {
-        marginRight: theme.spacing.unit * 2
+        marginRight: theme.spacing(2)
       }
     },
     link: {

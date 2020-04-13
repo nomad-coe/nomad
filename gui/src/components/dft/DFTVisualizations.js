@@ -26,7 +26,7 @@ export function DFTMethodVisualizations(props) {
   }
 
   return (
-    <Grid container spacing={24}>
+    <Grid container spacing={2}>
       <Grid item xs={8}>
         <Quantity quantity="dft.code_name" title="Code" scale={0.25} metric={usedMetric} sort columns={2} />
       </Grid>
@@ -65,7 +65,7 @@ export function DFTSystemVisualizations(props) {
   }
 
   return (
-    <Grid container spacing={24}>
+    <Grid container spacing={2}>
       <Grid item xs={4}>
         <Quantity quantity="dft.compound_type" title="Compound type" scale={1} metric={usedMetric} sort />
       </Grid>
@@ -165,7 +165,7 @@ export function DFTPropertyVisualizations(props) {
   }
 
   return (
-    <Grid container spacing={24}>
+    <Grid container spacing={2}>
       <Grid item xs={4}>
         <Quantity quantity="dft.searchable_quantities" data={data('energy_quantities')} title="Energy" scale={1} metric={usedMetric} sort tooltips />
         <Quantity quantity="dft.searchable_quantities" data={data('electronic_quantities')} title="Electronic" scale={1} metric={usedMetric} sort tooltips />

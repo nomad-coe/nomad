@@ -339,7 +339,7 @@ class UploadsChart extends React.Component {
   }
   static styles = theme => ({
     root: {
-      marginTop: theme.spacing.unit
+      marginTop: theme.spacing(1)
     }
   })
 
@@ -355,7 +355,7 @@ class UploadsChart extends React.Component {
     const {state: {response, usedMetric, query}, setQuery} = this.context
 
     return (
-      <Grid container spacing={24}>
+      <Grid container spacing={2}>
         <Grid item xs={12}>
           <UploadsHistogram
             classes={{root: classes.root}}

@@ -28,12 +28,12 @@ class DatasetPage extends React.Component {
   static styles = theme => ({
     description: {
       flexGrow: 1,
-      marginRight: theme.spacing.unit
+      marginRight: theme.spacing(1)
     },
     header: {
       display: 'flex',
       flexDirection: 'row',
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     },
     actions: {}
   })

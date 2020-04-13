@@ -14,7 +14,7 @@ class EMSEntryCards extends React.Component {
   static styles = theme => ({
     root: {},
     description: {
-      marginBottom: theme.spacing.unit * 3
+      marginBottom: theme.spacing(3)
     }
   })
 

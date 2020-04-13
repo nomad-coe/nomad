@@ -11,7 +11,7 @@ import extend from '@babel/runtime/helpers/extends'
  */
 
 var styles = theme => {
-  return ({
+  return {
     root: {
       fontFamily: theme.typography.fontFamily,
       fontSize: 16,
@@ -70,19 +70,19 @@ var styles = theme => {
       }),
       '& p, & ul, & ol': {
         lineHeight: theme.typography.lineHeight,
-        marginBottom: theme.spacing.unit
+        marginBottom: theme.spacing(1)
       },
       '& ul': {
         paddingLeft: 0,
         '& li': {
           listStyleType: 'none',
           fontSize: 'inherit',
-          paddingLeft: theme.spacing.unit * 4,
+          paddingLeft: theme.spacing(4),
           '&:before': {
             content: '\'■\'',
             fontSize: 'x-large',
-            marginLeft: -theme.spacing.unit * 4,
-            paddingRight: theme.spacing.unit * 4 - 14
+            marginLeft: -theme.spacing(1) * 4,
+            paddingRight: theme.spacing(4) - 14
           }
         }
       },
@@ -203,7 +203,7 @@ var styles = theme => {
         maxWidth: '100%'
       }
     }
-  })
+  };
 }
 
 function Markdown(props) {

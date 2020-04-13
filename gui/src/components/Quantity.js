@@ -52,14 +52,14 @@ class Quantity extends React.Component {
       display: 'flex',
       flexDirection: 'row',
       '& > :not(:first-child)': {
-        marginLeft: theme.spacing.unit * 3
+        marginLeft: theme.spacing(3)
       }
     },
     column: {
       display: 'flex',
       flexDirection: 'column',
       '& > :not(:first-child)': {
-        marginTop: theme.spacing.unit * 1
+        marginTop: theme.spacing(1)
       }
     },
     label: {

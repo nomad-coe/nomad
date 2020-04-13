@@ -101,7 +101,7 @@ class SearchBar extends React.Component {
       alignItems: 'flex-end'
     },
     clearButton: {
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     },
     autosuggestRoot: {
       position: 'relative'
@@ -109,7 +109,7 @@ class SearchBar extends React.Component {
     suggestionsContainerOpen: {
       position: 'absolute',
       zIndex: 100,
-      marginTop: theme.spacing.unit,
+      marginTop: theme.spacing(1),
       left: 0,
       right: 0
     },

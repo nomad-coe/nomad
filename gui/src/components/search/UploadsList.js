@@ -120,8 +120,8 @@ class UploadListUnstyled extends React.Component {
   static styles = theme => ({
     root: {
       overflow: 'auto',
-      paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit * 2
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     scrollCell: {
       padding: 0

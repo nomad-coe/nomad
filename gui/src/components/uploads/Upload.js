@@ -113,7 +113,7 @@ class Upload extends React.Component {
 
   static styles = theme => ({
     root: {
-      marginBottom: theme.spacing.unit
+      marginBottom: theme.spacing(1)
     },
     heading: {
       fontSize: theme.typography.pxToRem(15),
@@ -125,11 +125,11 @@ class Upload extends React.Component {
       overflowX: 'auto'
     },
     detailsContent: {
-      margin: theme.spacing.unit * 3
+      margin: theme.spacing(3)
     },
     titleContainer: {
       flex: '0 0 auto',
-      marginRight: theme.spacing.unit * 2,
+      marginRight: theme.spacing(2),
       width: 350,
       overflowX: 'hidden'
     },
@@ -150,7 +150,7 @@ class Upload extends React.Component {
       overflowX: 'inherit'
     },
     checkbox: {
-      marginRight: theme.spacing.unit * 2
+      marginRight: theme.spacing(2)
     },
     stepper: {
       width: '100%',
@@ -162,8 +162,8 @@ class Upload extends React.Component {
       textAlign: 'right'
     },
     icon: {
-      marginLeft: -theme.spacing.unit * 0.5,
-      width: theme.spacing.unit * 13 - 2,
+      marginLeft: -theme.spacing(1) * 0.5,
+      width: theme.spacing(13) - 2,
       alignItems: 'center',
       display: 'flex'
     },

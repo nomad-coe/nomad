@@ -49,41 +49,41 @@ class Search extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     },
     search: {
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 8,
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(8),
       maxWidth: 1024,
       margin: 'auto',
       width: '100%'
     },
     searchIcon: {
-      margin: `${theme.spacing.unit}px 0`,
+      margin: `${theme.spacing(1)}px 0`,
       padding: `6px 0 2px 0`
     },
     domainButton: {
-      margin: theme.spacing.unit
+      margin: theme.spacing(1)
     },
     metricButton: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing(1),
       marginRight: 0
     },
     searchBar: {
       width: '100%'
     },
     selectButton: {
-      margin: theme.spacing.unit
+      margin: theme.spacing(1)
     },
     visalizations: {
       display: 'block',
       maxWidth: 900,
       margin: 'auto',
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(2)
     },
     searchResults: {
-      marginTop: theme.spacing.unit * 4
+      marginTop: theme.spacing(4)
     }
   })
 
@@ -151,7 +151,7 @@ class Search extends React.Component {
     return <DisableOnLoading>
       <div className={classes.root}>
         <div className={classes.search}>
-          <FormGroup row>
+          <FormGroup row style={{alignItems: 'center'}}>
             <FormControl className={classes.searchIcon}><FormLabel><SearchIcon/></FormLabel></FormControl>
             <DomainSelect classes={{root: classes.domainButton}} />
             <OwnerSelect />

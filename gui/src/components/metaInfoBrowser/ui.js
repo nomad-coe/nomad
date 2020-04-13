@@ -92,7 +92,7 @@ class CheckChipUnstyled extends React.Component {
     chip: {
       height: 20,
       borderRadius: 10,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       '&:focus': {
         background: grey[300]
       }
@@ -100,7 +100,7 @@ class CheckChipUnstyled extends React.Component {
     checkedChip: {
       height: 20,
       borderRadius: 10,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       color: 'white',
       backgroundColor: theme.palette.primary.main,
       '&:focus': {

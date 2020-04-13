@@ -30,8 +30,8 @@ class ElementUnstyled extends React.Component {
     },
     button: {
       border: '1px solid',
-      paddingTop: theme.spacing.unit,
-      paddingBottom: theme.spacing.unit,
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1),
       paddingLeft: 0,
       paddingRight: 0,
       width: '100%',
@@ -135,11 +135,11 @@ class PeriodicTable extends React.Component {
       minWidth: 500,
       maxWidth: 900,
       tableLayout: 'fixed',
-      borderSpacing: theme.spacing.unit * 0.5
+      borderSpacing: theme.spacing(0.5)
     },
     formContainer: {
       position: 'absolute',
-      top: theme.spacing.unit * 0,
+      top: theme.spacing(0),
       left: '10%',
       textAlign: 'center'
     }

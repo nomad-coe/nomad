@@ -22,14 +22,14 @@ class ErrorSnacksUnstyled extends React.Component {
     icon: {
       fontSize: 20,
       opacity: 0.9,
-      marginRight: theme.spacing.unit
+      marginRight: theme.spacing(1)
     },
     message: {
       display: 'flex',
       alignItems: 'center'
     },
     errors: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     }
   })
 

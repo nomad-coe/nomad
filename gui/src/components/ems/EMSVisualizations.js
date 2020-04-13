@@ -9,7 +9,7 @@ export default function EMSVisualizations(props) {
     setStatistics(['ems.method', 'ems.probing_method', 'ems.sample_microstructure', 'ems.sample_constituents'])
   }, [])
   return (
-    <Grid container spacing={24}>
+    <Grid container spacing={2}>
       <Grid item xs={6}>
         <Quantity quantity="ems.method" title="Method" scale={1} metric={usedMetric} />
         <Quantity quantity="ems.probing_method" title="Probing" scale={1} metric={usedMetric} />

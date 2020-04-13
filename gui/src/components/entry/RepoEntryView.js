@@ -12,16 +12,16 @@ import { domains } from '../domains'
 class RepoEntryView extends React.Component {
   static styles = theme => ({
     root: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     error: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     cardContent: {
       paddingTop: 0
     },
     entryCards: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     }
   })
 
@@ -90,7 +90,7 @@ class RepoEntryView extends React.Component {
 
     return (
       <div className={classes.root}>
-        <Grid container spacing={24}>
+        <Grid container spacing={2}>
           <Grid item xs={7}>
             <Card>
               <CardHeader

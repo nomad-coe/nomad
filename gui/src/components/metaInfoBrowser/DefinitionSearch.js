@@ -89,7 +89,7 @@ const styles = theme => ({
     width: 450
   },
   chip: {
-    margin: theme.spacing.unit / 4
+    margin: theme.spacing(0.25)
   },
   // We had to use a lot of global selectors in order to style react-select.
   // We are waiting on https://github.com/JedWatson/react-select/issues/1679
@@ -118,7 +118,7 @@ const styles = theme => ({
       padding: 0
     },
     '.Select-noresults': {
-      padding: theme.spacing.unit * 2
+      padding: theme.spacing(2)
     },
     '.Select-input': {
       display: 'inline-flex !important',
@@ -157,7 +157,7 @@ const styles = theme => ({
       boxShadow: theme.shadows[2],
       position: 'absolute',
       left: 0,
-      top: `calc(100% + ${theme.spacing.unit}px)`,
+      top: `calc(100% + ${theme.spacing(1)}px)`,
       width: '100%',
       zIndex: 2,
       maxHeight: ITEM_HEIGHT * 4.5

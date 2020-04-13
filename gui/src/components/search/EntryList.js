@@ -52,15 +52,15 @@ export class EntryListUnstyled extends React.Component {
       overflow: 'auto'
     },
     entryDetails: {
-      paddingTop: theme.spacing.unit * 3,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
+      paddingTop: theme.spacing(3),
+      paddingLeft: theme.spacing(3),
+      paddingRight: theme.spacing(3)
     },
     entryDetailsContents: {
       display: 'flex'
     },
     entryDetailsRow: {
-      paddingRight: theme.spacing.unit * 3
+      paddingRight: theme.spacing(3)
     },
     entryDetailsActions: {
       display: 'flex',
@@ -68,10 +68,10 @@ export class EntryListUnstyled extends React.Component {
       flexGrow: 0,
       flexShrink: 0,
       justifyContent: 'flex-end',
-      marginBottom: theme.spacing.unit,
-      marginLeft: theme.spacing.unit / 2,
-      marginRight: theme.spacing.unit / 2,
-      marginTop: theme.spacing.unit
+      marginBottom: theme.spacing(1),
+      marginLeft: theme.spacing(0.5),
+      marginRight: theme.spacing(0.5),
+      marginTop: theme.spacing(1)
     }
   })
 

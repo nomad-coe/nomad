@@ -8,7 +8,7 @@ import { withRouter, matchPath } from 'react-router'
 class ResolvePID extends React.Component {
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     }
   })
 

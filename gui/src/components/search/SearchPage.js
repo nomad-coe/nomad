@@ -66,7 +66,7 @@ class SearchPage extends React.Component {
     root: {
     },
     searchEntry: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     }
   })
 

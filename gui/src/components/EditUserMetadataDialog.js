@@ -412,7 +412,7 @@ class ActionInput extends React.PureComponent {
     value: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
     label: PropTypes.string,
-    component: PropTypes.func
+    component: PropTypes.elementType
   }
 
   handleChange(event) {
@@ -525,13 +525,13 @@ class ListTextInputUnstyled extends React.Component {
           />
           <div className={classes.buttonContainer}>
             {normalizedValues.length > 1 || (normalizedValues.length === 1 && normalizedValues[0].value)
-              ? <IconButton className={classes.button} size="tiny" onClick={() => handleRemove(index)}>
+              ? <IconButton className={classes.button} size="medium" onClick={() => handleRemove(index)}>
                 <RemoveIcon fontSize="inherit" />
               </IconButton> : ''}
           </div>
           <div className={classes.buttonContainer}>
             {index + 1 === normalizedValues.length && value.value
-              ? <IconButton className={classes.button} size="tiny" onClick={handleAdd}>
+              ? <IconButton className={classes.button} size="medium" onClick={handleAdd}>
                 <AddIcon fontSize="inherit" />
               </IconButton> : ''}
           </div>
@@ -551,13 +551,13 @@ class InviteUserDialogUnstyled extends React.Component {
 
   static styles = theme => ({
     button: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     },
     dialog: {
       width: '100%'
     },
     submitWrapper: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing(1),
       position: 'relative'
     },
     submitProgress: {
@@ -689,15 +689,15 @@ class UserMetadataFieldUnstyled extends React.PureComponent {
     root: {
       flexWrap: 'nowrap',
       alignItems: 'flex-start',
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     container: {
       width: '100%'
     },
     checkbox: {
-      marginLeft: -theme.spacing.unit * 2,
-      marginRight: theme.spacing.unit,
-      marginTop: theme.spacing.unit
+      marginLeft: -theme.spacing(1) * 2,
+      marginRight: theme.spacing(1),
+      marginTop: theme.spacing(1)
     }
   })
 
@@ -739,10 +739,10 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       width: '100%'
     },
     error: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     submitWrapper: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing(1),
       position: 'relative'
     },
     submitProgress: {
@@ -753,7 +753,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       marginLeft: -12
     },
     liftEmbargoLabel: {
-      marginTop: theme.spacing.unit * 3
+      marginTop: theme.spacing(3)
     }
   })
 
