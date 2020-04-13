@@ -203,7 +203,7 @@ var styles = theme => {
         maxWidth: '100%'
       }
     }
-  };
+  }
 }
 
 function Markdown(props) {
