@@ -252,6 +252,15 @@ class DFTMetadata(MSection):
         description='Metadata used for the optimade API.',
         a_search='optimade')
 
+    def code_name_from_parser(self):
+        entry = self.m_parent
+        if entry.parser_name is not None:
+            from nomad.parsing import parser_dict
+            parser = parser_dict.get(entry.parser_name)
+            if hasattr(parser, 'code_name'):
+                return parser.code_name
+        return config.services.unavailable_value
+
     def apply_domain_metadata(self, backend):
         from nomad import utils
         from nomad.normalizing.system import normalized_atom_labels
@@ -261,15 +270,16 @@ class DFTMetadata(MSection):
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
         if backend is None:
-            if entry.parser_name is not None:
-                from nomad.parsing import parser_dict
-                parser = parser_dict.get(entry.parser_name)
-                if hasattr(parser, 'code_name'):
-                    self.code_name = parser.code_name
+            self.code_name = self.code_name_from_parser()
             return
 
         # code and code specific ids
-        self.code_name = backend.get_value('program_name', 0)
+        try:
+            self.code_name = backend.get_value('program_name', 0)
+        except KeyError as e:
+            logger.warn('backend after parsing without program_name', exc_info=e)
+            self.code_name = self.code_name_from_parser()
+
         try:
             self.code_version = simplify_version(backend.get_value('program_version', 0))
         except KeyError:
