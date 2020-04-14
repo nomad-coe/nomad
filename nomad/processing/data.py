@@ -23,7 +23,6 @@ calculations, and files
 .. autoclass:: Upload
 
 '''
-
 from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
 from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
@@ -37,9 +36,10 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE, PROCESS_CALLED, PROCESS_COMPLETED
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
+from nomad.processing.pipelines import get_pipeline, run_pipelines, Pipeline
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -294,7 +294,6 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
-    @process
     def process_calc(self):
         '''
         Processes a new calculation that has no prior records in the mongo, elastic,
@@ -352,13 +351,14 @@ class Calc(Proc):
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
 
-    def on_process_complete(self, process_name):
-        # the save might be necessary to correctly read the join condition from the db
-        self.save()
-        # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
-            self.upload.reload()
-            self.upload.check_join()
+    # def on_process_complete(self, process_name):
+        # # the save might be necessary to correctly read the join condition from the db
+        # self.save()
+        # # in case of error, the process_name might be unknown
+        # if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
+            # self.get_logger().warning("JOINING NOW")
+            # self.upload.reload()
+            # self.upload.check_join()
 
     @task
     def parsing(self):
@@ -872,34 +872,61 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
-        '''
-        Generator function that matches all files in the upload to all parsers to
-        determine the upload's mainfiles.
+    # def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
+        # '''
+        # Generator function that matches all files in the upload to all parsers to
+        # determine the upload's mainfiles.
+
+        # Returns:
+            # Tuples of mainfile, filename, and parsers
+        # '''
+        # directories_with_match: Dict[str, str] = dict()
+        # upload_files = self.staging_upload_files
+        # for filename in upload_files.raw_file_manifest():
+            # self._preprocess_files(filename)
+            # try:
+                # parser = match_parser(upload_files.raw_file_object(filename).os_path)
+                # if parser is not None:
+                    # directory = os.path.dirname(filename)
+                    # if directory in directories_with_match:
+                        # # TODO this might give us the chance to store directory based relationship
+                        # # between calcs for the future?
+                        # pass
+                    # else:
+                        # directories_with_match[directory] = filename
+
+                    # yield filename, parser
+            # except Exception as e:
+                # self.get_logger().error(
+                    # 'exception while matching pot. mainfile',
+                    # mainfile=filename, exc_info=e)
+
+    def match_mainfiles(self) -> Iterator[Tuple]:
+        """Generator function that iterates over files in an upload and returns
+        basic information for each found mainfile.
 
         Returns:
-            Tuples of mainfile, filename, and parsers
-        '''
+            Tuple: (filepath, parser, calc_id, worker_hostname, upload_id)
+        """
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.staging_upload_files
-        for filename in upload_files.raw_file_manifest():
-            self._preprocess_files(filename)
+        for filepath in upload_files.raw_file_manifest():
+            self._preprocess_files(filepath)
             try:
-                parser = match_parser(upload_files.raw_file_object(filename).os_path)
+                parser = match_parser(upload_files.raw_file_object(filepath).os_path)
                 if parser is not None:
-                    directory = os.path.dirname(filename)
+                    directory = os.path.dirname(filepath)
                     if directory in directories_with_match:
                         # TODO this might give us the chance to store directory based relationship
                         # between calcs for the future?
                         pass
                     else:
-                        directories_with_match[directory] = filename
-
-                    yield filename, parser
+                        directories_with_match[directory] = filepath
+                    yield filepath, parser, upload_files.calc_id(filepath), self.worker_hostname, self.upload_id
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',
-                    mainfile=filename, exc_info=e)
+                    mainfile=filepath, exc_info=e)
 
     @task
     def parse_all(self):
@@ -912,18 +939,21 @@ class Upload(Proc):
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
-            for filename, parser in self.match_mainfiles():
-                calc = Calc.create(
-                    calc_id=self.upload_files.calc_id(filename),
-                    mainfile=filename, parser=parser.name,
-                    worker_hostname=self.worker_hostname,
-                    upload_id=self.upload_id)
 
-                calc.process_calc()
+            # Tell Upload that a process has been started.
+            self.current_process = "process"
+            self.process_status = PROCESS_CALLED
+            self.save()
 
-    def on_process_complete(self, process_name):
-        if process_name == 'process_upload' or process_name == 're_process_upload':
-            self.check_join()
+            # Start running all pipelines
+            n_pipelines = run_pipelines(self.match_mainfiles())
+
+            # If the upload has not spawned any pipelines, tell it that it is
+            # finished and perform cleanup
+            if n_pipelines == 0:
+                self.process_status = PROCESS_COMPLETED
+                self.save()
+                self.cleanup()
 
     def check_join(self):
         '''
@@ -936,8 +966,11 @@ class Upload(Proc):
         '''
         total_calcs = self.total_calcs
         processed_calcs = self.processed_calcs
+        logger = self.get_logger()
 
-        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        logger.warning("Checking join: {}/{}".format(processed_calcs, total_calcs))
+
+        logger.warning('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
         # check if process is not running anymore, i.e. not still spawining new processes to join
         # check the join condition, i.e. all calcs have been processed
         if not self.process_running and processed_calcs >= total_calcs:
@@ -946,7 +979,7 @@ class Upload(Proc):
                 {'_id': self.upload_id, 'joined': {'$ne': True}},
                 {'$set': {'joined': True}})
             if modified_upload is not None:
-                self.get_logger().debug('join')
+                logger.debug('join')
                 self.cleanup()
             else:
                 # the join was already done due to a prior call

@@ -60,7 +60,10 @@ def capture_worker_name(sender, instance, **kwargs):
     worker_hostname = sender
 
 
-app = Celery('nomad.processing', broker=config.rabbitmq_url())
+# Celery is configured to use redis as a results backend. Although the results
+# are not forwarded within the processing pipeline, celery requires the results
+# backend to be configured in order to use chained tasks.
+app = Celery('nomad.processing', backend=config.redis_url(), broker=config.rabbitmq_url(),)
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
