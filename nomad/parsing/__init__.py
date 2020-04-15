@@ -202,7 +202,9 @@ parsers = [
         name='parsers/exciting', code_name='exciting',
         parser_class_name='excitingparser.ExcitingParser',
         mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
-        mainfile_contents_re=(r'EXCITING.*started')
+        mainfile_contents_re=(
+            r'EXCITING.*started\s*='
+        )
     ),
     LegacyParser(
         name='parsers/fhi-aims', code_name='FHI-aims',
