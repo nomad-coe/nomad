@@ -17,8 +17,6 @@ This module contains the Celery configuration.
 """
 from celery import Celery
 from nomad import config
-from nomad.processing import celeryconfig
-
 
 # Celery is configured to use redis as a results backend. Although the results
 # are not forwarded within the processing pipeline, celery requires the results
@@ -28,9 +26,9 @@ app = Celery(
     backend=config.redis_url(),
     broker=config.rabbitmq_url(),
 )
-# The config is loaded from a standard Celery config file
-app.config_from_object(celeryconfig)
-
+app.conf.update(accept_content=["myjson"])
+app.conf.update(task_serializer="myjson")
+app.conf.update(result_serializer="myjson")
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
