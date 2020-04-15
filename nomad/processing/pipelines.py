@@ -21,7 +21,7 @@ import networkx as nx
 from celery import chain, group, chord
 from celery.exceptions import SoftTimeLimitExceeded
 
-from nomad.processing.base import NomadCeleryTask, PROCESS_COMPLETED
+from nomad.processing.base import NomadCeleryTask
 from nomad.processing.celeryapp import app
 import nomad.processing.data
 from nomad import config

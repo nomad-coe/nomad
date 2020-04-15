@@ -42,15 +42,13 @@ class ArtificalParser(Parser):
     def init_backend(self):
         self.backend = Backend(metainfo='vasp')
 
-    @property
-    def name(self):
-        return self.__class__.name
-
 
 class EmptyParser(MatchingParser):
     '''
     Implementation that produces an empty code_run
     '''
+    name = "parsers/empty"
+
     def run(self, mainfile: str, logger=None) -> Backend:
         backend = Backend(metainfo='public', domain=self.domain, logger=logger)
         backend.openSection('section_run')
