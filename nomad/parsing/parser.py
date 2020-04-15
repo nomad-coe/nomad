@@ -26,7 +26,6 @@ class Parser(metaclass=ABCMeta):
     '''
 
     def __init__(self):
-        self.name = None
         self.domain = 'dft'
         self._metainfo_env: Environment = None
 

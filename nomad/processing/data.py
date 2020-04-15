@@ -905,6 +905,22 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=filepath, exc_info=e)
 
+    def processing_started(self):
+        """Informs MongoDB that this Upload has started processing.
+        """
+        # Tell Upload that a process has been started.
+        self.current_process = "process"
+        self.process_status = PROCESS_CALLED
+        self.save()
+
+    def processing_finished(self):
+        """Informs MongoDB that this Upload has finished processing.
+        """
+        # Tell Upload that a process has been started.
+        self.process_status = PROCESS_COMPLETED
+        self.save()
+        self.cleanup()
+
     @task
     def parse_all(self):
         '''
@@ -918,49 +934,15 @@ class Upload(Proc):
                 upload_size=self.upload_files.size):
 
             # Tell Upload that a process has been started.
-            self.current_process = "process"
-            self.process_status = PROCESS_CALLED
-            self.save()
+            self.processing_started()
 
             # Start running all pipelines
-            n_pipelines = run_pipelines(self.match_mainfiles())
+            n_pipelines = run_pipelines(self.match_mainfiles(), self.upload_id)
 
             # If the upload has not spawned any pipelines, tell it that it is
             # finished and perform cleanup
             if n_pipelines == 0:
-                self.process_status = PROCESS_COMPLETED
-                self.save()
-                self.cleanup()
-
-    def check_join(self):
-        '''
-        Performs an evaluation of the join condition and triggers the :func:`cleanup`
-        task if necessary. The join condition allows to run the ``cleanup`` after
-        all calculations have been processed. The upload processing stops after all
-        calculation processings have been triggered (:func:`parse_all` or
-        :func:`re_process_upload`). The cleanup task is then run within the last
-        calculation process (the one that triggered the join by calling this method).
-        '''
-        total_calcs = self.total_calcs
-        processed_calcs = self.processed_calcs
-        logger = self.get_logger()
-
-        logger.warning("Checking join: {}/{}".format(processed_calcs, total_calcs))
-
-        logger.warning('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
-        # check if process is not running anymore, i.e. not still spawining new processes to join
-        # check the join condition, i.e. all calcs have been processed
-        if not self.process_running and processed_calcs >= total_calcs:
-            # this can easily be called multiple times, e.g. upload finished after all calcs finished
-            modified_upload = self._get_collection().find_one_and_update(
-                {'_id': self.upload_id, 'joined': {'$ne': True}},
-                {'$set': {'joined': True}})
-            if modified_upload is not None:
-                logger.debug('join')
-                self.cleanup()
-            else:
-                # the join was already done due to a prior call
-                pass
+                self.processing_finished()
 
     def reset(self):
         self.joined = False
