@@ -21,7 +21,7 @@ import networkx as nx
 from celery import chain, group, chord
 from celery.exceptions import SoftTimeLimitExceeded
 
-from nomad.processing.base import NomadCeleryTask
+from nomad.processing.base import NomadCeleryTask, PROCESS_CALLED, PROCESS_COMPLETED
 from nomad.processing.celeryapp import app
 import nomad.processing.data
 from nomad import config
@@ -61,12 +61,13 @@ class PipelineContext():
     """Convenience class for storing pipeline execution related information.
     Provides custom encode/decode functions for JSON serialization with Celery.
     """
-    def __init__(self, filepath, parser_name, calc_id, upload_id, worker_hostname):
+    def __init__(self, filepath, parser_name, calc_id, upload_id, worker_hostname, re_process=False):
         self.filepath = filepath
         self.parser_name = parser_name
         self.calc_id = calc_id
         self.upload_id = upload_id
         self.worker_hostname = worker_hostname
+        self.re_process = re_process
 
     def encode(self):
         return {
@@ -76,6 +77,7 @@ class PipelineContext():
             "calc_id": self.calc_id,
             "upload_id": self.upload_id,
             "worker_hostname": self.worker_hostname,
+            "re_process": self.re_process,
         }
 
     @staticmethod
@@ -86,6 +88,7 @@ class PipelineContext():
             data["calc_id"],
             data["upload_id"],
             data["worker_hostname"],
+            data["re_process"],
         )
 
 
@@ -187,6 +190,12 @@ def wrapper(task, function_name, context, stage_name, i_stage, n_stages):
         if deleted is None or not deleted:
             calc.save()
 
+    # After the last stage tell the calculation that it's processing has been
+    # finished
+    if i_stage == n_stages - 1:
+        calc.process_status = PROCESS_COMPLETED
+        calc.save()
+
 
 @app.task(
     bind=True, base=NomadCeleryTask, ignore_results=False, max_retries=3,
@@ -211,12 +220,17 @@ def upload_cleanup(task, upload_id):
 
 
 def comp_process(context, stage_name, i_stage, n_stages):
-    """Function for processing computational entries: runs parsing and normalization.
+    """Function for processing computational entries: runs parsing and
+    normalization.
     """
     # Process calculation
     calc = nomad.processing.data.Calc.get(context.calc_id)
-    calc.process_calc()
-    calc.get_logger().info("Processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
+    if context.re_process is True:
+        calc.re_process_calc()
+        calc.get_logger().warn("Re-processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
+    else:
+        calc.process_calc()
+        calc.get_logger().warn("Processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
 
 
 def get_pipeline(context):
@@ -275,13 +289,21 @@ def run_pipelines(context_generator, upload_id) -> int:
             if i_stage == 0:
 
                 # Create the associated Calc object
-                nomad.processing.data.Calc.create(
+                calc = nomad.processing.data.Calc.create(
                     calc_id=pipeline.context.calc_id,
                     mainfile=pipeline.context.filepath,
                     parser=pipeline.context.parser_name,
                     worker_hostname=pipeline.context.worker_hostname,
                     upload_id=pipeline.context.upload_id
                 )
+
+                # Tell the calculation that it's processing has been started
+                if context.re_process:
+                    calc.current_process = "process"
+                else:
+                    calc.current_process = "re_process"
+                calc.process_status = PROCESS_CALLED
+                calc.save()
 
     if n_pipelines != 0:
         # Resolve all independent dependency trees
@@ -290,8 +312,6 @@ def run_pipelines(context_generator, upload_id) -> int:
         dependency_graph.add_edges_from(stage_dependencies)
         dependency_trees = nx.weakly_connected_components(dependency_graph)
 
-        upload = nomad.processing.data.Upload.get(upload_id)
-
         # Form chains for each independent tree.
         chains = []
         for tree_nodes in dependency_trees:
@@ -299,8 +319,6 @@ def run_pipelines(context_generator, upload_id) -> int:
             sorted_nodes = nx.topological_sort(tree)
             groups = []
             for node in reversed(list(sorted_nodes)):
-                upload.get_logger().warning(node)
-
                 # Group all tasks for a stage
                 tasks = stages[node]
                 task_signatures = []

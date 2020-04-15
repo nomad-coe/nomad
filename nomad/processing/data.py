@@ -36,7 +36,7 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE, PROCESS_CALLED, PROCESS_COMPLETED
+from nomad.processing.base import Proc, process, task, ProcessAlreadyRunning, PENDING, SUCCESS, FAILURE, PROCESS_CALLED, PROCESS_COMPLETED
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
 from nomad.processing.pipelines import run_pipelines, PipelineContext
@@ -231,7 +231,6 @@ class Calc(Proc):
 
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
-    @process
     def re_process_calc(self):
         '''
         Processes a calculation again. This means there is already metadata and
@@ -740,7 +739,7 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
-            # check if a calc is already/still processing
+            # Check if a calc is already/still processing
             processing = Calc.objects(
                 upload_id=self.upload_id,
                 **Calc.process_running_mongoengine_query()).count()
@@ -750,13 +749,33 @@ class Upload(Proc):
                     'processes are still/already running on calc, they will be resetted',
                     count=processing)
 
-            # reset all calcs
+            # Reset all calcs
             Calc._get_collection().update_many(
                 dict(upload_id=self.upload_id),
                 {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-            # process call calcs
-            Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+            # Re-process all calcs
+            def gen():
+                query = dict(upload_id=self.upload_id)
+                exclude = ['metadata']
+                running_query = dict(Calc.process_running_mongoengine_query())
+                running_query.update(query)
+                if Calc.objects(**running_query).first() is not None:
+                    raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
+                Calc._get_collection().update_many(query, {'$set': dict(
+                    current_process="re_process_calc",
+                    process_status=PROCESS_CALLED)})
+                for calc in Calc.objects(**query).exclude(*exclude):
+                    yield PipelineContext(
+                        calc.mainfile,
+                        calc.parser,
+                        calc.calc_id,
+                        calc.upload_id,
+                        calc.worker_hostname,
+                        re_process=True
+                    )
+            run_pipelines(gen(), self.upload_id)
+            # Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
 
             logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
