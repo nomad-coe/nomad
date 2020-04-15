@@ -21,41 +21,77 @@ import networkx as nx
 from celery import chain, group, chord
 from celery.exceptions import SoftTimeLimitExceeded
 
-from nomad.processing.base import app, NomadCeleryTask, PROCESS_COMPLETED
+from nomad.processing.base import NomadCeleryTask, PROCESS_COMPLETED
+from nomad.processing.celeryapp import app
 import nomad.processing.data
 from nomad import config
 
+import json
+from kombu.serialization import register
 
-class Pipeline():
-    """Pipeline consists of a list of stages. The pipeline is complete when all
-    stages are finished.
+
+def my_dumps(obj):
+    """Custom JSON encoder function for Celery tasks.
     """
-    def __init__(self, filepath, parser, calc_id, worker_hostname, upload_id, stages=None):
-        self.filepath = filepath
-        self.parser = parser
-        self.parser_name = parser.name
-        self.calc_id = calc_id
-        self.worker_hostname = worker_hostname
-        self.upload_id = upload_id
-        if stages is None:
-            self.stages = []
-        else:
-            self.stages = stages
+    class MyEncoder(json.JSONEncoder):
+        def default(self, obj):  # pylint: disable=E0202
+            if isinstance(obj, PipelineContext):
+                return obj.encode()
+            else:
+                return json.JSONEncoder.default(self, obj)
 
-    def add_stage(self, stage):
-        if len(self.stages) == 0:
-            if len(stage.dependencies) != 0:
-                raise ValueError(
-                    "The first stage in a pipeline must not have any dependencies."
-                )
-        stage._pipeline = self
-        stage.index = len(self.stages)
-        self.stages.append(stage)
+    return json.dumps(obj, cls=MyEncoder)
+
+
+def my_loads(obj):
+    """Custom JSON decoder function for Celery tasks.
+    """
+    def my_decoder(obj):
+        if '__type__' in obj:
+            if obj['__type__'] == '__pipelinecontext__':
+                return PipelineContext.decode(obj)
+        return obj
+    return json.loads(obj, object_hook=my_decoder)
+
+
+register("myjson", my_dumps, my_loads, content_type='application/x-myjson', content_encoding='utf-8')
+
+
+class PipelineContext():
+    """Convenience class for storing pipeline execution related information.
+    Provides custom encode/decode functions for JSON serialization with Celery.
+    """
+    def __init__(self, filepath, parser_name, calc_id, upload_id, worker_hostname):
+        self.filepath = filepath
+        self.parser_name = parser_name
+        self.calc_id = calc_id
+        self.upload_id = upload_id
+        self.worker_hostname = worker_hostname
+
+    def encode(self):
+        return {
+            "__type__": "__pipelinecontext__",
+            "filepath": self.filepath,
+            "parser_name": self.parser_name,
+            "calc_id": self.calc_id,
+            "upload_id": self.upload_id,
+            "worker_hostname": self.worker_hostname,
+        }
+
+    @staticmethod
+    def decode(data):
+        return PipelineContext(
+            data["filepath"],
+            data["parser_name"],
+            data["calc_id"],
+            data["upload_id"],
+            data["worker_hostname"],
+        )
 
 
 class Stage():
     """Stage comprises of a single python function. After this function is
-    completed the stage is completed.
+    completed, the stage is completed.
     """
     def __init__(self, name: str, function):
         """
@@ -67,19 +103,15 @@ class Stage():
                 communication happens through object persistence in MongoDB. The
                 function should accept the following arguments:
 
-                    - filepath: Path of the main file
-                    - parser_name: Name of the identified parser
-                    - calc_id: Calculation id in MongoDB
-                    - upload_id: Upload id in MongoDB
-                    - worker_hostname: Name of the host machine
+                    - context: PipelineContext object
                     - stage_name: Name of the stage executing the function
                     - i_stage: The index of this stage in the pipeline
                     - n_stages: Number of stages in this pipeline
         """
         self.name = name
         self._function = function
-        self._pipeline = None
-        self.index = None
+        self._pipeline: Pipeline = None
+        self.index: int = None
         self.dependencies: List[Stage] = []
 
     def add_dependency(self, name):
@@ -91,15 +123,40 @@ class Stage():
     def signature(self):
         return wrapper.si(
             self._function.__name__,
-            self._pipeline.filepath,
-            self._pipeline.parser_name,
-            self._pipeline.calc_id,
-            self._pipeline.upload_id,
-            self._pipeline.worker_hostname,
+            self._pipeline.context,
             self.name,
             self.index,
             len(self._pipeline.stages)
         )
+
+
+class Pipeline():
+    """Pipeline consists of a list of stages. The pipeline is complete when all
+    stages are finished.
+    """
+    def __init__(self, context: PipelineContext):
+        """
+        Args:
+            context: The working context for this pipeline.
+        """
+        self.context = context
+        self.stages: List[Stage] = []
+
+    def add_stage(self, stage: Stage):
+        """Adds a stage to this pipeline. The stages are executec in the order
+        they are added with this function.
+
+        Args:
+            stage: The stage to be added to this pipeline.
+        """
+        if len(self.stages) == 0:
+            if len(stage.dependencies) != 0:
+                raise ValueError(
+                    "The first stage in a pipeline must not have any dependencies."
+                )
+        stage._pipeline = self
+        stage.index = len(self.stages)
+        self.stages.append(stage)
 
 
 # This function wraps the function calls made within the stages. Although the
@@ -109,10 +166,10 @@ class Stage():
     bind=True, base=NomadCeleryTask, ignore_results=False, max_retries=3,
     acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
     time_limit=config.celery.timeout)
-def wrapper(task, function_name, filepath, parser_name, calc_id, upload_id, worker_hostname, stage_name, i_stage, n_stages):
+def wrapper(task, function_name, context, stage_name, i_stage, n_stages):
 
     # Get the associated calculation
-    calc = nomad.processing.data.Calc.get(calc_id)
+    calc = nomad.processing.data.Calc.get(context.calc_id)
     logger = calc.get_logger()
 
     # Get the defined function. If does not exist, log error and fail calculation.
@@ -123,7 +180,7 @@ def wrapper(task, function_name, filepath, parser_name, calc_id, upload_id, work
     # Try to execute the stage.
     deleted = False
     try:
-        deleted = function(filepath, parser_name, calc_id, upload_id, worker_hostname, stage_name, i_stage, n_stages)
+        deleted = function(context, stage_name, i_stage, n_stages)
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
         calc.fail(e)
@@ -158,23 +215,28 @@ def empty_task(task, *args, **kwargs):
     pass
 
 
-def comp_process(filepath, parser_name, calc_id, upload_id, worker_hostname, stage_name, i_stage, n_stages):
+def comp_process(context, stage_name, i_stage, n_stages):
     """Function for processing computational entries: runs parsing and normalization.
     """
     # Process calculation
-    calc = nomad.processing.data.Calc.get(calc_id)
+    calc = nomad.processing.data.Calc.get(context.calc_id)
     calc.process_calc()
 
 
-def get_pipeline(filepath, parser, calc_id, worker_hostname, upload_id):
-    """Used to fetch a pipeline for a mainfile that has been matched with a parser.
+def get_pipeline(context):
+    """Used to fetch a pipeline based on a pipeline context. Typically chosen
+    simply based on a matched parser name that is stored in the context
 
     Args:
+        context: The context based on which the pipeline is chosen.
+
+    Returns:
+        Pipeline: The pipeline to execute for the given context.
     """
-    pipeline = Pipeline(filepath, parser, calc_id, worker_hostname, upload_id)
+    pipeline = Pipeline(context)
 
     # Phonopy pipeline
-    if parser.name == "parsers/phonopy":
+    if context.parser_name == "parsers/phonopy":
         stage1 = Stage("comp_process_phonopy", comp_process)
         stage1.add_dependency("comp_process")
         pipeline.add_stage(stage1)
@@ -186,16 +248,21 @@ def get_pipeline(filepath, parser, calc_id, worker_hostname, upload_id):
     return pipeline
 
 
-def run_pipelines(mainfile_generator):
+def run_pipelines(context_generator) -> int:
+    """Used to start running pipelines based on the PipelineContext objects
+    generated by the given generator.
 
+    Returns:
+        The number of pipelines that were started.
+    """
     # Resolve all pipelines into disconnected dependency trees and run
     # each tree in parallel.
     stage_dependencies = []
-    stages = defaultdict(list)
+    stages: defaultdict = defaultdict(list)
     stage_names = set()
     n_pipelines = 0
-    for mainfile_info in mainfile_generator:
-        pipeline = get_pipeline(*mainfile_info)
+    for context in context_generator:
+        pipeline = get_pipeline(context)
         n_pipelines += 1
         for i_stage, stage in enumerate(pipeline.stages):
 
@@ -212,11 +279,11 @@ def run_pipelines(mainfile_generator):
 
                 # Create the associated Calc object
                 nomad.processing.data.Calc.create(
-                    calc_id=pipeline.calc_id,
-                    mainfile=pipeline.filepath,
-                    parser=pipeline.parser_name,
-                    worker_hostname=pipeline.worker_hostname,
-                    upload_id=pipeline.upload_id
+                    calc_id=pipeline.context.calc_id,
+                    mainfile=pipeline.context.filepath,
+                    parser=pipeline.context.parser_name,
+                    worker_hostname=pipeline.context.worker_hostname,
+                    upload_id=pipeline.context.upload_id
                 )
 
     if n_pipelines != 0:

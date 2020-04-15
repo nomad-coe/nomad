@@ -23,7 +23,7 @@ calculations, and files
 .. autoclass:: Upload
 
 '''
-from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
+from typing import cast, List, Any, Iterator, Dict, cast, Iterable
 from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
@@ -39,7 +39,7 @@ from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagi
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE, PROCESS_CALLED, PROCESS_COMPLETED
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
-from nomad.processing.pipelines import get_pipeline, run_pipelines, Pipeline
+from nomad.processing.pipelines import run_pipelines, PipelineContext
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -872,41 +872,12 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    # def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
-        # '''
-        # Generator function that matches all files in the upload to all parsers to
-        # determine the upload's mainfiles.
-
-        # Returns:
-            # Tuples of mainfile, filename, and parsers
-        # '''
-        # directories_with_match: Dict[str, str] = dict()
-        # upload_files = self.staging_upload_files
-        # for filename in upload_files.raw_file_manifest():
-            # self._preprocess_files(filename)
-            # try:
-                # parser = match_parser(upload_files.raw_file_object(filename).os_path)
-                # if parser is not None:
-                    # directory = os.path.dirname(filename)
-                    # if directory in directories_with_match:
-                        # # TODO this might give us the chance to store directory based relationship
-                        # # between calcs for the future?
-                        # pass
-                    # else:
-                        # directories_with_match[directory] = filename
-
-                    # yield filename, parser
-            # except Exception as e:
-                # self.get_logger().error(
-                    # 'exception while matching pot. mainfile',
-                    # mainfile=filename, exc_info=e)
-
-    def match_mainfiles(self) -> Iterator[Tuple]:
+    def match_mainfiles(self) -> Iterator[PipelineContext]:
         """Generator function that iterates over files in an upload and returns
         basic information for each found mainfile.
 
         Returns:
-            Tuple: (filepath, parser, calc_id, worker_hostname, upload_id)
+            PipelineContext
         """
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.staging_upload_files
@@ -922,7 +893,13 @@ class Upload(Proc):
                         pass
                     else:
                         directories_with_match[directory] = filepath
-                    yield filepath, parser, upload_files.calc_id(filepath), self.worker_hostname, self.upload_id
+                    yield PipelineContext(
+                        filepath,
+                        parser.name,
+                        upload_files.calc_id(filepath),
+                        self.upload_id,
+                        self.worker_hostname
+                    )
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',
