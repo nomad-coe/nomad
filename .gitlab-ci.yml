@@ -68,6 +68,7 @@ tests:
   image: $TEST_IMAGE
   services:
     - rabbitmq
+    - redis:5.0.8-alpine
     - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
       alias: elastic
       # fix issue with running elastic in gitlab ci runner:
