@@ -33,7 +33,7 @@ from kombu.serialization import register
 
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User
-from nomad.processing.pipelines import PipelineContext, my_dumps, my_loads
+from nomad.processing.pipelines import my_dumps, my_loads
 
 from tests import test_parsing
 from tests.normalizing.conftest import run_normalize

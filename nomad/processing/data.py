@@ -31,6 +31,7 @@ from contextlib import contextmanager
 import os.path
 from datetime import datetime
 from pymongo import UpdateOne
+from celery.utils import worker_direct
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 
@@ -350,15 +351,6 @@ class Calc(Proc):
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
 
-    # def on_process_complete(self, process_name):
-        # # the save might be necessary to correctly read the join condition from the db
-        # self.save()
-        # # in case of error, the process_name might be unknown
-        # if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
-            # self.get_logger().warning("JOINING NOW")
-            # self.upload.reload()
-            # self.upload.check_join()
-
     @task
     def parsing(self):
         ''' The *task* that encapsulates all parsing related actions. '''
@@ -519,7 +511,6 @@ class Upload(Proc):
         published: Boolean that indicates the publish status
         publish_time: Date when the upload was initially published
         last_update: Date of the last publishing/re-processing
-        joined: Boolean indicates if the running processing has joined (:func:`check_join`)
     '''
     id_field = 'upload_id'
 
@@ -534,8 +525,6 @@ class Upload(Proc):
     published = BooleanField(default=False)
     publish_time = DateTimeField()
     last_update = DateTimeField()
-
-    joined = BooleanField(default=False)
 
     meta: Any = {
         'indexes': [
@@ -754,8 +743,14 @@ class Upload(Proc):
                 dict(upload_id=self.upload_id),
                 {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
+            # Resolve queue and priority
+            queue = None
+            if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+                queue = worker_direct(self.worker_hostname).name
+            priority = config.celery.priorities.get('%s.%s' % ("Calc", "re_process"), 1)
+
             # Re-process all calcs
-            def gen():
+            def pipeline_generator():
                 query = dict(upload_id=self.upload_id)
                 exclude = ['metadata']
                 running_query = dict(Calc.process_running_mongoengine_query())
@@ -774,8 +769,7 @@ class Upload(Proc):
                         calc.worker_hostname,
                         re_process=True
                     )
-            run_pipelines(gen(), self.upload_id)
-            # Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+            run_pipelines(pipeline_generator(), self.upload_id, queue, priority)
 
             logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
@@ -803,7 +797,6 @@ class Upload(Proc):
         self._continue_with('cleanup')
 
         self.upload_files.re_pack(self.user_metadata())
-        self.joined = True
         self._complete()
 
     @process
@@ -955,8 +948,14 @@ class Upload(Proc):
             # Tell Upload that a process has been started.
             self.processing_started()
 
+            # Resolve queue and priority
+            queue = None
+            if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+                queue = worker_direct(self.worker_hostname).name
+            priority = config.celery.priorities.get('%s.%s' % ("Calc", "process"), 1)
+
             # Start running all pipelines
-            n_pipelines = run_pipelines(self.match_mainfiles(), self.upload_id)
+            n_pipelines = run_pipelines(self.match_mainfiles(), self.upload_id, queue, priority)
 
             # If the upload has not spawned any pipelines, tell it that it is
             # finished and perform cleanup
@@ -964,13 +963,11 @@ class Upload(Proc):
                 self.processing_finished()
 
     def reset(self):
-        self.joined = False
         super().reset()
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):
         update = super().reset_pymongo_update()
-        update.update(joined=False)
         return update
 
     def _cleanup_after_processing(self):

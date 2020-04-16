@@ -51,8 +51,7 @@ services:
         restart: unless-stopped
         image: redis:5.0.8-alpine
         container_name: nomad_redis
-        volumes:
-            - nomad_redis:/data
+        command: [sh, -c, "rm -f /data/dump.rdb && redis-server --save ''"]  # Disables db persistence to disk
 
     # the search engine
     elastic:
@@ -79,4 +78,3 @@ volumes:
     nomad_mongo:
     nomad_elastic:
     nomad_rabbitmq:
-    nomad_redis:
