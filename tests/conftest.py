@@ -117,6 +117,7 @@ def celery_includes():
 def celery_config():
     return {
         'broker_url': config.rabbitmq_url(),
+        'result_backend': config.redis_url(),
         'task_queue_max_priority': 10
     }
 
