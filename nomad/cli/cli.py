@@ -115,6 +115,11 @@ def run_cli():
         return cli()  # pylint: disable=E1120,E1123
     except ImportError:
         import sys
+
+        if next(arg for arg in sys.argv if arg == '-v') is not None:
+            import traceback
+            traceback.print_exc()
+
         print(
             'You are accessing functionality that requires extra dependencies.\n'
             'Check the NOMAD documentation or install all extra dependencies:\n'

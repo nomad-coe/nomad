@@ -121,6 +121,36 @@ def reset(remove, i_am_really_sure):
     infrastructure.reset(remove)
 
 
+@admin.command(help='Reset all "stuck" in processing uploads and calc in low level mongodb operations.')
+@click.option('--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.')
+def reset_processing(zero_complete_time):
+    infrastructure.setup_mongo()
+
+    def reset_collection(cls):
+        in_processing = cls.objects(process_status__ne=proc.PROCESS_COMPLETED)
+        print('%d %s processes need to be reset due to incomplete process' % (in_processing.count(), cls.__name__))
+        in_processing.update(
+            process_status=None,
+            current_process=None,
+            worker_hostname=None,
+            celery_task_id=None,
+            errors=[], warnings=[],
+            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now(),
+            current_task=None,
+            tasks_status=proc.base.CREATED)
+
+        in_tasks = cls.objects(tasks_status__in=[proc.PENDING, proc.RUNNING])
+        print('%d %s processes need to be reset due to incomplete tasks' % (in_tasks.count(), cls.__name__))
+        in_tasks.update(
+            current_task=None,
+            tasks_status=proc.base.CREATED,
+            errors=[], warnings=[],
+            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now())
+
+    reset_collection(proc.Calc)
+    reset_collection(proc.Upload)
+
+
 @admin.command(help='Check and lift embargo of data with expired embargo period.')
 @click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
