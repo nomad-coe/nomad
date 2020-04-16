@@ -752,7 +752,6 @@ class Upload(Proc):
             # Re-process all calcs
             def pipeline_generator():
                 query = dict(upload_id=self.upload_id)
-                exclude = ['metadata']
                 running_query = dict(Calc.process_running_mongoengine_query())
                 running_query.update(query)
                 if Calc.objects(**running_query).first() is not None:
@@ -760,7 +759,7 @@ class Upload(Proc):
                 Calc._get_collection().update_many(query, {'$set': dict(
                     current_process="re_process_calc",
                     process_status=PROCESS_CALLED)})
-                for calc in Calc.objects(**query).exclude(*exclude):
+                for calc in Calc.objects(**query):
                     yield PipelineContext(
                         calc.mainfile,
                         calc.parser,
