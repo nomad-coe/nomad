@@ -240,10 +240,10 @@ def comp_process(context, stage_name, i_stage, n_stages):
     calc = nomad.processing.data.Calc.get(context.calc_id)
     if context.re_process is True:
         calc.re_process_calc()
-        calc.get_logger().warn("Re-processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
+        calc.get_logger().info("Re-processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
     else:
         calc.process_calc()
-        calc.get_logger().warn("Processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
+        calc.get_logger().info("Processing of calculation {} at path {} finished.".format(context.filepath, context.calc_id))
 
 
 def get_pipeline(context):

@@ -29,9 +29,11 @@ import elasticsearch.exceptions
 from typing import List
 import json
 import logging
+from kombu.serialization import register
 
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.datamodel import User
+from nomad.processing.pipelines import PipelineContext, my_dumps, my_loads
 
 from tests import test_parsing
 from tests.normalizing.conftest import run_normalize
@@ -115,10 +117,17 @@ def celery_includes():
 
 @pytest.fixture(scope='session')
 def celery_config():
+
+    # Custom JSON encode/decode
+    register("myjson", my_dumps, my_loads, content_type='application/x-myjson', content_encoding='utf-8')
+
     return {
         'broker_url': config.rabbitmq_url(),
         'result_backend': config.redis_url(),
-        'task_queue_max_priority': 10
+        'task_queue_max_priority': 10,
+        'accept_content': ["myjson"],
+        'task_serializer': "myjson",
+        'result_serializer': "myjson",
     }
 
 
