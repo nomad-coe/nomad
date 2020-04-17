@@ -21,12 +21,11 @@ from nomad.metainfo.encyclopedia import (
     Calculation,
     Properties,
     Material,
-    ElectronicBandStructure,
-    BandGap,
 )
 from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
 from nomad.normalizing.encyclopedia.context import Context
+from nomad.datamodel.metainfo.public import section_k_band, section_band_gap
 from nomad import atomutils
 from nomad import config
 
@@ -41,7 +40,7 @@ class PropertiesNormalizer():
         self.backend = backend
         self.logger = logger
 
-    def get_reciprocal_cell(self, band_structure: ElectronicBandStructure, prim_atoms: Atoms, orig_atoms: Atoms):
+    def get_reciprocal_cell(self, band_structure: section_k_band, prim_atoms: Atoms, orig_atoms: Atoms):
         """A reciprocal cell for this calculation. If the original unit cell is
         not a primitive one, then we will use the one given by spglib.
 
@@ -74,18 +73,21 @@ class PropertiesNormalizer():
 
         band_structure.reciprocal_cell = recip_cell
 
-    def get_band_gaps(self, band_structure: ElectronicBandStructure, energies: np.array, path: np.array) -> None:
+    def get_band_gaps(self, band_structure: section_k_band, energies: np.array, path: np.array, valence_band_maximum: np.array) -> None:
         """Given the band structure and fermi level, calculates the band gap
         for spin channels and also reports the total band gap as the minum gap
         found.
         """
         # Handle spin channels separately to find gaps for spin up and down
         reciprocal_cell = band_structure.reciprocal_cell.magnitude
-        fermi_level = band_structure.fermi_level
         n_channels = energies.shape[0]
 
-        gaps: List[BandGap] = [None, None]
+        gaps: List[section_band_gap] = [None, None]
         for channel in range(n_channels):
+            if n_channels == 1:
+                vbm = valence_band_maximum
+            else:
+                vbm = valence_band_maximum[channel]
             channel_energies = energies[channel, :, :]
             lower_defined = False
             upper_defined = False
@@ -108,17 +110,17 @@ class PropertiesNormalizer():
 
                 # If any of the bands band crosses the Fermi level, there is no
                 # band gap
-                if band_min_tol <= fermi_level and band_max_tol >= fermi_level:
+                if band_min_tol <= vbm and band_max_tol >= vbm:
                     break
                 # Whole band below Fermi level, save the current highest
                 # occupied band point
-                elif band_min_tol <= fermi_level and band_max_tol <= fermi_level:
+                elif band_min_tol <= vbm and band_max_tol <= vbm:
                     gap_lower_energy = band_max
                     gap_lower_idx = band_maxima_idx[band_idx]
                     lower_defined = True
                 # Whole band above Fermi level, save the current lowest
                 # unoccupied band point
-                elif band_min_tol >= fermi_level:
+                elif band_min_tol >= vbm:
                     gap_upper_energy = band_min
                     gap_upper_idx = band_minima_idx[band_idx]
                     upper_defined = True
@@ -136,7 +138,7 @@ class PropertiesNormalizer():
                 k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
                 is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
-                gap = BandGap()
+                gap = section_band_gap()
                 gap.type = "direct" if is_direct_gap else "indirect"
                 gap.value = float(gap_upper_energy - gap_lower_energy)
                 gap.conduction_band_min_k_point = k_point_upper
@@ -148,25 +150,25 @@ class PropertiesNormalizer():
         # For unpolarized calculations we simply report the gap if it is found.
         if n_channels == 1:
             if gaps[0] is not None:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                band_structure.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
         # For polarized calculations we report the gap separately for both
         # channels. Also we report the smaller gap as the the total gap for the
         # calculation.
         elif n_channels == 2:
             if gaps[0] is not None:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
+                band_structure.m_add_sub_section(section_k_band.section_band_gap_spin_up, gaps[0])
             if gaps[1] is not None:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
+                band_structure.m_add_sub_section(section_k_band.section_band_gap_spin_down, gaps[1])
             if gaps[0] is not None and gaps[1] is not None:
                 if gaps[0].value <= gaps[1].value:
-                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                    band_structure.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
                 else:
-                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
+                    band_structure.m_add_sub_section(section_k_band.section_band_gap, gaps[1])
             else:
                 if gaps[0] is not None:
-                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                    band_structure.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
                 elif gaps[1] is not None:
-                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
+                    band_structure.m_add_sub_section(section_k_band.section_band_gap, gaps[1])
 
     def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
         """Used to calculate the Euclidean distance of two points in k-space,
@@ -185,7 +187,7 @@ class PropertiesNormalizer():
 
         return k_point_distance
 
-    def get_brillouin_zone(self, band_structure: ElectronicBandStructure) -> None:
+    def get_brillouin_zone(self, band_structure: section_k_band) -> None:
         """Returns a dictionary containing the information needed to display
         the Brillouin zone for this material. This functionality could be put
         into the GUI directly, with the Brillouin zone construction performed
@@ -219,38 +221,44 @@ class PropertiesNormalizer():
         symmetry_analyzer = sec_system.section_symmetry[0].m_cache["symmetry_analyzer"]
         prim_atoms = symmetry_analyzer.get_primitive_system()
 
-        # Try to find an SCC with band structure data, give priority to
-        # normalized data
-        for src_name in ["section_k_band_normalized", "section_k_band"]:
-            bands = getattr(representative_scc, src_name)
-            if bands is None:
-                continue
-            norm = "_normalized" if src_name == "section_k_band_normalized" else ""
+        # Try to find a band structure. Fill in band gap information that is
+        # not given by parser. TODO: There should be a separate band structure
+        # normalizer that does this.
+        bands = representative_scc.section_k_band
+        if bands is None or len(bands) == 0:
+            return
 
-            # Loop over bands
-            for band_data in bands:
-                band_structure = ElectronicBandStructure()
-                band_structure.scc_index = int(context.representative_scc_idx)
+        valence_band_maximum = representative_scc.energy_reference_highest_occupied
+        if valence_band_maximum is not None:
+            valence_band_maximum = valence_band_maximum.magnitude
+
+        # Loop over bands
+        for band_data in bands:
+
+            # Add reciprocal cell and brillouin zone
+            self.get_reciprocal_cell(band_data, prim_atoms, orig_atoms)
+            self.get_brillouin_zone(band_data)
+
+            # If the parser has reported a valence band maximum, we can add
+            # band gap information.
+            if valence_band_maximum is not None:
                 kpoints = []
                 energies = []
-                segments = band_data['section_k_band_segment' + norm]
+                segments = band_data.section_k_band_segment
                 if not segments:
                     return
 
                 # Loop over segments
                 for segment_src in segments:
                     try:
-                        seg_k_points = segment_src["band_k_points" + norm]
-                        seg_energies = segment_src["band_energies" + norm]
-                        seg_labels = segment_src['band_segm_labels' + norm]
+                        seg_k_points = segment_src.band_k_points
+                        seg_energies = segment_src.band_energies
                     except Exception:
                         return
-                    if seg_k_points is None or seg_energies is None or seg_labels is None:
+                    if seg_k_points is None or seg_energies is None:
                         return
                     else:
                         seg_energies = seg_energies.magnitude
-                    if "?" in seg_labels:
-                        return
 
                     seg_energies = np.swapaxes(seg_energies, 1, 2)
                     kpoints.append(seg_k_points)
@@ -259,19 +267,13 @@ class PropertiesNormalizer():
                 # Continue to calculate band gaps and other properties.
                 kpoints = np.concatenate(kpoints, axis=0)
                 energies = np.concatenate(energies, axis=2)
-                self.get_reciprocal_cell(band_structure, prim_atoms, orig_atoms)
-                self.get_brillouin_zone(band_structure)
 
-                # If we are using a normalized band structure (or the Fermi level
-                # is defined somehow else), we can add band gap information
-                fermi_level = None
-                if src_name == "section_k_band_normalized":
-                    fermi_level = 0.0
-                if fermi_level is not None:
-                    band_structure.fermi_level = fermi_level
-                    self.get_band_gaps(band_structure, energies, kpoints)
+                # If the parser has reported a valence band maximum, we can add
+                # band gap information.
+                self.get_band_gaps(band_data, energies, kpoints, valence_band_maximum)
 
-                properties.m_add_sub_section(Properties.electronic_band_structure, band_structure)
+        # The last encountered band structure is saved as a reference for encyclopedia
+        properties.electronic_band_structure = bands[-1]
 
     def elastic_constants_matrix(self) -> None:
         pass

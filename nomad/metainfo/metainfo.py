@@ -331,7 +331,7 @@ class Reference(DataType):
 
     def resolve(self, proxy) -> 'MSection':
         '''
-        Resolve the given proxy. The proxy is gurantied to have a context and
+        Resolve the given proxy. The proxy is guaranteed to have a context and
         will to be not yet resolved.
         '''
         return proxy.m_proxy_section.m_resolve(proxy.m_proxy_url)

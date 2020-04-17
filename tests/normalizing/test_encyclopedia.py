@@ -466,38 +466,38 @@ def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=1)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
+    assert bs.section_band_gap is None
+    assert bs.section_band_gap_spin_up is None
+    assert bs.section_band_gap_spin_down is None
 
     # Polarized, no gaps
     enc = bands_polarized_no_gap.entry_archive.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=2)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
+    assert bs.section_band_gap is None
+    assert bs.section_band_gap_spin_up is None
+    assert bs.section_band_gap_spin_down is None
 
     # Unpolarized, finite gap, indirect
     enc = bands_unpolarized_gap_indirect.entry_archive.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=1)
-    gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
+    gap_ev = (bs.section_band_gap.value * ureg.J).to(ureg.eV).magnitude
     assert gap_ev == pytest.approx(0.62, 0.01)
-    assert bs.band_gap.type == "indirect"
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
+    assert bs.section_band_gap.type == "indirect"
+    assert bs.section_band_gap_spin_up is None
+    assert bs.section_band_gap_spin_down is None
 
     # Polarized, finite gap, indirect
     enc = bands_polarized_gap_indirect.entry_archive.section_encyclopedia
     properties = enc.properties
     bs = properties.electronic_band_structure
     test_generic(bs, n_channels=2)
-    gap = bs.band_gap
-    gap_up = bs.band_gap_spin_up
-    gap_down = bs.band_gap_spin_down
+    gap = bs.section_band_gap
+    gap_up = bs.section_band_gap_spin_up
+    gap_down = bs.section_band_gap_spin_down
     gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
     gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
     gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude

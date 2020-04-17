@@ -220,6 +220,7 @@ class EncyclopediaNormalizer(Normalizer):
             super().normalize(logger)
 
             # Initialise metainfo structure
+            # sec_enc = self._backend.openSection("section_encyclopedia", return_section=True)
             sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
