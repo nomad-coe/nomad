@@ -27,7 +27,10 @@ from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.encyclopedia.material import MaterialBulkNormalizer, Material2DNormalizer, Material1DNormalizer
 from nomad.normalizing.encyclopedia.method import MethodDFTNormalizer, MethodGWNormalizer
 from nomad.normalizing.encyclopedia.properties import PropertiesNormalizer
-from nomad import config
+from nomad import config, files
+from nomad.archive import query_archive
+from nomad.datamodel import EntryArchive
+# from nomad.datamodel.metainfo.public import section_run
 
 J_to_Ry = 4.587425e+17
 
@@ -134,10 +137,40 @@ class EncyclopediaNormalizer(Normalizer):
         material.material_type = material_type
         return system, material_type
 
-    def method_type(self, method: Method) -> tuple:
+    def method_type(self, method: Method, run_type: str) -> tuple:
         repr_method = None
         method_id = config.services.unavailable_value
-        methods = self.section_run.section_method
+
+        # Special handling for phonon calculations. This simply assumes that
+        # the method information can be retrieved from the first referenced
+        # calculation. TODO: Once we have standardized approach to handling
+        # references between entries, this implementation should change.
+        calc_enums = Calculation.calculation_type.type
+        if run_type == calc_enums.phonon_calculation:
+            try:
+                # The reference is given as an absolute path in the host
+                # machine. We take the path that is relative to the upload
+                # root.
+                ref = self.section_run.section_single_configuration_calculation[0].section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
+                ref = ref.split("/", 6)[6]
+
+                # We get the referenced archive as an ArchiveReader object and get sec
+                upload_id = self.backend.entry_archive.section_metadata.upload_id
+                upload_files = files.StagingUploadFiles(upload_id, is_authorized=lambda: True)
+                calc_id = upload_files.calc_id(ref)
+                with upload_files.read_archive(calc_id) as archive:
+                    arch = query_archive(archive, {calc_id: calc_id})[calc_id]
+                    ref_archive = EntryArchive.m_from_dict(arch)
+                    methods = ref_archive.section_run[0].section_method
+            except Exception:
+                self.logger.warn(
+                    "Could not retrieve the method information from a "
+                    "referenced archive within a phonon calculation."
+                )
+                methods = []
+        else:
+            methods = self.section_run.section_method
+
         n_methods = len(methods)
 
         if n_methods == 1:
@@ -246,7 +279,7 @@ class EncyclopediaNormalizer(Normalizer):
                 return
 
             # Get the method type, stop if unknown
-            representative_method, method_type = self.method_type(method)
+            representative_method, method_type = self.method_type(method, calc_type)
             if method_type == config.services.unavailable_value:
                 self.logger.info(
                     "Unsupported method type for encyclopedia, encyclopedia metainfo not created.",
