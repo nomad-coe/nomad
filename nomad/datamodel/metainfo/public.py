@@ -4338,11 +4338,6 @@ class section_single_configuration_calculation(MSection):
         repeats=True,
         a_legacy=LegacyDefinition(name='section_energy_van_der_Waals'))
 
-    # section_k_band_normalized = SubSection(
-        # sub_section=SectionProxy('section_k_band_normalized'),
-        # repeats=True,
-        # a_legacy=LegacyDefinition(name='section_k_band_normalized'))
-
     section_k_band = SubSection(
         sub_section=SectionProxy('section_k_band'),
         repeats=True,
