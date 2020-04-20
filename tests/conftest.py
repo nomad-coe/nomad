@@ -158,6 +158,8 @@ def worker(mongo, celery_session_worker, celery_inspect):
 @pytest.fixture(scope='session')
 def mongo_infra(monkeysession):
     monkeysession.setattr('nomad.config.mongo.db_name', 'test_db')
+    # disconnecting and connecting again results in an empty database with mongomock
+    monkeysession.setattr('mongoengine.disconnect', lambda *args, **kwargs: None)
     return infrastructure.setup_mongo()
 
 

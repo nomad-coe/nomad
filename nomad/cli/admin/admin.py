@@ -127,7 +127,7 @@ def reset_processing(zero_complete_time):
     infrastructure.setup_mongo()
 
     def reset_collection(cls):
-        in_processing = cls.objects(process_status__ne=proc.PROCESS_COMPLETED)
+        in_processing = cls.objects(process_status__in=[proc.PROCESS_RUNNING, proc.base.PROCESS_CALLED])
         print('%d %s processes need to be reset due to incomplete process' % (in_processing.count(), cls.__name__))
         in_processing.update(
             process_status=None,
