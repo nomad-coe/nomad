@@ -146,7 +146,7 @@ def match_parser(mainfile_path: str, strict=True) -> 'Parser':
                 pass
 
     for parser in parsers:
-        if strict and (isinstance(parser, MissingParser) or isinstance(parser, EmptyParser)):
+        if strict and isinstance(parser, (MissingParser, EmptyParser)):
             continue
 
         if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):

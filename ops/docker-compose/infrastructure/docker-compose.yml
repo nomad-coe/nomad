@@ -46,6 +46,13 @@ services:
         volumes:
             - nomad_rabbitmq:/var/lib/rabbitmq
 
+    # result backend for celery
+    redis:
+        restart: unless-stopped
+        image: redis:5.0.8-alpine
+        container_name: nomad_redis
+        command: [sh, -c, "rm -f /data/dump.rdb && redis-server --save ''"]  # Disables db persistence to disk
+
     # the search engine
     elastic:
         restart: always

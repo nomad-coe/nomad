@@ -16,7 +16,7 @@ from typing import List, Any, Dict
 import logging
 import time
 import os
-from celery import Celery, Task
+from celery import Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
     celeryd_after_setup, worker_process_shutdown
@@ -30,6 +30,7 @@ from datetime import datetime
 import functools
 
 from nomad import config, utils, infrastructure
+from nomad.processing.celeryapp import app
 import nomad.patch  # pylint: disable=unused-import
 
 
@@ -73,14 +74,6 @@ def on_worker_process_shutdown(*args, **kwargs):
     from mongoengine.connection import disconnect
     disconnect()
 
-
-app = Celery('nomad.processing', broker=config.rabbitmq_url())
-app.conf.update(worker_hijack_root_logger=False)
-app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
-if config.celery.routing == config.CELERY_WORKER_ROUTING:
-    app.conf.update(worker_direct=True)
-
-app.conf.task_queue_max_priority = 10
 
 CREATED = 'CREATED'
 PENDING = 'PENDING'

@@ -1,4 +1,4 @@
-# Copyright 2018 Markus Scheidgen
+# Copyright 2018 Markus Scheidgen, empty_task
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,9 +87,18 @@ rabbitmq = NomadConfig(
     password='rabbitmq'
 )
 
+redis = NomadConfig(
+    host='localhost',
+    port=6379,
+)
+
 
 def rabbitmq_url():
     return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
+
+
+def redis_url():
+    return 'redis://%s:%d/0' % (redis.host, redis.port)
 
 
 celery = NomadConfig(

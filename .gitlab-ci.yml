@@ -68,6 +68,8 @@ tests:
   image: $TEST_IMAGE
   services:
     - rabbitmq
+    - name: redis:5.0.8-alpine
+      alias: redis
     - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
       alias: elastic
       # fix issue with running elastic in gitlab ci runner:
@@ -78,6 +80,7 @@ tests:
     RABBITMQ_DEFAULT_USER: rabbitmq
     RABBITMQ_DEFAULT_PASS: rabbitmq
     RABBITMQ_DEFAULT_VHOST: /
+    NOMAD_REDIS_HOST: redis
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo

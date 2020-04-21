@@ -100,6 +100,18 @@ rabbitmq:
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
 
+## configuration of the chart dependency for redis
+redis:
+  cluster:
+    enabled: false
+  usePassword: false
+  master:
+    nodeSelector:
+      nomadtype: public
+    persistence:
+      enabled: false
+
+
 ## A common name/prefix for all dbs and indices.
 dbname: fairdi_nomad_latest
 

@@ -24,6 +24,7 @@ class Parser(metaclass=ABCMeta):
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
     '''
+    name = "parsers/parser"
 
     def __init__(self):
         self.domain = 'dft'
@@ -68,9 +69,10 @@ class BrokenParser(Parser):
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
     '''
+    name = 'parsers/broken'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'parsers/broken'
         self.code_name = 'currupted mainfile'
         self._patterns = [
             re.compile(r'^pid=[0-9]+'),  # some 'mainfile' contain list of log-kinda information with pids
@@ -153,6 +155,8 @@ class MissingParser(MatchingParser):
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
     '''
+    name = "parsers/missing"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
