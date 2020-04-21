@@ -23,7 +23,6 @@ from celery.exceptions import SoftTimeLimitExceeded
 from nomad.processing.base import NomadCeleryTask, PROCESS_CALLED, PROCESS_COMPLETED
 from nomad.processing.celeryapp import app
 import nomad.processing.data
-from nomad import config
 
 import json
 from kombu.serialization import register
