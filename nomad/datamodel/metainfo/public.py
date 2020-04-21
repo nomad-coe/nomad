@@ -4,6 +4,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum
 )
+from elasticsearch_dsl import InnerDoc
 from nomad.metainfo.legacy import LegacyDefinition
 
 

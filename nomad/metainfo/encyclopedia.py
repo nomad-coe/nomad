@@ -1,6 +1,6 @@
 import numpy as np
 from elasticsearch_dsl import InnerDoc
-from nomad.metainfo import MSection, Section, SubSection, Quantity, Reference, MEnum, units
+from nomad.metainfo import MSection, Section, SectionProxy, SubSection, Quantity, Reference, MEnum, units
 from nomad.datamodel.metainfo.public import section_dos, section_k_band
 
 
