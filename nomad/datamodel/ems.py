@@ -16,7 +16,7 @@
 Experimental material science specific metadata
 '''
 
-from nomad import utils, config
+from nomad import config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
 
@@ -28,8 +28,8 @@ class EMSMetadata(MSection):
 
     # sample quantities
     chemical = Quantity(type=str, default='not processed', a_search=Search())
-    sample_constituents = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
-    sample_microstructure = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
+    sample_constituents = Quantity(type=str, default='not processed', a_search=Search())
+    sample_microstructure = Quantity(type=str, default='not processed', a_search=Search())
 
     # general metadata
     experiment_summary = Quantity(type=str, default='not processed', a_search=Search())
@@ -37,8 +37,8 @@ class EMSMetadata(MSection):
     experiment_time = Quantity(type=Datetime, a_search=Search())
 
     # method
-    method = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
-    probing_method = Quantity(type=str, default='not processed', a_search=Search(default_statistic=True))
+    method = Quantity(type=str, default='not processed', a_search=Search())
+    probing_method = Quantity(type=str, default='not processed', a_search=Search())
 
     # data metadata
     repository_name = Quantity(type=str, default='not processed', a_search=Search())
@@ -51,6 +51,8 @@ class EMSMetadata(MSection):
     group_hash = Quantity(type=str, a_search=Search())
 
     def apply_domain_metadata(self, backend):
+        from nomad import utils
+
         if backend is None:
             return
 

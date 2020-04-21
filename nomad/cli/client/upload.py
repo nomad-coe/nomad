@@ -16,7 +16,7 @@ import click
 import urllib.parse
 import requests
 
-from nomad import utils, config
+from nomad import config
 from nomad import processing
 
 from .client import client
@@ -106,7 +106,6 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
     '--publish', is_flag=True, default=False,
     help='Automatically move upload out of the staging area after successful processing')
 def upload(path, name: str, offline: bool, publish: bool):
-    utils.configure_logging()
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
     for path in paths:

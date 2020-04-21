@@ -29,13 +29,13 @@ from nomad import search, utils, datamodel, processing as proc, infrastructure, 
 from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime, DotKeyNested
+from nomad.app.common import RFC3339DateTime, DotKeyNested, rfc3339DateTime
 
 from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\
     add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl, _search_quantities
+    query_api_python, query_api_curl, query_api_clientlib, _search_quantities
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -67,10 +67,36 @@ class RepoCalcResource(Resource):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         result = calc.to_dict()
-        result['python'] = query_api_python('archive', upload_id, calc_id)
-        result['curl'] = query_api_curl('archive', upload_id, calc_id)
+        result['code'] = {
+            'python': query_api_python('archive', upload_id, calc_id),
+            'curl': query_api_curl('archive', upload_id, calc_id),
+            'clientlib': query_api_clientlib(upload_id=[upload_id], calc_id=[calc_id])
+        }
 
         return result, 200
+
+
+def resolve_interval(from_time, until_time):
+    if from_time is None:
+        from_time = datetime.fromtimestamp(0)
+    if until_time is None:
+        until_time = datetime.utcnow()
+    dt = rfc3339DateTime.parse(until_time) - rfc3339DateTime.parse(from_time)
+
+    if dt.days >= 1826:
+        return '1y'
+    elif dt.days >= 731:
+        return '1q'
+    elif dt.days >= 121:
+        return '1M'
+    elif dt.days >= 28:
+        return '1w'
+    elif dt.days >= 4:
+        return '1d'
+    elif dt.total_seconds() >= 14400:
+        return '1h'
+    else:
+        return '1m'
 
 
 _search_request_parser = api.parser()
@@ -86,7 +112,8 @@ _search_request_parser.add_argument(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
         'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
 _search_request_parser.add_argument(
-    'statistics', type=bool, help=('Return statistics.'))
+    'statistics', type=str, action='append', help=(
+        'Quantities for which to aggregate values and their metrics.'))
 _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
 for group_name in search_extension.groups:
@@ -170,17 +197,22 @@ class RepoCalcsResource(Resource):
             order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
-            interval = args.get('interval', '1M')
+            interval = args.get('interval', 'auto')
             metrics: List[str] = request.args.getlist('metrics')
-
-            with_statistics = args.get('statistics', False) or \
-                any(args.get(group_name, False) for group_name in search_extension.groups)
+            statistics = args.get('statistics', [])
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
+            if interval == 'auto':
+                try:
+                    from_time = args.get('from_time', None)
+                    until_time = args.get('until_time', None)
+                    interval = resolve_interval(from_time, until_time)
+                except Exception:
+                    abort(400, message='encountered error resolving time interval')
             search_request.date_histogram(interval=interval)
 
         try:
@@ -196,20 +228,16 @@ class RepoCalcsResource(Resource):
             if metric not in search_extension.metrics:
                 abort(400, message='there is no metric %s' % metric)
 
-        if with_statistics:
-            search_request.default_statistics(metrics_to_use=metrics)
+        if len(statistics) > 0:
+            search_request.statistics(statistics, metrics_to_use=metrics)
 
-            additional_metrics = [
-                group_quantity.metric_name
-                for group_name, group_quantity in search_extension.groups.items()
-                if args.get(group_name, False)]
-
-            total_metrics = metrics + additional_metrics
-
+        group_metrics = [
+            group_quantity.metric_name
+            for group_name, group_quantity in search_extension.groups.items()
+            if args.get(group_name, False)]
+        total_metrics = metrics + group_metrics
+        if len(total_metrics) > 0:
             search_request.totals(metrics_to_use=total_metrics)
-            search_request.statistic('authors', 1000)
-        elif len(metrics) > 0:
-            search_request.totals(metrics_to_use=metrics)
 
         if 'exclude' in parsed_args:
             excludes = parsed_args['exclude']
@@ -235,7 +263,7 @@ class RepoCalcsResource(Resource):
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                if with_statistics:
+                if 'statistics' in results:
                     statistics = results['statistics']
                     if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
                         del(statistics['code_name']['currupted mainfile'])
@@ -251,8 +279,11 @@ class RepoCalcsResource(Resource):
             code_args = dict(request.args)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
-            results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
-            results['python'] = query_api_python('archive', 'query', query_string=code_args)
+            results['code'] = {
+                'curl': query_api_curl('archive', 'query', query_string=code_args),
+                'python': query_api_python('archive', 'query', query_string=code_args),
+                'clientlib': query_api_clientlib(**code_args)
+            }
 
             return results, 200
         except search.ScrollIdNotFound:

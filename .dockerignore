@@ -16,6 +16,8 @@ local/
 target/
 examples/
 ops/
+build/
+dist/
 
 dependencies/**/test
 dependencies/**/tests

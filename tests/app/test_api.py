@@ -44,6 +44,8 @@ from tests.app.test_app import BlueprintClient
 
 logger = utils.get_logger(__name__)
 
+example_statistics = ['atoms', 'authors', 'dft.system']
+
 
 @pytest.fixture(scope='function')
 def api(client):
@@ -776,8 +778,9 @@ class TestRepo():
         rv = api.get('/repo/0/1', headers=test_user_auth)
         assert rv.status_code == 200
         data = rv.json
-        assert data['python'] is not None
-        assert data['curl'] is not None
+        assert data['code']['curl'] is not None
+        assert data['code']['python'] is not None
+        assert data['code']['clientlib'] is not None
 
     def test_public_calc(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
         rv = api.get('/repo/0/1', headers=other_test_user_auth)
@@ -900,7 +903,7 @@ class TestRepo():
         query_string = urlencode({
             'owner': 'public' if user == 'test_user' else 'all',
             quantity: value,
-            'statistics': True}, doseq=True)
+            'statistics': ['dft.system']}, doseq=True)
 
         rv = api.get('/repo/?%s' % query_string, headers=user_auth)
         logger.debug('run search quantities test', query_string=query_string)
@@ -939,8 +942,9 @@ class TestRepo():
     def test_search_total_metrics(self, api, example_elastic_calcs, no_warn, metrics, statistics):
         query_params = dict(metrics=metrics)
         if statistics:
-            query_params['statistics'] = True
-        rv = api.get('/repo/?%s' % urlencode(query_params, doseq=True))
+            query_params['statistics'] = example_statistics
+        url = '/repo/?%s' % urlencode(query_params, doseq=True)
+        rv = api.get(url)
         assert rv.status_code == 200, str(rv.data)
         data = json.loads(rv.data)
         total_metrics = data.get('statistics', {}).get('total', {}).get('all', None)
@@ -992,7 +996,7 @@ class TestRepo():
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
-        rv = api.get('/repo/?&page=%d&per_page=%d&statistics=true' % (page, per_page))
+        rv = api.get('/repo/?&page=%d&per_page=%d&statistics=dft.system' % (page, per_page))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
@@ -1052,7 +1056,7 @@ class TestRepo():
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
         (0, 'dft.quantities', 'dos'),
-        (2, 'dft.quantities_energy', 'energy_total'),
+        (2, 'dft.searchable_quantities', 'energy_total'),
         (2, 'dft.compound_type', 'ternary'),
         (0, 'dft.labels_springer_compound_class', 'intermetallic')
     ])
@@ -1159,8 +1163,9 @@ class TestRepo():
         rv = api.get('/repo/?code_name=VASP', headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
-        assert data['python'] is not None
-        assert data['curl'] is not None
+        assert data['code']['curl'] is not None
+        assert data['code']['python'] is not None
+        assert data['code']['clientlib'] is not None
 
 
 class TestEditRepo():

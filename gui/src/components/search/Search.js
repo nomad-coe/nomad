@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, FormControl,
@@ -6,7 +6,7 @@ import { Card, Button, List, ListItem, ListItemText, Tooltip, Tabs, Tab, Paper, 
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
-import SearchContext from './SearchContext'
+import SearchContext, { searchContext } from './SearchContext'
 import { DisableOnLoading } from '../api'
 import { domains } from '../domains'
 import KeepState from '../KeepState'
@@ -17,6 +17,7 @@ import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
 import UploadsChart from './UploadsChart'
+import UploadersList from './UploadersList'
 
 class Search extends React.Component {
   static tabs = {
@@ -86,21 +87,11 @@ class Search extends React.Component {
     }
   })
 
-  static visalizations = {
+  static defaultVisalizations = {
     'elements': {
       render: props => <ElementsVisualization {...props}/>,
       label: 'Elements',
       description: 'Shows data as a heatmap over the periodic table'
-    },
-    'domain': {
-      render: props => <DomainVisualization {...props}/>,
-      label: 'Meta data',
-      description: 'Shows histograms on key metadata'
-    },
-    'property': {
-      render: props => <PropertyVisualization {...props}/>,
-      label: 'Properties',
-      description: 'Shows histograms on key properties'
     },
     'users': {
       render: props => <UsersVisualization {...props}/>,
@@ -152,7 +143,10 @@ class Search extends React.Component {
     const {classes, entryListProps, tabs} = this.props
     const {resultTab, openVisualization} = this.state
     const {domain} = this.context.state
-    // const {state: {request: {uploads, datasets, groups}}} = this.context
+
+    const visualizations = {}
+    Object.assign(visualizations, Search.defaultVisalizations)
+    Object.assign(visualizations, domain.searchVisualizations)
 
     return <DisableOnLoading>
       <div className={classes.root}>
@@ -166,6 +160,7 @@ class Search extends React.Component {
               classes={{button: classes.selectButton}}
               value={openVisualization}
               onChange={this.handleVisualizationChange}
+              visualizations={visualizations}
             />
             <MetricSelect classes={{root: classes.metricButton}} />
           </FormGroup>
@@ -174,12 +169,7 @@ class Search extends React.Component {
         </div>
 
         <div className={classes.visalizations}>
-          {Object.keys(Search.visalizations).map(key => {
-            return Search.visalizations[key].render({
-              key: key, open: openVisualization === key
-            })
-          })
-          }
+          {Object.keys(visualizations).filter(key => openVisualization === key).map(key => visualizations[key].render({key: key}))}
         </div>
 
         <div className={classes.searchResults}>
@@ -209,82 +199,32 @@ class Search extends React.Component {
   }
 }
 
-class DomainVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-    const {open} = this.props
-
-    return <KeepState visible={open} render={() =>
-      <domain.SearchAggregations />
-    }/>
-  }
+function UsersVisualization(props) {
+  const {state: {domain}, setStatistics} = useContext(searchContext)
+  useEffect(() => {
+    setStatistics(['uploader'])
+  })
+  return <div>
+    <Card>
+      <CardContent>
+        <UploadsChart metricsDefinitions={domain.searchMetrics}/>
+      </CardContent>
+    </Card>
+    <UploadersList />
+  </div>
 }
 
-class PropertyVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
+function ElementsVisualization(props) {
+  const [exclusive, setExclusive] = useState(false)
+  const {state: {response: {statistics}, query, metric}, setQuery, setStatistics} = useContext(searchContext)
+  useEffect(() => {
+    setStatistics(['atoms'])
+  })
 
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-    const {open} = this.props
-
-    return <KeepState visible={open} render={() =>
-      <domain.SearchByPropertyAggregations />
-    }/>
-  }
-}
-
-class UsersVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  render() {
-    const {domain} = this.context.state
-    const {open} = this.props
-
-    return <KeepState visible={open} render={() =>
-      <Card>
-        <CardContent>
-          <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-        </CardContent>
-      </Card>
-    }/>
-  }
-}
-
-class ElementsVisualization extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool
-  }
-
-  static contextType = SearchContext.type
-
-  constructor(props) {
-    super(props)
-    this.handleExclusiveChanged = this.handleExclusiveChanged.bind(this)
-    this.handleAtomsChanged = this.handleAtomsChanged.bind(this)
-  }
-
-  state = {
-    exclusive: false
-  }
-
-  handleExclusiveChanged() {
-    this.setState({exclusive: !this.state.exclusive}, () => {
+  const handleExclusiveChanged = () => {
+    setExclusive(!exclusive, () => {
       const {state: {query}, setQuery} = this.context
-      if (this.state.exclusive) {
+      if (exclusive) {
         setQuery({...query, only_atoms: query['atoms'], atoms: []})
       } else {
         setQuery({...query, atoms: query.only_atoms, only_atoms: []})
@@ -292,34 +232,25 @@ class ElementsVisualization extends React.Component {
     })
   }
 
-  handleAtomsChanged(atoms) {
-    if (this.state.exclusive) {
-      this.setState({exclusive: false})
+  const handleAtomsChanged = atoms => {
+    if (exclusive) {
+      setExclusive(false)
     }
-
-    const {state: {query}, setQuery} = this.context
     setQuery({...query, atoms: atoms, only_atoms: []})
   }
 
-  render() {
-    const {open} = this.props
-    const {state: {response: {statistics}, query, metric}} = this.context
-
-    return <KeepState visible={open} render={() =>
-      <Card>
-        <CardContent>
-          <PeriodicTable
-            aggregations={statistics.atoms}
-            metric={metric}
-            exclusive={this.state.exclusive}
-            values={[...(query.atoms || []), ...(query.only_atoms || [])]}
-            onChanged={this.handleAtomsChanged}
-            onExclusiveChanged={this.handleExclusiveChanged}
-          />
-        </CardContent>
-      </Card>
-    }/>
-  }
+  return <Card>
+    <CardContent>
+      <PeriodicTable
+        aggregations={statistics.atoms}
+        metric={metric}
+        exclusive={exclusive}
+        values={[...(query.atoms || []), ...(query.only_atoms || [])]}
+        onChanged={handleAtomsChanged}
+        onExclusiveChanged={handleExclusiveChanged}
+      />
+    </CardContent>
+  </Card>
 }
 
 class MetricSelect extends React.Component {
@@ -402,14 +333,15 @@ class VisualizationSelect extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     value: PropTypes.string,
+    visualizations: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired
   }
 
   render() {
-    const {classes, value, onChange} = this.props
+    const {classes, value, onChange, visualizations} = this.props
     return <React.Fragment>
-      {Object.keys(Search.visalizations).map(key => {
-        const visualization = Search.visalizations[key]
+      {Object.keys(visualizations).map(key => {
+        const visualization = visualizations[key]
         return <Tooltip key={key} title={visualization.description}>
           <Button
             size="small" variant="outlined" className={classes.button}

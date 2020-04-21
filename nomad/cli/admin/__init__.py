@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lazy_import
+from nomad.cli import lazy_import
 
 lazy_import.lazy_module('typing')
 lazy_import.lazy_module('click')
@@ -40,6 +40,7 @@ lazy_import.lazy_module('bs4')
 lazy_import.lazy_module('matid')
 lazy_import.lazy_module('matid.symmetry.symmetryanalyzer')
 lazy_import.lazy_module('matid.utils.segfault_protect')
+lazy_import.lazy_module('nomad.atomutils')
 lazy_import.lazy_module('nomad.normalizing')
 lazy_import.lazy_module('nomad.processing')
 lazy_import.lazy_module('nomad.search')

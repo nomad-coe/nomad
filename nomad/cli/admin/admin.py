@@ -27,11 +27,10 @@ import numpy as np
 import requests
 import ase
 import bs4
-from matid import SymmetryAnalyzer
+import matid
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 from nomad import atomutils
-from nomad import normalizing
 from nomad.cli.cli import cli
 
 
@@ -116,18 +115,46 @@ def reset(remove, i_am_really_sure):
         print('You do not seem to be really sure about what you are doing.')
         sys.exit(1)
 
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
     infrastructure.reset(remove)
 
 
+@admin.command(help='Reset all "stuck" in processing uploads and calc in low level mongodb operations.')
+@click.option('--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.')
+def reset_processing(zero_complete_time):
+    infrastructure.setup_mongo()
+
+    def reset_collection(cls):
+        in_processing = cls.objects(process_status__in=[proc.PROCESS_RUNNING, proc.base.PROCESS_CALLED])
+        print('%d %s processes need to be reset due to incomplete process' % (in_processing.count(), cls.__name__))
+        in_processing.update(
+            process_status=None,
+            current_process=None,
+            worker_hostname=None,
+            celery_task_id=None,
+            errors=[], warnings=[],
+            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now(),
+            current_task=None,
+            tasks_status=proc.base.CREATED)
+
+        in_tasks = cls.objects(tasks_status__in=[proc.PENDING, proc.RUNNING])
+        print('%d %s processes need to be reset due to incomplete tasks' % (in_tasks.count(), cls.__name__))
+        in_tasks.update(
+            current_task=None,
+            tasks_status=proc.base.CREATED,
+            errors=[], warnings=[],
+            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now())
+
+    reset_collection(proc.Calc)
+    reset_collection(proc.Upload)
+
+
 @admin.command(help='Check and lift embargo of data with expired embargo period.')
 @click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def lift_embargo(dry, parallel):
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -166,7 +193,6 @@ def lift_embargo(dry, parallel):
 @click.option('--threads', type=int, default=1, help='Number of threads to use.')
 @click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
 def index(threads, dry):
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -494,7 +520,7 @@ def prototypes_update(ctx, filepath, matches_only):
 
             # Try to first see if the space group can be matched with the one in AFLOW
             try:
-                symm = SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
+                symm = matid.SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()
@@ -523,4 +549,5 @@ def prototypes_update(ctx, filepath, matches_only):
 @click.option('--max-n-query', default=10, type=int, help='Number of unsuccessful springer request before returning an error. Default is 10.')
 @click.option('--retry-time', default=120, type=int, help='Time in seconds to retry after unsuccessful request. Default is 120.')
 def springer_update(max_n_query, retry_time):
-    normalizing.springer.update_springer_data(max_n_query, retry_time)
+    from nomad.cli.admin import springer
+    springer.update_springer_data(max_n_query, retry_time)

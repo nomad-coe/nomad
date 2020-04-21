@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .cli import run_cli
+from flask import Blueprint
+import os.path
 
-if __name__ == '__main__':
-    run_cli()  # pylint: disable=E1120,E1123
+dist_folder = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), '../../dist'))
+blueprint = Blueprint('dist', __name__, static_url_path='/', static_folder=dist_folder)

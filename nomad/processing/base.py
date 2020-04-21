@@ -19,12 +19,12 @@ import os
 from celery import Celery, Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
-    celeryd_after_setup
+    celeryd_after_setup, worker_process_shutdown
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
-from mongoengine.connection import MongoEngineConnectionError
+from mongoengine.connection import ConnectionFailure
 from mongoengine.base.metaclasses import TopLevelDocumentMetaclass
 from datetime import datetime
 import functools
@@ -34,10 +34,10 @@ import nomad.patch  # pylint: disable=unused-import
 
 
 if config.logstash.enabled:
-    utils.configure_logging()
+    from nomad.utils import structlogging
 
     def initialize_logstash(logger=None, loglevel=logging.DEBUG, **kwargs):
-        utils.add_logstash_handler(logger)
+        structlogging.add_logstash_handler(logger)
         return logger
 
     after_setup_task_logger.connect(initialize_logstash)
@@ -46,6 +46,13 @@ if config.logstash.enabled:
 
 @worker_process_init.connect
 def setup(**kwargs):
+    # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
+    try:
+        from mongoengine import disconnect
+        disconnect()
+    except Exception:
+        pass
+
     infrastructure.setup()
     utils.get_logger(__name__).info(
         'celery configured with acks_late=%s' % str(config.celery.acks_late))
@@ -58,6 +65,13 @@ worker_hostname = None
 def capture_worker_name(sender, instance, **kwargs):
     global worker_hostname
     worker_hostname = sender
+
+
+@worker_process_shutdown.connect
+def on_worker_process_shutdown(*args, **kwargs):
+    # We need to make sure not to leave open sessions: https://jira.mongodb.org/browse/PYTHON-2090
+    from mongoengine.connection import disconnect
+    disconnect()
 
 
 app = Celery('nomad.processing', broker=config.rabbitmq_url())
@@ -217,7 +231,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             obj = cls.objects(**{id_field: id}).first()
         except ValidationError as e:
             raise InvalidId('%s is not a valid id' % id)
-        except MongoEngineConnectionError as e:
+        except ConnectionFailure as e:
             raise e
 
         if obj is None:

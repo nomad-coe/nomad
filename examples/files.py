@@ -1,6 +1,5 @@
 from nomad import infrastructure, files, processing as proc
 
-infrastructure.setup_logging()
 infrastructure.setup_mongo()
 
 upload_id = 'NvVyk3gATxCJW6dWS4cRWw'

@@ -32,7 +32,6 @@ from .admin import admin
 @click.option('--staging-too', is_flag=True, help='Also clean published entries in staging, make sure these files are not due to reprocessing')
 @click.option('--force', is_flag=True, help='Do not ask for confirmation.')
 def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
-    infrastructure.setup_logging()
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 

@@ -156,7 +156,6 @@ class CalcProcReproduction:
 @click.option('--skip-normalizers', is_flag=True, help='Do not normalize.')
 @click.option('--not-strict', is_flag=True, help='Also match artificial parsers.')
 def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **kwargs):
-    utils.configure_logging()
     utils.get_logger(__name__).info('Using %s' % config.client.url)
 
     with CalcProcReproduction(calc_id, **kwargs) as local:

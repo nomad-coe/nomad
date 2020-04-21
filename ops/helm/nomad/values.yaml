@@ -115,6 +115,7 @@ elastic:
   port: 9200
 
 logstash:
+  enabled: true
   port: 5000
   host: nomad-flink-01.esc
 

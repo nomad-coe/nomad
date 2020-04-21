@@ -6,8 +6,16 @@ import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
 import SearchContext from '../search/SearchContext'
 
-const unprocessed_label = 'not processed'
-const unavailable_label = 'unavailable'
+const unprocessedLabel = 'not processed'
+const unavailableLabel = 'unavailable'
+
+function split(array, cols) {
+  if (cols === 1) {
+    return [array]
+  }
+  const size = Math.ceil(array.length / cols)
+  return [array.slice(0, size), ...split(array.slice(size), cols - 1)]
+}
 
 const _mapping = {
   'energy_total': 'Total energy',
@@ -35,13 +43,6 @@ const _mapping = {
   'oscillator_strengths': 'Oscillator strengths',
   'transition_dipole_moments': 'Transition dipole moments'}
 
-function mapKey(name) {
-  if (name in _mapping) {
-    return _mapping[name]
-  }
-  return name
-}
-
 class QuantityHistogramUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -51,20 +52,40 @@ class QuantityHistogramUnstyled extends React.Component {
     metric: PropTypes.string.isRequired,
     value: PropTypes.string,
     onChanged: PropTypes.func.isRequired,
-    defaultScale: PropTypes.number
+    defaultScale: PropTypes.number,
+    sort: PropTypes.bool,
+    tooltips: PropTypes.bool,
+    columns: PropTypes.number
   }
 
   static styles = theme => ({
     root: {},
     content: {
-      paddingTop: 0
+      paddingTop: 0,
+      position: 'relative'
+    },
+    tooltip: {
+      textAlign: 'center',
+      position: 'absolute',
+      pointerEvents: 'none',
+      opacity: 0
+    },
+    tooltipContent: {
+      // copy of the material ui popper style
+      display: 'inline-block',
+      color: '#fff',
+      padding: '4px 8px',
+      fontSize: '0.625rem',
+      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+      lineHeight: '1.4em',
+      borderRadius: '4px',
+      backgroundColor: '#616161'
     }
   })
 
   constructor(props) {
     super(props)
     this.container = React.createRef()
-    this.svgEl = React.createRef()
   }
 
   state = {
@@ -72,8 +93,6 @@ class QuantityHistogramUnstyled extends React.Component {
   }
 
   componentDidMount() {
-    // TODO this just a workaround for bad layout on initial rendering
-    this.updateChart()
     this.updateChart()
   }
 
@@ -82,135 +101,212 @@ class QuantityHistogramUnstyled extends React.Component {
   }
 
   handleItemClicked(item) {
-    if (this.props.value === item.name) {
+    if (this.props.value === item.key) {
       this.props.onChanged(null)
     } else {
-      this.props.onChanged(item.name)
+      this.props.onChanged(item.key)
     }
   }
 
   updateChart() {
+    const {classes, sort, tooltips} = this.props
+
     if (!this.props.data) {
       return
     }
 
-    const { scalePower } = this.state
-    const selected = this.props.value
-
-    const width = this.container.current.offsetWidth
-    const height = Object.keys(this.props.data).length * 32
-
     const data = Object.keys(this.props.data)
       .map(key => ({
-        name: mapKey(key),
+        key: key,
+        name: _mapping[key] || key,
         value: this.props.data[key][this.props.metric]
       }))
 
-    data.sort((a, b) => {
-      const nameA = a.name
-      const nameB = b.name
+    if (sort) {
+      data.sort((a, b) => {
+        const nameA = a.name
+        const nameB = b.name
 
-      if (nameA === nameB) {
-        return 0
-      }
+        if (nameA === nameB) {
+          return 0
+        }
 
-      if (nameA === unprocessed_label) {
-        return 1
+        if (nameA === unprocessedLabel) {
+          return 1
+        }
+        if (nameB === unprocessedLabel) {
+          return -1
+        }
+        if (nameA === unavailableLabel) {
+          return 1
+        }
+        if (nameB === unavailableLabel) {
+          return -1
+        }
+        return nameA.localeCompare(nameB)
+      })
+    } else {
+      // keep the data sorting, but put unavailable and not processed to the end
+      const unavailableIndex = data.findIndex(d => d.name === unavailableLabel)
+      const unprocessedIndex = data.findIndex(d => d.name === unprocessedLabel)
+      if (unavailableIndex !== -1) {
+        data.push(data.splice(unavailableIndex, 1)[0])
       }
-      if (nameB === unprocessed_label) {
-        return -1
+      if (unprocessedIndex !== -1) {
+        data.push(data.splice(unprocessedIndex, 1)[0])
       }
-      if (nameA === unavailable_label) {
-        return 1
-      }
-      if (nameB === unavailable_label) {
-        return -1
-      }
-      return nameA.localeCompare(nameB)
-    })
+    }
 
-    const y = scaleBand().rangeRound([0, height]).padding(0.1)
+    const columns = this.props.columns || 1
+    const columnSize = Math.ceil(data.length / columns)
+    for (let i = data.length; i < columnSize * columns; i++) {
+      data.push({key: `empty${i}`, name: '', value: 0})
+    }
+    const columnsData = split(data, columns)
+
+    const {scalePower} = this.state
+    const selected = this.props.value
+
+    const containerWidth = this.container.current.offsetWidth
+    const width = containerWidth / columns - (12 * (columns - 1))
+    const height = columnSize * 32
+
     const x = scalePow().range([0, width]).exponent(scalePower)
 
     // we use at least the domain 0..1, because an empty domain causes a weird layout
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
-    y.domain(data.map(d => d.name))
 
-    let svg = d3.select(this.svgEl.current)
-    svg.attr('width', width)
-    svg.attr('height', height)
+    const rectColor = d => selected === d.key ? nomadPrimaryColor.main : nomadSecondaryColor.light
+    const textColor = d => selected === d.key ? '#FFF' : '#000'
 
-    let withData = svg
-      .selectAll('g')
-      .data(data, data => data.name)
+    const container = d3.select(this.container.current)
+    const tooltip = container.select('.' + classes.tooltip)
+      .style('width', width + 'px')
+      .style('opacity', 0)
+    const tooltipContent = container.select('.' + classes.tooltipContent)
+    const svg = container.select('svg')
+      .attr('width', containerWidth)
+      .attr('height', height)
 
-    withData.exit().remove()
+    const columnsG = svg
+      .selectAll('.column')
+      .data(columnsData.map((_, i) => `column${i}`))
 
-    const rectColor = d => selected === d.name ? nomadPrimaryColor.main : nomadSecondaryColor.light
-    const textColor = d => selected === d.name ? '#FFF' : '#000'
-
-    let item = withData.enter()
+    columnsG.exit().remove()
+    columnsG
+      .enter()
       .append('g')
+      .attr('id', d => d)
+      .attr('class', 'column')
+      .attr('transform', (d, i) => `translate(${i * (width + 12)}, 0)`)
 
-    item
-      .append('rect')
-      .attr('x', x(0))
-      .attr('y', d => y(d.name))
-      .attr('width', d => x(d.value) - x(0))
-      .attr('height', y.bandwidth())
-      .style('fill', rectColor)
-      // .style('stroke', '#000')
-      // .style('stroke-width', '1px')
-      .style('shape-rendering', 'geometricPrecision')
+    columnsData.forEach((data, i) => {
+      const y = scaleBand().rangeRound([0, height]).padding(0.1)
+      y.domain(data.map(d => d.name))
 
-    item
-      .append('text')
-      .attr('class', 'name')
-      .attr('dy', '.75em')
-      .attr('x', x(0) + 4)
-      .attr('y', d => y(d.name) + 4)
-      .attr('text-anchor', 'start')
-      .style('fill', textColor)
-      .text(d => d.name)
+      const items = svg.select('#column' + i)
+        .selectAll('.item')
+        .data(data, d => d.name)
 
-    item
-      .append('text')
-      .attr('class', 'value')
-      .attr('dy', y.bandwidth())
-      .attr('y', d => y(d.name) - 4)
-      .attr('x', d => width - 4)
-      .attr('text-anchor', 'end')
-      .style('fill', textColor)
-      .text(d => formatQuantity(d.value))
+      items.exit().remove()
 
-    item
-      .style('cursor', 'pointer')
-      .on('click', d => this.handleItemClicked(d))
+      let item = items.enter()
+        .append('g')
+        .attr('class', 'item')
+        .attr('display', d => d.name === '' ? 'none' : 'show')
 
-    const t = d3.transition().duration(500)
+      item
+        .append('rect')
+        .attr('x', x(0))
+        .attr('y', d => y(d.name))
+        .attr('width', width)
+        .attr('class', 'background')
+        .style('opacity', 0)
+        .attr('height', y.bandwidth())
 
-    item = withData.transition(t)
+      item
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', x(0))
+        .attr('y', d => y(d.name))
+        .attr('width', d => x(d.value) - x(0))
+        .attr('height', y.bandwidth())
+        .style('fill', rectColor)
+        // .style('stroke', '#000')
+        // .style('stroke-width', '1px')
+        .style('shape-rendering', 'geometricPrecision')
 
-    item
-      .select('rect')
-      .attr('y', d => y(d.name))
-      .attr('width', d => x(d.value) - x(0))
-      .attr('height', y.bandwidth())
-      .style('fill', rectColor)
+      item
+        .append('text')
+        .attr('class', 'name')
+        .attr('dy', '.75em')
+        .attr('x', x(0) + 4)
+        .attr('y', d => y(d.name) + 4)
+        .attr('text-anchor', 'start')
+        .style('fill', textColor)
+        .text(d => d.name)
 
-    item
-      .select('.name')
-      .text(d => d.name)
-      .attr('y', d => y(d.name) + 4)
-      .style('fill', textColor)
+      item
+        .append('text')
+        .attr('class', 'value')
+        .attr('dy', y.bandwidth())
+        .attr('y', d => y(d.name) - 4)
+        .attr('x', d => width - 4)
+        .attr('text-anchor', 'end')
+        .style('fill', textColor)
+        .text(d => formatQuantity(d.value))
 
-    item
-      .select('.value')
-      .text(d => formatQuantity(d.value))
-      .attr('y', d => y(d.name) - 4)
-      .attr('x', width - 4)
-      .style('fill', textColor)
+      item
+        .style('cursor', 'pointer')
+        .on('click', d => this.handleItemClicked(d))
+
+      item
+        .on('mouseover', function(d) {
+          d3.select(this).select('.background')
+            .style('opacity', 0.08)
+          if (tooltips) {
+            tooltip.transition()
+              .duration(200)
+              .style('opacity', 1)
+            tooltip
+              .style('left', i * (width + 12) + 'px')
+              .style('top', (y(d.name) + 32) + 'px')
+            tooltipContent.html(d.name)
+          }
+        })
+        .on('mouseout', function(d) {
+          d3.select(this).select('.background')
+            .style('opacity', 0)
+          if (tooltips) {
+            tooltip.transition()
+              .duration(200)
+              .style('opacity', 0)
+          }
+        })
+
+      item = items.transition(d3.transition().duration(500))
+
+      item
+        .select('.bar')
+        .attr('y', d => y(d.name))
+        .attr('width', d => x(d.value) - x(0))
+        .attr('height', y.bandwidth())
+        .style('fill', rectColor)
+
+      item
+        .select('.name')
+        .text(d => d.name)
+        .attr('y', d => y(d.name) + 4)
+        .style('fill', textColor)
+
+      item
+        .select('.value')
+        .text(d => formatQuantity(d.value))
+        .attr('y', d => y(d.name) - 4)
+        .attr('x', width - 4)
+        .style('fill', textColor)
+    })
   }
 
   render() {
@@ -237,7 +333,10 @@ class QuantityHistogramUnstyled extends React.Component {
         />
         <CardContent classes={{root: classes.content}}>
           <div ref={this.container}>
-            <svg ref={this.svgEl} />
+            <div className={classes.tooltip}>
+              <div className={classes.tooltipContent}></div>
+            </div>
+            <svg />
           </div>
         </CardContent>
       </Card>
@@ -253,7 +352,8 @@ class QuantityUnstyled extends React.Component {
     quantity: PropTypes.string.isRequired,
     metric: PropTypes.string.isRequired,
     title: PropTypes.string,
-    scale: PropTypes.number
+    scale: PropTypes.number,
+    data: PropTypes.object
   }
   static styles = theme => ({
     root: {
@@ -264,15 +364,17 @@ class QuantityUnstyled extends React.Component {
   static contextType = SearchContext.type
 
   render() {
-    const {classes, scale, quantity, title, ...props} = this.props
+    const {classes, scale, quantity, title, data, ...props} = this.props
     const {state: {response, query}, setQuery} = this.context
+
+    const usedData = data || response.statistics[quantity]
 
     return <QuantityHistogram
       classes={{root: classes.root}}
       width={300}
       defaultScale={scale || 1}
       title={title || quantity}
-      data={response.statistics[quantity]}
+      data={usedData}
       value={query[quantity]}
       onChanged={selection => setQuery({...query, [quantity]: selection})}
       {...props} />

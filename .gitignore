@@ -23,3 +23,6 @@ vscode/
 nomad.yaml
 ./gunicorn.log.conf
 ./gunicorn.conf
+build/
+dist/
+setup.json

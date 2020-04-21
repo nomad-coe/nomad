@@ -52,6 +52,10 @@ from nomad.datamodel import EntryArchive
 from nomad import parsing  # pylint: disable=unused-import
 
 
+class QueryError(Exception):
+    pass
+
+
 class KeycloakAuthenticator(bravado_requests_client.Authenticator):
     def __init__(self, host, user, password, **kwargs):
         super().__init__(host=host)
@@ -177,6 +181,14 @@ class ArchiveQuery(collections.abc.Sequence):
 
         response = requests.post(url, headers=self.authentication, json=self.query)
         if response.status_code != 200:
+            if response.status_code == 400:
+                message = response.json().get('message')
+                errors = response.json().get('errors')
+                if message:
+                    raise QueryError('%s: %s' % (message, errors))
+
+                raise QueryError('The query is invalid for unknown reasons.')
+
             raise response.raise_for_status()
 
         data = response.json

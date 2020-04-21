@@ -13,23 +13,21 @@
 # limitations under the License.
 
 '''
-Generates and queries a msgpack database of springer-related quantities downloaded from
+Generates a msgpack database of springer-related quantities downloaded from
 http://materials.springer.com. The database is stuctured as
 
 space_group_number : normalized_formula : springer_id : entry
 '''
 
+from typing import Dict, List, Any
 import requests
 import re
-from bs4 import BeautifulSoup
-from typing import Dict, List, Any
-from time import sleep
+import bs4
+import time
 import os.path
 
-from nomad.archive import query_archive, write_archive, ArchiveReader
-from nomad import config
+from nomad import config, archive
 
-_DB_PATH = config.normalize.springer_db_path
 
 required_items = {
     'Alphabetic Formula:': 'alphabetic_formula',
@@ -89,7 +87,7 @@ def parse(htmltext: str) -> Dict[str, str]:
     '''
     Parser the quantities in required_items from an html text.
     '''
-    soup = BeautifulSoup(htmltext, "html.parser")
+    soup = bs4.BeautifulSoup(htmltext, "html.parser")
     results = {}
     for item in soup.find_all(attrs={"class": "data-list__item"}):
         key = item.find(attrs={"class": "data-list__item-key"})
@@ -150,7 +148,7 @@ def _download(path: str, max_n_query: int = 10, retry_time: int = 120) -> str:
         if n_query > max_n_query:
             break
         n_query += 1
-        sleep(retry_time)
+        time.sleep(retry_time)
 
     if response.status_code != 200:
         response.raise_for_status()
@@ -166,11 +164,11 @@ def update_springer_data(max_n_query: int = 10, retry_time: int = 120):
     # load database
     # querying database with unvailable dataset leads to error,
     # get toc keys first by making an empty query
-    archive = ArchiveReader(_DB_PATH)
-    _ = archive._load_toc_block(0)
-    archive_keys = archive._toc.keys()
+    springer_archive = archive.ArchiveReader(config.normalize.springer_db_path)
+    _ = springer_archive._load_toc_block(0)
+    archive_keys = springer_archive._toc.keys()
 
-    sp_data = query_archive(_DB_PATH, {spg: '*' for spg in archive_keys})
+    sp_data = archive.query_archive(config.normalize.springer_db_path, {spg: '*' for spg in archive_keys})
 
     sp_ids: List[str] = []
     for spg in sp_data:
@@ -222,20 +220,6 @@ def update_springer_data(max_n_query: int = 10, retry_time: int = 120):
 
         page += 1
 
-    write_archive(_DB_PATH, len(sp_data), sp_data.items(), entry_toc_depth=1)
-
-
-def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
-    ''' Queries a msgpack database for springer-related quantities. '''
-    entries = query_archive(_DB_PATH, {str(space_group_number): {normalized_formula: '*'}})
-    db_dict = {}
-    entries = entries.get(str(space_group_number), {}).get(normalized_formula, {})
-
-    for sp_id, entry in entries.items():
-        db_dict[sp_id] = {
-            'spr_id': sp_id,
-            'spr_aformula': entry['aformula'],
-            'spr_url': entry['url'],
-            'spr_compound': entry['compound'],
-            'spr_classification': entry['classification']}
-    return db_dict
+    archive.write_archive(
+        config.normalize.springer_db_path, len(sp_data), sp_data.items(),
+        entry_toc_depth=1)

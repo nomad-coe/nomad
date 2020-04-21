@@ -98,7 +98,6 @@ class Calc(Proc):
             ('upload_id', 'tasks_status'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
-            'parser',
             'metadata.processed',
             'metadata.last_processing',
             'metadata.published',

@@ -31,6 +31,7 @@ import json
 import logging
 
 from nomad import config, infrastructure, parsing, processing, app, utils
+from nomad.utils import structlogging
 from nomad.datamodel import User
 
 from tests import test_parsing
@@ -43,8 +44,8 @@ test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
 
 
-utils.ConsoleFormatter.short_format = True
-setattr(logging, 'Formatter', utils.ConsoleFormatter)
+structlogging.ConsoleFormatter.short_format = True
+setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
 
 
 @pytest.fixture(scope="session")
@@ -57,9 +58,7 @@ def monkeysession(request):
 
 @pytest.fixture(scope='session', autouse=True)
 def nomad_logging():
-    config.logstash.enabled = False
-    config.console_log_level = test_log_level
-    infrastructure.setup_logging()
+    utils.set_console_log_level(test_log_level)
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -159,6 +158,8 @@ def worker(mongo, celery_session_worker, celery_inspect):
 @pytest.fixture(scope='session')
 def mongo_infra(monkeysession):
     monkeysession.setattr('nomad.config.mongo.db_name', 'test_db')
+    # disconnecting and connecting again results in an empty database with mongomock
+    monkeysession.setattr('mongoengine.disconnect', lambda *args, **kwargs: None)
     return infrastructure.setup_mongo()
 
 
@@ -346,11 +347,11 @@ def test_user_bravado_client(client, test_user_auth, monkeypatch):
 
 @pytest.fixture(scope='function')
 def no_warn(caplog):
-    caplog.handler.formatter = utils.ConsoleFormatter()
+    caplog.handler.formatter = structlogging.ConsoleFormatter()
     yield caplog
     for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            msg = utils.ConsoleFormatter.serialize(json.loads(record.msg))
+            msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
             assert False, msg
 
 
@@ -626,11 +627,9 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
 def reset_config():
     ''' Fixture that resets configuration. '''
     service = config.service
-    log_level = config.console_log_level
     yield None
     config.service = service
-    config.console_log_level = log_level
-    infrastructure.setup_logging()
+    utils.set_console_log_level(test_log_level)
 
 
 @pytest.fixture

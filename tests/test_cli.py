@@ -18,6 +18,7 @@ import click.testing
 import json
 import datetime
 import zipfile
+import time
 
 from nomad import search, processing as proc, files
 from nomad.cli import cli
@@ -27,6 +28,17 @@ from nomad.processing import Upload, Calc
 from tests.app.test_app import BlueprintClient
 
 # TODO there is much more to test
+
+
+@pytest.mark.usefixtures('reset_config', 'nomad_logging')
+class TestCli:
+    def test_help(self, example_mainfile):
+
+        start = time.time()
+        result = click.testing.CliRunner().invoke(
+            cli, ['--help'], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert time.time() - start < 1
 
 
 @pytest.mark.usefixtures('reset_config', 'nomad_logging')
@@ -44,9 +56,6 @@ class TestAdmin:
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False)
         assert result.exit_code == 0
-
-        # allow other test to re-establish a connection
-        # mongoengine.disconnect_all()
 
     def test_reset_not_sure(self):
         result = click.testing.CliRunner().invoke(

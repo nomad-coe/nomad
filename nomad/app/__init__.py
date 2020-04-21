@@ -25,22 +25,38 @@ from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
 import os.path
 import random
 from structlog import BoundLogger
-import orjson
 import collections
 from mongoengine.base.datastructures import BaseList
+import orjson
 
 from nomad import config, utils as nomad_utils
 
 from .api import blueprint as api_blueprint, api
 from .optimade import blueprint as optimade_blueprint, api as optimade
 from .docs import blueprint as docs_blueprint
+from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
 from . import common
 
 
+def dump_json(data):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if data.__class__.__name__ == 'BaseList':
+            return list(data)
+
+        raise TypeError
+
+    return orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+
+
 # replace the json implementation of flask_restplus
 def output_json(data, code, headers=None):
-    dumped = nomad_utils.dumps(data) + b'\n'
+    dumped = dump_json(data) + b'\n'
 
     resp = make_response(dumped, code)
     resp.headers.extend(headers or {})
@@ -92,6 +108,7 @@ CORS(app)
 app.register_blueprint(api_blueprint, url_prefix='/api')
 app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
+app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
 
 
@@ -164,4 +181,11 @@ def setup():
     from nomad import infrastructure
 
     if not app.config['TESTING']:
+        # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
+        try:
+            from mongoengine import disconnect
+            disconnect()
+        except Exception:
+            pass
+
         infrastructure.setup()

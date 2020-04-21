@@ -236,8 +236,6 @@ def mirror(
         else:
             query = dict(published=True)
 
-    utils.configure_logging()
-
     from nomad.cli.client import create_client
     client = create_client()
 

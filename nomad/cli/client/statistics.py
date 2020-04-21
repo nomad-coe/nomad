@@ -188,7 +188,7 @@ def bar_plot(
     if metric2 is not None:
         metrics += [] if metric2.metric == 'code_runs' else [metric2.metric]
 
-    data, x_values, agg, agg_label = retrieve(client, metrics=metrics, statistics=True, **kwargs)
+    data, x_values, agg, agg_label = retrieve(client, metrics=metrics, statistics=['dft.code_name'], **kwargs)
     metric1.agg = agg
     if metric2 is not None:
         metric2.agg = agg
@@ -386,7 +386,7 @@ def statistics_table(html, geometries, public_path):
 
     # search scc with system type
     data_all = client.repo.search(
-        per_page=1, metrics=['dft.calculations'], statistics=True).response().result
+        per_page=1, metrics=['dft.calculations'], statistics=['dft.system', 'dft.code_name']).response().result
 
     entries = get_statistic(data_all, 'total', 'all', 'code_runs')
     calculations = get_statistic(data_all, 'total', 'all', 'dft.calculations')

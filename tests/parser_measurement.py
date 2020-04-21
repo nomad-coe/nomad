@@ -9,8 +9,7 @@ if __name__ == '__main__':
     from nomad.parsing.legacy import Backend
 
     mainfile_path = sys.argv[1]
-    config.console_log_level = logging.CRITICAL
-    utils.configure_logging()
+    utils.set_console_log_level(logging.CRITICAL)
 
     def backend_factory(env, logger):
         return Backend(LegacyMetainfoEnvironment(env), logger=logger)

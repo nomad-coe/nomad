@@ -96,10 +96,7 @@ def normalize_all(parser_backend=None, logger=None):
 def _parse(
         mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser,
         annotate):
-
     nomadcore.simple_parser.annotate = annotate
-
-    utils.configure_logging()
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
     backend = parse(mainfile, **kwargs)

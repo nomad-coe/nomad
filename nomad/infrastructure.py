@@ -25,7 +25,7 @@ import shutil
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect, disconnect
-from mongoengine.connection import MongoEngineConnectionError
+from mongoengine.connection import ConnectionFailure
 import smtplib
 from email.mime.text import MIMEText
 from keycloak import KeycloakOpenID, KeycloakAdmin
@@ -40,7 +40,7 @@ import unidecode
 
 from nomad import config, utils
 
-logger = None
+logger = utils.get_logger(__name__)
 
 elastic_client = None
 ''' The elastic search client. '''
@@ -56,24 +56,9 @@ def setup():
     Will create client instances for the databases and has to be called before they
     can be used.
     '''
-    setup_logging()
     setup_files()
     setup_mongo()
     setup_elastic()
-
-
-def setup_logging():
-    utils.configure_logging()
-
-    global logger
-    logger = utils.get_logger(__name__)
-
-    logger.info(
-        'setup logging',
-        logstash=config.logstash.enabled,
-        logstash_host=config.logstash.host,
-        logstash_port=config.logstash.tcp_port,
-        logstash_level=config.logstash.level)
 
 
 def setup_files():
@@ -82,12 +67,12 @@ def setup_files():
             os.makedirs(directory)
 
 
-def setup_mongo():
+def setup_mongo(client=False):
     ''' Creates connection to mongodb. '''
     global mongo_client
     try:
         mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
-    except MongoEngineConnectionError:
+    except ConnectionFailure:
         disconnect()
         mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
 

@@ -1,8 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { withApi } from '../api'
-import { isEquivalent } from '../../utils'
+import { isEquivalent, arraysEqual, onlyUnique } from '../../utils'
 import { domains } from '../domains'
+
+export const searchContext = React.createContext()
 
 /**
  * A non visible component that keeps shared search state between all child components.
@@ -26,7 +28,7 @@ class SearchContext extends React.Component {
     }
   }
 
-  static type = React.createContext()
+  static type = searchContext
 
   constructor(props) {
     super(props)
@@ -34,6 +36,8 @@ class SearchContext extends React.Component {
     this.handleQueryChange = this.handleQueryChange.bind(this)
     this.handleMetricChange = this.handleMetricChange.bind(this)
     this.handleDomainChange = this.handleDomainChange.bind(this)
+    this.handleStatisticsToRefreshChange = this.handleStatisticsToRefreshChange.bind(this)
+    this.handleStatisticsChange = this.handleStatisticsChange.bind(this)
     this.state.query = this.props.initialQuery || {}
     if (this.props.initialRequest) {
       this.state.request = {...this.state.request, ...this.props.initialRequest}
@@ -41,6 +45,7 @@ class SearchContext extends React.Component {
   }
 
   defaultMetric = domains.dft.defaultSearchMetric
+  defaultStatistics = ['atoms', 'authors']
 
   state = {
     response: SearchContext.emptyResponse,
@@ -56,7 +61,9 @@ class SearchContext extends React.Component {
     metric: this.defaultMetric,
     usedMetric: this.defaultMetric,
     domain: domains.dft,
-    query: {}
+    query: {},
+    statistics: [...this.defaultStatistics],
+    statisticsToRefresh: []
   }
 
   handleRequestChange(changes) {
@@ -99,17 +106,32 @@ class SearchContext extends React.Component {
     }
   }
 
+  handleStatisticsToRefreshChange(statistics) {
+    let currentValue = this.state.statisticsToRefresh
+    currentValue.push(statistics)
+    this.setState({statisticsToRefresh: currentValue})
+  }
+
+  handleStatisticsChange(statistics) {
+    const newStatistics = [...statistics, ...this.defaultStatistics].filter(onlyUnique)
+    const oldStatistics = this.state.statistics
+    if (!arraysEqual(newStatistics, oldStatistics)) {
+      this.setState({statistics: newStatistics})
+    }
+  }
+
   update() {
     const {api, raiseError} = this.props
-    const {request, query, metric, domain} = this.state
+    const {request, query, metric, domain, statisticsToRefresh, statistics} = this.state
     const search = {
       ...request,
       ...query,
       domain: domain.key,
       metrics: metric === this.defaultMetric ? [] : [metric],
+      statistics: statistics,
       ...(this.props.query || {})}
 
-    api.search(search)
+    api.search(search, statisticsToRefresh)
       .then(response => {
         // find the first statistic to determine which metric is used
         const {statistics} = response
@@ -134,12 +156,13 @@ class SearchContext extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const {query, request, metric} = this.state
+    const {query, request, metric, statistics} = this.state
     if (
       prevState.query !== query ||
         prevState.request !== request ||
         prevState.metric !== metric ||
         prevProps.update !== this.props.update ||
+        !arraysEqual(prevState.statistics, statistics) ||
         !isEquivalent(prevProps.query || {}, this.props.query || {})) {
       this.update()
     }
@@ -153,7 +176,9 @@ class SearchContext extends React.Component {
       setRequest: this.handleRequestChange,
       setQuery: this.handleQueryChange,
       setMetric: this.handleMetricChange,
-      setDomain: this.handleDomainChange
+      setDomain: this.handleDomainChange,
+      setStatisticsToRefresh: this.handleStatisticsToRefreshChange,
+      setStatistics: this.handleStatisticsChange
     }
     return <SearchContext.type.Provider value={value} >
       {children}

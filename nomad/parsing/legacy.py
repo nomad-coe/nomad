@@ -36,8 +36,6 @@ from nomad.metainfo.legacy import (
 
 from .parser import MatchingParser
 
-logger = utils.get_logger(__name__)
-
 
 class BackendError(Exception):
     pass

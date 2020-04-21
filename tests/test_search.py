@@ -136,7 +136,7 @@ def test_domain(elastic, example_ems_search_data):
     assert 'ems.method' in statistics
     assert 'Bare eyes' in statistics['ems.method']
 
-    results = SearchRequest(domain='ems').default_statistics().execute()
+    results = SearchRequest(domain='ems').statistics(['ems.method']).execute()
     statistics = results['statistics']
     assert 'ems.method' in statistics
     assert 'Bare eyes' in statistics['ems.method']
@@ -286,7 +286,6 @@ if __name__ == '__main__':
     from elasticsearch.helpers import bulk
     import sys
     print('Generate index with random example calculation data. First arg is number of items')
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
     n = 100

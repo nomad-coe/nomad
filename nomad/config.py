@@ -38,7 +38,16 @@ import os.path
 import yaml
 import warnings
 
-from nomad import gitinfo
+try:
+    from nomad import gitinfo
+except ImportError:
+    git_root = os.path.join(os.path.dirname(__file__), '..')
+    cwd = os.getcwd()
+    os.chdir(git_root)
+    os.system('./gitinfo.sh')
+    os.chdir(cwd)
+
+    from nomad import gitinfo
 
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
@@ -126,7 +135,7 @@ mongo = NomadConfig(
 )
 
 logstash = NomadConfig(
-    enabled=True,
+    enabled=False,
     host='localhost',
     tcp_port='5000',
     level=logging.DEBUG
@@ -185,6 +194,9 @@ def check_config():
             "by running the CLI command 'nomad admin ops prototype-update "
             "--matches-only'."
         )
+
+    if not os.path.exists(normalize.springer_db_path):
+        normalize.springer_db_path = None
 
 
 mail = NomadConfig(
@@ -389,6 +401,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
     for key, value in kwargs.items():
         apply(key, value)
 
+    check_config()
+
 
 load_config()
-check_config()

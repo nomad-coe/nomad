@@ -20,6 +20,8 @@ from flask_restplus import fields
 import zipstream
 from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
+import pprint
+import io
 
 import sys
 import os.path
@@ -70,10 +72,14 @@ search_model_fields = {
     'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values'), allow_null=True, skip_none=True),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.'))}
+    'code': fields.Nested(api.model('Code', {
+        'python': fields.String(description=(
+            'A piece of python code snippet which can be executed to reproduce the api result.')),
+        'curl': fields.String(description=(
+            'A curl command which can be executed to reproduce the api result.')),
+        'clientlib': fields.String(description=(
+            'A piece of python code which uses NOMAD\'s client library to access the archive.'))
+    }), allow_null=True, skip_none=True)}
 
 search_model = api.model('Search', search_model_fields)
 
@@ -305,6 +311,36 @@ def query_api_python(*args, **kwargs):
     return '''import requests
 response = requests.post("{}")
 data = response.json()'''.format(url)
+
+
+def query_api_clientlib(**kwargs):
+    '''
+    Creates a string of python code to execute a search query on the archive using
+    the client library.
+    '''
+    def normalize_value(key, value):
+        quantity = search.search_quantities.get(key)
+        if quantity.many and not isinstance(value, list):
+            return [value]
+
+        return value
+
+    kwargs = {
+        key: normalize_value(key, value) for key, value in kwargs.items()
+        if key in search.search_quantities and (key != 'domain' or value != config.default_domain)
+    }
+
+    out = io.StringIO()
+    out.write('from nomad import client, config\n')
+    out.write('config.client.url = \'%s\'\n' % config.api_url(ssl=False))
+    out.write('results = client.query_archive(query={%s' % ('' if len(kwargs) == 0 else '\n'))
+    out.write(',\n'.join([
+        '    \'%s\': %s' % (key, pprint.pformat(value, compact=True))
+        for key, value in kwargs.items()]))
+    out.write('})\n')
+    out.write('print(results)\n')
+
+    return out.getvalue()
 
 
 def query_api_curl(*args, **kwargs):
