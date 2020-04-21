@@ -1,7 +1,6 @@
 import numpy as np
 from elasticsearch_dsl import InnerDoc
-from nomad.metainfo import MSection, Section, SubSection, Quantity, Reference, MEnum, units
-from nomad.datamodel.metainfo.public import section_dos, section_k_band
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, units
 
 
 class WyckoffVariables(MSection):
@@ -409,13 +408,206 @@ class Calculation(MSection):
     )
 
 
+class BandGap(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores information related to a band gap that has bee identified within
+        the band structure.
+        """
+    )
+    value = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Band gap energy.
+        """
+    )
+    type = Quantity(
+        type=MEnum("direct", "indirect"),
+        description="""
+        Type of band gap.
+        """
+    )
+    conduction_band_min_energy = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Conduction band minimum energy.
+        """
+    )
+    valence_band_max_energy = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Valence band maximum energy.
+        """
+    )
+    conduction_band_min_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit=units.m**(-1),
+        description="""
+        Coordinate of the conduction band minimum in k-space.
+        """
+    )
+    valence_band_max_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit=units.m**(-1),
+        description="""
+        Coordinate of the valence band minimum in k-space.
+        """
+    )
+
+
+class BandSegment(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Represents a continuous path segment starting from a specific k-point
+        and ending in another.
+        """
+    )
+    energies = Quantity(
+        type=np.dtype(np.float64),
+        shape=["1..2", "1..*", "1..*"],
+        unit=units.m**(-1),
+        description="""
+        The energies of the bands as a 3D array with size [n_spin_channels,
+        n_bands, n_k_points]. By default the spin down channel is given first
+        and the spin up channel is second.
+        """
+    )
+    k_points = Quantity(
+        type=np.dtype(np.float64),
+        shape=["1..*", 3],
+        unit=units.m**(-1),
+        description="""
+        Path of the band structure in reciprocal space.
+        """
+    )
+    labels = Quantity(
+        type=np.dtype('str'),
+        shape=[1],
+        description="""
+        The start end end labels for the k points in this segment.
+        """
+    )
+
+
+class ElectronicBandStructure(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores information related to an electronic band structure.
+        """
+    )
+    scc_index = Quantity(
+        type=int,
+        description="""
+        Index of the single configuration calculation that contains the band
+        structure.
+        """
+    )
+    fermi_level = Quantity(
+        type=float,
+        unit=units.J,
+        description="""
+        Fermi level reported for the band structure.
+        """
+    )
+    reciprocal_cell = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit=units.m**(-1),
+        description="""
+        The reciprocal cell within which the band structure is calculated.
+        """
+    )
+    brillouin_zone = Quantity(
+        type=str,
+        description="""
+        The Brillouin zone that corresponds to the reciprocal cell used in the
+        band calculation. The Brillouin Zone is defined as a list of vertices
+        and facets that are encoded with JSON. The vertices are 3D points in
+        the reciprocal space, and facets are determined by a chain of vertice
+        indices, with a right-hand ordering determining the surface normal
+        direction.
+        {
+          "vertices": [[3, 2, 1], ...]
+          "faces":  [[0, 1, 2, 3], ...]
+        }
+        """
+    )
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=False)
+    band_gap_spin_up = SubSection(sub_section=BandGap.m_def, repeats=False)
+    band_gap_spin_down = SubSection(sub_section=BandGap.m_def, repeats=False)
+    segments = SubSection(sub_section=BandSegment.m_def, repeats=True)
+
+    is_standard_path = Quantity(
+        type=bool,
+        description="""
+        Boolean indicating whether the path follows the standard path for this
+        cell. The AFLOW standard by Setyawan and Curtarolo is used
+        (https://doi.org/10.1016/j.commatsci.2010.05.010).
+        """
+    )
+
+
+class ElectronicDOS(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_elastic=dict(type=InnerDoc),
+        description="""
+        Stores the electronic density of states (DOS).
+        """
+    )
+    scc_index = Quantity(
+        type=int,
+        description="""
+        Index of the single configuration calculation that contains the density
+        of states.
+        """
+    )
+    fermi_level = Quantity(
+        type=np.dtype(np.float64),
+        unit=units.J,
+        description="""
+        Fermi level reported for the density of states.
+        """
+    )
+    energies = Quantity(
+        type=np.dtype(np.float64),
+        shape=["1..*"],
+        unit=units.J,
+        description="""
+        Array containing the set of discrete energy values with respect to the
+        top of the valence band for the density of states (DOS).
+        """
+    )
+    values = Quantity(
+        type=np.dtype(np.float64),
+        shape=["1..2", "1..*"],
+        unit=units.J**(-1),
+        description="""
+        Values (number of states for a given energy, the set of discrete energy
+        values is given in dos_energies) of density of states. The values are
+        given as states/energy.
+        """
+    )
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         a_elastic=dict(type=InnerDoc),
         description="""
-        Contains a summary of the physical properties that have been calculated
-        in this entry.
+        Contains derived physical properties that are specific to the NOMAD
+        Encyclopedia.
         """
     )
     atomic_density = Quantity(
@@ -438,34 +630,8 @@ class Properties(MSection):
         Code dependent energy values, corrected to be per formula unit.
         """
     )
-    electronic_band_structure = Quantity(
-        type=Reference(section_k_band.m_def),
-        shape=[],
-        description="""
-        Reference to an electronic band structure.
-        """
-    )
-    electronic_dos = Quantity(
-        type=Reference(section_dos.m_def),
-        shape=[],
-        description="""
-        Reference to an electronic density of states.
-        """
-    )
-    phonon_band_structure = Quantity(
-        type=Reference(section_k_band.m_def),
-        shape=[],
-        description="""
-        Reference to a phonon band structure.
-        """
-    )
-    phonon_dos = Quantity(
-        type=Reference(section_dos.m_def),
-        shape=[],
-        description="""
-        Reference to a phonon density of states.
-        """
-    )
+    electronic_band_structure = SubSection(sub_section=ElectronicBandStructure.m_def, repeats=False)
+    electronic_dos = SubSection(sub_section=ElectronicDOS.m_def, repeats=False)
 
 
 class section_encyclopedia(MSection):
