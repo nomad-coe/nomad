@@ -529,7 +529,8 @@ class Upload(Proc):
     meta: Any = {
         'indexes': [
             'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
-        ]
+        ],
+        'strict': False  # ignore extra fields to support older entries with join related fields
     }
 
     def __init__(self, **kwargs):
