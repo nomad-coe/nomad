@@ -31,6 +31,11 @@ app.conf.update(task_serializer="myjson")
 app.conf.update(result_serializer="myjson")
 app.conf.update(worker_hijack_root_logger=False)
 app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
+app.conf.update(soft_task_time_limit=2 * config.celery.timeout)
+app.conf.update(task_time_limit=config.celery.timeout)
+app.conf.update(task_acks_late=config.celery.acks_late)
+app.conf.update(task_ignore_result=True)
+app.Task.max_retries = 3
 if config.celery.routing == config.CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 app.conf.task_queue_max_priority = 10

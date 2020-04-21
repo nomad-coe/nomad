@@ -153,10 +153,7 @@ class Pipeline():
         self.stages.append(stage)
 
 
-@app.task(
-    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
-    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
-    time_limit=config.celery.timeout * 2)
+@app.task(bind=True, base=NomadCeleryTask)
 def wrapper(task, function_name, context, stage_name, i_stage, n_stages):
     """This function wraps the function calls made within the stages. This
     wrapper takes care of common tasks like exception handling and timeout
@@ -185,17 +182,11 @@ def wrapper(task, function_name, context, stage_name, i_stage, n_stages):
     try:
         # Try to execute the stage.
         function(context, stage_name, i_stage, n_stages)
-
     except SoftTimeLimitExceeded as e:
         if calc is None:
             calc = nomad.processing.data.Calc.get(context.calc_id)
-        calc.fail('Could not find the function associated with the stage.')
         logger = calc.get_logger()
         logger.error('exceeded the celery task soft time limit')
-        calc.fail(e)
-    except SystemExit as e:
-        if calc is None:
-            calc = nomad.processing.data.Calc.get(context.calc_id)
         calc.fail(e)
     except Exception as e:
         if calc is None:
@@ -210,20 +201,14 @@ def wrapper(task, function_name, context, stage_name, i_stage, n_stages):
         calc.save()
 
 
-@app.task(
-    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
-    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
-    time_limit=config.celery.timeout * 2)
+@app.task(bind=True, base=NomadCeleryTask)
 def empty_task(task, *args, **kwargs):
     """Empty dummy task used as a callback for Celery chords.
     """
     pass
 
 
-@app.task(
-    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
-    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
-    time_limit=config.celery.timeout * 2)
+@app.task(bind=True, base=NomadCeleryTask)
 def upload_cleanup(task, upload_id):
     """Task for cleaning up after processing an upload.
     """
