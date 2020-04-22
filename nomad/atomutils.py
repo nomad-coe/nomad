@@ -24,7 +24,7 @@ from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 from matid.symmetry import WyckoffSet
 
 from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
-from nomad.constants import NUMBER_TO_MASS_MAP_KG
+from nomad.constants import atomic_masses
 
 
 def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
@@ -37,7 +37,7 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
         The atomic mass in kilograms.
     """
     # It is assumed that the atomic numbers are valid at this point.
-    mass = np.sum(NUMBER_TO_MASS_MAP_KG[atomic_numbers])
+    mass = np.sum(atomic_masses[atomic_numbers])
     return mass
 
 
