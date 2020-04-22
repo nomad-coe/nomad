@@ -2,7 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, MEnum
 )
 from nomad.metainfo.legacy import LegacyDefinition
 
@@ -2025,111 +2025,6 @@ class section_gaussian_basis_group(MSection):
         a_legacy=LegacyDefinition(name='number_of_gaussian_basis_group_exponents'))
 
 
-class section_k_band_normalized(MSection):
-    '''
-    This section stores information on a normalized $k$-band (electronic band structure)
-    evaluation along one-dimensional pathways in the $k$ (reciprocal) space given in
-    section_k_band_segment. Eigenvalues calculated at the actual $k$-mesh used for
-    energy_total evaluations, can be found in the section_eigenvalues section.
-    '''
-
-    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band_normalized'))
-
-    k_band_path_normalized_is_standard = Quantity(
-        type=bool,
-        shape=[],
-        description='''
-        If the normalized path is along the default path defined in W. Setyawan and S.
-        Curtarolo, [Comput. Mater. Sci. **49**, 299-312
-        (2010)](http://dx.doi.org/10.1016/j.commatsci.2010.05.010).
-        ''',
-        a_legacy=LegacyDefinition(name='k_band_path_normalized_is_standard'))
-
-    section_k_band_segment_normalized = SubSection(
-        sub_section=SectionProxy('section_k_band_segment_normalized'),
-        repeats=True,
-        a_legacy=LegacyDefinition(name='section_k_band_segment_normalized'))
-
-
-class section_k_band_segment_normalized(MSection):
-    '''
-    Section collecting the information on a normalized $k$-band segment. This section
-    stores band structures along a one-dimensional pathway in the $k$ (reciprocal) space.
-
-    Eigenvalues calculated at the actual $k$-mesh used for energy_total evaluations are
-    defined in section_eigenvalues and the band structures are represented as third-order
-    tensors: one dimension for the spin channels, one for the sequence of $k$ points for
-    the segment (given in number_of_k_points_per_segment), and one for the sequence of
-    eigenvalues at a given $k$ point. The values of the $k$ points in each segment are
-    stored in band_k_points. The energies and occupation for each eigenstate, at each $k$
-    point, segment, and spin channel are stored in band_energies and band_occupations,
-    respectively. The labels for the segment are specified in band_segm_labels.
-    '''
-
-    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_k_band_segment_normalized'))
-
-    band_energies_normalized = Quantity(
-        type=np.dtype(np.float64),
-        shape=['number_of_spin_channels', 'number_of_normalized_k_points_per_segment', 'number_of_normalized_band_segment_eigenvalues'],
-        unit='joule',
-        description='''
-        $k$-dependent energies of the electronic band segment (electronic band structure)
-        with respect to the top of the valence band. This is a third-order tensor, with
-        one dimension used for the spin channels, one for the $k$ points for each segment,
-        and one for the eigenvalue sequence.
-        ''',
-        a_legacy=LegacyDefinition(name='band_energies_normalized'))
-
-    band_k_points_normalized = Quantity(
-        type=np.dtype(np.float64),
-        shape=['number_of_normalized_k_points_per_segment', 3],
-        description='''
-        Fractional coordinates of the $k$ points (in the basis of the reciprocal-lattice
-        vectors) for which the normalized electronic energies are given.
-        ''',
-        a_legacy=LegacyDefinition(name='band_k_points_normalized'))
-
-    band_occupations_normalized = Quantity(
-        type=np.dtype(np.float64),
-        shape=['number_of_spin_channels', 'number_of_normalized_k_points_per_segment', 'number_of_normalized_band_segment_eigenvalues'],
-        description='''
-        Occupation of the $k$-points along the normalized electronic band. The size of the
-        dimensions of this third-order tensor are the same as for the tensor in
-        band_energies.
-        ''',
-        a_legacy=LegacyDefinition(name='band_occupations_normalized'))
-
-    band_segm_labels_normalized = Quantity(
-        type=str,
-        shape=[2],
-        description='''
-        Start and end labels of the points in the segment (one-dimensional pathways)
-        sampled in the $k$-space, using the conventional symbols, e.g., Gamma, K, L. The
-        coordinates (fractional, in the reciprocal space) of the start and end points for
-        each segment are given in band_segm_start_end_normalized
-        ''',
-        a_legacy=LegacyDefinition(name='band_segm_labels_normalized'))
-
-    band_segm_start_end_normalized = Quantity(
-        type=np.dtype(np.float64),
-        shape=[2, 3],
-        description='''
-        Fractional coordinates of the start and end point (in the basis of the reciprocal
-        lattice vectors) of the segment sampled in the $k$ space. The conventional symbols
-        (e.g., Gamma, K, L) of the same points are given in band_segm_labels
-        ''',
-        a_legacy=LegacyDefinition(name='band_segm_start_end_normalized'))
-
-    number_of_normalized_k_points_per_segment = Quantity(
-        type=int,
-        shape=[],
-        description='''
-        Gives the number of $k$ points in the segment of the normalized band structure
-        (see section_k_band_segment_normalized).
-        ''',
-        a_legacy=LegacyDefinition(name='number_of_normalized_k_points_per_segment'))
-
-
 class section_k_band_segment(MSection):
     '''
     Section collecting the information on a $k$-band or $q$-band segment. This section
@@ -2211,6 +2106,63 @@ class section_k_band_segment(MSection):
         a_legacy=LegacyDefinition(name='number_of_k_points_per_segment'))
 
 
+class section_band_gap(MSection):
+    '''
+    This section stores information for a band gap within a band structure.
+    '''
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_band_gap'))
+
+    value = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Band gap energy.
+        """,
+        a_legacy=LegacyDefinition(name='value')
+    )
+    type = Quantity(
+        type=MEnum("direct", "indirect"),
+        description="""
+        Type of band gap.
+        """,
+        a_legacy=LegacyDefinition(name='type')
+    )
+    conduction_band_min_energy = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Conduction band minimum energy.
+        """,
+        a_legacy=LegacyDefinition(name='conduction_band_min_energy')
+    )
+    valence_band_max_energy = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Valence band maximum energy.
+        """,
+        a_legacy=LegacyDefinition(name='valence_band_max_energy')
+    )
+    conduction_band_min_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit="1 / meter",
+        description="""
+        Coordinate of the conduction band minimum in k-space.
+        """,
+        a_legacy=LegacyDefinition(name='conduction_band_min_k_point')
+    )
+    valence_band_max_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit="1 / meter",
+        description="""
+        Coordinate of the valence band minimum in k-space.
+        """,
+        a_legacy=LegacyDefinition(name='valence_band_max_k_point')
+    )
+
+
 class section_k_band(MSection):
     '''
     This section stores information on a $k$-band (electronic or vibrational band
@@ -2228,6 +2180,61 @@ class section_k_band(MSection):
         String to specify the kind of band structure (either electronic or vibrational).
         ''',
         a_legacy=LegacyDefinition(name='band_structure_kind'))
+
+    reciprocal_cell = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit="1 / meter",
+        description="""
+        The reciprocal cell within which the band structure is calculated.
+        """,
+        a_legacy=LegacyDefinition(name='reciprocal_cell')
+    )
+
+    brillouin_zone = Quantity(
+        type=str,
+        description="""
+        The Brillouin zone that corresponds to the reciprocal cell used in the
+        band calculation. The Brillouin Zone is defined as a list of vertices
+        and facets that are encoded with JSON. The vertices are 3D points in
+        the reciprocal space, and facets are determined by a chain of vertice
+        indices, with a right-hand ordering determining the surface normal
+        direction.
+        {
+          "vertices": [[3, 2, 1], ...]
+          "faces":  [[0, 1, 2, 3], ...]
+        }
+        """,
+        a_legacy=LegacyDefinition(name='brillouin_zone')
+    )
+
+    section_band_gap = SubSection(
+        sub_section=section_band_gap.m_def,
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_band_gap')
+    )
+
+    section_band_gap_spin_up = SubSection(
+        sub_section=section_band_gap.m_def,
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_band_gap')
+    )
+
+    section_band_gap_spin_down = SubSection(
+        sub_section=section_band_gap.m_def,
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_band_gap')
+    )
+
+    is_standard_path = Quantity(
+        type=bool,
+        description="""
+        Boolean indicating whether the path follows the standard path for this
+        cell. The AFLOW standard by Setyawan and Curtarolo is used
+        (https://doi.org/10.1016/j.commatsci.2010.05.010).
+        """,
+        a_legacy=LegacyDefinition(name='is_standard_path')
+    )
 
     section_k_band_segment = SubSection(
         sub_section=SectionProxy('section_k_band_segment'),
