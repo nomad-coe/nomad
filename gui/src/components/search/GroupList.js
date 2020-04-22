@@ -10,10 +10,10 @@ import { withApi } from '../api'
 import { EntryListUnstyled } from './EntryList'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadButton from '../DownloadButton'
-import SearchContext from './SearchContext'
+import { searchContext } from './SearchContext'
 
 class GroupUnstyled extends React.Component {
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -35,7 +35,7 @@ class GroupUnstyled extends React.Component {
 
   update() {
     const {groupHash, api, raiseError} = this.props
-    const {query} = this.context.state
+    const {query} = this.context
     api.search({...query, 'dft.group_hash': groupHash, per_page: 100})
       .then(data => {
         this.setState({entries: data.results})

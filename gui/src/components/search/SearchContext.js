@@ -1,192 +1,233 @@
-import React from 'react'
+import React, { useState, useContext, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { withApi } from '../api'
-import { isEquivalent, arraysEqual, onlyUnique } from '../../utils'
+import hash from 'object-hash'
+import { errorContext } from '../errors'
+import { onlyUnique } from '../../utils'
 import { domains } from '../domains'
+import { apiContext } from '../api'
 
+/**
+ * The React context object. Can be accessed from functional components with useContext.
+ */
 export const searchContext = React.createContext()
 
 /**
- * A non visible component that keeps shared search state between all child components.
+ * Component that provides a searchContext. Can be used with useContext. The context
+ * objects provides access to the current search request and response as well as
+ * callbacks to manipulate the current search request.
+ *
+ * The search request is made from two objects: the request and the query. The former
+ * contains all parameters that do not effect the search results themselves. This includes
+ * pagination, statistics, order. The query object contains all parameters that
+ * constitute the actual search. This includes the domain and owner parameters.
  */
-class SearchContext extends React.Component {
-  static propTypes = {
-    query: PropTypes.object,
-    initialQuery: PropTypes.object,
-    initialRequest: PropTypes.object,
-    update: PropTypes.number,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    children: PropTypes.any
-  }
-
-  static emptyResponse = {
+export default function SearchContext({initialRequest, initialQuery, children}) {
+  const defaultStatistics = ['atoms', 'authors']
+  const emptyResponse = {
     statistics: {
       total: {
         all: {}
       }
-    }
+    },
+    pagination: {
+      total: undefined,
+      per_page: 10,
+      page: 1
+    },
+    metric: domains.dft.defaultSearchMetric
   }
 
-  static type = searchContext
+  const {api, info} = useContext(apiContext)
+  const {raiseError} = useContext(errorContext)
 
-  constructor(props) {
-    super(props)
-    this.handleRequestChange = this.handleRequestChange.bind(this)
-    this.handleQueryChange = this.handleQueryChange.bind(this)
-    this.handleMetricChange = this.handleMetricChange.bind(this)
-    this.handleDomainChange = this.handleDomainChange.bind(this)
-    this.handleStatisticsToRefreshChange = this.handleStatisticsToRefreshChange.bind(this)
-    this.handleStatisticsChange = this.handleStatisticsChange.bind(this)
-    this.state.query = this.props.initialQuery || {}
-    if (this.props.initialRequest) {
-      this.state.request = {...this.state.request, ...this.props.initialRequest}
-    }
-  }
-
-  defaultMetric = domains.dft.defaultSearchMetric
-  defaultStatistics = ['atoms', 'authors']
-
-  state = {
-    response: SearchContext.emptyResponse,
-    request: {
-      domain: domains.dft,
-      statistics: true,
-      order_by: 'upload_time',
+  // React calls the children effects for the parent effect. But the parent effect is
+  // run with the state of the last render, which is the state before the children effects.
+  // If we would maintain the request in regular React state, we might execute unnecessary
+  // outdated requests.
+  // Therefore, we use two ref objects and one state object to manage the current state.
+  // The goal is to reduce the amounts of re-renders, only send requests to the api with
+  // the latest set parameters, and only send requests if necessary.
+  // The first ref keeps all information that will form the next
+  // search request that is send to the API. It therefore keeps the state of the current
+  // request provided by the various children of this context. It also helps us to
+  // lower the amount of state changes.
+  // The second ref keeps a hash over the last request that was send to the API.
+  // This is used to verify if a new request is actually necessary.
+  // The state requestHash is used to trigger the effect that will execute the request
+  // if necessary. Thus any requests are only send by effects on this context component.
+  // If we would send the requests in child effects, we would send unnecessary requests
+  // if two children change the request in the same render cycle.
+  const requestRef = useRef({
+    metric: domains.dft.defaultSearchMetric,
+    statistics: [],
+    groups: {},
+    domainKey: domains.dft.key,
+    pagination: {
+      order_by: 'upload_id',
       order: -1,
       page: 1,
-      per_page: 10,
-      date_histogram: true
+      per_page: 10
     },
-    metric: this.defaultMetric,
-    usedMetric: this.defaultMetric,
-    domain: domains.dft,
-    query: {},
-    statistics: [...this.defaultStatistics],
-    statisticsToRefresh: []
-  }
+    query: {
+      owner: 'all'
+    },
+    update: 0
+  })
+  const requestHashRef = useRef(0)
+  const [requestHash, setRequestHash] = useState(0)
 
-  handleRequestChange(changes) {
-    this.setState({request: {...this.state.request, ...changes}})
-  }
+  // We use proper React state to maintain the last response from the API.
+  const [response, setResponse] = useState(emptyResponse)
+  const [statisticsToRefresh, setStatisticsToRefresh] = useState([]) // TODO
 
-  handleQueryChange(changes, replace) {
+  // This is a callback that executes the current request in requestRef without any
+  // checks for necessity. It will update the response state, once the request has
+  // been answered by the api.
+  const runRequest = useCallback(() => {
+    const {metric, domainKey} = requestRef.current
+    const domain = domains[domainKey]
+    const apiRequest = {
+      ...initialRequest,
+      ...requestRef.current.pagination,
+      statistics: requestRef.current.statistics,
+      ...requestRef.current.groups,
+      metrics: (metric === domain.defaultSearchMetric) ? [] : [metric],
+      domain: domain.key
+    }
+    const apiQuery = {
+      ...apiRequest,
+      ...initialQuery,
+      ...requestRef.current.query
+    }
+    api.search(apiQuery, statisticsToRefresh)
+      .then(newResponse => {
+        setResponse({...emptyResponse, ...newResponse, metric: metric})
+      }).catch(error => {
+        setResponse({...emptyResponse, metric: metric})
+        raiseError(error)
+      })
+  }, [requestRef, setResponse, statisticsToRefresh, api])
+
+  // This callback will update the requestHash state. This will trigger an effect if
+  // the new hash is different from the last.
+  // This callback should be called after the requestRef was changed.
+  const onRequestChange = useCallback(
+    () => {
+      setRequestHash(hash(requestRef.current))
+    }, [requestRef, setRequestHash]
+  )
+
+  // This callback increased the update counter in requestRef therefore causes to re-run
+  // the request, even if no parameter have changed. This can be used by children to
+  // refresh the search results.
+  const update = useCallback(() => {
+    requestRef.current.update = requestRef.current.update + 1
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  // The following are various callbacks that can be used by children to update the
+  // request and implicitly trigger a search request to the API.
+  const setRequestParameters = useCallback(
+    changes => {
+      requestRef.current.pagination = {
+        ...requestRef.current.pagination,
+        ...changes
+      }
+      onRequestChange()
+    }, [onRequestChange, requestRef])
+
+  const setDomain = useCallback(domainKey => {
+    requestRef.current.domainKey = domainKey || domains.dft.key
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  const setOwner = useCallback(owner => {
+    requestRef.current.query.owner = owner
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  const setMetric = useCallback(metric => {
+    requestRef.current.metric = metric || domains.dft.defaultSearchMetric
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  const setStatistics = useCallback(statistics => {
+    requestRef.current.statistics = [...statistics, ...defaultStatistics].filter(onlyUnique)
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  const setGroups = useCallback(groups => {
+    requestRef.current.groups = {...groups}
+    onRequestChange()
+  }, [onRequestChange, requestRef])
+
+  const handleStatisticsToRefreshChange = statistics => setStatisticsToRefresh(
+    [...statisticsToRefresh, statistics].filter(onlyUnique)
+  )
+  const handleQueryChange = (changes, replace) => {
     if (changes.atoms && changes.atoms.length === 0) {
       changes.atoms = undefined
     }
     if (changes.only_atoms && changes.only_atoms.length === 0) {
       changes.only_atoms = undefined
     }
+
     if (replace) {
-      this.setState({query: changes})
+      requestRef.current.query = {...changes}
     } else {
-      this.setState({query: {...this.state.query, ...changes}})
+      requestRef.current.query = {...requestRef.current.query, ...changes}
     }
+    onRequestChange()
   }
 
-  handleMetricChange(metric) {
-    this.setState({metric: metric})
-  }
-
-  handleDomainChange(domain) {
-    if (domain !== this.state.domain.key) {
-      const oldQuery = this.state.query
-      const newQuery = {}
-      let key
-      for (key in oldQuery) {
-        if (!key.includes('.')) {
-          newQuery[key] = oldQuery[key]
-        }
-      }
-      this.setState(
-        {
-          domain: domains[domain] || domains.dft,
-          query: newQuery
-        }, () => this.handleRequestChange({domain: domain}))
+  // We initially trigger a search request on mount.
+  useEffect(() => {
+    // In some cases, especially on mount, requestHash might not be based on the
+    // most current requestRef and we have to recompute the hash
+    const newRequestHash = hash(requestRef.current)
+    if (requestHashRef.current !== newRequestHash) {
+      requestHashRef.current = newRequestHash
+      runRequest()
     }
+  }, [requestHashRef, requestHash, runRequest])
+
+  const value = {
+    response: response,
+    query: {
+      domain: requestRef.current.domainKey,
+      ...requestRef.current.query
+    },
+    domain: domains[requestRef.current.domainKey],
+    metric: requestRef.current.metric,
+    setRequestParameters: setRequestParameters,
+    setQuery: handleQueryChange,
+    setMetric: setMetric,
+    setGroups: setGroups,
+    setDomain: setDomain,
+    setOwner: setOwner,
+    setStatisticsToRefresh: handleStatisticsToRefreshChange,
+    setStatistics: setStatistics,
+    update: update
   }
 
-  handleStatisticsToRefreshChange(statistics) {
-    let currentValue = this.state.statisticsToRefresh
-    currentValue.push(statistics)
-    this.setState({statisticsToRefresh: currentValue})
-  }
-
-  handleStatisticsChange(statistics) {
-    const newStatistics = [...statistics, ...this.defaultStatistics].filter(onlyUnique)
-    const oldStatistics = this.state.statistics
-    if (!arraysEqual(newStatistics, oldStatistics)) {
-      this.setState({statistics: newStatistics})
-    }
-  }
-
-  update() {
-    const {api, raiseError} = this.props
-    const {request, query, metric, domain, statisticsToRefresh, statistics} = this.state
-    const search = {
-      ...request,
-      ...query,
-      domain: domain.key,
-      metrics: metric === this.defaultMetric ? [] : [metric],
-      statistics: statistics,
-      ...(this.props.query || {})}
-
-    api.search(search, statisticsToRefresh)
-      .then(response => {
-        // find the first statistic to determine which metric is used
-        const {statistics} = response
-        let usedMetric = this.defaultMetric
-        const firstRealQuantitiy = Object.keys(statistics).find(key => key !== 'total')
-        if (firstRealQuantitiy) {
-          const firstValue = Object.keys(statistics[firstRealQuantitiy])[0]
-          if (firstValue) {
-            usedMetric = Object.keys(statistics[firstRealQuantitiy][firstValue])
-              .find(metric => metric !== this.defaultMetric) || this.defaultMetric
-          }
-        }
-        this.setState({response: response || SearchContext.emptyResponse, usedMetric: usedMetric})
-      }).catch(error => {
-        this.setState({response: SearchContext.emptyResponse})
-        raiseError(error)
-      })
-  }
-
-  componentDidMount() {
-    this.update()
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const {query, request, metric, statistics} = this.state
-    if (
-      prevState.query !== query ||
-        prevState.request !== request ||
-        prevState.metric !== metric ||
-        prevProps.update !== this.props.update ||
-        !arraysEqual(prevState.statistics, statistics) ||
-        !isEquivalent(prevProps.query || {}, this.props.query || {})) {
-      this.update()
-    }
-  }
-
-  render() {
-    const {children} = this.props
-    const value = {
-      state: this.state,
-      props: this.props,
-      setRequest: this.handleRequestChange,
-      setQuery: this.handleQueryChange,
-      setMetric: this.handleMetricChange,
-      setDomain: this.handleDomainChange,
-      setStatisticsToRefresh: this.handleStatisticsToRefreshChange,
-      setStatistics: this.handleStatisticsChange
-    }
-    return <SearchContext.type.Provider value={value} >
-      {children}
-    </SearchContext.type.Provider>
-  }
+  return <searchContext.Provider value={value} >{children}</searchContext.Provider>
 }
-
-const withHoc = withApi(false, false)(SearchContext)
-Object.assign(withHoc, {type: SearchContext.type})
-
-export default withHoc
+SearchContext.propTypes = {
+  /**
+   * An object with initial query parameters. These will be added to the search context
+   * and the first search request. Afterwards search parameters might be removed or
+   * overwritten by the search.
+   */
+  initialQuery: PropTypes.object,
+  /**
+   * An object with initial request parameters. These will be added to the search context
+   * and the first search request. Afterwards request parameters might be removed or
+   * overwritten by children components.
+   */
+  initialRequest: PropTypes.object,
+  /**
+   * The children prop. All components in the children can make use of this search
+   * context via useContext.
+   */
+  children: PropTypes.any
+}

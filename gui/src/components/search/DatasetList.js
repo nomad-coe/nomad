@@ -182,6 +182,7 @@ class DatasetListUnstyled extends React.Component {
     onChange: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     datasets_after: PropTypes.string,
+    per_page: PropTypes.number,
     actions: PropTypes.element
   }
 
@@ -247,7 +248,7 @@ class DatasetListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, total, datasets_after, onChange, actions } = this.props
+    const { classes, data, total, datasets_after, per_page, onChange, actions } = this.props
     const datasets = data.datasets_grouped || {values: []}
     const results = Object.keys(datasets.values).map(id => {
       const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.dataset_id === id)
@@ -258,8 +259,8 @@ class DatasetListUnstyled extends React.Component {
         example: datasets.values[id].examples[0]
       }
     })
-    const per_page = 10
     const after = datasets.after
+    const perPage = per_page || 10
 
     let paginationText
     if (datasets_after) {
@@ -275,7 +276,7 @@ class DatasetListUnstyled extends React.Component {
         <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({datasets_grouped_after: after})}>
+        <IconButton disabled={results.length < perPage} onClick={() => onChange({datasets_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>
@@ -289,7 +290,7 @@ class DatasetListUnstyled extends React.Component {
       selectedColumns={['name', 'DOI', 'entries', 'authors']}
       entryActions={this.renderEntryActions}
       data={results}
-      rows={per_page}
+      rows={perPage}
       actions={actions}
       pagination={pagination}
     />

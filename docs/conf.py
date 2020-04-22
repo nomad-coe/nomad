@@ -13,7 +13,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+sys.path.insert(0, os.path.abspath('.'))
 # from recommonmark.transform import AutoStructify
+
+# import docutils_react_docgen
+# docutils_react_docgen.SETTINGS['react_docgen'] = 'cat'
 
 sys.path.insert(0, os.path.abspath('..'))
 

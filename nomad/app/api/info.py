@@ -18,19 +18,12 @@ API endpoint that deliver backend configuration details.
 
 from flask_restplus import Resource, fields
 
-from nomad import config, parsing, normalizing, datamodel, gitinfo
+from nomad import config, parsing, normalizing, datamodel, gitinfo, search
 
 from .api import api
 
 
 ns = api.namespace('info', description='Access to nomad configuration details.')
-
-domain_quantity_model = api.model('DomainQuantity', {
-    'name': fields.String,
-    'description': fields.String,
-    'multi': fields.Boolean,
-    'order_default': fields.Boolean
-})
 
 metainfo_model = api.model('Metainfo', {
     'all_package': fields.String(description='Name of the metainfo package that references all available packages, i.e. the complete metainfo.'),
@@ -39,9 +32,6 @@ metainfo_model = api.model('Metainfo', {
 
 domain_model = api.model('Domain', {
     'name': fields.String,
-    'quantities': fields.List(fields.Nested(model=domain_quantity_model)),
-    'aggregations_names': fields.List(fields.String),
-    'metrics_names': fields.List(fields.String),
     'metainfo': fields.Nested(model=metainfo_model)
 })
 
@@ -57,6 +47,7 @@ info_model = api.model('Info', {
     'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
     'domains': fields.List(fields.Nested(model=domain_model)),
+    'search_quantities': fields.Raw(),
     'version': fields.String,
     'release': fields.String,
     'git': fields.Nested(model=git_info_model),
@@ -91,6 +82,15 @@ class InfoResource(Resource):
                 }
                 for domain_name, domain in datamodel.domains.items()
             ],
+            'search_quantities': {
+                s.qualified_name: {
+                    'name': s.qualified_name,
+                    'description': s.description,
+                    'many': s.many
+                }
+                for s in search.search_quantities.values()
+                if 'optimade' not in s.qualified_name
+            },
             'version': config.version,
             'release': config.release,
             'git': {

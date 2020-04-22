@@ -1,66 +1,46 @@
-import React from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 import { compose } from 'recompose'
-import { withErrors } from './errors'
-import { withApi } from './api'
+import { withErrors, errorContext } from './errors'
+import { withApi, apiContext } from './api'
 import Search from './search/Search'
-import SearchContext from './search/SearchContext'
-import { Typography } from '@material-ui/core'
+import { Typography, makeStyles } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
-import { matchPath } from 'react-router'
+import { matchPath, useLocation, useHistory, useRouteMatch } from 'react-router'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
 to explore a dataset with similar controls that the search page offers.
 `
 
-class DatasetPage extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    location: PropTypes.object.isRequired,
-    match: PropTypes.object.isRequired,
-    history: PropTypes.object.isRequired
+const useStyles = makeStyles(theme => ({
+  description: {
+    flexGrow: 1,
+    marginRight: theme.spacing(1)
+  },
+  header: {
+    display: 'flex',
+    flexDirection: 'row',
+    padding: theme.spacing(3)
   }
+}))
 
-  static styles = theme => ({
-    description: {
-      flexGrow: 1,
-      marginRight: theme.spacing(1)
-    },
-    header: {
-      display: 'flex',
-      flexDirection: 'row',
-      padding: theme.spacing(3)
-    },
-    actions: {}
-  })
+export default function DatasetPage() {
+  const classes = useStyles()
+  const [dataset, setDataset] = useState({})
 
-  constructor(props) {
-    super(props)
-    this.handleChange = this.handleChange.bind(this)
-  }
+  const {api} = useContext(apiContext)
+  const {raiseError} = useContext(errorContext)
+  const location = useLocation()
+  const match = useRouteMatch()
+  const history = useHistory()
 
-  state = {
-    dataset: {},
-    empty: false,
-    update: 0
-  }
+  const {datasetId} = matchPath(location.pathname, {
+    path: `${match.path}/:datasetId`
+  }).params
 
-  datasetId() {
-    const { location, match } = this.props
-    const pidMatch = matchPath(location.pathname, {
-      path: `${match.path}/:datasetId`
-    })
-    let { datasetId } = pidMatch.params
-    return datasetId
-  }
-
-  update() {
-    const { api, raiseError } = this.props
-    const datasetId = this.datasetId()
+  useEffect(() => {
     api.search({
       owner: 'all',
       dataset_id: datasetId,
@@ -70,70 +50,58 @@ class DatasetPage extends React.Component {
       const entry = data.results[0]
       const dataset = entry && entry.datasets.find(ds => ds.dataset_id + '' === datasetId)
       if (!dataset) {
-        this.setState({dataset: {}, empty: true})
+        setDataset({isEmpty: true})
       }
-      this.setState({dataset: {
-        ...dataset, example: entry, empty: false
-      }})
+      setDataset({...dataset, example: entry})
     }).catch(error => {
-      this.setState({dataset: {}, empty: false})
+      setDataset({})
       raiseError(error)
     })
-  }
+  }, [location.pathname, api])
 
-  componentDidMount() {
-    this.update()
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.location.pathname !== this.props.location.pathname || prevProps.api !== this.props.api) {
-      this.setState({dataset: {}, empty: false}, () => this.update())
-    }
-  }
-
-  handleChange(dataset) {
+  const handleChange = dataset => {
     if (dataset) {
-      this.setState({dataset: dataset, update: this.state.update + 1})
+      setDataset({dataset: dataset})
     } else {
-      this.props.history.goBack()
+      history.goBack()
     }
   }
 
-  render() {
-    const { classes } = this.props
-    const { dataset, update, empty } = this.state
-    const datasetId = this.datasetId()
-
-    return (
-      <div>
-        <div className={classes.header}>
-          <div className={classes.description}>
-            <Typography variant="h4">{dataset.name || (empty && 'Empty or non existing dataset') || 'loading ...'}</Typography>
-            <Typography>
-              dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
-            </Typography>
-          </div>
-
-          <div className={classes.actions}>
-            {dataset && dataset.example && <DatasetActions
-              dataset={dataset}
-              onChange={this.handleChange}/>
-            }
-          </div>
-        </div>
-
-        <SearchContext
-          initialQuery={{owner: 'all'}}
-          query={{dataset_id: datasetId}}
-          ownerTypes={['all', 'public']} update={update}
-        >
-          <Search
-            resultTab="entries" tabs={['entries', 'groups', 'datasets']}
-          />
-        </SearchContext>
-      </div>
-    )
+  if (!dataset) {
+    return <div>loading...</div>
   }
+
+  return <div>
+    <div className={classes.header}>
+      <div className={classes.description}>
+        <Typography variant="h4">{dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}</Typography>
+        <Typography>
+          dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
+        </Typography>
+      </div>
+
+      <div className={classes.actions}>
+        {dataset && dataset.example && <DatasetActions
+          dataset={dataset}
+          onChange={handleChange}/>
+        }
+      </div>
+    </div>
+
+    <Search
+      initialQuery={{owner: 'all'}}
+      query={{dataset_id: datasetId}}
+      ownerTypes={['all', 'public']}
+      initialResultTab="entries" availableResultTabs={['entries', 'groups', 'datasets']}
+    />
+  </div>
 }
 
-export default compose(withApi(false), withErrors, withStyles(DatasetPage.styles))(DatasetPage)
+DatasetPage.propTypes = {
+  classes: PropTypes.object.isRequired,
+  api: PropTypes.object.isRequired,
+  raiseError: PropTypes.func.isRequired,
+  location: PropTypes.object.isRequired,
+  match: PropTypes.object.isRequired,
+  history: PropTypes.object.isRequired
+}

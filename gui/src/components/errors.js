@@ -4,7 +4,7 @@ import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/
 import ErrorIcon from '@material-ui/icons/Error'
 import CloseIcon from '@material-ui/icons/Close'
 
-export const ErrorContext = React.createContext({
+export const errorContext = React.createContext({
   errors: [],
   raiseError: () => { throw Error('Error context used incorrectly.') }
 })
@@ -70,7 +70,7 @@ class ErrorSnacksUnstyled extends React.Component {
   render() {
     const {children, classes} = this.props
     return (
-      <ErrorContext.Provider value={this.state}>
+      <errorContext.Provider value={this.state}>
         {children}
         <Snackbar
           anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
@@ -97,7 +97,7 @@ class ErrorSnacksUnstyled extends React.Component {
             ]}
           />
         </Snackbar>
-      </ErrorContext.Provider>
+      </errorContext.Provider>
     )
   }
 }
@@ -107,9 +107,9 @@ export const ErrorSnacks = withStyles(ErrorSnacksUnstyled.styles)(ErrorSnacksUns
 export function withErrors(Component) {
   function WithErrorComponent(props) {
     return (
-      <ErrorContext.Consumer>
+      <errorContext.Consumer>
         {errorContext => <Component {...props} raiseError={errorContext.raiseError} />}
-      </ErrorContext.Consumer>
+      </errorContext.Consumer>
     )
   }
 

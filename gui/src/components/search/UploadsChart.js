@@ -8,7 +8,7 @@ import TextField from '@material-ui/core/TextField'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import { nomadSecondaryColor } from '../../config.js'
-import SearchContext from './SearchContext'
+import { searchContext } from './SearchContext'
 import { compose } from 'recompose'
 import { withApi } from '../api'
 
@@ -343,7 +343,7 @@ class UploadsChart extends React.Component {
     }
   })
 
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   componentDidMount() {
     const {setStatisticsToRefresh} = this.context
@@ -352,7 +352,7 @@ class UploadsChart extends React.Component {
 
   render() {
     const {classes, metricsDefinitions, ...props} = this.props
-    const {state: {response, usedMetric, query}, setQuery} = this.context
+    const {response: {statistics, metric}, query, setQuery} = this.context
 
     return (
       <Grid container spacing={2}>
@@ -361,8 +361,8 @@ class UploadsChart extends React.Component {
             classes={{root: classes.root}}
             height={250}
             defaultScale={1}
-            data={response.statistics.date_histogram}
-            metric={usedMetric}
+            data={statistics.date_histogram}
+            metric={metric}
             metricsDefinitions={metricsDefinitions}
             onChanged={(from_time, until_time) => setQuery({...query, from_time: from_time, until_time: until_time})}
             {...props} />

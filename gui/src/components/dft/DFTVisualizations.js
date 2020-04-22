@@ -6,7 +6,7 @@ import { searchContext } from '../search/SearchContext'
 
 export function DFTMethodVisualizations(props) {
   const {info} = props
-  const {state: {response: {statistics}, usedMetric}, setStatistics} = useContext(searchContext)
+  const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['dft.code_name', 'dft.basis_set', 'dft.xc_functional'])
   }, [])
@@ -18,7 +18,7 @@ export function DFTMethodVisualizations(props) {
     const defaultValue = {
       code_runs: 0
     }
-    defaultValue[usedMetric] = 0
+    defaultValue[metric] = 0
     info.codes.forEach(key => {
       filteredCodeNames[key] = statistics.code_name[key] || defaultValue
     })
@@ -28,11 +28,11 @@ export function DFTMethodVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={8}>
-        <Quantity quantity="dft.code_name" title="Code" scale={0.25} metric={usedMetric} sort columns={2} />
+        <Quantity quantity="dft.code_name" title="Code" scale={0.25} metric={metric} sort columns={2} />
       </Grid>
       <Grid item xs={4}>
-        <Quantity quantity="dft.basis_set" title="Basis set" scale={0.25} metric={usedMetric} sort />
-        <Quantity quantity="dft.xc_functional" title="XC functionals" scale={0.5} metric={usedMetric} sort />
+        <Quantity quantity="dft.basis_set" title="Basis set" scale={0.25} metric={metric} sort />
+        <Quantity quantity="dft.xc_functional" title="XC functionals" scale={0.5} metric={metric} sort />
       </Grid>
     </Grid>
   )
@@ -44,7 +44,7 @@ DFTMethodVisualizations.propTypes = {
 
 export function DFTSystemVisualizations(props) {
   const {info} = props
-  const {state: {response: {statistics}, usedMetric}, setStatisticsToRefresh, setStatistics} = useContext(searchContext)
+  const {response: {statistics, metric}, setStatisticsToRefresh, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatisticsToRefresh('dft.labels_springer_compound_class')
     setStatistics(['dft.labels_springer_compound_class', 'dft.system', 'dft.crystal_system', 'dft.compound_type'])
@@ -57,7 +57,7 @@ export function DFTSystemVisualizations(props) {
     const defaultValue = {
       code_runs: 0
     }
-    defaultValue[usedMetric] = 0
+    defaultValue[metric] = 0
     info.codes.forEach(key => {
       filteredCodeNames[key] = statistics.code_name[key] || defaultValue
     })
@@ -67,14 +67,14 @@ export function DFTSystemVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
-        <Quantity quantity="dft.compound_type" title="Compound type" scale={1} metric={usedMetric} sort />
+        <Quantity quantity="dft.compound_type" title="Compound type" scale={1} metric={metric} sort />
       </Grid>
       <Grid item xs={4}>
-        <Quantity quantity="dft.system" title="System type" scale={0.25} metric={usedMetric} sort />
-        <Quantity quantity="dft.crystal_system" title="Crystal system" scale={1} metric={usedMetric} sort />
+        <Quantity quantity="dft.system" title="System type" scale={0.25} metric={metric} sort />
+        <Quantity quantity="dft.crystal_system" title="Crystal system" scale={1} metric={metric} sort />
       </Grid>
       <Grid item xs={4}>
-        <Quantity quantity="dft.labels_springer_compound_class" title="Springer compound" scale={1} metric={usedMetric} />
+        <Quantity quantity="dft.labels_springer_compound_class" title="Springer compound" scale={1} metric={metric} />
       </Grid>
     </Grid>
   )
@@ -126,7 +126,7 @@ const searchable_quantities_categories = {
 
 export function DFTPropertyVisualizations(props) {
   const {info} = props
-  const {state: {response: {statistics}, usedMetric}, setStatisticsToRefresh, setStatistics} = useContext(searchContext)
+  const {response: {statistics, metric}, setStatisticsToRefresh, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatisticsToRefresh('dft.labels_springer_classification')
     setStatistics([
@@ -142,7 +142,7 @@ export function DFTPropertyVisualizations(props) {
     const defaultValue = {
       code_runs: 0
     }
-    defaultValue[usedMetric] = 0
+    defaultValue[metric] = 0
     info.codes.forEach(key => {
       filteredCodeNames[key] = statistics.code_name[key] || defaultValue
     })
@@ -167,17 +167,17 @@ export function DFTPropertyVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
-        <Quantity quantity="dft.searchable_quantities" data={data('energy_quantities')} title="Energy" scale={1} metric={usedMetric} sort tooltips />
-        <Quantity quantity="dft.searchable_quantities" data={data('electronic_quantities')} title="Electronic" scale={1} metric={usedMetric} sort tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('energy_quantities')} title="Energy" scale={1} metric={metric} sort tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('electronic_quantities')} title="Electronic" scale={1} metric={metric} sort tooltips />
       </Grid>
       <Grid item xs={4}>
-        <Quantity quantity="dft.searchable_quantities" data={data('forces_quantities')} title="Forces" scale={1} metric={usedMetric} sort tooltips />
-        <Quantity quantity="dft.searchable_quantities" data={data('vibrational_quantities')} title="Vibrational" scale={1} metric={usedMetric} sort tooltips />
-        <Quantity quantity="dft.searchable_quantities" data={data('optical_quantities')} title="Optical" scale={1} metric={usedMetric} sort tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('forces_quantities')} title="Forces" scale={1} metric={metric} sort tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('vibrational_quantities')} title="Vibrational" scale={1} metric={metric} sort tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('optical_quantities')} title="Optical" scale={1} metric={metric} sort tooltips />
       </Grid>
       <Grid item xs={4}>
-        <Quantity quantity="dft.labels_springer_classification" title="Springer classification" scale={1} metric={usedMetric} tooltips />
-        <Quantity quantity="dft.searchable_quantities" data={data('magnetic_quantities')} title="Magnetic" scale={1} metric={usedMetric} sort tooltips />
+        <Quantity quantity="dft.labels_springer_classification" title="Springer classification" scale={1} metric={metric} tooltips />
+        <Quantity quantity="dft.searchable_quantities" data={data('magnetic_quantities')} title="Magnetic" scale={1} metric={metric} sort tooltips />
       </Grid>
     </Grid>
   )

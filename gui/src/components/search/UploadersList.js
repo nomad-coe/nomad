@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import Grid from '@material-ui/core/Grid'
 import { Quantity } from './QuantityHistogram'
 import { withStyles } from '@material-ui/core'
-import SearchContext from './SearchContext'
+import { searchContext } from './SearchContext'
 import { compose } from 'recompose'
 import { withApi } from '../api'
 
@@ -18,7 +18,7 @@ class UploadersList extends React.Component {
     }
   })
 
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   componentDidMount() {
     const {setStatisticsToRefresh} = this.context

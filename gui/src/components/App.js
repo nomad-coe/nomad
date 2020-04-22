@@ -451,7 +451,8 @@ class App extends React.PureComponent {
                 return <Route key={routeKey} exact={exact} path={path}
                   // eslint-disable-next-line react/no-children-prop
                   children={props => {
-                    return <KeepState visible={props.match && true} render={(props) => <route.component {...props} />} {...props} />
+                    // return <KeepState visible={props.match && true} render={(props) => <route.component {...props} />} {...props} />
+                    return props.match && <route.component {...props} />
                   }}
                 />
               })}

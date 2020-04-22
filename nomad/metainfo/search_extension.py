@@ -160,7 +160,7 @@ class Search(Elastic):
         return None
 
     @property
-    def many(self):
+    def many(self) -> bool:
         return self.many_and is not None or self.many_or is not None
 
     @property

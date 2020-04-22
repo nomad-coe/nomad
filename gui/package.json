@@ -20,6 +20,7 @@
     "marked": "^0.6.0",
     "material-ui-chip-input": "^1.0.0-beta.14",
     "material-ui-flat-pagination": "^4.0.0",
+    "object-hash": "^2.0.3",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",
     "piwik-react-router": "^0.12.1",
@@ -41,7 +42,8 @@
     "recompose": "^0.28.2",
     "swagger-client": "^3.8.22",
     "three.js": "^0.77.1",
-    "url-parse": "^1.4.3"
+    "url-parse": "^1.4.3",
+    "use-query-params": "^0.6.0"
   },
   "scripts": {
     "generate-build-version": "node generateBuildVersion",
@@ -61,6 +63,7 @@
     "eslint-plugin-promise": "^3.7.0",
     "eslint-plugin-react": "^7.11.1",
     "eslint-plugin-standard": "^3.1.0",
+    "react-docgen": "^5.3.0",
     "serve": "^10.0.0"
   },
   "homepage": "http://example.com/fairdi/nomad/latest/gui"

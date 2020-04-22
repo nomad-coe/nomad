@@ -301,7 +301,7 @@ _query_model_parameters = {
 }
 
 for qualified_name, quantity in search.search_quantities.items():
-    if quantity.many_and:
+    if quantity.many_and == 'append' or quantity.many_or == 'append':
         def field(**kwargs):
             return fields.List(fields.String(**kwargs))
     else:

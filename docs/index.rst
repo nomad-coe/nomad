@@ -16,4 +16,5 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    parser_tutorial
    archive_tutorial
    reference
+   gui
    ops

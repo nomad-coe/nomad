@@ -10,7 +10,7 @@ import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
 import { withKeycloak } from 'react-keycloak'
 
-const ApiContext = React.createContext()
+export const apiContext = React.createContext()
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -641,9 +641,9 @@ export class ApiProviderComponent extends React.Component {
   render() {
     const { children } = this.props
     return (
-      <ApiContext.Provider value={this.state}>
+      <apiContext.Provider value={this.state}>
         {children}
-      </ApiContext.Provider>
+      </apiContext.Provider>
     )
   }
 }
@@ -686,13 +686,13 @@ class LoginRequiredUnstyled extends React.Component {
 
 export function DisableOnLoading(props) {
   return (
-    <ApiContext.Consumer>
+    <apiContext.Consumer>
       {apiContext => (
         <div style={apiContext.loading ? { pointerEvents: 'none', userSelects: 'none' } : {}}>
           {props.children}
         </div>
       )}
-    </ApiContext.Consumer>
+    </apiContext.Consumer>
   )
 }
 DisableOnLoading.propTypes = {
@@ -787,7 +787,7 @@ const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
 export function withApi(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
-      <ApiContext.Consumer>
+      <apiContext.Consumer>
         {apiContext => (
           <WithKeycloakWithApiCompnent
             loginRequired={loginRequired}
@@ -797,7 +797,7 @@ export function withApi(loginRequired, showErrorPage, loginMessage) {
             {...props} {...apiContext}
           />
         )}
-      </ApiContext.Consumer>
+      </apiContext.Consumer>
     ))
   }
 }

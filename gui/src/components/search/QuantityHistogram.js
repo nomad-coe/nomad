@@ -1,10 +1,10 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Select, MenuItem, Card, CardContent, CardHeader } from '@material-ui/core'
+import { withStyles, Select, MenuItem, Card, CardContent, CardHeader, makeStyles } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
-import SearchContext from '../search/SearchContext'
+import { searchContext } from './SearchContext'
 
 const unprocessedLabel = 'not processed'
 const unavailableLabel = 'unavailable'
@@ -346,39 +346,34 @@ class QuantityHistogramUnstyled extends React.Component {
 
 export const QuantityHistogram = withStyles(QuantityHistogramUnstyled.styles)(QuantityHistogramUnstyled)
 
-class QuantityUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    quantity: PropTypes.string.isRequired,
-    metric: PropTypes.string.isRequired,
-    title: PropTypes.string,
-    scale: PropTypes.number,
-    data: PropTypes.object
+const useQuantityStyles = makeStyles(theme => ({
+  root: {
+    marginTop: theme.spacing(2)
   }
-  static styles = theme => ({
-    root: {
-      marginTop: theme.spacing(2)
-    }
-  })
+}))
 
-  static contextType = SearchContext.type
+export function Quantity(props) {
+  const classes = useQuantityStyles()
+  const {scale, quantity, title, data, ...restProps} = props
+  const {response, query, setQuery} = useContext(searchContext)
 
-  render() {
-    const {classes, scale, quantity, title, data, ...props} = this.props
-    const {state: {response, query}, setQuery} = this.context
+  const usedData = data || response.statistics[quantity]
 
-    const usedData = data || response.statistics[quantity]
-
-    return <QuantityHistogram
-      classes={{root: classes.root}}
-      width={300}
-      defaultScale={scale || 1}
-      title={title || quantity}
-      data={usedData}
-      value={query[quantity]}
-      onChanged={selection => setQuery({...query, [quantity]: selection})}
-      {...props} />
-  }
+  return <QuantityHistogram
+    classes={{root: classes.root}}
+    width={300}
+    defaultScale={scale || 1}
+    title={title || quantity}
+    data={usedData}
+    value={query[quantity]}
+    onChanged={selection => setQuery({...query, [quantity]: selection})}
+    {...restProps} />
 }
 
-export const Quantity = withStyles(QuantityUnstyled.styles)(QuantityUnstyled)
+Quantity.propTypes = {
+  quantity: PropTypes.string.isRequired,
+  metric: PropTypes.string.isRequired,
+  title: PropTypes.string,
+  scale: PropTypes.number,
+  data: PropTypes.object
+}

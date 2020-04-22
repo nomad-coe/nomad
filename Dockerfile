@@ -22,7 +22,19 @@
 # We use slim for the final image
 FROM python:3.6-slim as final
 
-# First, build all python stuff in a python build image
+# First built the GUI in a gui build image
+FROM node:latest as gui_build
+RUN mkdir -p /app
+WORKDIR /app
+ENV PATH /app/node_modules/.bin:$PATH
+COPY gui/package.json /app/package.json
+COPY gui/yarn.lock /app/yarn.lock
+RUN yarn
+COPY gui /app
+RUN yarn run build
+RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
+
+# Second, build all python stuff in a python build image
 FROM python:3.6-stretch as build
 RUN mkdir /install
 
@@ -56,22 +68,12 @@ RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
 WORKDIR /install/docs
+COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
 RUN \
     find /usr/local/lib/python3.6/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.6/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
-
-# Second built the GUI in a gui build image
-FROM node:latest as gui_build
-RUN mkdir -p /app
-WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
-COPY gui/package.json /app/package.json
-COPY gui/yarn.lock /app/yarn.lock
-RUN yarn
-COPY gui /app
-RUN yarn run build
 
 # Third, create a slim final image
 FROM final

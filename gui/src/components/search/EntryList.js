@@ -317,7 +317,7 @@ export class EntryListUnstyled extends React.Component {
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
-    const selectQuery = selected ? {calc_id: selected.join(',')} : query
+    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}

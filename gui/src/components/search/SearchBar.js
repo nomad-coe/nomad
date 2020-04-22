@@ -12,7 +12,7 @@ import MenuItem from '@material-ui/core/MenuItem'
 import { Chip, IconButton, Tooltip } from '@material-ui/core'
 import { nomadPrimaryColor } from '../../config'
 import { compose } from 'recompose'
-import SearchContext from '../search/SearchContext'
+import { searchContext } from './SearchContext'
 import { withApi } from '../api'
 import ClearIcon from '@material-ui/icons/Cancel'
 
@@ -134,7 +134,7 @@ class SearchBar extends React.Component {
   getSuggestions(valueWithCase) {
     const value = valueWithCase.toLowerCase()
 
-    const {statistics} = this.context.state.response
+    const {statistics} = this.context.response
     const suggestions = []
 
     // filter out pseudo quantity total
@@ -159,7 +159,7 @@ class SearchBar extends React.Component {
     })
 
     // Add additional quantities to the end
-    const { domain } = this.context.state
+    const { domain } = this.context
     const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
     const additionalSearchKeyRE = new RegExp(reStr)
     const match = value.match(additionalSearchKeyRE)
@@ -198,7 +198,7 @@ class SearchBar extends React.Component {
   }
 
   handleAddChip(chip) {
-    const values = {...this.context.state.query}
+    const values = {...this.context.query}
 
     let key, value
     if (chip.includes('=')) {
@@ -239,21 +239,21 @@ class SearchBar extends React.Component {
     const parts = chip.split('=')
     const key = parts[0]
 
-    const {state: {query}, setQuery} = this.context
+    const {query, setQuery} = this.context
     const values = {...query}
     delete values[key]
     setQuery(values, true)
   }
 
   handleClear() {
-    const {state: {query}, setQuery} = this.context
+    const {query, setQuery} = this.context
     const values = {owner: query.owner}
     setQuery(values, true)
   }
 
   getChips() {
-    const {state: {query: {owner, ...values}, domain}} = this.context
-    const domainPrefix = domain.key + '.'
+    const {query: {owner, domain, ...values}} = this.context
+    const domainPrefix = domain + '.'
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`
@@ -267,11 +267,11 @@ class SearchBar extends React.Component {
     })
   }
 
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   render() {
     const {classes, loading} = this.props
-    const {response: {pagination, statistics}, query, domain} = this.context.state
+    const {response: {pagination, statistics}, query, domain} = this.context
 
     let helperText = <span>loading ...</span>
     if (pagination && statistics) {
