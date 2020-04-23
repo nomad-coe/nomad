@@ -17,7 +17,7 @@ import fractions
 import itertools
 from math import gcd as gcd
 from functools import reduce
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Union
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -39,6 +39,27 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     # It is assumed that the atomic numbers are valid at this point.
     mass = np.sum(atomic_masses[atomic_numbers])
     return mass
+
+
+def find_match(self, pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
+    """Attempts to find a position within a larger list of positions.
+
+    Args:
+        pos: The point to search for
+        positions: The points within which the search is performed.
+        eps: Match tolerance.
+
+    Returns:
+        Index of the matched position or None if match not found.
+    """
+    displacements = positions - pos
+    distances = np.linalg.norm(displacements, axis=1)
+    min_arg = np.argmin(distances)
+    min_value = distances[min_arg]
+    if min_value <= eps:
+        return min_arg
+    else:
+        return None
 
 
 def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet]) -> str:
