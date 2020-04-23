@@ -1,117 +1,252 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import ase
+import numpy as np
+
+from nomad.datamodel.metainfo.public import section_k_band
 from nomad.normalizing.normalizer import Normalizer
 from nomad.constants import pi
 
 
 class BandStructureNormalizer(Normalizer):
+    """Normalizer with the following responsibilities:
+
+      - Calculates band gap(s) if present (section_band_gap, section_band_gap_spin_up, section_band_gap_spin_down).
+      - Creates labels for special points within the band path (band_path_labels).
+      - Determines if the path is a standard one or not (is_standard)
+    """
     def __init__(self):
         pass
 
-    def normalize():
+    def normalize(self, logger=None) -> None:
+        # Setup logger
+        if logger is not None:
+            self.logger = logger.bind(normalizer=self.__class__.__name__)
+
+        # Do nothing if section_run is not present
+        if self.section_run is None:
+            return
+
+        # Loop through the bands
+        for scc in self.section_run.section_single_configuration_calculation:
+            for band in scc.section_k_band:
+                self.add_band_gaps(band)
+                self.add_path_labels(band)
+                self.add_is_standard(band)
+
+    def add_band_gaps(self, band: section_k_band) -> None:
+        """Given the band structure and fermi level, calculates the band gap
+        for spin channels and also reports the total band gap as the minum gap
+        found.
+        """
+        # Handle spin channels separately to find gaps for spin up and down
+        reciprocal_cell = band_structure.reciprocal_cell.magnitude
+        fermi_level = band_structure.fermi_level
+        n_channels = energies.shape[0]
+
+        gaps: List[BandGap] = [None, None]
+        for channel in range(n_channels):
+            channel_energies = energies[channel, :, :]
+            lower_defined = False
+            upper_defined = False
+            num_bands = channel_energies.shape[0]
+            band_indices = np.arange(num_bands)
+            band_minima_idx = channel_energies.argmin(axis=1)
+            band_maxima_idx = channel_energies.argmax(axis=1)
+            band_minima = channel_energies[band_indices, band_minima_idx]
+            band_maxima = channel_energies[band_indices, band_maxima_idx]
+
+            # Add a tolerance to minima and maxima
+            band_minima_tol = band_minima + config.normalize.fermi_level_precision
+            band_maxima_tol = band_maxima - config.normalize.fermi_level_precision
+
+            for band_idx in range(num_bands):
+                band_min = band_minima[band_idx]
+                band_max = band_maxima[band_idx]
+                band_min_tol = band_minima_tol[band_idx]
+                band_max_tol = band_maxima_tol[band_idx]
+
+                # If any of the bands band crosses the Fermi level, there is no
+                # band gap
+                if band_min_tol <= fermi_level and band_max_tol >= fermi_level:
+                    break
+                # Whole band below Fermi level, save the current highest
+                # occupied band point
+                elif band_min_tol <= fermi_level and band_max_tol <= fermi_level:
+                    gap_lower_energy = band_max
+                    gap_lower_idx = band_maxima_idx[band_idx]
+                    lower_defined = True
+                # Whole band above Fermi level, save the current lowest
+                # unoccupied band point
+                elif band_min_tol >= fermi_level:
+                    gap_upper_energy = band_min
+                    gap_upper_idx = band_minima_idx[band_idx]
+                    upper_defined = True
+                    break
+
+            # If a highest point of the valence band and a lowest point of the
+            # conduction band are found, and the difference between them is
+            # positive, save the information location and value.
+            if lower_defined and upper_defined and gap_upper_energy - gap_lower_energy >= 0:
+
+                # See if the gap is direct or indirect by comparing the k-point
+                # locations with some tolerance
+                k_point_lower = path[gap_lower_idx]
+                k_point_upper = path[gap_upper_idx]
+                k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+
+                gap = BandGap()
+                gap.type = "direct" if is_direct_gap else "indirect"
+                gap.value = float(gap_upper_energy - gap_lower_energy)
+                gap.conduction_band_min_k_point = k_point_upper
+                gap.conduction_band_min_energy = float(gap_upper_energy)
+                gap.valence_band_max_k_point = k_point_lower
+                gap.valence_band_max_energy = float(gap_lower_energy)
+                gaps[channel] = gap
+
+        # For unpolarized calculations we simply report the gap if it is found.
+        if n_channels == 1:
+            if gaps[0] is not None:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+        # For polarized calculations we report the gap separately for both
+        # channels. Also we report the smaller gap as the the total gap for the
+        # calculation.
+        elif n_channels == 2:
+            if gaps[0] is not None:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
+            if gaps[1] is not None:
+                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
+            if gaps[0] is not None and gaps[1] is not None:
+                if gaps[0].value <= gaps[1].value:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                else:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
+            else:
+                if gaps[0] is not None:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
+                elif gaps[1] is not None:
+                    band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
+
+
+    def add_path_labels(self, band: section_k_band) -> None:
         pass
 
+    def add_is_standard(self, band: section_k_band) -> None:
+        pass
 
-def crystal_structure_from_cell(cell, eps=1e-4):
-    """Return the crystal structure as a string calculated from the cell.
-    """
-    cellpar = ase.geometry.cell_to_cellpar(cell=cell)
-    abc = cellpar[:3]
-    angles = cellpar[3:] / 180 * pi
-    a, b, c = abc
-    alpha, beta, gamma = angles
+    def crystal_structure_from_cell(self, cell, eps=1e-4):
+        """Return the crystal structure as a string calculated from the cell.
+        """
+        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
+        abc = cellpar[:3]
+        angles = cellpar[3:] / 180 * pi
+        a, b, c = abc
+        alpha, beta, gamma = angles
 
-    # According to:
-    # https://www.physics-in-a-nutshell.com/article/6/symmetry-crystal-systems-and-bravais-lattices#the-seven-crystal-systems
-    # If a=b=c and alpha=beta=gamma=90degrees we have cubic.
-    if abc.ptp() < eps and abs(angles - pi / 2).max() < eps:
-        return 'cubic'
-    elif abc.ptp() < eps and abs(angles - pi / 3).max() < eps:
-        return 'fcc'
-    elif abc.ptp() < eps and abs(angles - np.arccos(-1 / 3)).max() < eps:
-        return 'bcc'
-    # If a=b!=c, alpha=beta=gamma=90deg, tetragonal.
-    elif abs(a - b) < eps and abs(angles - pi / 2).max() < eps:
-        return 'tetragonal'
-    elif abs(angles - pi / 2).max() < eps:
-        return 'orthorhombic'
-    # if a = b != c , alpha = beta = 90deg, gamma = 120deg, hexagonal
-    elif (abs(a - b) < eps
-          and abs(gamma - pi / 3 * 2) < eps
-          and abs(angles[:2] - pi / 2).max() < eps):
-        return 'hexagonal'
-    elif (c >= a and c >= b and alpha < pi / 2 and
-          abs(angles[1:] - pi / 2).max() < eps):
-        return 'monoclinic'
-    else:
-        raise ValueError('Cannot find crystal structure')
+        # According to:
+        # https://www.physics-in-a-nutshell.com/article/6/symmetry-crystal-systems-and-bravais-lattices#the-seven-crystal-systems
+        # If a=b=c and alpha=beta=gamma=90degrees we have cubic.
+        if abc.ptp() < eps and abs(angles - pi / 2).max() < eps:
+            return 'cubic'
+        elif abc.ptp() < eps and abs(angles - pi / 3).max() < eps:
+            return 'fcc'
+        elif abc.ptp() < eps and abs(angles - np.arccos(-1 / 3)).max() < eps:
+            return 'bcc'
+        # If a=b!=c, alpha=beta=gamma=90deg, tetragonal.
+        elif abs(a - b) < eps and abs(angles - pi / 2).max() < eps:
+            return 'tetragonal'
+        elif abs(angles - pi / 2).max() < eps:
+            return 'orthorhombic'
+        # if a = b != c , alpha = beta = 90deg, gamma = 120deg, hexagonal
+        elif (abs(a - b) < eps
+            and abs(gamma - pi / 3 * 2) < eps
+            and abs(angles[:2] - pi / 2).max() < eps):
+            return 'hexagonal'
+        elif (c >= a and c >= b and alpha < pi / 2 and
+            abs(angles[1:] - pi / 2).max() < eps):
+            return 'monoclinic'
+        else:
+            raise ValueError('Cannot find crystal structure')
 
+    def get_special_points(cell, eps=1e-4):
+        """Return dict of special points.
 
-def get_special_points(cell, eps=1e-4):
-    """Return dict of special points.
+        The definitions are from a paper by Wahyu Setyawana and Stefano
+        Curtarolo::
 
-    The definitions are from a paper by Wahyu Setyawana and Stefano
-    Curtarolo::
+            http://dx.doi.org/10.1016/j.commatsci.2010.05.010
 
-        http://dx.doi.org/10.1016/j.commatsci.2010.05.010
+        lattice: str
+            One of the following: cubic, fcc, bcc, orthorhombic, tetragonal,
+            hexagonal or monoclinic.
+        cell: 3x3 ndarray
+            Unit cell.
+        eps: float
+            Tolerance for cell-check.
+        """
 
-    lattice: str
-        One of the following: cubic, fcc, bcc, orthorhombic, tetragonal,
-        hexagonal or monoclinic.
-    cell: 3x3 ndarray
-        Unit cell.
-    eps: float
-        Tolerance for cell-check.
-    """
+        lattice = crystal_structure_from_cell(cell)
 
-    lattice = crystal_structure_from_cell(cell)
+        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
+        abc = cellpar[:3]
+        angles = cellpar[3:] / 180 * pi
+        a, b, c = abc
+        alpha, beta, gamma = angles
 
-    cellpar = ase.geometry.cell_to_cellpar(cell=cell)
-    abc = cellpar[:3]
-    angles = cellpar[3:] / 180 * pi
-    a, b, c = abc
-    alpha, beta, gamma = angles
+        # Check that the unit-cells are as in the Setyawana-Curtarolo paper:
+        if lattice == 'cubic':
+            assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
+        elif lattice == 'fcc':
+            assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
+        elif lattice == 'bcc':
+            angle = np.arccos(-1 / 3)
+            assert abc.ptp() < eps and abs(angles - angle).max() < eps
+        elif lattice == 'tetragonal':
+            assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
+        elif lattice == 'orthorhombic':
+            assert abs(angles - pi / 2).max() < eps
+        elif lattice == 'hexagonal':
+            assert abs(a - b) < eps
+            assert abs(gamma - pi / 3 * 2) < eps
+            assert abs(angles[:2] - pi / 2).max() < eps
+        elif lattice == 'monoclinic':
+            assert c >= a and c >= b
+            assert alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps
+        if lattice != 'monoclinic':
+            return special_points[lattice]
 
-    # Check that the unit-cells are as in the Setyawana-Curtarolo paper:
-    if lattice == 'cubic':
-        assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
-    elif lattice == 'fcc':
-        assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
-    elif lattice == 'bcc':
-        angle = np.arccos(-1 / 3)
-        assert abc.ptp() < eps and abs(angles - angle).max() < eps
-    elif lattice == 'tetragonal':
-        assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
-    elif lattice == 'orthorhombic':
-        assert abs(angles - pi / 2).max() < eps
-    elif lattice == 'hexagonal':
-        assert abs(a - b) < eps
-        assert abs(gamma - pi / 3 * 2) < eps
-        assert abs(angles[:2] - pi / 2).max() < eps
-    elif lattice == 'monoclinic':
-        assert c >= a and c >= b
-        assert alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps
-    if lattice != 'monoclinic':
-        return special_points[lattice]
-
-    # Here, we need the cell:
-    eta = (1 - b * np.cos(alpha) / c) / (2 * np.sin(alpha)**2)
-    nu = 1 / 2 - eta * c * np.cos(alpha) / b
-    return {'Γ': [0, 0, 0],
-            'A': [1 / 2, 1 / 2, 0],
-            'C': [0, 1 / 2, 1 / 2],
-            'D': [1 / 2, 0, 1 / 2],
-            'D1': [1 / 2, 0, -1 / 2],
-            'E': [1 / 2, 1 / 2, 1 / 2],
-            'H': [0, eta, 1 - nu],
-            'H1': [0, 1 - eta, nu],
-            'H2': [0, eta, -nu],
-            'M': [1 / 2, eta, 1 - nu],
-            'M1': [1 / 2, 1 - eta, nu],
-            'M2': [1 / 2, eta, -nu],
-            'X': [0, 1 / 2, 0],
-            'Y': [0, 0, 1 / 2],
-            'Y1': [0, 0, -1 / 2],
-            'Z': [1 / 2, 0, 0]}
+        # Here, we need the cell:
+        eta = (1 - b * np.cos(alpha) / c) / (2 * np.sin(alpha)**2)
+        nu = 1 / 2 - eta * c * np.cos(alpha) / b
+        return {'Γ': [0, 0, 0],
+                'A': [1 / 2, 1 / 2, 0],
+                'C': [0, 1 / 2, 1 / 2],
+                'D': [1 / 2, 0, 1 / 2],
+                'D1': [1 / 2, 0, -1 / 2],
+                'E': [1 / 2, 1 / 2, 1 / 2],
+                'H': [0, eta, 1 - nu],
+                'H1': [0, 1 - eta, nu],
+                'H2': [0, eta, -nu],
+                'M': [1 / 2, eta, 1 - nu],
+                'M1': [1 / 2, 1 - eta, nu],
+                'M2': [1 / 2, eta, -nu],
+                'X': [0, 1 / 2, 0],
+                'Y': [0, 0, 1 / 2],
+                'Y1': [0, 0, -1 / 2],
+                'Z': [1 / 2, 0, 0]}
 
 specialPoints = {}
 try:
@@ -161,99 +296,11 @@ except Exception as e:
             # band gap information.
             self.get_band_gaps(band_data, energies, kpoints, valence_band_maximum)
 
-def get_band_gaps(self, band_structure: ElectronicBandStructure, energies: np.array, path: np.array) -> None:
-    """Given the band structure and fermi level, calculates the band gap
-    for spin channels and also reports the total band gap as the minum gap
-    found.
-    """
-    # Handle spin channels separately to find gaps for spin up and down
-    reciprocal_cell = band_structure.reciprocal_cell.magnitude
-    fermi_level = band_structure.fermi_level
-    n_channels = energies.shape[0]
 
-    gaps: List[BandGap] = [None, None]
-    for channel in range(n_channels):
-        channel_energies = energies[channel, :, :]
-        lower_defined = False
-        upper_defined = False
-        num_bands = channel_energies.shape[0]
-        band_indices = np.arange(num_bands)
-        band_minima_idx = channel_energies.argmin(axis=1)
-        band_maxima_idx = channel_energies.argmax(axis=1)
-        band_minima = channel_energies[band_indices, band_minima_idx]
-        band_maxima = channel_energies[band_indices, band_maxima_idx]
+valence_band_maximum = representative_scc.energy_reference_highest_occupied
+if valence_band_maximum is not None:
+    valence_band_maximum = valence_band_maximum.magnitude
 
-        # Add a tolerance to minima and maxima
-        band_minima_tol = band_minima + config.normalize.fermi_level_precision
-        band_maxima_tol = band_maxima - config.normalize.fermi_level_precision
-
-        for band_idx in range(num_bands):
-            band_min = band_minima[band_idx]
-            band_max = band_maxima[band_idx]
-            band_min_tol = band_minima_tol[band_idx]
-            band_max_tol = band_maxima_tol[band_idx]
-
-            # If any of the bands band crosses the Fermi level, there is no
-            # band gap
-            if band_min_tol <= fermi_level and band_max_tol >= fermi_level:
-                break
-            # Whole band below Fermi level, save the current highest
-            # occupied band point
-            elif band_min_tol <= fermi_level and band_max_tol <= fermi_level:
-                gap_lower_energy = band_max
-                gap_lower_idx = band_maxima_idx[band_idx]
-                lower_defined = True
-            # Whole band above Fermi level, save the current lowest
-            # unoccupied band point
-            elif band_min_tol >= fermi_level:
-                gap_upper_energy = band_min
-                gap_upper_idx = band_minima_idx[band_idx]
-                upper_defined = True
-                break
-
-        # If a highest point of the valence band and a lowest point of the
-        # conduction band are found, and the difference between them is
-        # positive, save the information location and value.
-        if lower_defined and upper_defined and gap_upper_energy - gap_lower_energy >= 0:
-
-            # See if the gap is direct or indirect by comparing the k-point
-            # locations with some tolerance
-            k_point_lower = path[gap_lower_idx]
-            k_point_upper = path[gap_upper_idx]
-            k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-            is_direct_gap = k_point_distance <= config.normalize.k_space_precision
-
-            gap = BandGap()
-            gap.type = "direct" if is_direct_gap else "indirect"
-            gap.value = float(gap_upper_energy - gap_lower_energy)
-            gap.conduction_band_min_k_point = k_point_upper
-            gap.conduction_band_min_energy = float(gap_upper_energy)
-            gap.valence_band_max_k_point = k_point_lower
-            gap.valence_band_max_energy = float(gap_lower_energy)
-            gaps[channel] = gap
-
-    # For unpolarized calculations we simply report the gap if it is found.
-    if n_channels == 1:
-        if gaps[0] is not None:
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
-    # For polarized calculations we report the gap separately for both
-    # channels. Also we report the smaller gap as the the total gap for the
-    # calculation.
-    elif n_channels == 2:
-        if gaps[0] is not None:
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_up, gaps[0])
-        if gaps[1] is not None:
-            band_structure.m_add_sub_section(ElectronicBandStructure.band_gap_spin_down, gaps[1])
-        if gaps[0] is not None and gaps[1] is not None:
-            if gaps[0].value <= gaps[1].value:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
-            else:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
-        else:
-            if gaps[0] is not None:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[0])
-            elif gaps[1] is not None:
-                band_structure.m_add_sub_section(ElectronicBandStructure.band_gap, gaps[1])
 
     def get_reciprocal_cell(self, band_structure: ElectronicBandStructure, prim_atoms: Atoms, orig_atoms: Atoms):
         """A reciprocal cell for this calculation. If the original unit cell is
