@@ -79,7 +79,7 @@ def test_band_paths(band_path_fcc):
     """Tests that the path labeling workds for different lattices.
     """
     # FCC
-    scc = band_path_cubic.entry_archive.section_run[0].section_single_configuration_calculation[0]
+    scc = band_path_fcc.entry_archive.section_run[0].section_single_configuration_calculation[0]
     system = scc.single_configuration_calculation_to_system_ref
     space_group_number = system.section_symmetry[0].space_group_number
     assert space_group_number == 227
@@ -95,7 +95,7 @@ def test_band_paths(band_path_fcc):
         ["L", "K"],
         ["U", "X"],
     ])
-    bs = band_path_cubic.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_fcc.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for i, segment in enumerate(bs.section_k_band_segment):
         labels = segment.band_path_labels
         assert np.array_equal(labels, assumed_path[i, :])
