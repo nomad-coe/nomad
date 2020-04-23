@@ -62,12 +62,13 @@ export default function SearchPage() {
     }
   }
 
-  const withoutLogin = ['all']
+  const withoutLogin = ['all', 'public']
 
   return <Search
     initialQuery={query}
     initialVisualizationTab="elements"
     availableResultTabs={['entries', 'groups', 'datasets']}
+    initialOwner="public"
     ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
   />
 }

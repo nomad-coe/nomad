@@ -18,6 +18,7 @@ import SearchIcon from '@material-ui/icons/Search'
 import UploadsChart from './UploadsChart'
 import { Quantity } from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
+import {objectFilter} from '../../utils'
 
 const resultTabs = {
   'entries': {
@@ -60,6 +61,10 @@ const useSearchStyles = makeStyles(theme => ({
     padding: theme.spacing(3)
   }
 }))
+
+/**
+ * This component shows the full search interface including result lists.
+ */
 export default function Search(props) {
   const {
     initialVisualizationTab,
@@ -69,10 +74,14 @@ export default function Search(props) {
     initialMetric,
     initialResultTab,
     availableResultTabs,
+    query,
+    initialQuery,
+    resultListProps,
+    initialRequest,
     ...rest} = props
   const classes = useSearchStyles()
   return <DisableOnLoading>
-    <SearchContext>
+    <SearchContext query={query} initialQuery={initialQuery}>
       <div className={classes.root} {...rest}>
         <SearchEntry
           initialTab={initialVisualizationTab}
@@ -80,10 +89,12 @@ export default function Search(props) {
           ownerTypes={ownerTypes}
           initialDomain={initialDomain}
           initialMetric={initialMetric}
+          initialRequest={initialRequest}
         />
         <SearchResults
           initialTab={initialResultTab}
           availableTabs={availableResultTabs}
+          resultListProps={resultListProps}
         />
       </div>
     </SearchContext>
@@ -96,7 +107,20 @@ Search.propTypes = {
   initialOwner: PropTypes.string,
   ownerTypes: PropTypes.arrayOf(PropTypes.string),
   initialDomain: PropTypes.string,
-  initialMetric: PropTypes.string
+  initialMetric: PropTypes.string,
+  initialRequest: PropTypes.object,
+  resultListProps: PropTypes.object,
+  /**
+   * Additional search parameters that will be added to all searches that are send to
+   * the API. The idea is that this can be used to lock some aspects of the search for
+   * special contexts, like the dataset page for example.
+   */
+  query: PropTypes.object,
+  /**
+   * Similar to query, but these parameters can be changes by the user interacting with
+   * the component.
+   */
+  initialQuery: PropTypes.object
 }
 
 const useSearchEntryStyles = makeStyles(theme => ({
@@ -384,7 +408,7 @@ const ownerLabel = {
 const ownerTooltips = {
   all: 'This will show all entries in the database.',
   visible: 'Do also show entries that are only visible to you.',
-  public: 'Do not entries with embargo.',
+  public: 'Do not show entries with embargo.',
   user: 'Do only show entries visible to you.',
   staging: 'Will only show entries that you uploaded, but not yet published.'
 }
@@ -438,7 +462,7 @@ OwnerSelect.propTypes = {
 const useSearchResultStyles = makeStyles(theme => ({
   root: theme.spacing(4)
 }))
-function SearchResults({availableTabs = ['entries'], initialTab = 'entries'}) {
+function SearchResults({availableTabs = ['entries'], initialTab = 'entries', resultListProps = {}}) {
   const classes = useSearchResultStyles()
   const {domain, setGroups} = useContext(searchContext)
   let [openTab, setOpenTab] = useQueryParam('results', StringParam)
@@ -469,13 +493,14 @@ function SearchResults({availableTabs = ['entries'], initialTab = 'entries'}) {
         })}
       </Tabs>
 
-      <ResultList domain={domain} />
+      <ResultList domain={domain} {...resultListProps} />
     </Paper>
   </div>
 }
 SearchResults.propTypes = {
   'availableTabs': PropTypes.arrayOf(PropTypes.string),
-  'initialTab': PropTypes.string
+  'initialTab': PropTypes.string,
+  'resultListProps': PropTypes.object
 }
 
 function ReRunSearchButton() {
@@ -489,9 +514,10 @@ function ReRunSearchButton() {
 
 const usePagination = () => {
   const {setRequestParameters} = useContext(searchContext)
-  const [requestQueryParameters, setRequestQueryParameters] = useQueryParams({
+  let [requestQueryParameters, setRequestQueryParameters] = useQueryParams({
     order: NumberParam, order_by: StringParam, per_page: NumberParam, page: NumberParam
   })
+  requestQueryParameters = objectFilter(requestQueryParameters, key => requestQueryParameters[key])
   useEffect(
     () => setRequestParameters(requestQueryParameters),
     [requestQueryParameters, setRequestParameters]
@@ -524,11 +550,11 @@ const useScroll = (apiGroupName, afterParameterName) => {
 }
 
 function SearchEntryList(props) {
-  const {response, query} = useContext(searchContext)
+  const {response, requestParameters, apiQuery} = useContext(searchContext)
   const setRequestParameters = usePagination()
   return <EntryList
-    query={query}
-    editable={query.owner === 'staging' || query.owner === 'user'}
+    query={apiQuery}
+    editable={apiQuery.owner === 'staging' || apiQuery.owner === 'user'}
     data={response}
     onChange={setRequestParameters}
     actions={
@@ -537,7 +563,7 @@ function SearchEntryList(props) {
         <ApiDialogButton data={response} />
       </React.Fragment>
     }
-    {...response.pagination}
+    {...requestParameters}
     {...props}
   />
 }

@@ -662,3 +662,17 @@ def flat(obj, prefix=None):
         return result
     else:
         return obj
+
+
+if __name__ == '__main__':
+    import json
+
+    export = {
+        search_quantity.qualified_name: {
+            'name': search_quantity.qualified_name,
+            'description': search_quantity.description,
+            'many': search_quantity.many
+        }
+        for search_quantity in search_quantities.values()
+    }
+    print(json.dumps(export, indent=2))

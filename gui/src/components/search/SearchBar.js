@@ -246,14 +246,13 @@ class SearchBar extends React.Component {
   }
 
   handleClear() {
-    const {query, setQuery} = this.context
-    const values = {owner: query.owner}
-    setQuery(values, true)
+    const {setQuery} = this.context
+    setQuery({}, true)
   }
 
   getChips() {
-    const {query: {owner, domain, ...values}} = this.context
-    const domainPrefix = domain + '.'
+    const {query: values, domain} = this.context
+    const domainPrefix = domain.key + '.'
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`

@@ -2,9 +2,33 @@ import React, { useState, useContext, useEffect, useRef, useCallback } from 'rea
 import PropTypes from 'prop-types'
 import hash from 'object-hash'
 import { errorContext } from '../errors'
-import { onlyUnique } from '../../utils'
+import { onlyUnique, objectFilter } from '../../utils'
 import { domains } from '../domains'
 import { apiContext } from '../api'
+import { useLocation, useHistory } from 'react-router-dom'
+import qs from 'qs'
+import * as searchQuantities from '../../searchQuantities.json'
+
+const useSearchUrlQuery = () => {
+  const location = useLocation()
+  const history = useHistory()
+  const urlQuery = location.search ? {
+    ...qs.parse(location.search.substring(1))
+  } : {}
+  const searchQuery = objectFilter(urlQuery, key => searchQuantities[key])
+  const rest = objectFilter(urlQuery, key => !searchQuantities[key])
+  if (searchQuery.atoms && !Array.isArray(searchQuery.atoms)) {
+    searchQuery.atoms = [searchQuery.atoms]
+  }
+  if (searchQuery.only_atoms && !Array.isArray(searchQuery.only_atoms)) {
+    searchQuery.only_atoms = [searchQuery.only_atoms]
+  }
+  const setUrlQuery = query => history.push(location.pathname + '?' + qs.stringify({
+    ...rest,
+    ...query
+  }, {indices: false}))
+  return [searchQuery, setUrlQuery]
+}
 
 /**
  * The React context object. Can be accessed from functional components with useContext.
@@ -21,7 +45,7 @@ export const searchContext = React.createContext()
  * pagination, statistics, order. The query object contains all parameters that
  * constitute the actual search. This includes the domain and owner parameters.
  */
-export default function SearchContext({initialRequest, initialQuery, children}) {
+export default function SearchContext({initialRequest, initialQuery, query, children}) {
   const defaultStatistics = ['atoms', 'authors']
   const emptyResponse = {
     statistics: {
@@ -32,13 +56,17 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
     pagination: {
       total: undefined,
       per_page: 10,
-      page: 1
+      page: 1,
+      order: -1,
+      order_by: 'upload_time'
     },
     metric: domains.dft.defaultSearchMetric
   }
 
-  const {api, info} = useContext(apiContext)
+  const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
+
+  const [urlQuery, setUrlQuery] = useSearchUrlQuery()
 
   // React calls the children effects for the parent effect. But the parent effect is
   // run with the state of the last render, which is the state before the children effects.
@@ -62,15 +90,14 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
     statistics: [],
     groups: {},
     domainKey: domains.dft.key,
+    owner: 'all',
     pagination: {
-      order_by: 'upload_id',
-      order: -1,
       page: 1,
-      per_page: 10
+      per_page: 10,
+      order: -1,
+      order_by: 'upload_time'
     },
-    query: {
-      owner: 'all'
-    },
+    query: {},
     update: 0
   })
   const requestHashRef = useRef(0)
@@ -84,7 +111,7 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
   // checks for necessity. It will update the response state, once the request has
   // been answered by the api.
   const runRequest = useCallback(() => {
-    const {metric, domainKey} = requestRef.current
+    const {metric, domainKey, owner} = requestRef.current
     const domain = domains[domainKey]
     const apiRequest = {
       ...initialRequest,
@@ -96,8 +123,10 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
     }
     const apiQuery = {
       ...apiRequest,
+      owner: owner,
       ...initialQuery,
-      ...requestRef.current.query
+      ...requestRef.current.query,
+      ...query
     }
     api.search(apiQuery, statisticsToRefresh)
       .then(newResponse => {
@@ -142,7 +171,7 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
   }, [onRequestChange, requestRef])
 
   const setOwner = useCallback(owner => {
-    requestRef.current.query.owner = owner
+    requestRef.current.owner = owner
     onRequestChange()
   }, [onRequestChange, requestRef])
 
@@ -173,12 +202,17 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
     }
 
     if (replace) {
-      requestRef.current.query = {...changes}
+      setUrlQuery(changes)
     } else {
-      requestRef.current.query = {...requestRef.current.query, ...changes}
+      setUrlQuery({...urlQuery, ...changes})
     }
     onRequestChange()
   }
+
+  useEffect(() => {
+    requestRef.current.query = urlQuery
+    onRequestChange()
+  }, [urlQuery, requestRef, onRequestChange])
 
   // We initially trigger a search request on mount.
   useEffect(() => {
@@ -194,11 +228,17 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
   const value = {
     response: response,
     query: {
-      domain: requestRef.current.domainKey,
       ...requestRef.current.query
+    },
+    apiQuery: {
+      domain: requestRef.current.domainKey,
+      owner: requestRef.current.owner,
+      ...requestRef.current.query,
+      ...query
     },
     domain: domains[requestRef.current.domainKey],
     metric: requestRef.current.metric,
+    requestParameters: requestRef.current.pagination,
     setRequestParameters: setRequestParameters,
     setQuery: handleQueryChange,
     setMetric: setMetric,
@@ -213,6 +253,11 @@ export default function SearchContext({initialRequest, initialQuery, children}) 
   return <searchContext.Provider value={value} >{children}</searchContext.Provider>
 }
 SearchContext.propTypes = {
+  /**
+   * An object with initial query parameters. These will be added to the search context
+   * and be used in all search requests.
+  */
+  query: PropTypes.object,
   /**
    * An object with initial query parameters. These will be added to the search context
    * and the first search request. Afterwards search parameters might be removed or

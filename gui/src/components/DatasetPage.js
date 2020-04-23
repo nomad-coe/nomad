@@ -1,9 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react'
-import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core/styles'
-import { compose } from 'recompose'
-import { withErrors, errorContext } from './errors'
-import { withApi, apiContext } from './api'
+import { errorContext } from './errors'
+import { apiContext } from './api'
 import Search from './search/Search'
 import { Typography, makeStyles } from '@material-ui/core'
 import { DatasetActions, DOI } from './search/DatasetList'
@@ -92,16 +89,8 @@ export default function DatasetPage() {
       initialQuery={{owner: 'all'}}
       query={{dataset_id: datasetId}}
       ownerTypes={['all', 'public']}
-      initialResultTab="entries" availableResultTabs={['entries', 'groups', 'datasets']}
+      initialResultTab="entries"
+      availableResultTabs={['entries', 'groups', 'datasets']}
     />
   </div>
-}
-
-DatasetPage.propTypes = {
-  classes: PropTypes.object.isRequired,
-  api: PropTypes.object.isRequired,
-  raiseError: PropTypes.func.isRequired,
-  location: PropTypes.object.isRequired,
-  match: PropTypes.object.isRequired,
-  history: PropTypes.object.isRequired
 }
