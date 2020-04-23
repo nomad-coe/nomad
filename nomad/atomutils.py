@@ -41,7 +41,7 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
-def find_match(self, pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
+def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
     """Attempts to find a position within a larger list of positions.
 
     Args:

@@ -20,7 +20,7 @@ default all constants are reported in SI units.
 import numpy as np
 import scipy.constants
 
-atomic_mass_constant = scipy.constants.physical_constants["atomic mass constant"]
+atomic_mass_constant = scipy.constants.physical_constants["atomic mass constant"][0]
 pi = scipy.constants.pi
 
 # List of atomic masses (natural isotope dist.) in order, atomic mass units.

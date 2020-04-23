@@ -17,7 +17,7 @@ import json
 import numpy as np
 from typing import List
 
-from nomad.datamodel.metainfo.public import section_k_band, section_single_configuration_calculation, section_band_gap, section_system
+from nomad.datamodel.metainfo.public import section_k_band, section_band_gap, section_system
 from nomad.normalizing.normalizer import Normalizer
 from nomad.constants import pi
 from nomad import config, atomutils
@@ -30,9 +30,6 @@ class BandStructureNormalizer(Normalizer):
       - Creates labels for special points within the band path (band_path_labels).
       - Determines if the path is a standard one or not (is_standard)
     """
-    def __init__(self):
-        pass
-
     def normalize(self, logger=None) -> None:
         # Setup logger
         if logger is not None:
@@ -51,14 +48,15 @@ class BandStructureNormalizer(Normalizer):
 
             # In order to resolve the special points and the reciprocal cell,
             # we need informatoin about the system.
-            system = scc.section_single_configuration_calculation_to_system_ref
+            system = scc.single_configuration_calculation_to_system_ref
 
             for band in scc.section_k_band:
-                self.add_reciprocal_cell(band, system)
-                self.add_brillouin_zone(band)
-                self.add_band_gaps(band, valence_band_maximum)
-                self.add_path_labels(band, system)
-                self.add_is_standard(band)
+                if band.band_structure_kind != "vibrational":
+                    self.add_reciprocal_cell(band, system)
+                    self.add_brillouin_zone(band)
+                    self.add_band_gaps(band, valence_band_maximum)
+                    self.add_path_labels(band, system)
+                    # self.add_is_standard(band)
 
     def add_reciprocal_cell(self, band: section_k_band, system: section_system):
         """A reciprocal cell for this calculation. If the original unit cell is
@@ -286,7 +284,7 @@ class BandStructureNormalizer(Normalizer):
             start_point = segment.band_k_points[0]
             end_point = segment.band_k_points[-1]
             start_index = atomutils.find_match(start_point, special_k_points, eps)
-            end_index = atomutils.find_match(end_point, special_points, eps)
+            end_index = atomutils.find_match(end_point, special_k_points, eps)
             if start_index is None:
                 start_label = None
             else:
@@ -297,101 +295,101 @@ class BandStructureNormalizer(Normalizer):
                 end_label = special_point_labels[end_index]
             segment.band_path_labels = [start_label, end_label]
 
-    def add_is_standard(self, band: section_k_band) -> None:
-        pass
+    # def add_is_standard(self, band: section_k_band) -> None:
+        # pass
 
-    def crystal_structure_from_cell(self, cell: ase.cell.Cell, eps=1e-4):
-        """Return the crystal structure as a string calculated from the cell.
-        """
-        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
-        abc = cellpar[:3]
-        angles = cellpar[3:] / 180 * pi
-        a, b, c = abc
-        alpha, _, gamma = angles
+    # def crystal_structure_from_cell(self, cell: ase.cell.Cell, eps=1e-4):
+        # """Return the crystal structure as a string calculated from the cell.
+        # """
+        # cellpar = ase.geometry.cell_to_cellpar(cell=cell)
+        # abc = cellpar[:3]
+        # angles = cellpar[3:] / 180 * pi
+        # a, b, c = abc
+        # alpha, _, gamma = angles
 
-        # According to:
-        # https://www.physics-in-a-nutshell.com/article/6/symmetry-crystal-systems-and-bravais-lattices#the-seven-crystal-systems
-        # If a=b=c and alpha=beta=gamma=90degrees we have cubic.
-        if abc.ptp() < eps and abs(angles - pi / 2).max() < eps:
-            return 'cubic'
-        elif abc.ptp() < eps and abs(angles - pi / 3).max() < eps:
-            return 'fcc'
-        elif abc.ptp() < eps and abs(angles - np.arccos(-1 / 3)).max() < eps:
-            return 'bcc'
-        # If a=b!=c, alpha=beta=gamma=90deg, tetragonal.
-        elif abs(a - b) < eps and abs(angles - pi / 2).max() < eps:
-            return 'tetragonal'
-        elif abs(angles - pi / 2).max() < eps:
-            return 'orthorhombic'
-        # if a = b != c , alpha = beta = 90deg, gamma = 120deg, hexagonal
-        elif (abs(a - b) < eps and abs(gamma - pi / 3 * 2) < eps and abs(angles[:2] - pi / 2).max() < eps):
-            return 'hexagonal'
-        elif (c >= a and c >= b and alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps):
-            return 'monoclinic'
-        else:
-            raise ValueError('Cannot find crystal structure')
+        # # According to:
+        # # https://www.physics-in-a-nutshell.com/article/6/symmetry-crystal-systems-and-bravais-lattices#the-seven-crystal-systems
+        # # If a=b=c and alpha=beta=gamma=90degrees we have cubic.
+        # if abc.ptp() < eps and abs(angles - pi / 2).max() < eps:
+            # return 'cubic'
+        # elif abc.ptp() < eps and abs(angles - pi / 3).max() < eps:
+            # return 'fcc'
+        # elif abc.ptp() < eps and abs(angles - np.arccos(-1 / 3)).max() < eps:
+            # return 'bcc'
+        # # If a=b!=c, alpha=beta=gamma=90deg, tetragonal.
+        # elif abs(a - b) < eps and abs(angles - pi / 2).max() < eps:
+            # return 'tetragonal'
+        # elif abs(angles - pi / 2).max() < eps:
+            # return 'orthorhombic'
+        # # if a = b != c , alpha = beta = 90deg, gamma = 120deg, hexagonal
+        # elif (abs(a - b) < eps and abs(gamma - pi / 3 * 2) < eps and abs(angles[:2] - pi / 2).max() < eps):
+            # return 'hexagonal'
+        # elif (c >= a and c >= b and alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps):
+            # return 'monoclinic'
+        # else:
+            # raise ValueError('Cannot find crystal structure')
 
-    def get_special_points(self, cell, eps=1e-4):
-        """Return dict of special points.
+    # def get_special_points(self, cell, eps=1e-4):
+        # """Return dict of special points.
 
-        The definitions are from a paper by Wahyu Setyawana and Stefano
-        Curtarolo::
+        # The definitions are from a paper by Wahyu Setyawana and Stefano
+        # Curtarolo::
 
-            http://dx.doi.org/10.1016/j.commatsci.2010.05.010
+            # http://dx.doi.org/10.1016/j.commatsci.2010.05.010
 
-        lattice: str
-            One of the following: cubic, fcc, bcc, orthorhombic, tetragonal,
-            hexagonal or monoclinic.
-        cell: 3x3 ndarray
-            Unit cell.
-        eps: float
-            Tolerance for cell-check.
-        """
-        lattice = self.crystal_structure_from_cell(cell)
-        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
-        abc = cellpar[:3]
-        angles = cellpar[3:] / 180 * pi
-        a, b, c = abc
-        alpha, _, gamma = angles
+        # lattice: str
+            # One of the following: cubic, fcc, bcc, orthorhombic, tetragonal,
+            # hexagonal or monoclinic.
+        # cell: 3x3 ndarray
+            # Unit cell.
+        # eps: float
+            # Tolerance for cell-check.
+        # """
+        # lattice = self.crystal_structure_from_cell(cell)
+        # cellpar = ase.geometry.cell_to_cellpar(cell=cell)
+        # abc = cellpar[:3]
+        # angles = cellpar[3:] / 180 * pi
+        # a, b, c = abc
+        # alpha, _, gamma = angles
 
-        # Check that the unit-cells are as in the Setyawana-Curtarolo paper:
-        if lattice == 'cubic':
-            assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
-        elif lattice == 'fcc':
-            assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
-        elif lattice == 'bcc':
-            angle = np.arccos(-1 / 3)
-            assert abc.ptp() < eps and abs(angles - angle).max() < eps
-        elif lattice == 'tetragonal':
-            assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
-        elif lattice == 'orthorhombic':
-            assert abs(angles - pi / 2).max() < eps
-        elif lattice == 'hexagonal':
-            assert abs(a - b) < eps
-            assert abs(gamma - pi / 3 * 2) < eps
-            assert abs(angles[:2] - pi / 2).max() < eps
-        elif lattice == 'monoclinic':
-            assert c >= a and c >= b
-            assert alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps
-        if lattice != 'monoclinic':
-            return special_points[lattice]
+        # # Check that the unit-cells are as in the Setyawana-Curtarolo paper:
+        # if lattice == 'cubic':
+            # assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
+        # elif lattice == 'fcc':
+            # assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
+        # elif lattice == 'bcc':
+            # angle = np.arccos(-1 / 3)
+            # assert abc.ptp() < eps and abs(angles - angle).max() < eps
+        # elif lattice == 'tetragonal':
+            # assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
+        # elif lattice == 'orthorhombic':
+            # assert abs(angles - pi / 2).max() < eps
+        # elif lattice == 'hexagonal':
+            # assert abs(a - b) < eps
+            # assert abs(gamma - pi / 3 * 2) < eps
+            # assert abs(angles[:2] - pi / 2).max() < eps
+        # elif lattice == 'monoclinic':
+            # assert c >= a and c >= b
+            # assert alpha < pi / 2 and abs(angles[1:] - pi / 2).max() < eps
+        # if lattice != 'monoclinic':
+            # return special_points[lattice]
 
-        # Here, we need the cell:
-        eta = (1 - b * np.cos(alpha) / c) / (2 * np.sin(alpha)**2)
-        nu = 1 / 2 - eta * c * np.cos(alpha) / b
-        return {'Γ': [0, 0, 0],
-                'A': [1 / 2, 1 / 2, 0],
-                'C': [0, 1 / 2, 1 / 2],
-                'D': [1 / 2, 0, 1 / 2],
-                'D1': [1 / 2, 0, -1 / 2],
-                'E': [1 / 2, 1 / 2, 1 / 2],
-                'H': [0, eta, 1 - nu],
-                'H1': [0, 1 - eta, nu],
-                'H2': [0, eta, -nu],
-                'M': [1 / 2, eta, 1 - nu],
-                'M1': [1 / 2, 1 - eta, nu],
-                'M2': [1 / 2, eta, -nu],
-                'X': [0, 1 / 2, 0],
-                'Y': [0, 0, 1 / 2],
-                'Y1': [0, 0, -1 / 2],
-                'Z': [1 / 2, 0, 0]}
+        # # Here, we need the cell:
+        # eta = (1 - b * np.cos(alpha) / c) / (2 * np.sin(alpha)**2)
+        # nu = 1 / 2 - eta * c * np.cos(alpha) / b
+        # return {'Γ': [0, 0, 0],
+                # 'A': [1 / 2, 1 / 2, 0],
+                # 'C': [0, 1 / 2, 1 / 2],
+                # 'D': [1 / 2, 0, 1 / 2],
+                # 'D1': [1 / 2, 0, -1 / 2],
+                # 'E': [1 / 2, 1 / 2, 1 / 2],
+                # 'H': [0, eta, 1 - nu],
+                # 'H1': [0, 1 - eta, nu],
+                # 'H2': [0, eta, -nu],
+                # 'M': [1 / 2, eta, 1 - nu],
+                # 'M1': [1 / 2, 1 - eta, nu],
+                # 'M2': [1 / 2, eta, -nu],
+                # 'X': [0, 1 / 2, 0],
+                # 'Y': [0, 0, 1 / 2],
+                # 'Y1': [0, 0, -1 / 2],
+                # 'Z': [1 / 2, 0, 0]}

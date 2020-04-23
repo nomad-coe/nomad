@@ -29,10 +29,6 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     phonon,
     two_d,
     bulk,
-    bands_unpolarized_no_gap,
-    bands_polarized_no_gap,
-    bands_unpolarized_gap_indirect,
-    bands_polarized_gap_indirect,
     dos_unpolarized_vasp,
     dos_polarized_vasp,
     hash_exciting,
@@ -452,61 +448,6 @@ def test_method_gw_metainfo(gw):
     enc = gw.entry_archive.section_encyclopedia
     assert enc.method.gw_type == "G0W0"
     assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
-
-
-def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):
-
-    def test_generic(bs, n_channels):
-        """Generic tests for band structure data."""
-        assert bs.brillouin_zone is not None
-        assert bs.reciprocal_cell.shape == (3, 3)
-
-    # Unpolarized, no gaps
-    enc = bands_unpolarized_no_gap.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=1)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Polarized, no gaps
-    enc = bands_polarized_no_gap.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=2)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Unpolarized, finite gap, indirect
-    enc = bands_unpolarized_gap_indirect.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=1)
-    gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_ev == pytest.approx(0.62, 0.01)
-    assert bs.band_gap.type == "indirect"
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Polarized, finite gap, indirect
-    enc = bands_polarized_gap_indirect.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=2)
-    gap = bs.band_gap
-    gap_up = bs.band_gap_spin_up
-    gap_down = bs.band_gap_spin_down
-    gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
-    gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
-    gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_up.type == "indirect"
-    assert gap_down.type == "indirect"
-    assert gap_up_ev != gap_down_ev
-    assert gap_up_ev == gap_ev
-    assert gap_up_ev == pytest.approx(0.956, 0.01)
-    assert gap_down_ev == pytest.approx(1.230, 0.01)
 
 
 def test_hashes_exciting(hash_exciting):

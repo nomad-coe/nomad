@@ -223,3 +223,10 @@ def hash_exciting() -> Backend:
 @pytest.fixture(scope='session')
 def hash_vasp(bands_unpolarized_gap_indirect) -> Backend:
     return bands_unpolarized_gap_indirect
+
+
+@pytest.fixture(scope='session')
+def band_path_fcc(bands_unpolarized_gap_indirect) -> Backend:
+    """Band structure calculation for a cubic lattice.
+    """
+    return bands_unpolarized_gap_indirect
