@@ -23,7 +23,8 @@ calculations, and files
 .. autoclass:: Upload
 
 '''
-from typing import cast, List, Any, Iterator, Dict, cast, Iterable
+
+from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
 from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
 import logging
 from structlog import wrap_logger
@@ -31,16 +32,14 @@ from contextlib import contextmanager
 import os.path
 from datetime import datetime
 from pymongo import UpdateOne
-from celery.utils import worker_direct
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
-from nomad.processing.base import Proc, process, task, ProcessAlreadyRunning, PENDING, SUCCESS, FAILURE, PROCESS_CALLED, PROCESS_COMPLETED
+from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
-from nomad.processing.pipelines import run_pipelines, PipelineContext
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -231,6 +230,7 @@ class Calc(Proc):
 
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
+    @process
     def re_process_calc(self):
         '''
         Processes a calculation again. This means there is already metadata and
@@ -293,6 +293,7 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
+    @process
     def process_calc(self):
         '''
         Processes a new calculation that has no prior records in the mongo, elastic,
@@ -349,6 +350,14 @@ class Calc(Proc):
         except Exception as e:
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
+
+    def on_process_complete(self, process_name):
+        # the save might be necessary to correctly read the join condition from the db
+        self.save()
+        # in case of error, the process_name might be unknown
+        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
+            self.upload.reload()
+            self.upload.check_join()
 
     @task
     def parsing(self):
@@ -510,6 +519,7 @@ class Upload(Proc):
         published: Boolean that indicates the publish status
         publish_time: Date when the upload was initially published
         last_update: Date of the last publishing/re-processing
+        joined: Boolean indicates if the running processing has joined (:func:`check_join`)
     '''
     id_field = 'upload_id'
 
@@ -525,11 +535,12 @@ class Upload(Proc):
     publish_time = DateTimeField()
     last_update = DateTimeField()
 
+    joined = BooleanField(default=False)
+
     meta: Any = {
         'indexes': [
             'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
-        ],
-        'strict': False  # ignore extra fields to support older entries with join related fields
+        ]
     }
 
     def __init__(self, **kwargs):
@@ -728,7 +739,7 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
-            # Check if a calc is already/still processing
+            # check if a calc is already/still processing
             processing = Calc.objects(
                 upload_id=self.upload_id,
                 **Calc.process_running_mongoengine_query()).count()
@@ -738,37 +749,13 @@ class Upload(Proc):
                     'processes are still/already running on calc, they will be resetted',
                     count=processing)
 
-            # Reset all calcs
+            # reset all calcs
             Calc._get_collection().update_many(
                 dict(upload_id=self.upload_id),
                 {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-            # Resolve queue and priority
-            queue = None
-            if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
-                queue = worker_direct(self.worker_hostname).name
-            priority = config.celery.priorities.get('%s.%s' % ("Calc", "re_process"), 1)
-
-            # Re-process all calcs
-            def pipeline_generator():
-                query = dict(upload_id=self.upload_id)
-                running_query = dict(Calc.process_running_mongoengine_query())
-                running_query.update(query)
-                if Calc.objects(**running_query).first() is not None:
-                    raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
-                Calc._get_collection().update_many(query, {'$set': dict(
-                    current_process="re_process_calc",
-                    process_status=PROCESS_CALLED)})
-                for calc in Calc.objects(**query):
-                    yield PipelineContext(
-                        calc.mainfile,
-                        calc.parser,
-                        calc.calc_id,
-                        calc.upload_id,
-                        calc.worker_hostname,
-                        re_process=True
-                    )
-            run_pipelines(pipeline_generator(), self.upload_id, queue, priority)
+            # process call calcs
+            Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
 
             logger.info('completed to trigger re-process of all calcs')
         except Exception as e:
@@ -796,6 +783,7 @@ class Upload(Proc):
         self._continue_with('cleanup')
 
         self.upload_files.re_pack(self.user_metadata())
+        self.joined = True
         self._complete()
 
     @process
@@ -883,54 +871,34 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Iterator[PipelineContext]:
-        """Generator function that iterates over files in an upload and returns
-        basic information for each found mainfile.
+    def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
+        '''
+        Generator function that matches all files in the upload to all parsers to
+        determine the upload's mainfiles.
 
         Returns:
-            PipelineContext
-        """
+            Tuples of mainfile, filename, and parsers
+        '''
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.staging_upload_files
-        for filepath in upload_files.raw_file_manifest():
-            self._preprocess_files(filepath)
+        for filename in upload_files.raw_file_manifest():
+            self._preprocess_files(filename)
             try:
-                parser = match_parser(upload_files.raw_file_object(filepath).os_path)
+                parser = match_parser(upload_files.raw_file_object(filename).os_path)
                 if parser is not None:
-                    directory = os.path.dirname(filepath)
+                    directory = os.path.dirname(filename)
                     if directory in directories_with_match:
                         # TODO this might give us the chance to store directory based relationship
                         # between calcs for the future?
                         pass
                     else:
-                        directories_with_match[directory] = filepath
-                    yield PipelineContext(
-                        filepath,
-                        parser.name,
-                        upload_files.calc_id(filepath),
-                        self.upload_id,
-                        self.worker_hostname
-                    )
+                        directories_with_match[directory] = filename
+
+                    yield filename, parser
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',
-                    mainfile=filepath, exc_info=e)
-
-    def processing_started(self):
-        """Informs MongoDB that this Upload has started processing.
-        """
-        # Tell Upload that a process has been started.
-        self.current_process = "process"
-        self.process_status = PROCESS_CALLED
-        self.save()
-
-    def processing_finished(self):
-        """Informs MongoDB that this Upload has finished processing.
-        """
-        # Tell Upload that a process has been started.
-        self.process_status = PROCESS_COMPLETED
-        self.save()
-        self.cleanup()
+                    mainfile=filename, exc_info=e)
 
     @task
     def parse_all(self):
@@ -943,30 +911,54 @@ class Upload(Proc):
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
+            for filename, parser in self.match_mainfiles():
+                calc = Calc.create(
+                    calc_id=self.upload_files.calc_id(filename),
+                    mainfile=filename, parser=parser.name,
+                    worker_hostname=self.worker_hostname,
+                    upload_id=self.upload_id)
 
-            # Tell Upload that a process has been started.
-            self.processing_started()
+                calc.process_calc()
 
-            # Resolve queue and priority
-            queue = None
-            if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
-                queue = worker_direct(self.worker_hostname).name
-            priority = config.celery.priorities.get('%s.%s' % ("Calc", "process"), 1)
+    def on_process_complete(self, process_name):
+        if process_name == 'process_upload' or process_name == 're_process_upload':
+            self.check_join()
 
-            # Start running all pipelines
-            n_pipelines = run_pipelines(self.match_mainfiles(), self.upload_id, queue, priority)
+    def check_join(self):
+        '''
+        Performs an evaluation of the join condition and triggers the :func:`cleanup`
+        task if necessary. The join condition allows to run the ``cleanup`` after
+        all calculations have been processed. The upload processing stops after all
+        calculation processings have been triggered (:func:`parse_all` or
+        :func:`re_process_upload`). The cleanup task is then run within the last
+        calculation process (the one that triggered the join by calling this method).
+        '''
+        total_calcs = self.total_calcs
+        processed_calcs = self.processed_calcs
 
-            # If the upload has not spawned any pipelines, tell it that it is
-            # finished and perform cleanup
-            if n_pipelines == 0:
-                self.processing_finished()
+        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+        # check if process is not running anymore, i.e. not still spawining new processes to join
+        # check the join condition, i.e. all calcs have been processed
+        if not self.process_running and processed_calcs >= total_calcs:
+            # this can easily be called multiple times, e.g. upload finished after all calcs finished
+            modified_upload = self._get_collection().find_one_and_update(
+                {'_id': self.upload_id, 'joined': {'$ne': True}},
+                {'$set': {'joined': True}})
+            if modified_upload is not None:
+                self.get_logger().debug('join')
+                self.cleanup()
+            else:
+                # the join was already done due to a prior call
+                pass
 
     def reset(self):
+        self.joined = False
         super().reset()
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):
         update = super().reset_pymongo_update()
+        update.update(joined=False)
         return update
 
     def _cleanup_after_processing(self):
