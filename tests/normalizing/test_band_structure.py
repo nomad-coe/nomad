@@ -76,7 +76,7 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
 
 
 def test_band_paths(band_path_fcc):
-    """Tests that the path labeling workds for different lattices.
+    """Tests that the path labeling works for different lattices.
     """
     # FCC
     scc = band_path_fcc.entry_archive.section_run[0].section_single_configuration_calculation[0]
