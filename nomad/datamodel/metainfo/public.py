@@ -2,9 +2,10 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference, MEnum
+    Reference, MEnum, derived
 )
 from nomad.metainfo.legacy import LegacyDefinition
+import nomad.atomutils
 
 
 m_package = Package(
@@ -5156,6 +5157,30 @@ class section_thermodynamical_properties(MSection):
         Stores the heat capacity per cell unit at constant volume.
         ''',
         a_legacy=LegacyDefinition(name='thermodynamical_property_heat_capacity_C_v'))
+
+    @derived(
+        type=np.dtype(np.float64),
+        shape=['number_of_thermodynamical_property_values'],
+        unit='joule / kelvin * kilogram',
+        description='''
+        Stores the specific heat capacity at constant volume.
+        ''',
+        a_legacy=LegacyDefinition(name='specific_heat_capacity'),
+        cached=True
+    )
+    def specific_heat_capacity(self) -> np.array:
+        """Returns the specific heat capacity by dividing the heat capacity per
+        cell with the mass of the atoms in the cell.
+        """
+        s_frame_sequence = self.m_parent
+        first_frame = s_frame_sequence.frame_sequence_local_frames_ref[0]
+        system = first_frame.single_configuration_calculation_to_system_ref
+        atomic_numbers = system.atom_species
+        mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
+        heat_capacity = self.thermodynamical_property_heat_capacity_C_v
+        specific_heat_capacity = heat_capacity / mass_per_unit_cell
+
+        return specific_heat_capacity
 
     thermodynamical_property_temperature = Quantity(
         type=np.dtype(np.float64),

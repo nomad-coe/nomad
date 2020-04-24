@@ -1,7 +1,7 @@
 import numpy as np
 from elasticsearch_dsl import InnerDoc
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference
-from nomad.datamodel.metainfo.public import section_k_band, section_dos
+from nomad.datamodel.metainfo.public import section_k_band, section_dos, section_thermodynamical_properties
 
 
 class WyckoffVariables(MSection):
@@ -450,6 +450,27 @@ class Properties(MSection):
         shape=[],
         description="""
         Reference to an electronic density of states.
+        """
+    )
+    phonon_band_structure = Quantity(
+        type=Reference(section_k_band.m_def),
+        shape=[],
+        description="""
+        Reference to a phonon band structure.
+        """
+    )
+    phonon_dos = Quantity(
+        type=Reference(section_dos.m_def),
+        shape=[],
+        description="""
+        Reference to a phonon density of states.
+        """
+    )
+    thermodynamical_properties = Quantity(
+        type=Reference(section_thermodynamical_properties.m_def),
+        shape=[],
+        description="""
+        Reference to a specific heat capacity.
         """
     )
 

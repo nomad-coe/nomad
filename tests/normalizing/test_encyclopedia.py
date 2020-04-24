@@ -54,15 +54,6 @@ def test_molecular_dynamics(molecular_dynamics: EntryArchive):
     assert calc_type == "molecular dynamics"
 
 
-# Disabled until the method information can be retrieved
-# def test_phonon(phonon: EntryArchive):
-    # """Tests that geometry optimizations are correctly processed."
-    # """
-    # enc = phonon.get_mi2_section(Encyclopedia.m_def)
-    # calc_type = enc.calc_type.calc_type
-    # assert calc_type == "phonon calculation"
-
-
 def test_1d_metainfo(one_d: EntryArchive):
     """Tests that metainfo for 1D systems is correctly processed.
     """
@@ -476,3 +467,29 @@ def test_hashes_undefined(hash_vasp):
     # not really need the method to be accurately defined.
     assert method_hash is None
     assert group_eos_hash is None
+
+
+def test_phonon(phonon: EntryArchive):
+    """Tests that phonon calculations are correctly processed.
+    """
+    enc = phonon.entry_archive.section_encyclopedia
+    calc_type = enc.calculation.calculation_type
+    prop = enc.properties
+    band = prop.phonon_band_structure
+    thermo_props = prop.thermodynamical_properties
+    assert calc_type == "phonon calculation"
+
+    # Check band structure
+    assert band is not None
+    assert band.band_structure_kind == "vibrational"
+    for segment in band.section_k_band_segment:
+        assert segment.band_energies is not None
+        assert segment.band_k_points is not None
+        assert segment.band_segm_labels is not None
+
+    # Check thermodynamical properties
+    assert thermo_props is not None
+    assert thermo_props.thermodynamical_property_heat_capacity_C_v is not None
+    assert thermo_props.specific_heat_capacity is not None
+    assert thermo_props.thermodynamical_property_temperature is not None
+    assert thermo_props.vibrational_free_energy_at_constant_volume is not None

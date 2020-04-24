@@ -102,20 +102,51 @@ class PropertiesNormalizer():
     def has_fermi_surface(self) -> None:
         pass
 
-    def has_thermal_properties(self) -> None:
-        pass
+    def thermodynamical_properties(self, properties: Properties) -> None:
+        """Tries to resolve a reference to a representative set of
+        thermodynamical properties. Will not store any data if it cannot be
+        resolved unambiguously.
+        """
+        try:
+            resolved_section = None
+            frame_sequences = self.backend.entry_archive.section_run[0].section_frame_sequence
+            for frame_sequence in frame_sequences:
+                thermodynamical_props = frame_sequence.section_thermodynamical_properties
+                for thermodynamical_prop in thermodynamical_props:
+                    if resolved_section is None:
+                        resolved_section = thermodynamical_prop
+                    else:
+                        self.logger("Could not unambiguously select data to display for specific heat.")
+                        return
+        except Exception:
+            return
+        if resolved_section is not None:
+            properties.thermodynamical_properties = resolved_section
 
-    def phonon_dispersion(self) -> None:
-        pass
+    def phonon_band_structure(self, properties: Properties, context: Context) -> None:
+        """Tries to resolve a reference to a representative phonon band
+        structure. Will not store any data if it cannot be resolved
+        unambiguously.
+        """
+        try:
+            representative_scc = context.representative_scc
+            bands = representative_scc.section_k_band
+            if bands is None:
+                return
 
-    def phonon_dos(self) -> None:
-        pass
+            representative_phonon_band = None
+            for band in bands:
+                if band.band_structure_kind == "vibrational":
+                    if representative_phonon_band is None:
+                        representative_phonon_band = band
+                    else:
+                        self.logger("Could not unambiguously select data to display for a phonon band structure.")
+                        return
 
-    def specific_heat_cv(self) -> None:
-        pass
-
-    def helmholtz_free_energy(self) -> None:
-        pass
+        except Exception:
+            return
+        if representative_phonon_band is not None:
+            properties.phonon_band_structure = representative_phonon_band
 
     def energies(self, properties: Properties, gcd: int, representative_scc: Section) -> None:
         energy_dict = {}
@@ -152,3 +183,8 @@ class PropertiesNormalizer():
         # Save metainfo
         self.electronic_band_structure(properties, calc_type, material_type, context, sec_system)
         self.energies(properties, gcd, representative_scc)
+
+        # Phonon calculations have a specific set of properties to extract
+        if context.calc_type == Calculation.calculation_type.type.phonon_calculation:
+            self.thermodynamical_properties(properties)
+            self.phonon_band_structure(properties, context)

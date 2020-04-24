@@ -23,7 +23,7 @@ import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 from matid.symmetry import WyckoffSet
 
-from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
+from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 
 
