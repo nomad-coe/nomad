@@ -9,6 +9,9 @@ import { useLocation, useHistory } from 'react-router-dom'
 import qs from 'qs'
 import * as searchQuantities from '../../searchQuantities.json'
 
+/**
+ * A custom hook that reads and writes search parameters from the current URL.
+ */
 const useSearchUrlQuery = () => {
   const location = useLocation()
   const history = useHistory()
@@ -23,10 +26,12 @@ const useSearchUrlQuery = () => {
   if (searchQuery.only_atoms && !Array.isArray(searchQuery.only_atoms)) {
     searchQuery.only_atoms = [searchQuery.only_atoms]
   }
-  const setUrlQuery = query => history.push(location.pathname + '?' + qs.stringify({
-    ...rest,
-    ...query
-  }, {indices: false}))
+  const setUrlQuery = query => {
+    history.push(location.pathname + '?' + qs.stringify({
+      ...rest,
+      ...objectFilter(query, key => query[key])
+    }, {indices: false}))
+  }
   return [searchQuery, setUrlQuery]
 }
 
@@ -66,8 +71,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
 
-  const [urlQuery, setUrlQuery] = useSearchUrlQuery()
-
   // React calls the children effects for the parent effect. But the parent effect is
   // run with the state of the last render, which is the state before the children effects.
   // If we would maintain the request in regular React state, we might execute unnecessary
@@ -81,10 +84,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   // lower the amount of state changes.
   // The second ref keeps a hash over the last request that was send to the API.
   // This is used to verify if a new request is actually necessary.
-  // The state requestHash is used to trigger the effect that will execute the request
-  // if necessary. Thus any requests are only send by effects on this context component.
-  // If we would send the requests in child effects, we would send unnecessary requests
-  // if two children change the request in the same render cycle.
   const requestRef = useRef({
     metric: domains.dft.defaultSearchMetric,
     statistics: [],
@@ -97,15 +96,20 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       order: -1,
       order_by: 'upload_time'
     },
+    statisticsToRefresh: [],
     query: {},
     update: 0
   })
-  const requestHashRef = useRef(0)
-  const [requestHash, setRequestHash] = useState(0)
+  const lastRequestHashRef = useRef(0)
 
   // We use proper React state to maintain the last response from the API.
   const [response, setResponse] = useState(emptyResponse)
-  const [statisticsToRefresh, setStatisticsToRefresh] = useState([]) // TODO
+
+  // We use a custom hook to read/write search parameters from the current URL.
+  const [urlQuery, setUrlQuery] = useSearchUrlQuery()
+  // We set the current query. This will be used by an effect to potentially call the
+  // API after rendering.
+  requestRef.current.query = urlQuery
 
   // This is a callback that executes the current request in requestRef without any
   // checks for necessity. It will update the response state, once the request has
@@ -128,71 +132,52 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       ...requestRef.current.query,
       ...query
     }
-    api.search(apiQuery, statisticsToRefresh)
+    api.search(apiQuery, requestRef.current.statisticsToRefresh)
       .then(newResponse => {
         setResponse({...emptyResponse, ...newResponse, metric: metric})
       }).catch(error => {
         setResponse({...emptyResponse, metric: metric})
         raiseError(error)
       })
-  }, [requestRef, setResponse, statisticsToRefresh, api])
-
-  // This callback will update the requestHash state. This will trigger an effect if
-  // the new hash is different from the last.
-  // This callback should be called after the requestRef was changed.
-  const onRequestChange = useCallback(
-    () => {
-      setRequestHash(hash(requestRef.current))
-    }, [requestRef, setRequestHash]
-  )
-
-  // This callback increased the update counter in requestRef therefore causes to re-run
-  // the request, even if no parameter have changed. This can be used by children to
-  // refresh the search results.
-  const update = useCallback(() => {
-    requestRef.current.update = requestRef.current.update + 1
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef, setResponse, api])
 
   // The following are various callbacks that can be used by children to update the
-  // request and implicitly trigger a search request to the API.
+  // request and implicitly trigger a search request to the API. The implicit triggering
+  // is realised that all changes to the request are accompanied by updates to the URL
+  // which is used to hold the whole request state. Each push to the history will rerender
+  // everything and therefore trigger effects.
   const setRequestParameters = useCallback(
     changes => {
       requestRef.current.pagination = {
         ...requestRef.current.pagination,
         ...changes
       }
-      onRequestChange()
-    }, [onRequestChange, requestRef])
+    }, [requestRef])
 
   const setDomain = useCallback(domainKey => {
     requestRef.current.domainKey = domainKey || domains.dft.key
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef])
 
   const setOwner = useCallback(owner => {
     requestRef.current.owner = owner
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef])
 
   const setMetric = useCallback(metric => {
     requestRef.current.metric = metric || domains.dft.defaultSearchMetric
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef])
 
   const setStatistics = useCallback(statistics => {
     requestRef.current.statistics = [...statistics, ...defaultStatistics].filter(onlyUnique)
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef])
 
   const setGroups = useCallback(groups => {
     requestRef.current.groups = {...groups}
-    onRequestChange()
-  }, [onRequestChange, requestRef])
+  }, [requestRef])
 
-  const handleStatisticsToRefreshChange = statistics => setStatisticsToRefresh(
-    [...statisticsToRefresh, statistics].filter(onlyUnique)
-  )
+  const handleStatisticsToRefreshChange = statistics => {
+    requestRef.current.statisticsToRefresh = [...requestRef.current.statisticsToRefresh, statistics].filter(onlyUnique)
+  }
+
   const handleQueryChange = (changes, replace) => {
     if (changes.atoms && changes.atoms.length === 0) {
       changes.atoms = undefined
@@ -206,24 +191,15 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     } else {
       setUrlQuery({...urlQuery, ...changes})
     }
-    onRequestChange()
   }
 
+  // We check and run (if necessary) the search request after each render
   useEffect(() => {
-    requestRef.current.query = urlQuery
-    onRequestChange()
-  }, [urlQuery, requestRef, onRequestChange])
-
-  // We initially trigger a search request on mount.
-  useEffect(() => {
-    // In some cases, especially on mount, requestHash might not be based on the
-    // most current requestRef and we have to recompute the hash
-    const newRequestHash = hash(requestRef.current)
-    if (requestHashRef.current !== newRequestHash) {
-      requestHashRef.current = newRequestHash
+    if (lastRequestHashRef.current !== hash(requestRef.current)) {
       runRequest()
+      lastRequestHashRef.current = hash(requestRef.current)
     }
-  }, [requestHashRef, requestHash, runRequest])
+  })
 
   const value = {
     response: response,
@@ -247,7 +223,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     setOwner: setOwner,
     setStatisticsToRefresh: handleStatisticsToRefreshChange,
     setStatistics: setStatistics,
-    update: update
+    update: runRequest
   }
 
   return <searchContext.Provider value={value} >{children}</searchContext.Provider>

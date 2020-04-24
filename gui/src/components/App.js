@@ -1,6 +1,6 @@
 // trigger rebuild
 
-import React from 'react'
+import React, { useEffect, useState, useContext, useCallback } from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
@@ -17,7 +17,7 @@ import FAQIcon from '@material-ui/icons/QuestionAnswer'
 import MetainfoIcon from '@material-ui/icons/Info'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
-import { ApiProvider, withApi } from './api'
+import { ApiProvider, withApi, apiContext } from './api'
 import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
@@ -31,13 +31,24 @@ import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { amber } from '@material-ui/core/colors'
-import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
 import EntryQuery from './entry/EntryQuery'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
+
+function LoadingIndicator() {
+  const {api} = useContext(apiContext)
+  const [loading, setLoading] = useState(0)
+  const handleOnLoading = useCallback(loading => setLoading(loading), [setLoading])
+  useEffect(() => {
+    api.onLoading(handleOnLoading)
+    return () => api.removeOnLoading(handleOnLoading)
+  }, [])
+
+  return loading ? <LinearProgress color="secondary" /> : ''
+}
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -98,7 +109,6 @@ class NavigationUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
-    loading: PropTypes.number.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -232,7 +242,7 @@ class NavigationUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, children, location: { pathname }, loading } = this.props
+    const { classes, children, location: { pathname } } = this.props
     const { toolbarHelp, toolbarTitles } = this
     const { showReloadSnack } = this.state
 
@@ -311,7 +321,7 @@ class NavigationUnstyled extends React.Component {
                   icon={<MetainfoIcon/>}
                 />
               </MenuList>
-              {loading ? <LinearProgress color="secondary" /> : ''}
+              <LoadingIndicator />
             </AppBar>
 
             <main className={classes.content} ref={(ref) => { this.scroll.scrollParentRef = ref }}>

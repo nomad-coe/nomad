@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
@@ -204,13 +204,22 @@ class Api {
   }
 
   constructor(keycloak) {
-    this.onStartLoading = () => null
-    this.onFinishLoading = () => null
-
     this.statistics = {}
 
     this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
+
+    this.loadingHandler = []
+    this.loading = 0
+
+    this.onFinishLoading = () => {
+      this.loading--
+      this.loadingHandler.forEach(handler => handler(this.loading))
+    }
+    this.onStartLoading = () => {
+      this.loading++
+      this.loadingHandler.forEach(handler => handler(this.loading))
+    }
 
     Api.uploadIds = 0
   }
@@ -226,6 +235,14 @@ class Api {
     }, this)
 
     return upload
+  }
+
+  onLoading(handler) {
+    this.loadingHandler = [...this.loadingHandler, handler]
+  }
+
+  removeOnLoading(handler) {
+    this.loadingHandler = this.loadingHandler.filter(item => item !== handler)
   }
 
   async getUploads(state, page, perPage) {
@@ -610,13 +627,6 @@ export class ApiProviderComponent extends React.Component {
 
   createApi(keycloak) {
     const api = new Api(keycloak)
-    api.onStartLoading = (name) => {
-      this.setState(state => ({loading: state.loading + 1}))
-    }
-    api.onFinishLoading = (name) => {
-      this.setState(state => ({loading: Math.max(0, state.loading - 1)}))
-    }
-
     api.getInfo()
       .catch(handleApiError)
       .then(info => {
@@ -634,8 +644,7 @@ export class ApiProviderComponent extends React.Component {
 
   state = {
     api: null,
-    info: null,
-    loading: 0
+    info: null
   }
 
   render() {
@@ -684,16 +693,23 @@ class LoginRequiredUnstyled extends React.Component {
   }
 }
 
-export function DisableOnLoading(props) {
-  return (
-    <apiContext.Consumer>
-      {apiContext => (
-        <div style={apiContext.loading ? { pointerEvents: 'none', userSelects: 'none' } : {}}>
-          {props.children}
-        </div>
-      )}
-    </apiContext.Consumer>
-  )
+export function DisableOnLoading({children}) {
+  const containerRef = useRef(null)
+  const {api} = useContext(apiContext)
+  const handleLoading = useCallback((loading) => {
+    const enable = loading ? 'none' : ''
+    containerRef.current.style.pointerEvents = enable
+    containerRef.current.style.userSelects = enable
+  }, [api])
+
+  useEffect(() => {
+    api.onLoading(handleLoading)
+    return () => {
+      api.removeOnLoading(handleLoading)
+    }
+  }, [])
+
+  return <div ref={containerRef}>{children}</div>
 }
 DisableOnLoading.propTypes = {
   children: PropTypes.any.isRequired

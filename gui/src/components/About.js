@@ -11,7 +11,6 @@ import { domains } from './domains'
 class About extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
     info: PropTypes.object,
     raiseError: PropTypes.func.isRequired
   }

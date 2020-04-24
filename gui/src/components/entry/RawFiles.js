@@ -18,7 +18,6 @@ class RawFiles extends React.Component {
     data: PropTypes.object,
     api: PropTypes.object.isRequired,
     user: PropTypes.object,
-    loading: PropTypes.number.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -72,7 +71,8 @@ class RawFiles extends React.Component {
     fileContents: null,
     shownFile: null,
     files: null,
-    doesNotExist: false
+    doesNotExist: false,
+    loading: false
   }
 
   constructor(props) {
@@ -103,15 +103,16 @@ class RawFiles extends React.Component {
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
       }
-      this.setState({files: files})
+      this.setState({files: files, loading: false})
     }).catch(error => {
-      this.setState({files: null})
+      this.setState({files: null, loading: false})
       if (error.name === 'DoesNotExist') {
         this.setState({doesNotExist: true})
       } else {
         raiseError(error)
       }
     })
+    this.setState({loading: true})
   }
 
   label(file) {
@@ -185,8 +186,8 @@ class RawFiles extends React.Component {
   }
 
   render() {
-    const {classes, uploadId, calcId, loading, data} = this.props
-    const {selectedFiles, files, doesNotExist, fileContents, shownFile} = this.state
+    const {classes, uploadId, calcId, data} = this.props
+    const {selectedFiles, files, doesNotExist, fileContents, shownFile, loading} = this.state
 
     const availableFiles = files || data.files || []
 
@@ -259,7 +260,7 @@ class RawFiles extends React.Component {
                       label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}
                     control={
                       <Checkbox
-                        disabled={loading > 0}
+                        disabled={loading}
                         checked={selectedFiles.indexOf(file) !== -1}
                         onChange={() => this.handleSelectFile(file)} value={file}
                       />}
