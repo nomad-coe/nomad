@@ -14,7 +14,6 @@
 
 import json
 import numpy as np
-from typing import List
 
 from nomad.datamodel.metainfo.public import section_k_band, section_band_gap, section_system
 from nomad.normalizing.normalizer import Normalizer
