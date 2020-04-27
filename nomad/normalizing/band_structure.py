@@ -164,8 +164,6 @@ class BandStructureNormalizer(Normalizer):
 
         # Handle spin channels separately to find gaps for spin up and down
         n_channels = energies.shape[0]  # pylint: disable=E1136  # pylint/issues/3139
-        gaps: List[section_band_gap] = [None, None]
-
         for channel in range(n_channels):
             if n_channels == 1:
                 vbm = valence_band_maximum
@@ -212,6 +210,8 @@ class BandStructureNormalizer(Normalizer):
             # If a highest point of the valence band and a lowest point of the
             # conduction band are found, and the difference between them is
             # positive, save the information location and value.
+            gap = section_band_gap()
+
             if lower_defined and upper_defined and gap_upper_energy - gap_lower_energy >= 0:
 
                 # See if the gap is direct or indirect by comparing the k-point
@@ -221,34 +221,14 @@ class BandStructureNormalizer(Normalizer):
                 k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
                 is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
-                gap = section_band_gap()
                 gap.type = "direct" if is_direct_gap else "indirect"
                 gap.value = float(gap_upper_energy - gap_lower_energy)
                 gap.conduction_band_min_k_point = k_point_upper
                 gap.conduction_band_min_energy = float(gap_upper_energy)
                 gap.valence_band_max_k_point = k_point_lower
                 gap.valence_band_max_energy = float(gap_lower_energy)
-                gaps[channel] = gap
-
-        # For unpolarized calculations we simply report the gap if it is found.
-        if n_channels == 1:
-            if gaps[0] is not None:
-                band.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
-        # For polarized calculations we report the gap separately for both
-        # channels. Also we report the smaller gap as the the total gap for the
-        # calculation.
-        elif n_channels == 2:
-            if gaps[0] is not None:
-                band.m_add_sub_section(section_k_band.section_band_gap_spin_up, gaps[0])
-            if gaps[1] is not None:
-                band.m_add_sub_section(section_k_band.section_band_gap_spin_down, gaps[1])
-            if gaps[0] is not None and gaps[1] is not None:
-                if gaps[0].value <= gaps[1].value:
-                    band.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
-                else:
-                    band.m_add_sub_section(section_k_band.section_band_gap, gaps[1])
             else:
-                if gaps[0] is not None:
-                    band.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
-                elif gaps[1] is not None:
-                    band.m_add_sub_section(section_k_band.section_band_gap, gaps[1])
+                gap.value = 0.0
+
+            # Add section to band
+            band.m_add_sub_section(section_k_band.section_band_gap, gap)

@@ -2222,7 +2222,8 @@ class section_band_gap(MSection):
         type=float,
         unit="joule",
         description="""
-        Band gap energy.
+        Band gap energy. Value of zero corresponds to a band structure without
+        a band gap.
         """,
         a_legacy=LegacyDefinition(name='value')
     )
@@ -2316,19 +2317,13 @@ class section_k_band(MSection):
 
     section_band_gap = SubSection(
         sub_section=section_band_gap.m_def,
-        repeats=False,
-        a_legacy=LegacyDefinition(name='section_band_gap')
-    )
-
-    section_band_gap_spin_up = SubSection(
-        sub_section=section_band_gap.m_def,
-        repeats=False,
-        a_legacy=LegacyDefinition(name='section_band_gap')
-    )
-
-    section_band_gap_spin_down = SubSection(
-        sub_section=section_band_gap.m_def,
-        repeats=False,
+        repeats=True,
+        description=""",
+        Contains information for band gaps detected in the band structure.
+        Contains a section for each spin channel in the same order as reported
+        for the band energies. For channels without a band gap, a band gap
+        value of zero is reported.
+        """,
         a_legacy=LegacyDefinition(name='section_band_gap')
     )
 
@@ -2336,7 +2331,7 @@ class section_k_band(MSection):
         type=bool,
         description="""
         Boolean indicating whether the path follows the standard path for this
-        cell. The AFLOW standard by Setyawan and Curtarolo is used
+        bravais lattice. The AFLOW standard by Setyawan and Curtarolo is used
         (https://doi.org/10.1016/j.commatsci.2010.05.010).
         """,
         a_legacy=LegacyDefinition(name='is_standard_path')

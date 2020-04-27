@@ -29,47 +29,43 @@ ureg = UnitRegistry()
 def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):
     """Tests that band gaps are correctly identified for different cases.
     """
-    def test_generic(bs, n_channels):
+    def test_generic(bs):
         """Generic tests for band structure data."""
         assert bs.brillouin_zone is not None
         assert bs.reciprocal_cell.shape == (3, 3)
 
     # Unpolarized, no gaps
     bs = bands_unpolarized_no_gap.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    test_generic(bs, n_channels=1)
-    assert bs.section_band_gap is None
-    assert bs.section_band_gap_spin_up is None
-    assert bs.section_band_gap_spin_down is None
+    test_generic(bs)
+    assert len(bs.section_band_gap) == 1
+    assert bs.section_band_gap[0].value == 0
 
     # Polarized, no gaps
     bs = bands_polarized_no_gap.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    test_generic(bs, n_channels=2)
-    assert bs.section_band_gap is None
-    assert bs.section_band_gap_spin_up is None
-    assert bs.section_band_gap_spin_down is None
+    test_generic(bs)
+    assert len(bs.section_band_gap) == 2
+    assert bs.section_band_gap[0].value == 0
+    assert bs.section_band_gap[1].value == 0
 
     # Unpolarized, finite gap, indirect
     bs = bands_unpolarized_gap_indirect.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    test_generic(bs, n_channels=1)
-    gap_ev = (bs.section_band_gap.value * ureg.J).to(ureg.eV).magnitude
+    test_generic(bs)
+    assert len(bs.section_band_gap) == 1
+    gap = bs.section_band_gap[0]
+    gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
     assert gap_ev == pytest.approx(0.62, 0.01)
-    assert bs.section_band_gap.type == "indirect"
-    assert bs.section_band_gap_spin_up is None
-    assert bs.section_band_gap_spin_down is None
+    assert gap.type == "indirect"
 
     # Polarized, finite gap, indirect
     bs = bands_polarized_gap_indirect.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    test_generic(bs, n_channels=2)
-    gap = bs.section_band_gap
-    gap_up = bs.section_band_gap_spin_up
-    gap_down = bs.section_band_gap_spin_down
-    gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
+    test_generic(bs)
+    assert len(bs.section_band_gap) == 2
+    gap_up = bs.section_band_gap[0]
+    gap_down = bs.section_band_gap[1]
     gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
     gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
     assert gap_up.type == "indirect"
     assert gap_down.type == "indirect"
-    assert gap_up_ev != gap_down_ev
-    assert gap_up_ev == gap_ev
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
 
@@ -79,6 +75,4 @@ def test_phonon_band(phonon):
     """
     bs = phonon.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     assert bs.is_standard_path is None
-    assert bs.section_band_gap is None
-    assert bs.section_band_gap_spin_up is None
-    assert bs.section_band_gap_spin_down is None
+    assert len(bs.section_band_gap) == 0
