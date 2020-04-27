@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
 import pytest
 
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
@@ -75,34 +74,8 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     assert gap_down_ev == pytest.approx(1.230, 0.01)
 
 
-def test_band_paths(band_path_fcc):
-    """Tests that the path labeling works for different lattices.
-    """
-    # FCC
-    scc = band_path_fcc.entry_archive.section_run[0].section_single_configuration_calculation[0]
-    system = scc.single_configuration_calculation_to_system_ref
-    space_group_number = system.section_symmetry[0].space_group_number
-    assert space_group_number == 227
-    assumed_path = np.array([
-        ["G", "X"],
-        ["X", "W"],
-        ["W", "K"],
-        ["K", "G"],
-        ["G", "L"],
-        ["L", "U"],
-        ["U", "W"],
-        ["W", "L"],
-        ["L", "K"],
-        ["U", "X"],
-    ])
-    bs = band_path_fcc.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    for i, segment in enumerate(bs.section_k_band_segment):
-        labels = segment.band_path_labels
-        assert np.array_equal(labels, assumed_path[i, :])
-
-
 def test_phonon_band(phonon):
-    """Ensures that phonon bands are not touched.
+    """Ensures that band gaps are not added to phonon bands.
     """
     bs = phonon.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     assert bs.is_standard_path is None

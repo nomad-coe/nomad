@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ase
 import json
 import numpy as np
 from typing import List
@@ -26,8 +25,8 @@ class BandStructureNormalizer(Normalizer):
     """Normalizer with the following responsibilities:
 
       - Calculates band gap(s) if present (section_band_gap, section_band_gap_spin_up, section_band_gap_spin_down).
-      - Creates labels for special points within the band path (band_path_labels).
-      - Determines if the path is a standard one or not (is_standard)
+      - TODO: Creates labels for special points within the band path (band_path_labels)
+      - TODO: Determines if the path is a standard one or not (is_standard)
     """
     def normalize(self, logger=None) -> None:
         # Setup logger
@@ -54,8 +53,6 @@ class BandStructureNormalizer(Normalizer):
                     self.add_reciprocal_cell(band, system)
                     self.add_brillouin_zone(band)
                     self.add_band_gaps(band, valence_band_maximum)
-                    self.add_path_labels(band, system)
-                    self.add_is_standard(band)
 
     def add_reciprocal_cell(self, band: section_k_band, system: section_system):
         """A reciprocal cell for this calculation. If the original unit cell is
@@ -255,44 +252,3 @@ class BandStructureNormalizer(Normalizer):
                     band.m_add_sub_section(section_k_band.section_band_gap, gaps[0])
                 elif gaps[1] is not None:
                     band.m_add_sub_section(section_k_band.section_band_gap, gaps[1])
-
-    def add_path_labels(self, band: section_k_band, system: section_system) -> None:
-        """Adds special high symmmetry point labels to the band path.
-        """
-        try:
-            cell = system.lattice_vectors.magnitude
-        except Exception:
-            self.logger.info("Could not resolve path labels as lattice vectors are missing.")
-            return
-
-        # Find special points for this lattice
-        special_points = ase.dft.kpoints.get_special_points(cell)
-        special_point_labels = list(special_points.keys())
-
-        # Form a conctiguous array of k points for faster operations
-        special_k_points = np.empty((len(special_points), 3))
-        for i, kpt in enumerate(special_points.values()):
-            special_k_points[i, :] = kpt
-
-        # Determine match tolerance in 1/m
-        eps = config.normalize.k_space_precision
-
-        # Try to find matches for the special points. We only attempt to match
-        # points at the start and end of a segment.
-        for segment in band.section_k_band_segment:
-            start_point = segment.band_k_points[0]
-            end_point = segment.band_k_points[-1]
-            start_index = atomutils.find_match(start_point, special_k_points, eps)
-            end_index = atomutils.find_match(end_point, special_k_points, eps)
-            if start_index is None:
-                start_label = None
-            else:
-                start_label = special_point_labels[start_index]
-            if end_index is None:
-                end_label = None
-            else:
-                end_label = special_point_labels[end_index]
-            segment.band_path_labels = [start_label, end_label]
-
-    def add_is_standard(self, band: section_k_band) -> None:
-        pass
