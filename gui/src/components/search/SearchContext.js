@@ -51,7 +51,7 @@ export const searchContext = React.createContext()
  * constitute the actual search. This includes the domain and owner parameters.
  */
 export default function SearchContext({initialRequest, initialQuery, query, children}) {
-  const defaultStatistics = ['atoms', 'authors']
+  const defaultStatistics = [] // ['atoms', 'authors'] TODO
   const emptyResponse = {
     statistics: {
       total: {
@@ -132,7 +132,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       ...requestRef.current.query,
       ...query
     }
-    api.search(apiQuery, requestRef.current.statisticsToRefresh)
+    api.search(apiQuery)
       .then(newResponse => {
         setResponse({...emptyResponse, ...newResponse, metric: metric})
       }).catch(error => {
@@ -173,10 +173,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   const setGroups = useCallback(groups => {
     requestRef.current.groups = {...groups}
   }, [requestRef])
-
-  const handleStatisticsToRefreshChange = statistics => {
-    requestRef.current.statisticsToRefresh = [...requestRef.current.statisticsToRefresh, statistics].filter(onlyUnique)
-  }
 
   const handleQueryChange = (changes, replace) => {
     if (changes.atoms && changes.atoms.length === 0) {
@@ -221,7 +217,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     setGroups: setGroups,
     setDomain: setDomain,
     setOwner: setOwner,
-    setStatisticsToRefresh: handleStatisticsToRefreshChange,
+    setStatisticsToRefresh: () => null, // TODO remove
     setStatistics: setStatistics,
     update: runRequest
   }

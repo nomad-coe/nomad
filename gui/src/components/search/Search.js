@@ -16,7 +16,7 @@ import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
 import UploadsChart from './UploadsChart'
-import { Quantity } from './QuantityHistogram'
+import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
 import {objectFilter} from '../../utils'
 
@@ -224,7 +224,7 @@ function UsersVisualization(props) {
         <UploadsChart metricsDefinitions={domain.searchMetrics}/>
       </CardContent>
     </Card>
-    <Quantity quantity="uploader" title="Uploaders" scale={1} metric={metric} />
+    <QuantityHistogram quantity="uploader" title="Uploaders" />
   </div>
 }
 

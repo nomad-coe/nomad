@@ -12,6 +12,7 @@
 # generated
 public/metainfo/
 public/meta.json
+str/searchQuantities.json
 
 # misc
 .DS_Store

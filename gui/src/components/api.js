@@ -204,8 +204,6 @@ class Api {
   }
 
   constructor(keycloak) {
-    this.statistics = {}
-
     this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
 
@@ -403,7 +401,7 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async search(search, statisticsToRefresh = []) {
+  async search(search) {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
@@ -411,32 +409,6 @@ class Api {
         ...search}))
       .catch(handleApiError)
       .then(response => response.body)
-      .then(response => {
-        // fill absent statistics values with values from prior searches
-        // this helps to keep consistent values, e.g. in the metadata search view
-        if (response.statistics) {
-          const empty = {}
-          const refreshList = ['total', 'authors', 'atoms'].concat(statisticsToRefresh)
-          Object.keys(response.statistics.total.all).forEach(metric => {
-            empty[metric] = 0
-          })
-          Object.keys(response.statistics)
-            .filter(key => !refreshList.includes(key))
-            .forEach(key => {
-              if (!this.statistics[key]) {
-                this.statistics[key] = new Set()
-              }
-              const values = this.statistics[key]
-              Object.keys(response.statistics[key]).forEach(value => values.add(value))
-              values.forEach(value => {
-                if (!response.statistics[key][value]) {
-                  response.statistics[key][value] = empty
-                }
-              })
-            })
-        }
-        return response
-      })
       .finally(this.onFinishLoading)
   }
 
