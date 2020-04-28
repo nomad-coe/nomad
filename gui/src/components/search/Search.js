@@ -15,7 +15,7 @@ import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
-import UploadsChart from './UploadsChart'
+import UploadsHistogram from './UploadsChart'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
 import {objectFilter} from '../../utils'
@@ -213,17 +213,13 @@ SearchEntry.propTypes = {
   ownerTypes: PropTypes.arrayOf(PropTypes.string)
 }
 
-function UsersVisualization(props) {
-  const {domain, response: {metric}, setStatistics} = useContext(searchContext)
+function UsersVisualization() {
+  const {setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['uploader'])
   }, [])
   return <div>
-    <Card>
-      <CardContent>
-        <UploadsChart metricsDefinitions={domain.searchMetrics}/>
-      </CardContent>
-    </Card>
+    <UploadsHistogram />
     <QuantityHistogram quantity="uploader" title="Uploaders" />
   </div>
 }

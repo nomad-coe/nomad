@@ -76,29 +76,6 @@ class RepoCalcResource(Resource):
         return result, 200
 
 
-def resolve_interval(from_time, until_time):
-    if from_time is None:
-        from_time = datetime.fromtimestamp(0)
-    if until_time is None:
-        until_time = datetime.utcnow()
-    dt = rfc3339DateTime.parse(until_time) - rfc3339DateTime.parse(from_time)
-
-    if dt.days >= 1826:
-        return '1y'
-    elif dt.days >= 731:
-        return '1q'
-    elif dt.days >= 121:
-        return '1M'
-    elif dt.days >= 28:
-        return '1w'
-    elif dt.days >= 4:
-        return '1d'
-    elif dt.total_seconds() >= 14400:
-        return '1h'
-    else:
-        return '1m'
-
-
 _search_request_parser = api.parser()
 add_pagination_parameters(_search_request_parser)
 add_scroll_parameters(_search_request_parser)
@@ -197,7 +174,7 @@ class RepoCalcsResource(Resource):
             order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
-            interval = args.get('interval', 'auto')
+            interval = args.get('interval', '1M')
             metrics: List[str] = request.args.getlist('metrics')
             statistics = args.get('statistics', [])
         except Exception as e:
@@ -206,13 +183,6 @@ class RepoCalcsResource(Resource):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
-            if interval == 'auto':
-                try:
-                    from_time = args.get('from_time', None)
-                    until_time = args.get('until_time', None)
-                    interval = resolve_interval(from_time, until_time)
-                except Exception:
-                    abort(400, message='encountered error resolving time interval')
             search_request.date_histogram(interval=interval)
 
         try:

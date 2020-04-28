@@ -9,6 +9,24 @@ import { useLocation, useHistory } from 'react-router-dom'
 import qs from 'qs'
 import * as searchQuantities from '../../searchQuantities.json'
 
+const padDateNumber = number => String('00' + number).slice(-2)
+
+export const Dates = {
+  dateHistogramStartDate: '2014-12-15',
+  APIDate: date => date.toISOString(),
+  JSDate: date => new Date(date),
+  FormDate: date => {
+    date = new Date(date)
+    return `${date.getFullYear()}-${padDateNumber(date.getMonth())}-${padDateNumber(date.getDate())}`
+  },
+  addSeconds: (date, interval) => new Date(date.getTime() + interval * 1000),
+  deltaSeconds: (from, end) => Math.round((new Date(end).getTime() - new Date(from).getTime()) / 1000),
+  intervalSeconds: (from, end, buckets) => Math.round((new Date(end).getTime() - new Date(from).getTime()) / (1000 * buckets)),
+  buckets: 50
+}
+
+searchQuantities['from_time'] = true
+searchQuantities['until_time'] = true
 /**
  * A custom hook that reads and writes search parameters from the current URL.
  */
@@ -115,7 +133,8 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   // checks for necessity. It will update the response state, once the request has
   // been answered by the api.
   const runRequest = useCallback(() => {
-    const {metric, domainKey, owner} = requestRef.current
+    let dateHistogramInterval = null
+    const {metric, domainKey, owner, dateHistogram} = requestRef.current
     const domain = domains[domainKey]
     const apiRequest = {
       ...initialRequest,
@@ -132,9 +151,23 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       ...requestRef.current.query,
       ...query
     }
+    if (dateHistogram) {
+      dateHistogramInterval = Dates.intervalSeconds(
+        apiQuery.from_time || Dates.dateHistogramStartDate,
+        apiQuery.until_time || new Date(), Dates.buckets)
+      apiQuery['date_histogram'] = true
+      apiQuery['interval'] = `${dateHistogramInterval}s`
+    }
     api.search(apiQuery)
       .then(newResponse => {
-        setResponse({...emptyResponse, ...newResponse, metric: metric})
+        setResponse({
+          ...emptyResponse,
+          ...newResponse,
+          metric: metric,
+          dateHistogramInterval: dateHistogramInterval,
+          from_time: apiQuery.from_time,
+          until_time: apiQuery.until_time
+        })
       }).catch(error => {
         setResponse({...emptyResponse, metric: metric})
         raiseError(error)
@@ -172,6 +205,10 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
 
   const setGroups = useCallback(groups => {
     requestRef.current.groups = {...groups}
+  }, [requestRef])
+
+  const setDateHistogram = useCallback(dateHistogram => {
+    requestRef.current.dateHistogram = dateHistogram
   }, [requestRef])
 
   const handleQueryChange = (changes, replace) => {
@@ -219,6 +256,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     setOwner: setOwner,
     setStatisticsToRefresh: () => null, // TODO remove
     setStatistics: setStatistics,
+    setDateHistogram: setDateHistogram,
     update: runRequest
   }
 
