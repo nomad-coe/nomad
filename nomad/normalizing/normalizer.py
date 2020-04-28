@@ -115,13 +115,18 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         except Exception:
             frame_seqs = []
 
-        # If no frame sequences detected, try to find scc
+        # If no frame sequences detected, try to find valid scc by looping all
+        # available in reverse order until a valid one is found.
         if len(frame_seqs) == 0:
             try:
                 sccs = self.section_run.section_single_configuration_calculation
-                scc_idx = -1
-                scc = sccs[scc_idx]
-                system = scc.single_configuration_calculation_to_system_ref
+                for scc in reversed(sccs):
+                    idx = scc.m_parent_index
+                    isys = scc.single_configuration_calculation_to_system_ref
+                    if isys is not None:
+                        scc_idx = idx
+                        system = isys
+                        break
                 if system is None:
                     sccs = []
             except Exception:

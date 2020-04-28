@@ -17,7 +17,6 @@ import json
 from nomad.metainfo.encyclopedia import (
     Calculation,
     Properties,
-    Material,
 )
 from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
@@ -33,53 +32,60 @@ class PropertiesNormalizer():
         self.logger = logger
 
     def electronic_band_structure(self, properties: Properties, calc_type: str, material_type: str, context: Context, sec_system: Section) -> None:
-        """Tries to resolve a reference to a representative band structure.
-        Will not store any data if it cannot be resolved unambiguously.
+        """Tries to resolve a reference to a representative electronic band
+        structure. Will loop through the available band in reversed order until
+        a valid band is found.
         """
-        # Band structure data is extracted only from bulk calculations. This is
-        # because for now we need the reciprocal cell of the primitive cell
-        # that is only available from the symmetry analysis. Once the
-        # reciprocal cell is directly reported with the band structure this
-        # restriction can go away.
-        if calc_type != Calculation.calculation_type.type.single_point or material_type != Material.material_type.type.bulk:
+        try:
+            representative_scc = context.representative_scc
+            bands = representative_scc.section_k_band
+            if bands is None:
+                return
+
+            representative_band = None
+            for band in reversed(bands):
+                kind = band.band_structure_kind
+                if kind != "vibrational":
+                    valid = True
+                    for segment in band.section_k_band_segment:
+                        energies = segment.band_energies
+                        k_points = segment.band_k_points
+                        labels = segment.band_segm_labels
+                        if energies is None or k_points is None or labels is None:
+                            valid = False
+                    if valid:
+                        representative_band = band
+                        break
+
+        except Exception:
             return
-
-        # Try to find a band structure.
-        representative_scc = context.representative_scc
-        bands = representative_scc.section_k_band
-        if bands is None or len(bands) == 0:
-            return
-
-        # Loop over bands
-        representative_band = None
-        for band in bands:
-
-            # Check segments
-            segments = band.section_k_band_segment
-            if segments is None or len(segments) == 0:
-                continue
-
-            # Check data in segments
-            valid_band = True
-            for segment in segments:
-                try:
-                    segment.band_k_points
-                    segment.band_energies
-                except Exception:
-                    valid_band = False
-                    break
-
-            # Save a valid band as representative, if multiple encountered log
-            # a warning and do not save anything.
-            if valid_band:
-                if valid_band is None:
-                    representative_band = band
-                else:
-                    self.logger.warn("Could not unambiguously select data to display for band structure.")
-                    return
-
         if representative_band is not None:
             properties.electronic_band_structure = representative_band
+
+    def electronic_dos(self, properties: Properties, context: Context) -> None:
+        """Tries to resolve a reference to a representative electonic density
+        of states. Will not store any data if it cannot be resolved
+        unambiguously.
+        """
+        try:
+            representative_scc = context.representative_scc
+            doses = representative_scc.section_dos
+            if doses is None:
+                return
+
+            representative_dos = None
+            for dos in reversed(doses):
+                kind = dos.dos_kind
+                energies = dos.dos_energies
+                values = dos.dos_values
+                if kind != "vibrational" and energies is not None and values is not None:
+                    representative_dos = dos
+                    break
+
+        except Exception:
+            return
+        if representative_dos is not None:
+            properties.electronic_dos = representative_dos
 
     def elastic_constants_matrix(self) -> None:
         pass
@@ -135,18 +141,51 @@ class PropertiesNormalizer():
                 return
 
             representative_phonon_band = None
-            for band in bands:
-                if band.band_structure_kind == "vibrational":
-                    if representative_phonon_band is None:
+            for band in reversed(bands):
+                kind = band.band_structure_kind
+                if kind == "vibrational":
+                    valid = True
+                    for segment in band.section_k_band_segment:
+                        energies = segment.band_energies
+                        k_points = segment.band_k_points
+                        labels = segment.band_segm_labels
+                        if energies is None or k_points is None or labels is None or "?" in labels:
+                            valid = False
+                    if valid:
                         representative_phonon_band = band
-                    else:
-                        self.logger("Could not unambiguously select data to display for a phonon band structure.")
-                        return
+                        break
 
         except Exception:
             return
         if representative_phonon_band is not None:
             properties.phonon_band_structure = representative_phonon_band
+
+    def phonon_dos(self, properties: Properties, context: Context) -> None:
+        """Tries to resolve a reference to a representative phonon density of
+        states. Will not store any data if it cannot be resolved unambiguously.
+        """
+        try:
+            representative_scc = context.representative_scc
+            doses = representative_scc.section_dos
+            if doses is None:
+                return
+
+            representative_phonon_dos = None
+            for dos in doses:
+                kind = dos.dos_kind
+                energies = dos.dos_energies
+                values = dos.dos_values
+                if kind == "vibrational" and energies is not None and values is not None:
+                    if representative_phonon_dos is None:
+                        representative_phonon_dos = dos
+                    else:
+                        self.logger("Could not unambiguously select data to display for phonon density of states.")
+                        return
+
+        except Exception:
+            return
+        if representative_phonon_dos is not None:
+            properties.phonon_dos = representative_phonon_dos
 
     def energies(self, properties: Properties, gcd: int, representative_scc: Section) -> None:
         energy_dict = {}
@@ -182,9 +221,11 @@ class PropertiesNormalizer():
 
         # Save metainfo
         self.electronic_band_structure(properties, calc_type, material_type, context, sec_system)
+        self.electronic_dos(properties, context)
         self.energies(properties, gcd, representative_scc)
 
         # Phonon calculations have a specific set of properties to extract
         if context.calc_type == Calculation.calculation_type.type.phonon_calculation:
             self.thermodynamical_properties(properties)
             self.phonon_band_structure(properties, context)
+            self.phonon_dos(properties, context)

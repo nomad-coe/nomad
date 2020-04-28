@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pytest
 
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
@@ -20,7 +21,11 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     bands_polarized_no_gap,
     bands_unpolarized_gap_indirect,
     bands_polarized_gap_indirect,
-    band_path_fcc,
+    band_path_cF,
+    band_path_tP,
+    band_path_hP,
+    band_path_mP_nonstandard,
+    band_path_cF_nonstandard,
 )
 from pint import UnitRegistry
 ureg = UnitRegistry()
@@ -68,6 +73,85 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     assert gap_down.type == "indirect"
     assert gap_up_ev == pytest.approx(0.956, 0.01)
     assert gap_down_ev == pytest.approx(1.230, 0.01)
+
+
+def test_paths(band_path_cF, band_path_tP, band_path_hP):
+    """Tests that the paths are labeled correctly.
+    """
+    # Face-centered cubic (FCC, cF)
+    assumed_labels = np.array([
+        ["Γ", "X"],
+        ["X", "W"],
+        ["W", "K"],
+        ["K", "Γ"],
+        ["Γ", "L"],
+        ["L", "U"],
+        ["U", "W"],
+        ["W", "L"],
+        ["L", "K"],
+        ["U", "X"],
+    ])
+    bs = band_path_cF.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    for i, segment in enumerate(bs.section_k_band_segment):
+        labels = segment.band_segm_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+    # Tetragonal (TET, tP)
+    assumed_labels = np.array([
+        ["Γ", "X"],
+        ["X", "M"],
+        ["M", "Γ"],
+        ["Γ", "Z"],
+        ["Z", "R"],
+        ["R", "A"],
+        ["A", "Z"],
+        ["X", "R"],
+        ["M", "A"],
+    ])
+    bs = band_path_tP.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    for i, segment in enumerate(bs.section_k_band_segment):
+        labels = segment.band_segm_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+    # Hexagonal (HEX, hP)
+    assumed_labels = np.array([
+        ["Γ", "M"],
+        ["M", "K"],
+        ["K", "Γ"],
+        ["Γ", "A"],
+        ["A", "L"],
+        ["L", "H"],
+        ["H", "A"],
+        ["L", "M"],
+        ["K", "H"],
+    ])
+    bs = band_path_hP.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    for i, segment in enumerate(bs.section_k_band_segment):
+        labels = segment.band_segm_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
+
+
+def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
+    """Tests for lattice that do not follow the Setyawan/Curtarolo standard.
+    """
+    # The ordering of the lattice does not follow the standard: a, b <= c. Not labels defined.
+    bs = band_path_mP_nonstandard.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    for segment in bs.section_k_band_segment:
+        labels = segment.band_segm_labels
+        assert labels is None
+
+    # Existing labels should not be overridden
+    assumed_labels = np.array([
+        ["W", "L"],
+        ["L", "Γ"],
+        ["Γ", "X"],
+        ["X", "W"],
+        ["W", "K"],
+    ])
+    bs = band_path_cF_nonstandard.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    for i, segment in enumerate(bs.section_k_band_segment):
+        labels = segment.band_segm_labels
+        assert np.array_equal(labels, assumed_labels[i, :])
 
 
 def test_phonon_band(phonon):

@@ -14,17 +14,19 @@
 
 import json
 import numpy as np
+import ase
 
 from nomad.datamodel.metainfo.public import section_k_band, section_band_gap, section_system
 from nomad.normalizing.normalizer import Normalizer
 from nomad import config, atomutils
+from nomad.constants import pi
 
 
 class BandStructureNormalizer(Normalizer):
     """Normalizer with the following responsibilities:
 
       - Calculates band gap(s) if present (section_band_gap, section_band_gap_spin_up, section_band_gap_spin_down).
-      - TODO: Creates labels for special points within the band path (band_path_labels)
+      - TODO: Creates labels for special points within the band path (band_segm_labels)
       - TODO: Determines if the path is a standard one or not (is_standard)
     """
     def normalize(self, logger=None) -> None:
@@ -44,7 +46,7 @@ class BandStructureNormalizer(Normalizer):
             valence_band_maximum = scc.energy_reference_highest_occupied
 
             # In order to resolve the special points and the reciprocal cell,
-            # we need informatoin about the system.
+            # we need information about the system.
             system = scc.single_configuration_calculation_to_system_ref
 
             for band in scc.section_k_band:
@@ -52,6 +54,7 @@ class BandStructureNormalizer(Normalizer):
                     self.add_reciprocal_cell(band, system)
                     self.add_brillouin_zone(band)
                     self.add_band_gaps(band, valence_band_maximum)
+                    self.add_path_labels(band, system)
 
     def add_reciprocal_cell(self, band: section_k_band, system: section_system):
         """A reciprocal cell for this calculation. If the original unit cell is
@@ -231,3 +234,189 @@ class BandStructureNormalizer(Normalizer):
 
             # Add section to band
             band.m_add_sub_section(section_k_band.section_band_gap, gap)
+
+    def add_path_labels(self, band: section_k_band, system: section_system) -> None:
+        """Adds special high symmmetry point labels to the band path. Only k
+        points that land on the special points defined by Setyawan/Curtarolo
+        are automatically labeled.
+        """
+        # If labels are already set by the parser dot nothing.
+        for segment in band.section_k_band_segment:
+            labels = segment.band_segm_labels
+            if labels is not None:
+                self.logger.info("Existing band segment labels detected, skipping label detection.")
+                return
+
+        # Try to get the required data. Fail if not found.
+        try:
+            cell = system.lattice_vectors.to("angstrom").magnitude
+            reciprocal_cell_trans = band.reciprocal_cell.magnitude.T
+            bravais_lattice = system.section_symmetry[0].bravais_lattice
+        except Exception:
+            self.logger.info("Could not resolve path labels as required information is missing.")
+            return
+
+        # Find special points for this lattice. If an error occurs, the labels
+        # are simply not written.
+        try:
+            special_points = self.get_special_points(bravais_lattice, cell)
+        except Exception as e:
+            self.logger.warning("Could not resolve high-symmetry points for the given simulation cell.", exception=e)
+            return
+
+        # Form a contiguous array of k points for faster operations
+        special_point_labels = list(special_points.keys())
+        special_k_points = np.empty((len(special_points), 3))
+        for i, kpt in enumerate(special_points.values()):
+            special_k_points[i, :] = kpt
+        special_k_points_cartesian = np.dot(special_k_points, reciprocal_cell_trans)
+
+        # Match tolerance in 1/m. Taken from the VASP parser.
+        eps = config.normalize.k_space_precision
+
+        # Try to find matches for the special points. We only attempt to match
+        # points at the start and end of a segment. Any labels set by the
+        # parser are overridden, because one cannot ascertain that those labels
+        # are consistent across codes.
+        for segment in band.section_k_band_segment:
+
+            seg_k_points = segment.band_k_points
+            if seg_k_points is None:
+                self.logger.info("Could not resolve band path as k points are missing.")
+                return
+
+            start_point_cartesian = np.dot(segment.band_k_points[0], reciprocal_cell_trans)
+            end_point_cartesian = np.dot(segment.band_k_points[-1], reciprocal_cell_trans)
+
+            # Calculate distance in cartesian space
+            start_index = atomutils.find_match(start_point_cartesian, special_k_points_cartesian, eps)
+            end_index = atomutils.find_match(end_point_cartesian, special_k_points_cartesian, eps)
+
+            if start_index is None:
+                start_label = ""
+            else:
+                start_label = special_point_labels[start_index]
+            if end_index is None:
+                end_label = ""
+            else:
+                end_label = special_point_labels[end_index]
+            segment.band_segm_labels = [start_label, end_label]
+
+    def get_special_points(self, bravais_lattice, cell, eps=1e-4):
+        """Return dict of special points.
+
+        The definitions are from a paper by Wahyu Setyawana and Stefano
+        Curtarolo::
+
+            http://dx.doi.org/10.1016/j.commatsci.2010.05.010
+
+        bravais_lattice: str
+            bravais lattice in Pearson notation.
+        cell: 3x3 ndarray
+            Unit cell.
+        eps: float
+            Tolerance for cell-check.
+        """
+        # Special points that do not depend on lattice parameters. TODO: A lot
+        # of the bravais lattice are missing from this implementation that is
+        # copied from the VASP parser.
+        special_points = {
+            'cP': {
+                'Γ': [0, 0, 0],
+                'M': [1 / 2, 1 / 2, 0],
+                'R': [1 / 2, 1 / 2, 1 / 2],
+                'X': [0, 1 / 2, 0]
+            },
+            'cF': {
+                'Γ': [0, 0, 0],
+                'K': [3 / 8, 3 / 8, 3 / 4],
+                'L': [1 / 2, 1 / 2, 1 / 2],
+                'U': [5 / 8, 1 / 4, 5 / 8],
+                'W': [1 / 2, 1 / 4, 3 / 4],
+                'X': [1 / 2, 0, 1 / 2]
+            },
+            'cI': {
+                'Γ': [0, 0, 0],
+                'H': [1 / 2, -1 / 2, 1 / 2],
+                'P': [1 / 4, 1 / 4, 1 / 4],
+                'N': [0, 0, 1 / 2]
+            },
+            'tP': {
+                'Γ': [0, 0, 0],
+                'A': [1 / 2, 1 / 2, 1 / 2],
+                'M': [1 / 2, 1 / 2, 0],
+                'R': [0, 1 / 2, 1 / 2],
+                'X': [0, 1 / 2, 0],
+                'Z': [0, 0, 1 / 2]
+            },
+            'oP': {
+                'Γ': [0, 0, 0],
+                'R': [1 / 2, 1 / 2, 1 / 2],
+                'S': [1 / 2, 1 / 2, 0],
+                'T': [0, 1 / 2, 1 / 2],
+                'U': [1 / 2, 0, 1 / 2],
+                'X': [1 / 2, 0, 0],
+                'Y': [0, 1 / 2, 0],
+                'Z': [0, 0, 1 / 2]
+            },
+            'hP': {
+                'Γ': [0, 0, 0],
+                'A': [0, 0, 1 / 2],
+                'H': [1 / 3, 1 / 3, 1 / 2],
+                'K': [1 / 3, 1 / 3, 0],
+                'L': [1 / 2, 0, 1 / 2],
+                'M': [1 / 2, 0, 0]
+            }
+        }
+
+        cellpar = ase.geometry.cell_to_cellpar(cell=cell)
+        abc = cellpar[:3]
+        angles = cellpar[3:] / 180 * pi
+        a, b, c = abc
+        alpha, _, gamma = angles
+
+        # Check that the unit cells are as in the Setyawana-Curtarolo paper:
+        if bravais_lattice == 'cP':
+            assert abc.ptp() < eps and abs(angles - pi / 2).max() < eps
+        elif bravais_lattice == 'cF':
+            assert abc.ptp() < eps and abs(angles - pi / 3).max() < eps
+        elif bravais_lattice == 'cI':
+            angle = np.arccos(-1 / 3)
+            assert abc.ptp() < eps and abs(angles - angle).max() < eps
+        elif bravais_lattice == 'tP':
+            assert abs(a - b) < eps and abs(angles - pi / 2).max() < eps
+        elif bravais_lattice == 'oP':
+            assert abs(angles - pi / 2).max() < eps
+        elif bravais_lattice == 'hP':
+            assert abs(a - b) < eps
+            assert abs(gamma - pi / 3 * 2) < eps
+            assert abs(angles[:2] - pi / 2).max() < eps
+        elif bravais_lattice == 'mP':
+            sin_alpha = np.sin(alpha)
+            cos_alpha = np.cos(alpha)
+            assert c >= a and c >= b
+            assert alpha < pi / 2
+            assert alpha < pi / 2
+            assert (np.abs(angles[1:] - pi / 2) < eps).all()
+            eta = (1 - b * cos_alpha / c) / (2 * sin_alpha**2)
+            nu = 1 / 2 - eta * c * cos_alpha / b
+
+            return {
+                'Γ': [0, 0, 0],
+                'A': [1 / 2, 1 / 2, 0],
+                'C': [0, 1 / 2, 1 / 2],
+                'D': [1 / 2, 0, 1 / 2],
+                'D1': [1 / 2, 0, -1 / 2],
+                'E': [1 / 2, 1 / 2, 1 / 2],
+                'H': [0, eta, 1 - nu],
+                'H1': [0, 1 - eta, nu],
+                'H2': [0, eta, -nu],
+                'M': [1 / 2, eta, 1 - nu],
+                'M1': [1 / 2, 1 - eta, nu],
+                'M2': [1 / 2, eta, -nu],
+                'X': [0, 1 / 2, 0],
+                'Y': [0, 0, 1 / 2],
+                'Y1': [0, 0, -1 / 2],
+                'Z': [1 / 2, 0, 0]
+            }
+        return special_points[bravais_lattice]

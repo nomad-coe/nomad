@@ -31,6 +31,9 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     bulk,
     dos_unpolarized_vasp,
     dos_polarized_vasp,
+    bands_unpolarized_no_gap,
+    bands_polarized_no_gap,
+    band_path_cF_nonstandard,
     hash_exciting,
     hash_vasp,
 )
@@ -469,6 +472,37 @@ def test_hashes_undefined(hash_vasp):
     assert group_eos_hash is None
 
 
+def test_dos(dos_unpolarized_vasp, dos_polarized_vasp):
+    """Tests that referenced DOS information is valid.
+    """
+    def generaltests(dos, n_channels):
+        assert dos is not None
+        assert dos.dos_values_normalized.shape == (n_channels, 301)
+        assert dos.dos_energies_normalized.shape == (301,)
+
+    generaltests(dos_unpolarized_vasp.entry_archive.section_encyclopedia.properties.electronic_dos, n_channels=1)
+    generaltests(dos_polarized_vasp.entry_archive.section_encyclopedia.properties.electronic_dos, n_channels=2)
+
+
+def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band_path_cF_nonstandard):
+    """Tests that referenced electronic band structure information is valid.
+    """
+    def generaltests(band):
+        assert band is not None
+        for segment in band.section_k_band_segment:
+            assert segment.band_energies is not None
+            assert segment.band_k_points is not None
+            assert segment.band_segm_labels is not None
+
+    # VASP bands
+    generaltests(bands_unpolarized_no_gap.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+    generaltests(bands_polarized_no_gap.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+
+    # Band structure from exciting calculation where there are multiple sccs
+    # and multiple bands present for some reason...
+    generaltests(band_path_cF_nonstandard.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+
+
 def test_phonon(phonon: EntryArchive):
     """Tests that phonon calculations are correctly processed.
     """
@@ -476,8 +510,17 @@ def test_phonon(phonon: EntryArchive):
     calc_type = enc.calculation.calculation_type
     prop = enc.properties
     band = prop.phonon_band_structure
+    dos = prop.phonon_dos
     thermo_props = prop.thermodynamical_properties
     assert calc_type == "phonon calculation"
+
+    # TODO: Check method information
+
+    # Check dos
+    assert dos is not None
+    assert dos.dos_kind == "vibrational"
+    assert dos.dos_energies is not None
+    assert dos.dos_values is not None
 
     # Check band structure
     assert band is not None
