@@ -1,9 +1,7 @@
 import React, { useContext } from 'react'
 import { apiContext } from '../api'
 import Search from './Search'
-import qs from 'qs'
 import { domains } from '../domains'
-import { useLocation } from 'react-router-dom'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
