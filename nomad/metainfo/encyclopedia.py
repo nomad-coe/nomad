@@ -470,7 +470,7 @@ class Properties(MSection):
         type=Reference(section_thermodynamical_properties.m_def),
         shape=[],
         description="""
-        Reference to a specific heat capacity.
+        Reference to a section containing thermodynamical properties.
         """
     )
 
