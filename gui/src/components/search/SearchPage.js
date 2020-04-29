@@ -49,23 +49,10 @@ entry's archive, and processing logs.
 `
 
 export default function SearchPage() {
-  const location = useLocation()
   const {user} = useContext(apiContext)
-
-  let query = {
-    owner: 'public'
-  }
-  if (location && location.search) {
-    query = {
-      ...query,
-      ...(qs.parse(location.search.substring(1)) || {})
-    }
-  }
-
   const withoutLogin = ['all', 'public']
 
   return <Search
-    initialQuery={query}
     initialVisualizationTab="elements"
     availableResultTabs={['entries', 'groups', 'datasets']}
     initialOwner="public"
