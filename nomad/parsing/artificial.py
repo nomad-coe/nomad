@@ -28,6 +28,7 @@ import os
 import signal
 
 from nomad import metainfo
+from nomad.datamodel.metainfo import m_env as general_nomad_metainfo_env
 
 from .legacy import Backend
 from .parser import Parser, MatchingParser
@@ -52,7 +53,7 @@ class EmptyParser(MatchingParser):
     Implementation that produces an empty code_run
     '''
     def run(self, mainfile: str, logger=None) -> Backend:
-        backend = Backend(metainfo='public', domain=self.domain, logger=logger)
+        backend = Backend(metainfo=general_nomad_metainfo_env, domain=self.domain, logger=logger)
         backend.openSection('section_run')
         backend.addValue('program_name', self.code_name)
         backend.closeSection('section_run', 0)

@@ -16,7 +16,7 @@ click
 requests
 bravado
 pytz
-aniso8601
+aniso8601<=7
 ase==3.19.0
 python-keycloak
 elasticsearch-dsl==6.4.0
@@ -41,7 +41,7 @@ structlog
 elasticsearch==6.4.0
 msgpack<0.6.0
 celery[redis]
-mongoengine==0.18.2
+mongoengine==0.19.1
 Werkzeug==0.16.1
 flask
 flask-restplus

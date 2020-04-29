@@ -27,30 +27,41 @@ from .admin import admin, __run_processing
 @admin.group(help='Upload related commands')
 @click.option('--user', help='Select uploads of user with given id', type=str)
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
-@click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
+@click.option('--processing', help='Select only processing uploads', is_flag=True)
+@click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
+@click.option('--processing-failure-calcs', is_flag=True, help='Select uploads with calcs with failed processing')
+@click.option('--processing-failure', is_flag=True, help='Select uploads where the upload or any calc has failed processing')
+@click.option('--processing-incomplete-uploads', is_flag=True, help='Select uploads that have not yet been processed')
+@click.option('--processing-incomplete-calcs', is_flag=True, help='Select uploads where any calc has net yot been processed')
+@click.option('--processing-incomplete', is_flag=True, help='Select uploads where the upload or any calc has not yet been processed')
+@click.option('--processing-necessary', is_flag=True, help='Select uploads where the upload or any calc has either not been processed or processing has failed in the past')
 @click.pass_context
 def uploads(
         ctx, user: str, staging: bool, processing: bool, outdated: bool,
-        code: typing.List[str], query_mongo: bool):
+        code: typing.List[str], query_mongo: bool,
+        processing_failure_uploads: bool, processing_failure_calcs: bool, processing_failure: bool,
+        processing_incomplete_uploads: bool, processing_incomplete_calcs: bool, processing_incomplete: bool,
+        processing_necessary: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
     query = mongoengine.Q()
+    calc_query = None
     if user is not None:
-        query &= mongoengine.Q(user_id=user)
+        query |= mongoengine.Q(user_id=user)
     if staging:
-        query &= mongoengine.Q(published=False)
+        query |= mongoengine.Q(published=False)
     if processing:
-        query &= mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING)
+        query |= mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING)
 
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
             {'metadata.nomad_version': {'$ne': config.version}})
-        query &= mongoengine.Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:
         code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
@@ -64,9 +75,23 @@ def uploads(
             upload['key']
             for upload in code_search.execute().aggs['uploads']['buckets']]
 
-        query &= mongoengine.Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
+
+    if processing_failure_calcs or processing_failure or processing_necessary:
+        if calc_query is None:
+            calc_query = mongoengine.Q()
+        calc_query |= mongoengine.Q(tasks_status=proc.FAILURE)
+    if processing_failure_uploads or processing_failure or processing_necessary:
+        query |= mongoengine.Q(tasks_status=proc.FAILURE)
+    if processing_incomplete_calcs or processing_incomplete or processing_necessary:
+        if calc_query is None:
+            calc_query = mongoengine.Q()
+        calc_query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
+    if processing_incomplete_uploads or processing_incomplete or processing_necessary:
+        query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
 
     ctx.obj.query = query
+    ctx.obj.calc_query = calc_query
     ctx.obj.uploads = proc.Upload.objects(query)
     ctx.obj.query_mongo = query_mongo
 
@@ -85,8 +110,11 @@ def query_uploads(ctx, uploads):
         pass
 
     query = ctx.obj.query
+    if ctx.obj.calc_query is not None:
+        query |= mongoengine.Q(
+            upload_id__in=proc.Calc.objects(ctx.obj.calc_query).distinct(field="upload_id"))
     if len(uploads) > 0:
-        query &= mongoengine.Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
 
     return query, proc.Upload.objects(query)
 
