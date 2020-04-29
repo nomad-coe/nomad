@@ -40,9 +40,6 @@ from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagi
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
-from nomad.normalizing.encyclopedia.method import MethodDFTNormalizer, MethodGWNormalizer
-from nomad.normalizing.encyclopedia.encyclopedia import EncyclopediaNormalizer, Context
-from nomad.metainfo.encyclopedia import Method
 from nomad.datamodel import EntryArchive
 from nomad.archive import query_archive
 import phonopyparser
