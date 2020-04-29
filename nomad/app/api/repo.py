@@ -29,7 +29,7 @@ from nomad import search, utils, datamodel, processing as proc, infrastructure, 
 from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime, DotKeyNested, rfc3339DateTime
+from nomad.app.common import RFC3339DateTime, DotKeyNested
 
 from .api import api
 from .auth import authenticate

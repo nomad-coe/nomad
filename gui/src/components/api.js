@@ -9,6 +9,7 @@ import LoginLogout from './LoginLogout'
 import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
 import { withKeycloak } from 'react-keycloak'
+import * as searchQuantities from '../searchQuantities.json'
 
 export const apiContext = React.createContext()
 
@@ -375,12 +376,23 @@ class Api {
   }
 
   async edit(edit) {
-    // this.onStartLoading()
+    // We do not call the start and finish loading callbacks, because this one is
+    // only used in the background.
+
+    // repair the query, the API will only access correct use of lists for many
+    // quantities
+    Object.keys(edit.query).forEach(quantity => {
+      if (searchQuantities[quantity] && searchQuantities[quantity].many) {
+        if (!Array.isArray(edit.query[quantity])) {
+          edit.query[quantity] = edit.query[quantity].split(',')
+        }
+      }
+    })
+    console.log('***', edit)
     return this.swagger()
       .then(client => client.apis.repo.edit_repo({payload: edit}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
   }
 
   async resolvePid(pid) {

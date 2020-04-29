@@ -1300,7 +1300,7 @@ class TestEditRepo():
             references=['http://test', 'http://test2'],
             coauthors=[other_test_user.user_id],
             shared_with=[other_test_user.user_id])
-        rv = self.perform_edit(**edit_data, query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(**edit_data, query=dict(upload_id=['upload_1']))
         result = json.loads(rv.data)
         assert rv.status_code == 200
         actions = result.get('actions')
@@ -1331,7 +1331,7 @@ class TestEditRepo():
         assert not self.elastic(4, comment='test_edit_all', edited=False)
 
     def test_edit_multi(self):
-        rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id='upload_1,upload_2'))
+        rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id=['upload_1', 'upload_2']))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_multi')
         assert self.elastic(1, 2, 3, comment='test_edit_multi')
@@ -1339,7 +1339,7 @@ class TestEditRepo():
         assert not self.elastic(4, comment='test_edit_multi', edited=False)
 
     def test_edit_some(self):
-        rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, comment='test_edit_some')
         assert self.elastic(1, comment='test_edit_some')
@@ -1348,38 +1348,38 @@ class TestEditRepo():
 
     def test_edit_verify(self):
         rv = self.perform_edit(
-            comment='test_edit_verify', verify=True, query=dict(upload_id='upload_1'))
+            comment='test_edit_verify', verify=True, query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert not self.mongo(1, comment='test_edit_verify', edited=False)
 
     def test_edit_empty_list(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='coauthors', success=True, message=False)
-        rv = self.perform_edit(coauthors=[], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='coauthors', success=True, message=False)
         assert self.mongo(1, coauthors=[])
 
     def test_edit_duplicate_value(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id, other_test_user.user_id], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[other_test_user.user_id, other_test_user.user_id], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
 
     def test_edit_uploader_as_coauthor(self, test_user):
-        rv = self.perform_edit(coauthors=[test_user.user_id], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[test_user.user_id], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
 
     def test_edit_ds(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+            datasets=[self.example_dataset.name], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='datasets', success=True, message=False)
         assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
 
     def test_edit_ds_remove_doi(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+            datasets=[self.example_dataset.name], query=dict(upload_id=['upload_1']))
         assert rv.status_code == 200
         rv = self.api.post('/datasets/%s' % self.example_dataset.name, headers=self.test_user_auth)
         assert rv.status_code == 200
-        rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(datasets=[], query=dict(upload_id=['upload_1']))
         assert rv.status_code == 400
         data = json.loads(rv.data)
         assert not data['success']
@@ -1388,9 +1388,9 @@ class TestEditRepo():
 
     def test_edit_ds_remove(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=dict(upload_id='upload_1'))
+            datasets=[self.example_dataset.name], query=dict(upload_id=['upload_1']))
         assert rv.status_code == 200
-        rv = self.perform_edit(datasets=[], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(datasets=[], query=dict(upload_id=['upload_1']))
         assert rv.status_code == 200
         with pytest.raises(KeyError):
             assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is None
@@ -1400,7 +1400,7 @@ class TestEditRepo():
             name=self.other_example_dataset.name).first() is not None
 
         rv = self.perform_edit(
-            datasets=[self.other_example_dataset.name], query=dict(upload_id='upload_1'))
+            datasets=[self.other_example_dataset.name], query=dict(upload_id=['upload_1']))
 
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
         new_dataset = Dataset.m_def.a_mongo.objects(
@@ -1410,7 +1410,7 @@ class TestEditRepo():
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
 
     def test_edit_new_ds(self, test_user):
-        rv = self.perform_edit(datasets=['new_dataset'], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(datasets=['new_dataset'], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
         new_dataset = Dataset.m_def.a_mongo.objects(name='new_dataset').first()
         assert new_dataset is not None
@@ -1418,11 +1418,11 @@ class TestEditRepo():
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
 
     def test_edit_bad_user(self):
-        rv = self.perform_edit(coauthors=['bad_user'], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=['bad_user'], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
 
     def test_edit_user(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id='upload_1'))
+        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='coauthors', success=True, message=False)
 
     def test_admin_only(self, other_test_user):
