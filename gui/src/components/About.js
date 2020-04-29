@@ -29,10 +29,10 @@ class About extends React.Component {
         <Markdown>{`
           # The NOMAD Repository and Archive
 
-          This web-page is the graphical user interface (GUI) for the NOMAD Repository and
-          Archive. It allows you to search, access, and download all NOMAD data in its
-          raw (Repository) and processed (Archive) form. You can upload and manage your own
-          raw computational material science data. Learn more about what data can be uploaded
+          This is the *graphical user interface* (GUI) for the NOMAD Repository and
+          Archive. It allows you to **search, access, and download all NOMAD data** in its
+          raw (Repository) and processed (Archive) form. You can **upload and manage your own
+          raw materials science data**. Learn more about what data can be uploaded
           and how to prepare your data on the [NOMAD Repository homepage](https://repository.nomad-coe.eu/).
           You can access all published data without an account. If you want to provide
           your own data, please login or register for an account.
@@ -41,17 +41,6 @@ class About extends React.Component {
           components as an effort to consolidate the various web applications from the
           NOMAD Repository, Archive, Metainfo, Encyclopedia, and Analytics Toolkit.
 
-          ### This looks different, what about the old NOMAD interface?
-
-          We have migrated all data from the original NOMAD Repository to this new system.
-          However, not all of the data was successfully processed by the new and more powerful parsers.
-          We will continue to improve the parsers to raise the quality of archive data overtime.
-          For some entries, no archive data might be currently available and some metadata might
-          still be missing when you are exploring Nomad data using the new search and data
-          exploring capabilities (menu items on the left).
-
-          ### Terms of use and licenses
-          ${consent}
 
           ### Getting Help
           If you encounter any difficulties, please write to
@@ -60,14 +49,8 @@ class About extends React.Component {
           about possible features, feel free to open an issue on our [issue tracking
           system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
 
-          ### Material science data and domains
-          Originally NOMAD was build for DFT calculations and data from the respective
-          community code. By NOMAD supports multiple materials science domains:
-
-          ${info && info.domains.map(domain => domains[domain.name]).map(domain => `- ${domain.name}: ${domain.about}`).join('\n')}
-
-          ### ReST APIs
-          NOMAD services can also be accessed programmatically via ReST APIs.
+          ### APIs
+          The NOMAD Repository and Archive can also be accessed programmatically via ReST APIs.
           There is the proprietary NOMAD API and an implementation of the
           [OPTiMaDe API (0.10.0)](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
           standardized by the [OPTiMaDe consortium](https://www.optimade.org/)
@@ -79,6 +62,26 @@ class About extends React.Component {
           There are also web-based GUIs that allow to explore the APIs and their documentation:
           - [NOMAD API](${apiBase}/)
           - [OPTiMaDe API](${optimadeBase}/)
+
+          There is a [tutorial on how to use the API with Python](${appBase}/docs/api_tutorial.html).
+
+          There is also a Python library. You can use *pip* to install the library.
+          \`\`\`
+          pip install ${appBase}/dist/nomad-0.8.0.tar.gz
+          \`\`\`
+
+          The NOMAD Archive uses data that adheres to formal data definitions that we call
+          the NOMAD Metainfo. You can download these definition in their [JSON form
+          here](${apiBase}/archive/metainfo/all.nomadmetainfo.json). Otherwise, you
+          can use the Meta Info browser from the menu to explore.
+
+          ${debug ? `
+          ### Material science data and domains
+          Originally NOMAD was build for DFT calculations and data from the respective
+          community code. By NOMAD supports multiple materials science domains:
+
+          ${info && info.domains.map(domain => domains[domain.name]).map(domain => `- ${domain.name}: ${domain.about}`).join('\n')}
+          ` : ''}
 
           ### Developer Documentation
           The [in-depth developer documentation](${appBase}/docs/index.html)
@@ -108,6 +111,9 @@ class About extends React.Component {
           with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
           used for data that has no provenance with the original NOMAD CoE database.
           ` : ''}
+
+          ### Terms of use and licenses
+          ${consent}
 
           ### About this version
           - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`
