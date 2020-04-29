@@ -1048,6 +1048,23 @@ class TestRepo():
         rv = api.get('/repo/?owner=user')
         assert rv.status_code == 401
 
+    @pytest.mark.parametrize('suggestions, quantity, value', [
+        (1, 'dft.system', 'bulk'),
+        (1, 'dft.system', 'ulk'),
+        (1, 'dft.system', 'ul'),
+        (0, 'dft.system', 'notbulk'),
+        (1, 'dft.system', None)
+    ])
+    def test_suggestions_search(self, api, example_elastic_calcs, no_warn, test_user_auth, suggestions, quantity, value):
+        url = '/repo/suggestions/%s' % quantity
+        if value is not None:
+            url = url + '?include=%s' % value
+        rv = api.get(url, headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        values = data['suggestions']
+        assert len(values) == suggestions
+
     @pytest.mark.parametrize('calcs, quantity, value', [
         (2, 'dft.system', 'bulk'),
         (0, 'dft.system', 'atom'),

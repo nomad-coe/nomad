@@ -474,13 +474,14 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
-  async quantity_search(quantity, search, size, noLoadingIndicator) {
+  async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
     if (!noLoadingIndicator) {
       this.onStartLoading()
     }
     return this.swagger()
-      .then(client => client.apis.repo.quantity_search({
+      .then(client => client.apis.repo.suggestions_search({
         size: size || 20,
+        include: include,
         quantity: quantity,
         ...search
       }))

@@ -170,6 +170,14 @@ def test_search_statistics(elastic, example_search_data):
     assert 'quantities' not in results
 
 
+def test_suggest_statistics(elastic, example_search_data):
+    results = SearchRequest(domain='dft').statistic('dft.system', include='ulk', size=2).execute()
+    assert len(results['statistics']['dft.system']) == 1
+
+    results = SearchRequest(domain='dft').statistic('dft.system', include='not_ulk', size=2).execute()
+    assert len(results['statistics']['dft.system']) == 0
+
+
 def test_search_totals(elastic, example_search_data):
     use_metrics = search_extension.metrics.keys()
 

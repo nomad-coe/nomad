@@ -566,6 +566,8 @@ _repo_quantity_search_request_parser.add_argument(
     'after', type=str, help='The after value to use for "scrolling".')
 _repo_quantity_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
+_repo_quantity_search_request_parser.add_argument(
+    'value', type=str, help='A partial value. Only values that include this will be returned')
 
 _repo_quantity_model = api.model('RepoQuantity', {
     'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
@@ -623,6 +625,62 @@ class RepoQuantityResource(Resource):
             results = search_request.execute()
             quantities = results.pop('quantities')
             results['quantity'] = quantities[quantity]
+
+            return results, 200
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+_repo_suggestions_search_request_parser = api.parser()
+add_search_parameters(_repo_suggestions_search_request_parser)
+_repo_suggestions_search_request_parser.add_argument(
+    'size', type=int, help='The max size of the returned values.')
+_repo_suggestions_search_request_parser.add_argument(
+    'include', type=str, help='A substring that all values need to include.')
+
+_repo_suggestions_model = api.model('RepoSuggestionsValues', {
+    'suggestions': fields.List(fields.String, description='A list with the suggested values.')
+})
+
+
+@ns.route('/suggestions/<string:quantity>')
+class RepoSuggestionsResource(Resource):
+    @api.doc('suggestions_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
+    @api.expect(_repo_suggestions_search_request_parser, validate=True)
+    @api.marshal_with(_repo_suggestions_model, skip_none=True, code=200, description='Suggestions send')
+    @authenticate()
+    def get(self, quantity: str):
+        '''
+        Retrieve the top values for the given quantity from entries matching the search.
+        Values can be filtered by to include a given value.
+
+        There is no ordering, no pagination, and no scroll interface.
+
+        The result will contain a 'suggestions' key with values. There will be upto 'size' many values.
+        '''
+
+        search_request = search.SearchRequest()
+        args = {
+            key: value
+            for key, value in _repo_suggestions_search_request_parser.parse_args().items()
+            if value is not None}
+
+        apply_search_parameters(search_request, args)
+        size = args.get('size', 20)
+        include = args.get('include', None)
+
+        try:
+            assert size >= 0
+        except AssertionError:
+            abort(400, message='invalid size')
+
+        try:
+            search_request.statistic(quantity, size=size, include=include)
+            results = search_request.execute()
+            results['suggestions'] = list(results['statistics'][quantity].keys())
 
             return results, 200
         except KeyError as e:

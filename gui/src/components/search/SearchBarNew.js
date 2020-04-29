@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState, useContext, useCallback, useMemo } from 'react'
 import {searchContext} from './SearchContext'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import TextField from '@material-ui/core/TextField'
@@ -6,15 +6,21 @@ import { CircularProgress } from '@material-ui/core'
 import * as searchQuantities from '../../searchQuantities.json'
 import { apiContext } from '../api'
 
-const defaultOptions = Object.keys(searchQuantities).map(quantity => searchQuantities[quantity].name)
-
 export default function SearchBar() {
-  const [open, setOpen] = React.useState(false)
-  const [options, setOptions] = React.useState(defaultOptions)
-  const [loading, setLoading] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState('')
-  const {response: {statistics, pagination}, domain, query, setQuery} = React.useContext(searchContext)
-  const {api} = React.useContext(apiContext)
+  const suggestionsTimerRef = useRef(null)
+  const {response: {statistics, pagination}, domain, query, setQuery} = useContext(searchContext)
+  const defaultOptions = useMemo(() => {
+    return Object.keys(searchQuantities)
+      .map(quantity => searchQuantities[quantity].name)
+      .filter(quantity => !quantity.includes('.') || quantity.startsWith(domain.key + '.'))
+  }, [domain.key])
+
+  const [open, setOpen] = useState(false)
+  const [options, setOptions] = useState(defaultOptions)
+  const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+
+  const {api} = useContext(apiContext)
 
   const autocompleteValue = Object.keys(query).map(quantity => `${quantity}=${query[quantity]}`)
 
@@ -33,36 +39,52 @@ export default function SearchBar() {
     }
   }
 
-  const loadValues = (quantity, value) => {
-    setLoading(true)
-    const size = searchQuantities[quantity].statistic_size || 20
-    api.quantity_search(quantity, query, size, true)
-      .then(response => {
-        setLoading(false)
-        const options = Object.keys(response.quantity.values).map(value => `${quantity}=${value}`)
-        setOptions(options)
-        setOpen(true)
-      })
-      .catch(() => {
-        setLoading(false)
-      })
-  }
+  const filterOptions = useCallback((options, params) => {
+    const [quantity, value] = params.inputValue.split('=')
+    const filteredOptions = options.filter(option => {
+      const [optionQuantity, optionValue] = option.split('=')
+      if (!value) {
+        return optionQuantity.includes(quantity) || optionQuantity === quantity
+      } else {
+        return optionValue.includes(value) || optionValue === value
+      }
+    })
+    return filteredOptions
+  }, [])
 
-  const handleInputChange = (event, value, reason) => {
+  const loadOptions = useCallback((quantity, value) => {
+    if (suggestionsTimerRef.current !== null) {
+      clearTimeout(suggestionsTimerRef.current)
+    }
+    suggestionsTimerRef.current = setTimeout(() => {
+      setLoading(true)
+      api.suggestions_search(quantity, query, value, 20, true)
+        .then(response => {
+          setLoading(false)
+          const options = response.suggestions.map(value => `${quantity}=${value}`)
+          setOptions(options)
+          setOpen(true)
+        })
+        .catch(() => {
+          setLoading(false)
+        })
+    }, 200)
+  }, [api, suggestionsTimerRef])
+
+  const handleInputChange = useCallback((event, value, reason) => {
     if (reason === 'input') {
       setInputValue(value)
       const [quantity, quantityValue] = value.split('=')
-      if (!quantityValue) {
-        if (searchQuantities[quantity]) {
-          loadValues(quantity, quantityValue)
-        } else {
-          setOptions(defaultOptions)
-        }
+
+      if (searchQuantities[quantity]) {
+        loadOptions(quantity, quantityValue)
+      } else {
+        setOptions(defaultOptions)
       }
     }
-  }
+  }, [loadOptions])
 
-  const handleChange = (event, entries, reason) => {
+  const handleChange = (event, entries) => {
     const newQuery = entries.reduce((query, entry) => {
       if (entry) {
         const [quantity, value] = entry.split('=')
@@ -91,7 +113,7 @@ export default function SearchBar() {
         setInputValue('')
       } else {
         setInputValue(`${entry}=`)
-        loadValues(quantity)
+        loadOptions(quantity)
       }
     }
   }
@@ -119,9 +141,9 @@ export default function SearchBar() {
     onChange={handleChange}
     onInputChange={handleInputChange}
     getOptionSelected={(option, value) => option === value}
-    getOptionLabel={(option) => option}
     options={options}
     loading={loading}
+    filterOptions={filterOptions}
     renderInput={(params) => (
       <TextField
         {...params}

@@ -297,7 +297,7 @@ class SearchRequest:
 
     def statistic(
             self, quantity_name: str, size: int, metrics_to_use: List[str] = [],
-            order: Dict[str, str] = dict(_key='asc')):
+            order: Dict[str, str] = dict(_key='asc'), include: str = None):
         '''
         This can be used to display statistics over the searched entries and allows to
         implement faceted search on the top values for each quantity.
@@ -322,9 +322,15 @@ class SearchRequest:
                 ``unique_code_runs``, ``datasets``, other domain specific metrics.
                 The basic doc_count metric ``code_runs`` is always given.
             order: The order dictionary is passed to the elastic search aggregation.
+            include:
+                Uses an regular expression in ES to only return values that include
+                the given substring.
         '''
         quantity = search_quantities[quantity_name]
-        terms = A('terms', field=quantity.search_field, size=size, order=order)
+        terms_kwargs = {}
+        if include is not None:
+            terms_kwargs['include'] = '.*%s.*' % include
+        terms = A('terms', field=quantity.search_field, size=size, order=order, **terms_kwargs)
 
         buckets = self._search.aggs.bucket('statistics:%s' % quantity_name, terms)
         self._add_metrics(buckets, metrics_to_use)
