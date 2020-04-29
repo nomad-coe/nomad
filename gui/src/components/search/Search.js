@@ -4,7 +4,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Card, Button, Tooltip, Tabs, Tab, Paper, FormControl,
   FormGroup, Checkbox, FormControlLabel, CardContent, IconButton, FormLabel, Select, MenuItem } from '@material-ui/core'
 import { useQueryParam, useQueryParams, StringParam, NumberParam } from 'use-query-params'
-import SearchBar from './SearchBar'
+// import SearchBar from './SearchBar'
+import SearchBar from './SearchBarNew'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
 import { DisableOnLoading } from '../api'
@@ -143,7 +144,7 @@ const useSearchEntryStyles = makeStyles(theme => ({
     marginRight: 0
   },
   searchBar: {
-    width: '100%'
+    marginTop: theme.spacing(1)
   },
   selectButton: {
     margin: theme.spacing(1)
@@ -197,7 +198,10 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
         <MetricSelect classes={{root: classes.metricButton}} initialMetric={initialMetric}/>
       </FormGroup>
 
-      <SearchBar classes={{autosuggestRoot: classes.searchBar}} />
+      {/* <SearchBar classes={{autosuggestRoot: classes.searchBar}} /> */}
+      <div className={classes.searchBar}>
+        <SearchBar />
+      </div>
     </div>
 
     <div className={classes.visualizations}>

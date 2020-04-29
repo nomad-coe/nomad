@@ -81,7 +81,6 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
       const fromTime = item.time
       const untilTime = Dates.addSeconds(fromTime, interval)
       setQuery({
-        ...query,
         from_time: Dates.APIDate(fromTime),
         until_time: Dates.APIDate(untilTime)
       })
@@ -200,7 +199,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
         return
       }
       const value = Dates.APIDate(new Date(event.target.value))
-      setQuery({...query, [key]: value})
+      setQuery({[key]: value})
     } catch (error) {
     }
   })

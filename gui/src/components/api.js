@@ -462,6 +462,25 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async quantity_search(quantity, search, size, noLoadingIndicator) {
+    if (!noLoadingIndicator) {
+      this.onStartLoading()
+    }
+    return this.swagger()
+      .then(client => client.apis.repo.quantity_search({
+        size: size || 20,
+        quantity: quantity,
+        ...search
+      }))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(() => {
+        if (!noLoadingIndicator) {
+          this.onFinishLoading()
+        }
+      })
+  }
+
   async deleteUpload(uploadId) {
     this.onStartLoading()
     return this.swagger()

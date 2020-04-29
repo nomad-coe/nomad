@@ -25,8 +25,8 @@ export const Dates = {
   buckets: 50
 }
 
-searchQuantities['from_time'] = true
-searchQuantities['until_time'] = true
+searchQuantities['from_time'] = {name: 'from_time'}
+searchQuantities['until_time'] = {name: 'until_time'}
 /**
  * A custom hook that reads and writes search parameters from the current URL.
  */
