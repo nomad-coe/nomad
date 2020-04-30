@@ -26,7 +26,7 @@ const Options = {
  */
 export default function SearchBar() {
   const suggestionsTimerRef = useRef(null)
-  const {response: {statistics, pagination}, domain, query, setQuery} = useContext(searchContext)
+  const {response: {statistics, pagination}, domain, query, apiQuery, setQuery} = useContext(searchContext)
   const defaultOptions = useMemo(() => {
     return Object.keys(searchQuantities)
       .map(quantity => searchQuantities[quantity].name)
@@ -81,7 +81,7 @@ export default function SearchBar() {
     }
     suggestionsTimerRef.current = setTimeout(() => {
       setLoading(true)
-      api.suggestions_search(quantity, query, size ? null : value, size || 20, true)
+      api.suggestions_search(quantity, apiQuery, size ? null : value, size || 20, true)
         .then(response => {
           setLoading(false)
           const options = response.suggestions.map(value => Options.join(quantity, value))

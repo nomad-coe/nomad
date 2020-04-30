@@ -680,9 +680,12 @@ class RepoSuggestionsResource(Resource):
         try:
             search_request.statistic(quantity, size=size, include=include, order=dict(_key='desc'))
             results = search_request.execute()
-            values = results['statistics'][quantity]
+            values = {
+                value: metric['code_runs']
+                for value, metric in results['statistics'][quantity].items()
+                if metric['code_runs'] > 0}
             results['suggestions'] = sorted(
-                values.keys(), key=lambda value: values[value]['code_runs'], reverse=True)
+                values.keys(), key=lambda value: values[value], reverse=True)
 
             return results, 200
         except KeyError as e:
