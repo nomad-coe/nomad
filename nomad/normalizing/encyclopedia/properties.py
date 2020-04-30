@@ -116,7 +116,7 @@ class PropertiesNormalizer():
         try:
             resolved_section = None
             frame_sequences = self.backend.entry_archive.section_run[0].section_frame_sequence
-            for frame_sequence in frame_sequences:
+            for frame_sequence in reversed(frame_sequences):
                 thermodynamical_props = frame_sequence.section_thermodynamical_properties
                 for thermodynamical_prop in thermodynamical_props:
                     if resolved_section is None:
@@ -171,7 +171,7 @@ class PropertiesNormalizer():
                 return
 
             representative_phonon_dos = None
-            for dos in doses:
+            for dos in reversed(doses):
                 kind = dos.dos_kind
                 energies = dos.dos_energies
                 values = dos.dos_values

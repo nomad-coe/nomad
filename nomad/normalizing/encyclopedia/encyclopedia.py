@@ -260,7 +260,7 @@ class EncyclopediaNormalizer(Normalizer):
             try:
                 representative_scc_idx = self.section_run.m_cache["representative_scc_idx"]
                 representative_scc = self.section_run.section_single_configuration_calculation[representative_scc_idx]
-            except (KeyError, IndexError):
+            except Exception:
                 representative_scc = None
                 representative_scc_idx = None
 

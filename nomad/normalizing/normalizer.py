@@ -93,7 +93,6 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         entry. The selection depends on the type of calculation.
         '''
         system = None
-        scc_idx = None
         scc = None
 
         # Try to find a frame sequence, only first found is considered
@@ -104,41 +103,36 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             sampling_method = sec_sampling_method.sampling_method
             frames = frame_seq.frame_sequence_local_frames_ref
             if sampling_method == "molecular_dynamics":
-                scc = frames[0]
-                scc_idx = scc.m_parent_index
+                iscc = frames[0]
             else:
-                scc = frames[-1]
-                scc_idx = scc.m_parent_index
-            system = scc.single_configuration_calculation_to_system_ref
-            if system is None:
-                frame_seqs = []
+                iscc = frames[-1]
+            system = iscc.single_configuration_calculation_to_system_ref
+            if system is not None:
+                scc = iscc
         except Exception:
-            frame_seqs = []
+            pass
 
         # If no frame sequences detected, try to find valid scc by looping all
         # available in reverse order until a valid one is found.
-        if len(frame_seqs) == 0:
+        if system is None:
             try:
                 sccs = self.section_run.section_single_configuration_calculation
-                for scc in reversed(sccs):
-                    idx = scc.m_parent_index
-                    isys = scc.single_configuration_calculation_to_system_ref
+                for iscc in reversed(sccs):
+                    isys = iscc.single_configuration_calculation_to_system_ref
                     if isys is not None:
-                        scc_idx = idx
                         system = isys
+                        scc = iscc
                         break
-                if system is None:
-                    sccs = []
             except Exception:
-                sccs = []
+                pass
 
             # If no sccs exist, try to find systems
-            if len(sccs) == 0:
+            if system is None:
                 try:
                     systems = self.section_run.section_system
                     system = systems[-1]
                 except Exception:
-                    sccs = []
+                    system = None
 
             if system is None:
                 self.logger.error('no "representative" section system found')
@@ -148,7 +142,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 )
 
         if scc is not None:
-            self.section_run.m_cache["representative_scc_idx"] = scc_idx
+            self.section_run.m_cache["representative_scc_idx"] = scc.m_parent_index
         if system is not None:
             self.section_run.m_cache["representative_system_idx"] = system.m_parent_index
 
