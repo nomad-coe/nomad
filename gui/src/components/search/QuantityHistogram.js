@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Select, MenuItem, Card, CardContent, CardHeader, makeStyles } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
-import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor } from '../../config.js'
+import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor, nomadFontFamily } from '../../config.js'
 import { searchContext } from './SearchContext.js'
 import * as searchQuantities from '../../searchQuantities.json'
 
@@ -38,7 +38,6 @@ const useStyles = makeStyles(theme => ({
     color: '#fff',
     padding: '4px 8px',
     fontSize: '0.625rem',
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     lineHeight: '1.4em',
     borderRadius: '4px',
     backgroundColor: '#616161'
@@ -111,7 +110,7 @@ export default function QuantityHistogram({
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
 
-    const rectColor = d => selected === d.key ? nomadPrimaryColor.main : nomadSecondaryColor.light
+    const rectColor = d => selected === d.key ? nomadPrimaryColor.dark : nomadSecondaryColor.light
     const textColor = d => selected === d.key ? '#FFF' : '#000'
 
     const container = d3.select(containerRef.current)
@@ -182,6 +181,7 @@ export default function QuantityHistogram({
         .attr('y', d => y(d.key) + 4)
         .attr('text-anchor', 'start')
         .style('fill', textColor)
+        .style('font-family', nomadFontFamily)
         .text(d => d.name)
 
       item
@@ -192,6 +192,7 @@ export default function QuantityHistogram({
         .attr('x', d => width - 4)
         .attr('text-anchor', 'end')
         .style('fill', textColor)
+        .style('font-family', nomadFontFamily)
         .text(d => formatQuantity(d.value))
 
       item

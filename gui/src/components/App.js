@@ -73,13 +73,8 @@ function ReloadSnack() {
 }
 
 const useMainMenuItemStyles = makeStyles(theme => ({
-  itemText: {
-    color: 'black',
-    paddingRight: theme.spacing(2),
-    paddingLeft: theme.spacing(2)
-  },
-  itemIcon: {
-    minWidth: 0
+  button: {
+    margin: theme.spacing(1)
   }
 }))
 
@@ -88,12 +83,16 @@ function MainMenuItem({tooltip, title, path, icon}) {
   const classes = useMainMenuItemStyles()
   const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
   return <Tooltip title={tooltip}>
-    <MenuItem component={Link} to={path} selected={selected} dense>
-      <ListItemIcon className={classes.itemIcon}>
-        {icon}
-      </ListItemIcon>
-      <ListItemText className={classes.itemText} primary={title}/>
-    </MenuItem>
+    <Button
+      className={classes.button}
+      component={Link}
+      to={path}
+      color={selected ? 'primary' : 'default'}
+      size="small"
+      startIcon={icon}
+    >
+      {title}
+    </Button>
   </Tooltip>
 }
 
@@ -121,7 +120,8 @@ class NavigationUnstyled extends React.Component {
       flexGrow: 1,
       display: 'flex',
       alignItems: 'center',
-      alignContent: 'flex-start'
+      alignContent: 'flex-start',
+      color: theme.palette.primary.main
     },
     appFrame: {
       zIndex: 1,
@@ -133,7 +133,7 @@ class NavigationUnstyled extends React.Component {
     },
     appBar: {
       zIndex: theme.zIndex.drawer + 1,
-      backgroundColor: '#20335D'
+      backgroundColor: 'white'
     },
     menuButton: {
       marginLeft: theme.spacing(1)
@@ -279,7 +279,7 @@ class NavigationUnstyled extends React.Component {
                   {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}
                 </div>
                 <div className={classes.barActions}>
-                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton}} />
+                  <LoginLogout color="primary" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
               <MenuList classes={{root: classes.menu}}>

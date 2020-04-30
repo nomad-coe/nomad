@@ -15,7 +15,7 @@ import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
-import UploadsHistogram from './UploadsChart'
+import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
 import {objectFilter} from '../../utils'
@@ -222,7 +222,7 @@ function UsersVisualization() {
     setStatistics(['uploader'])
   }, [])
   return <div>
-    <UploadsHistogram />
+    <UploadsHistogram tooltips />
     <QuantityHistogram quantity="uploader" title="Uploaders" />
   </div>
 }

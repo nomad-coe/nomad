@@ -684,14 +684,16 @@ class LoginRequiredUnstyled extends React.Component {
     let loginMessage = ''
     if (message) {
       loginMessage = <Typography>
-        {this.props.message} If you do not have a NOMAD Repository account, you can register.
+        {this.props.message}
       </Typography>
     }
 
     return (
       <div className={classes.root}>
-        {loginMessage}
-        <LoginLogout variant="outlined" color="primary" />
+        <div>
+          {loginMessage}
+        </div>
+        <LoginLogout color="primary" />
       </div>
     )
   }
