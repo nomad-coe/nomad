@@ -2,6 +2,3 @@ dependencies:
 - name: rabbitmq
   version: "6.21.0"
   repository: "https://charts.bitnami.com/bitnami"
-- name: redis
-  version: "10.6.9"
-  repository: "https://charts.bitnami.com/bitnami"

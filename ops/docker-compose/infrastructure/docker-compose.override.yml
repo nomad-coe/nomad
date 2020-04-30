@@ -26,12 +26,6 @@ services:
         ports:
             - 5672:5672
 
-    # backend for celery
-    redis:
-        restart: 'no'
-        ports:
-            - 6379:6379
-
     # the search engine
     elastic:
         restart: 'no'

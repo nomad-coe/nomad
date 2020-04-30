@@ -87,18 +87,9 @@ rabbitmq = NomadConfig(
     password='rabbitmq'
 )
 
-redis = NomadConfig(
-    host='localhost',
-    port=6379,
-)
-
 
 def rabbitmq_url():
     return 'pyamqp://%s:%s@%s//' % (rabbitmq.user, rabbitmq.password, rabbitmq.host)
-
-
-def redis_url():
-    return 'redis://%s:%d/0' % (redis.host, redis.port)
 
 
 celery = NomadConfig(

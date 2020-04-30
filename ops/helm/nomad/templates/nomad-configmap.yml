@@ -29,8 +29,6 @@ data:
       admin_user_id: {{ .Values.keycloak.admin_user_id }}
     rabbitmq:
       host: "{{ .Release.Name }}-rabbitmq"
-    redis:
-      host: "{{ .Release.Name }}-redis-master"
     elastic:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
