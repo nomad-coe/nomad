@@ -26,17 +26,17 @@ export const domains = ({
      */
     searchVisualizations: {
       'system': {
-        render: props => <DFTSystemVisualizations {...props}/>,
+        component: DFTSystemVisualizations,
         label: 'System',
         description: 'Shows histograms on system metadata'
       },
       'method': {
-        render: props => <DFTMethodVisualizations {...props}/>,
+        component: DFTMethodVisualizations,
         label: 'Method',
         description: 'Shows histograms on method metadata'
       },
       'properties': {
-        render: props => <DFTPropertyVisualizations {...props}/>,
+        component: DFTPropertyVisualizations,
         label: 'Properties',
         description: 'Shows histograms on the availability of key properties'
       }
@@ -165,7 +165,7 @@ export const domains = ({
     searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
     searchVisualizations: {
       'metadata': {
-        render: props => <EMSVisualizations {...props} />,
+        component: EMSVisualizations,
         label: 'Metadata',
         description: 'Shows histograms on system metadata'
       }

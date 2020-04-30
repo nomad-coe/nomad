@@ -1,7 +1,6 @@
 import React from 'react'
 import { withApi } from './api'
 import Search from './search/Search'
-import SearchContext from './search/SearchContext'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
@@ -53,24 +52,15 @@ DOI, they will be redirected to a NOMAD view that shows the dataset and allows i
 Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
-class UserdataPage extends React.Component {
-  render() {
-    return (
-      <div>
-        <SearchContext
-          {...this.props}
-          ownerTypes={['user', 'staging']} initialQuery={{owner: 'user'}}
-          initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
-        >
-          <Search
-            resultTab="uploads"
-            tabs={['uploads', 'datasets', 'entries']}
-            entryListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
-          />
-        </SearchContext>
-      </div>
-    )
-  }
+function UserdataPage() {
+  return <Search
+    ownerTypes={['user', 'staging']}
+    initialQuery={{owner: 'user'}}
+    initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
+    initialResultTab="uploads"
+    availableResultTabs={['uploads', 'datasets', 'entries']}
+    resultListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
+  />
 }
 
 export default withApi(true, false, 'To manage you data, you must log in.')(UserdataPage)

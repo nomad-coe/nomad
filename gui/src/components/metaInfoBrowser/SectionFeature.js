@@ -17,11 +17,11 @@ class SectionFeature extends React.Component {
       backgroundColor: grey[300]
     },
     gutters: {
-      paddingLeft: theme.spacing.unit,
-      paddingRight: theme.spacing.unit
+      paddingLeft: theme.spacing(1),
+      paddingRight: theme.spacing(1)
     },
     stateIcon: {
-      paddingLeft: theme.spacing.unit
+      paddingLeft: theme.spacing(1)
     }
   })
 

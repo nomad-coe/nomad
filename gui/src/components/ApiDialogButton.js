@@ -20,8 +20,8 @@ class ApiDialogUnstyled extends React.Component {
       paddingBottom: 0
     },
     json: {
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(2)
     },
     codeContainer: {
       display: 'flex',
@@ -30,11 +30,11 @@ class ApiDialogUnstyled extends React.Component {
     },
     code: {
       flexGrow: 1,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       overflow: 'hidden'
     },
     codeActions: {
-      marginTop: theme.spacing.unit * 3
+      marginTop: theme.spacing(3)
     }
   })
 

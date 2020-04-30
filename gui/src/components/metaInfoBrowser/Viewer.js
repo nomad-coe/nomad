@@ -25,7 +25,7 @@ class ViewerUnstyled extends React.Component {
       flexWrap: 'nowrap',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      padding: theme.spacing.unit * 2,
+      padding: theme.spacing(2),
       zIndex: 1
     },
     sankey: {

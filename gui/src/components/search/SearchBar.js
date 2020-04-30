@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles } from '@material-ui/core/styles'
 /* eslint-disable-next-line */
-import { domains } from '../domains' // TODO this causes a weird import bug
+// import { domains } from '../domains' // TODO this causes a weird import bug
 import ChipInput from 'material-ui-chip-input'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
@@ -11,9 +11,7 @@ import Paper from '@material-ui/core/Paper'
 import MenuItem from '@material-ui/core/MenuItem'
 import { Chip, IconButton, Tooltip } from '@material-ui/core'
 import { nomadPrimaryColor } from '../../config'
-import { compose } from 'recompose'
-import SearchContext from '../search/SearchContext'
-import { withApi } from '../api'
+import { searchContext } from './SearchContext'
 import ClearIcon from '@material-ui/icons/Cancel'
 
 function renderInput(inputProps) {
@@ -91,8 +89,7 @@ function getSuggestionValue(suggestion) {
 
 class SearchBar extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
-    loading: PropTypes.number
+    classes: PropTypes.object.isRequired
   }
 
   static styles = theme => ({
@@ -101,7 +98,7 @@ class SearchBar extends React.Component {
       alignItems: 'flex-end'
     },
     clearButton: {
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     },
     autosuggestRoot: {
       position: 'relative'
@@ -109,7 +106,7 @@ class SearchBar extends React.Component {
     suggestionsContainerOpen: {
       position: 'absolute',
       zIndex: 100,
-      marginTop: theme.spacing.unit,
+      marginTop: theme.spacing(1),
       left: 0,
       right: 0
     },
@@ -134,7 +131,7 @@ class SearchBar extends React.Component {
   getSuggestions(valueWithCase) {
     const value = valueWithCase.toLowerCase()
 
-    const {statistics} = this.context.state.response
+    const {statistics} = this.context.response
     const suggestions = []
 
     // filter out pseudo quantity total
@@ -159,7 +156,7 @@ class SearchBar extends React.Component {
     })
 
     // Add additional quantities to the end
-    const { domain } = this.context.state
+    const { domain } = this.context
     const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
     const additionalSearchKeyRE = new RegExp(reStr)
     const match = value.match(additionalSearchKeyRE)
@@ -198,7 +195,7 @@ class SearchBar extends React.Component {
   }
 
   handleAddChip(chip) {
-    const values = {...this.context.state.query}
+    const values = {...this.context.query}
 
     let key, value
     if (chip.includes('=')) {
@@ -239,41 +236,36 @@ class SearchBar extends React.Component {
     const parts = chip.split('=')
     const key = parts[0]
 
-    const {state: {query}, setQuery} = this.context
+    const {query, setQuery} = this.context
     const values = {...query}
     delete values[key]
     setQuery(values, true)
   }
 
   handleClear() {
-    const {state: {query}, setQuery} = this.context
-    const values = {owner: query.owner}
-    setQuery(values, true)
+    const {setQuery} = this.context
+    setQuery({}, true)
   }
 
   getChips() {
-    const {state: {query: {owner, ...values}, domain}} = this.context
-    const domainPrefix = domain.key + '.'
+    const {query: values} = this.context
     return Object.keys(values).filter(key => values[key]).map(key => {
       if (key === 'atoms') {
         return `atoms=[${values[key].join(',')}]`
       } else {
         let quantityLabel = key
-        if (key.startsWith(domainPrefix)) {
-          quantityLabel = key.substring(domainPrefix.length)
-        }
         return `${quantityLabel}=${values[key]}`
       }
     })
   }
 
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   render() {
-    const {classes, loading} = this.props
-    const {response: {pagination, statistics}, query, domain} = this.context.state
+    const {classes} = this.props
+    const {response: {pagination, statistics}, query, domain} = this.context
 
-    let helperText = <span>loading ...</span>
+    let helperText = ''
     if (pagination && statistics) {
       if (pagination.total === 0) {
         helperText = <span>There are no more entries matching your criteria.</span>
@@ -281,14 +273,14 @@ class SearchBar extends React.Component {
         helperText = <span>
           There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
             return <span key={key}>
-              {domain.searchMetrics[key].renderResultString(!loading ? statistics.total.all[key] : '...')}
+              {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
             </span>
           })}{Object.keys(query).length ? ' left' : ''}.
         </span>
       }
     }
 
-    const showClearButton = query && Object.keys(query).filter(key => query[key] !== undefined).length > 1
+    const showClearButton = query && Object.keys(query).find(key => query[key] !== undefined)
 
     return (
       <div className={classes.root}>
@@ -341,4 +333,4 @@ class SearchBar extends React.Component {
   }
 }
 
-export default compose(withApi(false, false), withStyles(SearchBar.styles))(SearchBar)
+export default withStyles(SearchBar.styles)(SearchBar)

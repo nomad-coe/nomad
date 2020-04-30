@@ -49,3 +49,12 @@ export function arraysEqual(_arr1, _arr2) {
 export function onlyUnique(value, index, self) {
   return self.indexOf(value) === index
 }
+
+export function objectFilter(obj, predicate) {
+  return Object.keys(obj)
+    .filter(key => predicate(key))
+    .reduce((res, key) => {
+      res[key] = obj[key]
+      return res
+    }, {})
+}

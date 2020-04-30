@@ -21,10 +21,10 @@ class SectionUnstyled extends React.Component {
       flexWrap: 'nowrap',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     },
     children: {
-      paddingLeft: theme.spacing.unit * 5,
+      paddingLeft: theme.spacing(5),
       display: 'flex',
       flexDirection: 'column',
       flexWrap: 'nowrap',

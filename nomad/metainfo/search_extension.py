@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, List
 
 from nomad.metainfo.elastic_extension import Elastic
 
@@ -63,6 +63,10 @@ class Search(Elastic):
         statistics_order:
             The order key that is passed to elastic search to determine the order of
             the statistic values.
+        statistics_values:
+            If the statistics has a fixed set of values, use this parameter to set it
+            as a list of strings. Will fill statistics_size with the len of this list.
+            The information can be used (e.g. by the GUI) to fill in empty values.
         group: Indicates that his quantity can be used to group results. The value will
             be the name of the group.
         search_field: The qualified field in the elastic mapping that is used to search.
@@ -80,6 +84,7 @@ class Search(Elastic):
             group: str = None, metric: str = None, metric_name: str = None,
             statistic_size: int = 10,
             statistic_order: str = '_key',
+            statistic_values: List[str] = None,
             derived: Callable[[Any], Any] = None,
             search_field: str = None,
             **kwargs):
@@ -96,6 +101,7 @@ class Search(Elastic):
         self.metric_name = metric_name
         self.statistic_size = statistic_size
         self.statistic_order = statistic_order
+        self.statistic_values = statistic_values
         self.search_field = search_field
 
         self.derived = derived
@@ -160,7 +166,7 @@ class Search(Elastic):
         return None
 
     @property
-    def many(self):
+    def many(self) -> bool:
         return self.many_and is not None or self.many_or is not None
 
     @property
@@ -174,3 +180,13 @@ class Search(Elastic):
             return fields.List(value_field(), description=self.description)
         else:
             return value_field(description=self.description)
+
+    @property
+    def statistic_values(self):
+        return self._statistic_values
+
+    @statistic_values.setter
+    def statistic_values(self, values):
+        self._statistic_values = values
+        if self._statistic_values is not None:
+            self.statistic_size = len(self._statistic_values)

@@ -43,7 +43,7 @@ class ValueUnstyled extends React.Component {
   }
   static styles = (theme) => ({
     root: {
-      padding: theme.spacing.unit
+      padding: theme.spacing(1)
     }
   })
   render() {
@@ -57,7 +57,7 @@ class ValueUnstyled extends React.Component {
               <ValueAttributes definition={definition} />
               {schema.isReference(definition) && definition.referencedSection
                 ? <MetaAttribute label={'referenced'} value={<span>
-                  {renderName(definition.referencedSection)} <CardButton size="tiny" icon="arrow_right_alt"
+                  {renderName(definition.referencedSection)} <CardButton size="medium" icon="arrow_right_alt"
                     onClick={() => toggleDefinition(definition.referencedSection)}/>
                 </span>}/> : ''
               }
