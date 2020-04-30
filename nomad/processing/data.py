@@ -406,7 +406,12 @@ class Calc(Proc):
             with upload_files.read_archive(self.calc_id) as archive:
                 arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
                 phonon_archive = EntryArchive.m_from_dict(arch)
-                backend.entry_archive = phonon_archive
+
+            # Save Archive contents, metadata and logs from the old entry
+            backend.entry_archive = phonon_archive
+            self._parser_backend = backend
+            self._entry_metadata = backend.entry_archive.section_metadata
+            self._calc_proc_logs = phonon_archive.processing_logs
 
             # Read in the first referenced calculation. The reference is given as
             # an absolute path which needs to be converted into a path that is
@@ -426,8 +431,6 @@ class Calc(Proc):
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
             # archive.
-            self._parser_backend = backend
-            self._entry_metadata = backend.entry_archive.section_metadata
             self._entry_metadata.last_processing = datetime.utcnow()
             self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
             self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set

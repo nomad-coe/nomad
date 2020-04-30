@@ -487,3 +487,17 @@ class section_encyclopedia(MSection):
     method = SubSection(sub_section=Method.m_def, repeats=False)
     properties = SubSection(sub_section=Properties.m_def, repeats=False)
     calculation = SubSection(sub_section=Calculation.m_def, repeats=False)
+    status = Quantity(
+        type=MEnum("success", "unsupported_material_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
+        description="""
+        The final Encyclopedia processing status for this entry. The meaning of the status is as follows:
+
+        | Status                           | Description                                                                   |
+        | -------------------------------- | ----------------------------------------------------------------------------  |
+        | `"success"`                      | Processed successfully                                                        |
+        | `"unsupported_material_type"`    | The detected material type is currenlty not supported by the Encyclopedia.    |
+        | `"unsupported_calculation_type"` | The detected calculation type is currenlty not supported by the Encyclopedia. |
+        | `"invalid_metainfo"`             | The entry could not be processed due to missing or invalid metainfo.          |
+        | `"failure"`                      | The entry could not be processed due to an unexpected exception.              |
+        """
+    )

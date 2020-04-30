@@ -205,11 +205,16 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
+        sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
+        status_enums = section_encyclopedia.status.type
+
         # Do nothing if section_run is not present
         if self.section_run is None:
+            status = status_enums.invalid_metainfo
+            sec_enc.status = status
             self.logger.info(
-                "Required data is missing or is invalid.",
-                enc_status="invalid_data",
+                "required metainfo is missing or is invalid.",
+                enc_status=status,
                 invalid_metainfo="section_run",
             )
             return
@@ -218,8 +223,6 @@ class EncyclopediaNormalizer(Normalizer):
             super().normalize(logger)
 
             # Initialise metainfo structure
-            # sec_enc = self._backend.openSection("section_encyclopedia", return_section=True)
-            sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
             sec_enc.m_create(Properties)
@@ -228,9 +231,11 @@ class EncyclopediaNormalizer(Normalizer):
             # Determine run type, stop if unknown
             calc_type = self.calc_type(calc)
             if calc_type == config.services.unavailable_value:
+                status = status_enums.unsupported_calculation_type
+                sec_enc.status = status
                 self.logger.info(
-                    "Unsupported run type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unsupported_calc_type",
+                    "unsupported calculation type for encyclopedia",
+                    enc_status=status,
                 )
                 return
 
@@ -238,10 +243,13 @@ class EncyclopediaNormalizer(Normalizer):
             material_enums = Material.material_type.type
             representative_system, material_type = self.material_type(material)
             if material_type != material_enums.bulk and material_type != material_enums.two_d and material_type != material_enums.one_d:
+                status = status_enums.unsupported_material_type
+                sec_enc.status = status
                 self.logger.info(
-                    "Unsupported material type for encyclopedia, encyclopedia metainfo not created.",
-                    enc_status="unsupported_material_type",
+                    "unsupported material type for encyclopedia",
+                    enc_status=status,
                 )
+
                 return
 
             # Get the method type. For now, we allow unknown method type.
@@ -271,13 +279,17 @@ class EncyclopediaNormalizer(Normalizer):
             self.fill(context)
 
         except Exception:
+            status = status_enums.failure
+            sec_enc.status = status
             self.logger.error(
-                "Failed to create an Encyclopedia entry due to an unhandlable exception.",
-                enc_status="failure",
+                "failed to process encyclopedia data due to an unhandlable exception",
+                enc_status=status,
             )
             raise  # Reraise for the caller to log the exception as well
         else:
+            status = status_enums.success
+            sec_enc.status = status
             self.logger.info(
-                "Successfully created metainfo for Encyclopedia.",
-                enc_status="success",
+                "successfully created metainfo for encyclopedia.",
+                enc_status=status,
             )
