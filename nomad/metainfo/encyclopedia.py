@@ -493,7 +493,7 @@ class section_encyclopedia(MSection):
         The final Encyclopedia processing status for this entry. The meaning of the status is as follows:
 
         | Status                           | Description                                                                   |
-        | -------------------------------- | ----------------------------------------------------------------------------  |
+        | -------------------------------- | ----------------------------------------------------------------------------- |
         | `"success"`                      | Processed successfully                                                        |
         | `"unsupported_material_type"`    | The detected material type is currenlty not supported by the Encyclopedia.    |
         | `"unsupported_calculation_type"` | The detected calculation type is currenlty not supported by the Encyclopedia. |
