@@ -36,8 +36,8 @@ const useSearchUrlQuery = () => {
   const urlQuery = location.search ? {
     ...qs.parse(location.search.substring(1))
   } : {}
-  const searchQuery = objectFilter(urlQuery, key => searchQuantities[key])
-  const rest = objectFilter(urlQuery, key => !searchQuantities[key])
+  const searchQuery = objectFilter(urlQuery, key => searchQuantities[key] && key !== 'domain')
+  const rest = objectFilter(urlQuery, key => !searchQuantities[key] || key === 'domain')
   if (searchQuery.atoms && !Array.isArray(searchQuery.atoms)) {
     searchQuery.atoms = [searchQuery.atoms]
   }

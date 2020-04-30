@@ -1,336 +1,188 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core/styles'
-/* eslint-disable-next-line */
-// import { domains } from '../domains' // TODO this causes a weird import bug
-import ChipInput from 'material-ui-chip-input'
-import Autosuggest from 'react-autosuggest'
-import match from 'autosuggest-highlight/match'
-import parse from 'autosuggest-highlight/parse'
-import Paper from '@material-ui/core/Paper'
-import MenuItem from '@material-ui/core/MenuItem'
-import { Chip, IconButton, Tooltip } from '@material-ui/core'
-import { nomadPrimaryColor } from '../../config'
-import { searchContext } from './SearchContext'
-import ClearIcon from '@material-ui/icons/Cancel'
+import React, { useRef, useState, useContext, useCallback, useMemo } from 'react'
+import {searchContext} from './SearchContext'
+import Autocomplete from '@material-ui/lab/Autocomplete'
+import TextField from '@material-ui/core/TextField'
+import { CircularProgress } from '@material-ui/core'
+import * as searchQuantities from '../../searchQuantities.json'
+import { apiContext } from '../api'
 
-function renderInput(inputProps) {
-  const { classes, autoFocus, value, onChange, onAdd, onDelete, chips, ref, ...other } = inputProps
+/**
+ * A few helper functions related to format and analyse suggested options
+ */
+const Options = {
+  split: (suggestion) => suggestion.split('='),
+  join: (quantity, value) => `${quantity}=${value}`,
+  splitForCompare: (suggestion) => {
+    const [quantity, value] = suggestion.split('=')
+    return [quantity ? quantity.toLowerCase() : '', value ? value.toLowerCase() : '']
+  }
+}
 
-  return (
-    <ChipInput
-      clearInputValueOnChange
-      onUpdateInput={onChange}
-      onAdd={onAdd}
-      onDelete={onDelete}
-      value={chips}
-      inputRef={ref}
-      chipRenderer={
-        ({ value, text, isFocused, isDisabled, handleClick, handleDelete, className }, key) => (
-          <Chip
-            key={key}
-            className={className}
-            style={{
-              pointerEvents: isDisabled ? 'none' : undefined,
-              backgroundColor: isFocused ? nomadPrimaryColor[500] : undefined,
-              color: isFocused ? 'white' : 'black'
-            }}
-            onClick={handleClick}
-            onDelete={handleDelete}
-            label={text}
-          />
-        )
+/**
+ * This searchbar component shows a searchbar with autocomplete functionality. The
+ * searchbar also includes a status line about the current results. It uses the
+ * search context to manipulate the current query and display results. It does its on
+ * API calls to provide autocomplete suggestion options.
+ */
+export default function SearchBar() {
+  const suggestionsTimerRef = useRef(null)
+  const {response: {statistics, pagination}, domain, query, setQuery} = useContext(searchContext)
+  const defaultOptions = useMemo(() => {
+    return Object.keys(searchQuantities)
+      .map(quantity => searchQuantities[quantity].name)
+      .filter(quantity => !quantity.includes('.') || quantity.startsWith(domain.key + '.'))
+  }, [domain.key])
+
+  const [open, setOpen] = useState(false)
+  const [options, setOptions] = useState(defaultOptions)
+  const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+
+  const {api} = useContext(apiContext)
+
+  const autocompleteValue = Object.keys(query).map(quantity => Options.join(quantity, query[quantity]))
+
+  let helperText = ''
+  if (pagination && statistics) {
+    if (pagination.total === 0) {
+      helperText = <span>There are no more entries matching your criteria.</span>
+    } else {
+      helperText = <span>
+        There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+          return <span key={key}>
+            {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
+          </span>
+        })}{Object.keys(query).length ? ' left' : ''}.
+      </span>
+    }
+  }
+
+  const filterOptions = useCallback((options, params) => {
+    let [quantity, value] = Options.splitForCompare(params.inputValue)
+    const filteredOptions = options.filter(option => {
+      let [optionQuantity, optionValue] = Options.splitForCompare(option)
+      if (!value) {
+        return optionQuantity && (optionQuantity.includes(quantity) || optionQuantity === quantity)
+      } else {
+        return optionValue.includes(value) || optionValue === value
       }
-      {...other}
-    />
-  )
-}
-
-function renderSuggestion(suggestion, { query, isHighlighted }) {
-  const matches = match(getSuggestionValue(suggestion), query)
-  const parts = parse(getSuggestionValue(suggestion), matches)
-
-  return (
-    <MenuItem
-      selected={isHighlighted}
-      component='div'
-      onMouseDown={(e) => e.preventDefault()} // prevent the click causing the input to be blurred
-    >
-      <div>
-        {parts.map((part, index) => {
-          return part.highlight ? (
-            <span key={String(index)} style={{ fontWeight: 300 }}>
-              {part.text}
-            </span>
-          ) : (
-            <strong key={String(index)} style={{ fontWeight: 500 }}>
-              {part.text}
-            </strong>
-          )
-        })}
-      </div>
-    </MenuItem>
-  )
-}
-
-function renderSuggestionsContainer(options) {
-  const { containerProps, children } = options
-
-  return (
-    <Paper {...containerProps} square>
-      {children}
-    </Paper>
-  )
-}
-
-function getSuggestionValue(suggestion) {
-  return `${suggestion.key}=${suggestion.value}`
-}
-
-class SearchBar extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired
-  }
-
-  static styles = theme => ({
-    root: {
-      display: 'flex',
-      alignItems: 'flex-end'
-    },
-    clearButton: {
-      padding: theme.spacing(1)
-    },
-    autosuggestRoot: {
-      position: 'relative'
-    },
-    suggestionsContainerOpen: {
-      position: 'absolute',
-      zIndex: 100,
-      marginTop: theme.spacing(1),
-      left: 0,
-      right: 0
-    },
-    suggestion: {
-      display: 'block'
-    },
-    suggestionsList: {
-      margin: 0,
-      padding: 0,
-      listStyleType: 'none'
-    },
-    textField: {
-      width: '100%'
-    }
-  })
-
-  state = {
-    suggestions: [],
-    textFieldInput: ''
-  }
-
-  getSuggestions(valueWithCase) {
-    const value = valueWithCase.toLowerCase()
-
-    const {statistics} = this.context.response
-    const suggestions = []
-
-    // filter out pseudo quantity total
-    const quantityKeys = Object.keys(statistics).filter(quantity => quantity !== 'total')
-
-    // put authors to the end
-    const authorIndex = quantityKeys.indexOf('authors')
-    if (authorIndex >= 0) {
-      quantityKeys[authorIndex] = quantityKeys.splice(quantityKeys.length - 1, 1, quantityKeys[authorIndex])[0]
-    }
-
-    quantityKeys.forEach(quantity => {
-      Object.keys(statistics[quantity]).forEach(quantityValue => {
-        const quantityValueLower = quantityValue.toLowerCase()
-        if (quantityValueLower.startsWith(value) || (quantity === 'authors' && quantityValueLower.includes(value))) {
-          suggestions.push({
-            key: quantity,
-            value: quantityValue
-          })
-        }
-      })
     })
+    return filteredOptions
+  }, [])
 
-    // Add additional quantities to the end
-    const { domain } = this.context
-    const reStr = `^(${Object.keys(domain.additionalSearchKeys).join('|')})=`
-    const additionalSearchKeyRE = new RegExp(reStr)
-    const match = value.match(additionalSearchKeyRE)
-    if (match && domain.additionalSearchKeys[match[1]]) {
-      suggestions.push({
-        key: match[1],
-        value: valueWithCase.substring(match[0].length)
-      })
+  const loadOptions = useCallback((quantity, value) => {
+    const size = searchQuantities[quantity].statistic_size
+
+    if (suggestionsTimerRef.current !== null) {
+      clearTimeout(suggestionsTimerRef.current)
     }
-
-    // Always add as comment to the end of suggestions
-    suggestions.push({
-      key: 'comment',
-      value: value
-    })
-
-    return suggestions
-  }
-
-  handleSuggestionsFetchRequested = ({ value }) => {
-    this.setState({
-      suggestions: this.getSuggestions(value)
-    })
-  };
-
-  handleSuggestionsClearRequested = () => {
-    this.setState({
-      suggestions: []
-    })
-  };
-
-  handleTextFieldInputChange = (event, { newValue }) => {
-    this.setState({
-      textFieldInput: newValue
-    })
-  }
-
-  handleAddChip(chip) {
-    const values = {...this.context.query}
-
-    let key, value
-    if (chip.includes('=')) {
-      const parts = chip.split(/=(.+)/)
-      key = parts[0]
-      value = parts[1]
-    } else {
-      const suggestion = this.getSuggestions(chip)[0]
-      key = suggestion.key
-      value = suggestion.value
-    }
-
-    if (values[key]) {
-      values[key] = key === 'atoms' ? [...values[key], value] : value
-    } else {
-      values[key] = key === 'atoms' ? [value] : value
-    }
-
-    this.setState({
-      textFieldInput: ''
-    })
-    this.context.setQuery(values, true)
-  }
-
-  handleBeforeAddChip(chip) {
-    const suggestions = this.getSuggestions(chip)
-    if (suggestions.length > 0) {
-      return true
-    } else {
-      return false
-    }
-  }
-
-  handleDeleteChip(chip) {
-    if (!chip) {
+    if (loading) {
       return
     }
-    const parts = chip.split('=')
-    const key = parts[0]
+    suggestionsTimerRef.current = setTimeout(() => {
+      setLoading(true)
+      api.suggestions_search(quantity, query, size ? null : value, size || 20, true)
+        .then(response => {
+          setLoading(false)
+          const options = response.suggestions.map(value => Options.join(quantity, value))
+          setOptions(options)
+          setOpen(true)
+        })
+        .catch(() => {
+          setLoading(false)
+        })
+    }, 200)
+  }, [api, suggestionsTimerRef])
 
-    const {query, setQuery} = this.context
-    const values = {...query}
-    delete values[key]
-    setQuery(values, true)
-  }
+  const handleInputChange = useCallback((event, value, reason) => {
+    if (reason === 'input') {
+      setInputValue(value)
+      const [quantity, quantityValue] = Options.split(value)
 
-  handleClear() {
-    const {setQuery} = this.context
-    setQuery({}, true)
-  }
-
-  getChips() {
-    const {query: values} = this.context
-    return Object.keys(values).filter(key => values[key]).map(key => {
-      if (key === 'atoms') {
-        return `atoms=[${values[key].join(',')}]`
+      if (searchQuantities[quantity]) {
+        loadOptions(quantity, quantityValue)
       } else {
-        let quantityLabel = key
-        return `${quantityLabel}=${values[key]}`
-      }
-    })
-  }
-
-  static contextType = searchContext
-
-  render() {
-    const {classes} = this.props
-    const {response: {pagination, statistics}, query, domain} = this.context
-
-    let helperText = ''
-    if (pagination && statistics) {
-      if (pagination.total === 0) {
-        helperText = <span>There are no more entries matching your criteria.</span>
-      } else {
-        helperText = <span>
-          There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
-            return <span key={key}>
-              {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
-            </span>
-          })}{Object.keys(query).length ? ' left' : ''}.
-        </span>
+        setOptions(defaultOptions)
       }
     }
+  }, [loadOptions])
 
-    const showClearButton = query && Object.keys(query).find(key => query[key] !== undefined)
+  const handleChange = (event, entries) => {
+    const newQuery = entries.reduce((query, entry) => {
+      if (entry) {
+        const [quantity, value] = Options.split(entry)
+        if (query[quantity]) {
+          if (searchQuantities[quantity].many) {
+            if (Array.isArray(query[quantity])) {
+              query[quantity].push(value)
+            } else {
+              query[quantity] = [query[quantity], value]
+            }
+          } else {
+            query[quantity] = value
+          }
+        } else {
+          query[quantity] = value
+        }
+      }
+      return query
+    }, {})
+    setQuery(newQuery, true)
 
-    return (
-      <div className={classes.root}>
-        <Autosuggest
-          theme={{
-            container: classes.autosuggestRoot,
-            suggestionsContainerOpen: classes.suggestionsContainerOpen,
-            suggestionsList: classes.suggestionsList,
-            suggestion: classes.suggestion
-          }}
-          renderInputComponent={renderInput}
-          suggestions={this.state.suggestions}
-          onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested}
-          onSuggestionsClearRequested={this.handleSuggestionsClearRequested}
-          renderSuggestionsContainer={renderSuggestionsContainer}
-          getSuggestionValue={getSuggestionValue}
-          renderSuggestion={renderSuggestion}
-          onSuggestionSelected={(e, { suggestionValue }) => { this.handleAddChip(suggestionValue); e.preventDefault() }}
-          focusInputOnSuggestionClick={true}
-          inputProps={{
-            classes,
-            chips: this.getChips(),
-            onChange: this.handleTextFieldInputChange,
-            value: this.state.textFieldInput,
-            onAdd: (chip) => this.handleAddChip(chip),
-            onBeforeAdd: (chip) => this.handleBeforeAddChip(chip),
-            onDelete: (chip, index) => this.handleDeleteChip(chip, index),
-            // label: 'search',
-            fullWidth: true,
-            fullWidthInput: false,
-            InputLabelProps: {
-              shrink: true
-            },
-            placeholder: domain.searchPlaceholder,
-            helperText: helperText
-          }}
-        />
-        {showClearButton && (
-          <Tooltip title="Clear the search">
-            <IconButton
-              classes={{root: classes.clearButton}}
-              onClick={this.handleClear.bind(this)}
-            >
-              <ClearIcon />
-            </IconButton>
-          </Tooltip>
-        )}
-      </div>
-    )
+    if (entries.length !== 0) {
+      const entry = entries[entries.length - 1]
+      const [quantity, value] = Options.split(entry)
+      if (value) {
+        setInputValue('')
+      } else {
+        setInputValue(`${entry}=`)
+        loadOptions(quantity)
+      }
+    }
   }
-}
 
-export default withStyles(SearchBar.styles)(SearchBar)
+  React.useEffect(() => {
+    if (!open) {
+      setOptions(defaultOptions)
+    }
+  }, [open])
+
+  return <Autocomplete
+    multiple
+    freeSolo
+    inputValue={inputValue}
+    value={autocompleteValue}
+    limitTags={4}
+    id='search-bar'
+    open={open}
+    onOpen={() => {
+      setOpen(true)
+    }}
+    onClose={() => {
+      setOpen(false)
+    }}
+    onChange={handleChange}
+    onInputChange={handleInputChange}
+    getOptionSelected={(option, value) => option === value}
+    options={options}
+    loading={loading}
+    filterOptions={filterOptions}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        helperText={helperText}
+        label='Search with quantity=value'
+        variant='outlined'
+        InputProps={{
+          ...params.InputProps,
+          endAdornment: (
+            <React.Fragment>
+              {loading ? <CircularProgress color='inherit' size={20} /> : null}
+              {params.InputProps.endAdornment}
+            </React.Fragment>
+          )
+        }}
+      />
+    )}
+  />
+}

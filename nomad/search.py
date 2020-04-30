@@ -683,8 +683,8 @@ if __name__ == '__main__':
             'many': search_quantity.many,
         }
 
-        if search_quantity.statistic_size > 0:
-            result['statistic_size'] = search_quantity.statistic_size
+        if search_quantity.statistic_fixed_size is not None:
+            result['statistic_size'] = search_quantity.statistic_fixed_size
         if search_quantity.statistic_values is not None:
             result['statistic_values'] = search_quantity.statistic_values
 

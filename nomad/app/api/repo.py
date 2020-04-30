@@ -678,9 +678,11 @@ class RepoSuggestionsResource(Resource):
             abort(400, message='invalid size')
 
         try:
-            search_request.statistic(quantity, size=size, include=include)
+            search_request.statistic(quantity, size=size, include=include, order=dict(_key='desc'))
             results = search_request.execute()
-            results['suggestions'] = list(results['statistics'][quantity].keys())
+            values = results['statistics'][quantity]
+            results['suggestions'] = sorted(
+                values.keys(), key=lambda value: values[value]['code_runs'], reverse=True)
 
             return results, 200
         except KeyError as e:

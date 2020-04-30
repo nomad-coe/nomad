@@ -82,7 +82,7 @@ class Search(Elastic):
             many_and: str = None, many_or: str = None,
             order_default: bool = False,
             group: str = None, metric: str = None, metric_name: str = None,
-            statistic_size: int = 10,
+            statistic_size: int = None,
             statistic_order: str = '_key',
             statistic_values: List[str] = None,
             derived: Callable[[Any], Any] = None,
@@ -99,7 +99,9 @@ class Search(Elastic):
         self.group = group
         self.metric = metric
         self.metric_name = metric_name
-        self.statistic_size = statistic_size
+
+        self.statistic_fixed_size = statistic_size
+        self.statistic_size = statistic_size if statistic_size is not None else 20
         self.statistic_order = statistic_order
         self.statistic_values = statistic_values
         self.search_field = search_field
@@ -190,3 +192,4 @@ class Search(Elastic):
         self._statistic_values = values
         if self._statistic_values is not None:
             self.statistic_size = len(self._statistic_values)
+            self.statistic_fixed_size = len(self._statistic_values)
