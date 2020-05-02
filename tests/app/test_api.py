@@ -1162,11 +1162,23 @@ class TestRepo():
 
     def test_optimade(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
-            '/repo/?%s' % urlencode(dict(owner='all', optimade='nelements >= 1')),
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements >= 1'}),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
+
+        rv = api.get(
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements = 23'}),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] == 0
+
+        rv = api.get(
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'this is not optimade'}),
+            headers=test_user_auth)
+        assert rv.status_code == 400
 
     def test_labels(self, api, non_empty_processed, test_user_auth):
         rv = api.get(

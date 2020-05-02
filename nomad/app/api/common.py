@@ -140,6 +140,9 @@ def add_search_parameters(request_parser):
     request_parser.add_argument(
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+    request_parser.add_argument(
+        'dft.optimade', type=str,
+        help='A search query in the optimade filter language.')
 
     # main search parameters
     for qualified_name, quantity in search.search_quantities.items():
@@ -181,16 +184,16 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
         until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else None
         search_request.time_range(start=from_time, end=until_time)
     except Exception:
-        abort(400, message='bad datetime format')
+        abort(400, 'bad datetime format')
 
     # optimade
     try:
-        optimade = args.get('optimade', None)
+        optimade = args.get('dft.optimade', None)
         if optimade is not None:
             q = filterparser.parse_filter(optimade)
             search_request.query(q)
     except filterparser.FilterException:
-        abort(400, message='could not parse optimade query')
+        abort(400, 'could not parse optimade query')
 
     # search parameter
     search_request.search_parameters(**{
