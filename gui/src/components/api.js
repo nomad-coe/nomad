@@ -125,7 +125,7 @@ function handleApiError(e) {
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && body.message) ? body.message : e.response.statusText
+    const message = (body && (body.description || body.message)) || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
@@ -136,7 +136,9 @@ function handleApiError(e) {
     } else {
       error = new Error(errorMessage)
     }
+    console.log('### D', message, body)
     error.status = e.response.status
+    error.apiMessage = message
   } else {
     if (e.message === 'Failed to fetch') {
       error = new ApiError(e.message)

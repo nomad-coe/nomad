@@ -2,7 +2,7 @@ import React, { useRef, useState, useContext, useCallback, useMemo } from 'react
 import {searchContext} from './SearchContext'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import TextField from '@material-ui/core/TextField'
-import { CircularProgress } from '@material-ui/core'
+import { CircularProgress, InputAdornment, Typography, Button, Tooltip } from '@material-ui/core'
 import * as searchQuantities from '../../searchQuantities.json'
 import { apiContext } from '../api'
 
@@ -26,7 +26,7 @@ const Options = {
  */
 export default function SearchBar() {
   const suggestionsTimerRef = useRef(null)
-  const {response: {statistics, pagination}, domain, query, apiQuery, setQuery} = useContext(searchContext)
+  const {response: {statistics, pagination, error}, domain, query, apiQuery, setQuery} = useContext(searchContext)
   const defaultOptions = useMemo(() => {
     return Object.keys(searchQuantities)
       .map(quantity => searchQuantities[quantity].name)
@@ -37,13 +37,30 @@ export default function SearchBar() {
   const [options, setOptions] = useState(defaultOptions)
   const [loading, setLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [searchType, setSearchType] = useState('nomad')
 
   const {api} = useContext(apiContext)
 
   const autocompleteValue = Object.keys(query).map(quantity => Options.join(quantity, query[quantity]))
 
+  const handleSearchTypeClicked = useCallback(() => {
+    if (searchType === 'nomad') {
+      setSearchType('optimade')
+      // handleChange(null, [])
+    } else {
+      setSearchType('nomad')
+      // handleChange(null, [])
+    }
+  }, [searchType, setSearchType])
+
+  const handleOptimadeEntered = useCallback(query => {
+    setQuery({'dft.optimade': query})
+  })
+
   let helperText = ''
-  if (pagination && statistics) {
+  if (error) {
+    helperText = '' + (error.apiMessage || error)
+  } else if (pagination && statistics) {
     if (pagination.total === 0) {
       helperText = <span>There are no more entries matching your criteria.</span>
     } else {
@@ -92,7 +109,7 @@ export default function SearchBar() {
           setLoading(false)
         })
     }, 200)
-  }, [api, suggestionsTimerRef])
+  }, [api, suggestionsTimerRef, apiQuery])
 
   const handleInputChange = useCallback((event, value, reason) => {
     if (reason === 'input') {
@@ -147,42 +164,80 @@ export default function SearchBar() {
     }
   }, [open])
 
-  return <Autocomplete
-    multiple
-    freeSolo
-    inputValue={inputValue}
-    value={autocompleteValue}
-    limitTags={4}
-    id='search-bar'
-    open={open}
-    onOpen={() => {
-      setOpen(true)
-    }}
-    onClose={() => {
-      setOpen(false)
-    }}
-    onChange={handleChange}
-    onInputChange={handleInputChange}
-    getOptionSelected={(option, value) => option === value}
-    options={options}
-    loading={loading}
-    filterOptions={filterOptions}
-    renderInput={(params) => (
-      <TextField
-        {...params}
-        helperText={helperText}
-        label='Search with quantity=value'
-        variant='outlined'
-        InputProps={{
-          ...params.InputProps,
-          endAdornment: (
-            <React.Fragment>
-              {loading ? <CircularProgress color='inherit' size={20} /> : null}
-              {params.InputProps.endAdornment}
-            </React.Fragment>
-          )
-        }}
-      />
-    )}
-  />
+  const commonTextFieldProps = params => ({
+    error: !!error,
+    helperText: helperText,
+    variant: 'outlined',
+    fullWidth: true,
+    ...params
+  })
+
+  const commonInputProps = (params) => ({
+    ...params,
+    startAdornment: (
+      <React.Fragment>
+        <InputAdornment position="start">
+          <Tooltip title="Switch between NOMAD's quantity=value search and the Optimade filter language.">
+            <Button onClick={handleSearchTypeClicked}size="small">{searchType}</Button>
+          </Tooltip>
+        </InputAdornment>
+        {params.startAdornment}
+      </React.Fragment>
+    )
+  })
+
+  if (searchType === 'nomad') {
+    return <Autocomplete
+      multiple
+      freeSolo
+      inputValue={inputValue}
+      value={autocompleteValue}
+      limitTags={4}
+      id='search-bar'
+      open={open}
+      onOpen={() => {
+        setOpen(true)
+      }}
+      onClose={() => {
+        setOpen(false)
+      }}
+      onChange={handleChange}
+      onInputChange={handleInputChange}
+      getOptionSelected={(option, value) => option === value}
+      options={options}
+      loading={loading}
+      filterOptions={filterOptions}
+      renderInput={(params) => (
+        <TextField
+          {...commonTextFieldProps(params)}
+          label={searchType === 'nomad' ? 'Search with quantity=value' : 'Search with Optimade filter language'}
+          InputProps={{
+            ...commonInputProps(params.InputProps),
+            endAdornment: (
+              <React.Fragment>
+                {loading ? <CircularProgress color='inherit' size={20} /> : null}
+                {params.InputProps.endAdornment}
+              </React.Fragment>
+            )
+          }}
+        />
+      )}
+    />
+  } else {
+    return <TextField
+      {...commonTextFieldProps({})}
+      label={searchType === 'nomad' ? 'Search with quantity=value' : 'Search with Optimade filter language'}
+      InputProps={{
+        ...commonInputProps({})
+      }}
+      defaultValue={query['dft.optimade'] || ''}
+      onKeyPress={(ev) => {
+        console.log(`Pressed keyCode ${ev.key}`)
+        if (ev.key === 'Enter') {
+          handleOptimadeEntered(ev.target.value)
+          ev.preventDefault()
+        }
+      }}
+    />
+  }
 }

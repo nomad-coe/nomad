@@ -192,8 +192,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
         if optimade is not None:
             q = filterparser.parse_filter(optimade)
             search_request.query(q)
-    except filterparser.FilterException:
-        abort(400, 'could not parse optimade query')
+    except filterparser.FilterException as e:
+        abort(400, 'Could not parse optimade query: %s' % (str(e)))
 
     # search parameter
     search_request.search_parameters(**{

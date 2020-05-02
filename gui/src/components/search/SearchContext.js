@@ -27,6 +27,7 @@ export const Dates = {
 
 searchQuantities['from_time'] = {name: 'from_time'}
 searchQuantities['until_time'] = {name: 'until_time'}
+searchQuantities['dft.optimade'] = {name: 'dft.optimade'}
 /**
  * A custom hook that reads and writes search parameters from the current URL.
  */
@@ -144,12 +145,13 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       metrics: (metric === domain.defaultSearchMetric) ? [] : [metric],
       domain: domain.key
     }
+    console.log('+++', requestRef.current.query)
     const apiQuery = {
       ...apiRequest,
       owner: owner,
       ...initialQuery,
       ...requestRef.current.query,
-      ...query
+      query
     }
     if (dateHistogram) {
       dateHistogramInterval = Dates.intervalSeconds(
@@ -169,8 +171,11 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
           until_time: apiQuery.until_time
         })
       }).catch(error => {
-        setResponse({...emptyResponse, metric: metric})
-        raiseError(error)
+        setResponse({...emptyResponse, metric: metric, error: error})
+        console.log('***', error, error.status)
+        if (error.status !== 400) {
+          raiseError(error)
+        }
       })
   }, [requestRef, setResponse, api])
 
