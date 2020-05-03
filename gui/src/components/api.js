@@ -136,7 +136,6 @@ function handleApiError(e) {
     } else {
       error = new Error(errorMessage)
     }
-    console.log('### D', message, body)
     error.status = e.response.status
     error.apiMessage = message
   } else {
@@ -390,7 +389,6 @@ class Api {
         }
       }
     })
-    console.log('***', edit)
     return this.swagger()
       .then(client => client.apis.repo.edit_repo({payload: edit}))
       .catch(handleApiError)

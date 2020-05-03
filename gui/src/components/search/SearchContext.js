@@ -7,7 +7,7 @@ import { domains } from '../domains'
 import { apiContext } from '../api'
 import { useLocation, useHistory } from 'react-router-dom'
 import qs from 'qs'
-import * as searchQuantities from '../../searchQuantities.json'
+import searchQuantities from '../../searchQuantities'
 
 const padDateNumber = number => String('00' + number).slice(-2)
 
@@ -145,7 +145,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       metrics: (metric === domain.defaultSearchMetric) ? [] : [metric],
       domain: domain.key
     }
-    console.log('+++', requestRef.current.query)
     const apiQuery = {
       ...apiRequest,
       owner: owner,
@@ -172,7 +171,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
         })
       }).catch(error => {
         setResponse({...emptyResponse, metric: metric, error: error})
-        console.log('***', error, error.status)
         if (error.status !== 400) {
           raiseError(error)
         }

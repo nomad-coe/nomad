@@ -5,7 +5,7 @@ import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
-import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
+import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
   Snackbar, SnackbarContent } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
@@ -183,7 +183,7 @@ class NavigationUnstyled extends React.Component {
       marginRight: 0
     },
     divider: {
-      flexGrow: 1
+      width: theme.spacing(3)
     }
   })
 
@@ -301,9 +301,15 @@ class NavigationUnstyled extends React.Component {
                   tooltip="Manage your data"
                   icon={<UserDataIcon/>}
                 />
+                <MainMenuItem
+                  title="Meta Info"
+                  path="/metainfo"
+                  tooltip="Browse the archive schema"
+                  icon={<MetainfoIcon/>}
+                />
                 <div className={classes.divider} />
                 <MainMenuItem
-                  title="Overview"
+                  title="About"
                   path="/"
                   tooltip="NOMAD Repository and Archive"
                   icon={<AboutIcon/>}
@@ -313,12 +319,6 @@ class NavigationUnstyled extends React.Component {
                   path="/faq"
                   tooltip="Frequently Asked Questions (FAQ)"
                   icon={<FAQIcon/>}
-                />
-                <MainMenuItem
-                  title="Meta Info"
-                  path="/metainfo"
-                  tooltip="Browse the archive schema"
-                  icon={<MetainfoIcon/>}
                 />
               </MenuList>
               <LoadingIndicator />

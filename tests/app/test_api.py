@@ -86,13 +86,19 @@ def assert_zip_file(rv, files: int = -1, basename: bool = None):
 
 
 class TestInfo:
-    def test_info(self, api):
+    def test_info(self, api, elastic):
         rv = api.get('/info/')
+        assert rv.status_code == 200
+
         data = json.loads(rv.data)
         assert 'codes' in data
         assert 'parsers' in data
+        assert 'statistics' in data
         assert len(data['parsers']) >= len(data['codes'])
         assert len(data['domains']) >= 1
+        assert rv.status_code == 200
+
+        rv = api.get('/info/')
         assert rv.status_code == 200
 
 

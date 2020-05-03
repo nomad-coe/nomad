@@ -2,8 +2,8 @@ import React, { useRef, useState, useContext, useCallback, useMemo } from 'react
 import {searchContext} from './SearchContext'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import TextField from '@material-ui/core/TextField'
-import { CircularProgress, InputAdornment, Typography, Button, Tooltip } from '@material-ui/core'
-import * as searchQuantities from '../../searchQuantities.json'
+import { CircularProgress, InputAdornment, Button, Tooltip } from '@material-ui/core'
+import searchQuantities from '../../searchQuantities'
 import { apiContext } from '../api'
 
 /**
