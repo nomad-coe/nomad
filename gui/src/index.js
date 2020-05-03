@@ -11,7 +11,7 @@ import PiwikReactRouter from 'piwik-react-router'
 import { sendTrackingData, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm, keycloakClientId } from './config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
-import * as serviceWorker from 'serviceWorker'
+import * as serviceWorker from './serviceWorker'
 
 const matomo = sendTrackingData ? PiwikReactRouter({
   url: matomoUrl,
