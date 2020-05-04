@@ -417,8 +417,7 @@ class Calc(Proc):
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
             scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
-            ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
-            relative_ref = ref.split("/", 6)[-1]
+            relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
                 arch = query_archive(archive, {ref_id: ref_id})[ref_id]

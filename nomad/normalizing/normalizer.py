@@ -141,6 +141,18 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                     'chose "representative" system for normalization',
                 )
 
+        # If the found system is referencing a subsystem, then we choose it as
+        # the representative one. These smaller subsystems are much easier to
+        # analyze. Currently used in phonon calculations.
+        if system is not None:
+            try:
+                system_ref = system.section_system_to_system_refs[0]
+                ref_kind = system_ref.system_to_system_kind
+                if ref_kind == "subsystem":
+                    system = system_ref.system_to_system_ref
+            except Exception:
+                pass
+
         if scc is not None:
             self.section_run.m_cache["representative_scc_idx"] = scc.m_parent_index
         if system is not None:
