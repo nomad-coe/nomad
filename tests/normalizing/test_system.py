@@ -195,6 +195,15 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
                 scc = frames[-1]
             repr_system = scc.single_configuration_calculation_to_system_ref
 
+        # If the selected system refers to a subsystem, choose it instead.
+        try:
+            system_ref = repr_system.section_system_to_system_refs[0]
+            ref_kind = system_ref.system_to_system_kind
+            if ref_kind == "subsystem":
+                repr_system = system_ref.system_to_system_ref
+        except Exception:
+            pass
+
         # Check that only the representative system has been labels with
         # "is_representative"
         for system in backend.entry_archive.section_run[0].section_system:
