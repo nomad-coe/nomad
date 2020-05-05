@@ -45,7 +45,8 @@ class ElementUnstyled extends React.Component {
       boxShadow: 'none'
     },
     containedPrimary: {
-      backgroundColor: theme.palette.primary.main
+      backgroundColor: theme.palette.primary.dark,
+      color: 'white'
     },
     number: {
       position: 'absolute',

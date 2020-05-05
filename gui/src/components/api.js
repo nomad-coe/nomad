@@ -125,7 +125,7 @@ function handleApiError(e) {
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && body.message) ? body.message : e.response.statusText
+    const message = (body && (body.description || body.message)) || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
@@ -137,6 +137,7 @@ function handleApiError(e) {
       error = new Error(errorMessage)
     }
     error.status = e.response.status
+    error.apiMessage = message
   } else {
     if (e.message === 'Failed to fetch') {
       error = new ApiError(e.message)
@@ -388,7 +389,6 @@ class Api {
         }
       }
     })
-    console.log('***', edit)
     return this.swagger()
       .then(client => client.apis.repo.edit_repo({payload: edit}))
       .catch(handleApiError)
@@ -684,14 +684,16 @@ class LoginRequiredUnstyled extends React.Component {
     let loginMessage = ''
     if (message) {
       loginMessage = <Typography>
-        {this.props.message} If you do not have a NOMAD Repository account, you can register.
+        {this.props.message}
       </Typography>
     }
 
     return (
       <div className={classes.root}>
-        {loginMessage}
-        <LoginLogout variant="outlined" color="primary" />
+        <div>
+          {loginMessage}
+        </div>
+        <LoginLogout color="primary" />
       </div>
     )
   }

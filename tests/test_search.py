@@ -178,6 +178,16 @@ def test_suggest_statistics(elastic, example_search_data):
     assert len(results['statistics']['dft.system']) == 0
 
 
+def test_global_statistics(elastic, example_search_data):
+    results = SearchRequest().global_statistics().execute()
+    statistics = results.get('global_statistics')
+    assert statistics is not None
+    assert statistics.get('n_entries') is not None
+    assert statistics.get('n_uploads') is not None
+    assert statistics.get('n_calculations') is not None
+    assert statistics.get('n_quantities') is not None
+
+
 def test_search_totals(elastic, example_search_data):
     use_metrics = search_extension.metrics.keys()
 

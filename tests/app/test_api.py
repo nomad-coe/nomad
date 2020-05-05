@@ -86,13 +86,19 @@ def assert_zip_file(rv, files: int = -1, basename: bool = None):
 
 
 class TestInfo:
-    def test_info(self, api):
+    def test_info(self, api, elastic):
         rv = api.get('/info/')
+        assert rv.status_code == 200
+
         data = json.loads(rv.data)
         assert 'codes' in data
         assert 'parsers' in data
+        assert 'statistics' in data
         assert len(data['parsers']) >= len(data['codes'])
         assert len(data['domains']) >= 1
+        assert rv.status_code == 200
+
+        rv = api.get('/info/')
         assert rv.status_code == 200
 
 
@@ -709,6 +715,18 @@ class TestArchive(UploadFilesBasedTests):
 
         # TODO assert archive contents
 
+        # test not exists
+        entry_metadata = EntryMetadata(
+            domain='dft', upload_id=published_wo_user_metadata.upload_id,
+            calc_id='test_id', published=True, with_embargo=False)
+        entry_metadata.a_elastic.index(refresh=True)
+
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=True)))
+        assert rv.status_code == 401
+
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=False)))
+        assert rv.status_code == 200
+
 
 class TestRepo():
     @pytest.fixture(scope='class')
@@ -1162,11 +1180,23 @@ class TestRepo():
 
     def test_optimade(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
-            '/repo/?%s' % urlencode(dict(owner='all', optimade='nelements >= 1')),
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements >= 1'}),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
+
+        rv = api.get(
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements = 23'}),
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        assert data['pagination']['total'] == 0
+
+        rv = api.get(
+            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'this is not optimade'}),
+            headers=test_user_auth)
+        assert rv.status_code == 400
 
     def test_labels(self, api, non_empty_processed, test_user_auth):
         rv = api.get(

@@ -24,7 +24,7 @@ var styles = theme => {
       '& pre, & pre[class*="language-"]': {
         margin: '24px 0',
         padding: '12px 18px',
-        backgroundColor: theme.palette.primary.veryLight,
+        backgroundColor: theme.palette.secondary.veryLight,
         borderRadius: theme.shape.borderRadius,
         overflow: 'auto',
         WebkitOverflowScrolling: 'touch' // iOS momentum scrolling.
@@ -36,7 +36,7 @@ var styles = theme => {
         fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
         padding: '3px 6px',
         color: theme.palette.text.primary,
-        backgroundColor: theme.palette.primary.veryLight,
+        backgroundColor: theme.palette.secondary.veryLight,
         fontSize: 14
       },
       '& p code, & ul code, & pre code': {

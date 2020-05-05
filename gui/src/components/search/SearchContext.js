@@ -7,7 +7,7 @@ import { domains } from '../domains'
 import { apiContext } from '../api'
 import { useLocation, useHistory } from 'react-router-dom'
 import qs from 'qs'
-import * as searchQuantities from '../../searchQuantities.json'
+import searchQuantities from '../../searchQuantities'
 
 const padDateNumber = number => String('00' + number).slice(-2)
 
@@ -27,6 +27,7 @@ export const Dates = {
 
 searchQuantities['from_time'] = {name: 'from_time'}
 searchQuantities['until_time'] = {name: 'until_time'}
+searchQuantities['dft.optimade'] = {name: 'dft.optimade'}
 /**
  * A custom hook that reads and writes search parameters from the current URL.
  */
@@ -36,8 +37,8 @@ const useSearchUrlQuery = () => {
   const urlQuery = location.search ? {
     ...qs.parse(location.search.substring(1))
   } : {}
-  const searchQuery = objectFilter(urlQuery, key => searchQuantities[key])
-  const rest = objectFilter(urlQuery, key => !searchQuantities[key])
+  const searchQuery = objectFilter(urlQuery, key => searchQuantities[key] && key !== 'domain')
+  const rest = objectFilter(urlQuery, key => !searchQuantities[key] || key === 'domain')
   if (searchQuery.atoms && !Array.isArray(searchQuery.atoms)) {
     searchQuery.atoms = [searchQuery.atoms]
   }
@@ -149,7 +150,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       owner: owner,
       ...initialQuery,
       ...requestRef.current.query,
-      ...query
+      query
     }
     if (dateHistogram) {
       dateHistogramInterval = Dates.intervalSeconds(
@@ -169,8 +170,10 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
           until_time: apiQuery.until_time
         })
       }).catch(error => {
-        setResponse({...emptyResponse, metric: metric})
-        raiseError(error)
+        setResponse({...emptyResponse, metric: metric, error: error})
+        if (error.status !== 400) {
+          raiseError(error)
+        }
       })
   }, [requestRef, setResponse, api])
 

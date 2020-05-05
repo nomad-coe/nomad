@@ -433,6 +433,22 @@ class SearchRequest:
 
         return self
 
+    def global_statistics(self):
+        '''
+        Adds general statistics to the request. The results will have a key called
+        global_statistics.
+        '''
+        self._search.aggs.metric(
+            'global_statistics:n_entries', A('value_count', field='calc_id'))
+        self._search.aggs.metric(
+            'global_statistics:n_uploads', A('value_count', field='upload_id'))
+        self._search.aggs.metric(
+            'global_statistics:n_calculations', A('sum', field='dft.n_calculations'))
+        self._search.aggs.metric(
+            'global_statistics:n_quantities', A('sum', field='dft.n_quantities'))
+
+        return self
+
     def exclude(self, *args):
         ''' Exclude certain elastic fields from the search results. '''
         self._search = self._search.source(excludes=args)
@@ -602,6 +618,15 @@ class SearchRequest:
             if quantity_name.startswith('statistics:')
         }
 
+        # global statistics
+        global_statistics_results = {
+            agg_name[18:]: agg.get('value')
+            for agg_name, agg in aggs.items()
+            if agg_name.startswith('global_statistics:')
+        }
+        if len(global_statistics_results) > 0:
+            result.update(global_statistics=global_statistics_results)
+
         # totals
         totals_result = get_metrics(aggs, total)
         statistics_results['total'] = dict(all=totals_result)
@@ -683,8 +708,8 @@ if __name__ == '__main__':
             'many': search_quantity.many,
         }
 
-        if search_quantity.statistic_size > 0:
-            result['statistic_size'] = search_quantity.statistic_size
+        if search_quantity.statistic_fixed_size is not None:
+            result['statistic_size'] = search_quantity.statistic_fixed_size
         if search_quantity.statistic_values is not None:
             result['statistic_values'] = search_quantity.statistic_values
 

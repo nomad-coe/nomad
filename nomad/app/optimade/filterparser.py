@@ -18,30 +18,15 @@ from elasticsearch_dsl import Q
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import Transformer, Quantity
 
-from nomad.datamodel import OptimadeEntry
-
 
 class FilterException(Exception):
     ''' Raised on parsing a filter expression with syntactic of semantic errors. '''
     pass
 
 
-quantities: Dict[str, Quantity] = {
-    q.name: Quantity(
-        q.name, es_field='dft.optimade.%s' % q.name,
-        elastic_mapping_type=q.a_search.mapping.__class__)
-
-    for q in OptimadeEntry.m_def.all_quantities.values()
-    if 'search' in q.m_annotations}
-
-quantities['elements'].length_quantity = quantities['nelements']
-quantities['dimension_types'].length_quantity = quantities['dimension_types']
-quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
-quantities['elements'].nested_quantity = quantities['elements_ratios']
-quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
-
+_quantities: Dict[str, Quantity] = None
 _parser = LarkParser(version=(0, 10, 0))
-_transformer = Transformer(quantities=quantities.values())
+_transformer = None
 
 
 def parse_filter(filter_str: str) -> Q:
@@ -54,6 +39,25 @@ def parse_filter(filter_str: str) -> Q:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
     '''
+    global _quantities
+    global _transformer
+    if _quantities is None:
+        from nomad.datamodel import OptimadeEntry
+        _quantities = {
+            q.name: Quantity(
+                q.name, es_field='dft.optimade.%s' % q.name,
+                elastic_mapping_type=q.a_search.mapping.__class__)
+
+            for q in OptimadeEntry.m_def.all_quantities.values()
+            if 'search' in q.m_annotations}
+
+        _quantities['elements'].length_quantity = _quantities['nelements']
+        _quantities['dimension_types'].length_quantity = _quantities['dimension_types']
+        _quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
+        _quantities['elements'].nested_quantity = _quantities['elements_ratios']
+        _quantities['elements_ratios'].nested_quantity = _quantities['elements_ratios']
+
+        _transformer = Transformer(quantities=_quantities.values())
 
     try:
         parse_tree = _parser.parse(filter_str)

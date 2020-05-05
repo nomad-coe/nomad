@@ -3,12 +3,14 @@ from nomad.client import query_archive
 from nomad.metainfo import units
 
 # this will not be necessary, once this is the official NOMAD version
-config.client.url = 'https://labdev-nomad.esc.rzg.mpg.de/dev/nomad/v0-8-0/api'
+config.client.url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
 
-
-aq = query_archive(
+query = ArchiveQuery(
     query={
-        'upload_id': ['6LUBCju3T3KK3D_fRCJ4qw']
+        'dft.compound_type': 'binary',
+        'dft.crystal_system': 'cubic',
+        'dft.code_name': 'FHI-aims',
+        'atoms': ['O']
     },
     required={
         'section_run': {
@@ -17,12 +19,11 @@ aq = query_archive(
             }
         }
     },
-    per_page=100, max=1000)
+    per_page=10,
+    max=1000)
 
-print('total', aq.total)
+print(query)
 
-for i, e in enumerate(aq):
-    if i % 200 == 0:
-        print(e.section_run[0].section_single_configuration_calculation[0].energy_total.to(units.hartree))
-
-print(aq)
+for result in query[0:10]:
+    energy = result.section_run[0].section_single_configuration_calculation[0].energy_total
+    print('Energy %s' % energy.to(units.hartree))
