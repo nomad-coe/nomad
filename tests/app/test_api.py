@@ -721,10 +721,10 @@ class TestArchive(UploadFilesBasedTests):
             calc_id='test_id', published=True, with_embargo=False)
         entry_metadata.a_elastic.index(refresh=True)
 
-        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=True)))
-        assert rv.status_code == 401
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_errors=True)))
+        assert rv.status_code == 404
 
-        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=False)))
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_errors=False)))
         assert rv.status_code == 200
 
 
