@@ -40,23 +40,23 @@ This script should yield a result like this:
 
 .. code::
 
-    Number queries entries: 7667
+    Number queries entries: 7628
     Number of entries loaded in the last api call: 10
-    Bytes loaded in the last api call: 3579
-    Bytes loaded from this query: 3579
+    Bytes loaded in the last api call: 118048
+    Bytes loaded from this query: 118048
     Number of downloaded entries: 10
     Number of made api calls: 1
 
-    Energy -178.6990610734937 hartree
-    Energy -6551.45699684026 hartree
-    Energy -6551.461104765451 hartree
-    Energy -548.9736595672932 hartree
-    Energy -548.9724185656775 hartree
-    Energy -1510.3938165430286 hartree
-    Energy -1510.3937761449583 hartree
-    Energy -11467.827149010665 hartree
-    Energy -16684.667362890417 hartree
-    Energy -1510.3908614326358 hartree
+    Cd2O2: energy -11467.827149010665 hartree
+    Sr2O2: energy -6551.45699684026 hartree
+    Sr2O2: energy -6551.461104765451 hartree
+    Be2O2: energy -178.6990610734937 hartree
+    Ca2O2: energy -1510.3938165430286 hartree
+    Ca2O2: energy -1510.3937761449583 hartree
+    Ba2O2: energy -16684.667362890417 hartree
+    Mg2O2: energy -548.9736595672932 hartree
+    Mg2O2: energy -548.9724185656775 hartree
+    Ca2O2: energy -1510.3908614326358 hartree
 
 Let's discuss the different elements here. First, we have a set of imports. The NOMAD source
 codes comes with various sub-modules. The `client` module contains everything related
@@ -266,6 +266,21 @@ class ArchiveQuery(collections.abc.Sequence):
             self.query['query'].update(query)
         if required is not None:
             self.query['query_schema'] = required
+            # We try to add all required properties to the query to ensure that only
+            # results with those properties are returned.
+            section_run_key = next(key for key in required if key.split('[')[0] == 'section_run')
+            if section_run_key is not None:
+                # add all quantities in required to the query part
+                quantities = set()
+                stack = [required[section_run_key]]
+                while len(stack) > 0:
+                    required_dict = stack.pop()
+                    for key, value in required_dict.items():
+                        if isinstance(value, dict):
+                            stack.append(value)
+                        quantities.add(key.split('[')[0])
+                self.query['query'].setdefault('dft.quantities', []).extend(quantities)
+                self.query['query']['domain'] = 'dft'
 
         self.password = password
         self.username = username

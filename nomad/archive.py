@@ -538,6 +538,13 @@ __query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*)
 
 
 def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict, **kwargs):
+    def _fix_index(index, length):
+        if index is None:
+            return index
+        if index < 0:
+            return max(-(length), index)
+        else:
+            return min(length, index)
 
     def _to_son(data):
         if isinstance(data, (ArchiveList, List)):
@@ -558,10 +565,11 @@ def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query
 
             # process array indices
             match = __query_archive_key_pattern.match(key)
-            index: Tuple[int, int] = None
+            index: Union[Tuple[int, int], int] = None
             if match:
                 key = match.group(1)
 
+                # check if we have indices
                 if match.group(2) is not None:
                     first_index, last_index = None, None
                     group = match.group(3)
@@ -573,7 +581,7 @@ def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query
                         index = (0 if first_index is None else first_index, last_index)
 
                     else:
-                        index = (first_index, first_index + 1)  # one item
+                        index = first_index  # one item
 
                 else:
                     index = None
@@ -599,7 +607,15 @@ def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query
                 if index is None:
                     pass
                 else:
-                    archive_child = archive_child[index[0]: index[1]]
+                    length = len(archive_child)
+                    if isinstance(index, list):
+                        index = (_fix_index(index[0], length), _fix_index(index[1], length))
+                        if index[0] == index[1]:
+                            archive_child = [archive_child[index[0]]]
+                        else:
+                            archive_child = archive_child[index[0]: index[1]]
+                    else:
+                        archive_child = [archive_child[_fix_index(index, length)]]
 
                 if isinstance(archive_child, (ArchiveList, list)):
                     result[key] = [_load_data(val, item) for item in archive_child]
