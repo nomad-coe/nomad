@@ -608,7 +608,7 @@ def query_archive(f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query
                     pass
                 else:
                     length = len(archive_child)
-                    if isinstance(index, list):
+                    if isinstance(index, tuple):
                         index = (_fix_index(index[0], length), _fix_index(index[1], length))
                         if index[0] == index[1]:
                             archive_child = [archive_child[index[0]]]

@@ -271,8 +271,11 @@ class ArchiveQuery(collections.abc.Sequence):
             section_run_key = next(key for key in required if key.split('[')[0] == 'section_run')
             if section_run_key is not None:
                 # add all quantities in required to the query part
-                quantities = set()
-                stack = [required[section_run_key]]
+                quantities = {'section_run'}
+                stack = []
+                section_run = required[section_run_key]
+                if isinstance(section_run, dict):
+                    stack.append(section_run)
                 while len(stack) > 0:
                     required_dict = stack.pop()
                     for key, value in required_dict.items():
