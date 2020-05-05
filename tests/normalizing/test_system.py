@@ -124,7 +124,7 @@ def test_normalizer_faulty_matid(caplog):
 def test_normalizer_single_string_atom_labels(caplog):
     '''
     Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
-    the numbers of postitions should not match the labels.
+    the numbers of positions should not match the labels.
     '''
     backend = parse_file(single_string_atom_labels)
     run_normalize(backend)
