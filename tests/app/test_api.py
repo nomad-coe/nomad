@@ -715,6 +715,18 @@ class TestArchive(UploadFilesBasedTests):
 
         # TODO assert archive contents
 
+        # test not exists
+        entry_metadata = EntryMetadata(
+            domain='dft', upload_id=published_wo_user_metadata.upload_id,
+            calc_id='test_id', published=True, with_embargo=False)
+        entry_metadata.a_elastic.index(refresh=True)
+
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=True)))
+        assert rv.status_code == 401
+
+        rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_error=False)))
+        assert rv.status_code == 200
+
 
 class TestRepo():
     @pytest.fixture(scope='class')

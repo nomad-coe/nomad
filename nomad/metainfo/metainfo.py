@@ -1561,10 +1561,20 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         #     name = self.m_get(name_quantity_def)
         try:
             name = self.__dict__['name']
+            main = '%s:%s' % (name, m_section_name)
         except KeyError:
-            name = '<noname>'
+            main = m_section_name
 
-        return '%s:%s' % (name, m_section_name)
+        more = ''
+        props = [
+            prop
+            for prop in self.m_def.all_properties
+            if prop in self.__dict__]
+
+        if len(props) > 10:
+            more = ', +%d more properties' % (len(props) - 10)
+
+        return '%s(%s%s)' % (main, ', '.join(props[0:10]), more)
 
     def __getitem__(self, key):
         try:
