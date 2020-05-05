@@ -13,11 +13,11 @@ query = ArchiveQuery(
         'atoms': ['O']
     },
     required={
-        'section_run': {
-            'section_single_configuration_calculation[0]': {
+        'section_run[0]': {
+            'section_single_configuration_calculation[-2]': {
                 'energy_total': '*'
             },
-            'section_system[0]': '*'
+            'section_system[-2]': '*'
         }
     },
     per_page=10,

@@ -217,7 +217,7 @@ _archive_query_model = api.inherit('ArchiveSearch', search_model, {
     'query': fields.Nested(query_model, description='The query used to find the requested entries.', skip_none=True),
     'required': fields.Raw(description='A dictionary that defines what archive data to retrive.'),
     'query_schema': fields.Raw(description='Deprecated, use required instead.'),
-    'raise_errors': fields.Boolean(description='Return 401 on missing archives or 500 on other errors instead of skipping the entry.')
+    'raise_errors': fields.Boolean(description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
 })
 
 
@@ -259,7 +259,7 @@ class ArchiveQueryResource(Resource):
             else:
                 required = data_in.get('query_schema', '*')
 
-            raise_error = data_in.get('raise_error', True)
+            raise_errors = data_in.get('raise_errors', False)
 
         except Exception:
             abort(400, message='bad parameter types')
@@ -328,15 +328,15 @@ class ArchiveQueryResource(Resource):
             except ArchiveQueryError as e:
                 abort(400, str(e))
             except KeyError:
-                if raise_error:
-                    abort(401, 'Archive for entry %s does not exist' % calc_id)
+                if raise_errors:
+                    abort(404, 'Archive for entry %s does not exist' % calc_id)
                 # We simply skip this entry
                 pass
             except Restricted:
                 # TODO in reality this should not happen
                 pass
             except Exception as e:
-                if raise_error:
+                if raise_errors:
                     raise e
                 common.logger(str(e), exc_info=e)
 
