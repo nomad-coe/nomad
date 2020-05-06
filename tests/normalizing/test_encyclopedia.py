@@ -29,12 +29,11 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     phonon,
     two_d,
     bulk,
-    bands_unpolarized_no_gap,
-    bands_polarized_no_gap,
-    bands_unpolarized_gap_indirect,
-    bands_polarized_gap_indirect,
     dos_unpolarized_vasp,
     dos_polarized_vasp,
+    bands_unpolarized_no_gap,
+    bands_polarized_no_gap,
+    band_path_cF_nonstandard,
     hash_exciting,
     hash_vasp,
 )
@@ -56,15 +55,6 @@ def test_molecular_dynamics(molecular_dynamics: EntryArchive):
     enc = molecular_dynamics.entry_archive.section_encyclopedia
     calc_type = enc.calculation.calculation_type
     assert calc_type == "molecular dynamics"
-
-
-# Disabled until the method information can be retrieved
-# def test_phonon(phonon: EntryArchive):
-    # """Tests that geometry optimizations are correctly processed."
-    # """
-    # enc = phonon.get_mi2_section(Encyclopedia.m_def)
-    # calc_type = enc.calc_type.calc_type
-    # assert calc_type == "phonon calculation"
 
 
 def test_1d_metainfo(one_d: EntryArchive):
@@ -454,61 +444,6 @@ def test_method_gw_metainfo(gw):
     assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
 
 
-def test_band_structure(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):
-
-    def test_generic(bs, n_channels):
-        """Generic tests for band structure data."""
-        assert bs.brillouin_zone is not None
-        assert bs.reciprocal_cell.shape == (3, 3)
-
-    # Unpolarized, no gaps
-    enc = bands_unpolarized_no_gap.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=1)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Polarized, no gaps
-    enc = bands_polarized_no_gap.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=2)
-    assert bs.band_gap is None
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Unpolarized, finite gap, indirect
-    enc = bands_unpolarized_gap_indirect.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=1)
-    gap_ev = (bs.band_gap.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_ev == pytest.approx(0.62, 0.01)
-    assert bs.band_gap.type == "indirect"
-    assert bs.band_gap_spin_up is None
-    assert bs.band_gap_spin_down is None
-
-    # Polarized, finite gap, indirect
-    enc = bands_polarized_gap_indirect.entry_archive.section_encyclopedia
-    properties = enc.properties
-    bs = properties.electronic_band_structure
-    test_generic(bs, n_channels=2)
-    gap = bs.band_gap
-    gap_up = bs.band_gap_spin_up
-    gap_down = bs.band_gap_spin_down
-    gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
-    gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
-    gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_up.type == "indirect"
-    assert gap_down.type == "indirect"
-    assert gap_up_ev != gap_down_ev
-    assert gap_up_ev == gap_ev
-    assert gap_up_ev == pytest.approx(0.956, 0.01)
-    assert gap_down_ev == pytest.approx(1.230, 0.01)
-
-
 def test_hashes_exciting(hash_exciting):
     """Tests that the hashes has been successfully created for calculations
     from exciting.
@@ -535,3 +470,69 @@ def test_hashes_undefined(hash_vasp):
     # not really need the method to be accurately defined.
     assert method_hash is None
     assert group_eos_hash is None
+
+
+def test_dos(dos_unpolarized_vasp, dos_polarized_vasp):
+    """Tests that referenced DOS information is valid.
+    """
+    def generaltests(dos, n_channels):
+        assert dos is not None
+        assert dos.dos_values_normalized.shape == (n_channels, 301)
+        assert dos.dos_energies_normalized.shape == (301,)
+
+    generaltests(dos_unpolarized_vasp.entry_archive.section_encyclopedia.properties.electronic_dos, n_channels=1)
+    generaltests(dos_polarized_vasp.entry_archive.section_encyclopedia.properties.electronic_dos, n_channels=2)
+
+
+def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band_path_cF_nonstandard):
+    """Tests that referenced electronic band structure information is valid.
+    """
+    def generaltests(band):
+        assert band is not None
+        for segment in band.section_k_band_segment:
+            assert segment.band_energies is not None
+            assert segment.band_k_points is not None
+            assert segment.band_segm_labels is not None
+
+    # VASP bands
+    generaltests(bands_unpolarized_no_gap.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+    generaltests(bands_polarized_no_gap.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+
+    # Band structure from exciting calculation where there are multiple sccs
+    # and multiple bands present for some reason...
+    generaltests(band_path_cF_nonstandard.entry_archive.section_encyclopedia.properties.electronic_band_structure)
+
+
+def test_phonon(phonon: EntryArchive):
+    """Tests that phonon calculations are correctly processed.
+    """
+    enc = phonon.entry_archive.section_encyclopedia
+    calc_type = enc.calculation.calculation_type
+    prop = enc.properties
+    band = prop.phonon_band_structure
+    dos = prop.phonon_dos
+    thermo_props = prop.thermodynamical_properties
+    assert calc_type == "phonon calculation"
+
+    # TODO: Check method information
+
+    # Check dos
+    assert dos is not None
+    assert dos.dos_kind == "vibrational"
+    assert dos.dos_energies is not None
+    assert dos.dos_values is not None
+
+    # Check band structure
+    assert band is not None
+    assert band.band_structure_kind == "vibrational"
+    for segment in band.section_k_band_segment:
+        assert segment.band_energies is not None
+        assert segment.band_k_points is not None
+        assert segment.band_segm_labels is not None
+
+    # Check thermodynamical properties
+    assert thermo_props is not None
+    assert thermo_props.thermodynamical_property_heat_capacity_C_v is not None
+    assert thermo_props.specific_heat_capacity is not None
+    assert thermo_props.thermodynamical_property_temperature is not None
+    assert thermo_props.vibrational_free_energy_at_constant_volume is not None

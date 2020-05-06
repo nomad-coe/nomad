@@ -409,7 +409,7 @@ def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
 def prototypes_update(ctx, filepath, matches_only):
 
     if matches_only:
-        from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
+        from nomad.aflow_prototypes import aflow_prototypes
     else:
         # The basic AFLOW prototype data is available in a Javascript file. Here we
         # retrieve it and read only the prototype list from it.

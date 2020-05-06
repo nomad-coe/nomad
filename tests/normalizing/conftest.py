@@ -223,3 +223,56 @@ def hash_exciting() -> Backend:
 @pytest.fixture(scope='session')
 def hash_vasp(bands_unpolarized_gap_indirect) -> Backend:
     return bands_unpolarized_gap_indirect
+
+
+@pytest.fixture(scope='session')
+def band_path_cF(bands_unpolarized_gap_indirect) -> Backend:
+    """Band structure calculation for a cP Bravais lattice.
+    """
+    return bands_unpolarized_gap_indirect
+
+
+@pytest.fixture(scope='session')
+def band_path_tP() -> Backend:
+    """Band structure calculation for a tP Bravais lattice.
+    """
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/tP/vasprun.xml.bands.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def band_path_hP() -> Backend:
+    """Band structure calculation for a hP Bravais lattice.
+    """
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/hP/vasprun.xml.bands.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def band_path_mP_nonstandard() -> Backend:
+    """Band structure calculation for a mP Bravais lattice with a non-standard
+    lattice ordering.
+    """
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/mP_nonstandard/vasprun.xml.bands.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def band_path_cF_nonstandard() -> Backend:
+    """Band structure calculation for a mP Bravais lattice with a non-standard
+    lattice ordering.
+    """
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend

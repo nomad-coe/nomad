@@ -11,13 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+This module contains the physical/mathematical constants as to be used within
+the NOMAD infrastructure. The constants may be mixed from different sources. By
+default all constants are reported in SI units.
+"""
 
 import numpy as np
+import scipy.constants
+
+atomic_mass_constant = scipy.constants.physical_constants["atomic mass constant"][0]
+pi = scipy.constants.pi
 
 # List of atomic masses (natural isotope dist.) in order, atomic mass units.
 # These custom mass definitions are used because the ones provided by ASE are not
 # as complete. Origin: phonopy-1.11.2.25.tar.gz:phonopy/structure/atoms.py:atom_data
-NUMBER_TO_MASS_MAP_AMU = np.array([
+atomic_masses = np.array([
     np.nan,       # 0
     1.00794,      # 1
     4.002602,     # 2
@@ -137,9 +146,5 @@ NUMBER_TO_MASS_MAP_AMU = np.array([
     293,          # 116
     294,          # 117
     294,          # 118
-])
-NUMBER_TO_MASS_MAP_AMU.flags.writeable = False
-
-# List of atomic masses (natural isotope dist.) in order, SI units (kg)
-NUMBER_TO_MASS_MAP_KG = NUMBER_TO_MASS_MAP_AMU * 1.6605389e-27
-NUMBER_TO_MASS_MAP_KG.flags.writeable = False
+]) * atomic_mass_constant
+atomic_masses.flags.writeable = False

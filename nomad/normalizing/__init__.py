@@ -35,11 +35,12 @@ There is one ABC for all normalizer:
 
 from typing import List, Any, Iterable, Type
 
-from .dos import DosNormalizer
-from .fhiaims import FhiAimsBaseNormalizer
-from .normalizer import Normalizer
-from .optimade import OptimadeNormalizer
 from .system import SystemNormalizer
+from .optimade import OptimadeNormalizer
+from .fhiaims import FhiAimsBaseNormalizer
+from .dos import DosNormalizer
+from .normalizer import Normalizer
+from .band_structure import BandStructureNormalizer
 from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
@@ -47,5 +48,6 @@ normalizers: Iterable[Type[Normalizer]] = [
     OptimadeNormalizer,
     FhiAimsBaseNormalizer,
     DosNormalizer,
-    EncyclopediaNormalizer
+    BandStructureNormalizer,
+    EncyclopediaNormalizer,
 ]

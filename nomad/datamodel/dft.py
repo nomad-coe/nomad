@@ -18,7 +18,7 @@ DFT specific metadata
 
 import re
 
-from nomad import config
+from nomad import config, utils
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
@@ -271,8 +271,18 @@ class DFTMetadata(MSection):
                 return parser.code_name
         return config.services.unavailable_value
 
+    def update_group_hash(self):
+        self.group_hash = utils.hash(
+            self.m_parent.formula,
+            self.spacegroup,
+            self.basis_set,
+            self.xc_functional,
+            self.code_name,
+            self.code_version,
+            self.m_parent.with_embargo,
+            self.m_parent.uploader)
+
     def apply_domain_metadata(self, backend):
-        from nomad import utils
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
 
@@ -325,15 +335,7 @@ class DFTMetadata(MSection):
             get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
 
         # grouping
-        self.group_hash = utils.hash(
-            entry.formula,
-            self.spacegroup,
-            self.basis_set,
-            self.xc_functional,
-            self.code_name,
-            self.code_version,
-            entry.with_embargo,
-            entry.uploader)
+        self.update_group_hash()
 
         # metrics and quantities
         quantities = set()
