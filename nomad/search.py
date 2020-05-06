@@ -441,7 +441,7 @@ class SearchRequest:
         self._search.aggs.metric(
             'global_statistics:n_entries', A('value_count', field='calc_id'))
         self._search.aggs.metric(
-            'global_statistics:n_uploads', A('value_count', field='upload_id'))
+            'global_statistics:n_uploads', A('cardinality', field='upload_id'))
         self._search.aggs.metric(
             'global_statistics:n_calculations', A('sum', field='dft.n_calculations'))
         self._search.aggs.metric(

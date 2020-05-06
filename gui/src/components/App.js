@@ -15,6 +15,8 @@ import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import FAQIcon from '@material-ui/icons/QuestionAnswer'
 import MetainfoIcon from '@material-ui/icons/Info'
+import DocIcon from '@material-ui/icons/Help'
+import CodeIcon from '@material-ui/icons/Code'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -22,7 +24,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme } from '../config'
+import { guiBase, consent, nomadTheme, appBase } from '../config'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
@@ -45,7 +47,7 @@ function LoadingIndicator() {
   useEffect(() => {
     api.onLoading(handleOnLoading)
     return () => api.removeOnLoading(handleOnLoading)
-  }, [])
+  }, [api, handleOnLoading])
 
   return loading ? <LinearProgress color="secondary" /> : ''
 }
@@ -78,18 +80,18 @@ const useMainMenuItemStyles = makeStyles(theme => ({
   }
 }))
 
-function MainMenuItem({tooltip, title, path, icon}) {
+function MainMenuItem({tooltip, title, path, href, icon}) {
   const {pathname} = useLocation()
   const classes = useMainMenuItemStyles()
   const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
+  const rest = path ? {to: path, component: Link} : {href: href}
   return <Tooltip title={tooltip}>
     <Button
       className={classes.button}
-      component={Link}
-      to={path}
       color={selected ? 'primary' : 'default'}
       size="small"
       startIcon={icon}
+      {...rest}
     >
       {title}
     </Button>
@@ -99,7 +101,8 @@ function MainMenuItem({tooltip, title, path, icon}) {
 MainMenuItem.propTypes = {
   'tooltip': PropTypes.string.isRequired,
   'title': PropTypes.string.isRequired,
-  'path': PropTypes.string.isRequired,
+  'path': PropTypes.string,
+  'href': PropTypes.string,
   'icon': PropTypes.element.isRequired
 }
 
@@ -319,6 +322,18 @@ class NavigationUnstyled extends React.Component {
                   path="/faq"
                   tooltip="Frequently Asked Questions (FAQ)"
                   icon={<FAQIcon/>}
+                />
+                <MainMenuItem
+                  title="Docs"
+                  href={`${appBase}/docs/index.html`}
+                  tooltip="The NOMAD documentation"
+                  icon={<DocIcon/>}
+                />
+                <MainMenuItem
+                  title="Sources"
+                  href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+                  tooltip="NOMAD's Gitlab project"
+                  icon={<CodeIcon/>}
                 />
               </MenuList>
               <LoadingIndicator />

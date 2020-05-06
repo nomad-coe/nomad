@@ -15,7 +15,7 @@ const useCardStyles = makeStyles(theme => ({
   }
 }))
 
-function MarkdownCard({title, children, xs, top, bottom}) {
+function InfoCard({title, children, xs, top, bottom}) {
   const classes = useCardStyles()
   const style = {}
   if (top) {
@@ -28,12 +28,12 @@ function MarkdownCard({title, children, xs, top, bottom}) {
     <Card>
       <CardContent>
         <Typography variant="h6" className={classes.title}>{title}</Typography>
-        <Typography>{children}</Typography>
+        <Typography component="div">{children}</Typography>
       </CardContent>
     </Card>
   </Grid>
 }
-MarkdownCard.propTypes = {
+InfoCard.propTypes = {
   title: PropTypes.string.isRequired,
   children: PropTypes.node,
   xs: PropTypes.number,
@@ -125,23 +125,23 @@ export default function About() {
         your own data, please login or register for an account.
         `}</Markdown>
       </Grid>
-      <MarkdownCard xs={6} title="Interactive Search" top>
+      <InfoCard xs={6} title="Interactive Search" top>
         NOMAD extracts <b>rich metadata</b> from uploaded raw-data. <Link component={RouterLink} to={'/search'}>
         Explore NOMAD&apos;s data</Link> by creating complex queries from interactive data visualizations of key
         properties, including the simulated composition/system, used method, upload metadata,
         as well as material classifications and available quantities. Or use
         the <b>Optimade</b> filter language to add arbitrarily nested queries.
-      </MarkdownCard>
-      <MarkdownCard xs={6} title="A common data format" top>
+      </InfoCard>
+      <InfoCard xs={6} title="A common data format" top>
         The <b>NOMAD Archive</b> provides data in processed and normalized form in a machine processable and common hierarchical format.
         All data in the NOMAD Archive is organized into nested sections of quantities with well defined units,
         data types, shapes, and descriptions. These definitions are called the <b>NOMAD Metainfo</b> and they
         can be <Link component={RouterLink} to={'/metainfo'}>browsed here</Link>.
-      </MarkdownCard>
+      </InfoCard>
       <Grid item xs={12} style={{paddingTop: 0, paddingBottom: 0}}>
         <AboutSvg ref={svg}></AboutSvg>
       </Grid>
-      <MarkdownCard xs={4} title="Uploading is simple" bottom>
+      <InfoCard xs={4} title="Uploading is simple" bottom>
         <p>
         You provide your own data <i>as is</i>. Just zip your code input and out files as they are,
         including nested directory structures and potential auxiliary files, and upload
@@ -162,8 +162,8 @@ export default function About() {
           You can provide via GUI or shell command <Link component={RouterLink} to={'/uploads'}>here</Link>.
           Manage already uploaded data <Link component={RouterLink} to={'/userdata'}>here</Link>.
         </p>
-      </MarkdownCard>
-      <MarkdownCard xs={4} title="Processing" bottom>
+      </InfoCard>
+      <InfoCard xs={4} title="Processing" bottom>
         <p>
         Uploaded data is automatically processed and made available
         in the uploaded <b>raw files</b> or in its processed and unified <b>Archive</b> form.
@@ -177,8 +177,8 @@ export default function About() {
         Read <Link href="">here</Link> on how to install
         our software and how to use NOMAD processing in your Python environment.
         </p>
-      </MarkdownCard>
-      <MarkdownCard xs={4} title="APIs" bottom><Markdown>{`
+      </InfoCard>
+      <InfoCard xs={4} title="APIs" bottom><Markdown>{`
       The NOMAD can also be accessed programmatically via ReST APIs.
       There is the proprietary NOMAD API and an implementation of the
       standardized [OPTiMaDe API (0.10.0)](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
@@ -194,7 +194,7 @@ export default function About() {
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
       The [NOMAD Analytics Toolkit](https://analytic-toolkit.nomad-coe.eu) allows to use
       this without installation and directly on NOMAD servers.
-      `}</Markdown></MarkdownCard>
+      `}</Markdown></InfoCard>
       <Grid item xs={12}>
         <Markdown>{`
         ### Getting Help
@@ -205,14 +205,14 @@ export default function About() {
         system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).
 
         ### Developer Documentation
-        The [in-depth developer documentation](${appBase}/docs/index.html)
-        contains a general introduction to NOMAD, the underlying architecture,
-        is (meta)data, and processing. You will also find some information on how to use
-        the NOMAD ReST API. It contains information about how to develop NOMAD, how to
-        operate it, how to contribute parsers, and much more.
+        The [in-depth documentation](${appBase}/docs/index.html)
+        contains a general introduction to NOMAD and its underlying architecture,
+        more information and tutorials, how to prepare uploads, how
+        to use the API, developer information, how to operate your own NOMAD (a so called
+        Oasis), how to contribute parsers, and much more.
 
         ### Source code
-        The source-code for this new version of NOMAD (dubbed *nomad@FAIRDI*) is maintained
+        The source-code for the NOMAD Repository and Archive is maintained
         at the MPCDF's [gitlab](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR).
         To push code, you need an MPCDF account and you can apply
         [here](https://www.mpcdf.mpg.de/userspace/forms/onlineregistrationform).
