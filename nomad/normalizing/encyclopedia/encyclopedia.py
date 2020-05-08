@@ -15,8 +15,8 @@
 from typing import Any
 
 from nomad.normalizing.normalizer import Normalizer
-from nomad.metainfo.encyclopedia import (
-    section_encyclopedia,
+from nomad.datamodel.encyclopedia import (
+    EncyclopediaMetadata,
     Material,
     Method,
     Properties,
@@ -205,8 +205,8 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
-        sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
-        status_enums = section_encyclopedia.status.type
+        sec_enc = self.backend.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
+        status_enums = EncyclopediaMetadata.status.type
 
         # Do nothing if section_run is not present
         if self.section_run is None:

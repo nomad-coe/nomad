@@ -20,13 +20,13 @@ from elasticsearch_dsl import Keyword, Text, analyzer, tokenizer
 import ase.data
 
 from nomad import metainfo, config
-from nomad.metainfo.encyclopedia import section_encyclopedia
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
+from .encyclopedia import EncyclopediaMetadata
 from .metainfo.public import section_run
 from .metainfo.general_experimental import section_experiment
 
@@ -449,12 +449,15 @@ class EntryMetadata(metainfo.MSection):
 
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
     dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft')
+    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, a_search='encyclopedia')
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''
         self.m_update(**metadata)
 
     def apply_domain_metadata(self, backend):
+        """Used to apply metadata that is related to the domain.
+        """
         assert self.domain is not None, 'all entries must have a domain'
         domain_sub_section_def = self.m_def.all_sub_sections.get(self.domain)
         domain_section_def = domain_sub_section_def.sub_section
@@ -473,7 +476,6 @@ class EntryArchive(metainfo.MSection):
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=section_experiment)
     section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
-    section_encyclopedia = metainfo.SubSection(sub_section=section_encyclopedia)
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],

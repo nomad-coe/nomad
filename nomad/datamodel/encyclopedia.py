@@ -1,13 +1,12 @@
 import numpy as np
-from elasticsearch_dsl import InnerDoc
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference
 from nomad.datamodel.metainfo.public import section_k_band, section_dos, section_thermodynamical_properties
+from nomad.metainfo.search_extension import Search
 
 
 class WyckoffVariables(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
         description="""
         Contains the variables associated with a Wyckoff set.
         """
@@ -35,7 +34,6 @@ class WyckoffVariables(MSection):
 class WyckoffSet(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
         description="""
         Section for storing Wyckoff set information.
         """
@@ -65,7 +63,6 @@ class WyckoffSet(MSection):
 class IdealizedStructure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
         description="""
         Contains structural information for an idealized representation of the
         material used in the calculation. This idealization is used for
@@ -138,12 +135,13 @@ class IdealizedStructure(MSection):
         original simulation cell.
         """
     )
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
 
 class Bulk(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_elastic="bulk",
         description="""
         Contains information that is specific to bulk crystalline materials.
         """
@@ -172,13 +170,15 @@ class Bulk(MSection):
         I = Body centered
         R = Rhombohedral centring
         F = All faces centred
-        """
+        """,
+        a_search=Search()
     )
     crystal_system = Quantity(
         type=MEnum("triclinic", "monoclinic", "orthorhombic", "tetragonal", "trigonal", "hexagonal", "cubic"),
         description="""
         The detected crystal system. One of seven possibilities in three dimensions.
-        """
+        """,
+        a_search=Search()
     )
     has_free_wyckoff_parameters = Quantity(
         type=bool,
@@ -194,47 +194,52 @@ class Bulk(MSection):
         description="""
         Point group in Hermann-Mauguin notation, part of crystal structure
         classification. There are 32 point groups in three dimensional space.
-        """
+        """,
+        a_search=Search()
     )
     space_group_number = Quantity(
         type=int,
         description="""
         Integer representation of the space group, part of crystal structure
         classification, part of material definition.
-        """
+        """,
+        a_search=Search()
     )
     space_group_international_short_symbol = Quantity(
         type=str,
         description="""
         International short symbol notation of the space group.
-        """
+        """,
+        a_search=Search()
     )
     structure_prototype = Quantity(
         type=str,
         description="""
         The prototypical material for this crystal structure.
-        """
+        """,
+        a_search=Search()
     )
     structure_type = Quantity(
         type=str,
         description="""
         Classification according to known structure type, considering the point
         group of the crystal and the occupations with different atom types.
-        """
+        """,
+        a_search=Search()
     )
     strukturbericht_designation = Quantity(
         type=str,
         description="""
         Classification of the material according to the historically grown "strukturbericht".
-        """
+        """,
+        a_search=Search()
     )
-    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
 
 class Material(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_elastic="material",
         description="""
         Contains an overview of the type of material that was detected in this
         entry.
@@ -244,20 +249,23 @@ class Material(MSection):
         type=MEnum(bulk="bulk", two_d="2D", one_d="1D", unavailable="unavailable"),
         description="""
         "Broad structural classification for the material, e.g. bulk, 2D, 1D... ",
-        """
+        """,
+        a_search=Search()
     )
-    material_hash = Quantity(
+    material_id = Quantity(
         type=str,
         description="""
         A fixed length, unique material identifier in the form of a hash
         digest.
-        """
+        """,
+        a_search=Search()
     )
     material_name = Quantity(
         type=str,
         description="""
         Most meaningful name for a material.
-        """
+        """,
+        a_search=Search()
     )
     material_classification = Quantity(
         type=str,
@@ -272,7 +280,8 @@ class Material(MSection):
         Formula giving the composition and occurrences of the elements in the
         Hill notation. For periodic materials the formula is calculated fom the
         primitive unit cell.
-        """
+        """,
+        a_search=Search()
     )
     formula_reduced = Quantity(
         type=str,
@@ -280,20 +289,21 @@ class Material(MSection):
         Formula giving the composition and occurrences of the elements in the
         Hill notation whre the number of occurences have been divided by the
         greatest common divisor.
-        """
+        """,
+        a_search=Search()
     )
-
-    # The idealized structure for this material
-    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False)
 
     # Bulk-specific properties
     bulk = SubSection(sub_section=Bulk.m_def, repeats=False)
+
+    # The idealized structure for this material
+    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False)
 
 
 class Method(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_elastic="method",
         description="""
         Contains an overview of the methodology that was detected in this
         entry.
@@ -385,7 +395,7 @@ class Method(MSection):
 class Calculation(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_elastic="calculation",
         description="""
         Contains an overview of the type of calculation that was detected in
         this entry.
@@ -412,7 +422,7 @@ class Calculation(MSection):
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_elastic="properties",
         description="""
         Contains derived physical properties that are specific to the NOMAD
         Encyclopedia.
@@ -475,10 +485,10 @@ class Properties(MSection):
     )
 
 
-class section_encyclopedia(MSection):
+class EncyclopediaMetadata(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic=dict(type=InnerDoc),
+        a_search='encyclopedia',
         description="""
         Section which stores information for the NOMAD Encyclopedia.
         """

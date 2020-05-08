@@ -18,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from pint import UnitRegistry
 
-from nomad.metainfo.encyclopedia import (
+from nomad.datamodel.encyclopedia import (
     Material,
     Method,
 )
@@ -384,7 +384,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         # Fetch resources
         repr_method = context.representative_method
         repr_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
         material = sec_enc.material
         settings_basis_set = get_basis_set(context, self.backend, self.logger)
@@ -423,7 +423,7 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         repr_method = context.representative_method
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
 
         # Fill metainfo

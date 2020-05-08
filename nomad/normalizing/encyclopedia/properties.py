@@ -14,7 +14,7 @@
 
 import json
 
-from nomad.metainfo.encyclopedia import (
+from nomad.datamodel.encyclopedia import (
     Calculation,
     Properties,
 )
@@ -212,7 +212,7 @@ class PropertiesNormalizer():
             return
 
         # Fetch resources
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         properties = sec_enc.properties
         calc_type = context.calc_type
         material_type = context.material_type
