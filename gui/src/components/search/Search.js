@@ -549,13 +549,14 @@ const useScroll = (apiGroupName, afterParameterName) => {
 }
 
 function SearchEntryList(props) {
-  const {response, requestParameters, apiQuery} = useContext(searchContext)
+  const {response, requestParameters, apiQuery, update} = useContext(searchContext)
   const setRequestParameters = usePagination()
   return <EntryList
     query={apiQuery}
     editable={apiQuery.owner === 'staging' || apiQuery.owner === 'user'}
     data={response}
     onChange={setRequestParameters}
+    onEdit={update}
     actions={
       <React.Fragment>
         <ReRunSearchButton/>
@@ -568,9 +569,10 @@ function SearchEntryList(props) {
 }
 
 function SearchDatasetList(props) {
-  const {response} = useContext(searchContext)
+  const {response, update} = useContext(searchContext)
   return <DatasetList
     data={response}
+    onEdit={update}
     actions={<ReRunSearchButton/>}
     {...response} {...props} {...useScroll('datasets')}
   />
@@ -586,8 +588,9 @@ function SearchGroupList(props) {
 }
 
 function SearchUploadList(props) {
-  const {response} = useContext(searchContext)
+  const {response, update} = useContext(searchContext)
   return <UploadList data={response}
+    onEdit={update}
     actions={<ReRunSearchButton/>}
     {...response} {...props} {...useScroll('uploads')}
   />

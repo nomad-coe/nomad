@@ -171,7 +171,7 @@ class Upload extends React.Component {
       cursor: 'pointer'
     },
     decideIcon: {
-      color: theme.palette.secondary.main
+      color: theme.palette.error.main
     }
   })
 
@@ -605,12 +605,13 @@ class Upload extends React.Component {
 
     return <EntryList
       title={`Upload with ${data.pagination.total} detected entries`}
-      query={{upload_id: upload.upload_id}}
+      query={{upload_id: [upload.upload_id]}}
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
       editable={tasks_status === 'SUCCESS'}
       data={data}
       onChange={this.handleChange}
+      onEdit={this.handleChange}
       actions={actions}
       showEntryActions={entry => entry.processed || !running}
       {...this.state.params}
@@ -634,7 +635,7 @@ class Upload extends React.Component {
     } else if (upload.published) {
       return render(<PublishedIcon size={32} color="primary"/>, 'This upload is published')
     } else {
-      return render(<UnPublishedIcon size={32} color="secondary"/>, 'This upload is not published yet, and only visible to you')
+      return render(<UnPublishedIcon size={32} color="error"/>, 'This upload is not published yet, and only visible to you')
     }
   }
 

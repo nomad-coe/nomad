@@ -131,7 +131,7 @@ class DatasetActionsUnstyled extends React.Component {
 
     const canAssignDOI = !doi
     const canDelete = !doi
-    const query = {dataset_id: dataset.id}
+    const query = {dataset_id: [dataset.dataset_id]}
 
     return <FormGroup row classes={{root: classes.group}}>
       {search && <Tooltip title="Open a search page with entries from this dataset only.">
@@ -180,6 +180,7 @@ class DatasetListUnstyled extends React.Component {
     data: PropTypes.object,
     total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     datasets_after: PropTypes.string,
     per_page: PropTypes.number,
@@ -243,8 +244,8 @@ class DatasetListUnstyled extends React.Component {
   }
 
   renderEntryActions(entry) {
-    const {onChange} = this.props
-    return <DatasetActions search dataset={entry} onChange={() => onChange({})} />
+    const {onEdit} = this.props
+    return <DatasetActions search dataset={entry} onChange={onEdit} />
   }
 
   render() {
