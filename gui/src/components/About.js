@@ -98,6 +98,8 @@ export default function About() {
           stringValue = Math.floor(nominal / 1.0e+3) + ' tsd.'
         }
         return `${stringValue || '...'} ${unit}`
+      } else {
+        return '...'
       }
     }
     setText('repositoryStats', [
