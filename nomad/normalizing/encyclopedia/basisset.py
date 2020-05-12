@@ -168,33 +168,33 @@ class BasisSetExciting(BasisSet):
                 label = group.x_exciting_geometry_atom_labels
                 try:
                     muffin_tin_settings["{}_muffin_tin_radius".format(label)] = "%.6f" % (group.x_exciting_muffin_tin_radius.to(ureg.angstrom).magnitude)
-                except KeyError:
+                except Exception:
                     muffin_tin_settings["{}_muffin_tin_radius".format(label)] = None
                 try:
                     muffin_tin_settings["{}_muffin_tin_points".format(label)] = "%d" % group.x_exciting_muffin_tin_points
-                except KeyError:
+                except Exception:
                     muffin_tin_settings["{}_muffin_tin_points".format(label)] = None
             self.settings["muffin_tin_settings"] = muffin_tin_settings
-        except KeyError:
+        except Exception:
             pass
 
         # Other important method settings
         system = self._ctx.representative_system
         try:
             self.settings['rgkmax'] = "%.6f" % (system.x_exciting_rgkmax.magnitude)
-        except KeyError:
+        except Exception:
             pass
         try:
             self.settings['gkmax'] = "%.6f" % (1e-10 * system.x_exciting_gkmax.magnitude)
-        except KeyError:
+        except Exception:
             pass
         try:
             self.settings['lo'] = "%d" % (system.x_exciting_lo)
-        except KeyError:
+        except Exception:
             pass
         try:
             self.settings['lmaxapw'] = "%d" % (system.x_exciting_lmaxapw)
-        except KeyError:
+        except Exception:
             pass
 
         return self.settings
