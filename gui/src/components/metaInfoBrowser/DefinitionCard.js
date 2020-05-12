@@ -57,13 +57,13 @@ class DefinitionCardUnstyled extends React.Component {
       display: 'inline'
     },
     descriptionParagraph: {
-      marginTop: theme.spacing.unit,
+      marginTop: theme.spacing(1),
       '&:first-child': {
         marginTop: 0
       }
     },
     source: {
-      margin: theme.spacing.unit,
+      margin: theme.spacing(1),
       maxWidth: 700
     }
   })
@@ -89,21 +89,21 @@ class DefinitionCardUnstyled extends React.Component {
         <Card {...inherited} classes={{header: current === definition ? classes.current : ''}}>
           {definition.parent && (this.isCurrent() || this.isParentOfCurrent())
             ? <CardButton icon={parentIsVisible ? 'keyboard_tab' : 'keyboard_backspace'}
-              size="tiny" position="left"
+              size="medium" position="left"
               onClick={() => toggleDefinition(definition.parent, !parentIsVisible)}/>
             : ''
           }
-          <CardButton position="center" size="tiny" icon="launch"
+          <CardButton position="center" size="medium" icon="launch"
             component={props => <Link to={`/metainfo/${definition.name}`} {...props} />}
           />
           <PopoverCardButton
             position="center" icon="code" classes={{content: classes.source}}
-            size="tiny" data={definition.miJson}
+            size="medium" data={definition.miJson}
             label="Definition JSON"
           />
           {definition.problems.length > 0
             ? <PopoverCardButton
-              position="center" icon="report_problem" color='secondary' size="tiny"
+              position="center" icon="report_problem" color='secondary' size="medium"
               classes={{content: classes.source}}
               data={definition.problems} label="Definition Errors"
             /> : ''

@@ -13,26 +13,125 @@
 # limitations under the License.
 
 '''
-Contains the Python client side library to access the NOMAD archive.
+Install the NOMAD client library
+________________________________
 
-# TODO
-In module ``ArchiveMetainfo``, the data is provided either from raw
-json data or as a filename of an existing msgpack database. The metainfo
-can then queried by providing a schema.
+The NOMAD client library is a Python module (part of the nomad Python package) that
+allows to access the NOMAD archive to retrieve and analyse (large amounts) of NOMAD's
+archive data. It allows to use queries to filter for desired entries, bulk download
+the required parts of the respective archives, and navigate the results using NOMAD's
+metainfo Python API.
 
-.. code-block: python
-    am = ArchiveMetainfo(archive_data)
-    for calc in am.calcs:
-        c.section_run.section_single_configuration_calculation[0]({'energy_total':None})
+To install the NOMAD Python package, you can use ``pip install`` to install our
+source distribution
 
-The ArchiveQuery enables a query interface to the archive data. A dict of query parameters
-and a query schema similar to the archive json format can be provided to filter archive.
+.. code:: sh
 
-.. code-block: python
-    q = ArchiveQuery({'atoms':'Si'})
-    metainfo = q.query()
-    for c in metainfo.calcs:
-        print(c.section_run.section_single_configuration_calculation[0]({'energy_total':'*'}))
+  pip install https://repository.nomad-coe.eu/app/dist/nomad-v0.8.0.tar.gz
+
+
+First example
+_____________
+
+.. literalinclude:: ../examples/client.py
+    :language: python
+
+This script should yield a result like this:
+
+.. code::
+
+    Number queries entries: 7628
+    Number of entries loaded in the last api call: 10
+    Bytes loaded in the last api call: 118048
+    Bytes loaded from this query: 118048
+    Number of downloaded entries: 10
+    Number of made api calls: 1
+
+    Cd2O2: energy -11467.827149010665 hartree
+    Sr2O2: energy -6551.45699684026 hartree
+    Sr2O2: energy -6551.461104765451 hartree
+    Be2O2: energy -178.6990610734937 hartree
+    Ca2O2: energy -1510.3938165430286 hartree
+    Ca2O2: energy -1510.3937761449583 hartree
+    Ba2O2: energy -16684.667362890417 hartree
+    Mg2O2: energy -548.9736595672932 hartree
+    Mg2O2: energy -548.9724185656775 hartree
+    Ca2O2: energy -1510.3908614326358 hartree
+
+Let's discuss the different elements here. First, we have a set of imports. The NOMAD source
+codes comes with various sub-modules. The `client` module contains everything related
+to what is described here; the `metainfo` is the Python interface to NOMAD's common
+archive data format and its data type definitions; the `config` module simply contains
+configuration values (like the URL to the NOMAD API).
+
+Next, we create an :class:`ArchiveQuery` instance. This object will be responsible for talking
+to NOMAD's API for us in a transparent and lazy manner. This means, it will not download
+all data right away, but do so when we are actually iterating through the results.
+
+The archive query takes several parameters:
+
+- The ``query`` is a dictionary of search criteria. The query is used to filter all of NOMAD's
+  entry down to a set of desired entries. You can use NOMAD's GUI to create queries and
+  copy their Python equivalent with the ``<>``-code button on the result list.
+- The ``required`` part, allows to specify what parts of the archive should be downloaded.
+  Leave it out to download the whole archives. Based on NOMAD's Metainfo (the 'schema' of
+  all archives), you can determine what sections to include and which to leave out. Here,
+  we are interested in the first run (usually entries only have one run) and the first
+  calculation result.
+- With the optional ``per_page`` you can determine, how many results are downloaded at
+  a time. For bulk downloading many results, we recommend ~100. If you are just interested
+  in the first results a lower number might increase performance.
+- With the optional ``max``, we limit the maximum amount of entries that are downloaded,
+  just to avoid accidentely iterating through a result set of unknown and potentially large
+  size.
+
+When you print the archive query object, you will get some basic statistics about the
+query and downloaded data.
+
+The archive query object can be treated as a Python list-like. You use indices and ranges
+to select results. Here we iterate through a slice and print the calculated energies
+from the first calculation of the entries. Each result is a Python object with attributes
+governed by the NOMAD Metainfo. Quantities yield numbers, string, or numpy arrays, while
+sub-sections return lists of further objects. Here we navigate the sections ``section_run`` and
+sub-section ``section_system`` to access the quantity ``energy_total``. This quantity is a
+number with an attached unit (Joule), which can be converted to something else (e.g. Hartree).
+
+The NOMAD Metainfo
+__________________
+
+You can imagine the NOMAD Metainfo as a complex schema for hiearchically organized scientific
+data. In this sense, the NOMAD Metainfo is a set of data type definitions. These definitions
+then govern how the archive for an data entry in NOMAD might look like. You can browse the
+hierarchy of definitions in our `Metainfo browser <../metainfo>`_.
+
+Be aware, that the definitions entail everything that an entry could possibly contain, but
+not all entries contain all sections and all quantities. What an entry contains depends
+on the information that the respective uploaded data contained, what could be extracted,
+and of course what was calculated in the first place. To see what the archive of an concrete
+entry looks like, you can use the `search interface <../search>`_, select an entry from the
+list fo search results, and click on the *Archive* tab.
+
+To *see inside* an archive object in Python, you can use :func:`nomad.metainfo.MSection.m_to_dict`
+which is provided by all archive objects. This will convert a (part of an) archive into a
+regular, JSON-serializable Python dictionary.
+
+For more details on the metainfo Python interface, consult the `metainfo documentation <metainfo.html>`_.
+
+The ArchiveQuery class
+______________________
+
+.. autoclass:: ArchiveQuery
+
+Working with private data
+_________________________
+
+Public NOMAD data can be accessed without any authentication; everyone can use our API
+without the need for an account or login. However, if you want to work with your own
+data that is not yet published, or embargoed data was shared with you, you need to
+authenticate before accessing this data. Otherwise, you will simply not find it with
+your queries. To authenticate simply provide your NOMAD username and password to the
+:class:`ArchiveQuery` constructor.
+
 '''
 
 from typing import Dict, Union, Any, List
@@ -118,11 +217,39 @@ class ApiStatistics(mi.MSection):
 
 
 class ArchiveQuery(collections.abc.Sequence):
+    '''
+    Object of this class represent a query on the NOMAD Archive. It is solely configured
+    through its constructor. After creation, it implements the
+    Python ``Sequence`` interface and therefore acts as a sequence of query results.
+
+    Not all results are downloaded at once, expect that this class will continuesly pull
+    results from the API, while you access or iterate to the far side of the result list.
+
+    Attributes:
+        query: A dictionary of search parameters. Consult the search API to get a
+            comprehensive list of parameters.
+        required: A potentially nested dictionary of sections to retrieve.
+        url: Optional, override the default NOMAD API url.
+        username: Optional, allows authenticated access.
+        password: Optional, allows authenticated access.
+        scroll: Use the scroll API to iterate through results. This is required when you
+            are accessing many 1000 results. By default, the pagination API is used.
+        per_page: Determine how many results are downloaded per page (or scroll window).
+            Default is 10.
+        max: Optionally determine the maximum amount of downloaded archives. The iteration
+            will stop even if more results are available. Default is unlimited.
+        raise_errors: There situations where archives for certain entries are unavailable.
+            If set to True, this cases will raise an Exception. Otherwise, the entries
+            with missing archives are simply skipped (default).
+        authentication: Optionally provide detailed authentication information. Usually,
+            providing ``username`` and ``password``should suffice.
+    '''
     def __init__(
             self,
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
             scroll: bool = False, per_page: int = 10, max: int = None,
+            raise_errors: bool = False,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
         self.scroll = scroll
@@ -132,12 +259,31 @@ class ArchiveQuery(collections.abc.Sequence):
         self.max = max
 
         self.query: Dict[str, Any] = {
-            'query': {}
+            'query': {},
+            'raise_errors': raise_errors
         }
         if query is not None:
             self.query['query'].update(query)
         if required is not None:
             self.query['query_schema'] = required
+            # We try to add all required properties to the query to ensure that only
+            # results with those properties are returned.
+            section_run_key = next(key for key in required if key.split('[')[0] == 'section_run')
+            if section_run_key is not None:
+                # add all quantities in required to the query part
+                quantities = {'section_run'}
+                stack = []
+                section_run = required[section_run_key]
+                if isinstance(section_run, dict):
+                    stack.append(section_run)
+                while len(stack) > 0:
+                    required_dict = stack.pop()
+                    for key, value in required_dict.items():
+                        if isinstance(value, dict):
+                            stack.append(value)
+                        quantities.add(key.split('[')[0])
+                self.query['query'].setdefault('dft.quantities', []).extend(quantities)
+                self.query['query']['domain'] = 'dft'
 
         self.password = password
         self.username = username
@@ -151,6 +297,10 @@ class ArchiveQuery(collections.abc.Sequence):
 
     @property
     def authentication(self):
+        '''
+        The authentication information that is used, if username or password were
+        provided.
+        '''
         if self._authentication is None and self.username is not None and self.password is not None:
             host = urlparse(self.url).netloc.split(':')[0]
             self._authentication = KeycloakAuthenticator(
@@ -168,6 +318,10 @@ class ArchiveQuery(collections.abc.Sequence):
             return self._authentication
 
     def call_api(self):
+        '''
+        Calls the API to retrieve the next set of results. Is automatically called, if
+        not yet downloaded entries are accessed.
+        '''
         url = '%s/%s/%s' % (self.url, 'archive', 'query')
 
         if self.scroll:
@@ -255,6 +409,7 @@ class ArchiveQuery(collections.abc.Sequence):
 
     @property
     def total(self):
+        ''' The total ammount of search results. '''
         if self._total == -1:
             self.call_api()
 
@@ -262,6 +417,7 @@ class ArchiveQuery(collections.abc.Sequence):
 
     @property
     def statistics(self):
+        ''' A metainfo object with a basic set of query statistics. '''
         if self._total == -1:
             self.call_api()
 

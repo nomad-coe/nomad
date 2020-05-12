@@ -1,0 +1,67 @@
+<input>
+  <title>Silicon</title>
+  <structure speciespath="./" autormt="false">
+    <crystal>
+      <basevect>5.13 5.13 0.00</basevect>
+      <basevect>5.13 0.00 5.13</basevect>
+      <basevect>0.00 5.13 5.13</basevect>
+    </crystal>
+    <species speciesfile="Si.xml" rmt="2.1">
+      <atom coord="0.00 0.00 0.00"></atom>
+      <atom coord="0.25 0.25 0.25"></atom>
+    </species>
+  </structure>
+
+  <groundstate
+    do="skip"
+    rgkmax="8.0"
+    ngridk="4 4 4"
+    xctype="LDA_PW"
+    >
+  </groundstate>
+
+  <properties>
+    <!--bandstructure character="false">
+      <plot1d>
+        <path steps="100">
+          <point coord=" 0.750   0.500   0.250" label="W" />
+          <point coord=" 0.500   0.500   0.500" label="L" />
+          <point coord=" 0.000   0.000   0.000" label="GAMMA" />
+          <point coord=" 0.500   0.500   0.000" label="X" />
+          <point coord=" 0.750   0.500   0.250" label="W" />
+          <point coord=" 0.750   0.375   0.375" label="K" />
+        </path>
+      </plot1d>
+    </bandstructure-->
+    <dos winddos="-0.5 0.5" nwdos="200" lmirep="false"/>
+ </properties>
+
+ <gw
+    taskname="dos"
+    ngridq="2 2 2"
+    nempty="100"
+    ibgw="1" nbgw="20"
+    >
+    <mixbasis
+      lmaxmb="3"
+      epsmb="1.0d-4"
+      gmb="1.0d0"
+    ></mixbasis>
+    <barecoul
+      barcevtol="0.1"
+    ></barecoul>
+    <freqgrid
+      nomeg="32"
+      freqmax="1.d0"
+    ></freqgrid>
+    <selfenergy
+      actype="pade"
+      singularity="mpb"
+    ></selfenergy>
+    <scrcoul
+      scrtype="rpa"
+    ></scrcoul>
+ </gw>
+
+</input>
+

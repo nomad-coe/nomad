@@ -29,7 +29,7 @@ from nomad import search, utils, datamodel, processing as proc, infrastructure, 
 from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime, DotKeyNested, rfc3339DateTime
+from nomad.app.common import RFC3339DateTime, DotKeyNested
 
 from .api import api
 from .auth import authenticate
@@ -74,29 +74,6 @@ class RepoCalcResource(Resource):
         }
 
         return result, 200
-
-
-def resolve_interval(from_time, until_time):
-    if from_time is None:
-        from_time = datetime.fromtimestamp(0)
-    if until_time is None:
-        until_time = datetime.utcnow()
-    dt = rfc3339DateTime.parse(until_time) - rfc3339DateTime.parse(from_time)
-
-    if dt.days >= 1826:
-        return '1y'
-    elif dt.days >= 731:
-        return '1q'
-    elif dt.days >= 121:
-        return '1M'
-    elif dt.days >= 28:
-        return '1w'
-    elif dt.days >= 4:
-        return '1d'
-    elif dt.total_seconds() >= 14400:
-        return '1h'
-    else:
-        return '1m'
 
 
 _search_request_parser = api.parser()
@@ -197,7 +174,7 @@ class RepoCalcsResource(Resource):
             order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
-            interval = args.get('interval', 'auto')
+            interval = args.get('interval', '1M')
             metrics: List[str] = request.args.getlist('metrics')
             statistics = args.get('statistics', [])
         except Exception as e:
@@ -206,13 +183,6 @@ class RepoCalcsResource(Resource):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
-            if interval == 'auto':
-                try:
-                    from_time = args.get('from_time', None)
-                    until_time = args.get('until_time', None)
-                    interval = resolve_interval(from_time, until_time)
-                except Exception:
-                    abort(400, message='encountered error resolving time interval')
             search_request.date_histogram(interval=interval)
 
         try:
@@ -301,7 +271,7 @@ _query_model_parameters = {
 }
 
 for qualified_name, quantity in search.search_quantities.items():
-    if quantity.many_and:
+    if quantity.many_and == 'append' or quantity.many_or == 'append':
         def field(**kwargs):
             return fields.List(fields.String(**kwargs))
     else:
@@ -596,6 +566,8 @@ _repo_quantity_search_request_parser.add_argument(
     'after', type=str, help='The after value to use for "scrolling".')
 _repo_quantity_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
+_repo_quantity_search_request_parser.add_argument(
+    'value', type=str, help='A partial value. Only values that include this will be returned')
 
 _repo_quantity_model = api.model('RepoQuantity', {
     'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
@@ -653,6 +625,67 @@ class RepoQuantityResource(Resource):
             results = search_request.execute()
             quantities = results.pop('quantities')
             results['quantity'] = quantities[quantity]
+
+            return results, 200
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+_repo_suggestions_search_request_parser = api.parser()
+add_search_parameters(_repo_suggestions_search_request_parser)
+_repo_suggestions_search_request_parser.add_argument(
+    'size', type=int, help='The max size of the returned values.')
+_repo_suggestions_search_request_parser.add_argument(
+    'include', type=str, help='A substring that all values need to include.')
+
+_repo_suggestions_model = api.model('RepoSuggestionsValues', {
+    'suggestions': fields.List(fields.String, description='A list with the suggested values.')
+})
+
+
+@ns.route('/suggestions/<string:quantity>')
+class RepoSuggestionsResource(Resource):
+    @api.doc('suggestions_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
+    @api.expect(_repo_suggestions_search_request_parser, validate=True)
+    @api.marshal_with(_repo_suggestions_model, skip_none=True, code=200, description='Suggestions send')
+    @authenticate()
+    def get(self, quantity: str):
+        '''
+        Retrieve the top values for the given quantity from entries matching the search.
+        Values can be filtered by to include a given value.
+
+        There is no ordering, no pagination, and no scroll interface.
+
+        The result will contain a 'suggestions' key with values. There will be upto 'size' many values.
+        '''
+
+        search_request = search.SearchRequest()
+        args = {
+            key: value
+            for key, value in _repo_suggestions_search_request_parser.parse_args().items()
+            if value is not None}
+
+        apply_search_parameters(search_request, args)
+        size = args.get('size', 20)
+        include = args.get('include', None)
+
+        try:
+            assert size >= 0
+        except AssertionError:
+            abort(400, message='invalid size')
+
+        try:
+            search_request.statistic(quantity, size=size, include=include, order=dict(_key='desc'))
+            results = search_request.execute()
+            values = {
+                value: metric['code_runs']
+                for value, metric in results['statistics'][quantity].items()
+                if metric['code_runs'] > 0}
+            results['suggestions'] = sorted(
+                values.keys(), key=lambda value: values[value], reverse=True)
 
             return results, 200
         except KeyError as e:

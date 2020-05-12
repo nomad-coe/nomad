@@ -16,21 +16,16 @@
 API endpoint that deliver backend configuration details.
 '''
 
+from typing import Dict, Any
 from flask_restplus import Resource, fields
+from datetime import datetime
 
-from nomad import config, parsing, normalizing, datamodel, gitinfo
+from nomad import config, parsing, normalizing, datamodel, gitinfo, search
 
 from .api import api
 
 
 ns = api.namespace('info', description='Access to nomad configuration details.')
-
-domain_quantity_model = api.model('DomainQuantity', {
-    'name': fields.String,
-    'description': fields.String,
-    'multi': fields.Boolean,
-    'order_default': fields.Boolean
-})
 
 metainfo_model = api.model('Metainfo', {
     'all_package': fields.String(description='Name of the metainfo package that references all available packages, i.e. the complete metainfo.'),
@@ -39,9 +34,6 @@ metainfo_model = api.model('Metainfo', {
 
 domain_model = api.model('Domain', {
     'name': fields.String,
-    'quantities': fields.List(fields.Nested(model=domain_quantity_model)),
-    'aggregations_names': fields.List(fields.String),
-    'metrics_names': fields.List(fields.String),
     'metainfo': fields.Nested(model=metainfo_model)
 })
 
@@ -52,16 +44,41 @@ git_info_model = api.model('GitInfo', {
     'log': fields.String
 })
 
+statistics_info_model = api.model('StatisticsInfo', {
+    'n_entries': fields.Integer(description='Number of entries in NOMAD'),
+    'n_uploads': fields.Integer(description='Number of uploads in NOMAD'),
+    'n_quantities': fields.Integer(description='Accumulated number of quantities over all entries in the Archive'),
+    'n_calculations': fields.Integer(description='Accumulated number of calculations, e.g. total energy calculations in the Archive'),
+    # TODO
+    # 'raw_file_size': fields.Integer(description='Total amount of raw files in TB'),
+    # 'archive_file_size': fields.Integer(description='Total amount of binary archive data in TB')
+})
+
 info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
     'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
     'domains': fields.List(fields.Nested(model=domain_model)),
+    'statistics': fields.Nested(model=statistics_info_model, description='General NOMAD statistics'),
+    'search_quantities': fields.Raw(),
     'version': fields.String,
     'release': fields.String,
     'git': fields.Nested(model=git_info_model),
     'oasis': fields.Boolean
 })
+
+
+_statistics: Dict[str, Any] = None
+
+
+def statistics():
+    global _statistics
+    if _statistics is None or datetime.now().timestamp() - _statistics.get('timestamp', 0) > 3600 * 24:
+        _statistics = dict(timestamp=datetime.now().timestamp())
+        _statistics.update(
+            **search.SearchRequest().global_statistics().execute()['global_statistics'])
+
+    return _statistics
 
 
 @ns.route('/')
@@ -81,6 +98,7 @@ class InfoResource(Resource):
                 for key in parsing.parser_dict.keys()],
             'codes': sorted(set(codes), key=lambda x: x.lower()),
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
+            'statistics': statistics(),
             'domains': [
                 {
                     'name': domain_name,
@@ -91,6 +109,15 @@ class InfoResource(Resource):
                 }
                 for domain_name, domain in datamodel.domains.items()
             ],
+            'search_quantities': {
+                s.qualified_name: {
+                    'name': s.qualified_name,
+                    'description': s.description,
+                    'many': s.many
+                }
+                for s in search.search_quantities.values()
+                if 'optimade' not in s.qualified_name
+            },
             'version': config.version,
             'release': config.release,
             'git': {

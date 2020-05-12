@@ -1,12 +1,6 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import { withStyles } from '@material-ui/core/styles'
-import { compose } from 'recompose'
-import { withErrors } from '../errors'
-import { withApi } from '../api'
+import React, { useContext } from 'react'
+import { apiContext } from '../api'
 import Search from './Search'
-import SearchContext from './SearchContext'
-import qs from 'qs'
 import { domains } from '../domains'
 
 export const help = `
@@ -52,51 +46,14 @@ you to an entry's page. This entry page will show more metadata, raw files, the
 entry's archive, and processing logs.
 `
 
-class SearchPage extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    user: PropTypes.object,
-    location: PropTypes.object,
-    raiseError: PropTypes.func.isRequired,
-    update: PropTypes.number
-  }
+export default function SearchPage() {
+  const {user} = useContext(apiContext)
+  const withoutLogin = ['all', 'public']
 
-  static styles = theme => ({
-    root: {
-    },
-    searchEntry: {
-      padding: theme.spacing.unit * 3
-    }
-  })
-
-  render() {
-    const { classes, user, location, update } = this.props
-
-    let query = {
-      owner: 'public'
-    }
-    if (location && location.search) {
-      query = {
-        ...query,
-        ...(qs.parse(location.search.substring(1)) || {})
-      }
-    }
-
-    const withoutLogin = ['all']
-
-    return (
-      <div className={classes.root}>
-        <SearchContext
-          update={update}
-          initialQuery={query}
-          ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
-        >
-          <Search visualization="elements" tabs={['entries', 'groups', 'datasets']} />
-        </SearchContext>
-      </div>
-    )
-  }
+  return <Search
+    initialVisualizationTab="elements"
+    availableResultTabs={['entries', 'groups', 'datasets']}
+    initialOwner="public"
+    ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
+  />
 }
-
-export default compose(withApi(false), withErrors, withStyles(SearchPage.styles))(SearchPage)

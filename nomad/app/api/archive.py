@@ -215,7 +215,9 @@ class ArchiveDownloadResource(Resource):
 
 _archive_query_model = api.inherit('ArchiveSearch', search_model, {
     'query': fields.Nested(query_model, description='The query used to find the requested entries.', skip_none=True),
-    'query_schema': fields.Raw(description='The query schema that defines what archive data to retrive.')
+    'required': fields.Raw(description='A dictionary that defines what archive data to retrive.'),
+    'query_schema': fields.Raw(description='Deprecated, use required instead.'),
+    'raise_errors': fields.Boolean(description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
 })
 
 
@@ -250,7 +252,14 @@ class ArchiveQueryResource(Resource):
             per_page = pagination.get('per_page', 10 if not scroll else 1000)
 
             query = data_in.get('query', {})
-            query_schema = data_in.get('query_schema', '*')
+
+            required: Dict[str, Any] = None
+            if 'required' in data_in:
+                required = data_in.get('required')
+            else:
+                required = data_in.get('query_schema', '*')
+
+            raise_errors = data_in.get('raise_errors', False)
 
         except Exception:
             abort(400, message='bad parameter types')
@@ -280,8 +289,6 @@ class ArchiveQueryResource(Resource):
         except search.ScrollIdNotFound:
             abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
-            import traceback
-            traceback.print_exc()
             abort(400, str(e))
 
         data = []
@@ -316,14 +323,22 @@ class ArchiveQueryResource(Resource):
                         'calc_id': calc_id,
                         'parser_name': entry['parser_name'],
                         'archive': query_archive(
-                            archive, {calc_id: query_schema})[calc_id]
+                            archive, {calc_id: required})[calc_id]
                     })
             except ArchiveQueryError as e:
                 abort(400, str(e))
-
+            except KeyError:
+                if raise_errors:
+                    abort(404, 'Archive for entry %s does not exist' % calc_id)
+                # We simply skip this entry
+                pass
             except Restricted:
                 # TODO in reality this should not happen
                 pass
+            except Exception as e:
+                if raise_errors:
+                    raise e
+                common.logger(str(e), exc_info=e)
 
         if upload_files is not None:
             upload_files.close()

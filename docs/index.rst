@@ -8,12 +8,14 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    :maxdepth: 2
 
    introduction
-   setup
-   dev_guidelines
+   upload
    api_tutorial
    api
+   archive
    metainfo
-   parser_tutorial
-   archive_tutorial
-   reference
    ops
+   setup
+   dev_guidelines
+   parser_tutorial
+   reference
+   gui

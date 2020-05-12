@@ -40,6 +40,9 @@ from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagi
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
+from nomad.datamodel import EntryArchive
+from nomad.archive import query_archive
+import phonopyparser
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -381,6 +384,75 @@ class Calc(Proc):
         if self._parser_backend.status[0] != 'ParseSuccess':
             error = self._parser_backend.status[1]
             self.fail('parser failed', error=error, **context)
+
+    def process_phonon(self):
+        """Function that is run for phonon calculation before cleanup.
+        This task is run by the celery process that is calling the join for the
+        upload.
+
+        This function re-opens the Archive for this calculation to add method
+        information from another referenced archive. Updates the method
+        information in section_encyclopedia as well as the DFT domain metadata.
+        """
+        try:
+            # Re-create a backend
+            context = dict(parser=self.parser, step=self.parser)
+            logger = self.get_logger(**context)
+            metainfo = phonopyparser.metainfo.m_env
+            backend = Backend(metainfo, logger=logger, domain="dft")
+
+            # Open the archive of the phonon calculation.
+            upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
+            with upload_files.read_archive(self.calc_id) as archive:
+                arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
+                phonon_archive = EntryArchive.m_from_dict(arch)
+
+            # Save Archive contents, metadata and logs from the old entry
+            backend.entry_archive = phonon_archive
+            self._parser_backend = backend
+            self._entry_metadata = backend.entry_archive.section_metadata
+            self._calc_proc_logs = phonon_archive.processing_logs
+
+            # Read in the first referenced calculation. The reference is given as
+            # an absolute path which needs to be converted into a path that is
+            # relative to upload root.
+            scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
+            relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
+            ref_id = upload_files.calc_id(relative_ref)
+            with upload_files.read_archive(ref_id) as archive:
+                arch = query_archive(archive, {ref_id: ref_id})[ref_id]
+                ref_archive = EntryArchive.m_from_dict(arch)
+
+            # Get encyclopedia method information directly from the referenced calculation.
+            ref_enc_method = ref_archive.section_encyclopedia.method
+            backend.entry_archive.section_encyclopedia.method = ref_enc_method
+
+            # Overwrite old entry with new data. The metadata is updated with
+            # new timestamp and method details taken from the referenced
+            # archive.
+            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
+            self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
+            self._entry_metadata.dft.update_group_hash()
+
+            # persist the calc metadata
+            with utils.timer(logger, 'saved calc metadata', step='metadata'):
+                self.apply_entry_metadata(self._entry_metadata)
+
+            # index in search
+            with utils.timer(logger, 'indexed', step='index'):
+                self._entry_metadata.a_elastic.index()
+
+            # persist the archive
+            with utils.timer(
+                    logger, 'archived', step='archive',
+                    input_size=self.mainfile_file.size) as log_data:
+
+                archive_size = self.write_archive(self._parser_backend)
+                log_data.update(archive_size=archive_size)
+
+        except Exception as e:
+            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
 
     @contextmanager
     def use_parser_backend(self, processor_name):
@@ -946,6 +1018,15 @@ class Upload(Proc):
                 {'$set': {'joined': True}})
             if modified_upload is not None:
                 self.get_logger().debug('join')
+
+                # Before cleaning up, run an additional normalizer on phonon
+                # calculations. TODO: This should be replaced by a more
+                # extensive mechamism that supports more complex dependencies
+                # between calculations.
+                phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
+                for calc in phonon_calculations:
+                    calc.process_phonon()
+
                 self.cleanup()
             else:
                 # the join was already done due to a prior call

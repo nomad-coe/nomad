@@ -18,7 +18,7 @@ DFT specific metadata
 
 import re
 
-from nomad import config
+from nomad import config, utils
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
@@ -147,28 +147,38 @@ class DFTMetadata(MSection):
     basis_set = Quantity(
         type=str, default='not processed',
         description='The used basis set functions.',
-        a_search=Search(statistic_size=20))
+        a_search=Search(statistic_values=[
+            '(L)APW+lo', 'FLAPW', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
+            'real-space grid', 'unavailable', 'not processed'
+        ]))
 
     xc_functional = Quantity(
         type=str, default='not processed',
         description='The libXC based xc functional classification used in the simulation.',
-        a_search=Search(statistic_size=20))
+        a_search=Search(statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed']))
 
     system = Quantity(
         type=str, default='not processed',
         description='The system type of the simulated system.',
-        a_search=Search())
+        a_search=Search(statistic_values=[
+            '1D', '2D', 'atom', 'bulk', 'molecule / cluster', 'surface',
+            'unavailable', 'not processed'
+        ]))
 
     compound_type = Quantity(
         type=str, default='not processed',
         description='The compound type of the simulated system.',
-        a_search=Search(statistic_size=11)
+        a_search=Search(statistic_values=compound_types + ['not processed'])
     )
 
     crystal_system = Quantity(
         type=str, default='not processed',
         description='The crystal system type of the simulated system.',
-        a_search=Search())
+        a_search=Search(
+            statistic_values=[
+                'cubic', 'hexagonal', 'monoclinic', 'orthorombic', 'tetragonal',
+                'triclinic', 'trigonal', 'unavailable', 'not processed']
+        ))
 
     spacegroup = Quantity(
         type=int, default=-1,
@@ -183,7 +193,7 @@ class DFTMetadata(MSection):
     code_name = Quantity(
         type=str, default='not processed',
         description='The name of the used code.',
-        a_search=Search(statistic_size=40))
+        a_search=Search())  # in import the parser module is added codes here as statistic_values
 
     code_version = Quantity(
         type=str, default='not processed',
@@ -215,7 +225,7 @@ class DFTMetadata(MSection):
 
     searchable_quantities = Quantity(
         type=str, shape=['0..*'],
-        description='Energy-related quantities.',
+        description='All quantities with existence filters in the search GUI.',
         a_search=Search(many_and='append', statistic_size=len(_searchable_quantities)))
 
     geometries = Quantity(
@@ -237,7 +247,7 @@ class DFTMetadata(MSection):
         type=str, shape=['0..*'],
         description='Springer compund classification.',
         a_search=Search(
-            many_and='append', statistic_size=10,
+            many_and='append', statistic_size=20,
             statistic_order='_count'))
 
     labels_springer_classification = Quantity(
@@ -261,8 +271,18 @@ class DFTMetadata(MSection):
                 return parser.code_name
         return config.services.unavailable_value
 
+    def update_group_hash(self):
+        self.group_hash = utils.hash(
+            self.m_parent.formula,
+            self.spacegroup,
+            self.basis_set,
+            self.xc_functional,
+            self.code_name,
+            self.code_version,
+            self.m_parent.with_embargo,
+            self.m_parent.uploader)
+
     def apply_domain_metadata(self, backend):
-        from nomad import utils
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
 
@@ -315,15 +335,7 @@ class DFTMetadata(MSection):
             get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
 
         # grouping
-        self.group_hash = utils.hash(
-            entry.formula,
-            self.spacegroup,
-            self.basis_set,
-            self.xc_functional,
-            self.code_name,
-            self.code_version,
-            entry.with_embargo,
-            entry.uploader)
+        self.update_group_hash()
 
         # metrics and quantities
         quantities = set()

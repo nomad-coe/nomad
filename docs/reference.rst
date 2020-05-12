@@ -50,6 +50,10 @@ nomad.cli
 ------------
 .. automodule:: nomad.cli
 
+nomad.client
+------------
+.. automodule:: nomad.client
+
 nomad.utils
 -----------
 .. automodule:: nomad.utils

@@ -1,1 +1,1 @@
-log, ref, version, commit = "e98694e Improved setup.py and build process.", "heads/setup", "v0.7.9-195-ge98694e", "e98694e"
+log, ref, version, commit = "44c7e69 Fixed performance and other isseus.", "heads/mui4", "v0.7.9-398-g44c7e69", "44c7e69"

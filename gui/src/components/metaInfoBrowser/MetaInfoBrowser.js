@@ -61,14 +61,14 @@ class MetaInfoBrowser extends Component {
   static styles = theme => ({
     root: {},
     forms: {
-      padding: `${theme.spacing.unit * 3}px ${theme.spacing.unit * 3}px 0 ${theme.spacing.unit * 3}px`
+      padding: `${theme.spacing(3)}px ${theme.spacing(3)}px 0 ${theme.spacing(3)}px`
     },
     packageSelect: {
       width: 300
     },
     search: {
       width: 450,
-      marginRight: theme.spacing.unit * 2
+      marginRight: theme.spacing(2)
     }
   })
 
@@ -93,7 +93,6 @@ class MetaInfoBrowser extends Component {
     const match = matchPath(location.pathname, {
       path: `${this.props.match.path}/:metainfo?`
     })
-    console.log('#####', match.params)
     return match.params.metainfo
   }
 
@@ -189,7 +188,7 @@ class MetaInfoBrowser extends Component {
                 .map(pkg => pkg.name)
                 .map(name => {
                   return <MenuItem key={name} value={name}>
-                    <ListItemText primary={name.substring(0, name.length - 19)} />
+                    <ListItemText primary={name.substring(0, name.length - 19)} style={{margin: 0}} />
                   </MenuItem>
                 })
               }

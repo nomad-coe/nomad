@@ -11,7 +11,12 @@ class FAQ extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
+    },
+    container: {
+      maxWidth: 1024,
+      margin: 'auto',
+      width: '100%'
     }
   })
 
@@ -19,8 +24,8 @@ class FAQ extends React.Component {
     const { classes } = this.props
 
     return (
-      <div className={classes.root}>
-        <Markdown>{`
+      <div className={classes.root}><div className={classes.container}>
+        <Markdown >{`
           # Frequently Asked Questions (FAQ)
 
           These are often repeated questions that cover the basic NOMAD use-cases. If you have
@@ -160,7 +165,7 @@ class FAQ extends React.Component {
           write us an Email ([${email}](mailto:${email})) and we will figure out if and how
           to support this code in the future.
         `}</Markdown>
-      </div>
+      </div></div>
     )
   }
 }

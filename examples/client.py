@@ -1,28 +1,32 @@
 from nomad import config
-from nomad.client import query_archive
+from nomad.client import ArchiveQuery
 from nomad.metainfo import units
 
 # this will not be necessary, once this is the official NOMAD version
-config.client.url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
+config.client.url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
 
-
-aq = query_archive(
+query = ArchiveQuery(
     query={
-        'upload_id': ['b5rGMO6dT4Gzqn3JaLjPpw']
+        'dft.compound_type': 'binary',
+        'dft.crystal_system': 'cubic',
+        'dft.code_name': 'FHI-aims',
+        'atoms': ['O']
     },
     required={
-        'section_run': {
-            'section_single_configuration_calculation[0]': {
+        'section_run[0]': {
+            'section_single_configuration_calculation[-2]': {
                 'energy_total': '*'
-            }
+            },
+            'section_system[-2]': '*'
         }
     },
-    per_page=100, max=1000)
+    per_page=10,
+    max=1000)
 
-print('total', aq.total)
+print(query)
 
-for i, e in enumerate(aq):
-    if i % 200 == 0:
-        print(e.section_run[0].section_single_configuration_calculation[0].energy_total)
-
-print(aq)
+for result in query[0:10]:
+    run = result.section_run[0]
+    energy = run.section_single_configuration_calculation[0].energy_total
+    formula = run.section_system[0].chemical_composition_reduced
+    print('%s: energy %s' % (formula, energy.to(units.hartree)))

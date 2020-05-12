@@ -127,7 +127,7 @@ def reset_processing(zero_complete_time):
     infrastructure.setup_mongo()
 
     def reset_collection(cls):
-        in_processing = cls.objects(process_status__ne=proc.PROCESS_COMPLETED)
+        in_processing = cls.objects(process_status__in=[proc.PROCESS_RUNNING, proc.base.PROCESS_CALLED])
         print('%d %s processes need to be reset due to incomplete process' % (in_processing.count(), cls.__name__))
         in_processing.update(
             process_status=None,
@@ -409,7 +409,7 @@ def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
 def prototypes_update(ctx, filepath, matches_only):
 
     if matches_only:
-        from nomad.normalizing.data.aflow_prototypes import aflow_prototypes
+        from nomad.aflow_prototypes import aflow_prototypes
     else:
         # The basic AFLOW prototype data is available in a Javascript file. Here we
         # retrieve it and read only the prototype list from it.

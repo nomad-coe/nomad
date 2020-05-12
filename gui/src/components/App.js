@@ -1,28 +1,30 @@
 // trigger rebuild
 
-import React from 'react'
+import React, { useEffect, useState, useContext, useCallback } from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
-import { MuiThemeProvider, withStyles } from '@material-ui/core/styles'
-import { LinearProgress, ListItemIcon, ListItemText, MenuList, MenuItem, Typography,
+import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
+import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
   Snackbar, SnackbarContent } from '@material-ui/core'
-import { Route, Link, withRouter } from 'react-router-dom'
+import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import FAQIcon from '@material-ui/icons/QuestionAnswer'
 import MetainfoIcon from '@material-ui/icons/Info'
+import DocIcon from '@material-ui/icons/Help'
+import CodeIcon from '@material-ui/icons/Code'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
-import { ApiProvider, withApi } from './api'
+import { ApiProvider, withApi, apiContext } from './api'
 import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme } from '../config'
+import { guiBase, consent, nomadTheme, appBase } from '../config'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import { Cookies, withCookies } from 'react-cookie'
@@ -31,13 +33,24 @@ import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
 import { amber } from '@material-ui/core/colors'
-import KeepState from './KeepState'
 import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
 import EntryQuery from './entry/EntryQuery'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
+
+function LoadingIndicator() {
+  const {api} = useContext(apiContext)
+  const [loading, setLoading] = useState(0)
+  const handleOnLoading = useCallback(loading => setLoading(loading), [setLoading])
+  useEffect(() => {
+    api.onLoading(handleOnLoading)
+    return () => api.removeOnLoading(handleOnLoading)
+  }, [api, handleOnLoading])
+
+  return loading ? <LinearProgress color="secondary" /> : ''
+}
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -61,12 +74,43 @@ function ReloadSnack() {
   </Snackbar>
 }
 
+const useMainMenuItemStyles = makeStyles(theme => ({
+  button: {
+    margin: theme.spacing(1)
+  }
+}))
+
+function MainMenuItem({tooltip, title, path, href, icon}) {
+  const {pathname} = useLocation()
+  const classes = useMainMenuItemStyles()
+  const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
+  const rest = path ? {to: path, component: Link} : {href: href}
+  return <Tooltip title={tooltip}>
+    <Button
+      className={classes.button}
+      color={selected ? 'primary' : 'default'}
+      size="small"
+      startIcon={icon}
+      {...rest}
+    >
+      {title}
+    </Button>
+  </Tooltip>
+}
+
+MainMenuItem.propTypes = {
+  'tooltip': PropTypes.string.isRequired,
+  'title': PropTypes.string.isRequired,
+  'path': PropTypes.string,
+  'href': PropTypes.string,
+  'icon': PropTypes.element.isRequired
+}
+
 class NavigationUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     children: PropTypes.any,
     location: PropTypes.object.isRequired,
-    loading: PropTypes.number.isRequired,
     raiseError: PropTypes.func.isRequired
   }
 
@@ -75,11 +119,12 @@ class NavigationUnstyled extends React.Component {
       minWidth: 1024
     },
     title: {
-      marginLeft: theme.spacing.unit,
+      marginLeft: theme.spacing(1),
       flexGrow: 1,
       display: 'flex',
       alignItems: 'center',
-      alignContent: 'flex-start'
+      alignContent: 'flex-start',
+      color: theme.palette.primary.main
     },
     appFrame: {
       zIndex: 1,
@@ -91,23 +136,23 @@ class NavigationUnstyled extends React.Component {
     },
     appBar: {
       zIndex: theme.zIndex.drawer + 1,
-      backgroundColor: '#20335D'
+      backgroundColor: 'white'
     },
     menuButton: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     },
     helpButton: {
-      marginLeft: theme.spacing.unit
+      marginLeft: theme.spacing(1)
     },
     hide: {
       display: 'none'
     },
     toolbar: {
-      paddingRight: theme.spacing.unit * 3
+      paddingRight: theme.spacing(3)
     },
     logo: {
-      height: theme.spacing.unit * 7,
-      marginRight: theme.spacing.unit * 2
+      height: theme.spacing(7),
+      marginRight: theme.spacing(2)
     },
     menu: {
       display: 'inline-flex',
@@ -116,7 +161,7 @@ class NavigationUnstyled extends React.Component {
       backgroundColor: 'white'
     },
     content: {
-      marginTop: theme.spacing.unit * 13,
+      marginTop: theme.spacing(13),
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
       width: '100%',
@@ -141,7 +186,7 @@ class NavigationUnstyled extends React.Component {
       marginRight: 0
     },
     divider: {
-      flexGrow: 1
+      width: theme.spacing(3)
     }
   })
 
@@ -200,7 +245,7 @@ class NavigationUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, children, location: { pathname }, loading } = this.props
+    const { classes, children, location: { pathname } } = this.props
     const { toolbarHelp, toolbarTitles } = this
     const { showReloadSnack } = this.state
 
@@ -237,61 +282,61 @@ class NavigationUnstyled extends React.Component {
                   {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}
                 </div>
                 <div className={classes.barActions}>
-                  <LoginLogout variant="outlined" color="inherit" classes={{button: classes.barButton}} />
+                  <LoginLogout color="primary" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
               <MenuList classes={{root: classes.menu}}>
-                <Tooltip title="Find and download data">
-                  <MenuItem component={Link} to="/search" selected={ pathname.startsWith('/search') } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <SearchIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Search"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Upload and publish data">
-                  <MenuItem component={Link} to="/uploads" selected={ pathname === '/uploads' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <BackupIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Upload"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Manage your data">
-                  <MenuItem component={Link} to="/userdata" selected={ pathname.startsWith('/userdata') } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <UserDataIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Your data"/>
-                  </MenuItem>
-                </Tooltip>
+                <MainMenuItem
+                  title="Search"
+                  path="/search"
+                  tooltip="Find and download data"
+                  icon={<SearchIcon/>}
+                />
+                <MainMenuItem
+                  title="Upload"
+                  path="/uploads"
+                  tooltip="Upload and publish data"
+                  icon={<BackupIcon/>}
+                />
+                <MainMenuItem
+                  title="Your data"
+                  path="/userdata"
+                  tooltip="Manage your data"
+                  icon={<UserDataIcon/>}
+                />
+                <MainMenuItem
+                  title="Meta Info"
+                  path="/metainfo"
+                  tooltip="Browse the archive schema"
+                  icon={<MetainfoIcon/>}
+                />
                 <div className={classes.divider} />
-                <Tooltip title="NOMAD Repository and Archive">
-                  <MenuItem component={Link} to="/" selected={ pathname === '/' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <AboutIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Overview"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Frequently Asked Questions (FAQ)">
-                  <MenuItem component={Link} to="/faq" selected={ pathname === '/faq' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <FAQIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="FAQ"/>
-                  </MenuItem>
-                </Tooltip>
-                <Tooltip title="Browse the archive schema">
-                  <MenuItem component={Link} to="/metainfo" selected={ pathname === '/metainfo' } dense>
-                    <ListItemIcon classes={{root: classes.menuItemIcon}}>
-                      <MetainfoIcon />
-                    </ListItemIcon>
-                    <ListItemText inset primary="Meta Info"/>
-                  </MenuItem>
-                </Tooltip>
+                <MainMenuItem
+                  title="About"
+                  path="/"
+                  tooltip="NOMAD Repository and Archive"
+                  icon={<AboutIcon/>}
+                />
+                <MainMenuItem
+                  title="FAQ"
+                  path="/faq"
+                  tooltip="Frequently Asked Questions (FAQ)"
+                  icon={<FAQIcon/>}
+                />
+                <MainMenuItem
+                  title="Docs"
+                  href={`${appBase}/docs/index.html`}
+                  tooltip="The NOMAD documentation"
+                  icon={<DocIcon/>}
+                />
+                <MainMenuItem
+                  title="Sources"
+                  href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+                  tooltip="NOMAD's Gitlab project"
+                  icon={<CodeIcon/>}
+                />
               </MenuList>
-              {loading ? <LinearProgress color="secondary" /> : ''}
+              <LoadingIndicator />
             </AppBar>
 
             <main className={classes.content} ref={(ref) => { this.scroll.scrollParentRef = ref }}>
@@ -431,7 +476,8 @@ class App extends React.PureComponent {
                 return <Route key={routeKey} exact={exact} path={path}
                   // eslint-disable-next-line react/no-children-prop
                   children={props => {
-                    return <KeepState visible={props.match && true} render={route.component} {...props} />
+                    // return <KeepState visible={props.match && true} render={(props) => <route.component {...props} />} {...props} />
+                    return props.match && <route.component {...props} />
                   }}
                 />
               })}

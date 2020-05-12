@@ -1,4 +1,4 @@
-# Copyright 2018 Markus Scheidgen
+# Copyright 2018 Markus Scheidgen, empty_task
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -240,7 +240,7 @@ normalize = NomadConfig(
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
     # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
-    fermi_level_precision=300 * 1.38064852E-23,
+    band_structure_energy_tolerance=300 * 1.38064852E-23,
     springer_db_path=os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'normalizing/data/springer.msg'

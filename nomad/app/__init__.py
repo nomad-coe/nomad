@@ -181,4 +181,11 @@ def setup():
     from nomad import infrastructure
 
     if not app.config['TESTING']:
+        # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
+        try:
+            from mongoengine import disconnect
+            disconnect()
+        except Exception:
+            pass
+
         infrastructure.setup()

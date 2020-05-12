@@ -104,12 +104,12 @@ class UploadPage extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     },
     dropzoneContainer: {
       height: 192,
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(2)
     },
     dropzone: {
       textAlign: 'center',
@@ -121,7 +121,7 @@ class UploadPage extends React.Component {
       justifyContent: 'center',
       '& p': {
         marginTop: 0,
-        marginBottom: theme.spacing.unit * 1
+        marginBottom: theme.spacing(1)
       },
       '& svg': {
         marginLeft: 'auto',
@@ -143,7 +143,7 @@ class UploadPage extends React.Component {
     },
     commandMarkup: {
       flexGrow: 1,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       overflow: 'hidden'
     },
     formGroup: {
@@ -152,10 +152,10 @@ class UploadPage extends React.Component {
     uploadsLabel: {
       flexGrow: 1,
       paddingLeft: 0,
-      padding: theme.spacing.unit * 2
+      padding: theme.spacing(2)
     },
     uploads: {
-      marginTop: theme.spacing.unit * 4
+      marginTop: theme.spacing(4)
     },
     pagination: {
       textAlign: 'center'

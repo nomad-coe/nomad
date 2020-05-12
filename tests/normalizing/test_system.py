@@ -124,7 +124,7 @@ def test_normalizer_faulty_matid(caplog):
 def test_normalizer_single_string_atom_labels(caplog):
     '''
     Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
-    the numbers of postitions should not match the labels.
+    the numbers of positions should not match the labels.
     '''
     backend = parse_file(single_string_atom_labels)
     run_normalize(backend)
@@ -194,6 +194,15 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
             else:
                 scc = frames[-1]
             repr_system = scc.single_configuration_calculation_to_system_ref
+
+        # If the selected system refers to a subsystem, choose it instead.
+        try:
+            system_ref = repr_system.section_system_to_system_refs[0]
+            ref_kind = system_ref.system_to_system_kind
+            if ref_kind == "subsystem":
+                repr_system = system_ref.system_to_system_ref
+        except Exception:
+            pass
 
         # Check that only the representative system has been labels with
         # "is_representative"

@@ -94,6 +94,24 @@ tests:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
+install_tests:
+  stage: test
+  image: python:3.6
+  before_script:
+    - git submodule sync
+    - git submodule update --init --jobs=4
+  script:
+    - pip install --upgrade pip
+    - pip install fastentrypoints
+    - pip install pyyaml
+    - pip install numpy
+    - python setup.py compile
+    - python setup.py sdist
+    - pip install dist/nomad-0.8.0.tar.gz
+    - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
+    - pip install dist/nomad-0.8.0.tar.gz[parsing]
+    - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+
 deploy:
   stage: deploy
   before_script:

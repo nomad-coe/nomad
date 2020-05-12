@@ -6,6 +6,7 @@ import { compose } from 'recompose'
 import { Button, Link } from '@material-ui/core'
 import { withApi } from './api'
 import { keycloakBase, keycloakRealm } from '../config'
+import LoginIcon from '@material-ui/icons/AccountCircle'
 
 class LoginLogout extends React.Component {
   static propTypes = {
@@ -21,11 +22,10 @@ class LoginLogout extends React.Component {
       display: 'flex',
       alignItems: 'center',
       '& p': {
-        marginRight: theme.spacing.unit * 2
+        marginRight: theme.spacing(2)
       }
     },
     link: {
-      color: 'white',
       textDecoration: 'underline'
     },
     button: {} // to allow overrides
@@ -37,7 +37,7 @@ class LoginLogout extends React.Component {
     if (keycloak.authenticated) {
       return (
         <div className={classes.root}>
-          <Typography color="inherit" variant="body1">
+          <Typography color="primary" variant="body1">
             Welcome <Link
               className={classes.link}
               href={`${keycloakBase.replace(/\/$/, '')}/realms/${keycloakRealm}/account/`}>
@@ -48,6 +48,7 @@ class LoginLogout extends React.Component {
             className={classes.button} style={{marginLeft: 8}}
             variant={variant} color={color}
             onClick={() => keycloak.logout()}
+            startIcon={<LoginIcon/>}
           >Logout</Button>
         </div>
       )
@@ -55,7 +56,9 @@ class LoginLogout extends React.Component {
       return (
         <div className={classes.root}>
           <Button
-            className={classes.button} variant={variant} color={color} onClick={() => keycloak.login()}
+            className={classes.button} variant={variant} color={color}
+            startIcon={<LoginIcon/>}
+            onClick={() => keycloak.login()}
           >Login / Register</Button>
         </div>
       )

@@ -10,11 +10,12 @@
 .volumes/
 .git/
 .coverage
+**/.ipynb_checkpoints
+**/.volumes
 
 data/
 local/
 target/
-examples/
 ops/
 build/
 dist/

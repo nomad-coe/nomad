@@ -2,7 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, MEnum, derived
 )
 from nomad.metainfo.legacy import LegacyDefinition
 
@@ -2211,6 +2211,64 @@ class section_k_band_segment(MSection):
         a_legacy=LegacyDefinition(name='number_of_k_points_per_segment'))
 
 
+class section_band_gap(MSection):
+    '''
+    This section stores information for a band gap within a band structure.
+    '''
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_band_gap'))
+
+    value = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Band gap energy. Value of zero corresponds to a band structure without
+        a band gap.
+        """,
+        a_legacy=LegacyDefinition(name='value')
+    )
+    type = Quantity(
+        type=MEnum("direct", "indirect"),
+        description="""
+        Type of band gap.
+        """,
+        a_legacy=LegacyDefinition(name='type')
+    )
+    conduction_band_min_energy = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Conduction band minimum energy.
+        """,
+        a_legacy=LegacyDefinition(name='conduction_band_min_energy')
+    )
+    valence_band_max_energy = Quantity(
+        type=float,
+        unit="joule",
+        description="""
+        Valence band maximum energy.
+        """,
+        a_legacy=LegacyDefinition(name='valence_band_max_energy')
+    )
+    conduction_band_min_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit="1 / meter",
+        description="""
+        Coordinate of the conduction band minimum in k-space.
+        """,
+        a_legacy=LegacyDefinition(name='conduction_band_min_k_point')
+    )
+    valence_band_max_k_point = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit="1 / meter",
+        description="""
+        Coordinate of the valence band minimum in k-space.
+        """,
+        a_legacy=LegacyDefinition(name='valence_band_max_k_point')
+    )
+
+
 class section_k_band(MSection):
     '''
     This section stores information on a $k$-band (electronic or vibrational band
@@ -2228,6 +2286,55 @@ class section_k_band(MSection):
         String to specify the kind of band structure (either electronic or vibrational).
         ''',
         a_legacy=LegacyDefinition(name='band_structure_kind'))
+
+    reciprocal_cell = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit="1 / meter",
+        description="""
+        The reciprocal cell within which the band structure is calculated.
+        """,
+        a_legacy=LegacyDefinition(name='reciprocal_cell')
+    )
+
+    brillouin_zone = Quantity(
+        type=str,
+        description="""
+        The Brillouin zone that corresponds to the reciprocal cell used in the
+        band calculation. The Brillouin Zone is defined as a list of vertices
+        and facets that are encoded with JSON. The vertices are 3D points in
+        the reciprocal space, and facets are determined by a chain of vertice
+        indices, with a right-hand ordering determining the surface normal
+        direction.
+        {
+          "vertices": [[3, 2, 1], ...]
+          "faces":  [[0, 1, 2, 3], ...]
+        }
+        """,
+        a_legacy=LegacyDefinition(name='brillouin_zone')
+    )
+
+    section_band_gap = SubSection(
+        sub_section=section_band_gap.m_def,
+        repeats=True,
+        description=""",
+        Contains information for band gaps detected in the band structure.
+        Contains a section for each spin channel in the same order as reported
+        for the band energies. For channels without a band gap, a band gap
+        value of zero is reported.
+        """,
+        a_legacy=LegacyDefinition(name='section_band_gap')
+    )
+
+    is_standard_path = Quantity(
+        type=bool,
+        description="""
+        Boolean indicating whether the path follows the standard path for this
+        bravais lattice. The AFLOW standard by Setyawan and Curtarolo is used
+        (https://doi.org/10.1016/j.commatsci.2010.05.010).
+        """,
+        a_legacy=LegacyDefinition(name='is_standard_path')
+    )
 
     section_k_band_segment = SubSection(
         sub_section=SectionProxy('section_k_band_segment'),
@@ -5154,6 +5261,31 @@ class section_thermodynamical_properties(MSection):
         Stores the heat capacity per cell unit at constant volume.
         ''',
         a_legacy=LegacyDefinition(name='thermodynamical_property_heat_capacity_C_v'))
+
+    @derived(
+        type=np.dtype(np.float64),
+        shape=['number_of_thermodynamical_property_values'],
+        unit='joule / kelvin * kilogram',
+        description='''
+        Stores the specific heat capacity at constant volume.
+        ''',
+        a_legacy=LegacyDefinition(name='specific_heat_capacity'),
+        cached=True
+    )
+    def specific_heat_capacity(self) -> np.array:
+        """Returns the specific heat capacity by dividing the heat capacity per
+        cell with the mass of the atoms in the cell.
+        """
+        import nomad.atomutils
+        s_frame_sequence = self.m_parent
+        first_frame = s_frame_sequence.frame_sequence_local_frames_ref[0]
+        system = first_frame.single_configuration_calculation_to_system_ref
+        atomic_numbers = system.atom_species
+        mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
+        heat_capacity = self.thermodynamical_property_heat_capacity_C_v
+        specific_heat_capacity = heat_capacity / mass_per_unit_cell
+
+        return specific_heat_capacity
 
     thermodynamical_property_temperature = Quantity(
         type=np.dtype(np.float64),

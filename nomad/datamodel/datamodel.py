@@ -369,7 +369,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(
             description='Search authors with exact names.',
             metric='cardinality',
-            many_or='append', search_field='authors.name.keyword', statistic_size=1000))
+            many_or='append', search_field='authors.name.keyword'))
 
     shared_with = metainfo.Quantity(
         type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],

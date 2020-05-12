@@ -9,7 +9,7 @@ import qs from 'qs'
 class EntryQuery extends React.Component {
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     }
   })
 

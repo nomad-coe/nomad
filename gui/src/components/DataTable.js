@@ -32,14 +32,14 @@ class DataTableToolbarUnStyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingLeft: theme.spacing.unit * 3
+      paddingLeft: theme.spacing(3)
     },
     selected: {
       color: theme.palette.secondary.main
     },
     title: {
       whiteSpace: 'nowrap',
-      marginRight: theme.spacing.unit
+      marginRight: theme.spacing(1)
     },
     grow: {
       flex: '1 1 100%'
@@ -240,8 +240,8 @@ class DataTableUnStyled extends React.Component {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
       maxWidth: 200,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
+      paddingLeft: theme.spacing(3),
+      paddingRight: theme.spacing(3)
     },
     ellipsisFront: {
       direction: 'rtl',
@@ -418,9 +418,7 @@ class DataTableUnStyled extends React.Component {
           onColumnsChanged={columns => this.setState({selectedColumns: columns})}
         />
         <div className={classes.tableWrapper}>
-          <Table
-            className={classes.table}
-          >
+          <Table className={classes.table} size="small">
             <TableHead>
               <TableRow>
                 {withSelect ? <TableCell padding="checkbox">
@@ -506,7 +504,7 @@ class DataTableUnStyled extends React.Component {
                 )
               })}
               {emptyRows > 0 && (
-                <TableRow style={{ height: 49 * emptyRows }}>
+                <TableRow style={{ height: 61 * emptyRows }}>
                   <TableCell colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} />
                 </TableRow>
               )}
