@@ -13,6 +13,8 @@
 # limitations under the License.
 
 '''
+.. _install-client:
+
 Install the NOMAD client library
 ________________________________
 

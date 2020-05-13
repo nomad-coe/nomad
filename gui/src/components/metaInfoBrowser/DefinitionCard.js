@@ -94,7 +94,7 @@ class DefinitionCardUnstyled extends React.Component {
             : ''
           }
           <CardButton position="center" size="medium" icon="launch"
-            component={props => <Link to={`/metainfo/${definition.name}`} {...props} />}
+            component={props => <Link to={`/metainfo/${definition.package.name}/${definition.name}`} {...props} />}
           />
           <PopoverCardButton
             position="center" icon="code" classes={{content: classes.source}}

@@ -60,6 +60,17 @@ class ViewerUnstyled extends React.Component {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.rootElement !== prevProps.rootElement) {
+      this.setState({
+        definitions: [{
+          definition: this.props.rootElement,
+          state: []
+        }]
+      })
+    }
+  }
+
   isVisible(definition) {
     let state = { state: this.state.definitions }
     while (state && state.definition !== definition) {

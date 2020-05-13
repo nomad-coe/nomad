@@ -728,6 +728,45 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
 
 
+class TestMetainfo():
+    @pytest.mark.parametrize('package', ['common', 'vasp', 'general.experimental', 'eels'])
+    def test_regular(self, api, package):
+        rv = api.get('/metainfo/%s' % package)
+        assert rv.status_code == 200
+        assert len(rv.get_json()) > 0
+
+    def test_full_name(self, api):
+        rv = api.get('/metainfo/nomad.datamodel.metainfo.common')
+        assert rv.status_code == 200
+
+    def test_extension(self, api):
+        rv = api.get('/metainfo/common.json')
+        assert rv.status_code == 200
+
+        rv = api.get('/metainfo/legacy/common.json')
+        assert rv.status_code == 200
+
+        rv = api.get('/metainfo/legacy/common.nomadmetainfo.json')
+        assert rv.status_code == 200
+
+    @pytest.mark.parametrize('package', ['common', 'vasp'])
+    def test_legacy(self, api, package):
+        rv = api.get('/metainfo/legacy/%s' % package)
+        assert rv.status_code == 200
+        assert len(rv.get_json().get('metaInfos')) > 0
+
+    def test_does_not_exist(self, api):
+        rv = api.get('/metainfo/doesnotexist')
+        assert rv.status_code == 404
+        rv = api.get('/metainfo/legacy/doesnotexist')
+        assert rv.status_code == 404
+
+    def test_all(self, api):
+        rv = api.get('/metainfo/')
+        rv.status_code == 200
+        assert len(rv.get_json()) > 0
+
+
 class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(

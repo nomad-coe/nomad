@@ -50,6 +50,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosectionlabel',
+    'sphinx.ext.extlinks',
     'sphinx_click.ext',
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
@@ -197,3 +198,5 @@ def setup(app):
     #     'enable_eval_rst': True
     # }, True)
     # app.add_transform(AutoStructify)
+
+extlinks = {'api': ('https://repository.nomad-coe.eu/app/api/%s', 'NOMAD API ')}
