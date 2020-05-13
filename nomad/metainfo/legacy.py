@@ -468,7 +468,7 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
 
         def format_paragraph(paragraph, first):
             lines = textwrap.wrap(text=paragraph, width=width - indent * 4)
-            lines = [l.replace('\\', '\\\\') for l in lines]
+            lines = [line.replace('\\', '\\\\') for line in lines]
             return textwrap.indent(
                 '\n'.join(lines), ' ' * 4 * indent, lambda x: not (first and x.startswith(lines[0])))
 

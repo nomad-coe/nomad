@@ -416,6 +416,7 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
             if task != 'parsing':
                 assert 'section_run' in calc_archive
 
+
 # TODO timeout
 # consume_ram, segfault, and exit are not testable with the celery test worker
 @pytest.mark.parametrize('failure', ['exception'])
