@@ -68,6 +68,10 @@ class MaterialNormalizer():
         formula = atomutils.get_formula_string(names, counts)
         material.formula = formula
 
+    def formula_parts(self, material: Material, names: List[str], counts: List[int]) -> None:
+        parts = ["{}{}".format(name, count) for name, count in zip(names, counts)]
+        material.formula_parts = " ".join(parts)
+
     def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
         formula = atomutils.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
@@ -382,6 +386,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.crystal_system(bulk, sec_symmetry)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
+        self.formula_parts(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
         self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
         self.lattice_parameters(ideal, std_atoms)

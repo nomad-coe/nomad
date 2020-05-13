@@ -2,6 +2,7 @@ import numpy as np
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference
 from nomad.datamodel.metainfo.public import section_k_band, section_dos, section_thermodynamical_properties
 from nomad.metainfo.search_extension import Search
+from elasticsearch_dsl import Text
 
 
 class WyckoffVariables(MSection):
@@ -12,19 +13,19 @@ class WyckoffVariables(MSection):
         """
     )
     x = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         description="""
         The x variable if present.
         """
     )
     y = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         description="""
         The y variable if present.
         """
     )
     z = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         description="""
         The z variable if present.
         """
@@ -128,7 +129,8 @@ class IdealizedStructure(MSection):
         """
     )
     cell_volume = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
+        unit="m ** 3",
         description="""
         Volume of the idealized cell. The cell volume can only be reported
         consistently after idealization and may not perfectly correspond to the
@@ -141,7 +143,7 @@ class IdealizedStructure(MSection):
 class Bulk(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic="bulk",
+        a_search="bulk",
         description="""
         Contains information that is specific to bulk crystalline materials.
         """
@@ -239,7 +241,7 @@ class Bulk(MSection):
 class Material(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic="material",
+        a_search="material",
         description="""
         Contains an overview of the type of material that was detected in this
         entry.
@@ -290,7 +292,14 @@ class Material(MSection):
         Hill notation whre the number of occurences have been divided by the
         greatest common divisor.
         """,
-        a_search=Search()
+    )
+
+    formula_parts = Quantity(
+        type=str,
+        description="""
+        The formula separated into individual terms for easier search.
+        """,
+        a_search=Search(mapping=Text())
     )
 
     # Bulk-specific properties
@@ -303,7 +312,7 @@ class Material(MSection):
 class Method(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic="method",
+        a_search="method",
         description="""
         Contains an overview of the methodology that was detected in this
         entry.
@@ -313,12 +322,6 @@ class Method(MSection):
         type=MEnum("DFT", "GW", "unavailable", DFTU="DFT+U"),
         description="""
         Generic name for the used methodology.
-        """
-    )
-    basis_set_type = Quantity(
-        type=MEnum("Numeric AOs", "Gaussians", "(L)APW+lo", "FLAPW (full-potential linearized augmented planewave)", "Plane waves", "Real-space grid", "Local-orbital minimum-basis"),
-        description="""
-        Basic type of the used basis set.
         """
     )
     core_electron_treatment = Quantity(
@@ -385,7 +388,7 @@ class Method(MSection):
         """
     )
     smearing_parameter = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         description="""
         Parameter for smearing, usually the width.
         """
@@ -395,7 +398,7 @@ class Method(MSection):
 class Calculation(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic="calculation",
+        a_search="calculation",
         description="""
         Contains an overview of the type of calculation that was detected in
         this entry.
@@ -422,66 +425,92 @@ class Calculation(MSection):
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_elastic="properties",
+        a_search="properties",
         description="""
         Contains derived physical properties that are specific to the NOMAD
         Encyclopedia.
         """
     )
     atomic_density = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit="1 / m ** 3",
         description="""
         Atomic density of the material (atoms/volume)."
-        """
+        """,
+        a_search=Search()
     )
     mass_density = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit="kg / m ** 3",
         description="""
         Mass density of the material.
-        """
+        """,
+        a_search=Search()
+    )
+    band_gap = Quantity(
+        type=np.dtype(np.float64),
+        unit="eV",
+        description="""
+        Band gap value. If multiple spin channels are present, this value is
+        taken from the channel with smallest band gap value.
+        """,
+        a_search=Search()
+    )
+    band_gap_direct = Quantity(
+        type=bool,
+        description="""
+        Whether band gap is direct or not. If multiple spin channels are
+        present, this value is taken from the channel with smallest band gap
+        value.
+        """,
+        a_search=Search()
     )
     energies = Quantity(
         type=str,
         description="""
         Code dependent energy values, corrected to be per formula unit.
-        """
+        """,
+        a_search=Search()
     )
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
         description="""
         Reference to an electronic band structure.
-        """
+        """,
+        a_search=Search(shallow=True)
     )
     electronic_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
         description="""
         Reference to an electronic density of states.
-        """
+        """,
+        a_search=Search(shallow=True)
     )
     phonon_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
         description="""
         Reference to a phonon band structure.
-        """
+        """,
+        a_search=Search(shallow=True)
     )
     phonon_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
         description="""
         Reference to a phonon density of states.
-        """
+        """,
+        a_search=Search(shallow=True)
     )
     thermodynamical_properties = Quantity(
         type=Reference(section_thermodynamical_properties.m_def),
         shape=[],
         description="""
         Reference to a section containing thermodynamical properties.
-        """
+        """,
+        a_search=Search(shallow=True)
     )
 
 
@@ -493,10 +522,10 @@ class EncyclopediaMetadata(MSection):
         Section which stores information for the NOMAD Encyclopedia.
         """
     )
-    material = SubSection(sub_section=Material.m_def, repeats=False)
-    method = SubSection(sub_section=Method.m_def, repeats=False)
-    properties = SubSection(sub_section=Properties.m_def, repeats=False)
-    calculation = SubSection(sub_section=Calculation.m_def, repeats=False)
+    material = SubSection(sub_section=Material.m_def, repeats=False, a_search='material')
+    method = SubSection(sub_section=Method.m_def, repeats=False, a_search='method')
+    properties = SubSection(sub_section=Properties.m_def, repeats=False, a_search='properties')
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, a_search='calculation')
     status = Quantity(
         type=MEnum("success", "unsupported_material_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
         description="""
@@ -509,5 +538,6 @@ class EncyclopediaMetadata(MSection):
         | `"unsupported_calculation_type"` | The detected calculation type is currenlty not supported by the Encyclopedia. |
         | `"invalid_metainfo"`             | The entry could not be processed due to missing or invalid metainfo.          |
         | `"failure"`                      | The entry could not be processed due to an unexpected exception.              |
-        """
+        """,
+        a_search=Search()
     )

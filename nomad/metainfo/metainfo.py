@@ -30,6 +30,8 @@ from datetime import datetime
 import pytz
 import docstring_parser
 
+from nomad.units import ureg
+
 
 m_package: 'Package' = None
 
@@ -211,7 +213,7 @@ class _Dimension(DataType):
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, str):
-            value = units.parse_units(value)
+            value = ureg.parse_units(value)
 
         elif not isinstance(value, pint.unit._Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
@@ -222,11 +224,7 @@ class _Unit(DataType):
         return value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
-        return units.parse_units(value)
-
-
-units = pint.UnitRegistry()
-''' The default pint unit registry that should be used to give units to quantity definitions. '''
+        return ureg.parse_units(value)
 
 
 class _Callable(DataType):

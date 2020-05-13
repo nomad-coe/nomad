@@ -220,7 +220,7 @@ def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tu
 
 
 def get_formula_string(symbols: List[str], counts: List[int]) -> str:
-    """Used to form a single formula string from a list of chemical speices and
+    """Used to form a single formula string from a list of chemical species and
     their counts.
 
     Args:

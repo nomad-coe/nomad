@@ -17,7 +17,6 @@ import numpy as np
 from ase import Atoms
 import ase.build
 from matid.symmetry.wyckoffset import WyckoffSet
-from pint import UnitRegistry
 
 from nomad.utils import hash
 from nomad import atomutils
@@ -37,8 +36,6 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     hash_exciting,
     hash_vasp,
 )
-
-ureg = UnitRegistry()
 
 
 def test_geometry_optimization(geometry_optimization: EntryArchive):
@@ -131,12 +128,12 @@ def test_bulk_metainfo(bulk: EntryArchive):
     assert ideal.lattice_vectors_primitive is not None
     assert np.array_equal(ideal.periodicity, [True, True, True])
     assert ideal.lattice_parameters is not None
-    assert ideal.cell_volume == pytest.approx(5.431**3 * 1e-30)
+    assert ideal.cell_volume.magnitude == pytest.approx(5.431**3 * 1e-30)
 
     # Properties
     prop = enc.properties
-    assert prop.atomic_density == pytest.approx(4.99402346512432e+28)
-    assert prop.mass_density == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
+    assert prop.atomic_density.magnitude == pytest.approx(4.99402346512432e+28)
+    assert prop.mass_density.magnitude == pytest.approx(8 * 28.0855 * 1.6605389e-27 / (5.431**3 * 1e-30))  # Atomic mass in kg/m^3
 
 
 def test_1d_material_identification():

@@ -16,7 +16,7 @@ from typing import List
 from abc import abstractmethod
 from collections import OrderedDict
 import numpy as np
-from pint import UnitRegistry
+from nomad.units import ureg
 
 from nomad.datamodel.encyclopedia import (
     Material,
@@ -27,8 +27,6 @@ from nomad.normalizing.encyclopedia.basisset import get_basis_set
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.utils import RestrictedDict
 from nomad import config
-
-ureg = UnitRegistry()
 
 
 class MethodNormalizer():

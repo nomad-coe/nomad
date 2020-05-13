@@ -14,6 +14,8 @@
 
 from typing import Callable, Any, Dict, cast
 import uuid
+import numpy as np
+import pint.quantity
 
 
 from .metainfo import (
@@ -37,13 +39,6 @@ class ElasticDocument(SectionAnnotation):
     classes, sub sections become inner documents, and quantities with the :class:`Elastic`
     extension become fields in their respective document.
 
-    Arguments:
-        index_name: This is used to optionally add the index_name to the resulting
-            elasticsearch_dsl document.
-        id: A callable that produces an id from a section instance that is used as id
-            for the respective elastic search index entry. The default will be randomly
-            generated UUID(4).
-
     Attributes:
         document: The elasticsearch_dsl document class that was generated from the
             metainfo section
@@ -52,6 +47,14 @@ class ElasticDocument(SectionAnnotation):
     _all_documents: Dict[str, Any] = {}
 
     def __init__(self, index_name: str = None, id: Callable[[Any], str] = None):
+        """
+        Args:
+            index_name: This is used to optionally add the index_name to the resulting
+                elasticsearch_dsl document.
+            id: A callable that produces an id from a section instance that is used as id
+                for the respective elastic search index entry. The default will be randomly
+                generated UUID(4).
+        """
         self.index_name = index_name
         self.id = id
 
@@ -85,12 +88,20 @@ class ElasticDocument(SectionAnnotation):
                 if value is None or value == []:
                     continue
 
-                quantity_type = quantity.type
-                if isinstance(quantity_type, Reference):
-                    if quantity.is_scalar:
-                        value = ElasticDocument.create_index_entry(cast(MSection, value))
+                if isinstance(quantity.type, Reference):
+                    # For shallow section references only the path is stored
+                    if annotation.shallow:
+                        value = value.m_proxy_url
+                    # For deep references the full section is resolved
                     else:
-                        value = [ElasticDocument.create_index_entry(item) for item in value]
+                        if quantity.is_scalar:
+                            value = ElasticDocument.create_index_entry(cast(MSection, value))
+                        else:
+                            value = [ElasticDocument.create_index_entry(item) for item in value]
+
+                # Only the magnitude of scalar Pint quantity objects is stored
+                if quantity.is_scalar and isinstance(value, pint.quantity._Quantity):
+                    value = value.magnitude
 
                 setattr(obj, annotation.field, value)
 
@@ -137,7 +148,7 @@ class ElasticDocument(SectionAnnotation):
         if document is not None:
             return document
 
-        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object
+        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object, Double, Float, Long
 
         if attrs is None:
             attrs = {}
@@ -156,25 +167,39 @@ class ElasticDocument(SectionAnnotation):
             for annotation in quantity.m_get_annotations(Elastic, as_list=True):
                 if annotation.mapping is None and first:
                     kwargs = dict(index=annotation.index)
-                    # find a mapping based on quantity type
-                    if quantity.type == str:
+
+                    # Use keyword type for shallow references
+                    if isinstance(quantity.type, Reference) and annotation.shallow:
                         annotation.mapping = Keyword(**kwargs)
-                    elif quantity.type == int:
-                        annotation.mapping = Integer(**kwargs)
-                    elif quantity.type == bool:
-                        annotation.mapping = Boolean(**kwargs)
-                    elif quantity.type == Datetime:
-                        annotation.mapping = Date(**kwargs)
-                    elif isinstance(quantity.type, Reference):
-                        inner_document = ElasticDocument.create_document(
-                            cast(Section, quantity.type.target_section_def), inner_doc=True,
-                            prefix=annotation.field)
-                        annotation.mapping = Object(inner_document)
-                    elif isinstance(quantity.type, MEnum):
-                        annotation.mapping = Keyword(**kwargs)
+                    # If an explicit type is given, use it
+                    elif annotation.type is not None:
+                        annotation.mapping = annotation.type(**kwargs)
+                    # Otherwise find a mapping based on quantity type
                     else:
-                        raise NotImplementedError(
-                            'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+                        if quantity.type == str:
+                            annotation.mapping = Keyword(**kwargs)
+                        elif quantity.type in [float, np.float64] and quantity.is_scalar:
+                            annotation.mapping = Double(**kwargs)
+                        elif quantity.type == np.float32 and quantity.is_scalar:
+                            annotation.mapping = Float(**kwargs)
+                        elif quantity.type in [int, np.int32] and quantity.is_scalar:
+                            annotation.mapping = Integer(**kwargs)
+                        elif quantity.type == np.int64 and quantity.is_scalar:
+                            annotation.mapping = Long(**kwargs)
+                        elif quantity.type == bool:
+                            annotation.mapping = Boolean(**kwargs)
+                        elif quantity.type == Datetime:
+                            annotation.mapping = Date(**kwargs)
+                        elif isinstance(quantity.type, Reference):
+                            inner_document = ElasticDocument.create_document(
+                                cast(Section, quantity.type.target_section_def), inner_doc=True,
+                                prefix=annotation.field)
+                            annotation.mapping = Object(inner_document)
+                        elif isinstance(quantity.type, MEnum):
+                            annotation.mapping = Keyword(**kwargs)
+                        else:
+                            raise NotImplementedError(
+                                'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
 
                 assert first or annotation.mapping is None, 'Only the first Elastic annotation is mapped'
 

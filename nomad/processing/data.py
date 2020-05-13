@@ -424,8 +424,8 @@ class Calc(Proc):
                 ref_archive = EntryArchive.m_from_dict(arch)
 
             # Get encyclopedia method information directly from the referenced calculation.
-            ref_enc_method = ref_archive.section_encyclopedia.method
-            backend.entry_archive.section_encyclopedia.method = ref_enc_method
+            ref_enc_method = ref_archive.section_metadata.encyclopedia.method
+            backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced

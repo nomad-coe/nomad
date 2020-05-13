@@ -60,7 +60,24 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_band is not None:
-            properties.electronic_band_structure = representative_band
+            properties.electronic_band_structure = representative_band.m_path()
+
+            # Add band gap information to metadata if present. The channel with
+            # smallest band gap index is chosen as a representative one.
+            band_gaps = properties.electronic_band_structure.section_band_gap
+            if band_gaps is not None and len(band_gaps) > 0:
+                min_gap_index = 0
+                min_gap = float("Inf")
+                for i, gap in enumerate(band_gaps):
+                    value = gap.value
+                    if value < min_gap:
+                        min_gap_index = i
+                        min_gap = value
+                representative_gap = band_gaps[min_gap_index]
+                bg_value = representative_gap.value
+                if bg_value is not None and bg_value > 0:
+                    properties.band_gap = representative_gap.value
+                    properties.band_gap_direct = representative_gap.type == "direct"
 
     def electronic_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative electonic density
@@ -85,7 +102,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_dos is not None:
-            properties.electronic_dos = representative_dos
+            properties.electronic_dos = representative_dos.m_path()
 
     def elastic_constants_matrix(self) -> None:
         pass
@@ -127,7 +144,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if resolved_section is not None:
-            properties.thermodynamical_properties = resolved_section
+            properties.thermodynamical_properties = resolved_section.m_path()
 
     def phonon_band_structure(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative phonon band
@@ -158,7 +175,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_phonon_band is not None:
-            properties.phonon_band_structure = representative_phonon_band
+            properties.phonon_band_structure = representative_phonon_band.m_path()
 
     def phonon_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative phonon density of
@@ -185,7 +202,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_phonon_dos is not None:
-            properties.phonon_dos = representative_phonon_dos
+            properties.phonon_dos = representative_phonon_dos.m_path()
 
     def energies(self, properties: Properties, gcd: int, representative_scc: Section) -> None:
         energy_dict = {}

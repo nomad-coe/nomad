@@ -27,8 +27,9 @@ import os.path
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl, InfoKindEnv
 
 from nomad import utils
+from nomad.units import ureg
 from nomad.metainfo import (
-    Definition, SubSection, Package, Quantity, Category, Section, Reference, units,
+    Definition, SubSection, Package, Quantity, Category, Section, Reference,
     Environment, MEnum, MSection, DefinitionAnnotation)
 
 logger = utils.get_logger(__name__)
@@ -438,7 +439,7 @@ class PackageConversion:
                 # units
                 if legacy_def.units is not None:
                     try:
-                        definition.unit = units.parse_units(legacy_def.units)
+                        definition.unit = ureg.parse_units(legacy_def.units)
                     except UndefinedUnitError:
                         logger.error('unknown unit %s' % legacy_def.units)
                     except ValueError as e:

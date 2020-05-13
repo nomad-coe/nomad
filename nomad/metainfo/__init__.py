@@ -297,7 +297,6 @@ from .metainfo import (
     Reference,
     MResource,
     m_package,
-    units,
     Annotation,
     DefinitionAnnotation,
     SectionAnnotation,

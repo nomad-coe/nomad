@@ -1,8 +1,9 @@
 from ase.data import chemical_symbols
-from elasticsearch_dsl import Keyword, Float, InnerDoc, Nested
+from elasticsearch_dsl import Keyword, Float, InnerDoc, Nested, Integer
 import numpy as np
 
-from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, units, DefinitionAnnotation
+from nomad.units import ureg
+from nomad.metainfo import MSection, Section, Quantity, SubSection, MEnum, DefinitionAnnotation
 from nomad.metainfo.search_extension import Search
 
 
@@ -82,7 +83,7 @@ class Species(MSection):
             species).
         ''')
 
-    mass = Quantity(type=float, unit=units.amu, a_optimade=dict(entry='optional'))
+    mass = Quantity(type=float, unit=ureg.amu, a_optimade=dict(entry='optional'))
 
     original_name = Quantity(type=str, a_optimade=dict(entry='optional'), description='''
         Can be any valid Unicode string, and SHOULD contain (if specified) the name of the
@@ -172,7 +173,7 @@ class OptimadeEntry(MSection):
     dimension_types = Quantity(
         type=int, shape=[3], default=[0, 0, 0],
         links=optimade_links('h.6.2.8'),
-        a_search=Search(value=lambda a: sum(a.dimension_types)),
+        a_search=Search(value=lambda a: sum(a.dimension_types), type=Integer),
         a_optimade=Optimade(query=True, entry=True),
         description='''
             List of three integers. For each of the three directions indicated by the three lattice
@@ -183,7 +184,7 @@ class OptimadeEntry(MSection):
         ''')
 
     lattice_vectors = Quantity(
-        type=np.dtype('f8'), shape=[3, 3], unit=units.angstrom,
+        type=np.dtype('f8'), shape=[3, 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.9'),
         a_optimade=Optimade(query=False, entry=True),
         description='''
@@ -191,7 +192,7 @@ class OptimadeEntry(MSection):
         ''')
 
     cartesian_site_positions = Quantity(
-        type=np.dtype('f8'), shape=['nsites', 3], unit=units.angstrom,
+        type=np.dtype('f8'), shape=['nsites', 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.10'),
         a_optimade=Optimade(query=False, entry=True), description='''
             Cartesian positions of each site. A site is an atom, a site potentially occupied by

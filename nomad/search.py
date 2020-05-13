@@ -461,7 +461,7 @@ class SearchRequest:
 
     def execute(self):
         '''
-        Exectutes without returning actual results. Only makes sense if the request
+        Executes without returning actual results. Only makes sense if the request
         was configured for statistics or quantity values.
         '''
         search = self._search.query(self.q)[0:0]
