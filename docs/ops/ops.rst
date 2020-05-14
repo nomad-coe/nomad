@@ -1,8 +1,6 @@
 Operating NOMAD/OASIS
 #####################
 
-This text is working
-
 .. toctree::
    :maxdepth: 2
 
@@ -10,6 +8,3 @@ This text is working
    depl_helm.rst
    depl_images.rst
    oasis.rst
-
-
-This text is working as well
