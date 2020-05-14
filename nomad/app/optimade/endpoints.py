@@ -22,8 +22,10 @@ from nomad.datamodel import OptimadeEntry
 
 from .api import api, url
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
-    json_api_info_response_model, json_api_list_response_model
+    Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
+    json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
+    ToplevelLinks, LinkObject, json_api_links_response_model, json_api_references_response_model, \
+    json_api_structure_response_model, json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
 
@@ -114,7 +116,7 @@ class CalculationList(Resource):
                 returned=len(results),
                 available=available,
                 last_id=results[-1].calc_id if available > 0 else None),
-            links=Links(
+            links=LinksModel(
                 'calculations',
                 available=available,
                 page_number=page_number,
@@ -210,4 +212,177 @@ class Info(Resource):
         return dict(
             meta=Meta(query=request.url, returned=1),
             data=result
+        ), 200
+
+
+def execute_search(**kwargs):
+    filter = kwargs.get('filter')
+    page_number = kwargs.get('page_number')
+    page_limit = kwargs.get('page_limit')
+    search_request = base_search_request().include('calc_id', 'upload_id')
+
+    if filter is not None:
+        try:
+            search_request.query(parse_filter(filter))
+        except FilterException as e:
+            abort(400, message='Could not parse filter expression: %s' % str(e))
+
+    result = search_request.execute_paginated(
+        page=page_number,
+        per_page=page_limit)
+    # order_by='optimade.%s' % sort)  # TODO map the Optimade property
+
+    return result
+
+
+@ns.route('/references')
+class References(Resource):
+    @api.doc('references')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.response(422, 'Validation error')
+    @api.expect(entry_listing_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_references_response_model, skip_none=True, code=200)
+    def get(self):
+        '''Retrive the references corresponding to the structures that match the given Optimade filter expression'''
+        try:
+            filter = request.args.get('filter', None)
+            page_limit = int(request.args.get('page_limit', 10))
+            page_number = int(request.args.get('page_number', 1))
+            sort = request.args.get('sort', 'chemical_formula_reduced'),
+
+        except Exception:
+            abort(400, message='bad parameter types')  # TODO Specific json API error handling
+
+        result = execute_search(
+            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
+        available = result['pagination']['total']
+        results = to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
+        return dict(
+            meta=Meta(
+                query=request.url,
+                returned=len(results),
+                available=available,
+                last_id=results[-1].calc_id if available > 0 else None),
+            links=ToplevelLinks(
+                'structures',
+                available=available,
+                page_number=page_number,
+                page_limit=page_limit,
+                sort=sort, filter=filter),
+            data=[ReferenceObject(d) for d in results]
+        ), 200
+
+
+@ns.route('/links')
+class Links(Resource):
+    @api.doc('links')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.response(422, 'Validation error')
+    @api.expect(entry_listing_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_links_response_model, skip_none=True, code=200)
+    def get(self):
+        '''Retrive the links that corresponding to the structures that match the given Optimade filter expression'''
+        try:
+            filter = request.args.get('filter', None)
+            page_limit = int(request.args.get('page_limit', 10))
+            page_number = int(request.args.get('page_number', 1))
+            sort = request.args.get('sort', 'chemical_formula_reduced'),
+
+        except Exception:
+            abort(400, message='bad parameter types')  # TODO Specific json API error handling
+
+        result = execute_search(
+            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
+        available = result['pagination']['total']
+        results = to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
+        return dict(
+            meta=Meta(
+                query=request.url,
+                returned=len(results),
+                available=available,
+                last_id=results[-1].calc_id if available > 0 else None),
+            links=ToplevelLinks(
+                'structures',
+                available=available,
+                page_number=page_number,
+                page_limit=page_limit,
+                sort=sort, filter=filter
+            ),
+            data=[LinkObject(d, page_number=page_number, sort=sort, filter=filter) for d in results]
+        )
+
+
+@ns.route('/structures')
+class Structures(Resource):
+    @api.doc('structures')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.response(422, 'Validation error')
+    @api.expect(entry_listing_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_structures_response_model, skip_none=True, code=200)
+    def get(self):
+        ''' Retrieve the structures that match the given Optimade filter expression. '''
+        request_fields = base_request_args()
+
+        try:
+            filter = request.args.get('filter', None)
+            page_limit = int(request.args.get('page_limit', 10))
+            page_number = int(request.args.get('page_number', 1))
+            sort = request.args.get('sort', 'chemical_formula_reduced'),
+
+        except Exception:
+            abort(400, message='bad parameter types')  # TODO Specific json API error handling
+
+        result = execute_search(
+            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
+        available = result['pagination']['total']
+        results = to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
+        return dict(
+            meta=Meta(
+                query=request.url,
+                returned=len(results),
+                available=available,
+                last_id=results[-1].calc_id if available > 0 else None),
+            links=ToplevelLinks(
+                'structures',
+                available=available,
+                page_number=page_number,
+                page_limit=page_limit,
+                sort=sort, filter=filter
+            ),
+            data=[StructureObject(d, request_fields) for d in results]
+        ), 200
+
+
+@ns.route('/structures/<string:id>')
+class Structure(Resource):
+    @api.doc('structure')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.response(404, 'Id does not exist.')
+    @api.expect(single_entry_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_structure_response_model, skip_none=True, code=200)
+    def get(self, id: str):
+        ''' Retrieve a single calculation for the given id. '''
+        request_fields = base_request_args()
+        search_request = base_search_request().search_parameters(calc_id=id)
+
+        result = search_request.execute_paginated(
+            page=1,
+            per_page=1)
+
+        available = result['pagination']['total']
+        results = to_calc_with_metadata(result['results'])
+        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+
+        if available == 0:
+            abort(404, 'The calculation with id %s does not exist' % id)
+
+        return dict(
+            meta=Meta(query=request.url, returned=1),
+            data=StructureObject(results[0], request_fields=request_fields)
         ), 200
