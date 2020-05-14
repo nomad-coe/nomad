@@ -319,3 +319,52 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_app
 - nomad_oasis_worker
 - nomad_oasis_gui
+
+## NOMAD Oasis FAQ
+
+### Why use an Oasis?
+There are three reasons: You want to manage data in private, you want local availability of public NOMAD data without network restrictions, or you want to manage large amounts of low quality and preliminary data that is not intended for publication.
+
+### How to organize data in NOMAD Oasis?
+
+#### How can I categorize or label my data?
+Current, NOMAD supports the following mechanism to organize data:
+data always belongs to one upload, one uploading user, and is assigned an upload datetime; uploads can have a custom name
+data can be assigned to multiple independent datasets
+data can hold a proprietary id called “external_id”
+data can be assigned multiple authors in addition to the uploading user
+The next NOMAD release (0.8.x) will contain more features to filter data based on uploader and upload time. It will also include a revised search bar that makes it easier to filter for external_id or upload_name.
+
+####  Is there some rights-based visibility?
+No. Currently, NOMAD only supports uploader controlled visibility. The uploader decides when to make an upload public (with or without embargo). The embargo can be used to limit the visibility of an upload to users that the uploader want to share his upload with.
+
+### How to share data with the central NOMAD?
+
+Keep in mind, it is not entirely clear, how we will do this.
+
+#### How to designate Oasis data for publishing to NOMAD?
+Currently, you should use one of the organizational mechanism to designate data for being published to NOMAD. we, you can use a dedicated dataset for publishable data.
+
+#### How to upload?
+
+Will will probably provide functionality in the API of the central NOMAD to upload data from an Oasis to the central NOMAD. We will provide the necessary scripts and detailed instructions. Most likely the data that is uploaded to the central NOMAD can be selected via a search query. Therefore, using a dedicated dataset, would be an easy to select criteria.
+
+### How to maintain an Oasis installation?
+
+#### How to install a NOMAD Oasis?
+Follow our guide: https://repository.nomad-coe.eu/app/docs/ops.html#operating-a-nomad-oasis
+
+#### How do version numbers work?
+There are still a lot of thing in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.
+
+#### How to upgrade a NOMAD Oasis?
+When we release a new version of the NOMAD software, it will be available as a new Docker image with an increased version number. You simply change the version number in your docker-compose.yaml and restart.
+
+#### What about major releases?
+Going from NOMAD 0.7.x to 0.8.x will require data migration. This means the layout of the data has changed and the new version cannot be used on top of the old data. This requires a separate installation of the new version and mirroring the data from the old version via NOMAD’s API. Detailed instructions will be made available with the new version.
+
+#### How to move data between installations?
+We the release of 0.8.x, we will clarify and how to move data between installations. (See last question)
+
+#### How to backup my Oasis?
+To backup your Oasis at least the file data and mongodb data needs to be backed up. You determined the path to your file data (your uploads) during the installation. This directory can be backed up like any other file backup (e.g. rsync). To backup the mongodb, please refer to the official mongodb documentation: https://docs.mongodb.com/manual/core/backups/. We suggest a simple mongodump export that is backed up alongside your files. The elasticsearch contents can be reproduced with the information in files and mongodb.

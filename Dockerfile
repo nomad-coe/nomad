@@ -32,7 +32,7 @@ COPY gui/yarn.lock /app/yarn.lock
 RUN yarn
 COPY gui /app
 RUN yarn run build
-RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
+# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
 
 # Second, build all python stuff in a python build image
 FROM python:3.6-stretch as build
@@ -68,7 +68,7 @@ RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
 WORKDIR /install/docs
-COPY --from=gui_build /app/react-docgen.out /install/docs
+# COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
 RUN \
     find /usr/local/lib/python3.6/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \

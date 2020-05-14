@@ -24,6 +24,16 @@ nomad.files
 .. automodule:: nomad.files
     :members:
 
+nomad.archive
+-------------
+.. automodule:: nomad.archive
+    :members:
+
+nomad.doi
+---------
+.. automodule:: nomad.doi
+    :members:
+
 nomad.parsing
 -------------
 .. automodule:: nomad.parsing
@@ -57,10 +67,6 @@ nomad.client
 nomad.utils
 -----------
 .. automodule:: nomad.utils
-
-nomad.migration
----------------
-.. automodule:: nomad.migration
 
 tests
 -----

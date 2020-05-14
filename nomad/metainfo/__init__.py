@@ -152,15 +152,14 @@ A `section class` looks like this:
         quantity_name = Quantity(**quantity_attributes)
         sub_section_name = SubSection(**sub_section_attributes)
 
-The various Python elements of this class are mapped to a respective `section definition`
-attributes after the class was defined. The ``SectionName`` becomes the `name`. The
-``BaseSection`` is either :class:`MSection` or if it is another `section class`, this
-`section classes` `section definition` becomes a member of `base_sections`. The
+The various Python elements of this class are mapped to a respective *section definition*.
+The ``SectionName`` becomes the *name*. The
+``BaseSection`` is either :class:`MSection` or another *section class*. The
 ``section_attributes`` become additional attributes of the `section definition`. The
-various ``Quantity`` and ``SubSection`` become the `quantities` and `sub_sections`.
+various ``Quantity`` and ``SubSection`` become the *quantities* and *sub sections*.
 
-Each `section class` has to directly or indirectly extend :class:`MSection`. This will
-provided certain class and object features to all `section classes` and all `section instances`.
+Each *section class* has to directly or indirectly extend :class:`MSection`. This will
+provided certain class and object features to all *section classes* and all *section instances*.
 Read :ref:metainfo-reflection to learn more.
 
 .. autoclass:: Section
@@ -170,7 +169,7 @@ Sub-Sections
 
 .. autoclass:: SubSection
 
-.. _metainfo-categories
+.. _metainfo-categories:
 
 Categories
 ----------
@@ -211,7 +210,7 @@ Custom data types
 
 .. autoclass:: MEnum
 
-.. _metainfo-reflection
+.. _metainfo-reflection:
 
 Reflection and custom data storage
 ----------------------------------
@@ -225,14 +224,6 @@ quantity definitions are unknown when writing code.
 
 .. autoclass:: MSection
     :members:
-
-:class:`MSection` does not keep all its data directly, but uses a data object that
-decends from :class:`MData`.
-
-.. autoclass:: MData
-    :members:
-
-.. autoclass:: MDataDict
 
 .. autoclass:: MetainfoError
 .. autoclass:: DeriveError
