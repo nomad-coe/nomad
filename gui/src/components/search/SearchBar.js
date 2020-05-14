@@ -10,7 +10,13 @@ import { apiContext } from '../api'
  * A few helper functions related to format and analyse suggested options
  */
 const Options = {
-  split: (suggestion) => suggestion.split('='),
+  split: (suggestion) => {
+    let [quantity, value] = suggestion.split('=')
+    if (value && searchQuantities[quantity] && searchQuantities[quantity].many) {
+      value = value.split(',')
+    }
+    return [quantity, value]
+  },
   join: (quantity, value) => `${quantity}=${value}`,
   splitForCompare: (suggestion) => {
     const [quantity, value] = suggestion.split('=')
