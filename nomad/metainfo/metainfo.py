@@ -1769,9 +1769,9 @@ class Quantity(Property):
             The physics unit for this quantity. It is optional.
 
             Units are represented with the pint_ Python package. Pint defines units and
-            their algebra. You can either use `pint` units directly, e.g. ``units.m / units.s``.
-            The metainfo provides a preconfigured `pint` unit registry :py:data:`units`.
-            You can also provide the unit as `pint` parsable string, e.g. ``'meter / seconds'`` or
+            their algebra. You can either use *pint* units directly, e.g. ``units.m / units.s``.
+            The metainfo provides a preconfigured *pint* unit registry :py:data:`units`.
+            You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or
             ``'m/s'``.
 
         default:

@@ -1,3 +1,5 @@
+.. _access-the-archive-label:
+
 Accessing the Archive
 =====================
 

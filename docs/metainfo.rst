@@ -1,3 +1,5 @@
+.. _metainfo-label:
+
 Metainfo
 ========
 

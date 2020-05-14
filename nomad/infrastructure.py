@@ -16,7 +16,7 @@
 This module provides function to establish connections to the database, searchengine, etc.
 infrastructure services. Usually everything is setup at once with :func:`setup`. This
 is run once for each *api* and *worker* process. Individual functions for partial setups
-exist to facilitate testing, :py:mod:`nomad.migration`, aspects of :py:mod:`nomad.cli`, etc.
+exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 '''
 
 import os.path

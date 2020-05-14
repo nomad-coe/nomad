@@ -244,7 +244,7 @@ class ArchiveQuery(collections.abc.Sequence):
             If set to True, this cases will raise an Exception. Otherwise, the entries
             with missing archives are simply skipped (default).
         authentication: Optionally provide detailed authentication information. Usually,
-            providing ``username`` and ``password``should suffice.
+            providing ``username`` and ``password`` should suffice.
     '''
     def __init__(
             self,
