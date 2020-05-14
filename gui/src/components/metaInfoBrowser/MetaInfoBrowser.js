@@ -1,12 +1,10 @@
 
-import React, { Component, useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { matchPath, useLocation, useHistory, useRouteMatch } from 'react-router-dom'
 import Viewer from './Viewer'
-import PropTypes from 'prop-types'
-import { withApi, apiContext } from '../api'
+import { apiContext } from '../api'
 import MetainfoSearch from './MetainfoSearch'
-import { FormControl, withStyles, Select, Input, MenuItem, ListItemText, InputLabel, makeStyles } from '@material-ui/core'
-import { compose } from 'recompose'
+import { FormControl, Select, Input, MenuItem, ListItemText, InputLabel, makeStyles } from '@material-ui/core'
 import { schema } from '../MetaInfoRepository'
 import { errorContext } from '../errors'
 

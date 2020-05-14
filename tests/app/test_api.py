@@ -651,17 +651,6 @@ class TestArchive(UploadFilesBasedTests):
         rv = api.get('/archive/%s' % 'doesnt/exist', headers=auth_headers)
         assert rv.status_code == 404
 
-    @pytest.mark.parametrize('info', [
-        'all.nomadmetainfo.json',
-        'all.experimental.nomadmetainfo.json',
-        'vasp.nomadmetainfo.json',
-        'mpes.nomadmetainfo.json'])
-    def test_get_metainfo(self, api, info):
-        rv = api.get('/archive/metainfo/%s' % info)
-        assert rv.status_code == 200
-        metainfo = json.loads((rv.data))
-        assert len(metainfo) > 0
-
     @pytest.mark.parametrize('compress', [False, True])
     def test_archive_zip_dowload_upload_id(self, api, non_empty_processed, test_user_auth, compress):
         url = '/archive/download?upload_id=%s&compress=%s' % (non_empty_processed.upload_id, 'true' if compress else 'false')
