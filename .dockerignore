@@ -16,7 +16,6 @@
 data/
 local/
 target/
-ops/
 build/
 dist/
 
