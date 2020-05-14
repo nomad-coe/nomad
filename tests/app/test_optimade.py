@@ -214,3 +214,55 @@ def test_calculation_info_endpoint(api):
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
+
+
+def test_references_endpoint(api, example_structures):
+    rv = api.get('/references')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert 'data' in data
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'attributes']:
+            assert(d.get(key)) is not None
+        assert 'last_modified' in d['attributes']
+
+
+def test_links_endpoint(api, example_structures):
+    rv = api.get('/links')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert 'data' in data
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'type', 'attributes']:
+            assert d.get(key) is not None
+        for key in ['name', 'description', 'base_url', 'homepage']:
+            assert key in d['attributes']
+
+
+def test_structures_endpoint(api, example_structures):
+    rv = api.get('/structures')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'attributes']:
+            assert d.get(key) is not None
+        required_keys = [
+            'last_modified', 'elements', 'nelements', 'elements_ratios', 'chemical_formula_descriptive',
+            'chemical_formula_reduced', 'chemical_formula_anonymous', 'dimension_types',
+            'cartesian_site_positions', 'nsites', 'species_at_sites', 'species', 'structure_features']
+        for key in required_keys:
+            assert key in d['attributes']
+
+
+def test_structure_endpoint(api, example_structures):
+    rv = api.get('/structures/%s' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert attr.get('elements') == ['H', 'O']
+    assert len(attr.get('dimension_types')) == 3

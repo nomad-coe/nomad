@@ -465,16 +465,15 @@ class DbUpdater:
 
     def prep_list(self):
         if self.outfile is not None and os.path.isfile(self.outfile):
-            uplist = self._read_from_file(self.outfile)
             self.update_list = []
             self.is_updated_list = []
-            for l in uplist:
-                if isinstance(l, str):
-                    self.update_list.append(l)
+            for list_from_file in self._read_from_file(self.outfile):
+                if isinstance(list_from_file, str):
+                    self.update_list.append(list_from_file)
                     self.is_updated_list.append(False)
                 else:
-                    self.update_list.append(l[0])
-                    self.is_updated_list.append(l[1])
+                    self.update_list.append(list_from_file[0])
+                    self.is_updated_list.append(list_from_file[1])
 
         else:
             if self.parallel > 1:
@@ -492,6 +491,7 @@ class DbUpdater:
         self.prep_list()
         if self.do_download:
             self.download()
+
 
 @client.command(
     help='Synchronizes the NOMAD database with the given external database.')

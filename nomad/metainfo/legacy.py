@@ -101,7 +101,7 @@ class LegacyMetainfoEnvironment(Environment):
     legacy_package_name = Quantity(type=str)
 
     def legacy_info(self, definition: Definition, *args, **kwargs) -> InfoKindEl:
-        ''' Creates a legacy metainfo objects for the given definition. '''
+        ''' Creates a legacy metainfo object for the given definition. '''
         super_names: List[str] = list()
         result: Dict[str, Any] = dict(
             name=definition.a_legacy.name,
@@ -177,6 +177,48 @@ class LegacyMetainfoEnvironment(Environment):
                         env.addInfoKindEl(self.legacy_info(quantity))
 
         return env
+
+    def to_legacy_dict(
+            self, packages: List[Package] = None, description: str = None,
+            *args, **kwargs) -> Dict[str, Any]:
+        '''
+        Creates a dictionary that can be serialized to a legacy metainfo definition file
+        (*.nomadmetainfo.json).
+
+        Arguments:
+            package: Will add all definitions of these packages as actual definitions,
+                all other packages will be added by import.
+            description: The description for the legacy file. If None the description of
+                the firs package will be used.
+        '''
+        if packages is None:
+            packages = []
+
+        definitions = []
+        dependencies = []
+        for package in self.packages:
+            if package in packages:
+                if description is None:
+                    description = package.description
+
+                for definition in package.all_definitions.values():
+                    if not (isinstance(definition, Section) and definition.extends_base_section):
+                        definitions.append(self.legacy_info(definition).toDict())
+
+                    if isinstance(definition, Section):
+                        for quantity in definition.quantities:
+                            definitions.append(self.legacy_info(quantity).toDict())
+            else:
+                dependencies.append(package)
+
+        return {
+            'type': 'nomad_meta_info_1_0',
+            'description': description,
+            'dependencies': [
+                {'relativePath': dependency.a_legacy.name}
+                for dependency in dependencies],
+            'metaInfos': definitions
+        }
 
 
 class EnvironmentConversion:
@@ -469,7 +511,7 @@ def generate_metainfo_code(metainfo_env: LegacyMetainfoEnvironment):
 
         def format_paragraph(paragraph, first):
             lines = textwrap.wrap(text=paragraph, width=width - indent * 4)
-            lines = [l.replace('\\', '\\\\') for l in lines]
+            lines = [line.replace('\\', '\\\\') for line in lines]
             return textwrap.indent(
                 '\n'.join(lines), ' ' * 4 * indent, lambda x: not (first and x.startswith(lines[0])))
 

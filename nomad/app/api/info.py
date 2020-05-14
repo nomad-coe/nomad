@@ -56,6 +56,7 @@ statistics_info_model = api.model('StatisticsInfo', {
 
 info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
+    'metainfo_packages': fields.List(fields.String),
     'codes': fields.List(fields.String),
     'normalizers': fields.List(fields.String),
     'domains': fields.List(fields.Nested(model=domain_model)),
@@ -96,6 +97,9 @@ class InfoResource(Resource):
             'parsers': [
                 key[key.index('/') + 1:]
                 for key in parsing.parser_dict.keys()],
+            'metainfo_packages': ['general', 'general.experimental', 'common', 'public'] + sorted([
+                key[key.index('/') + 1:]
+                for key in parsing.parser_dict.keys()]),
             'codes': sorted(set(codes), key=lambda x: x.lower()),
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'statistics': statistics(),

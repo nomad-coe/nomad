@@ -19,15 +19,11 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 
 from typing import Dict, Any
 from io import BytesIO
-import os.path
 from flask import request, g
 from flask_restplus import abort, Resource, fields
 import json
 import orjson
-import importlib
 import urllib.parse
-
-import metainfo
 
 from nomad.files import UploadFiles, Restricted
 from nomad.archive import query_archive, ArchiveQueryError
@@ -347,93 +343,3 @@ class ArchiveQueryResource(Resource):
         results['results'] = data
 
         return results, 200
-
-
-@ns.route('/metainfo/<string:metainfo_package_name>')
-@api.doc(params=dict(metainfo_package_name='The name of the metainfo package.'))
-class MetainfoResource(Resource):
-    @api.doc('get_metainfo')
-    @api.response(404, 'The metainfo does not exist')
-    @api.response(200, 'Metainfo data send')
-    def get(self, metainfo_package_name):
-        '''
-        Get a metainfo definition file.
-        '''
-        try:
-            return load_metainfo(metainfo_package_name), 200
-        except FileNotFoundError:
-            parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
-
-            try:
-                return load_metainfo(dict(
-                    parser='%sparser' % parser_prefix,
-                    path='%s.nomadmetainfo.json' % parser_prefix)), 200
-            except FileNotFoundError:
-                abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
-
-
-metainfo_main_path = os.path.dirname(os.path.abspath(metainfo.__file__))
-
-
-def load_metainfo(
-        package_name_or_dependency: str, dependency_source: str = None,
-        loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
-    '''
-    Loads the given metainfo package and all its dependencies. Returns a dict with
-    all loaded package_names and respective packages.
-
-    Arguments:
-        package_name_or_dependency: The name of the package, or a nomadmetainfo dependency object.
-        dependency_source: The path of the metainfo that uses this function to load a relative dependency.
-        loaded_packages: Give a dict and the function will added freshly loaded packages
-            to it and return it.
-    '''
-    if loaded_packages is None:
-        loaded_packages = {}
-
-    if isinstance(package_name_or_dependency, str):
-        package_name = package_name_or_dependency
-        metainfo_path = os.path.join(metainfo_main_path, package_name)
-    else:
-        dependency = package_name_or_dependency
-        if 'relativePath' in dependency:
-            if dependency_source is None:
-                raise Exception(
-                    'Can only load relative dependency from within another metainfo package')
-
-            metainfo_path = os.path.join(
-                os.path.dirname(dependency_source), dependency['relativePath'])
-
-        elif 'metainfoPath' in dependency:
-            metainfo_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
-
-        elif 'parser' in dependency:
-            parser = dependency['parser']
-            path = dependency['path']
-            try:
-                parser_module = importlib.import_module(parser).__file__
-            except Exception:
-                raise Exception('Parser not installed %s for metainfo path %s' % (parser, metainfo_path))
-
-            parser_directory = os.path.dirname(parser_module)
-            metainfo_path = os.path.join(parser_directory, path)
-
-        else:
-            raise Exception('Invalid dependency type in metainfo package %s' % metainfo_path)
-
-        package_name = os.path.basename(metainfo_path)
-
-    package_name = os.path.basename(package_name)
-
-    if package_name in loaded_packages:
-        return loaded_packages
-
-    with open(metainfo_path, 'rt') as f:
-        metainfo_json = json.load(f)
-
-    loaded_packages[package_name] = metainfo_json
-
-    for dependency in metainfo_json.get('dependencies', []):
-        load_metainfo(dependency, dependency_source=metainfo_path, loaded_packages=loaded_packages)
-
-    return loaded_packages

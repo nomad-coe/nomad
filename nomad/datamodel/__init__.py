@@ -62,7 +62,7 @@ from .optimade import OptimadeEntry, Species
 domains = {
     'dft': {
         'metadata': DFTMetadata,
-        'metainfo_all_package': 'all.nomadmetainfo.json',
+        'metainfo_all_package': 'common',
         'root_section': 'section_run'
     },
     'ems': {

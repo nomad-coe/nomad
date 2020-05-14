@@ -5,7 +5,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum, derived
 )
 from nomad.metainfo.legacy import LegacyDefinition
-import nomad.atomutils
 
 
 m_package = Package(
@@ -5277,6 +5276,7 @@ class section_thermodynamical_properties(MSection):
         """Returns the specific heat capacity by dividing the heat capacity per
         cell with the mass of the atoms in the cell.
         """
+        import nomad.atomutils
         s_frame_sequence = self.m_parent
         first_frame = s_frame_sequence.frame_sequence_local_frames_ref[0]
         system = first_frame.single_configuration_calculation_to_system_ref

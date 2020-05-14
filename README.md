@@ -50,6 +50,7 @@ Omitted versions are plain bugfix releases with only minor changes and fixes.
 - new underlying datamodel that allows to maintain multiple domains
 - mulitple domains supported the GUI
 - new metainfo implementation
+- API endpoint to access the metainfo
 - new archive based on new metainfo
 - client library that serves archive data as objects (with tab completion) not dictionaries
 - properties and user tab in the search GUI

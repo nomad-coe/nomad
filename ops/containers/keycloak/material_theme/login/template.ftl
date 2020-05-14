@@ -73,7 +73,7 @@
                 </div>
             </div>
             <div class="mdc-back">
-                <a href="https://nomad-coe.eu">Back to NOMAD</a>
+                <a id="mdc-back-link" href="#" >back</a>
             </div>
 
             <#if realm.internationalizationEnabled>
