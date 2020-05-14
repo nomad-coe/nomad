@@ -16,14 +16,17 @@
 The encyclopedia API of the nomad@FAIRDI APIs.
 '''
 import re
+from math import gcd
+from functools import reduce
 
+import numpy as np
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
 from elasticsearch_dsl import Search, Q
 
 from nomad import config
 from nomad.units import ureg
-from nomad.atomutils import get_hill_decomposition, get_formula_string
+from nomad.atomutils import get_hill_decomposition
 from .api import api
 
 ns = api.namespace('encyclopedia', description='Access encyclopedia metadata.')
@@ -125,7 +128,7 @@ materials_query = api.model('materials_input', {
     'search_by': fields.Nested(api.model('search_query', {
         "exclusive": fields.Boolean(default=False),
         "formula": fields.String,
-        "element": fields.List(fields.String),
+        "element": fields.String,
         "page": fields.Integer(default=1),
         "per_page": fields.Integer(default=25),
         "pagination": fields.Boolean,
@@ -234,10 +237,12 @@ class EncMaterialsResource(Resource):
         # Create query for elements or formula
         search_by = data["search_by"]
         formula = search_by["formula"]
+        elements = search_by["element"]
         exclusive = search_by["exclusive"]
 
         if formula is not None:
-            # The given formula is reformatted with the Hill system
+            # Here we determine a list of atom types. The types may occur
+            # multiple times and at multiple places.
             element_list = []
             matches = re_formula.finditer(formula)
             for match in matches:
@@ -248,20 +253,46 @@ class EncMaterialsResource(Resource):
                     if count == "":
                         element_list.append(symbol)
                     else:
-                        element_list += [[symbol] * int(count)]
+                        element_list += [symbol] * int(count)
+
+            # The given list of species is reformatted with the Hill system
+            # into a query string. The counts are reduced by the greatest
+            # common divisor.
             names, counts = get_hill_decomposition(element_list)
+            greatest_common_divisor = reduce(gcd, counts)
+            reduced_counts = np.array(counts) / greatest_common_divisor
+            query_string = []
+            for name, count in zip(names, reduced_counts):
+                if count == 1:
+                    query_string.append(name)
+                else:
+                    query_string.append("{}{}".format(name, count))
+            query_string = " ".join(query_string)
 
             # With exclusive search we look for exact match
             if exclusive:
-                hill_formula = get_formula_string(names, counts)
-                filters.append(Q("term", **{"encyclopedia.material.formula": hill_formula}))
+                filters.append(Q("term", **{"encyclopedia.material.species_and_counts.keyword": query_string}))
             # With non-exclusive search we look for match that includes at
             # least all parts of the formula, possibly even more.
             else:
-                parts = ["{}{}".format(name, count) for name, count in zip(names, counts)]
                 musts.append(Q(
                     "match",
-                    encyclopedia__material__formula_parts={"query": " ".join(parts), "operator": "and"}
+                    encyclopedia__material__species_and_counts={"query": query_string, "operator": "and"}
+                ))
+        elif elements is not None:
+            # The given list of species is reformatted with the Hill system into a query string
+            species, _ = get_hill_decomposition(elements.split(","))
+            query_string = " ".join(species)
+
+            # With exclusive search we look for exact match
+            if exclusive:
+                filters.append(Q("term", **{"encyclopedia.material.species.keyword": query_string}))
+            # With non-exclusive search we look for match that includes at
+            # least all species, possibly even more.
+            else:
+                musts.append(Q(
+                    "match",
+                    encyclopedia__material__species={"query": query_string, "operator": "and"}
                 ))
 
         # Prepare the final boolean query that combines the different queries

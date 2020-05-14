@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Dict, List
-from math import gcd as gcd
+from math import gcd
 from functools import reduce
 from abc import abstractmethod
 import re
@@ -68,13 +68,16 @@ class MaterialNormalizer():
         formula = atomutils.get_formula_string(names, counts)
         material.formula = formula
 
-    def formula_parts(self, material: Material, names: List[str], counts: List[int]) -> None:
-        parts = ["{}{}".format(name, count) for name, count in zip(names, counts)]
-        material.formula_parts = " ".join(parts)
-
     def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
         formula = atomutils.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
+
+    def species_and_counts(self, material: Material, names: List[str], counts: List[int]) -> None:
+        parts = ["{}{}".format(name, count) for name, count in zip(names, counts)]
+        material.species_and_counts = " ".join(parts)
+
+    def species(self, material: Material, names: List[str]) -> None:
+        material.species = " ".join(names)
 
     def material_id(self, material: Material, spg_number: int, wyckoff_sets: List[WyckoffSet]) -> None:
         # Create and store hash based on SHA512
@@ -386,8 +389,9 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.crystal_system(bulk, sec_symmetry)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
-        self.formula_parts(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
         self.lattice_parameters(ideal, std_atoms)
         self.material_name(material, names, reduced_counts)

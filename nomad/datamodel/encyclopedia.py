@@ -2,7 +2,7 @@ import numpy as np
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference
 from nomad.datamodel.metainfo.public import section_k_band, section_dos, section_thermodynamical_properties
 from nomad.metainfo.search_extension import Search
-from elasticsearch_dsl import Text
+from elasticsearch_dsl import Text, Keyword
 
 
 class WyckoffVariables(MSection):
@@ -289,17 +289,25 @@ class Material(MSection):
         type=str,
         description="""
         Formula giving the composition and occurrences of the elements in the
-        Hill notation whre the number of occurences have been divided by the
+        Hill notation where the number of occurences have been divided by the
         greatest common divisor.
         """,
     )
-
-    formula_parts = Quantity(
+    species_and_counts = Quantity(
         type=str,
         description="""
-        The formula separated into individual terms for easier search.
+        The formula separated into individual terms containing both the atom
+        type and count. Used for searching parts of a formula.
         """,
-        a_search=Search(mapping=Text())
+        a_search=Search(mapping=Text(multi=True, fields={'keyword': Keyword()}))
+    )
+    species = Quantity(
+        type=str,
+        description="""
+        The formula separated into individual terms containing only unique atom
+        species. Used for searching materials containing specific elements.
+        """,
+        a_search=Search(mapping=Text(multi=True, fields={'keyword': Keyword()}))
     )
 
     # Bulk-specific properties
