@@ -28,6 +28,10 @@ project = 'nomad-FAIRDI'
 copyright = '2018, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
+rst_epilog = '''
+.. |pypi_url| replace:: https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/dist/
+'''
+
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags

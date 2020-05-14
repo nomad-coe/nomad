@@ -27,9 +27,9 @@ metainfo Python API.
 To install the NOMAD Python package, you can use ``pip install`` to install our
 source distribution
 
-.. code:: sh
+.. parsed-literal::
 
-  pip install https://repository.nomad-coe.eu/app/dist/nomad-v0.8.0.tar.gz
+    pip install nomad --extra-index-url |pypi_url|
 
 
 First example
