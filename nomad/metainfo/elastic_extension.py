@@ -171,9 +171,6 @@ class ElasticDocument(SectionAnnotation):
                     # Use keyword type for shallow references
                     if isinstance(quantity.type, Reference) and annotation.shallow:
                         annotation.mapping = Keyword(**kwargs)
-                    # If an explicit type is given, use it
-                    elif annotation.type is not None:
-                        annotation.mapping = annotation.type(**kwargs)
                     # Otherwise find a mapping based on quantity type
                     else:
                         if quantity.type == str:
