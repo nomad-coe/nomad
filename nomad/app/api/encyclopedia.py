@@ -433,63 +433,63 @@ groups_result = api.model('groups_result', {
 })
 
 
-# @ns.route('/materials/<string:material_id>/groups')
-# class EncGroupsResource(Resource):
-    # @api.response(404, 'Material not found')
-    # @api.response(400, 'Bad request')
-    # @api.response(200, 'Metadata send', fields.Raw)
-    # @api.expect(material_query, validate=False)
-    # @api.marshal_with(groups_result, skip_none=True)
-    # @api.doc('materials')
-    # def get(self, material_id):
+@ns.route('/materials/<string:material_id>/groups')
+class EncGroupsResource(Resource):
+    @api.response(404, 'Material not found')
+    @api.response(400, 'Bad request')
+    @api.response(200, 'Metadata send', fields.Raw)
+    @api.expect(material_query, validate=False)
+    @api.marshal_with(groups_result, skip_none=True)
+    @api.doc('materials')
+    def get(self, material_id):
 
-        # def pipeline(hash_key, group_type, minsize):
-            # return [
-                # {"$match": {
-                    # "encyclopedia.material.material_id": material_id,
-                    # "published": True,
-                    # "with_embargo": False,
-                # }},
-                # {"$lookup": {
-                    # "from": "energies",
-                    # "localField": "_id",
-                    # "foreignField": "calc_id",
-                    # "as": "energy"
-                # }},
-                # {"$unwind": "$energy"},
-                # {"$match": {"energy.e_kind": "Total E"}},
-                # {"$sort": {"energy.e_val": 1}},
-                # {"$group": {
-                    # "_id": {
-                        # "group_hash": "$%s" % hash_key
-                    # },
-                    # "calculations_list": {"$push": "$_id"},
-                    # "minimum": {"$first": {"energy": "$energy.e_val", "calc_id": "$_id"}}
-                # }},
-                # {"$addFields": {"nr_of_calculations": {"$size": "$calculations_list"}}},
-                # {"$match": {"nr_of_calculations": {"$gt": minsize}}},
-                # {"$project": {
-                    # "_id": False,
-                    # "nr_of_calculations": True,
-                    # "calculations_list": True,
-                    # "energy_minimum": "$minimum.energy",
-                    # "representative_calculation_id": "$minimum.calc_id",
-                    # "group_hash": "$_id.group_hash",
-                    # "group_type": group_type,
-                    # "material_hash": material_id
-                # }}
-            # ]
+        def pipeline(hash_key, group_type, minsize):
+            return [
+                {"$match": {
+                    "encyclopedia.material.material_id": material_id,
+                    "published": True,
+                    "with_embargo": False,
+                }},
+                {"$lookup": {
+                    "from": "energies",
+                    "localField": "_id",
+                    "foreignField": "calc_id",
+                    "as": "energy"
+                }},
+                {"$unwind": "$energy"},
+                {"$match": {"energy.e_kind": "Total E"}},
+                {"$sort": {"energy.e_val": 1}},
+                {"$group": {
+                    "_id": {
+                        "group_hash": "$%s" % hash_key
+                    },
+                    "calculations_list": {"$push": "$_id"},
+                    "minimum": {"$first": {"energy": "$energy.e_val", "calc_id": "$_id"}}
+                }},
+                {"$addFields": {"nr_of_calculations": {"$size": "$calculations_list"}}},
+                {"$match": {"nr_of_calculations": {"$gt": minsize}}},
+                {"$project": {
+                    "_id": False,
+                    "nr_of_calculations": True,
+                    "calculations_list": True,
+                    "energy_minimum": "$minimum.energy",
+                    "representative_calculation_id": "$minimum.calc_id",
+                    "group_hash": "$_id.group_hash",
+                    "group_type": group_type,
+                    "material_hash": material_id
+                }}
+            ]
 
-        # # Find EOS groups
-        # s = Search(index=config.elastic.index_name)
-        # s.aggs.pipeline("pipeline", pipeline("group_eos_hash", "equation of state", 4))
-        # eos_groups = s.execute()
-        # s = Search(index=config.elastic.index_name)
-        # s.aggs.pipeline("pipeline", pipeline("group_parametervariation_hash", "parameter variation", 2))
-        # convergence_groups = s.execute()
-        # groups = eos_groups + convergence_groups
-        # for group in groups:
-            # group["calculations_list"] = [int(calc) for calc in group["calculations_list"]]
-            # group["representative_calculation_id"] = int(group["representative_calculation_id"])
+        # Find EOS groups
+        s = Search(index=config.elastic.index_name)
+        s.aggs.pipeline("pipeline", pipeline("group_eos_hash", "equation of state", 4))
+        eos_groups = s.execute()
+        s = Search(index=config.elastic.index_name)
+        s.aggs.pipeline("pipeline", pipeline("group_parametervariation_hash", "parameter variation", 2))
+        convergence_groups = s.execute()
+        groups = eos_groups + convergence_groups
+        for group in groups:
+            group["calculations_list"] = [int(calc) for calc in group["calculations_list"]]
+            group["representative_calculation_id"] = int(group["representative_calculation_id"])
 
-        # return dict(groups=groups, total_groups=len(groups)), 200
+        return dict(groups=groups, total_groups=len(groups)), 200
