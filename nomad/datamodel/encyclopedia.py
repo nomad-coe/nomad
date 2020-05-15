@@ -189,7 +189,8 @@ class Bulk(MSection):
         materials has free Wyckoff parameters, at least some of the atoms are
         not bound to a particular location in the structure but are allowed to
         move with possible restrictions set by the symmetry.
-        """
+        """,
+        a_search=Search()
     )
     point_group = Quantity(
         type=MEnum("1", "-1", "2", "m", "2/m", "222", "mm2", "mmm", "4", "-4", "4/m", "422", "4mm", "-42m", "4/mmm", "3", "-3", "32", "3m", "-3m", "6", "-6", "6/m", "622", "6mm", "-6m2", "6/mmm", "23", "m-3", "432", "-43m", "m-3m"),
@@ -292,6 +293,7 @@ class Material(MSection):
         Hill notation where the number of occurences have been divided by the
         greatest common divisor.
         """,
+        a_search=Search()
     )
     species_and_counts = Quantity(
         type=str,

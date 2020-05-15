@@ -72,8 +72,13 @@ class MaterialNormalizer():
         formula = atomutils.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
-    def species_and_counts(self, material: Material, names: List[str], counts: List[int]) -> None:
-        parts = ["{}{}".format(name, count) for name, count in zip(names, counts)]
+    def species_and_counts(self, material: Material, names: List[str], reduced_counts: List[int]) -> None:
+        parts = []
+        for name, count in zip(names, reduced_counts):
+            if count == 1:
+                parts.append(name)
+            else:
+                parts.append("{}{}".format(name, int(count)))
         material.species_and_counts = " ".join(parts)
 
     def species(self, material: Material, names: List[str]) -> None:

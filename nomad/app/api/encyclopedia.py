@@ -16,13 +16,11 @@
 The encyclopedia API of the nomad@FAIRDI APIs.
 '''
 import re
-from math import gcd
-from functools import reduce
+import math
 
-import numpy as np
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
-from elasticsearch_dsl import Search, Q
+from elasticsearch_dsl import Search, Q, A
 
 from nomad import config
 from nomad.units import ureg
@@ -46,20 +44,27 @@ def add_result(result, key, function, default=""):
 
 
 def get_material(es_doc):
-    """Used to form a material definition from the given ElasticSearch root
-    document.
+    """Used to form a material definition for "materials/<material_id>" from
+    the given ElasticSearch root document.
     """
     result = {}
-    add_result(result, "material_id", lambda: es_doc.encyclopedia.material.material_id, ""),
-    add_result(result, "bravais_lattice", lambda: es_doc.encyclopedia.material.bulk.bravais_lattice, ""),
-    add_result(result, "crystal_system", lambda: es_doc.encyclopedia.material.bulk.crystal_system, "")
-    add_result(result, "formula", lambda: es_doc.encyclopedia.material.formula, "")
-    add_result(result, "formula_reduced", lambda: es_doc.encyclopedia.material.formula_reduced, "")
-    add_result(result, "material_name", lambda: es_doc.encyclopedia.material.material_name, "")
-    add_result(result, "point_group", lambda: es_doc.encyclopedia.material.bulk.point_group, "")
-    add_result(result, "space_group", lambda: es_doc.encyclopedia.material.bulk.space_group_number, "")
-    add_result(result, "structure_type", lambda: es_doc.encyclopedia.material.bulk.structure_type, "")
-    add_result(result, "system_type", lambda: es_doc.encyclopedia.material.material_type, "")
+    # General
+    add_result(result, "material_id", lambda: es_doc.encyclopedia.material.material_id, None),
+    add_result(result, "formula", lambda: es_doc.encyclopedia.material.formula, None)
+    add_result(result, "formula_reduced", lambda: es_doc.encyclopedia.material.formula_reduced, None)
+    add_result(result, "system_type", lambda: es_doc.encyclopedia.material.material_type, None)
+
+    # Bulk only
+    add_result(result, "has_free_wyckoff_parameters", lambda: es_doc.encyclopedia.material.bulk.has_free_wyckoff_parameters, None)
+    add_result(result, "strukturbericht_designation", lambda: es_doc.encyclopedia.material.bulk.strukturbericht_designation, None)
+    add_result(result, "material_name", lambda: es_doc.encyclopedia.material.material_name, None)
+    add_result(result, "bravais_lattice", lambda: es_doc.encyclopedia.material.bulk.bravais_lattice, None),
+    add_result(result, "crystal_system", lambda: es_doc.encyclopedia.material.bulk.crystal_system, None)
+    add_result(result, "point_group", lambda: es_doc.encyclopedia.material.bulk.point_group, None)
+    add_result(result, "space_group_number", lambda: es_doc.encyclopedia.material.bulk.space_group_number, None)
+    add_result(result, "space_group_international_short_symbol", lambda: es_doc.encyclopedia.material.bulk.space_group_international_short_symbol, None)
+    add_result(result, "structure_prototype", lambda: es_doc.encyclopedia.material.bulk.structure_prototype, None)
+    add_result(result, "structure_type", lambda: es_doc.encyclopedia.material.bulk.structure_type, None)
 
     return result
 
@@ -67,15 +72,22 @@ def get_material(es_doc):
 material_query = api.parser()
 material_query.add_argument('material_id', type=str, help='Identifier for the searched material.', location='args')
 material_result = api.model('material_result', {
-    "bravais_lattice": fields.String,
-    "crystal_system": fields.String,
+    # General
+    "material_id": fields.String,
     "formula": fields.String,
     "formula_reduced": fields.String,
-    "material_name": fields.String,
-    "point_group": fields.String,
-    "space_group": fields.Integer(),
-    "structure_type": fields.String,
     "system_type": fields.String,
+    # Bulk only
+    "has_free_wyckoff_parameters": fields.String,
+    "strukturbericht_designation": fields.String,
+    "material_name": fields.String,
+    "bravais_lattice": fields.String,
+    "crystal_system": fields.String,
+    "point_group": fields.String,
+    "space_group_number": fields.Integer,
+    "space_group_international_short_symbol": fields.String,
+    "structure_prototype": fields.String,
+    "structure_type": fields.String,
 })
 
 
@@ -85,7 +97,7 @@ class EncMaterialResource(Resource):
     @api.response(200, 'Metadata send', fields.Raw)
     @api.doc('material/<material_id>')
     @api.expect(material_query)
-    @api.marshal_with(material_result)
+    @api.marshal_with(material_result, skip_none=True)
     def get(self, material_id):
         """Used to retrive basic information related to the specified material.
         """
@@ -107,6 +119,13 @@ class EncMaterialResource(Resource):
             ]
         )
         s = s.query(query)
+
+        # The query is collapsed already on the ES side so we don't need to
+        # transfer so much data.
+        s = s.extra(**{
+            "collapse": {"field": "encyclopedia.material.material_id"},
+        })
+
         response = s.execute()
 
         # No such material
@@ -132,10 +151,11 @@ materials_query = api.model('materials_input', {
         "page": fields.Integer(default=1),
         "per_page": fields.Integer(default=25),
         "pagination": fields.Boolean,
+        "mode": fields.String(default="collapse"),
     })),
     'material_name': fields.List(fields.String),
     'structure_type': fields.List(fields.String),
-    'space_group': fields.List(fields.Integer),
+    'space_group_number': fields.List(fields.Integer),
     'system_type': fields.List(fields.String),
     'crystal_system': fields.List(fields.String),
     'band_gap': fields.Nested(range_query, description="Band gap range in eV."),
@@ -150,9 +170,15 @@ materials_query = api.model('materials_input', {
     'mass_density': fields.Nested(range_query, description="Mass density range in kg / m ** 3."),
 })
 materials_result = api.model('materials_result', {
-    'pages': fields.Integer(required=True),
-    'results': fields.List(fields.Nested(material_result)),
     'total_results': fields.Integer(allow_null=False),
+    'results': fields.List(fields.Nested(material_result)),
+    'pages': fields.Nested(api.model("page_info", {
+        "per_page": fields.Integer,
+        "total": fields.Integer,
+        "page": fields.Integer,
+        "pages": fields.Integer,
+    })),
+    'es_query': fields.String(allow_null=False),
 })
 
 
@@ -162,7 +188,7 @@ class EncMaterialsResource(Resource):
     @api.response(400, 'Bad request')
     @api.response(200, 'Metadata send', fields.Raw)
     @api.expect(materials_query, validate=False)
-    @api.marshal_with(materials_result)
+    @api.marshal_with(materials_result, skip_none=True)
     @api.doc('materials')
     def post(self):
         """Used to query a list of materials with the given search options.
@@ -173,7 +199,6 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        s = Search(index=config.elastic.index_name)
         filters = []
         must_nots = []
         musts = []
@@ -188,7 +213,7 @@ class EncMaterialsResource(Resource):
 
         add_terms_filter("material_name", "encyclopedia.material.material_name")
         add_terms_filter("structure_type", "encyclopedia.material.bulk.structure_type")
-        add_terms_filter("space_group", "encyclopedia.material.bulk.space_group_number")
+        add_terms_filter("space_group_number", "encyclopedia.material.bulk.space_group_number")
         add_terms_filter("system_type", "encyclopedia.material.material_type")
         add_terms_filter("crystal_system", "encyclopedia.material.bulk.crystal_system")
         add_terms_filter("band_gap_direct", "encyclopedia.properties.band_gap_direct", query_type="term")
@@ -236,6 +261,7 @@ class EncMaterialsResource(Resource):
 
         # Create query for elements or formula
         search_by = data["search_by"]
+        mode = search_by["mode"]
         formula = search_by["formula"]
         elements = search_by["element"]
         exclusive = search_by["exclusive"]
@@ -258,15 +284,13 @@ class EncMaterialsResource(Resource):
             # The given list of species is reformatted with the Hill system
             # into a query string. The counts are reduced by the greatest
             # common divisor.
-            names, counts = get_hill_decomposition(element_list)
-            greatest_common_divisor = reduce(gcd, counts)
-            reduced_counts = np.array(counts) / greatest_common_divisor
+            names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
             query_string = []
             for name, count in zip(names, reduced_counts):
                 if count == 1:
                     query_string.append(name)
                 else:
-                    query_string.append("{}{}".format(name, count))
+                    query_string.append("{}{}".format(name, int(count)))
             query_string = " ".join(query_string)
 
             # With exclusive search we look for exact match
@@ -295,32 +319,101 @@ class EncMaterialsResource(Resource):
                     encyclopedia__material__species={"query": query_string, "operator": "and"}
                 ))
 
-        # Prepare the final boolean query that combines the different queries
-        filter_query = Q('bool', filter=filters, must_not=must_nots, must=musts)
-        s = s.query(filter_query)
+        page = search_by["page"]
+        per_page = search_by["per_page"]
+        bool_query = Q(
+            'bool',
+            filter=filters,
+            must_not=must_nots,
+            must=musts,
+        )
 
-        # Execute query
-        response = s.execute()
+        # 1: The paginated approach: No way to know the amount of matches,
+        # but can return aggregation results in a quick fashion including
+        # the number of matches entries per material.
+        if mode == "aggregate":
+            after = None
+            # The loop is awkward, but emulates the old behaviour until the GUI is adapted.
+            for _ in range(page):
 
-        # No matches
-        if len(response) == 0:
-            abort(404, message='No materials found for the given search criteria.')
+                # The top query filters out entries based on the user query
+                s = Search(index=config.elastic.index_name)
+                s = s.query(bool_query)
 
-        # Create final result dictionary
-        result_list = [get_material(es_doc) for es_doc in response]
+                # The materials are grouped by using three aggregations:
+                # 'Composite' to enable scrolling, 'Terms' to enable selecting by
+                # material_id and "Top Hits" to fetch a single representative
+                # material document.
+                terms_agg = A("terms", field="encyclopedia.material.material_id")
+                composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
+                if after is not None:
+                    composite_kwargs['after'] = after
+                composite_agg = A("composite", **composite_kwargs)
+                composite_agg.metric('representative', A('top_hits', size=1))
+                s.aggs.bucket("materials", composite_agg)
+
+                # We ignore the top level hits
+                s = s.extra(**{
+                    "size": 0,
+                })
+
+                response = s.execute()
+                materials = response.aggs.materials.buckets
+                if len(materials) == 0:
+                    abort(404, message='No materials found for the given search criteria or pagination.')
+                after = response.aggs.materials["after_key"]
+
+            # Gather results from aggregations
+            result_list = []
+            materials = response.aggs.materials.buckets
+            for material in materials:
+                representative = material["representative"][0]
+                mat_dict = get_material(representative)
+                mat_dict["n_of_calculations"] = material.doc_count
+                result_list.append(mat_dict)
+
+            # Page information is incomplete for aggregations
+            pages = {
+                "page": page,
+                "per_page": per_page,
+            }
+        # 2. Collapse approach. Quickly provides a list of materials
+        # corresponding to the query, offers full pagination, doesn't include
+        # the number of matches per material.
+        elif mode == "collapse":
+            s = Search(index=config.elastic.index_name)
+            s = s.query(bool_query)
+            s = s.extra(**{
+                "collapse": {"field": "encyclopedia.material.material_id"},
+                "size": per_page,
+                "from": (page - 1) * per_page,
+            })
+
+            # Execute query
+            response = s.execute()
+
+            # No matches
+            if len(response) == 0:
+                abort(404, message='No materials found for the given search criteria or pagination.')
+
+            # Loop over materials
+            result_list = []
+            for material in response:
+                mat_result = get_material(material)
+                result_list.append(mat_result)
+
+            # Full page information available for collapse
+            pages = {
+                "page": page,
+                "per_page": per_page,
+                "pages": math.ceil(response.hits.total / per_page),
+                "total": response.hits.total,
+            }
+
         result = {
-            "total_results": len(result_list),
-            "pages": None,
             "results": result_list,
+            "total_results": len(result_list),
+            "es_query": s.to_dict(),
+            "pages": pages,
         }
         return result, 200
-
-# @ns.route('/esmaterials')
-# class EncESMaterialsResource(Resource):
-    # @api.response(404, 'No materials found')
-    # @api.response(200, 'Metadata send', fields.Raw)
-    # @api.doc('materials')
-    # def post(self):
-        # """Used to query a list of materials with the given ElasticSearch JSON
-        # query.
-        # """
