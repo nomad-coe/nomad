@@ -26,3 +26,4 @@ nomad.yaml
 build/
 dist/
 setup.json
+parser.osio.log

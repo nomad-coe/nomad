@@ -5,7 +5,7 @@ import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor, nomadFontFamily } from '../../config.js'
 import { searchContext } from './SearchContext.js'
-import * as searchQuantities from '../../searchQuantities.json'
+import searchQuantities from '../../searchQuantities'
 
 const unprocessedLabel = 'not processed'
 const unavailableLabel = 'unavailable'
