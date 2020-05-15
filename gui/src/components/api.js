@@ -125,7 +125,7 @@ function handleApiError(e) {
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && (body.description || body.message)) || e.response.statusText
+    const message = (body && (body.message || body.description)) || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
