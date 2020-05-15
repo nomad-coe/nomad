@@ -1,4 +1,4 @@
-## Cluster Deployment, Using Kubernetes and Helm
+## Cluster deployment, using Kubernetes and Helm
 
 We use helm charts to describe the deployment of nomad services in a kubernetes cluster.
 The NOMAD chart is part of the

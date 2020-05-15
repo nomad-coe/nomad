@@ -466,30 +466,31 @@ def write_archive(
     The data in the archive file will have the following layout:
 
     .. code-block:: python
-    {
-        'toc_pos': b[start, end],
-        'toc': {
-            entry_uuid: [b[start, end], b[start, end]], ...
-        },
-        'data': {
-            entry_uuid: {
-                'toc': {
-                    key: {
-                        'pos': [start, end],
-                        'toc': ...
-                    },
-                    key: [
-                        {
-                            'pos': [start, end]
+
+        {
+            'toc_pos': b[start, end],
+            'toc': {
+                entry_uuid: [b[start, end], b[start, end]], ...
+            },
+            'data': {
+                entry_uuid: {
+                    'toc': {
+                        key: {
+                            'pos': [start, end],
                             'toc': ...
-                        }, ...
-                    ],
-                    ...
-                },
-                'data': ...
-            }, ...
+                        },
+                        key: [
+                            {
+                                'pos': [start, end]
+                                'toc': ...
+                            }, ...
+                        ],
+                        ...
+                    },
+                    'data': ...
+                }, ...
+            }
         }
-    }
 
 
     The top-level TOC will map entry_uuids to positions. The key 'toc_pos' holds the

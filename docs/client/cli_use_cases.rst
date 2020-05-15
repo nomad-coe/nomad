@@ -1,7 +1,7 @@
 .. _cli_use_cases:
 
-Use cases
-*********
+Other use cases
+***************
 
 Mirroring data between production environments
 """"""""""""""""""""""""""""""""""""""""""""""

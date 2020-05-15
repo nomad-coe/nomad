@@ -16,8 +16,7 @@
 This module contains classes that allow to represent the core
 nomad data entities (entries/calculations, users, datasets) on a high level of abstraction
 independent from their representation in the different modules
-:py:mod:`nomad.processing`, :py:mod:`nomad.coe_repo`, :py:mod:`nomad.parsing`,
-:py:mod:`nomad.search`, :py:mod:`nomad.app`, :py:mod:`nomad.migration`.
+:py:mod:`nomad.processing`, :py:mod:`nomad.parsing`, :py:mod:`nomad.search`, :py:mod:`nomad.app`.
 
 It is not about representing every detail, but those parts that are directly involved in
 api, processing, mirroring, or other 'infrastructure' operations.
@@ -47,7 +46,7 @@ In addition there are domain specific metadata classes:
 .. autoclass:: nomad.datamodel.dft.DFTMetadata
     :members:
 
-.. autoclass:: nomad.datamodel.dft.EMSMetadata
+.. autoclass:: nomad.datamodel.ems.EMSMetadata
     :members:
 
 .. autoclass:: nomad.datamodel.OptimadeEntry

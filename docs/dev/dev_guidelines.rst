@@ -61,11 +61,51 @@ Git/GitLab
 ^^^^^^^^^^
 
 The ``master`` branch of our repository is *protected*. You must not (even if you have
-the rights) commit to it directly. You develop on *feature* branches and commit changes
-to the master branch via *merge requests*. After merge feature branches should be removed.
+the rights) commit to it directly. The ``master`` branch references the latest official
+release (i.e. what the current NOMAD runs on). The current development is represented by
+*version* branches, named ``vx.x.x``. Usually there are two or more of these branched,
+representing the development on *minor/bugfix* versions and the next *major* version(s).
+Ideally these *version* branches are also not manually push to.
+
+Instead you develop
+on *feature* branches. This are branches that are dedicated to implement a single feature.
+They are short lived and only exist to implement a single feature.
+
+The lifecycle of a *feature* branch should look like this:
+
+- create the *feature* branch from the last commit on the respective *version* branch that passes CI
+
+- do your work and push until you are satisfied and the CI passes
+
+- create a merge request on GitLab
+
+- discuss the merge request on GitLab
+
+- continue to work (with the open merge request) until all issues from the discussion are resolved
+
+- perform the merge and delete the *feature* branch
+
+
+Often a feature is also represented by an *issue* on GitLab. Please mention the respective
+issues in your commits by adding the issue id at the end of the commit message: `My message. #123`.
 
 We tag releases with ``vX.X.X`` according to the regular semantic versioning practices.
-There might be branches for older versions to facilitate hot-fixes.
+After releasing and tagging the *version* branch is removed. Do not confuse tags with *version* branches.
+Remember that tags and branches are both Git references and you can accidentally pull/push/checkout a tag.
+
+The main NOMAD GitLab-project (``nomad-fair``) uses Git-submodules to maintain its
+parsers and other dependencies. All these submodules are places in the `/dependencies`
+directory. There are helper scripts to install (`dependencies.sh`, see :ref:`setup </setup.html>`) and
+commit changes to all submodules (`dependencies-git.sh`). After merging or checking out,
+you have to make sure that the modules are updated to not accidentally commit old
+submodule commits again. Usually you do the following to check if you really have a
+clean working directory.
+
+.. code-block:: sh
+
+  git checkout something-with-changes
+  git submodule update
+  git status
 
 
 Terms and Identifiers
