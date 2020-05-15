@@ -334,7 +334,7 @@ class ArchiveQueryResource(Resource):
             except Exception as e:
                 if raise_errors:
                     raise e
-                common.logger(str(e), exc_info=e)
+                common.logger.error(str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
         if upload_files is not None:
             upload_files.close()
