@@ -440,7 +440,7 @@ class EncGroupsResource(Resource):
     @api.response(200, 'Metadata send', fields.Raw)
     @api.expect(material_query, validate=False)
     @api.marshal_with(groups_result, skip_none=True)
-    @api.doc('materials')
+    @api.doc('enc_materials')
     def get(self, material_id):
 
         def pipeline(hash_key, group_type, minsize):
