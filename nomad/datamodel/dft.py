@@ -273,6 +273,10 @@ class DFTMetadata(MSection):
         return config.services.unavailable_value
 
     def update_group_hash(self):
+        user_id = None
+        uploader = self.m_parent.uploader
+        if uploader is not None:
+            user_id = uploader.user_id
         self.group_hash = utils.hash(
             self.m_parent.formula,
             self.spacegroup,
@@ -281,7 +285,7 @@ class DFTMetadata(MSection):
             self.code_name,
             self.code_version,
             self.m_parent.with_embargo,
-            self.m_parent.uploader.user_id)
+            user_id)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels

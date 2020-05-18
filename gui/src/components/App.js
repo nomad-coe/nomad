@@ -37,7 +37,6 @@ import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
 import EntryQuery from './entry/EntryQuery'
-import KeepState from './KeepState'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
