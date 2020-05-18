@@ -74,9 +74,6 @@ class Search(Elastic):
             This might be different from the field that is used to store the value in
             elastic search. This is especially useful if the field represents a inner
             document and a subfield of this inner object should be used for search.
-        shallow: Determines how a reference is handled in the search index. If
-            set to True, only the unresolved reference proxy path (m_proxy_path) is
-            stored. If False, the whole referenced section will be stored.
     '''
 
     def __init__(
@@ -90,7 +87,6 @@ class Search(Elastic):
             statistic_values: List[str] = None,
             derived: Callable[[Any], Any] = None,
             search_field: str = None,
-            shallow: bool = False,
             **kwargs):
 
         super().__init__(field=None, **kwargs)
@@ -109,7 +105,6 @@ class Search(Elastic):
         self.statistic_order = statistic_order
         self.statistic_values = statistic_values
         self.search_field = search_field
-        self.shallow = shallow
 
         self.derived = derived
 

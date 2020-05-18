@@ -1438,7 +1438,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         Convinience method to get annotations
 
         Arguments:
-            key: Either the optional annoation name or an annotation class. In the first
+            key: Either the optional annotation name or an annotation class. In the first
                 case the annotation is returned, regardless of its type. In the second
                 case, all names and list for names are iterated and all annotations of the
                 given class are returned.

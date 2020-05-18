@@ -244,18 +244,23 @@ class Elastic(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
+        shallow: Determines how a reference is handled in the search index. If
+            set to True, only the unresolved reference proxy path (m_proxy_path) is
+            stored. If False, the whole referenced section will be stored.
     '''
     def __init__(
             self,
             field: str = None,
             mapping: Any = None,
             value: Callable[[Any], Any] = None,
-            index: bool = True):
+            index: bool = True,
+            shallow: bool = False):
 
         self.field = field
         self.mapping = mapping
         self.value = value
         self.index = index
+        self.shallow = shallow
 
         self.prefix = None
         self.qualified_field = field
