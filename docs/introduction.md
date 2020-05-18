@@ -7,7 +7,7 @@ The original NOMAD software, developed by the
 calculations in a single central infrastructure instances that offers a variety
 of services (*repository*, *archive*, *encyclopedia*, *analytics*, *visualization*).
 
-.. figure:: nomad.png
+.. figure:: /assets/nomad.png
    :alt: nomad's overall structure
 
 This is the documentation of **nomad@FAIRDI**, the Open-Source continuation of the
@@ -34,7 +34,7 @@ The following depicts the *nomad@FAIRDI* architecture with respect to software c
 in terms of python modules, gui components, and 3rd party services (e.g. databases,
 search engines, etc.). It comprises a revised version of the repository and archive.
 
-.. figure:: components.png
+.. figure:: /assets/components.png
    :alt: nomad components
 
 Besides various scientific computing, machine learning, and computational material
@@ -150,7 +150,7 @@ and [CI/CD platform](https://docs.gitlab.com/ee/ci/).
 
 ## Data model
 
-.. figure:: data.png
+.. figure:: /assets/data.png
    :alt: nomad's data model
 
 The entities that comprise the nomad data model are *users*, *datasets*, *uploads*,
@@ -202,7 +202,7 @@ We distinguish various forms of calculation data:
 This data is represented in the *meta-info* format.
 - materials data: Aggregated information about calculations that simulated the *same* material.
 
-.. figure:: datamodel_dataflow.png
+.. figure:: /assets/datamodel_dataflow.png
    :alt: nomad's data flow
 
 ### Metadata
@@ -226,7 +226,7 @@ Different transformation between different implementations exist. See
 
 ## Processing
 
-.. figure:: proc.png
+.. figure:: /assets/proc.png
    :alt: nomad's processing workflow
 
 See :py:mod:`nomad.processing` for further information.

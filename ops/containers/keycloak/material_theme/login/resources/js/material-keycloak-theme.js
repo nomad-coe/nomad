@@ -15,13 +15,28 @@ window.onload = function() {
     });
 
     // initialize the language select box
-    var select = new mdc.select.MDCSelect(
-        document.querySelector('.language-picker .mdc-select')
-    );
+    try {
+        var select = new mdc.select.MDCSelect(
+            document.querySelector('.language-picker .mdc-select')
+        );
 
-    select.listen('change', function() {
-        var redirectUrl = document.querySelector('#language-picker-dropdown')
-            .value;
-        window.location.href = redirectUrl;
-    });
+        select.listen('change', function() {
+            var redirectUrl = document.querySelector('#language-picker-dropdown')
+                .value;
+            window.location.href = redirectUrl;
+        });
+    } catch {}
+
+    const queryString = window.location.search
+    const urlParams = new URLSearchParams(queryString)
+    const redirectUri = urlParams.get('redirect_uri')
+    const backLink = this.document.querySelector('#mdc-back-link')
+    backLink.onclick = function() {
+        if (redirectUri) {
+            window.location.href = redirectUri;
+        } else {
+            window.history.back()
+        }
+    }
+    backLink.innerHTML = redirectUri ? 'back to NOMAD' : 'back';
 };

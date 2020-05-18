@@ -14,7 +14,7 @@
 
 from typing import Type, TypeVar, Union, Tuple, Iterable, List, Any, Dict, Set, \
     Callable as TypingCallable, cast
-from collections.abc import Iterable as IterableABC
+from collections.abc import Iterable as IterableABC, Sequence
 import sys
 import inspect
 import re
@@ -65,7 +65,7 @@ class MetainfoReferenceError(MetainfoError):
 
 # Metainfo quantity data types
 
-class MEnum():
+class MEnum(Sequence):
     '''Allows to define str types with values limited to a pre-set list of possible values.'''
     def __init__(self, *args, **kwargs):
         # Supports one big list in place of args
@@ -80,11 +80,18 @@ class MEnum():
                 raise ValueError("Duplicate value '{}' provided for enum".format(arg))
             kwargs[arg] = arg
 
+        self._list = list(kwargs.values())
         self._values = set(kwargs.values())  # For allowing constant time member check
         self._map = kwargs
 
     def __getattr__(self, attr):
         return self._map[attr]
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __len__(self):
+        return len(self._list)
 
 
 class MProxy():
@@ -1762,9 +1769,9 @@ class Quantity(Property):
             The physics unit for this quantity. It is optional.
 
             Units are represented with the pint_ Python package. Pint defines units and
-            their algebra. You can either use `pint` units directly, e.g. ``units.m / units.s``.
-            The metainfo provides a preconfigured `pint` unit registry :py:data:`units`.
-            You can also provide the unit as `pint` parsable string, e.g. ``'meter / seconds'`` or
+            their algebra. You can either use *pint* units directly, e.g. ``units.m / units.s``.
+            The metainfo provides a preconfigured *pint* unit registry :py:data:`units`.
+            You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or
             ``'m/s'``.
 
         default:
@@ -2502,17 +2509,36 @@ def all_definitions(self):
 
 @derived(cached=True)
 def dependencies(self):
+    '''
+    All packages which have definitions that definitions from this package need. Being
+    'needed' includes categories, base sections, and referenced definitions.
+    '''
     dependencies: Set[Package] = set()
     for content in self.m_all_contents():
+        to_add = None
         if isinstance(content, Definition):
             for category in content.categories:
                 if category.m_parent != self:
-                    dependencies.add(category.m_parent)
+                    to_add = category.m_parent
+
+        if isinstance(content, Quantity):
+            if isinstance(content.type, Reference):
+                if content.type.target_section_def.m_parent != self:
+                    to_add = content.type.target_section_def.m_parent
 
         if isinstance(content, Section):
             for section in content.base_sections:
                 if section.m_parent != self:
-                    dependencies.add(section.m_parent)
+                    to_add = section.m_parent
+
+        more_dependencies = []
+        if to_add is not None:
+            more_dependencies.append(to_add)
+        while len(more_dependencies) > 0:
+            dependency = more_dependencies.pop()
+            if dependency not in dependencies:
+                dependencies.add(dependency)
+                more_dependencies.extend(dependency.dependencies)
 
     return dependencies
 

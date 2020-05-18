@@ -65,10 +65,18 @@ scroll_model = api.model('Scroll', {
     'total': fields.Integer(default=0, description='The total amount of hits for the search.'),
     'scroll_id': fields.String(default=None, allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
     'size': fields.Integer(default=0, help='The size of the returned scroll page.')})
+''' Model used in responses with scroll. '''
+
+aggregation_model = api.model('Aggregation', {
+    'after': fields.String(description='The after key for the current request.', allow_null=True),
+    'total': fields.Integer(default=0, description='The total amount of hits for the search.'),
+    'per_page': fields.Integer(default=0, help='The size of the requested page.', allow_null=True)})
+''' Model used in responses with id aggregation. '''
 
 search_model_fields = {
     'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
     'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
+    'aggregation': fields.Nested(aggregation_model, allow_null=True),
     'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values'), allow_null=True, skip_none=True),

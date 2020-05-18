@@ -21,7 +21,7 @@ export function Published(props) {
     </Tooltip>
   } else {
     return <Tooltip title="not published yet">
-      <PrivateIcon color="secondary"/>
+      <PrivateIcon color="error"/>
     </Tooltip>
   }
 }
@@ -32,6 +32,7 @@ export class EntryListUnstyled extends React.Component {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     onChange: PropTypes.func,
+    onEdit: PropTypes.func,
     history: PropTypes.any.isRequired,
     order_by: PropTypes.string.isRequired,
     order: PropTypes.number.isRequired,
@@ -236,7 +237,7 @@ export class EntryListUnstyled extends React.Component {
                 {(row.datasets || []).map(ds => (
                   <Typography key={ds.dataset_id}>
                     <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                    {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : <React.Fragment/>}
+                    {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
                   </Typography>))}
               </div>
             </Quantity>
@@ -321,7 +322,7 @@ export class EntryListUnstyled extends React.Component {
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}
-        onEditComplete={() => this.props.onChange()}
+        onEditComplete={() => this.props.onEdit()}
         {...props}
       /> : ''}
       <DownloadButton

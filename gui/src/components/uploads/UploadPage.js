@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -16,6 +16,7 @@ import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase } from '../../config'
 import qs from 'qs'
+import { CodeList } from '../About'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -126,7 +127,8 @@ class UploadPage extends React.Component {
       '& svg': {
         marginLeft: 'auto',
         marginRight: 'auto'
-      }
+      },
+      marginTop: theme.spacing(3)
     },
     dropzoneAccept: {
       background: theme.palette.primary.main,
@@ -267,6 +269,16 @@ class UploadPage extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Typography>
+          To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
+          all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
+          NOMAD will search through all files and identify the relevant files automatically.
+          Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
+          uploads</b> simultaneously. Your uploaded data is not published right away.
+        </Typography>
+        <Typography>
+          The following codes are supported: <CodeList/>.
+        </Typography>
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
             accept={[
@@ -288,7 +300,7 @@ class UploadPage extends React.Component {
             rejectClassName={classes.dropzoneReject}
             onDrop={this.onDrop.bind(this)}
           >
-            <p>drop .tar.gz or .zip files here</p>
+            <p>click or drop .tar.gz/.zip files here</p>
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
         </Paper>

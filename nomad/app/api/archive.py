@@ -19,15 +19,11 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 
 from typing import Dict, Any
 from io import BytesIO
-import os.path
 from flask import request, g
 from flask_restplus import abort, Resource, fields
 import json
 import orjson
-import importlib
 import urllib.parse
-
-import metainfo
 
 from nomad.files import UploadFiles, Restricted
 from nomad.archive import query_archive, ArchiveQueryError
@@ -237,19 +233,21 @@ class ArchiveQueryResource(Resource):
         See ``/repo`` endpoint for documentation on the search
         parameters.
 
+        This endpoint uses pagination (see /repo) or id aggregation to handle large result
+        sets over multiple requests.
+        Use aggregation.after and aggregation.per_page to request a
+        certain page with id aggregation.
+
         The actual data are in results and a supplementary python code (curl) to
         execute search is in python (curl).
         '''
         try:
             data_in = request.get_json()
-            scroll = data_in.get('scroll', None)
-            if scroll:
-                scroll_id = scroll.get('scroll_id')
-                scroll = True
+            aggregation = data_in.get('aggregation', None)
 
             pagination = data_in.get('pagination', {})
             page = pagination.get('page', 1)
-            per_page = pagination.get('per_page', 10 if not scroll else 1000)
+            per_page = pagination.get('per_page', 10)
 
             query = data_in.get('query', {})
 
@@ -274,20 +272,19 @@ class ArchiveQueryResource(Resource):
             search_request.owner('all')
 
         apply_search_parameters(search_request, query)
-        search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
+        if not aggregation:
+            search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         try:
-            if scroll:
-                results = search_request.execute_scrolled(
-                    scroll_id=scroll_id, size=per_page, order_by='upload_id')
-                results['scroll']['scroll'] = True
+            if aggregation:
+                results = search_request.execute_aggregated(
+                    after=aggregation.get('after'), per_page=aggregation.get('per_page', 1000),
+                    includes=['with_embargo', 'published', 'parser_name'])
 
             else:
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order_by='upload_id')
 
-        except search.ScrollIdNotFound:
-            abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
 
@@ -338,7 +335,7 @@ class ArchiveQueryResource(Resource):
             except Exception as e:
                 if raise_errors:
                     raise e
-                common.logger(str(e), exc_info=e)
+                common.logger.error(str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
         if upload_files is not None:
             upload_files.close()
@@ -347,93 +344,3 @@ class ArchiveQueryResource(Resource):
         results['results'] = data
 
         return results, 200
-
-
-@ns.route('/metainfo/<string:metainfo_package_name>')
-@api.doc(params=dict(metainfo_package_name='The name of the metainfo package.'))
-class MetainfoResource(Resource):
-    @api.doc('get_metainfo')
-    @api.response(404, 'The metainfo does not exist')
-    @api.response(200, 'Metainfo data send')
-    def get(self, metainfo_package_name):
-        '''
-        Get a metainfo definition file.
-        '''
-        try:
-            return load_metainfo(metainfo_package_name), 200
-        except FileNotFoundError:
-            parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
-
-            try:
-                return load_metainfo(dict(
-                    parser='%sparser' % parser_prefix,
-                    path='%s.nomadmetainfo.json' % parser_prefix)), 200
-            except FileNotFoundError:
-                abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
-
-
-metainfo_main_path = os.path.dirname(os.path.abspath(metainfo.__file__))
-
-
-def load_metainfo(
-        package_name_or_dependency: str, dependency_source: str = None,
-        loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
-    '''
-    Loads the given metainfo package and all its dependencies. Returns a dict with
-    all loaded package_names and respective packages.
-
-    Arguments:
-        package_name_or_dependency: The name of the package, or a nomadmetainfo dependency object.
-        dependency_source: The path of the metainfo that uses this function to load a relative dependency.
-        loaded_packages: Give a dict and the function will added freshly loaded packages
-            to it and return it.
-    '''
-    if loaded_packages is None:
-        loaded_packages = {}
-
-    if isinstance(package_name_or_dependency, str):
-        package_name = package_name_or_dependency
-        metainfo_path = os.path.join(metainfo_main_path, package_name)
-    else:
-        dependency = package_name_or_dependency
-        if 'relativePath' in dependency:
-            if dependency_source is None:
-                raise Exception(
-                    'Can only load relative dependency from within another metainfo package')
-
-            metainfo_path = os.path.join(
-                os.path.dirname(dependency_source), dependency['relativePath'])
-
-        elif 'metainfoPath' in dependency:
-            metainfo_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
-
-        elif 'parser' in dependency:
-            parser = dependency['parser']
-            path = dependency['path']
-            try:
-                parser_module = importlib.import_module(parser).__file__
-            except Exception:
-                raise Exception('Parser not installed %s for metainfo path %s' % (parser, metainfo_path))
-
-            parser_directory = os.path.dirname(parser_module)
-            metainfo_path = os.path.join(parser_directory, path)
-
-        else:
-            raise Exception('Invalid dependency type in metainfo package %s' % metainfo_path)
-
-        package_name = os.path.basename(metainfo_path)
-
-    package_name = os.path.basename(package_name)
-
-    if package_name in loaded_packages:
-        return loaded_packages
-
-    with open(metainfo_path, 'rt') as f:
-        metainfo_json = json.load(f)
-
-    loaded_packages[package_name] = metainfo_json
-
-    for dependency in metainfo_json.get('dependencies', []):
-        load_metainfo(dependency, dependency_source=metainfo_path, loaded_packages=loaded_packages)
-
-    return loaded_packages

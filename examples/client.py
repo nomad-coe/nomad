@@ -3,7 +3,7 @@ from nomad.client import ArchiveQuery
 from nomad.metainfo import units
 
 # this will not be necessary, once this is the official NOMAD version
-config.client.url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
+config.client.url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
 
 query = ArchiveQuery(
     query={

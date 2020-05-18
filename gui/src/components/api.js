@@ -125,7 +125,7 @@ function handleApiError(e) {
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && (body.description || body.message)) || e.response.statusText
+    const message = (body && (body.message || body.description)) || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
@@ -533,7 +533,7 @@ class Api {
   _metaInfoRepositories = {}
 
   async getMetaInfo(pkg) {
-    pkg = pkg || 'all.nomadmetainfo.json'
+    pkg = pkg || 'common.nomadmetainfo.json'
 
     const metaInfoRepository = this._metaInfoRepositories[pkg]
 
@@ -544,12 +544,12 @@ class Api {
       try {
         const loadMetaInfo = async(path) => {
           return this.swagger()
-            .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
+            .then(client => client.apis.metainfo.get_legacy_metainfo({metainfo_package_name: path}))
             .catch(handleApiError)
             .then(response => response.body)
         }
         const metaInfo = await loadMetaInfo(pkg)
-        const metaInfoRepository = new MetaInfoRepository(metaInfo)
+        const metaInfoRepository = new MetaInfoRepository({[pkg]: metaInfo})
         this._metaInfoRepositories[pkg] = metaInfoRepository
 
         return metaInfoRepository

@@ -54,9 +54,15 @@ statistics_info_model = api.model('StatisticsInfo', {
     # 'archive_file_size': fields.Integer(description='Total amount of binary archive data in TB')
 })
 
+code_info_model = api.model('CodeInfo', {
+    'code_name': fields.String(description='Name of the code or input format', allow_null=True),
+    'code_homepage': fields.String(description='Homepage of the code or input format', allow_null=True)
+}, allow_null=True, skip_none=True)
+
 info_model = api.model('Info', {
     'parsers': fields.List(fields.String),
-    'codes': fields.List(fields.String),
+    'metainfo_packages': fields.List(fields.String),
+    'codes': fields.List(fields.Nested(code_info_model)),
     'normalizers': fields.List(fields.String),
     'domains': fields.List(fields.Nested(model=domain_model)),
     'statistics': fields.Nested(model=statistics_info_model, description='General NOMAD statistics'),
@@ -87,16 +93,23 @@ class InfoResource(Resource):
     @api.marshal_with(info_model, skip_none=True, code=200, description='Info send')
     def get(self):
         ''' Return information about the nomad backend and its configuration. '''
-        codes = [
-            parser.code_name
-            for parser in parsing.parser_dict.values()
-            if isinstance(parser, parsing.MatchingParser) and parser.domain == 'dft']
+        codes_dict = {}
+        for parser in parsing.parser_dict.values():
+            if isinstance(parser, parsing.MatchingParser) and parser.domain == 'dft':
+                code_name = parser.code_name
+                if code_name in codes_dict:
+                    continue
+                codes_dict[code_name] = dict(code_name=code_name, code_homepage=parser.code_homepage)
+        codes = sorted(list(codes_dict.values()), key=lambda code_info: code_info['code_name'].lower())
 
         return {
             'parsers': [
                 key[key.index('/') + 1:]
                 for key in parsing.parser_dict.keys()],
-            'codes': sorted(set(codes), key=lambda x: x.lower()),
+            'metainfo_packages': ['general', 'general.experimental', 'common', 'public'] + sorted([
+                key[key.index('/') + 1:]
+                for key in parsing.parser_dict.keys()]),
+            'codes': codes,
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'statistics': statistics(),
             'domains': [

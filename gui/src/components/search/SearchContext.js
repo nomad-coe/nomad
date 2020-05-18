@@ -150,7 +150,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       owner: owner,
       ...initialQuery,
       ...requestRef.current.query,
-      query
+      ...query
     }
     if (dateHistogram) {
       dateHistogramInterval = Dates.intervalSeconds(

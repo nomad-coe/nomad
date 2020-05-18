@@ -38,7 +38,7 @@ class MetainfoDialogUnstyled extends React.PureComponent {
 
   handleGotoMetainfoBrowser() {
     const {history, onClose, metaInfoData} = this.props
-    history.push(`/metainfo/${metaInfoData.name}`)
+    history.push(`/metainfo/${metaInfoData.package.name}/${metaInfoData.name}`)
     onClose()
   }
 

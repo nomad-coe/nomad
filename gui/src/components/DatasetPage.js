@@ -3,8 +3,8 @@ import { errorContext } from './errors'
 import { apiContext } from './api'
 import Search from './search/Search'
 import { Typography, makeStyles } from '@material-ui/core'
-import { DatasetActions, DOI } from './search/DatasetList'
-import { matchPath, useLocation, useHistory, useRouteMatch } from 'react-router'
+import { matchPath, useLocation, useRouteMatch } from 'react-router'
+import { DOI } from './search/DatasetList'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
@@ -31,7 +31,6 @@ export default function DatasetPage() {
   const {raiseError} = useContext(errorContext)
   const location = useLocation()
   const match = useRouteMatch()
-  const history = useHistory()
 
   const {datasetId} = matchPath(location.pathname, {
     path: `${match.path}/:datasetId`
@@ -56,18 +55,11 @@ export default function DatasetPage() {
     })
   }, [location.pathname, api])
 
-  const handleChange = dataset => {
-    if (dataset) {
-      setDataset({dataset: dataset})
-    } else {
-      history.goBack()
-    }
-  }
-
   if (!dataset) {
     return <div>loading...</div>
   }
 
+  console.log('### DatasetPage', dataset)
   return <div>
     <div className={classes.header}>
       <div className={classes.description}>
@@ -76,18 +68,11 @@ export default function DatasetPage() {
           dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
         </Typography>
       </div>
-
-      <div className={classes.actions}>
-        {dataset && dataset.example && <DatasetActions
-          dataset={dataset}
-          onChange={handleChange}/>
-        }
-      </div>
     </div>
 
     <Search
       initialQuery={{owner: 'all'}}
-      query={{dataset_id: datasetId}}
+      query={{dataset_id: [datasetId]}}
       ownerTypes={['all', 'public']}
       initialResultTab="entries"
       availableResultTabs={['entries', 'groups', 'datasets']}

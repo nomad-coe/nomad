@@ -125,6 +125,28 @@ def test_search_scroll(elastic, example_search_data):
     assert 'scroll_id' not in results['scroll']
 
 
+def test_search_aggregated(elastic, example_search_data):
+    request = SearchRequest(domain='dft')
+    results = request.execute_aggregated()
+    after = results['aggregation']['after']
+    assert results['aggregation']['total'] == 1
+    assert len(results['results']) == 1
+    assert 'calc_id' in results['results'][0]
+    assert 'upload_id' in results['results'][0]
+    assert after is not None
+
+    results = request.execute_aggregated(after=after)
+    assert results['aggregation']['total'] == 1
+    assert len(results['results']) == 0
+    assert results['aggregation']['after'] is None
+
+
+def test_search_aggregated_includes(elastic, example_search_data):
+    request = SearchRequest(domain='dft')
+    results = request.execute_aggregated(includes=['with_embargo'])
+    assert 'with_embargo' in results['results'][0]
+
+
 def test_domain(elastic, example_ems_search_data):
     assert len(list(SearchRequest(domain='ems').execute_scan())) > 0
     assert len(list(SearchRequest(domain='ems').domain().execute_scan())) > 0
