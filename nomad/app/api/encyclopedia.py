@@ -484,9 +484,13 @@ class EncGroupsResource(Resource):
         s = Search(index=config.elastic.index_name)
         s.aggs.pipeline("pipeline", pipeline("group_eos_hash", "equation of state", 4))
         eos_groups = s.execute()
+
+        # Find convergence groups
         s = Search(index=config.elastic.index_name)
         s.aggs.pipeline("pipeline", pipeline("group_parametervariation_hash", "parameter variation", 2))
         convergence_groups = s.execute()
+
+        # Combine both groups
         groups = eos_groups + convergence_groups
         for group in groups:
             group["calculations_list"] = [int(calc) for calc in group["calculations_list"]]

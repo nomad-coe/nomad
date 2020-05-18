@@ -66,6 +66,8 @@ class ElasticDocument(SectionAnnotation):
     @classmethod
     def create_index_entry(cls, section: MSection):
         ''' Creates an elasticsearch_dsl document instance for the given section. '''
+        from elasticsearch_dsl import Object
+
         m_def = section.m_def
         annotation = m_def.m_get_annotations(ElasticDocument)
         document_cls = ElasticDocument._all_documents[m_def.qualified_name()]
@@ -88,16 +90,12 @@ class ElasticDocument(SectionAnnotation):
                 if value is None or value == []:
                     continue
 
-                if isinstance(quantity.type, Reference):
-                    # For shallow section references only the path is stored
-                    if annotation.shallow:
-                        value = value.m_proxy_url
-                    # For deep references the full section is resolved
+                # By default the full section is resolved for references
+                if isinstance(quantity.type, Reference) and isinstance(annotation.mapping, Object):
+                    if quantity.is_scalar:
+                        value = ElasticDocument.create_index_entry(cast(MSection, value))
                     else:
-                        if quantity.is_scalar:
-                            value = ElasticDocument.create_index_entry(cast(MSection, value))
-                        else:
-                            value = [ElasticDocument.create_index_entry(item) for item in value]
+                        value = [ElasticDocument.create_index_entry(item) for item in value]
 
                 # Only the magnitude of scalar Pint quantity objects is stored
                 if quantity.is_scalar and isinstance(value, pint.quantity._Quantity):
@@ -168,35 +166,31 @@ class ElasticDocument(SectionAnnotation):
                 if annotation.mapping is None and first:
                     kwargs = dict(index=annotation.index)
 
-                    # Use keyword type for shallow references
-                    if isinstance(quantity.type, Reference) and annotation.shallow:
+                    # Find a mapping based on quantity type if not explicitly given
+                    if quantity.type == str:
                         annotation.mapping = Keyword(**kwargs)
-                    # Otherwise find a mapping based on quantity type
+                    elif quantity.type in [float, np.float64] and quantity.is_scalar:
+                        annotation.mapping = Double(**kwargs)
+                    elif quantity.type == np.float32 and quantity.is_scalar:
+                        annotation.mapping = Float(**kwargs)
+                    elif quantity.type in [int, np.int32] and quantity.is_scalar:
+                        annotation.mapping = Integer(**kwargs)
+                    elif quantity.type == np.int64 and quantity.is_scalar:
+                        annotation.mapping = Long(**kwargs)
+                    elif quantity.type == bool:
+                        annotation.mapping = Boolean(**kwargs)
+                    elif quantity.type == Datetime:
+                        annotation.mapping = Date(**kwargs)
+                    elif isinstance(quantity.type, Reference):
+                        inner_document = ElasticDocument.create_document(
+                            cast(Section, quantity.type.target_section_def), inner_doc=True,
+                            prefix=annotation.field)
+                        annotation.mapping = Object(inner_document)
+                    elif isinstance(quantity.type, MEnum):
+                        annotation.mapping = Keyword(**kwargs)
                     else:
-                        if quantity.type == str:
-                            annotation.mapping = Keyword(**kwargs)
-                        elif quantity.type in [float, np.float64] and quantity.is_scalar:
-                            annotation.mapping = Double(**kwargs)
-                        elif quantity.type == np.float32 and quantity.is_scalar:
-                            annotation.mapping = Float(**kwargs)
-                        elif quantity.type in [int, np.int32] and quantity.is_scalar:
-                            annotation.mapping = Integer(**kwargs)
-                        elif quantity.type == np.int64 and quantity.is_scalar:
-                            annotation.mapping = Long(**kwargs)
-                        elif quantity.type == bool:
-                            annotation.mapping = Boolean(**kwargs)
-                        elif quantity.type == Datetime:
-                            annotation.mapping = Date(**kwargs)
-                        elif isinstance(quantity.type, Reference):
-                            inner_document = ElasticDocument.create_document(
-                                cast(Section, quantity.type.target_section_def), inner_doc=True,
-                                prefix=annotation.field)
-                            annotation.mapping = Object(inner_document)
-                        elif isinstance(quantity.type, MEnum):
-                            annotation.mapping = Keyword(**kwargs)
-                        else:
-                            raise NotImplementedError(
-                                'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+                        raise NotImplementedError(
+                            'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
 
                 assert first or annotation.mapping is None, 'Only the first Elastic annotation is mapped'
 
@@ -244,23 +238,18 @@ class Elastic(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
-        shallow: Determines how a reference is handled in the search index. If
-            set to True, only the unresolved reference proxy path (m_proxy_path) is
-            stored. If False, the whole referenced section will be stored.
     '''
     def __init__(
             self,
             field: str = None,
             mapping: Any = None,
             value: Callable[[Any], Any] = None,
-            index: bool = True,
-            shallow: bool = False):
+            index: bool = True):
 
         self.field = field
         self.mapping = mapping
         self.value = value
         self.index = index
-        self.shallow = shallow
 
         self.prefix = None
         self.qualified_field = field
