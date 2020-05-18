@@ -213,6 +213,13 @@ SearchEntry.propTypes = {
   ownerTypes: PropTypes.arrayOf(PropTypes.string)
 }
 
+const originLabels = {
+  'Stefano Curtarolo': 'AFLOW',
+  'Chris Wolverton': 'OQMD',
+  'Patrick Huck': 'Materials Project',
+  'Markus Scheidgen': 'NOMAD Laboratory'
+}
+
 function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
@@ -220,7 +227,7 @@ function UsersVisualization() {
   }, [])
   return <div>
     <UploadsHistogram tooltips />
-    <QuantityHistogram quantity="uploader" title="Uploaders" />
+    <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
 
