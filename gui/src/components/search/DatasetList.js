@@ -289,6 +289,7 @@ class DatasetListUnstyled extends React.Component {
       total={total}
       columns={this.columns}
       selectedColumns={['name', 'DOI', 'entries', 'authors']}
+      selectedColumnsKey="datasets"
       entryActions={this.renderEntryActions}
       data={results}
       rows={perPage}

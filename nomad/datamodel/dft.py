@@ -71,12 +71,13 @@ _electronic_quantities = [
     'volumetric_data_values',
     'electronic_kinetic_energy',
     'total_charge',
-    'atomic_multipole_values']
+    # 'atomic_multipole_values'
+]
 
 _forces_quantities = [
     'atom_forces_free',
     'atom_forces_raw',
-    'atom_forces_T0',
+    # 'atom_forces_T0',
     'atom_forces',
     'stress_tensor']
 
@@ -254,7 +255,7 @@ class DFTMetadata(MSection):
         type=str, shape=['0..*'],
         description='Springer classification by property.',
         a_search=Search(
-            many_and='append', statistic_size=10,
+            many_and='append', statistic_size=20,
             statistic_order='_count'))
 
     optimade = SubSection(
@@ -280,7 +281,7 @@ class DFTMetadata(MSection):
             self.code_name,
             self.code_version,
             self.m_parent.with_embargo,
-            self.m_parent.uploader)
+            self.m_parent.uploader.user_id)
 
     def apply_domain_metadata(self, backend):
         from nomad.normalizing.system import normalized_atom_labels

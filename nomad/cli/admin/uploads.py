@@ -228,6 +228,13 @@ def index(ctx, uploads):
     i, failed = 0, 0
     for upload in uploads:
         with upload.entries_metadata() as calcs:
+            # This is just a temporary fix to update the group hash without re-processing
+            try:
+                for calc in calcs:
+                    if calc.dft is not None:
+                        calc.dft.update_group_hash()
+            except Exception:
+                pass
             failed += search.index_all(calcs)
             i += 1
 

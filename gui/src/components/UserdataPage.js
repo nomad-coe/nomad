@@ -59,7 +59,7 @@ function UserdataPage() {
     initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
     initialResultTab="uploads"
     availableResultTabs={['uploads', 'datasets', 'entries']}
-    resultListProps={{selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
+    resultListProps={{selectedColumnsKey: 'userEntries', selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
   />
 }
 
