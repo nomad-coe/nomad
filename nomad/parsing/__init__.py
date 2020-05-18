@@ -178,7 +178,7 @@ parsers = [
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
     ),
     LegacyParser(
-        name='parsers/vasp', code_name='VASP',
+        name='parsers/vasp', code_name='VASP', code_homepage='https://www.vasp.at/',
         parser_class_name='vaspparser.VASPRunParser',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_re=(

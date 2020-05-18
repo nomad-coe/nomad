@@ -9,6 +9,26 @@ import { domains } from './domains'
 import { Grid, Card, CardContent, Typography, makeStyles, Link } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 
+export const CodeList = () => {
+  const {info} = useContext(apiContext)
+
+  if (!info) {
+    return '...'
+  }
+
+  return info.codes.reduce((result, code, index) => {
+    if (index !== 0) {
+      result.push(', ')
+    }
+    if (code.code_homepage) {
+      result.push(<Link target="external" key={code.code_name} href={code.code_homepage}>{code.code_name}</Link>)
+    } else {
+      result.push(code.code_name)
+    }
+    return result
+  }, [])
+}
+
 const useCardStyles = makeStyles(theme => ({
   title: {
     marginBottom: theme.spacing(1)
@@ -173,7 +193,7 @@ export default function About() {
         You can inspect the Archive form and extracted metadata before
         publishing your data.
         </p>
-        <p>NOMAD supports most community codes: {info ? info.codes.join(', ') : '...'}</p>
+        <p>NOMAD supports most community codes: <CodeList/></p>
         <p>
         To use NOMAD&apos;s parsers and normalizers outside of NOMAD.
         Read <Link href="">here</Link> on how to install
