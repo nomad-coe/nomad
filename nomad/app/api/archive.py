@@ -233,19 +233,21 @@ class ArchiveQueryResource(Resource):
         See ``/repo`` endpoint for documentation on the search
         parameters.
 
+        This endpoint uses pagination (see /repo) or id aggregation to handle large result
+        sets over multiple requests.
+        Use aggregation.after and aggregation.per_page to request a
+        certain page with id aggregation.
+
         The actual data are in results and a supplementary python code (curl) to
         execute search is in python (curl).
         '''
         try:
             data_in = request.get_json()
-            scroll = data_in.get('scroll', None)
-            if scroll:
-                scroll_id = scroll.get('scroll_id')
-                scroll = True
+            aggregation = data_in.get('aggregation', None)
 
             pagination = data_in.get('pagination', {})
             page = pagination.get('page', 1)
-            per_page = pagination.get('per_page', 10 if not scroll else 1000)
+            per_page = pagination.get('per_page', 10)
 
             query = data_in.get('query', {})
 
@@ -270,20 +272,19 @@ class ArchiveQueryResource(Resource):
             search_request.owner('all')
 
         apply_search_parameters(search_request, query)
-        search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
+        if not aggregation:
+            search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         try:
-            if scroll:
-                results = search_request.execute_scrolled(
-                    scroll_id=scroll_id, size=per_page, order_by='upload_id')
-                results['scroll']['scroll'] = True
+            if aggregation:
+                results = search_request.execute_aggregated(
+                    after=aggregation.get('after'), per_page=aggregation.get('per_page', 1000),
+                    includes=['with_embargo', 'published', 'parser_name'])
 
             else:
                 results = search_request.execute_paginated(
                     per_page=per_page, page=page, order_by='upload_id')
 
-        except search.ScrollIdNotFound:
-            abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
             abort(400, str(e))
 

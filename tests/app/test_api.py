@@ -682,12 +682,12 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_archive_query(self, api, published_wo_user_metadata):
+    def test_archive_query_paginated(self, api, published_wo_user_metadata):
         schema = {
             'section_run': {
                 'section_single_configuration_calculation': {
                     'energy_total': '*'}}}
-        data = {'results': [schema], 'per_page': 5}
+        data = {'results': [schema], 'pagination': {'per_page': 5}}
         uri = '/archive/query'
         rv = api.post(uri, content_type='application/json', data=json.dumps(data))
 
@@ -715,6 +715,30 @@ class TestArchive(UploadFilesBasedTests):
 
         rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_errors=False)))
         assert rv.status_code == 200
+
+    def test_archive_query_aggregated(self, api, published_wo_user_metadata):
+        uri = '/archive/query'
+        schema = {
+            'section_run': {
+                'section_single_configuration_calculation': {
+                    'energy_total': '*'}}}
+
+        query = {'results': [schema], 'aggregation': {'per_page': 1}}
+
+        count = 0
+        while True:
+            rv = api.post(uri, content_type='application/json', data=json.dumps(query))
+            assert rv.status_code == 200
+            data = rv.get_json()
+            results = data.get('results', None)
+            count += len(results)
+            after = data['aggregation']['after']
+            if after is None:
+                break
+
+            query['aggregation']['after'] = after
+
+        assert count > 0
 
 
 class TestMetainfo():
