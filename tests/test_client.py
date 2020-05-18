@@ -56,10 +56,6 @@ def test_query_schema(api, published_wo_user_metadata, q_schema, sub_sections):
     assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
 
 
-def test_query_scroll(api, published_wo_user_metadata):
-    assert_results(query_archive(scroll=True))
-
-
 def test_query_authentication(api, published, other_test_user_auth, test_user_auth, other_test_user):
     # The published test uploads uploader in calc and upload's user id do not match
     # due to testing the uploader change via publish metadata.
