@@ -13,6 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('.'))
 # from recommonmark.transform import AutoStructify
 
@@ -29,7 +30,7 @@ copyright = '2018, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
 rst_epilog = '''
-.. |pypi_url| replace:: https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/dist/
+.. |pypi_url| replace:: https://repository.nomad-coe.eu/v0.8/dist/
 '''
 
 # The short X.Y version
@@ -203,4 +204,4 @@ def setup(app):
     # }, True)
     # app.add_transform(AutoStructify)
 
-extlinks = {'api': ('https://repository.nomad-coe.eu/app/api/%s', 'NOMAD API ')}
+extlinks = {'api': ('https://repository.nomad-coe.eu/v0.8/api/%s', 'NOMAD API ')}
