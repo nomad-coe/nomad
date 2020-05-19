@@ -193,7 +193,7 @@ def chown(ctx, username, uploads):
         search.refresh()
 
 
-@uploads.command(help='Change the owner of the upload and all its calcs.')
+@uploads.command(help='Reset the processing state.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
 @click.pass_context
@@ -209,6 +209,7 @@ def reset(ctx, uploads, with_calcs):
             dict(upload_id=upload.upload_id),
             {'$set': proc.Calc.reset_pymongo_update()})
 
+        upload.process_status = None
         upload.reset()
         upload.save()
         i += 1

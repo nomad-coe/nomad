@@ -99,6 +99,8 @@ class MatchingParser(Parser):
     A parser implementation that used regular experessions to match mainfiles.
 
     Arguments:
+        code_name: The name of the code or input format
+        code_homepage: The homepage of the code or input format
         mainfile_mime_re: A regexp that is used to match against a files mime type
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
@@ -107,7 +109,7 @@ class MatchingParser(Parser):
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     '''
     def __init__(
-            self, name: str, code_name: str,
+            self, name: str, code_name: str, code_homepage: str = None,
             mainfile_contents_re: str = None,
             mainfile_binary_header: bytes = None,
             mainfile_mime_re: str = r'text/.*',
@@ -118,6 +120,7 @@ class MatchingParser(Parser):
         super().__init__()
         self.name = name
         self.code_name = code_name
+        self.code_homepage = code_homepage
         self.domain = domain
         self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)

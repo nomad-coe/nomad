@@ -581,6 +581,66 @@ class SearchRequest:
 
         return dict(scroll=scroll_info, results=results)
 
+    def execute_aggregated(
+            self, after: str = None, per_page: int = 1000, includes: List[str] = None):
+        '''
+        Uses a composite aggregation on top of the search to go through the result
+        set. This allows to go arbirarely deep without using scroll. But, it will
+        only return results with ``upload_id``, ``calc_id`` and the given
+        quantities. The results will be 'ordered' by ``upload_id``.
+
+        Arguments:
+            after: The key that determines the start of the current page. This after
+                key is returned with each response. Use None (default) for the first
+                request.
+            per_page: The size of each page.
+            includes: A list of quantity names that should be returned in addition to
+                ``upload_id`` and ``calc_id``.
+        '''
+        upload_id_agg = A('terms', field="upload_id")
+        calc_id_agg = A('terms', field="calc_id")
+
+        composite = dict(
+            sources=[dict(upload_id=upload_id_agg), dict(calc_id=calc_id_agg)],
+            size=per_page)
+
+        if after is not None:
+            upload_id, calc_id = after.split(':')
+            composite['after'] = dict(upload_id=upload_id, calc_id=calc_id)
+
+        composite_agg = self._search.aggs.bucket('ids', 'composite', **composite)
+        if includes is not None:
+            composite_agg.metric('examples', A('top_hits', size=1, _source=dict(includes=includes)))
+
+        search = self._search.query(self.q)[0:0]
+        response = search.execute()
+
+        ids = response['aggregations']['ids']
+        if 'after_key' in ids:
+            after_dict = ids['after_key']
+            after = '%s:%s' % (after_dict['upload_id'], after_dict['calc_id'])
+        else:
+            after = None
+
+        id_agg_info = dict(total=response['hits']['total'], after=after, per_page=per_page)
+
+        def transform_result(es_result):
+            result = dict(
+                upload_id=es_result['key']['upload_id'],
+                calc_id=es_result['key']['calc_id'])
+
+            if includes is not None:
+                source = es_result['examples']['hits']['hits'][0]['_source']
+                for key in source:
+                    result[key] = source[key]
+
+            return result
+
+        results = [
+            transform_result(item) for item in ids['buckets']]
+
+        return dict(aggregation=id_agg_info, results=results)
+
     def _response(self, response, with_hits: bool = False) -> Dict[str, Any]:
         '''
         Prepares a response object covering the total number of results, hits, statistics,

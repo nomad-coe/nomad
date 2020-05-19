@@ -98,6 +98,10 @@ sub-sections return lists of further objects. Here we navigate the sections ``se
 sub-section ``section_system`` to access the quantity ``energy_total``. This quantity is a
 number with an attached unit (Joule), which can be converted to something else (e.g. Hartree).
 
+The create query object keeps all results in memory. Keep this in mind, when you are
+accessing a large amount of query results. You should use :func:`ArchiveQuery.clear`
+to remove unnecessary results.
+
 The NOMAD Metainfo
 __________________
 
@@ -235,8 +239,6 @@ class ArchiveQuery(collections.abc.Sequence):
         url: Optional, override the default NOMAD API url.
         username: Optional, allows authenticated access.
         password: Optional, allows authenticated access.
-        scroll: Use the scroll API to iterate through results. This is required when you
-            are accessing many 1000 results. By default, the pagination API is used.
         per_page: Determine how many results are downloaded per page (or scroll window).
             Default is 10.
         max: Optionally determine the maximum amount of downloaded archives. The iteration
@@ -251,12 +253,11 @@ class ArchiveQuery(collections.abc.Sequence):
             self,
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
-            scroll: bool = False, per_page: int = 10, max: int = None,
+            per_page: int = 10, max: int = None,
             raise_errors: bool = False,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
-        self.scroll = scroll
-        self._scroll_id = None
+        self._after = None
         self.page = 1
         self.per_page = per_page
         self.max = max
@@ -327,14 +328,9 @@ class ArchiveQuery(collections.abc.Sequence):
         '''
         url = '%s/%s/%s' % (self.url, 'archive', 'query')
 
-        if self.scroll:
-            scroll_config = self.query.setdefault('scroll', {'scroll': True})
-            if self._scroll_id is not None:
-                scroll_config['scroll_id'] = self._scroll_id
-
-        else:
-            self.query.setdefault('pagination', {}).update(
-                page=self.page, per_page=self.per_page)
+        aggregation = self.query.setdefault('aggregation', {'per_page': self.per_page})
+        if self._after is not None:
+            aggregation['after'] = self._after
 
         response = requests.post(url, headers=self.authentication, json=self.query)
         if response.status_code != 200:
@@ -352,15 +348,9 @@ class ArchiveQuery(collections.abc.Sequence):
         if not isinstance(data, dict):
             data = data()
 
-        if self.scroll:
-            scroll = data['scroll']
-            self._scroll_id = scroll['scroll_id']
-            self._total = scroll['total']
-
-        else:
-            pagination = data['pagination']
-            self._total = pagination['total']
-            self.page = pagination['page'] + 1
+        aggregation = data['aggregation']
+        self._after = aggregation.get('after')
+        self._total = aggregation['total']
 
         if self.max is not None:
             self._capped_total = min(self.max, self._total)
@@ -385,6 +375,11 @@ class ArchiveQuery(collections.abc.Sequence):
         except Exception:
             # fails in test due to mocked requests library
             pass
+
+        if self._after is None:
+            # there are no more search results, we need to avoid further calls
+            self._capped_total = len(self._results)
+            self._total = len(self._results)
 
     def __repr__(self):
         if self._total == -1:
@@ -425,6 +420,20 @@ class ArchiveQuery(collections.abc.Sequence):
             self.call_api()
 
         return self._statistics
+
+    def clear(self, index: int = None):
+        '''
+        Remove caches results. The results are replaced with None in this object. If you
+        keep references to the results elsewhere, the garbage collection might not catch
+        those.
+
+        Arguments:
+            index: Remove all results upto and including the giving index. Default is to
+                remove all results.
+        '''
+        for i, _ in enumerate(self._results[:index]):
+            print(i)
+            self._results[i] = None
 
 
 def query_archive(*args, **kwargs):

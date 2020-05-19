@@ -53,7 +53,7 @@ class UploadActionsUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     user: PropTypes.object,
-    onChange: PropTypes.func,
+    onEdit: PropTypes.func,
     history: PropTypes.object.isRequired
   }
 
@@ -71,9 +71,9 @@ class UploadActionsUnstyled extends React.Component {
   }
 
   handleEdit() {
-    const {onChange, upload} = this.props
-    if (onChange) {
-      onChange(upload)
+    const {onEdit, upload} = this.props
+    if (onEdit) {
+      onEdit(upload)
     }
   }
 
@@ -86,7 +86,7 @@ class UploadActionsUnstyled extends React.Component {
     const editable = user && upload.example &&
       upload.example.authors.find(author => author.user_id === user.sub)
 
-    const query = {upload_id: upload.example.upload_id}
+    const query = {upload_id: [upload.example.upload_id]}
 
     return <FormGroup row classes={{root: classes.group}}>
       <Tooltip title="Open this upload on the uploads page">
@@ -112,6 +112,7 @@ class UploadListUnstyled extends React.Component {
     data: PropTypes.object,
     total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     uploads_after: PropTypes.string,
     actions: PropTypes.element
@@ -176,8 +177,8 @@ class UploadListUnstyled extends React.Component {
   }
 
   renderEntryActions(entry) {
-    const {onChange} = this.props
-    return <UploadActions search upload={entry} onChange={() => onChange({})} />
+    const {onEdit} = this.props
+    return <UploadActions search upload={entry} onEdit={onEdit}/>
   }
 
   render() {

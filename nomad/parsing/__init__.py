@@ -178,7 +178,7 @@ parsers = [
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
     ),
     LegacyParser(
-        name='parsers/vasp', code_name='VASP',
+        name='parsers/vasp', code_name='VASP', code_homepage='https://www.vasp.at/',
         parser_class_name='vaspparser.VASPRunParser',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_re=(
@@ -506,8 +506,10 @@ parser_dict['parser/octopus'] = parser_dict['parsers/octopus']
 parser_dict['parser/onetep'] = parser_dict['parsers/onetep']
 
 # register code names as possible statistic value to the dft datamodel
-code_names = sorted([
-    getattr(parser, 'code_name')
-    for parser in parsers
-    if parser.domain == 'dft' and getattr(parser, 'code_name', None) is not None and getattr(parser, 'code_name') != 'currupted mainfile'])
+code_names = sorted(
+    set([
+        getattr(parser, 'code_name')
+        for parser in parsers
+        if parser.domain == 'dft' and getattr(parser, 'code_name', None) is not None and getattr(parser, 'code_name') != 'currupted mainfile']),
+    key=lambda code_name: code_name.lower())
 datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [config.services.unavailable_value, config.services.not_processed_value]
