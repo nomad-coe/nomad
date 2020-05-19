@@ -172,7 +172,7 @@ parsers = [
     TemplateParser(),
     ChaosParser(),
     LegacyParser(
-        name='parsers/phonopy', code_name='Phonopy' ,code_homepage='https://phonopy.github.io/phonopy/',
+        name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
         parser_class_name='phonopyparser.PhonopyParserWrapper',
         # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
@@ -439,7 +439,7 @@ parsers = [
         mainfile_contents_re=(r'api_permalink = https://api\.eelsdb\.eu')
     ),
     LegacyParser(
-        name='parsers/qbox', code_name='qbox',  code_homepage='http://qboxcode.org/', domain='dft',
+        name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
         parser_class_name='qboxparser.QboxParser',
         mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(r'http://qboxcode.org')
