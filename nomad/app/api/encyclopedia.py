@@ -482,12 +482,12 @@ class EncGroupsResource(Resource):
 
         # Find EOS groups
         s = Search(index=config.elastic.index_name)
-        s.aggs.pipeline("pipeline", pipeline("group_eos_hash", "equation of state", 4))
+        s.aggs.pipeline("eos_pipeline", processors=pipeline("group_eos_hash", "equation of state", 4))
         eos_groups = s.execute()
 
         # Find convergence groups
         s = Search(index=config.elastic.index_name)
-        s.aggs.pipeline("pipeline", pipeline("group_parametervariation_hash", "parameter variation", 2))
+        s.aggs.pipeline("convergence_pipeline", processors=pipeline("group_parametervariation_hash", "parameter variation", 2))
         convergence_groups = s.execute()
 
         # Combine both groups
