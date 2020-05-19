@@ -172,7 +172,7 @@ parsers = [
     TemplateParser(),
     ChaosParser(),
     LegacyParser(
-        name='parsers/phonopy', code_name='Phonopy' ,code_homepage='https://phonopy.github.io/phonopy/'
+        name='parsers/phonopy', code_name='Phonopy' ,code_homepage='https://phonopy.github.io/phonopy/',
         parser_class_name='phonopyparser.PhonopyParserWrapper',
         # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
