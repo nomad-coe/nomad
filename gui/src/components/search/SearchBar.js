@@ -24,6 +24,10 @@ const Options = {
   }
 }
 
+function getOptionLabel(option) {
+  return option.substring(option.indexOf('.') + 1)
+}
+
 /**
  * This searchbar component shows a searchbar with autocomplete functionality. The
  * searchbar also includes a status line about the current results. It uses the
@@ -158,7 +162,7 @@ export default function SearchBar() {
       if (value) {
         setInputValue('')
       } else {
-        setInputValue(`${entry}=`)
+        setInputValue(`${getOptionLabel(entry)}=`)
         loadOptions(quantity)
       }
     }
@@ -210,6 +214,7 @@ export default function SearchBar() {
       onChange={handleChange}
       onInputChange={handleInputChange}
       getOptionSelected={(option, value) => option === value}
+      getOptionLabel={getOptionLabel}
       options={options}
       loading={loading}
       filterOptions={filterOptions}

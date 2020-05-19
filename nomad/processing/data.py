@@ -1203,9 +1203,10 @@ class Upload(Proc):
                 return entry_metadata
 
         try:
+            # read all calc objects first to avoid missing curser errors
             yield [
                 get_metadata(calc)
-                for calc in Calc.objects(upload_id=self.upload_id)]
+                for calc in list(Calc.objects(upload_id=self.upload_id))]
 
         finally:
             upload_files.close()
