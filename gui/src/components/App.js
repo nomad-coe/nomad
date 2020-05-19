@@ -1,6 +1,6 @@
 // trigger rebuild
 
-import React, { useEffect, useState, useContext, useCallback } from 'react'
+import React, { useEffect, useState, useContext, useCallback, useRef } from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
@@ -97,13 +97,96 @@ function MainMenuItem({tooltip, title, path, href, icon}) {
     </Button>
   </Tooltip>
 }
-
 MainMenuItem.propTypes = {
   'tooltip': PropTypes.string.isRequired,
   'title': PropTypes.string.isRequired,
   'path': PropTypes.string,
   'href': PropTypes.string,
   'icon': PropTypes.element.isRequired
+}
+
+const useMainMenuStyles = makeStyles(theme => ({
+  root: {
+    display: 'inline-flex',
+    padding: 0,
+    width: '100%',
+    backgroundColor: 'white'
+  },
+  divider: {
+    width: theme.spacing(3)
+  }
+}))
+
+function MainMenu() {
+  const classes = useMainMenuStyles()
+
+  // We keep the URL of those path where components keep meaningful state in the URL.
+  // If the menu is used to comeback, the old URL is used. Therefore, it appears as
+  // if the same component instance with the same state is still there.
+  const {pathname, search} = useLocation()
+  const historyRef = useRef({
+    search: '/search',
+    userdata: '/userdata'
+  })
+  const history = {...historyRef.current}
+  Object.keys(historyRef.current).forEach(key => {
+    if (pathname.startsWith('/' + key)) {
+      historyRef.current[key] = pathname + (search || '')
+      history[key] = '/' + key
+    }
+  })
+
+  return <MenuList classes={{root: classes.root}}>
+    <MainMenuItem
+      title="Search"
+      path={history.search}
+      tooltip="Find and download data"
+      icon={<SearchIcon/>}
+    />
+    <MainMenuItem
+      title="Upload"
+      path="/uploads"
+      tooltip="Upload and publish data"
+      icon={<BackupIcon/>}
+    />
+    <MainMenuItem
+      title="Your data"
+      path={history.userdata}
+      tooltip="Manage your data"
+      icon={<UserDataIcon/>}
+    />
+    <MainMenuItem
+      title="Meta Info"
+      path="/metainfo"
+      tooltip="Browse the archive schema"
+      icon={<MetainfoIcon/>}
+    />
+    <div className={classes.divider} />
+    <MainMenuItem
+      title="About"
+      path="/"
+      tooltip="NOMAD Repository and Archive"
+      icon={<AboutIcon/>}
+    />
+    <MainMenuItem
+      title="FAQ"
+      path="/faq"
+      tooltip="Frequently Asked Questions (FAQ)"
+      icon={<FAQIcon/>}
+    />
+    <MainMenuItem
+      title="Docs"
+      href={`${appBase}/docs/index.html`}
+      tooltip="The NOMAD documentation"
+      icon={<DocIcon/>}
+    />
+    <MainMenuItem
+      title="Sources"
+      href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+      tooltip="NOMAD's Gitlab project"
+      icon={<CodeIcon/>}
+    />
+  </MenuList>
 }
 
 class NavigationUnstyled extends React.Component {
@@ -154,12 +237,6 @@ class NavigationUnstyled extends React.Component {
       height: theme.spacing(7),
       marginRight: theme.spacing(2)
     },
-    menu: {
-      display: 'inline-flex',
-      padding: 0,
-      width: '100%',
-      backgroundColor: 'white'
-    },
     content: {
       marginTop: theme.spacing(13),
       flexGrow: 1,
@@ -184,9 +261,6 @@ class NavigationUnstyled extends React.Component {
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
       marginRight: 0
-    },
-    divider: {
-      width: theme.spacing(3)
     }
   })
 
@@ -285,57 +359,7 @@ class NavigationUnstyled extends React.Component {
                   <LoginLogout color="primary" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
-              <MenuList classes={{root: classes.menu}}>
-                <MainMenuItem
-                  title="Search"
-                  path="/search"
-                  tooltip="Find and download data"
-                  icon={<SearchIcon/>}
-                />
-                <MainMenuItem
-                  title="Upload"
-                  path="/uploads"
-                  tooltip="Upload and publish data"
-                  icon={<BackupIcon/>}
-                />
-                <MainMenuItem
-                  title="Your data"
-                  path="/userdata"
-                  tooltip="Manage your data"
-                  icon={<UserDataIcon/>}
-                />
-                <MainMenuItem
-                  title="Meta Info"
-                  path="/metainfo"
-                  tooltip="Browse the archive schema"
-                  icon={<MetainfoIcon/>}
-                />
-                <div className={classes.divider} />
-                <MainMenuItem
-                  title="About"
-                  path="/"
-                  tooltip="NOMAD Repository and Archive"
-                  icon={<AboutIcon/>}
-                />
-                <MainMenuItem
-                  title="FAQ"
-                  path="/faq"
-                  tooltip="Frequently Asked Questions (FAQ)"
-                  icon={<FAQIcon/>}
-                />
-                <MainMenuItem
-                  title="Docs"
-                  href={`${appBase}/docs/index.html`}
-                  tooltip="The NOMAD documentation"
-                  icon={<DocIcon/>}
-                />
-                <MainMenuItem
-                  title="Sources"
-                  href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-                  tooltip="NOMAD's Gitlab project"
-                  icon={<CodeIcon/>}
-                />
-              </MenuList>
+              <MainMenu />
               <LoadingIndicator />
             </AppBar>
 
@@ -410,74 +434,82 @@ class LicenseAgreementUnstyled extends React.Component {
 
 const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
 
-class App extends React.PureComponent {
-  routes = {
-    'about': {
-      exact: true,
-      path: '/',
-      component: About
-    },
-    'faq': {
-      exact: true,
-      path: '/faq',
-      component: FAQ
-    },
-    'search': {
-      exact: true,
-      path: '/search',
-      component: SearchPage
-    },
-    'userdata': {
-      exact: true,
-      path: '/userdata',
-      component: UserdataPage
-    },
-    'entry': {
-      path: '/entry/id',
-      component: EntryPage
-    },
-    'entry_query': {
-      exact: true,
-      path: '/entry/query',
-      component: EntryQuery
-    },
-    'entry_pid': {
-      path: '/entry/pid',
-      component: ResolvePID
-    },
-    'dataset': {
-      path: '/dataset/id',
-      component: DatasetPage
-    },
-    'dataset_doi': {
-      path: '/dataset/doi',
-      component: ResolveDOI
-    },
-    'uploads': {
-      exact: true,
-      path: '/uploads',
-      component: UploadPage
-    },
-    'metainfo': {
-      path: '/metainfo',
-      component: MetaInfoBrowser
-    }
+const routes = {
+  'about': {
+    exact: true,
+    path: '/',
+    component: About
+  },
+  'faq': {
+    exact: true,
+    path: '/faq',
+    component: FAQ
+  },
+  'search': {
+    exact: true,
+    path: '/search',
+    component: SearchPage
+  },
+  'userdata': {
+    exact: true,
+    path: '/userdata',
+    component: UserdataPage
+  },
+  'entry': {
+    path: '/entry/id',
+    component: EntryPage
+  },
+  'entry_query': {
+    exact: true,
+    path: '/entry/query',
+    component: EntryQuery
+  },
+  'entry_pid': {
+    path: '/entry/pid',
+    component: ResolvePID
+  },
+  'dataset': {
+    path: '/dataset/id',
+    component: DatasetPage
+  },
+  'dataset_doi': {
+    path: '/dataset/doi',
+    component: ResolveDOI
+  },
+  'uploads': {
+    exact: true,
+    path: '/uploads',
+    component: UploadPage
+  },
+  'metainfo': {
+    path: '/metainfo',
+    keepState: true,
+    exists: false,
+    component: MetaInfoBrowser
   }
+}
 
+class App extends React.PureComponent {
   render() {
     return (
       <MuiThemeProvider theme={nomadTheme}>
         <ErrorSnacks>
           <ApiProvider>
             <Navigation>
-              {Object.keys(this.routes).map(routeKey => {
-                const route = this.routes[routeKey]
+              {Object.keys(routes).map(routeKey => {
+                const route = routes[routeKey]
                 const { path, exact } = route
                 return <Route key={routeKey} exact={exact} path={path}
                   // eslint-disable-next-line react/no-children-prop
                   children={props => {
-                    // return <KeepState visible={props.match && true} render={(props) => <route.component {...props} />} {...props} />
-                    return props.match && <route.component {...props} />
+                    if (route.keepState) {
+                      if (props.match || route.exists) {
+                        route.exists = true
+                        return <route.component visible={props.match && true} {...props} />
+                      }
+                    } else {
+                      return props.match && <route.component {...props} />
+                    }
                   }}
                 />
               })}

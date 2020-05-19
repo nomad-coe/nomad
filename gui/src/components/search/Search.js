@@ -43,19 +43,6 @@ const resultTabs = {
   }
 }
 
-const defaultVisalizations = {
-  'elements': {
-    component: ElementsVisualization,
-    label: 'Elements',
-    description: 'Shows data as a heatmap over the periodic table'
-  },
-  'users': {
-    component: UsersVisualization,
-    label: 'Users',
-    description: 'Show statistics on user metadata'
-  }
-}
-
 const useSearchStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(3)
@@ -162,8 +149,18 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
   const {domain} = useContext(searchContext)
 
   const visualizations = {}
-  Object.assign(visualizations, defaultVisalizations)
+  visualizations.elements = {
+    component: ElementsVisualization,
+    label: 'Elements',
+    description: 'Shows data as a heatmap over the periodic table'
+  }
   Object.assign(visualizations, domain.searchVisualizations)
+  visualizations.users = {
+    component: UsersVisualization,
+    label: 'Uploads',
+    description: 'Show statistics about when and by whom data was uploaded'
+  }
+
   const openVisualizationKey = openVisualizationParam || initialTab
   const openVisualizationTab = visualizations[openVisualizationKey]
 
@@ -216,6 +213,13 @@ SearchEntry.propTypes = {
   ownerTypes: PropTypes.arrayOf(PropTypes.string)
 }
 
+const originLabels = {
+  'Stefano Curtarolo': 'AFLOW',
+  'Chris Wolverton': 'OQMD',
+  'Patrick Huck': 'Materials Project',
+  'Markus Scheidgen': 'NOMAD Laboratory'
+}
+
 function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
@@ -223,7 +227,7 @@ function UsersVisualization() {
   }, [])
   return <div>
     <UploadsHistogram tooltips />
-    <QuantityHistogram quantity="uploader" title="Uploaders" />
+    <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
 

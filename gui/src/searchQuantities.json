@@ -306,7 +306,7 @@
     "name": "dft.searchable_quantities",
     "description": "All quantities with existence filters in the search GUI.",
     "many": true,
-    "statistic_size": 25
+    "statistic_size": 23
   },
   "dft.geometries": {
     "name": "dft.geometries",
@@ -328,7 +328,7 @@
     "name": "dft.labels_springer_classification",
     "description": "Springer classification by property.",
     "many": true,
-    "statistic_size": 10
+    "statistic_size": 20
   },
   "upload_id": {
     "name": "upload_id",
