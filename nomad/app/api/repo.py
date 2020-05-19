@@ -222,7 +222,7 @@ class RepoCalcsResource(Resource):
                 for group_name, group_quantity in search_extension.groups.items():
                     if args.get(group_name, False):
                         kwargs: Dict[str, Any] = {}
-                        if group_name == 'group_uploads':
+                        if group_name == 'uploads_grouped':
                             kwargs.update(order_by='upload_time', order='desc')
                         search_request.quantity(
                             group_quantity.qualified_name, size=per_page, examples=1,
