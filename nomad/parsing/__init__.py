@@ -352,7 +352,7 @@ parsers = [
     ),
     # match gpaw2 first, other .gpw files are then considered to be "gpaw1"
     LegacyParser(
-        name='parsers/gpaw2', code_name='GPAW', code_homepage=None,
+        name='parsers/gpaw2', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
         parser_class_name='gpawparser.GPAWParser2Wrapper',
         mainfile_binary_header=b'GPAW',
         mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
