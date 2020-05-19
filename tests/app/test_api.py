@@ -897,7 +897,7 @@ class TestRepo():
         assert uploads is not None
         values = uploads['values']
 
-        assert values['example_upload_id']['total'] == 4
+        assert values['example_upload_id']['total'] == 3  # just three because of inconsistent upload time
         assert values['example_upload_id']['examples'][0]['upload_id'] == 'example_upload_id'
         assert 'after' in uploads
         assert 'uploads' in data['statistics']['total']['all']
