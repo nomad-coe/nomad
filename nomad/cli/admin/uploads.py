@@ -21,7 +21,7 @@ import json
 
 from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel, archive
 
-from .admin import admin, __run_processing
+from .admin import admin, __run_processing, __run_parallel
 
 
 @admin.group(help='Upload related commands')
@@ -218,15 +218,12 @@ def reset(ctx, uploads, with_calcs):
 
 @uploads.command(help='(Re-)index all calcs of the given uploads.')
 @click.argument('UPLOADS', nargs=-1)
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
-def index(ctx, uploads):
+def index(ctx, uploads, parallel):
     _, uploads = query_uploads(ctx, uploads)
-    uploads_count = uploads.count()
 
-    print('%d uploads selected, indexing ...' % uploads_count)
-
-    i, failed = 0, 0
-    for upload in uploads:
+    def index_upload(upload, logger):
         with upload.entries_metadata() as calcs:
             # This is just a temporary fix to update the group hash without re-processing
             try:
@@ -235,10 +232,13 @@ def index(ctx, uploads):
                         calc.dft.update_group_hash()
             except Exception:
                 pass
-            failed += search.index_all(calcs)
-            i += 1
+            failed = search.index_all(calcs)
+            if failed > 0:
+                print('    WARNING failed to index %d entries' % failed)
 
-        print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
+        return True
+
+    __run_parallel(uploads, parallel, index_upload, 'index')
 
 
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):

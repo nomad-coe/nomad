@@ -34,8 +34,8 @@ from nomad import atomutils
 from nomad.cli.cli import cli
 
 
-def __run_processing(
-        uploads, parallel: int, process, label: str, reprocess_running: bool = False):
+def __run_parallel(
+        uploads, parallel: int, callable, label: str):
     if isinstance(uploads, (tuple, list)):
         uploads_count = len(uploads)
 
@@ -59,23 +59,8 @@ def __run_processing(
         logger.info('%s started' % label, upload_id=upload.upload_id)
 
         completed = False
-        if upload.process_running and not reprocess_running:
-            logger.warn(
-                'cannot trigger %s, since the upload is already/still processing' % label,
-                current_process=upload.current_process,
-                current_task=upload.current_task, upload_id=upload.upload_id)
-
-        else:
-            upload.reset()
-            process(upload)
-            upload.block_until_complete(interval=.5)
-
-            if upload.tasks_status == proc.FAILURE:
-                logger.info('%s with failure' % label, upload_id=upload.upload_id)
-
+        if callable(upload, logger):
             completed = True
-
-            logger.info('%s complete' % label, upload_id=upload.upload_id)
 
         with cv:
             state['completed_count'] += 1 if completed else 0
@@ -98,6 +83,30 @@ def __run_processing(
 
     for thread in threads:
         thread.join()
+
+
+def __run_processing(
+        uploads, parallel: int, process, label: str, reprocess_running: bool = False):
+
+    def run_process(upload, logger):
+        if upload.process_running and not reprocess_running:
+            logger.warn(
+                'cannot trigger %s, since the upload is already/still processing' % label,
+                current_process=upload.current_process,
+                current_task=upload.current_task, upload_id=upload.upload_id)
+            return False
+        else:
+            upload.reset()
+            process(upload)
+            upload.block_until_complete(interval=.5)
+
+            if upload.tasks_status == proc.FAILURE:
+                logger.info('%s with failure' % label, upload_id=upload.upload_id)
+
+            logger.info('%s complete' % label, upload_id=upload.upload_id)
+            return True
+
+    __run_parallel(uploads, parallel=parallel, callable=run_process, label=label)
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
