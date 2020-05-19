@@ -367,7 +367,8 @@ class Method(MSection):
         A fixed length, unique identifier for equation-of-state calculations.
         Only calculations within the same upload and with a method hash
         available will be grouped under the same hash.
-        """
+        """,
+        a_search=Search()
     )
     group_parametervariation_hash = Quantity(
         type=str,
@@ -376,7 +377,8 @@ class Method(MSection):
         identical but the used computational parameters are varied. Only
         calculations within the same upload and with a method hash available
         will be grouped under the same hash.
-        """
+        """,
+        a_search=Search()
     )
     gw_starting_point = Quantity(
         type=str,
@@ -432,6 +434,42 @@ class Calculation(MSection):
     )
 
 
+class Energies(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        a_search="energies",
+        description="""
+        Contains different types of energies extracted from this entry. The
+        energies are extracted from a representative calculation: for geometry
+        optimization it is the last optimization step.
+        """
+    )
+    energy_total = Quantity(
+        type=np.dtype(np.float64),
+        unit="eV",
+        description="""
+        Total energy.
+        """,
+        a_search=Search()
+    )
+    energy_total_T0 = Quantity(
+        type=np.dtype(np.float64),
+        unit="eV",
+        description="""
+        Total energy projected to T=0.
+        """,
+        a_search=Search()
+    )
+    energy_free = Quantity(
+        type=np.dtype(np.float64),
+        unit="eV",
+        description="""
+        Free energy.
+        """,
+        a_search=Search()
+    )
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -475,13 +513,7 @@ class Properties(MSection):
         """,
         a_search=Search()
     )
-    energies = Quantity(
-        type=str,
-        description="""
-        Code dependent energy values, corrected to be per formula unit.
-        """,
-        a_search=Search()
-    )
+    energies = SubSection(sub_section=Energies.m_def, repeats=False, a_search='energies')
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],

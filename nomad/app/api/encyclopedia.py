@@ -89,6 +89,24 @@ material_result = api.model('material_result', {
     "structure_prototype": fields.String,
     "structure_type": fields.String,
 })
+material_source = {
+    "includes": [
+        "encyclopedia.material.material_id",
+        "encyclopedia.material.formula",
+        "encyclopedia.material.formula_reduced",
+        "encyclopedia.material.material_type",
+        "encyclopedia.material.bulk.has_free_wyckoff_parameters",
+        "encyclopedia.material.bulk.strukturbericht_designation",
+        "encyclopedia.material.material_name",
+        "encyclopedia.material.bulk.bravais_lattice",
+        "encyclopedia.material.bulk.crystal_system",
+        "encyclopedia.material.bulk.point_group",
+        "encyclopedia.material.bulk.space_group_number",
+        "encyclopedia.material.bulk.space_group_international_short_symbol",
+        "encyclopedia.material.bulk.structure_prototype",
+        "encyclopedia.material.bulk.structure_type",
+    ]
+}
 
 
 @ns.route('/materials/<string:material_id>')
@@ -123,6 +141,7 @@ class EncMaterialResource(Resource):
         # transfer so much data.
         s = s.extra(**{
             "collapse": {"field": "encyclopedia.material.material_id"},
+            "_source": material_source
         })
 
         response = s.execute()
@@ -340,15 +359,20 @@ class EncMaterialsResource(Resource):
                 s = s.query(bool_query)
 
                 # The materials are grouped by using three aggregations:
-                # 'Composite' to enable scrolling, 'Terms' to enable selecting by
-                # material_id and "Top Hits" to fetch a single representative
-                # material document.
+                # 'Composite' to enable scrolling, 'Terms' to enable selecting
+                # by material_id and "Top Hits" to fetch a single
+                # representative material document. Unnecessary fields are
+                # filtered to reduce data transfer.
                 terms_agg = A("terms", field="encyclopedia.material.material_id")
                 composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
                 if after is not None:
                     composite_kwargs['after'] = after
                 composite_agg = A("composite", **composite_kwargs)
-                composite_agg.metric('representative', A('top_hits', size=1))
+                composite_agg.metric('representative', A(
+                    'top_hits',
+                    size=1,
+                    _source=material_source,
+                ))
                 s.aggs.bucket("materials", composite_agg)
 
                 # We ignore the top level hits
@@ -423,7 +447,6 @@ group_result = api.model('group_result', {
     "energy_minimum": fields.Float,
     "group_hash": fields.String,
     "group_type": fields.String,
-    "method_hash": fields.String,
     "nr_of_calculations": fields.Integer,
     "representative_calculation_id": fields.String,
 })
@@ -431,6 +454,12 @@ groups_result = api.model('groups_result', {
     'total_groups': fields.Integer(allow_null=False),
     'groups': fields.List(fields.Nested(group_result)),
 })
+group_source = {
+    "includes": [
+        "calc_id",
+        "encyclopedia.properties.energies.energy_total",
+    ]
+}
 
 
 @ns.route('/materials/<string:material_id>/groups')
@@ -443,57 +472,87 @@ class EncGroupsResource(Resource):
     @api.doc('enc_materials')
     def get(self, material_id):
 
-        def pipeline(hash_key, group_type, minsize):
-            return [
-                {"$match": {
-                    "encyclopedia.material.material_id": material_id,
-                    "published": True,
-                    "with_embargo": False,
-                }},
-                {"$lookup": {
-                    "from": "energies",
-                    "localField": "_id",
-                    "foreignField": "calc_id",
-                    "as": "energy"
-                }},
-                {"$unwind": "$energy"},
-                {"$match": {"energy.e_kind": "Total E"}},
-                {"$sort": {"energy.e_val": 1}},
-                {"$group": {
-                    "_id": {
-                        "group_hash": "$%s" % hash_key
-                    },
-                    "calculations_list": {"$push": "$_id"},
-                    "minimum": {"$first": {"energy": "$energy.e_val", "calc_id": "$_id"}}
-                }},
-                {"$addFields": {"nr_of_calculations": {"$size": "$calculations_list"}}},
-                {"$match": {"nr_of_calculations": {"$gt": minsize}}},
-                {"$project": {
-                    "_id": False,
-                    "nr_of_calculations": True,
-                    "calculations_list": True,
-                    "energy_minimum": "$minimum.energy",
-                    "representative_calculation_id": "$minimum.calc_id",
-                    "group_hash": "$_id.group_hash",
-                    "group_type": group_type,
-                    "material_hash": material_id
-                }}
-            ]
+        # Find entries for the given material, which have EOS or parameter
+        # variation hashes set.
+        bool_query = Q(
+            'bool',
+            filter=[
+                Q('term', published=True),
+                Q('term', with_embargo=False),
+                Q('term', encyclopedia__material__material_id=material_id),
+            ],
+            must=[
+                Q("exists", field="encyclopedia.properties.energies.energy_total"),
+            ],
+            should=[
+                Q("exists", field="encyclopedia.method.group_eos_hash"),
+                Q("exists", field="encyclopedia.method.group_parametervariation_hash"),
+            ],
+            minimum_should_match=1,  # At least one of the should query must match
+        )
 
-        # Find EOS groups
         s = Search(index=config.elastic.index_name)
-        s.aggs.pipeline("eos_pipeline", processors=pipeline("group_eos_hash", "equation of state", 4))
-        eos_groups = s.execute()
+        s = s.query(bool_query)
 
-        # Find convergence groups
-        s = Search(index=config.elastic.index_name)
-        s.aggs.pipeline("convergence_pipeline", processors=pipeline("group_parametervariation_hash", "parameter variation", 2))
-        convergence_groups = s.execute()
+        # Bucket the calculations by the group hashes. Only create a bucket if an
+        # above-minimum number of documents are found.
+        group_eos_bucket = A("terms", field="encyclopedia.method.group_eos_hash", min_doc_count=4)
+        group_param_bucket = A("terms", field="encyclopedia.method.group_parametervariation_hash", min_doc_count=2)
 
-        # Combine both groups
-        groups = eos_groups + convergence_groups
-        for group in groups:
-            group["calculations_list"] = [int(calc) for calc in group["calculations_list"]]
-            group["representative_calculation_id"] = int(group["representative_calculation_id"])
+        # calc_id and energy should be extracted for each matched document. The
+        # documents are sorted by energy so that the minimum energy one can be
+        # easily extracted. A maximum request size is set in order to limit the
+        # result size. ES also has an index-level property
+        # 'index.max_inner_result_window' that limits the number of results
+        # that an inner result can contain.
+        energy_aggregation = A(
+            "top_hits",
+            _source=group_source,
+            sort=[{"encyclopedia.properties.energies.energy_total": {"order": "asc"}}],
+            size=100,
+        )
+        group_eos_bucket.bucket("energies", energy_aggregation)
+        group_param_bucket.bucket("energies", energy_aggregation)
+        s.aggs.bucket("groups_eos", group_eos_bucket)
+        s.aggs.bucket("groups_param", group_param_bucket)
 
-        return dict(groups=groups, total_groups=len(groups)), 200
+        # We ignore the top level hits
+        s = s.extra(**{
+            "size": 0,
+        })
+
+        # No hits on the top query level
+        response = s.execute()
+        n_hits = response.hits.total
+        if n_hits == 0:
+            abort(404, message='The specified material could not be found.')
+
+        # Collect information for each group from the aggregations
+        groups = []
+        groups_eos = response.aggs.groups_eos.buckets
+        groups_param = response.aggs.groups_param.buckets
+
+        def get_group(group, group_type, group_hash):
+            hits = group.energies.hits
+            calculations = [doc.calc_id for doc in hits]
+            group_dict = {
+                "group_hash": group_hash,
+                "group_type": group_type,
+                "nr_of_calculations": len(calculations),
+                "representative_calculation_id": hits[0].calc_id,
+                "calculation_list": calculations,
+                "energy_minimum": hits[0].encyclopedia.properties.energies.energy_total,
+            }
+            return group_dict
+
+        for group in groups_eos:
+            groups.append(get_group(group, "equation of state", group.key))
+        for group in groups_param:
+            groups.append(get_group(group, "parameter variation", group.key))
+
+        # Return results
+        result = {
+            "groups": groups,
+            "total_groups": len(groups),
+        }
+        return result, 200

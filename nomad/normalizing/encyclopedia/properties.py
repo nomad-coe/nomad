@@ -17,6 +17,7 @@ import json
 from nomad.datamodel.encyclopedia import (
     Calculation,
     Properties,
+    Energies,
 )
 from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
@@ -204,23 +205,19 @@ class PropertiesNormalizer():
         if representative_phonon_dos is not None:
             properties.phonon_dos = representative_phonon_dos.m_path()
 
-    def energies(self, properties: Properties, gcd: int, representative_scc: Section) -> None:
-        energy_dict = {}
+    def energies(self, properties: Properties, n_atoms: int, representative_scc: Section) -> None:
         if representative_scc is not None:
-            energies_entries = {
-                "energy_total": "Total E",
-                "energy_total_T0": "Total E projected to T=0",
-                "energy_free": "Free E",
-            }
-            for energy_name, label in energies_entries.items():
-                result = getattr(representative_scc, energy_name)
-                if result is not None:
-                    energy_dict[label] = result.magnitude / gcd
+            energies = Energies()
+            energy_found = False
+            for energy_name in ["energy_total", "energy_total_T0", "energy_free"]:
+                energy_value = getattr(representative_scc, energy_name)
+                if energy_value is not None:
+                    energy_found = True
 
-            if len(energy_dict) == 0:
-                energy_dict = None
-        energies = json.dumps(energy_dict)
-        properties.energies = energies
+                    # The energies are normalized to be per atom
+                    setattr(energies, energy_name, energy_value.magnitude / n_atoms)
+            if energy_found:
+                properties.m_add_sub_section(Properties.energies, energies)
 
     def normalize(self, context: Context) -> None:
         # There needs to be a valid SCC in order to extract any properties
@@ -234,12 +231,12 @@ class PropertiesNormalizer():
         calc_type = context.calc_type
         material_type = context.material_type
         sec_system = context.representative_system
-        gcd = context.greatest_common_divisor
+        n_atoms = len(sec_system.atom_labels)
 
         # Save metainfo
         self.electronic_band_structure(properties, calc_type, material_type, context, sec_system)
         self.electronic_dos(properties, context)
-        self.energies(properties, gcd, representative_scc)
+        self.energies(properties, n_atoms, representative_scc)
 
         # Phonon calculations have a specific set of properties to extract
         if context.calc_type == Calculation.calculation_type.type.phonon_calculation:
