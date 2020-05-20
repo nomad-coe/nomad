@@ -26,12 +26,12 @@ You can install the `nomad` Python package from source distribution with pip. Pl
 note, that this will only install part of NOMAD's dependencies that will only allow
 your to use NOMAD's client library, e.g. to access the NOMAD Archive.
 ```
-pip install http://labdev-nomad.esc.rzg.mpg.de/dev/nomad/v0-8-0/dist/nomad-0.8.0
+pip install nomad --extra-index-url https://repository.nomad-coe.eu/v0.8/dist
 ```
 
 To **use the NOMAD parsers for example**, install the `parsing` extra:
 ```
-pip install http://labdev-nomad.esc.rzg.mpg.de/dev/nomad/v0-8-0/dist/nomad-0.8.0[parsing]
+pip install nomad[parsing] --extra-index-url https://repository.nomad-coe.eu/v0.8/dist
 nomad parse --show-backend <your-file-to-parse>
 ```
 
