@@ -10,17 +10,14 @@
 # distributed under the License is distributed on an"AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
-
-import os.path
 import os
 import time
 import click
 import urllib.parse
 import requests
 
-from nomad import utils, config
-from nomad.processing import FAILURE, SUCCESS
+from nomad import config
+from nomad import processing
 
 from .client import client
 
@@ -41,7 +38,7 @@ def stream_upload_with_client(client, stream, name=None):
 
 
 def upload_file(file_path: str, name: str = None, offline: bool = False, publish: bool = False, client=None):
-    """
+    '''
     Upload a file to nomad.
 
     Arguments:
@@ -51,7 +48,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         publish: automatically publish after successful processing
 
     Returns: The upload_id
-    """
+    '''
     if client is None:
         from nomad.cli.client import create_client
         client = create_client()
@@ -68,7 +65,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
             click.echo('could not upload the file: %s' % str(e))
             return
 
-    while upload is not None and upload.tasks_status not in [SUCCESS, FAILURE]:
+    while upload is not None and upload.tasks_status not in [processing.SUCCESS, processing.FAILURE]:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         calcs = upload.calcs.pagination
         if calcs is None:
@@ -76,7 +73,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         else:
             total, successes, failures = (calcs.total, calcs.successes, calcs.failures)
 
-        ret = '\n' if upload.tasks_status in (SUCCESS, FAILURE) else '\r'
+        ret = '\n' if upload.tasks_status in (processing.SUCCESS, processing.FAILURE) else '\r'
 
         print(
             'status: %s; task: %s; parsing: %d/%d/%d                %s' %
@@ -84,7 +81,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
 
         time.sleep(1)
 
-    if upload.tasks_status == FAILURE:
+    if upload.tasks_status == processing.FAILURE:
         click.echo('There have been errors:')
         for error in upload.errors:
             click.echo('    %s' % error)
@@ -109,7 +106,6 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
     '--publish', is_flag=True, default=False,
     help='Automatically move upload out of the staging area after successful processing')
 def upload(path, name: str, offline: bool, publish: bool):
-    utils.configure_logging()
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
     for path in paths:

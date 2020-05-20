@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -54,7 +53,7 @@ class UploadActionsUnstyled extends React.Component {
     classes: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     user: PropTypes.object,
-    onChange: PropTypes.func,
+    onEdit: PropTypes.func,
     history: PropTypes.object.isRequired
   }
 
@@ -72,9 +71,9 @@ class UploadActionsUnstyled extends React.Component {
   }
 
   handleEdit() {
-    const {onChange, upload} = this.props
-    if (onChange) {
-      onChange(upload)
+    const {onEdit, upload} = this.props
+    if (onEdit) {
+      onEdit(upload)
     }
   }
 
@@ -87,7 +86,7 @@ class UploadActionsUnstyled extends React.Component {
     const editable = user && upload.example &&
       upload.example.authors.find(author => author.user_id === user.sub)
 
-    const query = {upload_id: upload.example.upload_id}
+    const query = {upload_id: [upload.example.upload_id]}
 
     return <FormGroup row classes={{root: classes.group}}>
       <Tooltip title="Open this upload on the uploads page">
@@ -113,6 +112,7 @@ class UploadListUnstyled extends React.Component {
     data: PropTypes.object,
     total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     uploads_after: PropTypes.string,
     actions: PropTypes.element
@@ -121,8 +121,8 @@ class UploadListUnstyled extends React.Component {
   static styles = theme => ({
     root: {
       overflow: 'auto',
-      paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit * 2
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     scrollCell: {
       padding: 0
@@ -177,13 +177,13 @@ class UploadListUnstyled extends React.Component {
   }
 
   renderEntryActions(entry) {
-    const {onChange} = this.props
-    return <UploadActions search upload={entry} onChange={() => onChange({})} />
+    const {onEdit} = this.props
+    return <UploadActions search upload={entry} onEdit={onEdit}/>
   }
 
   render() {
     const { classes, data, total, uploads_after, onChange, actions } = this.props
-    const uploads = data.uploads || {values: []}
+    const uploads = data.uploads_grouped || {values: []}
     const results = Object.keys(uploads.values).map(id => {
       return {
         id: id,
@@ -205,10 +205,10 @@ class UploadListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_after: null})}>
+        <IconButton disabled={!uploads_after} onClick={() => onChange({uploads_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({uploads_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>
@@ -220,6 +220,7 @@ class UploadListUnstyled extends React.Component {
       total={total}
       columns={this.columns}
       selectedColumns={['upload_time', 'upload_id', 'entries', 'published']}
+      selectedColumnsKey="uploads"
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}
@@ -229,6 +230,6 @@ class UploadListUnstyled extends React.Component {
   }
 }
 
-const UploadList = compose(withRouter, withDomain, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
+const UploadList = compose(withRouter, withApi(false), withStyles(UploadListUnstyled.styles))(UploadListUnstyled)
 
 export default UploadList

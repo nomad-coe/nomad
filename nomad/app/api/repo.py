@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The repository API of the nomad@FAIRDI APIs. Currently allows to resolve repository
 meta-data.
-"""
+'''
 
 from typing import List, Dict, Any
 from flask_restplus import Resource, abort, fields
@@ -25,16 +25,17 @@ from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import search, utils, datamodel, processing as proc, infrastructure
-from nomad.datamodel import UserMetadata, Dataset, User
+from nomad import search, utils, datamodel, processing as proc, infrastructure, files
+from nomad.metainfo import search_extension
+from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
-from nomad.app.common import RFC3339DateTime
+from nomad.app.common import RFC3339DateTime, DotKeyNested
 
 from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\
     add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl
+    query_api_python, query_api_curl, query_api_clientlib, _search_quantities
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -47,14 +48,14 @@ class RepoCalcResource(Resource):
     @api.doc('get_repo_calc')
     @authenticate()
     def get(self, upload_id, calc_id):
-        """
+        '''
         Get calculation metadata in repository form.
 
         Repository metadata only entails the quantities shown in the repository.
         Calcs are references via *upload_id*, *calc_id* pairs.
-        """
+        '''
         try:
-            calc = search.Entry.get(calc_id)
+            calc = search.entry_document.get(calc_id)
         except NotFoundError:
             abort(404, message='There is no calculation %s/%s' % (upload_id, calc_id))
 
@@ -66,8 +67,11 @@ class RepoCalcResource(Resource):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         result = calc.to_dict()
-        result['python'] = query_api_python('archive', upload_id, calc_id)
-        result['curl'] = query_api_curl('archive', upload_id, calc_id)
+        result['code'] = {
+            'python': query_api_python('archive', upload_id, calc_id),
+            'curl': query_api_curl('archive', upload_id, calc_id),
+            'clientlib': query_api_clientlib(upload_id=[upload_id], calc_id=[calc_id])
+        }
 
         return result, 200
 
@@ -79,14 +83,17 @@ add_search_parameters(_search_request_parser)
 _search_request_parser.add_argument(
     'date_histogram', type=bool, help='Add an additional aggregation over the upload time')
 _search_request_parser.add_argument(
+    'interval', type=str, help='Interval to use for upload time aggregation.')
+_search_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(datamodel.Domain.instance.metrics_names)))
+        'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
 _search_request_parser.add_argument(
-    'statistics', type=bool, help=('Return statistics.'))
+    'statistics', type=str, action='append', help=(
+        'Quantities for which to aggregate values and their metrics.'))
 _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
-for group_name in search.groups:
+for group_name in search_extension.groups:
     _search_request_parser.add_argument(
         group_name, type=bool, help=('Return %s group data.' % group_name))
     _search_request_parser.add_argument(
@@ -98,13 +105,18 @@ _repo_calcs_model_fields = {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(datamodel.Domain.instance.metrics_names)))
-}
-for group_name, (group_quantity, _) in search.groups.items():
-    _repo_calcs_model_fields[group_name] = fields.Nested(api.model('RepoDatasets', {
+        ' metrics over all results. ' % ', '.join(search_extension.metrics.keys())))}
+
+for group_name in search_extension.groups:
+    _repo_calcs_model_fields[group_name] = (DotKeyNested if '.' in group_name else fields.Nested)(api.model('RepoGroup', {
         'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
-        'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_quantity)
+        'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_name)
     }), skip_none=True)
+
+for qualified_name, quantity in search_extension.search_quantities.items():
+    _repo_calcs_model_fields[qualified_name] = fields.Raw(
+        description=quantity.description, allow_null=True, skip_none=True)
+
 _repo_calcs_model = api.inherit('RepoCalculations', search_model, _repo_calcs_model_fields)
 
 
@@ -116,7 +128,7 @@ class RepoCalcsResource(Resource):
     @api.marshal_with(_repo_calcs_model, skip_none=True, code=200, description='Search results send')
     @authenticate()
     def get(self):
-        """
+        '''
         Search for calculations in the repository form, paginated.
 
         The ``owner`` parameter determines the overall entries to search through.
@@ -144,8 +156,9 @@ class RepoCalcsResource(Resource):
         The search will return aggregations on a predefined set of quantities. Aggregations
         will tell you what quantity values exist and how many entries match those values.
 
-        Ordering is determined by ``order_by`` and ``order`` parameters.
-        """
+        Ordering is determined by ``order_by`` and ``order`` parameters. Default is
+        ``upload_time`` in decending order.
+        '''
 
         try:
             parsed_args = _search_request_parser.parse_args()
@@ -158,20 +171,19 @@ class RepoCalcsResource(Resource):
             page = args.get('page', 1)
             per_page = args.get('per_page', 10 if not scroll else 1000)
             order = args.get('order', -1)
-            order_by = args.get('order_by', 'formula')
+            order_by = args.get('order_by', 'upload_time')
 
             date_histogram = args.get('date_histogram', False)
+            interval = args.get('interval', '1M')
             metrics: List[str] = request.args.getlist('metrics')
-
-            with_statistics = args.get('statistics', False) or \
-                any(args.get(group_name, False) for group_name in search.groups)
+            statistics = args.get('statistics', [])
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
-            search_request.date_histogram()
+            search_request.date_histogram(interval=interval)
 
         try:
             assert page >= 1
@@ -183,23 +195,19 @@ class RepoCalcsResource(Resource):
             abort(400, message='invalid pagination')
 
         for metric in metrics:
-            if metric not in search.metrics_names:
+            if metric not in search_extension.metrics:
                 abort(400, message='there is no metric %s' % metric)
 
-        if with_statistics:
-            search_request.default_statistics(metrics_to_use=metrics)
+        if len(statistics) > 0:
+            search_request.statistics(statistics, metrics_to_use=metrics)
 
-            additional_metrics = [
-                metric
-                for group_name, (_, metric) in search.groups.items()
-                if args.get(group_name, False)]
-
-            total_metrics = metrics + additional_metrics
-
+        group_metrics = [
+            group_quantity.metric_name
+            for group_name, group_quantity in search_extension.groups.items()
+            if args.get(group_name, False)]
+        total_metrics = metrics + group_metrics
+        if len(total_metrics) > 0:
             search_request.totals(metrics_to_use=total_metrics)
-            search_request.statistic('authors', 1000)
-        elif len(metrics) > 0:
-            search_request.totals(metrics_to_use=metrics)
 
         if 'exclude' in parsed_args:
             excludes = parsed_args['exclude']
@@ -211,13 +219,13 @@ class RepoCalcsResource(Resource):
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                for group_name, (group_quantity, _) in search.groups.items():
+                for group_name, group_quantity in search_extension.groups.items():
                     if args.get(group_name, False):
                         kwargs: Dict[str, Any] = {}
-                        if group_name == 'uploads':
+                        if group_name == 'uploads_grouped':
                             kwargs.update(order_by='upload_time', order='desc')
                         search_request.quantity(
-                            group_quantity, size=per_page, examples=1,
+                            group_quantity.qualified_name, size=per_page, examples=1,
                             after=request.args.get('%s_after' % group_name, None),
                             **kwargs)
 
@@ -225,7 +233,7 @@ class RepoCalcsResource(Resource):
                     per_page=per_page, page=page, order=order, order_by=order_by)
 
                 # TODO just a work around to make things prettier
-                if with_statistics:
+                if 'statistics' in results:
                     statistics = results['statistics']
                     if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
                         del(statistics['code_name']['currupted mainfile'])
@@ -233,16 +241,19 @@ class RepoCalcsResource(Resource):
                 if 'quantities' in results:
                     quantities = results.pop('quantities')
 
-                for group_name, (group_quantity, _) in search.groups.items():
+                for group_name, group_quantity in search_extension.groups.items():
                     if args.get(group_name, False):
-                        results[group_name] = quantities[group_quantity]
+                        results[group_name] = quantities[group_quantity.qualified_name]
 
             # build python code/curl snippet
             code_args = dict(request.args)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
-            results['curl'] = query_api_curl('archive', 'query', query_string=code_args)
-            results['python'] = query_api_python('archive', 'query', query_string=code_args)
+            results['code'] = {
+                'curl': query_api_curl('archive', 'query', query_string=code_args),
+                'python': query_api_python('archive', 'query', query_string=code_args),
+                'clientlib': query_api_clientlib(**code_args)
+            }
 
             return results, 200
         except search.ScrollIdNotFound:
@@ -259,13 +270,13 @@ _query_model_parameters = {
     'until_time': RFC3339DateTime(description='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
 }
 
-for quantity in search.quantities.values():
-    if quantity.multi and quantity.argparse_action is None:
+for qualified_name, quantity in search.search_quantities.items():
+    if quantity.many_and == 'append' or quantity.many_or == 'append':
         def field(**kwargs):
             return fields.List(fields.String(**kwargs))
     else:
         field = fields.String
-    _query_model_parameters[quantity.name] = field(description=quantity.description)
+    _query_model_parameters[qualified_name] = field(description=quantity.description)
 
 _repo_query_model = api.model('RepoQuery', _query_model_parameters, skip_none=True)
 
@@ -290,12 +301,15 @@ _repo_edit_model = api.model('RepoEdit', {
     'actions': fields.Nested(
         api.model('RepoEditActions', {
             quantity.name: repo_edit_action_field(quantity)
-            for quantity in UserMetadata.m_def.all_quantities.values()
+            for quantity in EditableUserMetadata.m_def.definitions
         }), skip_none=True,
         description='Each action specifies a single value (even for multi valued quantities).'),
     'success': fields.Boolean(description='If the overall edit can/could be done. Only in API response.'),
     'message': fields.String(description='A message that details the overall edit result. Only in API response.')
 })
+
+_editable_quantities = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
 
 
 def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
@@ -305,6 +319,7 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
         apply_search_parameters(search_request, parsed_query)
         upload_ids = set()
         calc_ids = []
+
         for hit in search_request.execute_scan():
             calc_ids.append(hit['calc_id'])
             upload_ids.add(hit['upload_id'])
@@ -320,12 +335,23 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
     with utils.timer(common.logger, 'edit elastic update executed', size=len(calc_ids)):
         if re_index:
             def elastic_updates():
+                upload_files_cache: Dict[str, files.UploadFiles] = dict()
+
                 for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                    entry = search.Entry.from_calc_with_metadata(
-                        datamodel.CalcWithMetadata(**calc['metadata']))
-                    entry = entry.to_dict(include_meta=True)
+                    upload_id = calc.upload_id
+                    upload_files = upload_files_cache.get(upload_id)
+                    if upload_files is None:
+                        upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+                        upload_files_cache[upload_id] = upload_files
+
+                    entry_metadata = calc.entry_metadata(upload_files)
+                    entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
                     entry['_op_type'] = 'index'
+
                     yield entry
+
+                for upload_files in upload_files_cache.values():
+                    upload_files.close()
 
             _, failed = elasticsearch.helpers.bulk(
                 infrastructure.elastic_client, elastic_updates(), stats_only=True)
@@ -339,7 +365,7 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
 
 
 def get_uploader_ids(query):
-    """ Get all the uploader from the query, to check coauthers and shared_with for uploaders. """
+    ''' Get all the uploader from the query, to check coauthers and shared_with for uploaders. '''
     search_request = search.SearchRequest()
     apply_search_parameters(search_request, query)
     search_request.quantity(name='uploader_id')
@@ -354,7 +380,7 @@ class EditRepoCalcsResource(Resource):
     @api.marshal_with(_repo_edit_model, skip_none=True, code=200, description='Edit verified/performed')
     @authenticate()
     def post(self):
-        """ Edit repository metadata. """
+        ''' Edit repository metadata. '''
 
         # basic body parsing and some semantic checks
         json_data = request.get_json()
@@ -374,13 +400,15 @@ class EditRepoCalcsResource(Resource):
 
         # preparing the query of entries that are edited
         parsed_query = {}
-        for quantity_name, quantity in search.quantities.items():
-            if quantity_name in query:
-                value = query[quantity_name]
-                if quantity.multi and quantity.argparse_action == 'split' and not isinstance(value, list):
-                    value = value.split(',')
+        for quantity_name, value in query.items():
+            if quantity_name in _search_quantities:
+                quantity = search.search_quantities[quantity_name]
+                if quantity.many:
+                    if not isinstance(value, list):
+                        value = value.split(',')
                 parsed_query[quantity_name] = value
         parsed_query['owner'] = owner
+        parsed_query['domain'] = query.get('domain')
 
         # checking the edit actions and preparing a mongo update on the fly
         json_data['success'] = True
@@ -391,11 +419,11 @@ class EditRepoCalcsResource(Resource):
 
         with utils.timer(common.logger, 'edit verified'):
             for action_quantity_name, quantity_actions in actions.items():
-                quantity = UserMetadata.m_def.all_quantities.get(action_quantity_name)
+                quantity = _editable_quantities.get(action_quantity_name)
                 if quantity is None:
                     abort(400, 'Unknown quantity %s' % action_quantity_name)
 
-                quantity_flask = quantity.m_x('flask', {})
+                quantity_flask = quantity.m_get_annotations('flask', {})
                 if quantity_flask.get('admin_only', False):
                     if not g.user.is_admin():
                         abort(404, 'Only the admin user can set %s' % quantity.name)
@@ -440,7 +468,7 @@ class EditRepoCalcsResource(Resource):
 
                     elif flask_verify == datamodel.Dataset:
                         try:
-                            mongo_value = Dataset.m_def.m_x('me').get(
+                            mongo_value = Dataset.m_def.a_mongo.get(
                                 user_id=g.user.user_id, name=action_value).dataset_id
                         except KeyError:
                             action['message'] = 'Dataset does not exist and will be created'
@@ -449,7 +477,7 @@ class EditRepoCalcsResource(Resource):
                                 dataset = Dataset(
                                     dataset_id=utils.create_uuid(), user_id=g.user.user_id,
                                     name=action_value, created=datetime.utcnow())
-                                dataset.m_x('me').create()
+                                dataset.a_mongo.create()
                                 mongo_value = dataset.dataset_id
 
                     elif action_quantity_name == 'with_embargo':
@@ -497,7 +525,7 @@ class EditRepoCalcsResource(Resource):
                         if dataset_id not in mongo_update.get(mongo_key, []):
                             removed_datasets.append(dataset_id)
 
-                    doi_ds = Dataset.m_def.m_x('me').objects(
+                    doi_ds = Dataset.m_def.a_mongo.objects(
                         dataset_id__in=removed_datasets, doi__ne=None).first()
                     if doi_ds is not None:
                         json_data['success'] = False
@@ -526,8 +554,8 @@ class EditRepoCalcsResource(Resource):
         # remove potentially empty old datasets
         if removed_datasets is not None:
             for dataset in removed_datasets:
-                if proc.Calc.objects(metadata__dataset_id=dataset).first() is None:
-                    Dataset.m_def.m_x('me').objects(dataset_id=dataset).delete()
+                if proc.Calc.objects(metadata__datasets=dataset).first() is None:
+                    Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
         return json_data, 200
 
@@ -538,6 +566,8 @@ _repo_quantity_search_request_parser.add_argument(
     'after', type=str, help='The after value to use for "scrolling".')
 _repo_quantity_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
+_repo_quantity_search_request_parser.add_argument(
+    'value', type=str, help='A partial value. Only values that include this will be returned')
 
 _repo_quantity_model = api.model('RepoQuantity', {
     'after': fields.String(description='The after value that can be used to retrieve the next set of values.'),
@@ -557,7 +587,7 @@ class RepoQuantityResource(Resource):
     @api.marshal_with(_repo_quantity_values_model, skip_none=True, code=200, description='Search results send')
     @authenticate()
     def get(self, quantity: str):
-        """
+        '''
         Retrieve quantity values from entries matching the search.
 
         You can use the various quantities to search/filter for. For some of the
@@ -573,7 +603,7 @@ class RepoQuantityResource(Resource):
         The result will contain a 'quantity' key with quantity values and the "after"
         value. There will be upto 'size' many values. For the rest of the values use the
         "after" parameter in another request.
-        """
+        '''
 
         search_request = search.SearchRequest()
         args = {
@@ -590,12 +620,72 @@ class RepoQuantityResource(Resource):
         except AssertionError:
             abort(400, message='invalid size')
 
-        search_request.quantity(quantity, size=size, after=after)
-
         try:
+            search_request.quantity(quantity, size=size, after=after)
             results = search_request.execute()
             quantities = results.pop('quantities')
             results['quantity'] = quantities[quantity]
+
+            return results, 200
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, 'Given quantity does not exist: %s' % str(e))
+
+
+_repo_suggestions_search_request_parser = api.parser()
+add_search_parameters(_repo_suggestions_search_request_parser)
+_repo_suggestions_search_request_parser.add_argument(
+    'size', type=int, help='The max size of the returned values.')
+_repo_suggestions_search_request_parser.add_argument(
+    'include', type=str, help='A substring that all values need to include.')
+
+_repo_suggestions_model = api.model('RepoSuggestionsValues', {
+    'suggestions': fields.List(fields.String, description='A list with the suggested values.')
+})
+
+
+@ns.route('/suggestions/<string:quantity>')
+class RepoSuggestionsResource(Resource):
+    @api.doc('suggestions_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type, bad quantity, bad search parameters')
+    @api.expect(_repo_suggestions_search_request_parser, validate=True)
+    @api.marshal_with(_repo_suggestions_model, skip_none=True, code=200, description='Suggestions send')
+    @authenticate()
+    def get(self, quantity: str):
+        '''
+        Retrieve the top values for the given quantity from entries matching the search.
+        Values can be filtered by to include a given value.
+
+        There is no ordering, no pagination, and no scroll interface.
+
+        The result will contain a 'suggestions' key with values. There will be upto 'size' many values.
+        '''
+
+        search_request = search.SearchRequest()
+        args = {
+            key: value
+            for key, value in _repo_suggestions_search_request_parser.parse_args().items()
+            if value is not None}
+
+        apply_search_parameters(search_request, args)
+        size = args.get('size', 20)
+        include = args.get('include', None)
+
+        try:
+            assert size >= 0
+        except AssertionError:
+            abort(400, message='invalid size')
+
+        try:
+            search_request.statistic(quantity, size=size, include=include, order=dict(_key='desc'))
+            results = search_request.execute()
+            values = {
+                value: metric['code_runs']
+                for value, metric in results['statistics'][quantity].items()
+                if metric['code_runs'] > 0}
+            results['suggestions'] = sorted(
+                values.keys(), key=lambda value: values[value], reverse=True)
 
             return results, 200
         except KeyError as e:
@@ -612,8 +702,11 @@ _repo_quantities_search_request_parser.add_argument(
 _repo_quantities_search_request_parser.add_argument(
     'size', type=int, help='The max size of the returned values.')
 
-_repo_quantities_model = api.model('RepoQuantities', {
-    'quantities': fields.List(fields.Nested(_repo_quantity_model))
+_repo_quantities_model = api.model('RepoQuantitiesResponse', {
+    'quantities': fields.Nested(api.model('RepoQuantities', {
+        quantity: fields.List(fields.Nested(_repo_quantity_model))
+        for quantity in search_extension.search_quantities
+    }))
 })
 
 
@@ -625,7 +718,7 @@ class RepoQuantitiesResource(Resource):
     @api.marshal_with(_repo_quantities_model, skip_none=True, code=200, description='Search results send')
     @authenticate()
     def get(self):
-        """
+        '''
         Retrieve quantity values for multiple quantities at once.
 
         You can use the various quantities to search/filter for. For some of the
@@ -639,7 +732,7 @@ class RepoQuantitiesResource(Resource):
 
         The result will contain a 'quantities' key with a dict of quantity names and the
         retrieved values as values.
-        """
+        '''
 
         search_request = search.SearchRequest()
         args = {

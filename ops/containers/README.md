@@ -28,3 +28,15 @@ Changes
 
 The file `elk/kibana_objects.json` contains an export of nomad specific searches,
 visualizations, and dashboard.
+
+### CI runner (optional)
+
+This is the immage that this project uses for its gitlab-ci runner. To build an
+push it, you have to log into the project's registry (see [gitlab docs](https://docs.gitlab.com/ee/user/packages/container_registry/)) and do
+```
+cd ci-runner
+docker build -t gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner .
+docker push gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
+```
+
+This image allows to bash, git, docker, docker-compose, k8s, and helm3.

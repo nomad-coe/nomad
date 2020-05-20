@@ -22,7 +22,6 @@ learn more about NOMAD's archive format [here](/metainfo).
 `
 
 class MetainfoDialogUnstyled extends React.PureComponent {
-
   static propTypes = {
     classes: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
@@ -33,19 +32,19 @@ class MetainfoDialogUnstyled extends React.PureComponent {
   static styles = theme => ({
     root: {},
     metaInfoDescription: {
-      margin: `${theme.spacing.unit}px 0`
+      margin: `${theme.spacing(1)}px 0`
     }
   })
 
   handleGotoMetainfoBrowser() {
     const {history, onClose, metaInfoData} = this.props
-    history.push(`/metainfo/${metaInfoData.name}`)
+    history.push(`/metainfo/${metaInfoData.package.name}/${metaInfoData.name}`)
     onClose()
   }
 
   render() {
     const {classes, metaInfoData, onClose} = this.props
-    return  <Dialog open className={classes.root}>
+    return <Dialog open className={classes.root}>
       <DialogTitle>
         {metaInfoData.name}
       </DialogTitle>
@@ -88,11 +87,11 @@ class ArchiveEntryView extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingTop: theme.spacing.unit * 2,
-      paddingBottom: theme.spacing.unit * 2
+      paddingTop: theme.spacing(2),
+      paddingBottom: theme.spacing(2)
     },
     error: {
-      marginTop: theme.spacing.unit * 2
+      marginTop: theme.spacing(2)
     },
     downloadFab: {
       zIndex: 1,
@@ -142,7 +141,7 @@ class ArchiveEntryView extends React.Component {
 
   updateMetaInfo() {
     if (this.props.api && this.props.info && !this.state.metaInfo) {
-      this.props.api.getMetaInfo(this.props.info.domain.metainfo.all_package).then(metaInfo => {
+      this.props.api.getMetaInfo(this.props.info.domains.find(domain => domain.name === 'dft').metainfo.all_package).then(metaInfo => { // TODO handle the domain specificity
         if (!this.unmounted) {
           this.setState({metaInfo: metaInfo})
         }

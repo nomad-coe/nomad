@@ -16,7 +16,9 @@ import Tooltip from '@material-ui/core/Tooltip'
 import ViewColumnIcon from '@material-ui/icons/ViewColumn'
 import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/core'
 import { compose } from 'recompose'
-import { withDomain } from './domains'
+import _ from 'lodash'
+
+const globalSelectedColumns = {}
 
 class DataTableToolbarUnStyled extends React.Component {
   static propTypes = {
@@ -32,14 +34,14 @@ class DataTableToolbarUnStyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingLeft: theme.spacing.unit * 3
+      paddingLeft: theme.spacing(3)
     },
     selected: {
       color: theme.palette.secondary.main
     },
     title: {
       whiteSpace: 'nowrap',
-      marginRight: theme.spacing.unit
+      marginRight: theme.spacing(1)
     },
     grow: {
       flex: '1 1 100%'
@@ -170,6 +172,11 @@ class DataTableUnStyled extends React.Component {
      */
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
     /**
+     * If this key is given, it is used to globaly store user modifications to the selected
+     * columns under this key.
+     */
+    selectedColumnsKey: PropTypes.string,
+    /**
      * Single element that is rendered to display actions for the selection. With no
      * select actions, no selection will be shown.
      */
@@ -240,8 +247,8 @@ class DataTableUnStyled extends React.Component {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
       maxWidth: 200,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
+      paddingLeft: theme.spacing(3),
+      paddingRight: theme.spacing(3)
     },
     ellipsisFront: {
       direction: 'rtl',
@@ -285,9 +292,14 @@ class DataTableUnStyled extends React.Component {
   constructor(props) {
     super(props)
     this.handleSelectAllClick = this.handleSelectAllClick.bind(this)
+    this.handleSelectedColumnsChanged = this.handleSelectedColumnsChanged.bind(this)
+    let selectedColumns = this.props.selectedColumns || Object.keys(this.props.columns)
+    if (this.props.selectedColumnsKey) {
+      selectedColumns = globalSelectedColumns[this.props.selectedColumnsKey] || selectedColumns
+    }
     this.state = {
       ...this.state,
-      selectedColumns: this.props.selectedColumns || Object.keys(this.props.columns)
+      selectedColumns: selectedColumns
     }
   }
 
@@ -354,6 +366,13 @@ class DataTableUnStyled extends React.Component {
     }
   }
 
+  handleSelectedColumnsChanged(columns) {
+    if (this.props.selectedColumnsKey) {
+      globalSelectedColumns[this.props.selectedColumnsKey] = columns
+    }
+    this.setState({selectedColumns: columns})
+  }
+
   renderDetails(row) {
     const { classes, entryDetails, id, entryActions } = this.props
     const { selectedColumns, selectedEntry } = this.state
@@ -409,12 +428,10 @@ class DataTableUnStyled extends React.Component {
           selectedColumns={selectedColumns}
           selectActions={selectActions}
           actions={actions}
-          onColumnsChanged={columns => this.setState({selectedColumns: columns})}
+          onColumnsChanged={this.handleSelectedColumnsChanged}
         />
         <div className={classes.tableWrapper}>
-          <Table
-            className={classes.table}
-          >
+          <Table className={classes.table} size="small">
             <TableHead>
               <TableRow>
                 {withSelect ? <TableCell padding="checkbox">
@@ -489,7 +506,7 @@ class DataTableUnStyled extends React.Component {
                             key={key}
                             align={column.align || 'left'}
                           >
-                            {column.render ? column.render(row) : row[key]}
+                            {column.render ? column.render(row) : _.get(row, key)}
                           </TableCell>
                         )
                       })}
@@ -500,7 +517,7 @@ class DataTableUnStyled extends React.Component {
                 )
               })}
               {emptyRows > 0 && (
-                <TableRow style={{ height: 49 * emptyRows }}>
+                <TableRow style={{ height: 61 * emptyRows }}>
                   <TableCell colSpan={selectedColumns.length + 1 + (entryActions ? 1 : 0)} />
                 </TableRow>
               )}
@@ -513,4 +530,4 @@ class DataTableUnStyled extends React.Component {
   }
 }
 
-export default compose(withDomain, withStyles(DataTableUnStyled.styles))(DataTableUnStyled)
+export default compose(withStyles(DataTableUnStyled.styles))(DataTableUnStyled)

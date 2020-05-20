@@ -7,12 +7,15 @@ and infrastructure with a simplyfied architecture and consolidated code base.
 .. toctree::
    :maxdepth: 2
 
-   introduction
-   setup
-   dev_guidelines
-   api_tutorial
-   api
-   metainfo
-   parser_tutorial
-   reference
-   ops
+   introduction.md
+   upload.rst
+   api_tutorial.md
+   api.rst
+   archive.rst
+   metainfo.rst
+   client/client.rst
+   ops/ops.rst
+   dev/setup.md
+   dev/dev_guidelines.rst
+   parser_tutorial.md
+   reference.rst

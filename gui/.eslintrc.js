@@ -8,10 +8,16 @@ module.exports = {
         }
     },
     "globals": {
-        "fetch": false
+        "fetch": false,
+        "browser": true
     },
     "rules": {
         "space-before-function-paren": ["error", "never"],
         "camelcase": [0]
+    },
+    "settings": {
+        "react": {
+            "version": "detect"
+        }
     }
 }

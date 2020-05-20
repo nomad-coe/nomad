@@ -21,8 +21,7 @@ from nomad import search
 from nomad.app.optimade import parse_filter, url
 
 from tests.app.test_app import BlueprintClient
-from tests.conftest import clear_elastic, create_test_structure
-from tests.utils import assert_exception
+from tests.conftest import clear_elastic, clear_raw_files
 
 
 @pytest.fixture(scope='session')
@@ -32,16 +31,20 @@ def api(session_client):
 
 def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
-    with published.upload_files.archive_file(calc_id) as f:
-        data = json.load(f)
-    assert 'OptimadeEntry' in data
+    with published.upload_files.read_archive(calc_id) as archive:
+        data = archive[calc_id]
+        assert data['section_metadata']['dft']['optimade'] is not None
+
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'optimade' in search_result
+    assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
 
 
-def test_no_optimade(meta_info, elastic, api):
-    create_test_structure(meta_info, 1, 2, 1, [], 0)
-    create_test_structure(meta_info, 2, 2, 1, [], 0, optimade=False)
+def test_no_optimade(mongo, elastic, raw_files, api):
+    from tests.app.utils import Upload
+    upload = Upload()
+    upload.create_test_structure(1, 2, 1, [], 0)
+    upload.create_test_structure(2, 2, 1, [], 0, optimade=False)
+    upload.create_upload_files()
     search.refresh()
 
     rv = api.get('/calculations')
@@ -52,18 +55,22 @@ def test_no_optimade(meta_info, elastic, api):
 
 
 @pytest.fixture(scope='module')
-def example_structures(meta_info, elastic_infra, mongo_infra):
+def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    create_test_structure(meta_info, 1, 2, 1, [], 0)
-    create_test_structure(meta_info, 2, 2, 1, ['C'], 0)
-    create_test_structure(meta_info, 3, 2, 1, [], 1)
-    create_test_structure(meta_info, 4, 1, 1, [], 0)
+    from tests.app.utils import Upload
+    upload = Upload()
+    upload.create_test_structure(1, 2, 1, [], 0)
+    upload.create_test_structure(2, 2, 1, ['C'], 0)
+    upload.create_test_structure(3, 2, 1, [], 1)
+    upload.create_test_structure(4, 1, 1, [], 0)
+    upload.create_upload_files()
     search.refresh()
 
     yield
     clear_elastic(elastic_infra)
+    clear_raw_files()
 
 
 @pytest.mark.parametrize('query, results', [
@@ -127,7 +134,7 @@ def test_optimade_parser(example_structures, query, results):
         result = search.SearchRequest(query=query).execute_paginated()
         assert result['pagination']['total'] == results
     else:
-        with assert_exception():
+        with pytest.raises(Exception):
             query = parse_filter(query)
 
 
@@ -156,6 +163,7 @@ def test_list_endpoint_request_fields(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
+    data['data'] = sorted(data['data'], key=lambda x: x['id'])
     for i in range(len(data['data'])):
         rf = list(data['data'][i]['attributes'].keys())
         rf.sort()
@@ -206,3 +214,55 @@ def test_calculation_info_endpoint(api):
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
+
+
+def test_references_endpoint(api, example_structures):
+    rv = api.get('/references')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert 'data' in data
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'attributes']:
+            assert(d.get(key)) is not None
+        assert 'last_modified' in d['attributes']
+
+
+def test_links_endpoint(api, example_structures):
+    rv = api.get('/links')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert 'data' in data
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'type', 'attributes']:
+            assert d.get(key) is not None
+        for key in ['name', 'description', 'base_url', 'homepage']:
+            assert key in d['attributes']
+
+
+def test_structures_endpoint(api, example_structures):
+    rv = api.get('/structures')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'attributes']:
+            assert d.get(key) is not None
+        required_keys = [
+            'last_modified', 'elements', 'nelements', 'elements_ratios', 'chemical_formula_descriptive',
+            'chemical_formula_reduced', 'chemical_formula_anonymous', 'dimension_types',
+            'cartesian_site_positions', 'nsites', 'species_at_sites', 'species', 'structure_features']
+        for key in required_keys:
+            assert key in d['attributes']
+
+
+def test_structure_endpoint(api, example_structures):
+    rv = api.get('/structures/%s' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert attr.get('elements') == ['H', 'O']
+    assert len(attr.get('dimension_types')) == 3

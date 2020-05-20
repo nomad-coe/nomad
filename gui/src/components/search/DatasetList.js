@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, FormGroup, Tooltip, Link } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -132,7 +131,7 @@ class DatasetActionsUnstyled extends React.Component {
 
     const canAssignDOI = !doi
     const canDelete = !doi
-    const query = {dataset_id: dataset.id}
+    const query = {dataset_id: [dataset.dataset_id]}
 
     return <FormGroup row classes={{root: classes.group}}>
       {search && <Tooltip title="Open a search page with entries from this dataset only.">
@@ -181,16 +180,18 @@ class DatasetListUnstyled extends React.Component {
     data: PropTypes.object,
     total: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
     history: PropTypes.any.isRequired,
     datasets_after: PropTypes.string,
+    per_page: PropTypes.number,
     actions: PropTypes.element
   }
 
   static styles = theme => ({
     root: {
       overflow: 'auto',
-      paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit * 2
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     scrollCell: {
       padding: 0
@@ -217,6 +218,10 @@ class DatasetListUnstyled extends React.Component {
       label: 'Dataset name',
       render: (dataset) => dataset.name
     },
+    created: {
+      label: 'Created',
+      render: (dataset) => dataset.created && new Date(dataset.created).toLocaleString()
+    },
     DOI: {
       label: 'Dataset DOI',
       render: (dataset) => dataset.doi && <DOI doi={dataset.doi} />
@@ -239,15 +244,15 @@ class DatasetListUnstyled extends React.Component {
   }
 
   renderEntryActions(entry) {
-    const {onChange} = this.props
-    return <DatasetActions search dataset={entry} onChange={() => onChange({})} />
+    const {onEdit} = this.props
+    return <DatasetActions search dataset={entry} onChange={onEdit} />
   }
 
   render() {
-    const { classes, data, total, datasets_after, onChange, actions } = this.props
-    const datasets = data.datasets || {values: []}
+    const { classes, data, total, datasets_after, per_page, onChange, actions } = this.props
+    const datasets = data.datasets_grouped || {values: []}
     const results = Object.keys(datasets.values).map(id => {
-      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.id === id)
+      const exampleDataset = datasets.values[id].examples[0].datasets.find(ds => ds.dataset_id === id)
       return {
         ...exampleDataset,
         id: id,
@@ -255,8 +260,8 @@ class DatasetListUnstyled extends React.Component {
         example: datasets.values[id].examples[0]
       }
     })
-    const per_page = 10
     const after = datasets.after
+    const perPage = per_page || 10
 
     let paginationText
     if (datasets_after) {
@@ -269,10 +274,10 @@ class DatasetListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_after: null})}>
+        <IconButton disabled={!datasets_after} onClick={() => onChange({datasets_grouped_after: null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({datasets_after: after})}>
+        <IconButton disabled={results.length < perPage} onClick={() => onChange({datasets_grouped_after: after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>
@@ -283,17 +288,17 @@ class DatasetListUnstyled extends React.Component {
       id={row => row.id}
       total={total}
       columns={this.columns}
-      // selectedColumns={defaultSelectedColumns}
-      // entryDetails={this.renderEntryDetails.bind(this)}
+      selectedColumns={['name', 'DOI', 'entries', 'authors']}
+      selectedColumnsKey="datasets"
       entryActions={this.renderEntryActions}
       data={results}
-      rows={per_page}
+      rows={perPage}
       actions={actions}
       pagination={pagination}
     />
   }
 }
 
-const DatasetList = compose(withRouter, withDomain, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
+const DatasetList = compose(withRouter, withApi(false), withStyles(DatasetListUnstyled.styles))(DatasetListUnstyled)
 
 export default DatasetList

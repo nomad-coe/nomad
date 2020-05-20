@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 All the API flask restplus models.
-"""
+'''
 
 from typing import Set
 from flask_restplus import fields
@@ -23,7 +23,7 @@ import math
 
 from nomad import config
 from nomad.app.common import RFC3339DateTime
-from nomad.datamodel import CalcWithMetadata
+from nomad.datamodel import EntryMetadata
 
 from .api import api, base_url, url
 
@@ -133,6 +133,20 @@ class Meta():
             maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
 
 
+class ToplevelLinks:
+    def __init__(self, endpoint: str, available: int, page_number: int, page_limit: int, **kwargs):
+        last_page = math.ceil(available / page_limit)
+
+        rest = dict(page_limit=page_limit)
+        rest.update(**{key: value for key, value in kwargs.items() if value is not None})
+        self.self = url()
+        self.related = None
+        self.first = url(endpoint, page_number=1, **rest)
+        self.last = url(endpoint, page_number=last_page, **rest)
+        self.prev = url(endpoint, page_number=max((page_number - 1, 1)), **rest)
+        self.next = url(endpoint, page_number=min((page_number + 1, last_page)), **rest)
+
+
 json_api_links_model = api.model('Links', {
     'base_url': fields.String(
         description='The base URL of the implementation'),
@@ -233,9 +247,32 @@ json_api_calculation_info_model = api.model('CalculationInfo', {
 
 })
 
+json_api_resource_model = api.model('Resource', {
+    'id': fields.String(
+        description='The id of the object.'),
+
+    'type': fields.String(
+        description='The type of the object.'),
+
+    'links': fields.Raw(
+        description='Links related to the resource.'
+    ),
+
+    'meta': fields.Raw(
+        description='Meta information about the resource.'
+    ),
+
+    'attributes': fields.Raw(
+        description='A dictionary, containing key-value pairs representing the entry details.'),
+
+    'relationships': fields.Raw(
+        description='A dictionary containing references to other entries.'
+    )
+})
+
 
 class CalculationDataObject:
-    def __init__(self, calc: CalcWithMetadata, request_fields: Set[str] = None):
+    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
 
         def include(key):
             if request_fields is None or (key in request_fields):
@@ -243,13 +280,59 @@ class CalculationDataObject:
 
             return False
 
-        attrs = {key: value for key, value in calc['optimade'].items() if include(key)}
+        attrs = {key: value for key, value in calc.dft.optimade.m_to_dict().items() if include(key)}
 
         self.type = 'calculation'
         self.id = calc.calc_id
         self.immutable_id = calc.calc_id
         self.last_modified = calc.last_processing if calc.last_processing is not None else calc.upload_time
         self.attributes = attrs
+
+
+class StructureObject:
+    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
+        optimade_quantities = calc.dft.optimade.m_to_dict()
+
+        attrs = {key: val for key, val in optimade_quantities.items() if request_fields is None or key in request_fields}
+        attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
+
+        self.type = 'structure'
+        self.id = calc.calc_id
+        self.links = None
+        self.meta = None
+        self.attributes = attrs
+        self.relationships = None
+
+
+class ReferenceObject:
+    def __init__(self, calc: EntryMetadata):
+        attrs = dict(
+            immutable_id=calc.calc_id,
+            last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
+            authors=calc.authors)
+
+        self.type = 'calculation'
+        self.id = calc.calc_id
+        self.links = None
+        self.meta = None
+        self.attributes = attrs
+        self.relationships = None
+
+
+class LinkObject:
+    def __init__(self, calc: EntryMetadata, page_number: int, **kwargs):
+        attrs = dict(
+            name='Calculation %s' % calc.calc_id,
+            description='Calculation entry in NOMAD database.',
+            base_url=url('structures', page_number=page_number, **kwargs),
+            homepage=url()
+        )
+        self.type = 'child'
+        self.id = calc.calc_id
+        self.links = None
+        self.meta = None
+        self.attributes = attrs
+        self.relationships = None
 
 
 class Property:
@@ -292,6 +375,37 @@ json_api_info_response_model = api.inherit(
             description=('The returned response object.'))
     })
 
+json_api_structure_response_model = api.inherit(
+    'Structure', json_api_response_model, {
+        'data': fields.Nested(
+            model=json_api_resource_model,
+            required=True,
+            description=('The returned structure object.'))
+    })
+
+json_api_structures_response_model = api.inherit(
+    'Structures', json_api_response_model, {
+        'data': fields.List(
+            fields.Nested(json_api_resource_model),
+            required=True,
+            description=('The list of returned structure objects.'))
+    })
+
+json_api_references_response_model = api.inherit(
+    'References', json_api_response_model, {
+        'data': fields.List(
+            fields.Nested(json_api_resource_model),
+            required=True,
+            description=('The list of returned reference objects.'))
+    })
+
+json_api_links_response_model = api.inherit(
+    'Links', json_api_response_model, {
+        'data': fields.List(
+            fields.Nested(json_api_resource_model),
+            required=True,
+            description=('The list of returned link objects.'))
+    })
 
 base_endpoint_parser = api.parser()
 base_endpoint_parser.add_argument(

@@ -13,7 +13,12 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+
+sys.path.insert(0, os.path.abspath('.'))
 # from recommonmark.transform import AutoStructify
+
+# import docutils_react_docgen
+# docutils_react_docgen.SETTINGS['react_docgen'] = 'cat'
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -23,6 +28,10 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'nomad-FAIRDI'
 copyright = '2018, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
+
+rst_epilog = '''
+.. |pypi_url| replace:: https://repository.nomad-coe.eu/v0.8/dist/
+'''
 
 # The short X.Y version
 version = ''
@@ -45,12 +54,18 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
     'sphinx.ext.napoleon',
+    'sphinx.ext.autosectionlabel',
+    'sphinx.ext.extlinks',
+    'sphinx_click.ext',
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
     'sphinxcontrib.autohttp.flaskqref',
     'celery.contrib.sphinx',
     'm2r'
 ]
+
+# Prefix the automatically generated labels with the document name
+autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
@@ -188,3 +203,5 @@ def setup(app):
     #     'enable_eval_rst': True
     # }, True)
     # app.add_transform(AutoStructify)
+
+extlinks = {'api': ('https://repository.nomad-coe.eu/v0.8/api/%s', 'NOMAD API ')}

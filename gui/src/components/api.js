@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { withErrors } from './errors'
 import { UploadRequest } from '@navjobs/upload'
@@ -9,8 +9,9 @@ import LoginLogout from './LoginLogout'
 import { compose } from 'recompose'
 import MetaInfoRepository from './MetaInfoRepository'
 import { withKeycloak } from 'react-keycloak'
+import * as searchQuantities from '../searchQuantities.json'
 
-const ApiContext = React.createContext()
+export const apiContext = React.createContext()
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -124,7 +125,7 @@ function handleApiError(e) {
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && body.message) ? body.message : e.response.statusText
+    const message = (body && (body.message || body.description)) || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
@@ -136,6 +137,7 @@ function handleApiError(e) {
       error = new Error(errorMessage)
     }
     error.status = e.response.status
+    error.apiMessage = message
   } else {
     if (e.message === 'Failed to fetch') {
       error = new ApiError(e.message)
@@ -204,13 +206,20 @@ class Api {
   }
 
   constructor(keycloak) {
-    this.onStartLoading = () => null
-    this.onFinishLoading = () => null
-
-    this.statistics = {}
-
     this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
     this.keycloak = keycloak
+
+    this.loadingHandler = []
+    this.loading = 0
+
+    this.onFinishLoading = () => {
+      this.loading--
+      this.loadingHandler.forEach(handler => handler(this.loading))
+    }
+    this.onStartLoading = () => {
+      this.loading++
+      this.loadingHandler.forEach(handler => handler(this.loading))
+    }
 
     Api.uploadIds = 0
   }
@@ -226,6 +235,14 @@ class Api {
     }, this)
 
     return upload
+  }
+
+  onLoading(handler) {
+    this.loadingHandler = [...this.loadingHandler, handler]
+  }
+
+  removeOnLoading(handler) {
+    this.loadingHandler = this.loadingHandler.filter(item => item !== handler)
   }
 
   async getUploads(state, page, perPage) {
@@ -291,7 +308,7 @@ class Api {
         calc_id: calcId
       }))
       .catch(handleApiError)
-      .then(response => response.text)
+      .then(response => response.body)
       .finally(this.onFinishLoading)
   }
 
@@ -322,6 +339,8 @@ class Api {
       }))
       .catch(handleApiError)
       .then(response => {
+        /* global Blob */
+        /* eslint no-undef: "error" */
         if (response.data instanceof Blob) {
           if (response.data.type.endsWith('empty')) {
             return {
@@ -358,12 +377,22 @@ class Api {
   }
 
   async edit(edit) {
-    // this.onStartLoading()
+    // We do not call the start and finish loading callbacks, because this one is
+    // only used in the background.
+
+    // repair the query, the API will only access correct use of lists for many
+    // quantities
+    Object.keys(edit.query).forEach(quantity => {
+      if (searchQuantities[quantity] && searchQuantities[quantity].many) {
+        if (!Array.isArray(edit.query[quantity])) {
+          edit.query[quantity] = edit.query[quantity].split(',')
+        }
+      }
+    })
     return this.swagger()
       .then(client => client.apis.repo.edit_repo({payload: edit}))
       .catch(handleApiError)
       .then(response => response.body)
-      // .finally(this.onFinishLoading)
   }
 
   async resolvePid(pid) {
@@ -388,33 +417,10 @@ class Api {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
-        exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'optimade', 'labels', 'geometries'],
+        exclude: ['atoms', 'only_atoms', 'dft.files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
         ...search}))
       .catch(handleApiError)
       .then(response => response.body)
-      .then(response => {
-        // fill absent statistics values with values from prior searches
-        // this helps to keep consistent values, e.g. in the metadata search view
-        if (response.statistics) {
-          const empty = {}
-          Object.keys(response.statistics.total.all).forEach(metric => empty[metric] = 0)
-          Object.keys(response.statistics)
-            .filter(key => !['total', 'authors', 'atoms'].includes(key))
-            .forEach(key => {
-              if (!this.statistics[key]) {
-                this.statistics[key] = new Set()
-              }
-              const values = this.statistics[key]
-              Object.keys(response.statistics[key]).forEach(value => values.add(value))
-              values.forEach(value => {
-                if (!response.statistics[key][value]) {
-                  response.statistics[key][value] = empty
-                }
-              })
-            })
-        }
-        return response
-      })
       .finally(this.onFinishLoading)
   }
 
@@ -468,6 +474,26 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
+    if (!noLoadingIndicator) {
+      this.onStartLoading()
+    }
+    return this.swagger()
+      .then(client => client.apis.repo.suggestions_search({
+        size: size || 20,
+        include: include,
+        quantity: quantity,
+        ...search
+      }))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(() => {
+        if (!noLoadingIndicator) {
+          this.onFinishLoading()
+        }
+      })
+  }
+
   async deleteUpload(uploadId) {
     this.onStartLoading()
     return this.swagger()
@@ -507,7 +533,7 @@ class Api {
   _metaInfoRepositories = {}
 
   async getMetaInfo(pkg) {
-    pkg = pkg || 'all.nomadmetainfo.json'
+    pkg = pkg || 'common.nomadmetainfo.json'
 
     const metaInfoRepository = this._metaInfoRepositories[pkg]
 
@@ -518,12 +544,12 @@ class Api {
       try {
         const loadMetaInfo = async(path) => {
           return this.swagger()
-            .then(client => client.apis.archive.get_metainfo({metainfo_package_name: path}))
+            .then(client => client.apis.metainfo.get_legacy_metainfo({metainfo_package_name: path}))
             .catch(handleApiError)
             .then(response => response.body)
         }
         const metaInfo = await loadMetaInfo(pkg)
-        const metaInfoRepository = new MetaInfoRepository(metaInfo)
+        const metaInfoRepository = new MetaInfoRepository({[pkg]: metaInfo})
         this._metaInfoRepositories[pkg] = metaInfoRepository
 
         return metaInfoRepository
@@ -605,13 +631,6 @@ export class ApiProviderComponent extends React.Component {
 
   createApi(keycloak) {
     const api = new Api(keycloak)
-    api.onStartLoading = (name) => {
-      this.setState(state => ({loading: state.loading + 1}))
-    }
-    api.onFinishLoading = (name) => {
-      this.setState(state => ({loading: Math.max(0, state.loading - 1)}))
-    }
-
     api.getInfo()
       .catch(handleApiError)
       .then(info => {
@@ -629,16 +648,15 @@ export class ApiProviderComponent extends React.Component {
 
   state = {
     api: null,
-    info: null,
-    loading: 0
+    info: null
   }
 
   render() {
     const { children } = this.props
     return (
-      <ApiContext.Provider value={this.state}>
+      <apiContext.Provider value={this.state}>
         {children}
-      </ApiContext.Provider>
+      </apiContext.Provider>
     )
   }
 }
@@ -653,9 +671,9 @@ class LoginRequiredUnstyled extends React.Component {
     root: {
       display: 'flex',
       alignItems: 'center',
-      padding: theme.spacing.unit * 2,
+      padding: theme.spacing(2),
       '& p': {
-        marginRight: theme.spacing.unit * 2
+        marginRight: theme.spacing(2)
       }
     }
   })
@@ -666,29 +684,38 @@ class LoginRequiredUnstyled extends React.Component {
     let loginMessage = ''
     if (message) {
       loginMessage = <Typography>
-        {this.props.message} If you do not have a NOMAD Repository account, you can register.
+        {this.props.message}
       </Typography>
     }
 
     return (
       <div className={classes.root}>
-        {loginMessage}
-        <LoginLogout variant="outlined" color="primary" />
+        <div>
+          {loginMessage}
+        </div>
+        <LoginLogout color="primary" />
       </div>
     )
   }
 }
 
-export function DisableOnLoading(props) {
-  return (
-    <ApiContext.Consumer>
-      {apiContext => (
-        <div style={apiContext.loading ? { pointerEvents: 'none', userSelects: 'none' } : {}}>
-          {props.children}
-        </div>
-      )}
-    </ApiContext.Consumer>
-  )
+export function DisableOnLoading({children}) {
+  const containerRef = useRef(null)
+  const {api} = useContext(apiContext)
+  const handleLoading = useCallback((loading) => {
+    const enable = loading ? 'none' : ''
+    containerRef.current.style.pointerEvents = enable
+    containerRef.current.style.userSelects = enable
+  }, [api])
+
+  useEffect(() => {
+    api.onLoading(handleLoading)
+    return () => {
+      api.removeOnLoading(handleLoading)
+    }
+  }, [])
+
+  return <div ref={containerRef}>{children}</div>
 }
 DisableOnLoading.propTypes = {
   children: PropTypes.any.isRequired
@@ -782,7 +809,7 @@ const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
 export function withApi(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
-      <ApiContext.Consumer>
+      <apiContext.Consumer>
         {apiContext => (
           <WithKeycloakWithApiCompnent
             loginRequired={loginRequired}
@@ -792,7 +819,7 @@ export function withApi(loginRequired, showErrorPage, loginMessage) {
             {...props} {...apiContext}
           />
         )}
-      </ApiContext.Consumer>
+      </apiContext.Consumer>
     ))
   }
 }

@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, TableCell, Toolbar, IconButton, Table, TableHead, TableRow, TableBody, Tooltip } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
 import DataTable from '../DataTable'
@@ -11,10 +10,10 @@ import { withApi } from '../api'
 import { EntryListUnstyled } from './EntryList'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
 import DownloadButton from '../DownloadButton'
-import SearchContext from './SearchContext'
+import { searchContext } from './SearchContext'
 
 class GroupUnstyled extends React.Component {
-  static contextType = SearchContext.type
+  static contextType = searchContext
 
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -26,7 +25,7 @@ class GroupUnstyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     }
   })
 
@@ -36,8 +35,8 @@ class GroupUnstyled extends React.Component {
 
   update() {
     const {groupHash, api, raiseError} = this.props
-    const {query} = this.context.state
-    api.search({...query, group_hash: groupHash, per_page: 100})
+    const {query} = this.context
+    api.search({...query, 'dft.group_hash': groupHash, per_page: 100})
       .then(data => {
         this.setState({entries: data.results})
       })
@@ -105,8 +104,8 @@ class GroupListUnstyled extends React.Component {
   static styles = theme => ({
     root: {
       overflow: 'auto',
-      paddingLeft: theme.spacing.unit * 2,
-      paddingRight: theme.spacing.unit * 2
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     scrollCell: {
       padding: 0
@@ -158,17 +157,17 @@ class GroupListUnstyled extends React.Component {
   renderEntryActions(entry, selected) {
     return <DownloadButton
       dark={selected}
-      query={{group_hash: entry.group_hash}} tooltip="Download all entries of this group"
+      query={{'dft.group_hash': entry.dft.group_hash}} tooltip="Download all entries of this group"
     />
   }
 
   renderEntryDetails(entry) {
-    return <Group groupHash={entry.group_hash} />
+    return <Group groupHash={entry.dft.group_hash} />
   }
 
   render() {
     const { classes, data, total, groups_after, onChange, actions, domain } = this.props
-    const groups = data.groups || {values: []}
+    const groups = data['dft.groups_grouped'] || {values: []}
     const results = Object.keys(groups.values).map(group_hash => {
       const example = groups.values[group_hash].examples[0]
       return {
@@ -195,10 +194,10 @@ class GroupListUnstyled extends React.Component {
       <Toolbar className={classes.scrollBar}>
         <span className={classes.scrollSpacer}>&nbsp;</span>
         <span>{paginationText}</span>
-        <IconButton disabled={!groups_after} onClick={() => onChange({groups_after: null})}>
+        <IconButton disabled={!groups_after} onClick={() => onChange({'dft.groups_grouped_after': null})}>
           <StartIcon />
         </IconButton>
-        <IconButton disabled={results.length < per_page} onClick={() => onChange({groups_after: after})}>
+        <IconButton disabled={results.length < per_page} onClick={() => onChange({'dft.groups_grouped_after': after})}>
           <NextIcon />
         </IconButton>
       </Toolbar>
@@ -207,10 +206,11 @@ class GroupListUnstyled extends React.Component {
     return <DataTable
       classes={{details: classes.details}}
       entityLabels={['group of similar entries', 'groups of similar entries']}
-      id={row => row.group_hash}
+      id={row => row.dft.group_hash}
       total={total}
       columns={this.columns}
       selectedColumns={defaultSelectedColumns}
+      selectedColumnsKey="groups"
       entryDetails={this.renderEntryDetails.bind(this)}
       entryActions={this.renderEntryActions}
       data={results}
@@ -221,6 +221,6 @@ class GroupListUnstyled extends React.Component {
   }
 }
 
-const GroupList = compose(withRouter, withDomain, withApi(false), withStyles(GroupListUnstyled.styles))(GroupListUnstyled)
+const GroupList = compose(withRouter, withApi(false), withStyles(GroupListUnstyled.styles))(GroupListUnstyled)
 
 export default GroupList

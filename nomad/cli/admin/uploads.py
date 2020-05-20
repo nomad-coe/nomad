@@ -11,47 +11,60 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List
+import typing
 import click
-from tabulate import tabulate
-from mongoengine import Q
-from elasticsearch_dsl import Q as ESQ
-from pymongo import UpdateOne
+import tabulate
+import mongoengine
+import pymongo
 import elasticsearch_dsl as es
 import json
 
-from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
-from .admin import admin, __run_processing
+from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel, archive
+
+from .admin import admin, __run_processing, __run_parallel
 
 
 @admin.group(help='Upload related commands')
 @click.option('--user', help='Select uploads of user with given id', type=str)
 @click.option('--staging', help='Select only uploads in staging', is_flag=True)
-@click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
+@click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
+@click.option('--processing', help='Select only processing uploads', is_flag=True)
+@click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
+@click.option('--processing-failure-calcs', is_flag=True, help='Select uploads with calcs with failed processing')
+@click.option('--processing-failure', is_flag=True, help='Select uploads where the upload or any calc has failed processing')
+@click.option('--processing-incomplete-uploads', is_flag=True, help='Select uploads that have not yet been processed')
+@click.option('--processing-incomplete-calcs', is_flag=True, help='Select uploads where any calc has net yot been processed')
+@click.option('--processing-incomplete', is_flag=True, help='Select uploads where the upload or any calc has not yet been processed')
+@click.option('--processing-necessary', is_flag=True, help='Select uploads where the upload or any calc has either not been processed or processing has failed in the past')
 @click.pass_context
-def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, code: List[str]):
+def uploads(
+        ctx, user: str, staging: bool, processing: bool, outdated: bool,
+        code: typing.List[str], query_mongo: bool,
+        processing_failure_uploads: bool, processing_failure_calcs: bool, processing_failure: bool,
+        processing_incomplete_uploads: bool, processing_incomplete_calcs: bool, processing_incomplete: bool,
+        processing_necessary: bool):
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    query = Q()
+    query = mongoengine.Q()
+    calc_query = None
     if user is not None:
-        query &= Q(user_id=user)
+        query |= mongoengine.Q(user_id=user)
     if staging:
-        query &= Q(published=False)
+        query |= mongoengine.Q(published=False)
     if processing:
-        query &= Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING)
+        query |= mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING)
 
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
             {'metadata.nomad_version': {'$ne': config.version}})
-        query &= Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:
-        code_queries = [es.Q('match', code_name=code_name) for code_name in code]
+        code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
         code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
 
         code_search = es.Search(index=config.elastic.index_name)
@@ -62,25 +75,46 @@ def uploads(ctx, user: str, staging: bool, processing: bool, outdated: bool, cod
             upload['key']
             for upload in code_search.execute().aggs['uploads']['buckets']]
 
-        query &= Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
+
+    if processing_failure_calcs or processing_failure or processing_necessary:
+        if calc_query is None:
+            calc_query = mongoengine.Q()
+        calc_query |= mongoengine.Q(tasks_status=proc.FAILURE)
+    if processing_failure_uploads or processing_failure or processing_necessary:
+        query |= mongoengine.Q(tasks_status=proc.FAILURE)
+    if processing_incomplete_calcs or processing_incomplete or processing_necessary:
+        if calc_query is None:
+            calc_query = mongoengine.Q()
+        calc_query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
+    if processing_incomplete_uploads or processing_incomplete or processing_necessary:
+        query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
 
     ctx.obj.query = query
+    ctx.obj.calc_query = calc_query
     ctx.obj.uploads = proc.Upload.objects(query)
+    ctx.obj.query_mongo = query_mongo
 
 
 def query_uploads(ctx, uploads):
     try:
         json_query = json.loads(' '.join(uploads))
-        request = search.SearchRequest()
-        request.q = ESQ(json_query)
-        request.quantity('upload_id', size=10000)
-        uploads = list(request.execute()['quantities']['upload_id']['values'])
+        if ctx.obj.query_mongo:
+            uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
+        else:
+            request = search.SearchRequest()
+            request.q = es.Q(json_query)
+            request.quantity('upload_id', size=10000)
+            uploads = list(request.execute()['quantities']['upload_id']['values'])
     except Exception:
         pass
 
     query = ctx.obj.query
+    if ctx.obj.calc_query is not None:
+        query |= mongoengine.Q(
+            upload_id__in=proc.Calc.objects(ctx.obj.calc_query).distinct(field="upload_id"))
     if len(uploads) > 0:
-        query &= Q(upload_id__in=uploads)
+        query |= mongoengine.Q(upload_id__in=uploads)
 
     return query, proc.Upload.objects(query)
 
@@ -125,7 +159,7 @@ def ls(ctx, uploads, calculations, ids, json):
         return
 
     print('%d uploads selected, showing no more than first 10' % uploads.count())
-    print(tabulate(
+    print(tabulate.tabulate(
         [row(upload) for upload in uploads[:10]],
         headers=headers))
 
@@ -143,24 +177,23 @@ def chown(ctx, username, uploads):
 
     for upload in uploads:
         upload.user_id = user.user_id
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
+        calcs = upload.entries_metadata()
 
-        def create_update(calc):
-            return UpdateOne(
-                {'_id': calc.calc_id},
+        def create_update(calc_id):
+            return pymongo.UpdateOne(
+                {'_id': calc_id},
                 {'$set': {'metadata.uploader': user.user_id}})
 
-        proc.Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+        proc.Calc._get_collection().bulk_write(
+            [create_update(calc_id) for calc_id in upload.entry_ids()])
         upload.save()
 
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
-        search.index_all(calcs, do_refresh=False)
+        with upload.entries_metadata() as calcs:
+            search.index_all(calcs, do_refresh=False)
         search.refresh()
 
 
-@uploads.command(help='Change the owner of the upload and all its calcs.')
+@uploads.command(help='Reset the processing state.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
 @click.pass_context
@@ -176,6 +209,7 @@ def reset(ctx, uploads, with_calcs):
             dict(upload_id=upload.upload_id),
             {'$set': proc.Calc.reset_pymongo_update()})
 
+        upload.process_status = None
         upload.reset()
         upload.save()
         i += 1
@@ -184,21 +218,27 @@ def reset(ctx, uploads, with_calcs):
 
 @uploads.command(help='(Re-)index all calcs of the given uploads.')
 @click.argument('UPLOADS', nargs=-1)
+@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
-def index(ctx, uploads):
+def index(ctx, uploads, parallel):
     _, uploads = query_uploads(ctx, uploads)
-    uploads_count = uploads.count()
 
-    print('%d uploads selected, indexing ...' % uploads_count)
+    def index_upload(upload, logger):
+        with upload.entries_metadata() as calcs:
+            # This is just a temporary fix to update the group hash without re-processing
+            try:
+                for calc in calcs:
+                    if calc.dft is not None:
+                        calc.dft.update_group_hash()
+            except Exception:
+                pass
+            failed = search.index_all(calcs)
+            if failed > 0:
+                print('    WARNING failed to index %d entries' % failed)
 
-    i, failed = 0, 0
-    for upload in uploads:
-        upload_with_metadata = upload.to_upload_with_metadata()
-        calcs = upload_with_metadata.calcs
-        failed += search.index_all(calcs)
-        i += 1
+        return True
 
-        print('   indexed %d of %d uploads, failed to index %d entries' % (i, uploads_count, failed))
+    __run_parallel(uploads, parallel, index_upload, 'index')
 
 
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
@@ -241,13 +281,40 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
         delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
 
 
+@uploads.command(help='Create msgpack file for upload')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def msgpack(ctx, uploads):
+    _, uploads = query_uploads(ctx, uploads)
+
+    for upload in uploads:
+        upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
+
+        if isinstance(upload_files, files.PublicUploadFiles):
+            def iterator(zf, names):
+                for name in names:
+                    calc_id = name.strip('.json')
+                    with zf.open(name) as f:
+                        yield (calc_id, json.load(f))
+
+            for access in ['public', 'restricted']:
+                with upload_files._open_zip_file('archive', access, 'json') as zf:
+                    archive_path = upload_files._file_object('archive', access, 'msg', 'msg').os_path
+                    names = [name for name in zf.namelist() if name.endswith('json')]
+                    archive.write_archive(archive_path, len(names), iterator(zf, names))
+                print('wrote msgpack archive %s' % archive_path)
+
+
 @uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+@click.option('--reprocess-running', is_flag=True, help='Also reprocess already running processes.')
 @click.pass_context
-def re_process(ctx, uploads, parallel: int):
+def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
     _, uploads = query_uploads(ctx, uploads)
-    __run_processing(uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing')
+    __run_processing(
+        uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing',
+        reprocess_running=reprocess_running)
 
 
 @uploads.command(help='Repack selected uploads.')
@@ -302,7 +369,7 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
                 process.on_process_complete(None)
                 process.save()
 
-    running_query = query & (Q(process_status=proc.PROCESS_RUNNING) | Q(tasks_status=proc.RUNNING))
+    running_query = query & (mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING))
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))

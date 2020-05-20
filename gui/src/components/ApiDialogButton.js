@@ -20,8 +20,8 @@ class ApiDialogUnstyled extends React.Component {
       paddingBottom: 0
     },
     json: {
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(2)
     },
     codeContainer: {
       display: 'flex',
@@ -30,13 +30,34 @@ class ApiDialogUnstyled extends React.Component {
     },
     code: {
       flexGrow: 1,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       overflow: 'hidden'
     },
     codeActions: {
-      marginTop: theme.spacing.unit * 3
+      marginTop: theme.spacing(3)
     }
   })
+
+  renderCode(title, code) {
+    const {classes} = this.props
+    return <React.Fragment>
+      <Typography>{title}</Typography>
+      <div className={classes.codeContainer}>
+        <div className={classes.code}>
+          <Markdown text={'```\n' + code + '\n```'} />
+        </div>
+        <div className={classes.codeActions}>
+          <CopyToClipboard text={code} onCopy={() => null}>
+            <Tooltip title="Copy to clipboard">
+              <IconButton>
+                <ClipboardIcon />
+              </IconButton>
+            </Tooltip>
+          </CopyToClipboard>
+        </div>
+      </div>
+    </React.Fragment>
+  }
 
   render() {
     const { classes, title, data, onClose, ...dialogProps } = this.props
@@ -46,55 +67,22 @@ class ApiDialogUnstyled extends React.Component {
         <DialogTitle>{title || 'API Code'}</DialogTitle>
 
         <DialogContent classes={{root: classes.content}}>
-          <Typography>Access the archive as JSON via <i>curl</i>:</Typography>
-          <div className={classes.codeContainer}>
-            <div className={classes.code}>
-              <Markdown>{`
-                \`\`\`
-                  ${data.curl}
-                \`\`\`
-              `}</Markdown>
-            </div>
-            <div className={classes.codeActions}>
-              <CopyToClipboard text={data.curl} onCopy={() => null}>
-                <Tooltip title="Copy to clipboard">
-                  <IconButton>
-                    <ClipboardIcon />
-                  </IconButton>
-                </Tooltip>
-              </CopyToClipboard>
-            </div>
-          </div>
-
-          <Typography>Access the archive in <i>python</i>:</Typography>
-          <div className={classes.codeContainer}>
-            <div className={classes.code}>
-              <Markdown>{`
-                \`\`\`
-                  ${data.python}
-                \`\`\`
-              `}</Markdown>
-            </div>
-            <div className={classes.codeActions}>
-              <CopyToClipboard text={data.python} onCopy={() => null}>
-                <Tooltip title="Copy to clipboard">
-                  <IconButton>
-                    <ClipboardIcon />
-                  </IconButton>
-                </Tooltip>
-              </CopyToClipboard>
-            </div>
-          </div>
+          { data.code && data.code.curl &&
+            this.renderCode(<span>Access the archive as JSON via <i>curl</i>:</span>, data.code.curl)}
+          { data.code && data.code.python &&
+            this.renderCode(<span>Access the archive in <i>python</i>:</span>, data.code.python)}
+          { data.code && data.code.clientlib &&
+            this.renderCode(<span>Access the archive with the <i>NOMAD client library</i>:</span>, data.code.clientlib)}
 
           <Typography>The repository API response as JSON:</Typography>
           <div className={classes.codeContainer}>
             <div className={classes.code}>
               <div className={classes.json}>
                 <ReactJson
-                    src={data}
-                    enableClipboard={false}
-                    collapsed={2}
-                    displayObjectSize={false}
+                  src={data}
+                  enableClipboard={false}
+                  collapsed={2}
+                  displayObjectSize={false}
                 />
               </div>
             </div>
@@ -154,10 +142,10 @@ class ApiDialogButtonUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         {component ? component({onClick: this.handleShowDialog}) : <Tooltip title="Show API code">
-            <IconButton onClick={this.handleShowDialog}>
-              <CodeIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton onClick={this.handleShowDialog}>
+            <CodeIcon />
+          </IconButton>
+        </Tooltip>
         }
         <ApiDialog
           {...dialogProps} open={showDialog}

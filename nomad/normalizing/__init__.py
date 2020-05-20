@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 After parsing calculations have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
 Currently the normalizers are:
 - system.py (contains aspects of format stats, system, system type, and symmetry normalizer)
+- optimade.py
 - fhiaims.py
-- repository.py
+- dos.py
+- encyclopedia.py (used to create the data in NOMAD-coe Encyclopedia)
 
 The normalizers are available via
 
@@ -29,19 +31,23 @@ There is one ABC for all normalizer:
 
 .. autoclass::nomad.normalizing.normalizer.Normalizer
     :members:
-"""
+'''
 
 from typing import List, Any, Iterable, Type
 
-from .dos import DosNormalizer
-from .fhiaims import FhiAimsBaseNormalizer
-from .normalizer import Normalizer
-from .optimade import OptimadeNormalizer
 from .system import SystemNormalizer
+from .optimade import OptimadeNormalizer
+from .fhiaims import FhiAimsBaseNormalizer
+from .dos import DosNormalizer
+from .normalizer import Normalizer
+from .band_structure import BandStructureNormalizer
+from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
     FhiAimsBaseNormalizer,
-    DosNormalizer
+    DosNormalizer,
+    BandStructureNormalizer,
+    EncyclopediaNormalizer,
 ]

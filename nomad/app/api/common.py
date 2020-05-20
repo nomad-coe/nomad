@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Common data, variables, decorators, models used throughout the API.
-"""
+'''
 from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
 import zipstream
 from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
+import pprint
+import io
 
 import sys
 import os.path
 
-from nomad import search, config
+from nomad import search, config, datamodel
 from nomad.app.optimade import filterparser
 from nomad.app.common import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
@@ -52,28 +54,60 @@ metadata_model = api.model('MetaData', {
 pagination_model = api.model('Pagination', {
     'total': fields.Integer(description='Number of total elements.'),
     'page': fields.Integer(description='Number of the current page, starting with 0.'),
-    'per_page': fields.Integer(description='Number of elements per page.')
+    'per_page': fields.Integer(description='Number of elements per page.'),
+    'order_by': fields.String(description='Sorting criterion.'),
+    'order': fields.Integer(description='Sorting order -1 for descending, 1 for asceding.')
 })
-""" Model used in responses with pagination. """
+''' Model used in responses with pagination. '''
 
-search_model = api.model('Search', {
-    'pagination': fields.Nested(pagination_model, skip_none=True),
-    'scroll': fields.Nested(allow_null=True, skip_none=True, model=api.model('Scroll', {
-        'total': fields.Integer(description='The total amount of hits for the search.'),
-        'scroll_id': fields.String(allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
-        'size': fields.Integer(help='The size of the returned scroll page.')})),
-    'results': fields.List(fields.Raw, description=(
+scroll_model = api.model('Scroll', {
+    'scroll': fields.Boolean(default=False, description='Flag if scrolling is enables.'),
+    'total': fields.Integer(default=0, description='The total amount of hits for the search.'),
+    'scroll_id': fields.String(default=None, allow_null=True, description='The scroll_id that can be used to retrieve the next page.'),
+    'size': fields.Integer(default=0, help='The size of the returned scroll page.')})
+''' Model used in responses with scroll. '''
+
+aggregation_model = api.model('Aggregation', {
+    'after': fields.String(description='The after key for the current request.', allow_null=True),
+    'total': fields.Integer(default=0, description='The total amount of hits for the search.'),
+    'per_page': fields.Integer(default=0, help='The size of the requested page.', allow_null=True)})
+''' Model used in responses with id aggregation. '''
+
+search_model_fields = {
+    'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
+    'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
+    'aggregation': fields.Nested(aggregation_model, allow_null=True),
+    'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
         'A list of search results. Each result is a dict with quantitie names as key and '
-        'values as values')),
-    'python': fields.String(description=(
-        'A string of python code snippet which can be executed to reproduce the api result.')),
-    'curl': fields.String(description=(
-        'A string of curl command which can be executed to reproduce the api result.'))
+        'values as values'), allow_null=True, skip_none=True),
+    'code': fields.Nested(api.model('Code', {
+        'python': fields.String(description=(
+            'A piece of python code snippet which can be executed to reproduce the api result.')),
+        'curl': fields.String(description=(
+            'A curl command which can be executed to reproduce the api result.')),
+        'clientlib': fields.String(description=(
+            'A piece of python code which uses NOMAD\'s client library to access the archive.'))
+    }), allow_null=True, skip_none=True)}
+
+search_model = api.model('Search', search_model_fields)
+
+query_model_fields = {
+    qualified_name: quantity.flask_field
+    for qualified_name, quantity in search.search_quantities.items()}
+
+query_model_fields.update(**{
+    'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
+    'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
+        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.default_domain)),
+    'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
+    'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
+
+query_model = api.model('Query', query_model_fields)
 
 
 def add_pagination_parameters(request_parser):
-    """ Add pagination parameters to Flask querystring parser. """
+    ''' Add pagination parameters to Flask querystring parser. '''
     request_parser.add_argument(
         'page', type=int, help='The page, starting with 1.', location='args')
     request_parser.add_argument(
@@ -90,7 +124,7 @@ pagination_request_parser = request_parser.copy()
 
 
 def add_scroll_parameters(request_parser):
-    """ Add scroll parameters to Flask querystring parser. """
+    ''' Add scroll parameters to Flask querystring parser. '''
     request_parser.add_argument(
         'scroll', type=bool, help='Enable scrolling')
     request_parser.add_argument(
@@ -98,8 +132,13 @@ def add_scroll_parameters(request_parser):
 
 
 def add_search_parameters(request_parser):
-    """ Add search parameters to Flask querystring parser. """
+    ''' Add search parameters to Flask querystring parser. '''
     # more search parameters
+    request_parser.add_argument(
+        'domain', type=str,
+        help='Specify the domain to search in: %s, default is ``%s``' % (
+            ', '.join(['``%s``' % domain for domain in datamodel.domains]),
+            config.default_domain))
     request_parser.add_argument(
         'owner', type=str,
         help='Specify which calcs to return: ``visible``, ``public``, ``all``, ``user``, ``staging``, default is ``visible``')
@@ -109,19 +148,29 @@ def add_search_parameters(request_parser):
     request_parser.add_argument(
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
+    request_parser.add_argument(
+        'dft.optimade', type=str,
+        help='A search query in the optimade filter language.')
 
     # main search parameters
-    for quantity in search.quantities.values():
+    for qualified_name, quantity in search.search_quantities.items():
         request_parser.add_argument(
-            quantity.name, help=quantity.description,
-            action=quantity.argparse_action if quantity.multi else None)
+            qualified_name, help=quantity.description, action=quantity.argparse_action)
+
+
+_search_quantities = set(search.search_quantities.keys())
 
 
 def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str, Any]):
-    """
+    '''
     Help that adds query relevant request args to the given SearchRequest.
-    """
+    '''
     args = {key: value for key, value in args.items() if value is not None}
+
+    # domain
+    domain = args.get('domain')
+    if domain is not None:
+        search_request.domain(domain=domain)
 
     # owner
     owner = args.get('owner', 'visible')
@@ -143,25 +192,25 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
         until_time = rfc3339DateTime.parse(until_time_str) if until_time_str is not None else None
         search_request.time_range(start=from_time, end=until_time)
     except Exception:
-        abort(400, message='bad datetime format')
+        abort(400, 'bad datetime format')
 
     # optimade
     try:
-        optimade = args.get('optimade', None)
+        optimade = args.get('dft.optimade', None)
         if optimade is not None:
             q = filterparser.parse_filter(optimade)
             search_request.query(q)
-    except filterparser.FilterException:
-        abort(400, message='could not parse optimade query')
+    except filterparser.FilterException as e:
+        abort(400, 'Could not parse optimade query: %s' % (str(e)))
 
     # search parameter
     search_request.search_parameters(**{
         key: value for key, value in args.items()
-        if key not in ['optimade'] and key in search.quantities})
+        if key in _search_quantities})
 
 
 def calc_route(ns, prefix: str = ''):
-    """ A resource decorator for /<upload>/<calc> based routes. """
+    ''' A resource decorator for /<upload>/<calc> based routes. '''
     def decorator(func):
         ns.route('%s/<string:upload_id>/<string:calc_id>' % prefix)(
             api.doc(params={
@@ -173,7 +222,7 @@ def calc_route(ns, prefix: str = ''):
 
 
 def upload_route(ns, prefix: str = ''):
-    """ A resource decorator for /<upload> based routes. """
+    ''' A resource decorator for /<upload> based routes. '''
     def decorator(func):
         ns.route('%s/<string:upload_id>' % prefix)(
             api.doc(params={
@@ -186,7 +235,7 @@ def upload_route(ns, prefix: str = ''):
 def streamed_zipfile(
         files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]],
         zipfile_name: str, compress: bool = False):
-    """
+    '''
     Creates a response that streams the given files as a streamed zip file. Ensures that
     each given file is only streamed once, based on its filename in the resulting zipfile.
 
@@ -197,17 +246,17 @@ def streamed_zipfile(
         zipfile_name: A name that will be used in the content disposition attachment
             used as an HTTP respone.
         compress: Uses compression. Default is stored only.
-    """
+    '''
 
     streamed_files: Set[str] = set()
 
     def generator():
-        """ Stream a zip file with all files using zipstream. """
+        ''' Stream a zip file with all files using zipstream. '''
         def iterator():
-            """
+            '''
             Replace the directory based iter of zipstream with an iter over all given
             files.
-            """
+            '''
             # the actual contents
             for zipped_filename, file_id, open_io, file_size in files:
                 if zipped_filename in streamed_files:
@@ -251,12 +300,12 @@ def streamed_zipfile(
 
 
 def query_api_url(*args, query_string: Dict[str, Any] = None):
-    """
+    '''
     Creates a API URL.
     Arguments:
         *args: URL path segments after the API base URL
         query_string: A dict with query string parameters
-    """
+    '''
     url = os.path.join(config.api_url(False), *args)
     if query_string is not None:
         url = '%s?%s' % (url, urlencode(query_string, doseq=True))
@@ -265,19 +314,49 @@ def query_api_url(*args, query_string: Dict[str, Any] = None):
 
 
 def query_api_python(*args, **kwargs):
-    """
+    '''
     Creates a string of python code to execute a search query to the repository using
     the requests library.
-    """
+    '''
     url = query_api_url(*args, **kwargs)
     return '''import requests
-response = requests.get("{}")
+response = requests.post("{}")
 data = response.json()'''.format(url)
 
 
+def query_api_clientlib(**kwargs):
+    '''
+    Creates a string of python code to execute a search query on the archive using
+    the client library.
+    '''
+    def normalize_value(key, value):
+        quantity = search.search_quantities.get(key)
+        if quantity.many and not isinstance(value, list):
+            return [value]
+
+        return value
+
+    kwargs = {
+        key: normalize_value(key, value) for key, value in kwargs.items()
+        if key in search.search_quantities and (key != 'domain' or value != config.default_domain)
+    }
+
+    out = io.StringIO()
+    out.write('from nomad import client, config\n')
+    out.write('config.client.url = \'%s\'\n' % config.api_url(ssl=False))
+    out.write('results = client.query_archive(query={%s' % ('' if len(kwargs) == 0 else '\n'))
+    out.write(',\n'.join([
+        '    \'%s\': %s' % (key, pprint.pformat(value, compact=True))
+        for key, value in kwargs.items()]))
+    out.write('})\n')
+    out.write('print(results)\n')
+
+    return out.getvalue()
+
+
 def query_api_curl(*args, **kwargs):
-    """
+    '''
     Creates a string of curl command to execute a search query to the repository.
-    """
+    '''
     url = query_api_url(*args, **kwargs)
-    return 'curl -X GET %s -H  "accept: application/json" --output "nomad.json"' % url
+    return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url

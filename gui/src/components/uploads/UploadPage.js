@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -16,8 +16,9 @@ import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase } from '../../config'
 import qs from 'qs'
+import { CodeList } from '../About'
 
-export const help = domain => `
+export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
 identify the main output files of [supported codes](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-howtoupload)
 and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
@@ -104,12 +105,12 @@ class UploadPage extends React.Component {
 
   static styles = theme => ({
     root: {
-      padding: theme.spacing.unit * 3
+      padding: theme.spacing(3)
     },
     dropzoneContainer: {
       height: 192,
-      marginTop: theme.spacing.unit * 2,
-      marginBottom: theme.spacing.unit * 2
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(2)
     },
     dropzone: {
       textAlign: 'center',
@@ -121,12 +122,13 @@ class UploadPage extends React.Component {
       justifyContent: 'center',
       '& p': {
         marginTop: 0,
-        marginBottom: theme.spacing.unit * 1
+        marginBottom: theme.spacing(1)
       },
       '& svg': {
         marginLeft: 'auto',
         marginRight: 'auto'
-      }
+      },
+      marginTop: theme.spacing(3)
     },
     dropzoneAccept: {
       background: theme.palette.primary.main,
@@ -143,7 +145,7 @@ class UploadPage extends React.Component {
     },
     commandMarkup: {
       flexGrow: 1,
-      marginRight: theme.spacing.unit,
+      marginRight: theme.spacing(1),
       overflow: 'hidden'
     },
     formGroup: {
@@ -152,10 +154,10 @@ class UploadPage extends React.Component {
     uploadsLabel: {
       flexGrow: 1,
       paddingLeft: 0,
-      padding: theme.spacing.unit * 2
+      padding: theme.spacing(2)
     },
     uploads: {
-      marginTop: theme.spacing.unit * 4
+      marginTop: theme.spacing(4)
     },
     pagination: {
       textAlign: 'center'
@@ -193,7 +195,7 @@ class UploadPage extends React.Component {
   }
 
   update(newPage) {
-    const { data: { pagination: { page, per_page }}} = this.state
+    const {data: {pagination: {page, per_page}}} = this.state
     this.props.api.getUploads('all', newPage || page, per_page)
       .then(uploads => {
         this.setState({
@@ -226,8 +228,8 @@ class UploadPage extends React.Component {
   }
 
   renderUploads(openUpload) {
-    const { classes } = this.props
-    const { data: { results, pagination: { total, per_page, page }}, uploading } = this.state
+    const {classes} = this.props
+    const {data: {results, pagination: {total, per_page, page}}, uploading} = this.state
 
     const renderUpload = upload => <Upload
       open={openUpload === upload.upload_id}
@@ -267,6 +269,16 @@ class UploadPage extends React.Component {
 
     return (
       <div className={classes.root}>
+        <Typography>
+          To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
+          all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
+          NOMAD will search through all files and identify the relevant files automatically.
+          Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
+          uploads</b> simultaneously. Your uploaded data is not published right away.
+        </Typography>
+        <Typography>
+          The following codes are supported: <CodeList/>.
+        </Typography>
         <Paper className={classes.dropzoneContainer}>
           <Dropzone
             accept={[
@@ -288,7 +300,7 @@ class UploadPage extends React.Component {
             rejectClassName={classes.dropzoneReject}
             onDrop={this.onDrop.bind(this)}
           >
-            <p>drop .tar.gz or .zip files here</p>
+            <p>click or drop .tar.gz/.zip files here</p>
             <UploadIcon style={{fontSize: 36}}/>
           </Dropzone>
         </Paper>
@@ -309,7 +321,7 @@ class UploadPage extends React.Component {
             </Tooltip>
             {/* <button>Copy to clipboard with button</button> */}
           </CopyToClipboard>
-          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={domain => `
+          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
             As an experienced shell and *curl* user, you can modify the commands to
             your liking.
 

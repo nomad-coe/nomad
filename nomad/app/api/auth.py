@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The API is protected with *keycloak* and *OpenIDConnect*. All API endpoints that require
 or support authentication accept OIDC bearer tokens via HTTP header (``Authentication``).
 These token can be acquired from the NOMAD keycloak server or through the ``/auth`` endpoint
@@ -29,7 +29,7 @@ decorator.
 To allow authentification with signed urls, use this decorator:
 
 .. autofunction:: with_signature_token
-"""
+'''
 from flask import g, request
 from flask_restplus import abort, Resource, fields
 import functools
@@ -40,7 +40,7 @@ import hashlib
 import uuid
 
 from nomad import config, processing, utils, infrastructure, datamodel
-from nomad.metainfo.flask_restplus import generate_flask_restplus_model
+from nomad.metainfo.flask_extension import generate_flask_restplus_model
 
 from .api import api
 
@@ -69,11 +69,11 @@ api.authorizations = {
 
 
 def _verify_upload_token(token) -> str:
-    """
+    '''
     Verifies the upload token generated with :func:`generate_upload_token`.
 
     Returns: The user UUID or None if the toke could not be verified.
-    """
+    '''
     payload, signature = token.split('.')
     payload = utils.base64_decode(payload)
     signature = utils.base64_decode(signature)
@@ -92,7 +92,7 @@ def _verify_upload_token(token) -> str:
 def authenticate(
         basic: bool = False, upload_token: bool = False, signature_token: bool = False,
         required: bool = False, admin_only: bool = False):
-    """
+    '''
     A decorator to protect API endpoints with authentication. Uses keycloak access
     token to authenticate users. Other methods might apply. Will abort with 401
     if necessary.
@@ -103,7 +103,7 @@ def authenticate(
         signature_token: Also allow signed urls
         required: Authentication is required
         admin_only: Only the admin user is allowed to use the endpoint.
-    """
+    '''
     methods = ['OpenIDConnect Bearer Token']
     if basic:
         methods.append('HTTP Basic Authentication')
@@ -192,7 +192,7 @@ class AuthResource(Resource):
     @api.marshal_with(auth_model, skip_none=True, code=200, description='Auth info send')
     @authenticate(required=True, basic=True)
     def get(self):
-        """
+        '''
         Provides authentication information. This endpoint requires authentification.
         Like all endpoints the OIDC access token based authentification. In additional,
         basic HTTP authentification can be used. This allows to login and acquire an
@@ -202,7 +202,7 @@ class AuthResource(Resource):
         URLs with a ``signature_token`` query parameter, e.g. for file downloads on the
         raw or archive api endpoints; a short ``upload_token`` that is used in
         ``curl`` command line based uploads; and the OIDC JWT access token.
-        """
+        '''
 
         def signature_token():
             expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
@@ -239,7 +239,7 @@ class UsersResource(Resource):
     @api.marshal_with(users_model, code=200, description='User suggestions send')
     @api.expect(users_parser, validate=True)
     def get(self):
-        """ Get existing users. """
+        ''' Get existing users. '''
         args = users_parser.parse_args()
 
         return dict(users=infrastructure.keycloak.search_user(args.get('query')))
@@ -248,7 +248,7 @@ class UsersResource(Resource):
     @api.marshal_with(user_model, code=200, skip_none=True, description='User invited')
     @api.expect(user_model, validate=True)
     def put(self):
-        """ Invite a new user. """
+        ''' Invite a new user. '''
         if config.keycloak.oasis:
             abort(400, 'User invide does not work this NOMAD OASIS')
 
@@ -273,10 +273,10 @@ class UsersResource(Resource):
 
 
 def with_signature_token(func):
-    """
+    '''
     A decorator for API endpoint implementations that validates signed URLs. Token to
     sign URLs can be retrieved via the ``/auth`` endpoint.
-    """
+    '''
     @functools.wraps(func)
     @api.response(401, 'Invalid or expired signature token')
     def wrapper(*args, **kwargs):
@@ -302,10 +302,10 @@ def with_signature_token(func):
 
 
 def create_authorization_predicate(upload_id, calc_id=None):
-    """
+    '''
     Returns a predicate that determines if the logged in user has the authorization
     to access the given upload and calculation.
-    """
+    '''
     def func():
         if g.user is None:
             # guest users don't have authorized access to anything
@@ -320,11 +320,15 @@ def create_authorization_predicate(upload_id, calc_id=None):
             if g.user.user_id == upload.user_id:
                 return True
 
-            try:
-                calc = processing.Calc.get(calc_id)
-            except KeyError:
-                return False
-            return g.user.user_id in calc.metadata.get('shared_with', [])
+            # TODO I doubt if shared_with is actually working
+            if calc_id is not None:
+                try:
+                    calc = processing.Calc.get(calc_id)
+                except KeyError:
+                    return False
+                return g.user.user_id in calc.metadata.get('shared_with', [])
+
+            return False
 
         except KeyError as e:
             logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)

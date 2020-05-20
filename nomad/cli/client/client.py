@@ -1,4 +1,4 @@
-# Copyright 2018 Markus Scheidgen
+# Copyright 2018 Markus Scheidgen, Alvin Noe Ladines
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,40 +15,15 @@
 import sys
 import requests
 import click
-from bravado.requests_client import RequestsClient, Authenticator
-from bravado.client import SwaggerClient
-from urllib.parse import urlparse
-from keycloak import KeycloakOpenID
-from time import time
+from bravado import requests_client as bravado_requests_client
+from bravado import client as bravado_client
+from urllib import parse as urllib_parse
 
 from nomad import config as nomad_config
 from nomad import utils
+from nomad import client as nomad_client
+
 from nomad.cli.cli import cli
-
-
-class KeycloakAuthenticator(Authenticator):
-    def __init__(self, host, user, password, **kwargs):
-        super().__init__(host=host)
-        self.user = user
-        self.password = password
-        self.token = None
-        self.__oidc = KeycloakOpenID(**kwargs)
-
-    def apply(self, request):
-        if self.token is None:
-            self.token = self.__oidc.token(username=self.user, password=self.password)
-            self.token['time'] = time()
-        elif self.token['expires_in'] < int(time()) - self.token['time'] + 10:
-            try:
-                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
-                self.token['time'] = time()
-            except Exception:
-                self.token = self.__oidc.token(username=self.user, password=self.password)
-                self.token['time'] = time()
-
-        request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
-
-        return request
 
 
 def create_client():
@@ -63,23 +38,23 @@ def __create_client(
         user: str = nomad_config.client.user,
         password: str = nomad_config.client.password,
         ssl_verify: bool = True, use_token: bool = True):
-    """ A factory method to create the client. """
+    ''' A factory method to create the client. '''
     if not ssl_verify:
         import warnings
         warnings.filterwarnings("ignore")
 
-    http_client = RequestsClient(ssl_verify=ssl_verify)
+    http_client = bravado_requests_client.RequestsClient(ssl_verify=ssl_verify)
 
-    client = SwaggerClient.from_url(
+    client = bravado_client.SwaggerClient.from_url(
         '%s/swagger.json' % nomad_config.client.url,
         http_client=http_client)
 
     utils.get_logger(__name__).info('created bravado client', user=user)
 
     if user is not None:
-        host = urlparse(nomad_config.client.url).netloc.split(':')[0]
+        host = urllib_parse.urlparse(nomad_config.client.url).netloc.split(':')[0]
         if use_token:
-            http_client.authenticator = KeycloakAuthenticator(
+            http_client.authenticator = nomad_client.KeycloakAuthenticator(
                 host=host,
                 user=user,
                 password=password,
@@ -115,13 +90,16 @@ def handle_common_errors(func):
 @click.option('-w', '--password', default=nomad_config.client.password, help='the password used to login.')
 @click.option('--no-ssl-verify', help='disables SSL verificaton when talking to nomad.', is_flag=True)
 @click.option('--no-token', is_flag=True, help='replaces token with basic auth, e.g. to work with v0.6.x or older API versions')
-def client(url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
+@click.pass_context
+def client(ctx, url: str, user: str, password: str, no_ssl_verify: bool, no_token: bool):
     logger = utils.get_logger(__name__)
 
     logger.info('Used nomad is %s' % url)
     logger.info('Used user is %s' % user)
 
     nomad_config.client.url = url
+
+    ctx.obj.user = user
 
     global _create_client
 

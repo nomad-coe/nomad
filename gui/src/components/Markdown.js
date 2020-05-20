@@ -11,7 +11,7 @@ import extend from '@babel/runtime/helpers/extends'
  */
 
 var styles = theme => {
-  return ({
+  return {
     root: {
       fontFamily: theme.typography.fontFamily,
       fontSize: 16,
@@ -24,7 +24,7 @@ var styles = theme => {
       '& pre, & pre[class*="language-"]': {
         margin: '24px 0',
         padding: '12px 18px',
-        backgroundColor: theme.palette.primary.veryLight,
+        backgroundColor: theme.palette.secondary.veryLight,
         borderRadius: theme.shape.borderRadius,
         overflow: 'auto',
         WebkitOverflowScrolling: 'touch' // iOS momentum scrolling.
@@ -36,7 +36,7 @@ var styles = theme => {
         fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
         padding: '3px 6px',
         color: theme.palette.text.primary,
-        backgroundColor: theme.palette.primary.veryLight,
+        backgroundColor: theme.palette.secondary.veryLight,
         fontSize: 14
       },
       '& p code, & ul code, & pre code': {
@@ -70,19 +70,19 @@ var styles = theme => {
       }),
       '& p, & ul, & ol': {
         lineHeight: theme.typography.lineHeight,
-        marginBottom: theme.spacing.unit
+        marginBottom: theme.spacing(1)
       },
       '& ul': {
         paddingLeft: 0,
         '& li': {
           listStyleType: 'none',
           fontSize: 'inherit',
-          paddingLeft: theme.spacing.unit * 4,
+          paddingLeft: theme.spacing(4),
           '&:before': {
             content: '\'■\'',
             fontSize: 'x-large',
-            marginLeft: -theme.spacing.unit * 4,
-            paddingRight: theme.spacing.unit * 4 - 14
+            marginLeft: -theme.spacing(1) * 4,
+            paddingRight: theme.spacing(4) - 14
           }
         }
       },
@@ -203,7 +203,7 @@ var styles = theme => {
         maxWidth: '100%'
       }
     }
-  })
+  }
 }
 
 function Markdown(props) {

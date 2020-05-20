@@ -39,7 +39,7 @@ class DownloadButton extends React.Component {
 
   handleClick(event) {
     event.stopPropagation()
-    this.setState({ anchorEl: event.currentTarget });
+    this.setState({ anchorEl: event.currentTarget })
   }
 
   async handleSelect(choice) {
@@ -57,7 +57,19 @@ class DownloadButton extends React.Component {
         raiseError(e)
       }
     }
-    FileSaver.saveAs(`${apiBase}/${choice}/${choice === 'archive' ? 'download' : 'query'}?${new URLSearchParams(params).toString()}`, `nomad-${choice}-download.zip`)
+
+    // TODO using split/append is not consistent for all parameters, using append here
+    const urlSearchParams = new URLSearchParams()
+    Object.keys(params).forEach(key => {
+      const value = params[key]
+      if (Array.isArray(value)) {
+        value.forEach(item => urlSearchParams.append(key, item))
+      } else {
+        urlSearchParams.append(key, value)
+      }
+    })
+    const url = `${apiBase}/${choice}/${choice === 'archive' ? 'download' : 'query'}?${urlSearchParams.toString()}`
+    FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
     this.setState({preparingDownload: false, anchorEl: null})
   }
 

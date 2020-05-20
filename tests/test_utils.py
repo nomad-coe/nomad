@@ -14,16 +14,16 @@
 
 import time
 import json
+import pytest
 
 from nomad import utils
-
-from tests import utils as test_utils
+from nomad.utils import structlogging
 
 
 def test_decode_handle_id():
     assert utils.decode_handle_id('a1') == 321
     assert utils.decode_handle_id('6i370') == 6884576
-    with test_utils.assert_exception(ValueError):
+    with pytest.raises(ValueError):
         utils.decode_handle_id('zz')
 
 
@@ -47,9 +47,9 @@ def test_sleep_timer():
 
 
 def test_sanitize_logevent():
-    assert utils.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
-    assert utils.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
-    assert utils.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
+    assert structlogging.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
+    assert structlogging.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
+    assert structlogging.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
 
 
 def test_logging(no_warn):
@@ -72,3 +72,13 @@ def test_common_prefix():
     assert utils.common_prefix(['a', 'a']) == ''
     assert utils.common_prefix(['a', 'ab']) == ''
     assert utils.common_prefix(['/a', '/a']) == '/'
+
+
+def test_uuid():
+    uuid = utils.create_uuid()
+    assert uuid is not None
+
+
+def test_class_logger():
+    logger = utils.ClassicLogger(__name__, test='value')
+    logger.warn('hello world', test='other value')

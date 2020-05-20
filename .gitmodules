@@ -81,10 +81,6 @@
 	path = dependencies/parsers/phonopy
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy.git
 	branch = nomad-fair
-[submodule "dependencies/parsers/phonopy-library"]
-	path = dependencies/parsers/phonopy-library
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/phonopy.git
-	branch = nomad-fair
 [submodule "dependencies/parsers/gpaw"]
 	path = dependencies/parsers/gpaw
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gpaw.git
@@ -156,3 +152,6 @@
 [submodule "dependencies/optimade-python-tools"]
 	path = dependencies/optimade-python-tools
 	url = https://github.com/markus1978/optimade-python-tools.git
+[submodule "dependencies/parsers/eels"]
+	path = dependencies/parsers/eels
+	url = https://github.com/markus1978/eels.git

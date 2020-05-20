@@ -3,7 +3,6 @@ import PropTypes from 'prop-types'
 import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination, Button } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import { withDomain } from '../domains'
 import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
@@ -12,7 +11,7 @@ import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import PrivateIcon from '@material-ui/icons/AccountCircle'
-import { withApi } from '../api'
+import { domains } from '../domains'
 
 export function Published(props) {
   const {entry} = props
@@ -22,7 +21,7 @@ export function Published(props) {
     </Tooltip>
   } else {
     return <Tooltip title="not published yet">
-      <PrivateIcon color="secondary"/>
+      <PrivateIcon color="error"/>
     </Tooltip>
   }
 }
@@ -33,18 +32,20 @@ export class EntryListUnstyled extends React.Component {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     onChange: PropTypes.func,
+    onEdit: PropTypes.func,
     history: PropTypes.any.isRequired,
     order_by: PropTypes.string.isRequired,
     order: PropTypes.number.isRequired,
     page: PropTypes.number.isRequired,
     per_page: PropTypes.number.isRequired,
-    domain: PropTypes.object.isRequired,
     editable: PropTypes.bool,
     columns: PropTypes.object,
     title: PropTypes.string,
     actions: PropTypes.element,
     showEntryActions: PropTypes.func,
-    selectedColumns: PropTypes.arrayOf(PropTypes.string)
+    selectedColumns: PropTypes.arrayOf(PropTypes.string),
+    domain: PropTypes.object,
+    user: PropTypes.object
   }
 
   static styles = theme => ({
@@ -52,15 +53,15 @@ export class EntryListUnstyled extends React.Component {
       overflow: 'auto'
     },
     entryDetails: {
-      paddingTop: theme.spacing.unit * 3,
-      paddingLeft: theme.spacing.unit * 3,
-      paddingRight: theme.spacing.unit * 3
+      paddingTop: theme.spacing(3),
+      paddingLeft: theme.spacing(3),
+      paddingRight: theme.spacing(3)
     },
     entryDetailsContents: {
       display: 'flex'
     },
     entryDetailsRow: {
-      paddingRight: theme.spacing.unit * 3
+      paddingRight: theme.spacing(3)
     },
     entryDetailsActions: {
       display: 'flex',
@@ -68,10 +69,10 @@ export class EntryListUnstyled extends React.Component {
       flexGrow: 0,
       flexShrink: 0,
       justifyContent: 'flex-end',
-      marginBottom: theme.spacing.unit,
-      marginLeft: theme.spacing.unit / 2,
-      marginRight: theme.spacing.unit / 2,
-      marginTop: theme.spacing.unit
+      marginBottom: theme.spacing(1),
+      marginLeft: theme.spacing(0.5),
+      marginRight: theme.spacing(0.5),
+      marginTop: theme.spacing(1)
     }
   })
 
@@ -161,7 +162,8 @@ export class EntryListUnstyled extends React.Component {
     }
   }
 
-  componentWillUpdate(prevProps) {
+  // TODO was this really intentional
+  UNSAFE_componentWillUpdate(prevProps) {
     if (prevProps.data !== this.props.data) {
       this.setState({selected: []})
     }
@@ -206,32 +208,13 @@ export class EntryListUnstyled extends React.Component {
   }
 
   renderEntryDetails(row) {
-    const { classes, domain } = this.props
+    const { classes } = this.props
+    const domain = (row.domain && domains[row.domain]) || domains.dft
+
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <Quantity column>
-            <Quantity row>
-              <Quantity quantity="formula" label='formula' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="code_name" label='dft code' noWrap data={row} />
-              <Quantity quantity="code_version" label='dft code version' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="basis_set" label='basis set' noWrap data={row} />
-              <Quantity quantity="xc_functional" label='xc functional' noWrap data={row} />
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="system" label='system type' noWrap data={row} />
-              <Quantity quantity="crystal_system" label='crystal system' noWrap data={row} />
-              <Quantity quantity='spacegroup_symbol' label="spacegroup" noWrap data={row} >
-                <Typography noWrap>
-                  {row.spacegroup_symbol} ({row.spacegroup})
-                </Typography>
-              </Quantity>
-            </Quantity>
-          </Quantity>
+          <domain.EntryOverview data={row} />
         </div>
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
@@ -252,9 +235,9 @@ export class EntryListUnstyled extends React.Component {
             <Quantity quantity='datasets' placeholder='no datasets' data={row}>
               <div>
                 {(row.datasets || []).map(ds => (
-                  <Typography key={ds.id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.id}`}>{ds.name}</Link>
-                    {ds.doi ? <span>&nbsp; (<Link href={ds.doi}>{ds.doi}</Link>)</span> : <React.Fragment/>}
+                  <Typography key={ds.dataset_id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
                   </Typography>))}
               </div>
             </Quantity>
@@ -264,7 +247,7 @@ export class EntryListUnstyled extends React.Component {
         <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label={`${domain.entryLabel} id`} noWrap withClipboard data={row} />
+            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={row} />
             <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
             <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
@@ -335,11 +318,11 @@ export class EntryListUnstyled extends React.Component {
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
-    const selectQuery = selected ? {calc_id: selected.join(',')} : query
+    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}
-        onEditComplete={() => this.props.onChange()}
+        onEditComplete={() => this.props.onEdit()}
         {...props}
       /> : ''}
       <DownloadButton
@@ -353,12 +336,13 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          entityLabels={[domain.entryLabel, domain.entryLabelPlural]}
+          entityLabels={domain ? [domain.entryLabel, domain.entryLabelPlural] : ['entry', 'entries']}
           selectActions={selectActions}
           id={row => row.calc_id}
           total={total}
           columns={columns}
           selectedColumns={defaultSelectedColumns}
+          selectedColumnsKey="entries"
           entryDetails={this.renderEntryDetails.bind(this)}
           entryActions={this.renderEntryActions.bind(this)}
           data={results}
@@ -377,6 +361,6 @@ export class EntryListUnstyled extends React.Component {
   }
 }
 
-const EntryList = compose(withRouter, withDomain, withApi(false), withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+const EntryList = compose(withRouter, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
 
 export default EntryList

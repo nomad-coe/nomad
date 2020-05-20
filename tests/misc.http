@@ -16,3 +16,10 @@ Authorization: Basic bGVvbmFyZC5ob2ZzdGFkdGVyQG5vbWFkLWZhaXJkaS50ZXN0cy5kZTo=
 
 
 GET http://localhost:9200/test_nomad_fairdi_calcs/_search HTTP/1.1
+###
+
+DELETE http://localhost:9200/nomad_fairdi_calcs HTTP/1.1
+###
+
+
+DELETE http://localhost:9200/nomad_fairdi_test HTTP/1.1

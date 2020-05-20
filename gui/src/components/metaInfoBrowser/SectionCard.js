@@ -28,9 +28,9 @@ class SectionCardUnstyled extends React.Component {
 
   static styles = (theme) => ({
     categories: {
-      paddingTop: theme.spacing.unit,
-      paddingLeft: theme.spacing.unit,
-      paddingRight: theme.spacing.unit,
+      paddingTop: theme.spacing(1),
+      paddingLeft: theme.spacing(1),
+      paddingRight: theme.spacing(1),
       lineHeight: 1.5
     }
   })

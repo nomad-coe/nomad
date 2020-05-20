@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The NOMAD meta-info allows to define schemas for physics data independent of the used
 storage format. It allows to define physics quantities with types, complex shapes
 (vetors, matrices, etc.), units, links, and descriptions. It allows to organize large
@@ -32,15 +32,15 @@ Starting example
     from nomad.metainfo import MSection, Quantity, SubSection, Units
 
     class System(MSection):
-        \"\"\"
+        \'\'\'
         A system section includes all quantities that describe a single a simulated
         system (a.k.a. geometry).
-        \"\"\"
+        \'\'\'
 
         n_atoms = Quantity(
-            type=int, description='''
+            type=int, description=\'\'\'
             A Defines the number of atoms in the system.
-            ''')
+            \'\'\')
 
         atom_labels = Quantity(type=MEnum(ase.data.chemical_symbols), shape['n_atoms'])
         atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
@@ -146,21 +146,20 @@ A `section class` looks like this:
 .. code-block:: python
 
     class SectionName(BaseSection):
-        ''' Section description '''
+        \'\'\' Section description \'\'\'
         m_def = Section(**section_attributes)
 
         quantity_name = Quantity(**quantity_attributes)
         sub_section_name = SubSection(**sub_section_attributes)
 
-The various Python elements of this class are mapped to a respective `section definition`
-attributes after the class was defined. The ``SectionName`` becomes the `name`. The
-``BaseSection`` is either :class:`MSection` or if it is another `section class`, this
-`section classes` `section definition` becomes a member of `base_sections`. The
+The various Python elements of this class are mapped to a respective *section definition*.
+The ``SectionName`` becomes the *name*. The
+``BaseSection`` is either :class:`MSection` or another *section class*. The
 ``section_attributes`` become additional attributes of the `section definition`. The
-various ``Quantity`` and ``SubSection`` become the `quantities` and `sub_sections`.
+various ``Quantity`` and ``SubSection`` become the *quantities* and *sub sections*.
 
-Each `section class` has to directly or indirectly extend :class:`MSection`. This will
-provided certain class and object features to all `section classes` and all `section instances`.
+Each *section class* has to directly or indirectly extend :class:`MSection`. This will
+provided certain class and object features to all *section classes* and all *section instances*.
 Read :ref:metainfo-reflection to learn more.
 
 .. autoclass:: Section
@@ -170,7 +169,7 @@ Sub-Sections
 
 .. autoclass:: SubSection
 
-.. _metainfo-categories
+.. _metainfo-categories:
 
 Categories
 ----------
@@ -186,7 +185,7 @@ category looks like this:
 .. code-block:: python
 
     class CategoryName(MCategory):
-        ''' Category description '''
+        \'\'\' Category description \'\'\'
         m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
 
 Packages
@@ -211,7 +210,7 @@ Custom data types
 
 .. autoclass:: MEnum
 
-.. _metainfo-reflection
+.. _metainfo-reflection:
 
 Reflection and custom data storage
 ----------------------------------
@@ -225,14 +224,6 @@ quantity definitions are unknown when writing code.
 
 .. autoclass:: MSection
     :members:
-
-:class:`MSection` does not keep all its data directly, but uses a data object that
-decends from :class:`MData`.
-
-.. autoclass:: MData
-    :members:
-
-.. autoclass:: MDataDict
 
 .. autoclass:: MetainfoError
 .. autoclass:: DeriveError
@@ -272,9 +263,35 @@ A more complex example
 .. literalinclude:: ../nomad/metainfo/example.py
     :language: python
 
-"""
+'''
 
-from .metainfo import MSection, MCategory, Definition, Property, Quantity, SubSection, \
-    Section, Category, Package, Environment, MEnum, Datetime, MProxy, MetainfoError, DeriveError, \
-    MetainfoReferenceError, DataType, MData, MDataDict, Reference, MResource, m_package, \
-    units
+
+from .metainfo import (
+    MSectionBound,
+    MSection,
+    MCategory,
+    Definition,
+    Property,
+    Quantity,
+    SubSection,
+    Section,
+    Category,
+    Package,
+    Environment,
+    MEnum,
+    Datetime,
+    MProxy,
+    MetainfoError,
+    DeriveError,
+    MetainfoReferenceError,
+    DataType,
+    Reference,
+    MResource,
+    m_package,
+    units,
+    Annotation,
+    DefinitionAnnotation,
+    SectionAnnotation,
+    SectionProxy,
+    derived,
+    constraint)

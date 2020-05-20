@@ -16,6 +16,8 @@
 
 import json
 
+from nomad import config
+
 from tests.utils import assert_log
 from tests.app import resource  # pylint: disable=unused-import
 
@@ -78,4 +80,9 @@ def test_internal_server_error_post(client, caplog):
 def test_docs(client):
     rv = client.get('/docs/index.html')
     rv = client.get('/docs/introduction.html')
+    assert rv.status_code == 200
+
+
+def test_dist(client):
+    rv = client.get('/dist/nomad-%s.tar.gz' % config.version)
     assert rv.status_code == 200

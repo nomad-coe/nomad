@@ -17,23 +17,25 @@ import sys
 import shutil
 import json
 import os
-import os.path
-from bravado.exception import HTTPBadRequest
+import bravado.exception
 import datetime
+import traceback
 
 from nomad import utils, processing as proc, search, config, files, infrastructure
-from nomad.datamodel import Dataset, User
-from nomad.doi import DOI
-from nomad.cli.admin.uploads import delete_upload
+from nomad import datamodel
+from nomad import doi as nomad_doi
+from nomad.cli.admin import uploads as admin_uploads
 
 from .client import client
 
 
 __in_test = False
-""" Will be monkeypatched by tests to alter behavior for testing. """
+''' Will be monkeypatched by tests to alter behavior for testing. '''
 
-_Dataset = Dataset.m_def.m_x('me').me_cls
-__logger = utils.get_logger(__name__)
+
+# will be initialized in mirror command func
+_Dataset = None
+__logger = None
 
 
 def fix_time(data, keys):
@@ -44,7 +46,7 @@ def fix_time(data, keys):
 
 
 def tarnsform_user_id(source_user_id):
-    target_user = User.repo_users().get(str(source_user_id))
+    target_user = datamodel.User.repo_users().get(str(source_user_id))
     if target_user is None:
         __logger.error('user does not exist in target', source_user_id=source_user_id)
         raise KeyError
@@ -81,8 +83,28 @@ def transform_reference(reference):
     return reference['value']
 
 
+def v0Dot7(upload_data):
+    ''' Inplace transforms v0.7.x upload data into v0.8.x upload data. '''
+    __mongo_properties = set(d.name for d in datamodel.MongoMetadata.m_def.definitions)
+    for calc in upload_data['calcs']:
+        calc_metadata = calc['metadata']
+        if 'pid' in calc_metadata:
+            calc_metadata['pid'] = str(calc_metadata['pid'])
+        metadata = {
+            key: value
+            for key, value in calc_metadata.items()
+            if key in __mongo_properties
+        }
+        entry_metadata = datamodel.EntryMetadata(**metadata)
+        calc['metadata'] = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])
+
+    return upload_data
+
+
 def v0Dot6(upload_data):
-    """ Inplace transforms v0.6.x upload data into v0.7.x upload data. """
+    ''' Inplace transforms v0.6.x upload data into v0.7.x upload data. '''
     upload = json.loads(upload_data.upload)
     upload['user_id'] = tarnsform_user_id(upload['user_id'])
     upload_data.upload = json.dumps(upload)
@@ -136,12 +158,11 @@ class Mapping:
         or use the --config nomad parameter.''')
 @click.argument('QUERY', nargs=1, required=False)
 @click.option(
-    '--move', is_flag=True, default=False,
+    '--move', is_flag=True,
     help='Instead of copying the underlying upload files, we move it and replace it with a symlink.')
 @click.option(
-    '--link', is_flag=True, default=False,
-    help='Instead of copying the underlying upload files, we create symlinks in the target.'
-)
+    '--link', is_flag=True,
+    help='Instead of copying the underlying upload files, we create symlinks in the target.')
 @click.option(
     '--source-mapping', type=str, default=None,
     help=(
@@ -155,28 +176,33 @@ class Mapping:
         '"mapped" in all paths used for the target. Allows to handle local mounts '
         'paths in target deployment. E.g. use ".volumes/fs:/nomad/fairdi/<target>/fs".'))
 @click.option(
-    '--dry', is_flag=True, default=False,
-    help='Do not actually mirror data, just fetch data and report.')
+    '--dry', is_flag=True, help='Do not actually mirror data, just fetch data and report.')
 @click.option(
-    '--files-only', is_flag=True, default=False,
+    '--files-only', is_flag=True,
     help=(
         'Will only copy/move files and not even look at the calculations. Useful, '
         'when moving metadata via mongo dump/restore.'))
 @click.option(
+    '--skip-files', is_flag=True, help='Will not copy/move/link any files.')
+@click.option(
     '--migration', type=str, default=None,
-    help='The name of a migration script used to transform the metadata.'
-)
+    help='The name of a migration script used to transform the metadata.')
 @click.option(
-    '--staging', is_flag=True, default=False,
-    help='Mirror non published uploads. Only works with --move or --link.'
-)
+    '--skip-es', is_flag=True, help='Do not add mirrored data to elastic search')
 @click.option(
-    '--replace', is_flag=True, default=False,
-    help='Replace existing uploads.'
-)
+    '--staging', is_flag=True, help='Mirror non published uploads. Only works with --move or --link.')
+@click.option(
+    '--replace', is_flag=True, help='Replace existing uploads.')
 def mirror(
-        query, move: bool, link: bool, dry: bool, files_only: bool, source_mapping: str,
-        target_mapping: str, migration: str, staging: bool, replace: bool):
+        query, move: bool, link: bool, dry: bool, files_only: bool, skip_files: bool,
+        source_mapping: str, target_mapping: str, migration: str, staging: bool,
+        skip_es: bool, replace: bool):
+
+    # init global vars
+    global _Dataset
+    global __logger
+    _Dataset = datamodel.Dataset.m_def.a_mongo.mongo_cls
+    __logger = utils.get_logger(__name__)
 
     if staging and not (move or link):
         print('--with-staging requires either --move or --link')
@@ -186,6 +212,8 @@ def mirror(
     if migration is not None:
         if migration == 'v0.6.x':
             migration_func = v0Dot6
+        if migration == 'v0.7.x':
+            migration_func = v0Dot7
         else:
             print('Migration %s does not exist.' % migration)
             sys.exit(1)
@@ -208,8 +236,6 @@ def mirror(
         else:
             query = dict(published=True)
 
-    utils.configure_logging()
-
     from nomad.cli.client import create_client
     client = create_client()
 
@@ -226,7 +252,7 @@ def mirror(
                     raise KeyError()
 
                 if replace and not dry:
-                    delete_upload(upload=upload, skip_files=True)
+                    admin_uploads.delete_upload(upload=upload, skip_files=True)
 
                 else:
                     if len(query) > 0:
@@ -240,7 +266,7 @@ def mirror(
             try:
                 upload_data = client.mirror.get_upload_mirror(upload_id=upload_id).response().result
                 n_calcs = len(upload_data.calcs)
-            except HTTPBadRequest:
+            except bravado.exception.HTTPBadRequest:
                 print('Could not mirror %s, it is probably not published.' % upload_id)
                 n_calcs = 0
                 continue
@@ -250,7 +276,7 @@ def mirror(
                 proc.Calc.objects(upload_id=upload_id).delete()
                 proc.Upload.objects(upload_id=upload_id).delete()
                 _Dataset.objects().delete()
-                DOI.objects().delete()
+                nomad_doi.DOI.objects().delete()
                 search.delete_upload(upload_id)
         else:
             n_calcs = 0
@@ -271,54 +297,79 @@ def mirror(
                     continue
 
         # copy/link/mv file
-        upload_files_path = upload_data.upload_files_path
-        if __in_test:
-            tmp = os.path.join(config.fs.tmp, 'to_mirror')
-            os.rename(upload_files_path, tmp)
-            upload_files_path = tmp
+        if not skip_files:
+            upload_files_path = upload_data.upload_files_path
+            if __in_test:
+                tmp = os.path.join(config.fs.tmp, 'to_mirror')
+                os.rename(upload_files_path, tmp)
+                upload_files_path = tmp
 
-        upload_files_path = source_mapping_obj.apply(upload_files_path)
+            upload_files_path = source_mapping_obj.apply(upload_files_path)
 
-        target_upload_files_path = files.PathObject(
-            config.fs.public if not staging else config.fs.staging,
-            upload_id, create_prefix=False, prefix=True).os_path
-        target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
+            target_upload_files_path = files.PathObject(
+                config.fs.public if not staging else config.fs.staging,
+                upload_id, create_prefix=False, prefix=True).os_path
+            target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
-        if not os.path.exists(target_upload_files_path):
-            if move:
-                os.rename(upload_files_path, target_upload_files_path)
-                os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
+            if not os.path.exists(target_upload_files_path):
+                if move:
+                    os.rename(upload_files_path, target_upload_files_path)
+                    os.symlink(os.path.abspath(target_upload_files_path), upload_files_path)
 
-            elif link:
-                os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/')), exist_ok=True)
-                os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
+                elif link:
+                    os.makedirs(os.path.dirname(target_upload_files_path.rstrip('/')), exist_ok=True)
+                    os.symlink(os.path.abspath(upload_files_path), target_upload_files_path)
 
-            else:
-                os.makedirs(target_upload_files_path)
-                for to_copy in os.listdir(upload_files_path):
-                    shutil.copyfile(
-                        os.path.join(upload_files_path, to_copy),
-                        os.path.join(target_upload_files_path, to_copy))
+                else:
+                    os.makedirs(target_upload_files_path)
+                    for to_copy in os.listdir(upload_files_path):
+                        shutil.copyfile(
+                            os.path.join(upload_files_path, to_copy),
+                            os.path.join(target_upload_files_path, to_copy))
 
         if not files_only:
-            # create mongo
-            upload = proc.Upload.from_json(upload_data.upload, created=True).save()
-            if upload_data.datasets is not None:
-                for dataset in upload_data.datasets.values():
-                    fix_time(dataset, ['created'])
-                    _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
-            if upload_data.dois is not None:
-                for doi in upload_data.dois.values():
-                    if doi is not None and DOI.objects(doi=doi).first() is None:
-                        fix_time(doi, ['create_time'])
-                        DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
-            for calc in upload_data.calcs:
-                fix_time(calc, ['create_time', 'complete_time'])
-                fix_time(calc['metadata'], ['upload_time', 'last_processing'])
-            proc.Calc._get_collection().insert(upload_data.calcs)
+            try:
+                # create mongo
+                upload = proc.Upload.from_json(upload_data.upload, created=True)
+                if upload_data.datasets is not None:
+                    for dataset in upload_data.datasets.values():
+                        fix_time(dataset, ['created'])
+                        _Dataset._get_collection().update(dict(_id=dataset['_id']), dataset, upsert=True)
+                if upload_data.dois is not None:
+                    for doi in upload_data.dois.values():
+                        if doi is not None and nomad_doi.DOI.objects(doi=doi).first() is None:
+                            fix_time(doi, ['create_time'])
+                            nomad_doi.DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
+                if len(upload_data.calcs) > 0:
+                    for calc in upload_data.calcs:
+                        fix_time(calc, ['create_time', 'complete_time'])
+                        fix_time(calc['metadata'], ['upload_time', 'last_processing'])
+                    proc.Calc._get_collection().insert(upload_data.calcs)
+                upload.save()
+            except Exception as e:
+                traceback.print_exc()
+
+                print(
+                    'Could not mirror %s with %d calcs at %s' %
+                    (upload_id, n_calcs, upload_data.upload_files_path))
+
+                print(
+                    'Rolling back %s, files might need to be removed manually' % upload_id)
+
+                # rollback
+                try:
+                    if upload:
+                        upload.delete
+                        proc.Calc.objects(upload_id=upload.upload_id).delete()
+                except Exception:
+                    pass
+
+                continue
 
             # index es
-            search.index_all(upload.to_upload_with_metadata().calcs)
+            if not skip_es:
+                with upload.entries_metadata() as entries:
+                    search.index_all(entries)
 
         print(
             'Mirrored %s with %d calcs at %s' %

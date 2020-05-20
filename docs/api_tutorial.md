@@ -1,16 +1,137 @@
-# API Tutorial
+# API Tutorials
 
-This tutorial assumes that you want to
+The NOMAD Repository and Archive offers all its functionality through an application
+programming interface (API). More specifically a [RESTful HTTP API](https://en.wikipedia.org/wiki/Representational_state_transfer) that allows you
+to use NOMAD as a set of resources (think data) that can be uploaded, accessed, downloaded,
+searched for, etc. via [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol).
+
+There are different tools and libraries to use the NOMAD API that come with different
+trade-offs between expressiveness, learning curve, and convinience:
+
+- use an HTTP program like *curl* or *wget* to directly use NOMAD from within a shell
+- use a generic Python HTTP library like [requests](https://requests.readthedocs.io/en/master/)
+- use more specific Python libraries like [bravado](https://github.com/Yelp/bravado) that turn HTTP requests into NOMAD
+  specific function calls based on an [OpenAPI spec](https://swagger.io/specification/) that NOMAD offers and that describes our API
+- directly in the browser via our generated [swagger dashboard](https://repository.nomad-coe.eu/app/api/)
+- use the NOMAD Python client library, which offers custom and more powerful
+  implementations for certain tasks (currently only for accessing the NOMAD Archive)
+
+This set of tutorials provides a few examples for common NOMAD tasks using the various
+options.
+
+## Using *curl* (or *wget*)
+
+Terminal programs like *curl* act as an HTTP client and allow you to send requests and
+display or store the respective responses. HTTP basically allows you to GET, POST, PUT,
+and DELETE "resources" on a remote server. These resources are identified via URLs (=uniform
+resource locator). URLs usually consists of a protocol (e.g. HTTP), a domain (our servers),
+a path (a place on our servers), and query parameters (additional options).
+
+NOMAD provides three main set of resources: **repo** (i.e. the NOMAD Repository), **raw**
+(raw uploaded files), **archive** (i.e. the NOMAD Archive). Within all these resource sets
+you have endpoints that either allow you to directly locate a NOMAD entry (i.e. an
+uploaded code run) or to ask a query to locate many NOMAD entries at the same time. Here,
+the **repo** will return the repository metadata for said entries, **archive** the archive
+data, ...
+
+Let's say you want to see the repository metadata (i.e. the information that you see in
+our gui) for entries that fit search criteria, like compounds having atoms *Si* and *O* in
+it:
+
+```
+curl -X GET "http://repository.nomad-coe.eu/app/api/repo/?atoms=Si&atoms=O"
+```
+
+Here we used curl to send an HTTP GET request to return the resource located by the given URL.
+In practice you can omit the `-X GET` (which is the default) and you might want to format
+the output:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/repo/?atoms=Si&atoms=O" | python -m json.tool
+```
+
+You'll see the the metadata of the first 10 entries that match your criteria. There
+are various other query parameters. You find a full list in the generated [swagger dashboard
+of our API](https://repository.nomad-coe.eu/app/api/).
+
+Besides search criteria you can determine how many results (`per_page`) and what page of
+results should be returned (`page`). If you want to go beyond the first 10.000 results
+you can use our *scroll* API (`scroll=true`, `scroll_after`). You can limit what properties
+should be returned (`include`, `exclude`). See the the generated [swagger dashboard
+of our API](https://repository.nomad-coe.eu/app/api/) for more parameters.
+
+If you use the [NOMAD Repository and Archive search interface](https://repository.nomad-coe.eu/app/gui/search)
+and create a query, you can click th a **<>**-button (right and on top of the result list).
+This will give you some code examples with URLs for your search query.
+
+Similar functionality is offered to download archive or raw data. Let's say you have
+identified an entry (given via a `upload_id`/`calc_id`, see the query output), and
+you want to download it:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/raw/calc/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX/*" -o download.zip
+```
+
+This basically requests all the files (`*`) that belong to this entry. If you have a query
+that is more selective, you can also download all results. Here all compounds that only
+consist of Si, O, bulk material simulations of cubic systems (currently ~100 entries):
+
+```
+curl "http://repository.nomad-coe.eu/app/api/raw/query?only_atoms=Si&only_atoms=O&system=bulk&crystal_system=cubic" -o download.zip
+```
+
+In a similar way you can see the archive of an entry:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/archive/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX" | python -m json.tool
+```
+
+Or query and display the first page of 10 archives:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/archive/query?only_atoms=Si&only_atoms=O" | python -m json.tool
+```
+
+## Using Python's *request* library
+
+Similar to *curl* in the shell, you can use *requests* in Python. Its a generic HTTP
+client library that allows you to send requests:
+
+```python
+import requests
+import json
+
+response = requests.get("http://repository.nomad-coe.eu/app/api/archive/query?only_atoms=Si&only_atoms=O")
+data = response.json()
+print(json.dumps(data), indent=2)
+```
+
+## Using bravado and our OpenAPI spec
+
+The Python library *bravado* is also an HTTP client, but instead of generic *GET URL*
+style functions, it takes a formal specification of the NOMAD API and provides NOMAD
+specific functions for you.
+
+```python
+from bravado.client import SwaggerClient
+nomad_url = 'http://repository.nomad-coe.eu/app/api'
+
+# create the bravado client
+client = SwaggerClient.from_url('%s/swagger.json' % nomad_url)
+# perform the search request to print number of public entries
+data = client.repo.search(atoms=['Si', 'O']).response().result
+# print the total ammount of search results
+print(data.pagination.total)
+# print the data of the first result
+print(data.results[0])
+```
+
+Read on and learn how to install bravado and perform various tasks, like:
 
 - upload some data
 - publish the data
 - find it
 - download it again
-
-## Prequisites
-
-### Python
-The tutorial was tested with Python 3, but it might as well work with Python 2.
 
 ### Python packages
 We do not assume many specific python packages. Only the *bravado* package (available
@@ -110,7 +231,7 @@ http_client.authenticator = KeycloakAuthenticator(user=user, password=password)
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
 ```
 
-## Uploading data
+### Uploading data
 Now, we can look at actually using the nomad API. The API is divided into several
 modules: *uploads*, *repo*, *archive*, *raw*, etc. Each provided functionality for
 a certain aspect of nomad.
@@ -119,7 +240,7 @@ The *uploads* endpoints can be used to, you guessed it, upload your data. But th
 also allow to get process on the upload processing; inspect, delete, and publish uploads;
 and get details about the uploaded data, which code input/output files where found, etc.
 
-### Uploading a file
+#### Uploading a file
 
 Its simple, since bravado supports uploading files:
 
@@ -134,7 +255,7 @@ you can skip the actual upload and say:
 upload = client.uploads.upload(local_path='/nomad/my_files/example.zip').response().result
 ```
 
-### Supervising the processing
+#### Supervising the processing
 
 Once uploaded, nomad will extract the file, identify code data, parse and normalize the
 data. We call this *processing* and *processing* consists of *tasks* (uploading, extracting, parsing).
@@ -165,7 +286,7 @@ Of course, you can also visit the nomad GUI
 to inspect your uploads. (You might click reload, if you had the page already open.)
 
 
-### Publishing your upload
+#### Publishing your upload
 The uploaded data is only visible to you. We call this *staging*. After the processing
 was successful and you are satisfied with our processing, you have to publish the upload.
 This also allows you to add additional meta-data to your upload (e.g. comments, references, coauthors, etc.).
@@ -203,7 +324,7 @@ This time we needed some exception handling, since the upload will be removed fr
 staging area, and you will get a 404 on the `uploads` endpoint.
 
 
-## Searching for data
+### Searching for data
 The *repo* part of the API contains a *search* endpoint that support many different
 quantities to search for. These include `formula` (e.g. *AcAg*), `system` (e.g. *bulk/2D/atom*), `spacegroup`, `authors`, `code` (e.g. *VASP*), etc.
 In the following example, we search for the specific path segment `AcAg`.
@@ -223,7 +344,7 @@ the type of search and their is no formal swagger model for it, therefore you ge
 dictionaries.
 
 
-## Downloading data
+### Downloading data
 The *raw* api allows to download data. You can do that either via bravado:
 ```python
 client.raw.get(upload_id=calc['upload_id'], path=calc['mainfile']).response()
@@ -237,7 +358,7 @@ print('%s/raw/%s/%s/*' % (nomad_url, calc['upload_id'], os.path.dirname(calc['ma
 
 There are different options to download individual files, or zips with multiple files.
 
-## Using *curl* to access the API
+### Using *curl* to access the API
 
 The shell tool *curl* can be used to call most API endpoints. Most endpoints for searching
 or downloading data are only **GET** operations controlled by URL parameters. For example:
@@ -261,6 +382,15 @@ curl -H 'Authorization: Bearer <you_access_token>' \
     http://repository.nomad-coe.eu/app/api/raw/query?upload_id=<your_upload_id> -o download.zip
 ```
 
-## Conclusions
-This was just a small glimpse into the nomad API. You should checkout our [swagger-ui](https://repository.nomad-coe.eu/app/api/) for more details on all the API endpoints and their parameters. You can explore the
+### Conclusions
+This was just a small glimpse into the nomad API. You should checkout our
+[swagger-ui](https://repository.nomad-coe.eu/app/api/)
+for more details on all the API endpoints and their parameters. You can explore the
 API via the swagger-ui and even try it in your browser.
+
+
+## NOMAD's Python client library
+
+This library is part devevloped by NOMAD. It is supposed to provide more powerful
+access to common yet complex tasks. It currently only support access to the NOMAD
+Archive. It has its separate documentation [here](archive.html).

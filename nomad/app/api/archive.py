@@ -12,31 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 (parsed and normalized) calculation data in nomad's *meta-info* format.
-"""
+'''
 
 from typing import Dict, Any
 from io import BytesIO
-import os.path
-from flask import send_file, request
-from flask_restplus import abort, Resource
+from flask import request, g
+from flask_restplus import abort, Resource, fields
 import json
-import importlib
+import orjson
 import urllib.parse
 
-import nomad_meta_info
-
 from nomad.files import UploadFiles, Restricted
+from nomad.archive import query_archive, ArchiveQueryError
 from nomad import search, config
 from nomad.app import common
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
-from .common import calc_route, streamed_zipfile, search_model, add_pagination_parameters,\
-    add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl
+from .common import calc_route, streamed_zipfile, search_model, add_search_parameters, apply_search_parameters, query_model
+
 
 ns = api.namespace(
     'archive',
@@ -48,14 +45,14 @@ class ArchiveCalcLogResource(Resource):
     @api.doc('get_archive_logs')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/plain'})
+    @api.response(200, 'Archive data send')
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
-        """
+        '''
         Get calculation processing log.
 
         Calcs are references via *upload_id*, *calc_id* pairs.
-        """
+        '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
         upload_files = UploadFiles.get(
@@ -65,12 +62,9 @@ class ArchiveCalcLogResource(Resource):
             abort(404, message='Upload %s does not exist.' % upload_id)
 
         try:
-            return send_file(
-                upload_files.archive_log_file(calc_id, 'rb'),
-                mimetype='text/plain',
-                as_attachment=True,
-                cache_timeout=0,
-                attachment_filename='%s.log' % archive_id)
+            with upload_files.read_archive(calc_id) as archive:
+                return [entry.to_dict() for entry in archive[calc_id]['processing_logs']]
+
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
@@ -82,29 +76,29 @@ class ArchiveCalcResource(Resource):
     @api.doc('get_archive_calc')
     @api.response(404, 'The upload or calculation does not exist')
     @api.response(401, 'Not authorized to access the data.')
-    @api.response(200, 'Archive data send')
+    @api.response(200, 'Archive data send', headers={'Content-Type': 'application/json'})
     @authenticate(signature_token=True)
     def get(self, upload_id, calc_id):
-        """
+        '''
         Get calculation data in archive form.
 
         Calcs are references via *upload_id*, *calc_id* pairs.
-        """
+        '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
-        upload_file = UploadFiles.get(
+        upload_files = UploadFiles.get(
             upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
 
-        if upload_file is None:
+        if upload_files is None:
             abort(404, message='Archive %s does not exist.' % upload_id)
 
         try:
-            return send_file(
-                upload_file.archive_file(calc_id, 'rb'),
-                mimetype='application/json',
-                as_attachment=True,
-                cache_timeout=0,
-                attachment_filename='%s.json' % archive_id)
+            with upload_files.read_archive(calc_id) as archive:
+                return {
+                    key: value
+                    for key, value in archive[calc_id].to_dict().items()
+                    if key != 'processing_logs'}
+
         except Restricted:
             abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
@@ -128,7 +122,7 @@ class ArchiveDownloadResource(Resource):
     @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
     @authenticate(signature_token=True)
     def get(self):
-        """
+        '''
         Get calculation data in archive form from all query results.
 
         See ``/repo`` endpoint for documentation on the search
@@ -138,7 +132,7 @@ class ArchiveDownloadResource(Resource):
         any files that the user is not authorized to access.
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
-        """
+        '''
         try:
             args = _archive_download_parser.parse_args()
             compress = args.get('compress', False)
@@ -164,7 +158,7 @@ class ArchiveDownloadResource(Resource):
                     calc_id = entry['calc_id']
                     if upload_files is None or upload_files.upload_id != upload_id:
                         if upload_files is not None:
-                            upload_files.close_zipfile_cache()
+                            upload_files.close()
 
                         upload_files = UploadFiles.get(
                             upload_id, create_authorization_predicate(upload_id))
@@ -173,12 +167,15 @@ class ArchiveDownloadResource(Resource):
                             common.logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
-                        upload_files.open_zipfile_cache()
+                    with upload_files.read_archive(calc_id) as archive:
+                        f = BytesIO(orjson.dumps(
+                            archive[calc_id].to_dict(),
+                            option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-                    yield (
-                        '%s.%s' % (calc_id, upload_files._archive_ext), calc_id,
-                        lambda calc_id: upload_files.archive_file(calc_id, 'rb'),
-                        lambda calc_id: upload_files.archive_file_size(calc_id))
+                        yield (
+                            '%s.%s' % (calc_id, 'json'), calc_id,
+                            lambda calc_id: f,
+                            lambda calc_id: f.getbuffer().nbytes)
 
                     manifest[calc_id] = {
                         key: entry[key]
@@ -187,7 +184,7 @@ class ArchiveDownloadResource(Resource):
                     }
 
                 if upload_files is not None:
-                    upload_files.close_zipfile_cache()
+                    upload_files.close()
 
                 try:
                     manifest_contents = json.dumps(manifest).encode('utf-8')
@@ -212,200 +209,138 @@ class ArchiveDownloadResource(Resource):
             generator(), zipfile_name='nomad_archive.zip', compress=compress)
 
 
-_archive_query_parser = api.parser()
-add_pagination_parameters(_archive_query_parser)
-add_scroll_parameters(_archive_query_parser)
-add_search_parameters(_archive_query_parser)
-
-_archive_query_model = api.inherit('ArchiveCalculations', search_model)
+_archive_query_model = api.inherit('ArchiveSearch', search_model, {
+    'query': fields.Nested(query_model, description='The query used to find the requested entries.', skip_none=True),
+    'required': fields.Raw(description='A dictionary that defines what archive data to retrive.'),
+    'query_schema': fields.Raw(description='Deprecated, use required instead.'),
+    'raise_errors': fields.Boolean(description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
+})
 
 
 @ns.route('/query')
 class ArchiveQueryResource(Resource):
-    @api.doc('archive_query')
+    @api.doc('post_archive_query')
     @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
     @api.response(401, 'Not authorized to access the data.')
     @api.response(404, 'The upload or calculation does not exist')
-    @api.expect(_archive_query_parser, validate=True)
-    @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Search results sent')
+    @api.expect(_archive_query_model)
+    @api.marshal_with(_archive_query_model, skip_none=True, code=200, description='Archive search results sent')
     @authenticate()
-    def get(self):
-        """
-        Get archive data in json format from all query results.
+    def post(self):
+        '''
+        Post a query schema and return it filled with archive data.
 
         See ``/repo`` endpoint for documentation on the search
         parameters.
 
-        The actual data are in archive_data and a supplementary python code (curl) to
-        execute search is in python (curl).
-        """
-        try:
-            args = {
-                key: value for key, value in _archive_query_parser.parse_args().items()
-                if value is not None}
+        This endpoint uses pagination (see /repo) or id aggregation to handle large result
+        sets over multiple requests.
+        Use aggregation.after and aggregation.per_page to request a
+        certain page with id aggregation.
 
-            scroll = args.get('scroll', False)
-            scroll_id = args.get('scroll_id', None)
-            page = args.get('page', 1)
-            per_page = args.get('per_page', 10 if not scroll else 1000)
-            order = args.get('order', -1)
-            order_by = 'upload_id'
+        The actual data are in results and a supplementary python code (curl) to
+        execute search is in python (curl).
+        '''
+        try:
+            data_in = request.get_json()
+            aggregation = data_in.get('aggregation', None)
+
+            pagination = data_in.get('pagination', {})
+            page = pagination.get('page', 1)
+            per_page = pagination.get('per_page', 10)
+
+            query = data_in.get('query', {})
+
+            required: Dict[str, Any] = None
+            if 'required' in data_in:
+                required = data_in.get('required')
+            else:
+                required = data_in.get('query_schema', '*')
+
+            raise_errors = data_in.get('raise_errors', False)
+
         except Exception:
             abort(400, message='bad parameter types')
 
-        try:
-            assert page >= 1
-            assert per_page > 0
-        except AssertionError:
-            abort(400, message='invalid pagination')
-
-        if order not in [-1, 1]:
+        if not (page >= 1 and per_page > 0):
             abort(400, message='invalid pagination')
 
         search_request = search.SearchRequest()
-        apply_search_parameters(search_request, args)
-        search_request.include('calc_id', 'upload_id', 'mainfile')
+        if g.user is not None:
+            search_request.owner('all', user_id=g.user.user_id)
+        else:
+            search_request.owner('all')
+
+        apply_search_parameters(search_request, query)
+        if not aggregation:
+            search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         try:
-            if scroll:
-                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
+            if aggregation:
+                results = search_request.execute_aggregated(
+                    after=aggregation.get('after'), per_page=aggregation.get('per_page', 1000),
+                    includes=['with_embargo', 'published', 'parser_name'])
 
             else:
                 results = search_request.execute_paginated(
-                    per_page=per_page, page=page, order=order, order_by=order_by)
+                    per_page=per_page, page=page, order_by='upload_id')
 
-        except search.ScrollIdNotFound:
-            abort(400, 'The given scroll_id does not exist.')
         except KeyError as e:
-            import traceback
-            traceback.print_exc()
             abort(400, str(e))
-
-        # build python code and curl snippet
-        results['python'] = query_api_python('archive', 'query', query_string=request.args)
-        results['curl'] = query_api_curl('archive', 'query', query_string=request.args)
 
         data = []
         calcs = results['results']
-        try:
-            upload_files = None
-            for entry in calcs:
-                upload_id = entry['upload_id']
-                calc_id = entry['calc_id']
-                if upload_files is None or upload_files.upload_id != upload_id:
-                    if upload_files is not None:
-                        upload_files.close_zipfile_cache()
+        upload_files = None
+        current_upload_id = None
+        for entry in calcs:
+            with_embargo = entry['with_embargo']
 
-                    upload_files = UploadFiles.get(upload_id)
+            upload_id = entry['upload_id']
+            calc_id = entry['calc_id']
 
-                    if upload_files is None:
-                        raise KeyError
+            if upload_files is None or current_upload_id != upload_id:
+                if upload_files is not None:
+                    upload_files.close()
 
-                    upload_files.open_zipfile_cache()
+                upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
 
-                upload_files._is_authorized = create_authorization_predicate(upload_id, entry['calc_id'])
-                fo = upload_files.archive_file(calc_id, 'rb')
-                data.append(json.loads(fo.read()))
+                if upload_files is None:
+                    return []
 
-            if upload_files is not None:
-                upload_files.close_zipfile_cache()
+                current_upload_id = upload_id
 
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
+            if with_embargo:
+                access = 'restricted'
+            else:
+                access = 'public'
 
-        except KeyError:
-            abort(404, message='Calculation %s/%s does not exist.' % (upload_id, calc_id))
+            try:
+                with upload_files.read_archive(calc_id, access) as archive:
+                    data.append({
+                        'calc_id': calc_id,
+                        'parser_name': entry['parser_name'],
+                        'archive': query_archive(
+                            archive, {calc_id: required})[calc_id]
+                    })
+            except ArchiveQueryError as e:
+                abort(400, str(e))
+            except KeyError:
+                if raise_errors:
+                    abort(404, 'Archive for entry %s does not exist' % calc_id)
+                # We simply skip this entry
+                pass
+            except Restricted:
+                # TODO in reality this should not happen
+                pass
+            except Exception as e:
+                if raise_errors:
+                    raise e
+                common.logger.error(str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
+        if upload_files is not None:
+            upload_files.close()
+
+        # assign archive data to results
         results['results'] = data
 
         return results, 200
-
-
-@ns.route('/metainfo/<string:metainfo_package_name>')
-@api.doc(params=dict(metainfo_package_name='The name of the metainfo package.'))
-class MetainfoResource(Resource):
-    @api.doc('get_metainfo')
-    @api.response(404, 'The metainfo does not exist')
-    @api.response(200, 'Metainfo data send')
-    def get(self, metainfo_package_name):
-        """
-        Get a metainfo definition file.
-        """
-        try:
-            return load_metainfo(metainfo_package_name), 200
-        except FileNotFoundError:
-            parser_prefix = metainfo_package_name[:-len('.nomadmetainfo.json')]
-
-            try:
-                return load_metainfo(dict(
-                    parser='%sparser' % parser_prefix,
-                    path='%s.nomadmetainfo.json' % parser_prefix)), 200
-            except FileNotFoundError:
-                abort(404, message='The metainfo %s does not exist.' % metainfo_package_name)
-
-
-metainfo_main_path = os.path.dirname(os.path.abspath(nomad_meta_info.__file__))
-
-
-def load_metainfo(
-        package_name_or_dependency: str, dependency_source: str = None,
-        loaded_packages: Dict[str, Any] = None) -> Dict[str, Any]:
-    """
-    Loads the given metainfo package and all its dependencies. Returns a dict with
-    all loaded package_names and respective packages.
-
-    Arguments:
-        package_name_or_dependency: The name of the package, or a nomadmetainfo dependency object.
-        dependency_source: The path of the metainfo that uses this function to load a relative dependency.
-        loaded_packages: Give a dict and the function will added freshly loaded packages
-            to it and return it.
-    """
-    if loaded_packages is None:
-        loaded_packages = {}
-
-    if isinstance(package_name_or_dependency, str):
-        package_name = package_name_or_dependency
-        metainfo_path = os.path.join(metainfo_main_path, package_name)
-    else:
-        dependency = package_name_or_dependency
-        if 'relativePath' in dependency:
-            if dependency_source is None:
-                raise Exception(
-                    'Can only load relative dependency from within another metainfo package')
-
-            metainfo_path = os.path.join(
-                os.path.dirname(dependency_source), dependency['relativePath'])
-
-        elif 'metainfoPath' in dependency:
-            metainfo_path = os.path.join(metainfo_main_path, dependency['metainfoPath'])
-
-        elif 'parser' in dependency:
-            parser = dependency['parser']
-            path = dependency['path']
-            try:
-                parser_module = importlib.import_module(parser).__file__
-            except Exception:
-                raise Exception('Parser not installed %s for metainfo path %s' % (parser, metainfo_path))
-
-            parser_directory = os.path.dirname(parser_module)
-            metainfo_path = os.path.join(parser_directory, path)
-
-        else:
-            raise Exception('Invalid dependency type in metainfo package %s' % metainfo_path)
-
-        package_name = os.path.basename(metainfo_path)
-
-    package_name = os.path.basename(package_name)
-
-    if package_name in loaded_packages:
-        return loaded_packages
-
-    with open(metainfo_path, 'rt') as f:
-        metainfo_json = json.load(f)
-
-    loaded_packages[package_name] = metainfo_json
-
-    for dependency in metainfo_json.get('dependencies', []):
-        load_metainfo(dependency, dependency_source=metainfo_path, loaded_packages=loaded_packages)
-
-    return loaded_packages

@@ -2,6 +2,7 @@ import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
+// export const apiBase = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
 export const apiBase = `${appBase}/api`
 export const optimadeBase = `${appBase}/optimade`
 export const guiBase = process.env.PUBLIC_URL
@@ -30,22 +31,30 @@ This web-site uses *cookies*. By using this web-site you agree to our use
 of *cookies*. [Learn more](https://www.cookiesandyou.com/).
 `
 export const nomadPrimaryColor = {
-  main: '#294277',
-  light: '#596da6',
-  dark: '#001c4b',
-  veryLight: '#cfdeff'
+  main: '#008DC3',
+  light: '#03B9FF',
+  dark: '#005271',
+  veryLight: '#10BAFB'
 }
 
 export const nomadSecondaryColor = {
-  main: '#ffa000',
-  light: '#ffc046',
-  veryLight: '#ffecb5',
-  dark: '#c56000'
+  main: '#00CED1',
+  light: '#54DCDC',
+  veryLight: '#B5F0F0',
+  dark: '#007C7C'
 }
+
+export const nomadFontFamily = [
+  'Titillium Web',
+  'sans-serif'
+].join(',')
 
 export const nomadTheme = createMuiTheme({
   typography: {
-    useNextVariants: true
+    useNextVariants: true,
+    fontFamily: nomadFontFamily,
+    fontWeightRegular: 400,
+    fontWeightMedium: 600
   },
   palette: {
     primary: nomadPrimaryColor,

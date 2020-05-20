@@ -1,0 +1,10 @@
+{
+    "type":"skeleton experimental metadata format 1.0",
+    "date":"24.12.2018",
+    "location":"Northpole",
+    "sample_formula":"H2O",
+    "sample_chemical":"Ice",
+    "sample_state":"Frozen",
+    "result":"https://bitcoinist.com/wp-content/uploads/2018/08/shutterstock_764225425.jpg",
+    "sample_temp":384
+}

@@ -16,16 +16,14 @@ from typing import Generator, Tuple
 import pytest
 from datetime import datetime
 import os.path
-import json
 import re
 import shutil
 
-from nomad import utils, infrastructure, config, datamodel
+from nomad import utils, infrastructure, config
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
-from tests import utils as test_utils
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
 
@@ -71,7 +69,6 @@ def assert_processing(upload: Upload, published: bool = False):
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
     assert upload.tasks_status == SUCCESS
-    assert upload.joined
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     if published:
@@ -85,29 +82,37 @@ def assert_processing(upload: Upload, published: bool = False):
         assert calc.tasks_status == SUCCESS
         assert calc.metadata['published'] == published
 
-        with upload_files.archive_file(calc.calc_id) as archive_json:
-            archive = json.load(archive_json)
-        assert 'section_run' in archive
-        assert 'section_entry_info' in archive
+        with upload_files.read_archive(calc.calc_id) as archive:
+            calc_archive = archive[calc.calc_id]
+            assert 'section_run' in calc_archive
+            assert 'section_metadata' in calc_archive
+            assert 'processing_logs' in calc_archive
 
-        with upload_files.archive_log_file(calc.calc_id, 'rt') as f:
             has_test_event = False
-            for line in f.readlines():
-                log_data = json.loads(line)
+            for log_data in calc_archive['processing_logs']:
                 for key in ['event', 'calc_id', 'level']:
                     key in log_data
                 has_test_event = has_test_event or log_data['event'] == 'a test log entry'
+
             assert has_test_event
         assert len(calc.errors) == 0
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
 
-        for path in calc.metadata['files']:
+        entry_metadata = calc.entry_metadata(upload_files)
+
+        for path in entry_metadata.files:
             with upload_files.raw_file(path) as f:
                 f.read()
 
-        assert upload.get_calc(calc.calc_id).metadata is not None
+        # check some domain metadata
+        assert entry_metadata.n_atoms > 0
+        assert len(entry_metadata.atoms) > 0
+
+        assert upload.get_calc(calc.calc_id) is not None
+
+        upload_files.close()
 
 
 def test_processing(processed, no_warn, mails, monkeypatch):
@@ -115,6 +120,12 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
     assert len(mails.messages) == 1
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
+
+
+def test_processing_two_runs(test_user, proc_infra):
+    processed = run_processing(
+        ('test_upload_id', 'tests/data/proc/examples_template_tworuns.zip',), test_user)
+    assert_processing(processed)
 
 
 def test_processing_with_large_dir(test_user, proc_infra):
@@ -125,9 +136,9 @@ def test_processing_with_large_dir(test_user, proc_infra):
         assert len(calc.warnings) == 1
 
 
-def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -137,17 +148,16 @@ def test_publish(non_empty_processed: Upload, no_warn, example_user_metadata, mo
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
+    with processed.entries_metadata(internal_example_user_metadata) as entries:
+        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_search_upload(entries, additional_keys, published=True)
 
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, additional_keys, published=True)
-
-    assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
 
 
-def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, monkeypatch):
+def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -158,20 +168,19 @@ def test_republish(non_empty_processed: Upload, no_warn, example_user_metadata, 
     processed.publish_upload()
     processed.block_until_complete(interval=.01)
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
-
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, additional_keys, published=True)
+    with processed.entries_metadata(internal_example_user_metadata) as entries:
+        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_search_upload(entries, additional_keys, published=True)
 
 
 def test_publish_failed(
-        non_empty_uploaded: Tuple[str, str], example_user_metadata, test_user,
+        non_empty_uploaded: Tuple[str, str], internal_example_user_metadata, test_user,
         monkeypatch, proc_infra):
 
     mock_failure(Calc, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
-    processed.compress_and_set_metadata(example_user_metadata)
+    processed.compress_and_set_metadata(internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -181,9 +190,8 @@ def test_publish_failed(
     except Exception:
         pass
 
-    upload = processed.to_upload_with_metadata(example_user_metadata)
-
-    assert_search_upload(upload, additional_keys, published=True, processed=False)
+    with processed.entries_metadata(internal_example_user_metadata) as entries:
+        assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -207,7 +215,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
-def test_re_processing(published: Upload, example_user_metadata, monkeypatch, with_failure):
+def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, with_failure):
     if with_failure == 'not-matched':
         monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
 
@@ -225,15 +233,21 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
     first_calc = published.all_calcs(0, 1).first()
     old_calc_time = first_calc.metadata['last_processing']
 
-    with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-        old_log_lines = f.readlines()
+    with published.upload_files.read_archive(first_calc.calc_id) as archive:
+        archive[first_calc.calc_id]['processing_logs']
+
     old_archive_files = list(
         archive_file
         for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
-    for archive_file in old_archive_files:
-        with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
-            f.write('')
+
+    with published.entries_metadata(internal_example_user_metadata) as entries_generator:
+        entries = list(entries_generator)
+
+    if with_failure != 'not-matched':
+        for archive_file in old_archive_files:
+            with open(published.upload_files.join_file(archive_file).os_path, 'wt') as f:
+                f.write('')
 
     if with_failure == 'after':
         raw_files = 'tests/data/proc/examples_template_unparsable.zip'
@@ -244,8 +258,6 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
         raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
     shutil.copyfile(
         raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
-
-    upload = published.to_upload_with_metadata(example_user_metadata)
 
     # reprocess
     monkeypatch.setattr('nomad.config.version', 're_process_test_version')
@@ -271,38 +283,63 @@ def test_re_processing(published: Upload, example_user_metadata, monkeypatch, wi
         assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
 
     # assert changed archive files
-    if with_failure in ['after', 'not-matched']:
-        with test_utils.assert_exception():
-            published.upload_files.archive_file(first_calc.calc_id)
-    else:
-        with published.upload_files.archive_file(first_calc.calc_id) as f:
-            assert len(f.readlines()) > 0
+    if with_failure == 'after':
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs', 'section_metadata']
 
-    # assert changed archive log files
-    if with_failure in ['not-matched']:
-        with test_utils.assert_exception():
-            published.upload_files.archive_log_file(first_calc.calc_id)
     else:
-        with published.upload_files.archive_log_file(first_calc.calc_id) as f:
-            new_log_lines = f.readlines()
-        assert old_log_lines != new_log_lines
+        with published.upload_files.read_archive(first_calc.calc_id) as archive:
+            assert len(archive[first_calc.calc_id]) > 2  # contains more then logs and metadata
 
     # assert maintained user metadata (mongo+es)
-    assert_upload_files(upload, PublicUploadFiles, published=True)
-    assert_search_upload(upload, published=True)
+    assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
+    assert_search_upload(entries, published=True)
     if with_failure not in ['after', 'not-matched']:
-        assert_processing(Upload.get(upload.upload_id, include_published=True), published=True)
+        assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
+    entry_metadata = first_calc.entry_metadata(published.upload_files)
     if with_failure not in ['after', 'not-matched']:
-        assert first_calc.metadata['atoms'][0] == 'H'
+        assert entry_metadata.atoms[0] == 'H'
+    elif with_failure == 'not-matched':
+        assert entry_metadata.atoms[0] == 'Si'
     else:
-        assert first_calc.metadata['atoms'][0] == 'Si'
+        assert entry_metadata.atoms == []
+
+
+@pytest.mark.parametrize('publish,old_staging', [
+    (False, False), (True, True), (True, False)])
+def test_re_process_staging(non_empty_processed, publish, old_staging):
+    upload = non_empty_processed
+
+    if publish:
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+        if old_staging:
+            StagingUploadFiles(upload.upload_id, create=True)
+
+    upload.reset()
+    upload.re_process_upload()
+    try:
+        upload.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    assert_processing(upload, published=publish)
+    if publish:
+        with pytest.raises(KeyError):
+            StagingUploadFiles(upload.upload_id)
+    else:
+        StagingUploadFiles(upload.upload_id)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
-def test_re_pack(published: Upload, example_user_metadata, monkeypatch, with_failure):
+def test_re_pack(published: Upload, monkeypatch, with_failure):
     upload_id = published.upload_id
     calc = Calc.objects(upload_id=upload_id).first()
     assert calc.metadata['with_embargo']
@@ -319,9 +356,10 @@ def test_re_pack(published: Upload, example_user_metadata, monkeypatch, with_fai
     for raw_file in upload_files.raw_file_manifest():
         with upload_files.raw_file(raw_file) as f:
             f.read()
+
     for calc in Calc.objects(upload_id=upload_id):
-        with upload_files.archive_file(calc.calc_id) as f:
-            f.read()
+        with upload_files.read_archive(calc.calc_id) as archive:
+            archive[calc.calc_id].to_dict()
 
 
 def mock_failure(cls, task, monkeypatch):
@@ -337,6 +375,7 @@ def mock_failure(cls, task, monkeypatch):
 @pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
+    upload_id, _ = uploaded
     # mock the task method to through exceptions
     if hasattr(Upload, task):
         cls = Upload
@@ -368,6 +407,16 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
                 assert calc.current_task == 'parsing'
                 assert len(calc.errors) > 0
 
+    calc = Calc.objects(upload_id=upload_id).first()
+    if calc is not None:
+        with upload.upload_files.read_archive(calc.calc_id) as archive:
+            calc_archive = archive[calc.calc_id]
+            assert 'section_metadata' in calc_archive
+            assert 'processing_logs' in calc_archive
+            if task != 'parsing':
+                assert 'section_run' in calc_archive
+
+
 # TODO timeout
 # consume_ram, segfault, and exit are not testable with the celery test worker
 @pytest.mark.parametrize('failure', ['exception'])
@@ -390,17 +439,15 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
     assert len(calc.errors) == 1
 
 
-def test_ems_data(proc_infra, test_user, monkeypatch):
-    monkeypatch.setattr('nomad.config.domain', 'EMS')
-    monkeypatch.setattr('nomad.datamodel.Domain.instance', datamodel.Domain.instances['EMS'])
-    monkeypatch.setattr('nomad.datamodel.CalcWithMetadata', datamodel.Domain.instance.domain_entry_class)
-
+def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
 
-    additional_keys = ['method', 'experiment_location', 'experiment_time', 'formula', 'chemical']
+    additional_keys = [
+        'ems.method', 'ems.experiment_location', 'ems.experiment_time', 'formula',
+        'ems.chemical']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
-    upload_with_metadata = upload.to_upload_with_metadata()
-    assert_upload_files(upload_with_metadata, StagingUploadFiles, published=False)
-    assert_search_upload(upload_with_metadata, additional_keys, published=False)
+    with upload.entries_metadata() as entries:
+        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_search_upload(entries, additional_keys, published=False)

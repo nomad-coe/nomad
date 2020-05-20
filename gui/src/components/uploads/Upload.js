@@ -11,7 +11,6 @@ import { withErrors } from '../errors'
 import { withRouter } from 'react-router'
 import { debug } from '../../config'
 import EntryList, { EntryListUnstyled } from '../search/EntryList'
-import { withDomain } from '../domains'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
 import PublishedIcon from '@material-ui/icons/Public'
@@ -107,14 +106,14 @@ class Upload extends React.Component {
     api: PropTypes.object.isRequired,
     upload: PropTypes.object.isRequired,
     onDoesNotExist: PropTypes.func,
-    domain: PropTypes.object.isRequired,
     open: PropTypes.bool,
-    history: PropTypes.object.isRequired
+    history: PropTypes.object.isRequired,
+    domain: PropTypes.object
   }
 
   static styles = theme => ({
     root: {
-      marginBottom: theme.spacing.unit
+      marginBottom: theme.spacing(1)
     },
     heading: {
       fontSize: theme.typography.pxToRem(15),
@@ -126,11 +125,11 @@ class Upload extends React.Component {
       overflowX: 'auto'
     },
     detailsContent: {
-      margin: theme.spacing.unit * 3
+      margin: theme.spacing(3)
     },
     titleContainer: {
       flex: '0 0 auto',
-      marginRight: theme.spacing.unit * 2,
+      marginRight: theme.spacing(2),
       width: 350,
       overflowX: 'hidden'
     },
@@ -151,7 +150,7 @@ class Upload extends React.Component {
       overflowX: 'inherit'
     },
     checkbox: {
-      marginRight: theme.spacing.unit * 2
+      marginRight: theme.spacing(2)
     },
     stepper: {
       width: '100%',
@@ -163,8 +162,8 @@ class Upload extends React.Component {
       textAlign: 'right'
     },
     icon: {
-      marginLeft: -theme.spacing.unit * 0.5,
-      width: theme.spacing.unit * 13 - 2,
+      marginLeft: -theme.spacing(1) * 0.5,
+      width: theme.spacing(13) - 2,
       alignItems: 'center',
       display: 'flex'
     },
@@ -172,7 +171,7 @@ class Upload extends React.Component {
       cursor: 'pointer'
     },
     decideIcon: {
-      color: theme.palette.secondary.main
+      color: theme.palette.error.main
     }
   })
 
@@ -606,14 +605,16 @@ class Upload extends React.Component {
 
     return <EntryList
       title={`Upload with ${data.pagination.total} detected entries`}
-      query={{upload_id: upload.upload_id}}
+      query={{upload_id: [upload.upload_id]}}
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
+      selectedColumnsKey={null}
       editable={tasks_status === 'SUCCESS'}
       data={data}
       onChange={this.handleChange}
+      onEdit={this.handleChange}
       actions={actions}
-      showEntryActions={entry => entry.processed}
+      showEntryActions={entry => entry.processed || !running}
       {...this.state.params}
     />
   }
@@ -635,7 +636,7 @@ class Upload extends React.Component {
     } else if (upload.published) {
       return render(<PublishedIcon size={32} color="primary"/>, 'This upload is published')
     } else {
-      return render(<UnPublishedIcon size={32} color="secondary"/>, 'This upload is not published yet, and only visible to you')
+      return render(<UnPublishedIcon size={32} color="error"/>, 'This upload is not published yet, and only visible to you')
     }
   }
 
@@ -698,4 +699,4 @@ class Upload extends React.Component {
   }
 }
 
-export default compose(withRouter, withErrors, withApi(true, false), withDomain, withStyles(Upload.styles))(Upload)
+export default compose(withRouter, withErrors, withApi(true, false), withStyles(Upload.styles))(Upload)

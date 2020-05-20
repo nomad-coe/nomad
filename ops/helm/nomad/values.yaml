@@ -1,34 +1,35 @@
 ## Default values for nomad@FAIRDI
 
 ## Everything concerning the container images to be used
-images:
+image:
   ## The kubernetes docker-registry secret that can be used to access the registry
   #  with the container image in it.
   #  It can be created via:
   #    kubectl create secret docker-registry gitlab-mpcdf --docker-server=gitlab-registry.mpcdf.mpg.de --docker-username=<your-user-name > --docker-password=<yourpass> --docker-email=<email>
   secret: gitlab-mpcdf
 
-  ## The nomad image with all nomad relavant python code. Used by api and worker service.
-  nomad:
-    ## The docker container image name without tag
-    name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
-    ## The docker container image tag
-    tag: latest
-    pullPolicy: IfNotPresent
+  ## The docker container image name without tag
+  name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
+  ## The docker container image tag
+  tag: latest
+  pullPolicy: IfNotPresent
 
-  ## The nomad frontend image
-  frontend:
-    ## The docker container image name without tag
-    name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend
-    ## The docker container image tag
-    tag: latest
-    pullPolicy: IfNotPresent
-
+## Ingress can be unable to provide gui and api access through kubernetes ingress (only k8s 1.18+)
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "32g"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  hosts:
+  - ""
 
 ## Everything concerning the nomad app
 app:
   replicas: 1
-  https: true
   ## Number of gunicorn worker.
   worker: 10
   ## Number of threads per gunicorn worker (for async workerClass)
@@ -43,19 +44,15 @@ app:
 api:
   ## Secret used as cryptographic seed
   secret: "defaultApiSecret"
-  ## The adminstrator password (only way to ever set/change it)
-  adminPassword: "password"
-  ## A kubernetes secret with administrator password (supersedes adminPassword)
-  adminPasswordSecret: null
   ## Limit of unpublished uploads per user, except admin user
   uploadLimit: 10
 
 ## Everything concerning the nomad worker
 worker:
   replicas: 1
-  # request and limit in GB
-  memrequest: 64
-  memlimit: 420
+  # request and limit in GB, good prod sizes are 64, 420
+  memrequest: 8
+  memlimit: 32
   console_loglevel: ERROR
   logstash_loglevel: INFO
   ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
@@ -80,14 +77,16 @@ gui:
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
 proxy:
-  nodePort: 30001
-  nodeIP: 130.183.207.104
+  # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
+  nodePort:
+  nodeIP:
   timeout: 120
+  mirrorTimeout: 600
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     port: 80
     path: "/fairdi/nomad/latest"
-    kibanaPath: "/fairdi/kibana"
+    https: true
 
 ## configuration of the chart dependency for rabbitmq
 rabbitmq:
@@ -104,11 +103,9 @@ rabbitmq:
 ## A common name/prefix for all dbs and indices.
 dbname: fairdi_nomad_latest
 
-## The url for the upload page, used in emails to forward the user
-uploadurl: 'https://labdev-nomad.esc.mpg.rzg.de/fairdi/nomad/latest/uploads'
-
 ## Databases that are not run within the cluster.
 #  To run databases in the cluster, use the nomad-full helm chart.
+
 mongo:
   host: nomad-flink-01.esc
   port: 27017
@@ -118,6 +115,7 @@ elastic:
   port: 9200
 
 logstash:
+  enabled: true
   port: 5000
   host: nomad-flink-01.esc
 
@@ -131,6 +129,9 @@ mail:
   port: 25
   from: 'webmaster@nomad-coe.eu'
 
+client:
+  username: admin
+
 keycloak:
   serverExternalUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
   serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
@@ -142,17 +143,13 @@ keycloak:
 
 ## Everything concerning the data that is used by the service
 volumes:
-  prefixSize: 2
+  prefixSize: 1
   public: /nomad/fairdi/latest/fs/public
   staging: /nomad/fairdi/latest/fs/staging
   tmp: /nomad/fairdi/latest/fs/tmp
   nomad: /nomad
 
-## Everything else
-# The domain configuration, currently there is DFT and EMS
-domain: DFT
-
-springerDbPath: /nomad/fairdi/db/data/springer.db
+springerDbPath: /nomad/fairdi/db/data/springer.msg
 
 # Will reprocess calculations with their old matched parser, even if they do not
 # match this parser anymore

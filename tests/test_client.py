@@ -1,43 +1,68 @@
-# Copyright 2018 Markus Scheidgen
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an"AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from typing import List
+import pytest
 
-import time
+from nomad.client import query_archive
+from nomad.metainfo import MSection, SubSection
+from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo.public import section_run
 
-from nomad.processing import SUCCESS
-from nomad.datamodel import CalcWithMetadata
-
-from tests.test_files import example_file
-from tests.test_search import create_entry
+from tests.app.test_app import BlueprintClient
 
 
-def test_get_upload_command(bravado, no_warn):
-    assert bravado.uploads.get_upload_command().response().result.upload_command is not None
+# TODO with the existing published_wo_user_metadata fixture there is only one entry
+# that does not allow to properly test pagination and scrolling
+
+@pytest.fixture(scope='function')
+def api(client, monkeypatch):
+    monkeypatch.setattr('nomad.config.client.url', '')
+    api = BlueprintClient(client, '/api')
+    monkeypatch.setattr('nomad.client.requests', api)
+    return api
 
 
-def test_upload(bravado, proc_infra, no_warn):
-    with open(example_file, 'rb') as f:
-        upload = bravado.uploads.upload(file=f, name='test_upload').response().result
+def assert_results(
+        results: List[MSection],
+        sub_section_defs: List[SubSection] = None,
+        total=1):
+    assert len(results) == total
+    for result in results:
+        assert result.m_def == EntryArchive.m_def
+        if sub_section_defs:
+            current = result
+            for sub_section_def in sub_section_defs:
+                for other_sub_section_def in current.m_def.all_sub_sections.values():
+                    if other_sub_section_def != sub_section_def:
+                        assert len(current.m_get_sub_sections(other_sub_section_def)) == 0
 
-    while upload.tasks_running:
-        upload = bravado.uploads.get_upload(upload_id=upload.upload_id).response().result
-        time.sleep(0.1)
-
-    assert upload.tasks_status == SUCCESS
+                sub_sections = current.m_get_sub_sections(sub_section_def)
+                assert len(sub_sections) > 0
+                current = sub_sections[0]
 
 
-def test_get_repo_calc(bravado, proc_infra, raw_files):
-    create_entry(CalcWithMetadata(calc_id=0, upload_id='test_upload', published=True, with_embargo=False))
-    repo = bravado.repo.get_repo_calc(upload_id='test_upload', calc_id='0').response().result
-    assert repo is not None
-    assert repo['calc_id'] is not None
+def test_query(api, published_wo_user_metadata):
+    assert_results(query_archive())
+
+
+def test_query_query(api, published_wo_user_metadata):
+    assert_results(query_archive(query=dict(upload_id=[published_wo_user_metadata.upload_id])))
+
+
+@pytest.mark.parametrize('q_schema,sub_sections', [
+    ({'section_run': '*'}, [EntryArchive.section_run]),
+    ({'section_run': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system]),
+    ({'section_run[0]': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system])
+])
+def test_query_schema(api, published_wo_user_metadata, q_schema, sub_sections):
+    assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
+
+
+def test_query_authentication(api, published, other_test_user_auth, test_user_auth, other_test_user):
+    # The published test uploads uploader in calc and upload's user id do not match
+    # due to testing the uploader change via publish metadata.
+    # TODO this is a workarround and should be changed in conftest, especially since we do not need this
+    # feature anymore.
+    published.user_id = other_test_user.user_id
+    published.save()
+
+    assert_results(query_archive(authentication=other_test_user_auth), total=1)
+    assert_results(query_archive(authentication=test_user_auth), total=0)

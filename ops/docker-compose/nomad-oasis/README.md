@@ -104,7 +104,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -118,10 +118,10 @@ services:
             - ./nomad.yaml:/app/nomad.yaml
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
-    # nomad app (api)
+    # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -133,22 +133,23 @@ services:
         volumes:
             - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
-        command: python -m gunicorn.app.wsgiapp -w 4 --log-config ops/gunicorn.log.conf -b 0.0.0.0:8000 --timeout 300 nomad.app:app
+            - ./env.js:/app/gui/build/env.js
+            - ./gunicorn.log.conf:/app/gunicorn.log.conf
+            - ./gunicorn.conf:/app/gunicorn.conf
+        command: ["./run.sh", "/nomad-oasis"]
 
-    # nomad gui (serving the js)
+    # nomad gui (a reverse proxy for nomad)
     gui:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/frontend:stable
+        image: nginx:1.13.9-alpine
         container_name: nomad_oasis_gui
         command: nginx -g 'daemon off;'
         volumes:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
-            - ./env.js:/app/nomad/env.js
         links:
             - app
         ports:
             - 80:80
-        command: ["./run.sh", "/example-nomad"]
 
 volumes:
     nomad_oasis_mongo:
@@ -161,7 +162,7 @@ There are no mandatory changes necessary.
 
 A few things to notice:
 - All services use docker volumes for storage. This could be changed to host mounts.
-- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`.
+- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`, `gunicorn.conf`, `gunicorn.log.conf`.
 - The only exposed port is `80`. This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
 - All container will be named `nomad_oasis_*`. These names can be used to later reference the container with the `docker` cmd.
@@ -214,24 +215,18 @@ You need to change:
 
 ### nginx.conf
 
-The GUI container also serves as a proxy that forwards request to the app container. The
+The GUI container serves as a proxy that forwards request to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
 ```
 server {
     listen        80;
-    server_name   <your-host>;
+    server_name   www.example.com;
 
     location /nomad-oasis {
         proxy_set_header Host $host;
         proxy_pass_request_headers on;
         proxy_pass http://app:8000;
-    }
-
-    location /nomad-oasis/gui {
-        root      /app/;
-        rewrite ^/nomad-oasis/gui/(.*)$ /nomad/$1 break;
-        try_files $uri /nomad-oasis/gui/index.html;
     }
 
     location /nomad-oasis/gui/service-worker.js {
@@ -240,8 +235,7 @@ server {
         if_modified_since off;
         expires off;
         etag off;
-        root      /app/;
-        rewrite ^/nomad-oasis/gui/service-worker.js /nomad/service-worker.js break;
+        proxy_pass http://app:8000;
     }
 
     location /nomad-oasis/api/uploads {
@@ -269,6 +263,12 @@ A few things to notice:
 - You can use the server to server additional content if you like.
 - `client_max_body_size` sets a limit to the possible upload size.
 - If you operate the GUI container behind another proxy, keep in mind that your proxy should not buffer requests/responses to allow streaming of large requests/responses for `../api/uploads` and `../api/raw`.
+
+### gunicorn
+
+Simply create empty `gunicorn.conf` and `gunicorn.log.conf` in the beginning. Gunicorn
+is the WSGI-server that runs the nomad app. Consult the [gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html)
+for configuration options.
 
 ## Starting and stopping
 
@@ -319,3 +319,52 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_app
 - nomad_oasis_worker
 - nomad_oasis_gui
+
+## NOMAD Oasis FAQ
+
+### Why use an Oasis?
+There are three reasons: You want to manage data in private, you want local availability of public NOMAD data without network restrictions, or you want to manage large amounts of low quality and preliminary data that is not intended for publication.
+
+### How to organize data in NOMAD Oasis?
+
+#### How can I categorize or label my data?
+Current, NOMAD supports the following mechanism to organize data:
+data always belongs to one upload, one uploading user, and is assigned an upload datetime; uploads can have a custom name
+data can be assigned to multiple independent datasets
+data can hold a proprietary id called “external_id”
+data can be assigned multiple authors in addition to the uploading user
+The next NOMAD release (0.8.x) will contain more features to filter data based on uploader and upload time. It will also include a revised search bar that makes it easier to filter for external_id or upload_name.
+
+####  Is there some rights-based visibility?
+No. Currently, NOMAD only supports uploader controlled visibility. The uploader decides when to make an upload public (with or without embargo). The embargo can be used to limit the visibility of an upload to users that the uploader want to share his upload with.
+
+### How to share data with the central NOMAD?
+
+Keep in mind, it is not entirely clear, how we will do this.
+
+#### How to designate Oasis data for publishing to NOMAD?
+Currently, you should use one of the organizational mechanism to designate data for being published to NOMAD. we, you can use a dedicated dataset for publishable data.
+
+#### How to upload?
+
+Will will probably provide functionality in the API of the central NOMAD to upload data from an Oasis to the central NOMAD. We will provide the necessary scripts and detailed instructions. Most likely the data that is uploaded to the central NOMAD can be selected via a search query. Therefore, using a dedicated dataset, would be an easy to select criteria.
+
+### How to maintain an Oasis installation?
+
+#### How to install a NOMAD Oasis?
+Follow our guide: https://repository.nomad-coe.eu/app/docs/ops.html#operating-a-nomad-oasis
+
+#### How do version numbers work?
+There are still a lot of thing in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.
+
+#### How to upgrade a NOMAD Oasis?
+When we release a new version of the NOMAD software, it will be available as a new Docker image with an increased version number. You simply change the version number in your docker-compose.yaml and restart.
+
+#### What about major releases?
+Going from NOMAD 0.7.x to 0.8.x will require data migration. This means the layout of the data has changed and the new version cannot be used on top of the old data. This requires a separate installation of the new version and mirroring the data from the old version via NOMAD’s API. Detailed instructions will be made available with the new version.
+
+#### How to move data between installations?
+We the release of 0.8.x, we will clarify and how to move data between installations. (See last question)
+
+#### How to backup my Oasis?
+To backup your Oasis at least the file data and mongodb data needs to be backed up. You determined the path to your file data (your uploads) during the installation. This directory can be backed up like any other file backup (e.g. rsync). To backup the mongodb, please refer to the official mongodb documentation: https://docs.mongodb.com/manual/core/backups/. We suggest a simple mongodump export that is backed up alongside your files. The elasticsearch contents can be reproduced with the information in files and mongodb.

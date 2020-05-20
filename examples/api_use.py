@@ -9,5 +9,9 @@ nomad_url = 'http://repository.nomad-coe.eu/app/api'
 # create the bravado client
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url)
 
-# simple search request to print number of public entries
-print(client.repo.search().response().result.pagination.total)
+# perform the search request to print number of public entries
+data = client.repo.search(atoms=['Si', 'O']).response().result
+# print the total ammount of search results
+print(data.pagination.total)
+# print the data of the first result
+print(data.results[0])

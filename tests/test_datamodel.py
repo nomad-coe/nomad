@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 A generator for random test calculations.
-"""
+'''
 
 import random
 from essential_generators import DocumentGenerator
@@ -54,10 +54,10 @@ def _gen_user():
 def _gen_dataset():
     id, name = random.choice(datasets)
     id_str = str(id)
-    if datamodel.Dataset.m_def.m_x('me').objects(dataset_id=id_str).first() is None:
+    if datamodel.Dataset.m_def.a_mongo.objects(dataset_id=id_str).first() is None:
         datamodel.Dataset(
             user_id=random.choice(users), dataset_id=id_str, name=name,
-            doi=_gen_ref().value).m_x('me').create()
+            doi=_gen_ref().value).a_mongo.create()
     return id_str
 
 
@@ -65,63 +65,79 @@ def _gen_ref():
     return random.choice(references)
 
 
-def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.CalcWithMetadata:
+def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.EntryMetadata:
     random.seed(pid)
 
-    self = datamodel.DFTCalcWithMetadata()
+    entry = datamodel.EntryMetadata()
 
-    self.upload_id = upload_id if upload_id is not None else utils.create_uuid()
-    self.calc_id = calc_id if calc_id is not None else utils.create_uuid()
+    entry.upload_id = upload_id if upload_id is not None else utils.create_uuid()
+    entry.calc_id = calc_id if calc_id is not None else utils.create_uuid()
 
-    self.upload_time = datetime.datetime.utcnow()
-    self.calc_hash = utils.create_uuid()
-    self.pid = pid
-    self.mainfile = random.choice(filepaths)
-    self.files = list([self.mainfile] + random.choices(filepaths, k=random.choice(low_numbers_for_files)))
-    self.uploader = _gen_user()
+    entry.upload_time = datetime.datetime.utcnow()
+    entry.calc_hash = utils.create_uuid()
+    entry.pid = str(pid)
+    entry.mainfile = random.choice(filepaths)
+    entry.files = list([entry.mainfile] + random.choices(filepaths, k=random.choice(low_numbers_for_files)))
+    entry.uploader = _gen_user()
 
-    self.with_embargo = random.choice([True, False])
-    self.published = True
-    self.coauthors = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    self.shared_with = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    self.comment = random.choice(comments)
-    self.references = list(_gen_ref() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    self.datasets = list(
+    entry.with_embargo = random.choice([True, False])
+    entry.published = True
+    entry.coauthors = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
+    entry.shared_with = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
+    entry.comment = random.choice(comments)
+    entry.references = list(_gen_ref() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
+    entry.datasets = list(
         _gen_dataset()
         for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
 
-    self.atoms = list(random.choices(chemical_symbols[1:], k=random.choice(low_numbers_for_atoms)))
-    self.formula = ''.join('%s%d' % (atom, random.choice(low_numbers_for_atoms)) for atom in self.atoms)
-    self.formula = self.formula.replace('1', '')
+    entry.atoms = list(random.choices(chemical_symbols[1:], k=random.choice(low_numbers_for_atoms)))
+    entry.formula = ''.join('%s%d' % (atom, random.choice(low_numbers_for_atoms)) for atom in entry.atoms)
+    entry.formula = entry.formula.replace('1', '')
 
-    self.basis_set = random.choice(basis_sets)
-    self.xc_functional = random.choice(xc_functionals)
-    self.system = random.choice(systems)
-    self.crystal_system = random.choice(crystal_systems)
+    dft_metadata = entry.m_create(datamodel.DFTMetadata)
+    dft_metadata.basis_set = random.choice(basis_sets)
+    dft_metadata.xc_functional = random.choice(xc_functionals)
+    dft_metadata.system = random.choice(systems)
+    dft_metadata.crystal_system = random.choice(crystal_systems)
     spacegroup = random.randint(1, 225)
-    self.spacegroup = str(spacegroup)
-    self.spacegroup_symbol = Spacegroup(spacegroup).symbol
-    self.code_name = random.choice(codes)
-    self.code_version = '1.0.0'
+    dft_metadata.spacegroup = str(spacegroup)
+    dft_metadata.spacegroup_symbol = Spacegroup(spacegroup).symbol
+    dft_metadata.code_name = random.choice(codes)
+    dft_metadata.code_version = '1.0.0'
 
-    self.n_total_energies = random.choice(range(0, 5))
-    self.geometries = ['%d' % random.randint(1, 500), '%d' % random.randint(1, 500)]
+    dft_metadata.n_total_energies = random.choice(range(0, 5))
+    dft_metadata.geometries = ['%d' % random.randint(1, 500), '%d' % random.randint(1, 500)]
 
-    return self
+    return entry
+
+
+def test_common_metainfo():
+    from nomad.datamodel.metainfo import public
+
+    run = public.section_run()
+    system = run.m_create(public.section_system)
+    system.atom_labels = ['H', 'H', 'O']
+
+    assert run.section_system[0].atom_labels == ['H', 'H', 'O']
+
+
+def test_vasp_metainfo():
+    from nomad.datamodel.metainfo import public
+    from vaspparser.metainfo import m_env  # pylint: disable=unused-import
+    run = public.section_run()
+    assert 'vasp_src_date' in run.m_def.all_quantities
 
 
 if __name__ == '__main__':
     import sys
-    import json
     from elasticsearch.helpers import bulk
 
-    from nomad import infrastructure, search
+    from nomad import infrastructure
 
     print('Generate test data and add it to search and files')
     print('  first arg is number of calcs (code runs)')
     print('  second arg is number uploads to spread calcs over')
 
-    infrastructure.setup_logging()
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -130,7 +146,6 @@ if __name__ == '__main__':
 
     for calcs_per_upload in utils.chunks(range(0, n_calcs), int(n_calcs / n_uploads)):
         upload_id = utils.create_uuid()
-        upload = datamodel.UploadWithMetadata(upload_id=upload_id)
         upload_files = files.StagingUploadFiles(
             upload_id=upload_id, create=True, is_authorized=lambda: True)
 
@@ -145,12 +160,13 @@ if __name__ == '__main__':
                 if len(filepath) > 0:
                     with upload_files.raw_file(filepath, 'wt') as f:
                         f.write('this is a generated test file')
-            with upload_files.archive_file(calc.calc_id, 'wt') as f:
-                f.write(json.dumps({'section_run': [{'test': 'this is a generated test files'}]}))
-            with upload_files.archive_log_file(calc.calc_id, 'wt') as f:
-                f.write('this is a generated test file')
 
-            search_entry = search.Entry.from_calc_with_metadata(calc)
+            upload_files.write_archive(calc.calc_id, {
+                'section_run': [{'test': 'this is a generated test files'}],
+                'processing_logs': [{'event': 'this is a generated test file'}]
+            })
+
+            search_entry = calc.a_elastic.create_index_entry()
             search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)
             search_entry.n_geometries = low_numbers_for_geometries
             for _ in range(0, random.choice(search_entry.n_geometries)):
@@ -160,11 +176,9 @@ if __name__ == '__main__':
             pid += 1
             calcs.append(calc)
 
-        upload.calcs = calcs
-
         bulk(
             infrastructure.elastic_client,
             [entry.to_dict(include_meta=True) for entry in search_entries])
 
-        upload_files.pack(upload)
+        upload_files.pack(calcs)
         upload_files.delete()

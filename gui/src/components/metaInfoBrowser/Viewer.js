@@ -25,7 +25,7 @@ class ViewerUnstyled extends React.Component {
       flexWrap: 'nowrap',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      padding: theme.spacing.unit * 2,
+      padding: theme.spacing(2),
       zIndex: 1
     },
     sankey: {
@@ -57,6 +57,17 @@ class ViewerUnstyled extends React.Component {
         definition: this.props.rootElement,
         state: []
       }]
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.rootElement !== prevProps.rootElement) {
+      this.setState({
+        definitions: [{
+          definition: this.props.rootElement,
+          state: []
+        }]
+      })
     }
   }
 

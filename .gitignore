@@ -1,5 +1,6 @@
 .DS_Store
 .*env/
+.pytest/
 .python-version
 .ipynb_checkpoints/
 __pycache__
@@ -20,5 +21,9 @@ target/
 .vscode/
 vscode/
 nomad.yaml
-gunicorn.log.conf
-gunicorn.conf
+./gunicorn.log.conf
+./gunicorn.conf
+build/
+dist/
+setup.json
+parser.osio.log

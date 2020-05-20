@@ -20,6 +20,23 @@ standards like the [Optimade](http://www.optimade.org/) API.
 
 ## Getting started
 
+### Using NOMAD as a Python package
+
+You can install the `nomad` Python package from source distribution with pip. Please
+note, that this will only install part of NOMAD's dependencies that will only allow
+your to use NOMAD's client library, e.g. to access the NOMAD Archive.
+```
+pip install http://labdev-nomad.esc.rzg.mpg.de/dev/nomad/v0-8-0/dist/nomad-0.8.0
+```
+
+To **use the NOMAD parsers for example**, install the `parsing` extra:
+```
+pip install http://labdev-nomad.esc.rzg.mpg.de/dev/nomad/v0-8-0/dist/nomad-0.8.0[parsing]
+nomad parse --show-backend <your-file-to-parse>
+```
+
+### For NOMAD developer
+
 Read the [docs](https://repository.nomad-coe.eu/app/docs). The documentation is also part
 of the source code. It covers aspects like introduction, architecture, development setup/deployment,
 contributing, and API reference.
@@ -28,6 +45,17 @@ contributing, and API reference.
 ## Change log
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
+
+### v0.8.0
+- new underlying datamodel that allows to maintain multiple domains
+- mulitple domains supported the GUI
+- new metainfo implementation
+- API endpoint to access the metainfo
+- new archive based on new metainfo
+- client library that serves archive data as objects (with tab completion) not dictionaries
+- properties and user tab in the search GUI
+- improved performance on most parsers
+- NOMAD source distribution
 
 ### v0.7.9
 - Everything to run a simple NOMAD OASIS based on the central user-management

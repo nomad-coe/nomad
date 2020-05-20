@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<input>
+  <title>Si</title>
+  <structure speciespath="../../../../input-data/species">
+    <crystal>
+      <basevect>   7.158561576       0.000000000       0.000000000</basevect>
+      <basevect>   3.579280788       6.199496179       0.000000000</basevect>
+      <basevect>   3.579280788       2.066498726       5.844941051</basevect>
+    </crystal>
+    <species speciesfile="Si.xml" rmt="2.1000">
+      <atom coord="0.0000000000      0.0000000000      0.0000000000"/>
+      <atom coord="0.2500000000      0.2500000000      0.2500000000"/>
+    </species>
+  </structure>
+</input>
