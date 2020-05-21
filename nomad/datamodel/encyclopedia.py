@@ -332,25 +332,29 @@ class Method(MSection):
         type=MEnum("DFT", "GW", "unavailable", DFTU="DFT+U"),
         description="""
         Generic name for the used methodology.
-        """
+        """,
+        a_search=Search()
     )
     core_electron_treatment = Quantity(
         type=MEnum("full all electron", "all electron frozen core", "pseudopotential", "unavailable"),
         description="""
         How the core electrons are described.
-        """
+        """,
+        a_search=Search()
     )
     functional_long_name = Quantity(
         type=str,
         description="""
         Full identified for the used exchange-correlation functional.
-        """
+        """,
+        a_search=Search()
     )
     functional_type = Quantity(
         type=str,
         description="""
         Basic type of the used exchange-correlation functional.
-        """
+        """,
+        a_search=Search()
     )
     method_hash = Quantity(
         type=str,
@@ -430,7 +434,8 @@ class Calculation(MSection):
             unavailable="unavailable"),
         description="""
         Defines the type of calculation that was detected for this entry.
-        """
+        """,
+        a_search=Search()
     )
 
 

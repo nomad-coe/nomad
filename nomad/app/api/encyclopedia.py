@@ -22,7 +22,7 @@ from flask_restplus import Resource, abort, fields, marshal
 from flask import request
 from elasticsearch_dsl import Search, Q, A
 
-from nomad import config
+from nomad import config, files
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from .api import api
@@ -50,13 +50,16 @@ material_prop_map = {
 }
 
 
-def get_material(es_doc, keys):
+def get_es_doc_values(es_doc, mapping, keys=None):
     """Used to form a material definition for "materials/<material_id>" from
     the given ElasticSearch root document.
     """
+    if keys is None:
+        keys = mapping.keys()
+
     result = {}
     for key in keys:
-        es_key = material_prop_map[key]
+        es_key = mapping[key]
         try:
             value = es_doc
             for part in es_key.split("."):
@@ -82,6 +85,7 @@ material_result = api.model("material_result", {
     "formula": fields.String,
     "formula_reduced": fields.String,
     "system_type": fields.String,
+    "n_matches": fields.Integer,
     # Bulk only
     "has_free_wyckoff_parameters": fields.String,
     "strukturbericht_designation": fields.String,
@@ -149,7 +153,7 @@ class EncMaterialResource(Resource):
 
         # Create result JSON
         entry = response[0]
-        result = get_material(entry, keys)
+        result = get_es_doc_values(entry, material_prop_map, keys)
 
         return result, 200
 
@@ -166,7 +170,7 @@ materials_query = api.model("materials_input", {
         "page": fields.Integer(default=1),
         "per_page": fields.Integer(default=25),
         "pagination": fields.Boolean,
-        "mode": fields.String(default="collapse"),
+        "mode": fields.String(default="aggregation"),
     })),
     "material_name": fields.List(fields.String),
     "structure_type": fields.List(fields.String),
@@ -184,15 +188,17 @@ materials_query = api.model("materials_input", {
     "code_name": fields.List(fields.String),
     "mass_density": fields.Nested(range_query, description="Mass density range in kg / m ** 3."),
 })
+pages_result = api.model("page_info", {
+    "per_page": fields.Integer,
+    "total": fields.Integer,
+    "page": fields.Integer,
+    "pages": fields.Integer,
+})
+
 materials_result = api.model("materials_result", {
     "total_results": fields.Integer(allow_null=False),
     "results": fields.List(fields.Nested(material_result)),
-    "pages": fields.Nested(api.model("page_info", {
-        "per_page": fields.Integer,
-        "total": fields.Integer,
-        "page": fields.Integer,
-        "pages": fields.Integer,
-    })),
+    "pages": fields.Nested(pages_result),
     "es_query": fields.String(allow_null=False),
 })
 
@@ -346,7 +352,7 @@ class EncMaterialsResource(Resource):
         # 1: The paginated approach: No way to know the amount of matches,
         # but can return aggregation results in a quick fashion including
         # the number of matches entries per material.
-        if mode == "aggregate":
+        if mode == "aggregation":
             after = None
             # The loop is awkward, but emulates the old behaviour until the GUI is adapted.
             for _ in range(page):
@@ -389,8 +395,8 @@ class EncMaterialsResource(Resource):
             keys = list(material_prop_map.keys())
             for material in materials:
                 representative = material["representative"][0]
-                mat_dict = get_material(representative, keys)
-                mat_dict["n_of_calculations"] = material.doc_count
+                mat_dict = get_es_doc_values(representative, material_prop_map, keys)
+                mat_dict["n_matches"] = material.doc_count
                 result_list.append(mat_dict)
 
             # Page information is incomplete for aggregations
@@ -421,7 +427,7 @@ class EncMaterialsResource(Resource):
             result_list = []
             keys = list(material_prop_map.keys())
             for material in response:
-                mat_result = get_material(material, keys)
+                mat_result = get_es_doc_values(material, material_prop_map, keys)
                 result_list.append(mat_result)
 
             # Full page information available for collapse
@@ -442,7 +448,7 @@ class EncMaterialsResource(Resource):
 
 
 group_result = api.model("group_result", {
-    "calculation_list": fields.List(fields.String),
+    "calculations_list": fields.List(fields.String),
     "energy_minimum": fields.Float,
     "group_hash": fields.String,
     "group_type": fields.String,
@@ -467,7 +473,7 @@ class EncGroupsResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
     @api.expect(material_query, validate=False)
-    @api.marshal_with(groups_result, skip_none=True)
+    @api.marshal_with(groups_result)
     @api.doc("enc_materials")
     def get(self, material_id):
 
@@ -522,12 +528,9 @@ class EncGroupsResource(Resource):
 
         # No hits on the top query level
         response = s.execute()
-        n_hits = response.hits.total
-        if n_hits == 0:
-            abort(404, message="The specified material could not be found.")
+        groups = []
 
         # Collect information for each group from the aggregations
-        groups = []
         groups_eos = response.aggs.groups_eos.buckets
         groups_param = response.aggs.groups_param.buckets
 
@@ -539,7 +542,7 @@ class EncGroupsResource(Resource):
                 "group_type": group_type,
                 "nr_of_calculations": len(calculations),
                 "representative_calculation_id": hits[0].calc_id,
-                "calculation_list": calculations,
+                "calculations_list": calculations,
                 "energy_minimum": hits[0].encyclopedia.properties.energies.energy_total,
             }
             return group_dict
@@ -555,3 +558,250 @@ class EncGroupsResource(Resource):
             "total_groups": len(groups),
         }
         return result, 200
+
+
+suggestions_query = api.parser()
+suggestions_query.add_argument(
+    "property",
+    type=str,
+    choices=("code_name", "structure_type"),
+    help="The property name for which suggestions are returned.",
+    location="args"
+)
+suggestions_result = api.model("suggestions_result", {
+    "code_name": fields.List(fields.String),
+    "structure_type": fields.List(fields.String),
+})
+
+
+@ns.route("/suggestions")
+class EncSuggestionsResource(Resource):
+    @api.response(404, "Suggestion not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.expect(suggestions_query, validate=False)
+    @api.marshal_with(suggestions_result, skip_none=True)
+    @api.doc("enc_suggestions")
+    def get(self):
+
+        # Parse request arguments
+        args = suggestions_query.parse_args()
+        prop = args.get("property", None)
+
+        return {prop: []}, 200
+
+
+calc_query = api.parser()
+calc_query.add_argument(
+    "page",
+    default=0,
+    type=int,
+    help="The page number to return.",
+    location="args"
+)
+calc_query.add_argument(
+    "per_page",
+    default=25,
+    type=int,
+    help="The number of results per page",
+    location="args"
+)
+calc_prop_map = {
+    "calc_id": "calc_id",
+    "code_name": "dft.code_name",
+    "code_version": "dft.code_version",
+    "functional_type": "encyclopedia.method.functional_type",
+    "basis_set_type": "dft.basis_set",
+    "run_type": "encyclopedia.calculation.calculation_type",
+    "has_dos": "encyclopedia.properties.electronic_dos",
+    "has_band_structure": "encyclopedia.properties.electronic_band_structure",
+    "has_thermal_properties": "encyclopedia.properties.thermodynamical_properties",
+}
+calculation_result = api.model("calculation_result", {
+    "calc_id": fields.String,
+    "code_name": fields.String,
+    "code_version": fields.String,
+    "functional_type": fields.String,
+    "basis_set_type": fields.String,
+    "run_type": fields.String,
+    "has_dos": fields.Boolean,
+    "has_band_structure": fields.Boolean,
+    "has_thermal_properties": fields.Boolean,
+})
+calculations_result = api.model("calculations_result", {
+    "total_results": fields.Integer,
+    "pages": fields.Nested(pages_result),
+    "results": fields.List(fields.Nested(calculation_result)),
+})
+
+
+@ns.route("/materials/<string:material_id>/calculations")
+class EncCalculationResource(Resource):
+    @api.response(404, "Suggestion not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.expect(calc_query, validate=False)
+    @api.doc("enc_calculations")
+    def get(self, material_id):
+        """Used to return all calculations related to the given material.
+        """
+        args = calc_query.parse_args()
+        page = args["page"]
+        per_page = args["per_page"]
+
+        s = Search(index=config.elastic.index_name)
+        query = Q(
+            "bool",
+            filter=[
+                Q("term", published=True),
+                Q("term", with_embargo=False),
+                Q("term", encyclopedia__material__material_id=material_id),
+            ]
+        )
+        s = s.query(query)
+
+        # The query is filtered already on the ES side so we don"t need to
+        # transfer so much data.
+        s = s.extra(**{
+            "_source": {"includes": list(calc_prop_map.values())},
+            "size": per_page,
+            "from": page,
+        })
+
+        response = s.execute()
+
+        # No such material
+        if len(response) == 0:
+            abort(404, message="There is no material {}".format(material_id))
+
+        # Create result JSON
+        results = []
+        for entry in response:
+            calc_dict = get_es_doc_values(entry, calc_prop_map)
+            calc_dict["has_dos"] = calc_dict["has_dos"] is not None
+            calc_dict["has_band_structure"] = calc_dict["has_dos"] is not None
+            calc_dict["has_thermal_properties"] = calc_dict["has_thermal_properties"] is not None
+            results.append(calc_dict)
+
+        result = {
+            "total_results": len(results),
+            "results": results,
+            "pages": {
+                "per_page": per_page,
+                "page": page,
+            }
+        }
+
+        return result, 200
+
+
+@ns.route("/materials/<string:material_id>/cells")
+class EncCellsResource(Resource):
+    @api.response(404, "Suggestion not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.doc("enc_cells")
+    def get(self, material_id):
+        """Used to return cell information related to the given material.
+        """
+        return {"results": []}, 200
+
+
+wyckoff_variables_result = api.model("wyckoff_variables_result", {
+    "x": fields.Float,
+    "y": fields.Float,
+    "z": fields.Float,
+})
+
+wyckoff_set_result = api.model("wyckoff_set_result", {
+    "wyckoff_letter": fields.String,
+    "indices": fields.List(fields.Integer),
+    "element": fields.String,
+    "variables": fields.List(fields.Nested(wyckoff_variables_result)),
+})
+
+idealized_structure_result = api.model("idealized_structure_result", {
+    "atom_labels": fields.List(fields.String),
+    "atom_positions": fields.List(fields.List(fields.Float)),
+    "lattice_vectors": fields.List(fields.List(fields.Float)),
+    "lattice_vectors_primitive": fields.List(fields.List(fields.Float)),
+    "lattice_parameters": fields.List(fields.Float),
+    "periodicity": fields.List(fields.Boolean),
+    "number_of_atoms": fields.Integer,
+    "cell_volume": fields.Float,
+    "wyckoff_sets": fields.List(fields.Nested(wyckoff_set_result)),
+})
+
+
+@ns.route("/materials/<string:material_id>/idealized_structure")
+class EncIdealizedStructureResource(Resource):
+    @api.response(404, "Suggestion not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.marshal_with(idealized_structure_result, skip_none=True)
+    @api.doc("enc_material_idealized_structure")
+    def get(self, material_id):
+        """Specialized path for returning a representative idealized structure
+        that is displayed in the gui for this material.
+        """
+        # The representative idealized structure simply comes from the first
+        # calculation when the calculations are alphabetically sorted by their
+        # calc_id. Coming up with a good way to select the representative one
+        # is pretty tricky in general, there are several options:
+        # - Lowest energy: This would be most intuitive, but the energy scales
+        #   between codes do not match, and the energy may not have been
+        #   reported.
+        # - Volume that is closest to mean volume: how to calculate volume for
+        #   molecules, surfaces, etc...
+        # - Random: We would want the representative visualization to be
+        #   relatively stable.
+        s = Search(index=config.elastic.index_name)
+        query = Q(
+            "bool",
+            filter=[
+                Q("term", published=True),
+                Q("term", with_embargo=False),
+                Q("term", encyclopedia__material__material_id=material_id),
+            ]
+        )
+        s = s.query(query)
+
+        # The query is filtered already on the ES side so we don"t need to
+        # transfer so much data.
+        s = s.extra(**{
+            "sort": [{"calc_id": {"order": "asc"}}],
+            "_source": {"includes": ["upload_id", "calc_id"]},
+            "size": 1,
+        })
+
+        response = s.execute()
+
+        # No such material
+        if len(response) == 0:
+            abort(404, message="There is no material {}".format(material_id))
+
+        # Read the idealized_structure from the Archive. The structure can be
+        # quite large and no direct search queries are performed against it, so
+        # it is not in the ES index.
+        entry = response[0]
+        upload_id = entry.upload_id
+        calc_id = entry.calc_id
+        idealized_structure = read_archive(upload_id, calc_id, 'section_metadata/encyclopedia/material/idealized_structure')
+
+        return idealized_structure, 200
+
+
+def read_archive(upload_id, calc_id, path):
+    """Used to read data from the archive.
+    """
+    upload_files = files.UploadFiles.get(upload_id)
+    # upload_files_cache[upload_id] = upload_files
+    with upload_files.read_archive(calc_id) as archive:
+        data = archive[calc_id]
+        parts = path.split("/")
+        for part in parts:
+            data = data[part]
+        if not isinstance(data, dict):
+            data = data.to_dict()
+
+    return data
