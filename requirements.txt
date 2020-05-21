@@ -71,6 +71,7 @@ unidecode
 python-json-logger
 recommonmark
 jinja2
+jmespath
 
 # [dev]
 setuptools
