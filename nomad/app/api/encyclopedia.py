@@ -17,6 +17,7 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
+from typing import List, Dict
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
@@ -24,6 +25,7 @@ from elasticsearch_dsl import Search, Q, A
 
 from nomad import config, files
 from nomad.units import ureg
+from nomad.metainfo import MSection
 from nomad.atomutils import get_hill_decomposition
 from .api import api
 
@@ -87,7 +89,7 @@ material_result = api.model("material_result", {
     "system_type": fields.String,
     "n_matches": fields.Integer,
     # Bulk only
-    "has_free_wyckoff_parameters": fields.String,
+    "has_free_wyckoff_parameters": fields.Boolean,
     "strukturbericht_designation": fields.String,
     "material_name": fields.String,
     "bravais_lattice": fields.String,
@@ -591,15 +593,15 @@ class EncSuggestionsResource(Resource):
         return {prop: []}, 200
 
 
-calc_query = api.parser()
-calc_query.add_argument(
+calcs_query = api.parser()
+calcs_query.add_argument(
     "page",
     default=0,
     type=int,
     help="The page number to return.",
     location="args"
 )
-calc_query.add_argument(
+calcs_query.add_argument(
     "per_page",
     default=25,
     type=int,
@@ -612,6 +614,7 @@ calc_prop_map = {
     "code_version": "dft.code_version",
     "functional_type": "encyclopedia.method.functional_type",
     "basis_set_type": "dft.basis_set",
+    "core_electron_treatment": "encyclopedia.method.core_electron_treatment",
     "run_type": "encyclopedia.calculation.calculation_type",
     "has_dos": "encyclopedia.properties.electronic_dos",
     "has_band_structure": "encyclopedia.properties.electronic_band_structure",
@@ -623,6 +626,7 @@ calculation_result = api.model("calculation_result", {
     "code_version": fields.String,
     "functional_type": fields.String,
     "basis_set_type": fields.String,
+    "core_electron_treatment": fields.String,
     "run_type": fields.String,
     "has_dos": fields.Boolean,
     "has_band_structure": fields.Boolean,
@@ -636,16 +640,16 @@ calculations_result = api.model("calculations_result", {
 
 
 @ns.route("/materials/<string:material_id>/calculations")
-class EncCalculationResource(Resource):
+class EncCalculationsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.expect(calc_query, validate=False)
+    @api.expect(calcs_query, validate=False)
     @api.doc("enc_calculations")
     def get(self, material_id):
         """Used to return all calculations related to the given material.
         """
-        args = calc_query.parse_args()
+        args = calcs_query.parse_args()
         page = args["page"]
         per_page = args["per_page"]
 
@@ -786,22 +790,112 @@ class EncIdealizedStructureResource(Resource):
         entry = response[0]
         upload_id = entry.upload_id
         calc_id = entry.calc_id
-        idealized_structure = read_archive(upload_id, calc_id, 'section_metadata/encyclopedia/material/idealized_structure')
+        ideal_struct_path = "section_metadata/encyclopedia/material/idealized_structure"
+        idealized_structure = read_archive(upload_id, calc_id, ideal_struct_path)[ideal_struct_path]
 
         return idealized_structure, 200
 
 
-def read_archive(upload_id, calc_id, path):
+@ns.route("/materials/<string:material_id>/calculations/<string:calc_id>")
+class EncCalculationResource(Resource):
+    @api.response(404, "Material or calculation not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.doc("enc_calculation")
+    def get(self, material_id, calc_id):
+        """Used to return calculation details that are not available in the ES
+        index and are instead read from the Archive directly.
+        """
+        s = Search(index=config.elastic.index_name)
+        query = Q(
+            "bool",
+            filter=[
+                Q("term", published=True),
+                Q("term", with_embargo=False),
+                Q("term", encyclopedia__material__material_id=material_id),
+                Q("term", calc_id=calc_id),
+            ]
+        )
+        s = s.query(query)
+
+        # The query is filtered already on the ES side so we don"t need to
+        # transfer so much data.
+        s = s.extra(**{
+            "_source": {"includes": [
+                "upload_id",
+                "calc_id",
+                "encyclopedia.properties",
+                "encyclopedia.material.material_type",
+                "encyclopedia.material.bulk.has_free_wyckoff_parameters"
+            ]},
+            "size": 1,
+        })
+
+        response = s.execute()
+
+        # No such material
+        if len(response) == 0:
+            abort(404, message="There is no material {} with calculation {}".format(material_id, calc_id))
+
+        # Read the idealized_structure from the Archive. The structure can be
+        # quite large and no direct search queries are performed against it, so
+        # it is not in the ES index.
+        entry = response[0]
+        upload_id = entry.upload_id
+        calc_id = entry.calc_id
+        paths = ['section_metadata/encyclopedia/material/idealized_structure']
+        data = read_archive(
+            upload_id,
+            calc_id,
+            paths,
+        )
+
+        # Read the lattice parameters
+        ideal_struct = data['section_metadata/encyclopedia/material/idealized_structure']
+
+        # Final result
+        result = {
+            "lattice_parameters": ideal_struct["lattice_parameters"],
+            "energies": entry.encyclopedia.properties.energies.to_dict(),
+            "mass_density": entry.encyclopedia.properties.mass_density,
+            "atomic_density": entry.encyclopedia.properties.atomic_density,
+            "cell_volume": ideal_struct["cell_volume"],
+        }
+
+        # Return full Wyckoff position information for bulk structures with
+        # free Wyckoff parameters
+        if entry.encyclopedia.material.material_type == "bulk":
+            if entry.encyclopedia.material.bulk.has_free_wyckoff_parameters:
+                result["wyckoff_sets"] = ideal_struct["wyckoff_sets"]
+
+        return result, 200
+
+
+def read_archive(upload_id: str, calc_id: str, paths: List[str]) -> Dict[str, MSection]:
     """Used to read data from the archive.
+
+    Args:
+        upload_id: Upload id.
+        calc_id: Calculation id.
+        paths: List of metainfo paths to read and return.
+
+    Returns:
+        For each path, a dictionary containing the path as key and the returned
+        section as value.
     """
+    if isinstance(paths, str):
+        paths = [paths]
+
+    result = {}
     upload_files = files.UploadFiles.get(upload_id)
-    # upload_files_cache[upload_id] = upload_files
     with upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
-        parts = path.split("/")
-        for part in parts:
-            data = data[part]
-        if not isinstance(data, dict):
-            data = data.to_dict()
+        for path in paths:
+            parts = path.split("/")
+            for part in parts:
+                data = data[part]
+            if not isinstance(data, dict):
+                data = data.to_dict()
+            result[path] = data
 
-    return data
+    return result
