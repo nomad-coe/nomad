@@ -32,6 +32,7 @@ from nomad.datamodel.encyclopedia import (
     IdealizedStructure,
     WyckoffSet,
     WyckoffVariables,
+    LatticeParameters,
 )
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.parsing.legacy import Backend
@@ -128,7 +129,14 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell() * 1E-10
-        ideal.lattice_parameters = atomutils.get_lattice_parameters(cell_normalized)
+        param_values = atomutils.get_lattice_parameters(cell_normalized)
+        param_section = ideal.m_create(LatticeParameters)
+        param_section.a = float(param_values[0])
+        param_section.b = float(param_values[1])
+        param_section.c = float(param_values[2])
+        param_section.alpha = float(param_values[3])
+        param_section.beta = float(param_values[4])
+        param_section.gamma = float(param_values[5])
 
     def mass_density(self, properties: Properties, repr_system: Atoms) -> None:
         mass = atomutils.get_summed_atomic_mass(repr_system.get_atomic_numbers())
@@ -425,16 +433,19 @@ class Material2DNormalizer(MaterialNormalizer):
         ideal.lattice_vectors_primitive = cell_prim
 
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
-        # 2D systems only have three lattice parameter: two length and angle between them
+        # 2D systems only have three lattice parameter: two lengths and angle between them
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a_vec = cell[periodic_indices[0], :] * 1e-10
         b_vec = cell[periodic_indices[1], :] * 1e-10
         a = np.linalg.norm(a_vec)
         b = np.linalg.norm(b_vec)
-        alpha = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
-        alpha = np.arccos(alpha)
-        ideal.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
+        gamma = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
+        gamma = np.arccos(gamma)
+        param_section = ideal.m_create(LatticeParameters)
+        param_section.a = float(a)
+        param_section.b = float(b)
+        param_section.gamma = float(gamma)
 
     def periodicity(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         # MatID already provides the correct periodicity
@@ -533,7 +544,8 @@ class Material1DNormalizer(MaterialNormalizer):
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
-        ideal.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
+        params = ideal.m_create(LatticeParameters)
+        params.a = float(a)
 
     def periodicity(self, ideal: IdealizedStructure, prim_atoms: Atoms) -> None:
         # Get dimension of system by also taking into account the covalent radii

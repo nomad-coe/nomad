@@ -71,7 +71,7 @@ def test_1d_metainfo(one_d: EntryArchive):
     assert ideal.atom_positions is not None
     assert ideal.lattice_vectors is not None
     assert np.array_equal(ideal.periodicity, [True, False, False])
-    assert np.allclose(ideal.lattice_parameters, [4.33793652e-10, 0, 0, 0, 0, 0], atol=0)
+    assert ideal.lattice_parameters.a == pytest.approx(4.33793652e-10)
 
 
 def test_2d_metainfo(two_d: EntryArchive):
@@ -92,7 +92,12 @@ def test_2d_metainfo(two_d: EntryArchive):
     assert ideal.lattice_vectors is not None
     assert ideal.lattice_vectors_primitive is not None
     assert np.array_equal(ideal.periodicity, [True, True, False])
-    assert np.allclose(ideal.lattice_parameters, [2.46559821e-10, 2.46559821e-10, 0, 120 / 180 * np.pi, 0, 0], atol=0)
+    assert ideal.lattice_parameters.a == pytest.approx(2.46559821e-10)
+    assert ideal.lattice_parameters.b == pytest.approx(2.46559821e-10)
+    assert ideal.lattice_parameters.c is None
+    assert ideal.lattice_parameters.alpha is None
+    assert ideal.lattice_parameters.beta is None
+    assert ideal.lattice_parameters.gamma == pytest.approx(120 / 180 * np.pi)
 
 
 def test_bulk_metainfo(bulk: EntryArchive):

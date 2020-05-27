@@ -61,6 +61,60 @@ class WyckoffSet(MSection):
     variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False)
 
 
+class LatticeParameters(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Lattice parameters of the idealized cell. The lattice parameters can
+        only be reported consistently after idealization and may not perfectly
+        correspond to the original simulation cell.
+        """,
+        a_search="lattice_parameters"
+    )
+    a = Quantity(
+        type=float,
+        description="""
+        Length of the first basis vector.
+        """,
+        a_search=Search()
+    )
+    b = Quantity(
+        type=float,
+        description="""
+        Length of the second basis vector.
+        """,
+        a_search=Search()
+    )
+    c = Quantity(
+        type=float,
+        description="""
+        Length of the third basis vector.
+        """,
+        a_search=Search()
+    )
+    alpha = Quantity(
+        type=float,
+        description="""
+        Angle between second and third basis vector.
+        """,
+        a_search=Search()
+    )
+    beta = Quantity(
+        type=float,
+        description="""
+        Angle between first and third basis vector.
+        """,
+        a_search=Search()
+    )
+    gamma = Quantity(
+        type=float,
+        description="""
+        Angle between first and second basis vector.
+        """,
+        a_search=Search()
+    )
+
+
 class IdealizedStructure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -70,7 +124,8 @@ class IdealizedStructure(MSection):
         visualizing the material and for calculating the structural properties.
         The properties of the idealized structure may slightly vary from the
         original structure used in the calculation.
-        """
+        """,
+        a_search="idealized_structure",
     )
     atom_labels = Quantity(
         type=str,
@@ -105,15 +160,6 @@ class IdealizedStructure(MSection):
         idealized to match the detected symmemtry properties.
         """
     )
-    lattice_parameters = Quantity(
-        type=np.dtype(np.float64),
-        shape=[6],
-        description="""
-        Lattice parameters of the idealized cell. The lattice parameters can
-        only be reported consistently after idealization and may not perfectly
-        correspond to the original simulation cell.
-        """
-    )
     periodicity = Quantity(
         type=np.bool,
         shape=[3],
@@ -135,9 +181,11 @@ class IdealizedStructure(MSection):
         Volume of the idealized cell. The cell volume can only be reported
         consistently after idealization and may not perfectly correspond to the
         original simulation cell.
-        """
+        """,
+        a_search=Search()
     )
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
+    lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
 
 
 class Bulk(MSection):

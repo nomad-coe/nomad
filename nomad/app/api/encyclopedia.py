@@ -450,12 +450,14 @@ class EncMaterialsResource(Resource):
 
 
 group_result = api.model("group_result", {
-    "calculations_list": fields.List(fields.String),
+    "calculations": fields.List(fields.String),
+    "energies": fields.List(fields.Float),
+    "volumes": fields.List(fields.Float),
     "energy_minimum": fields.Float,
     "group_hash": fields.String,
     "group_type": fields.String,
     "nr_of_calculations": fields.Integer,
-    "representative_calculation_id": fields.String,
+    "representative_calc_id": fields.String,
 })
 groups_result = api.model("groups_result", {
     "total_groups": fields.Integer(allow_null=False),
@@ -465,6 +467,7 @@ group_source = {
     "includes": [
         "calc_id",
         "encyclopedia.properties.energies.energy_total",
+        "encyclopedia.material.idealized_structure.cell_volume",
     ]
 }
 
@@ -490,6 +493,7 @@ class EncGroupsResource(Resource):
             ],
             must=[
                 Q("exists", field="encyclopedia.properties.energies.energy_total"),
+                Q("exists", field="encyclopedia.material.idealized_structure.cell_volume"),
             ],
             should=[
                 Q("exists", field="encyclopedia.method.group_eos_hash"),
@@ -539,12 +543,16 @@ class EncGroupsResource(Resource):
         def get_group(group, group_type, group_hash):
             hits = group.energies.hits
             calculations = [doc.calc_id for doc in hits]
+            energies = [doc.encyclopedia.properties.energies.energy_total for doc in hits]
+            volumes = [doc.encyclopedia.material.idealized_structure.cell_volume for doc in hits]
             group_dict = {
                 "group_hash": group_hash,
                 "group_type": group_type,
                 "nr_of_calculations": len(calculations),
-                "representative_calculation_id": hits[0].calc_id,
-                "calculations_list": calculations,
+                "representative_calc_id": hits[0].calc_id,
+                "calculations": calculations,
+                "energies": energies,
+                "volumes": volumes,
                 "energy_minimum": hits[0].encyclopedia.properties.energies.energy_total,
             }
             return group_dict
@@ -699,16 +707,78 @@ class EncCalculationsResource(Resource):
         return result, 200
 
 
-@ns.route("/materials/<string:material_id>/cells")
+statistics_query = api.model("statistics_query", {
+    "calculations": fields.List(fields.String),
+})
+statistics = api.model("statistics", {
+    "min": fields.Float,
+    "max": fields.Float,
+    "avg": fields.Float,
+})
+statistics_result = api.model("statistics_result", {
+    "cell_volume": fields.Nested(statistics),
+})
+
+
+@ns.route("/materials/<string:material_id>/statistics")
 class EncCellsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
+    @api.expect(statistics_query, validate=False)
+    @api.marshal_with(statistics_result, skip_none=True)
     @api.doc("enc_cells")
     def get(self, material_id):
-        """Used to return cell information related to the given material.
+        """Used to return statistics related to the specified material and
+        calculations.
         """
-        return {"results": []}, 200
+        # Get query parameters as json
+        try:
+            data = marshal(request.get_json(), statistics_query)
+        except Exception as e:
+            abort(400, message=str(e))
+
+        # Find entries for the given material.
+        bool_query = Q(
+            "bool",
+            filter=[
+                Q("term", published=True),
+                Q("term", with_embargo=False),
+                Q("term", encyclopedia__material__material_id=material_id),
+                Q("terms", calc_id=data["calculations"]),
+            ]
+        )
+
+        s = Search(index=config.elastic.index_name)
+        s = s.query(bool_query)
+
+        # Add statistics aggregations
+        cell_volume_agg = A(
+            "stats",
+            field="encyclopedia.material.idealized_structure.cell_volume",
+        )
+        s.aggs.bucket("cell_volume_stats", cell_volume_agg)
+
+        # Don't return individual documents
+        s = s.extra(**{
+            "size": 0,
+        })
+
+        # No hits on the top query level
+        response = s.execute()
+        if response.hits.total == 0:
+            abort(404, message="Could not find matching calculations.")
+
+        # Return results
+        cell_volume_stats = response.aggs.cell_volume_stats
+        result = {
+            "cell_volume": {
+                "min": cell_volume_stats.min,
+                "max": cell_volume_stats.max,
+                "avg": cell_volume_stats.avg
+            }
+        }
+        return result, 200
 
 
 wyckoff_variables_result = api.model("wyckoff_variables_result", {
@@ -716,12 +786,19 @@ wyckoff_variables_result = api.model("wyckoff_variables_result", {
     "y": fields.Float,
     "z": fields.Float,
 })
-
 wyckoff_set_result = api.model("wyckoff_set_result", {
     "wyckoff_letter": fields.String,
     "indices": fields.List(fields.Integer),
     "element": fields.String,
     "variables": fields.List(fields.Nested(wyckoff_variables_result)),
+})
+lattice_parameters = api.model("lattice_parameters", {
+    "a": fields.Float,
+    "b": fields.Float,
+    "c": fields.Float,
+    "alpha": fields.Float,
+    "beta": fields.Float,
+    "gamma": fields.Float,
 })
 
 idealized_structure_result = api.model("idealized_structure_result", {
@@ -729,7 +806,7 @@ idealized_structure_result = api.model("idealized_structure_result", {
     "atom_positions": fields.List(fields.List(fields.Float)),
     "lattice_vectors": fields.List(fields.List(fields.Float)),
     "lattice_vectors_primitive": fields.List(fields.List(fields.Float)),
-    "lattice_parameters": fields.List(fields.Float),
+    "lattice_parameters": fields.Nested(lattice_parameters),
     "periodicity": fields.List(fields.Boolean),
     "number_of_atoms": fields.Integer,
     "cell_volume": fields.Float,
