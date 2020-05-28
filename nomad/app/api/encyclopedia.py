@@ -707,28 +707,53 @@ class EncCalculationsResource(Resource):
         return result, 200
 
 
+histogram = api.model("histogram", {
+    "occurrences": fields.List(fields.Integer),
+    "values": fields.List(fields.Float),
+})
 statistics_query = api.model("statistics_query", {
     "calculations": fields.List(fields.String),
+    "properties": fields.List(fields.String),
 })
 statistics = api.model("statistics", {
     "min": fields.Float,
     "max": fields.Float,
     "avg": fields.Float,
+    "histogram": fields.Nested(histogram)
 })
 statistics_result = api.model("statistics_result", {
     "cell_volume": fields.Nested(statistics),
+    "atomic_density": fields.Nested(statistics),
+    "mass_density": fields.Nested(statistics),
+    "lattice_a": fields.Nested(statistics),
+    "lattice_b": fields.Nested(statistics),
+    "lattice_c": fields.Nested(statistics),
+    "alpha": fields.Nested(statistics),
+    "beta": fields.Nested(statistics),
+    "gamma": fields.Nested(statistics),
 })
+property_map = {
+    "cell_volume": "encyclopedia.material.idealized_structure.cell_volume",
+    "atomic_density": "encyclopedia.properties.atomic_density",
+    "mass_density": "encyclopedia.properties.mass_density",
+    "lattice_a": "encyclopedia.material.idealized_structure.lattice_parameters.a",
+    "lattice_b": "encyclopedia.material.idealized_structure.lattice_parameters.b",
+    "lattice_c": "encyclopedia.material.idealized_structure.lattice_parameters.c",
+    "alpha": "encyclopedia.material.idealized_structure.lattice_parameters.alpha",
+    "beta": "encyclopedia.material.idealized_structure.lattice_parameters.beta",
+    "gamma": "encyclopedia.material.idealized_structure.lattice_parameters.gamma",
+}
 
 
 @ns.route("/materials/<string:material_id>/statistics")
-class EncCellsResource(Resource):
+class EncStatisticsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
     @api.expect(statistics_query, validate=False)
     @api.marshal_with(statistics_result, skip_none=True)
-    @api.doc("enc_cells")
-    def get(self, material_id):
+    @api.doc("enc_statistics")
+    def post(self, material_id):
         """Used to return statistics related to the specified material and
         calculations.
         """
@@ -751,33 +776,56 @@ class EncCellsResource(Resource):
 
         s = Search(index=config.elastic.index_name)
         s = s.query(bool_query)
-
-        # Add statistics aggregations
-        cell_volume_agg = A(
-            "stats",
-            field="encyclopedia.material.idealized_structure.cell_volume",
-        )
-        s.aggs.bucket("cell_volume_stats", cell_volume_agg)
-
-        # Don't return individual documents
         s = s.extra(**{
             "size": 0,
         })
+
+        # Add statistics aggregations for each requested property
+        properties = data["properties"]
+        for prop in properties:
+            stats_agg = A("stats", field=property_map[prop])
+            s.aggs.bucket("{}_stats".format(prop), stats_agg)
 
         # No hits on the top query level
         response = s.execute()
         if response.hits.total == 0:
             abort(404, message="Could not find matching calculations.")
 
+        # Run a second query that creates histograms with fixed size buckets
+        # based on the min and max from previous query. Might make more sense
+        # to use the mean and sigma to define the range?
+        s = Search(index=config.elastic.index_name)
+        s = s.query(bool_query)
+        s = s.extra(**{
+            "size": 0,
+        })
+        n_buckets = 10
+        for prop in properties:
+            stats = getattr(response.aggs, "{}_stats".format(prop))
+            interval = (stats.max - stats.min) / n_buckets
+            if interval == 0:
+                interval = 1
+            hist_agg = A("histogram", field=property_map[prop], interval=interval)
+            s.aggs.bucket("{}_hist".format(prop), hist_agg)
+        response_hist = s.execute()
+
         # Return results
-        cell_volume_stats = response.aggs.cell_volume_stats
-        result = {
-            "cell_volume": {
-                "min": cell_volume_stats.min,
-                "max": cell_volume_stats.max,
-                "avg": cell_volume_stats.avg
+        result = {}
+        for prop in properties:
+            stats = getattr(response.aggs, "{}_stats".format(prop))
+            hist = getattr(response_hist.aggs, "{}_hist".format(prop))
+            occurrences = [x.doc_count for x in hist.buckets]
+            values = [x.key for x in hist.buckets]
+            result[prop] = {
+                "min": stats.min,
+                "max": stats.max,
+                "avg": stats.avg,
+                "hist": {
+                    "occurrences": occurrences,
+                    "values": values,
+                }
             }
-        }
+
         return result, 200
 
 
