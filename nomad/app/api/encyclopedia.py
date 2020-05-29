@@ -714,6 +714,7 @@ histogram = api.model("histogram", {
 statistics_query = api.model("statistics_query", {
     "calculations": fields.List(fields.String),
     "properties": fields.List(fields.String),
+    "n_histogram_bins": fields.Integer,
 })
 statistics = api.model("statistics", {
     "min": fields.Float,
@@ -799,13 +800,13 @@ class EncStatisticsResource(Resource):
         s = s.extra(**{
             "size": 0,
         })
-        n_buckets = 10
+        n_bins = data["n_histogram_bins"]
         for prop in properties:
             stats = getattr(response.aggs, "{}_stats".format(prop))
-            interval = (stats.max - stats.min) / n_buckets
+            interval = (stats.max * 1.001 - stats.min) / n_bins
             if interval == 0:
                 interval = 1
-            hist_agg = A("histogram", field=property_map[prop], interval=interval)
+            hist_agg = A("histogram", field=property_map[prop], interval=interval, offset=stats.min, min_doc_count=0)
             s.aggs.bucket("{}_hist".format(prop), hist_agg)
         response_hist = s.execute()
 
@@ -820,7 +821,7 @@ class EncStatisticsResource(Resource):
                 "min": stats.min,
                 "max": stats.max,
                 "avg": stats.avg,
-                "hist": {
+                "histogram": {
                     "occurrences": occurrences,
                     "values": values,
                 }
