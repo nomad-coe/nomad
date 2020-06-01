@@ -17,7 +17,7 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
-from typing import List, Dict
+from typing import List, Dict, Union, Sequence
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
@@ -218,9 +218,11 @@ class EncMaterialsResource(Resource):
     def post(self):
         """Used to query a list of materials with the given search options.
         """
+        print("HERE")
         # Get query parameters as json
         try:
             data = marshal(request.get_json(), materials_query)
+            print(data)
         except Exception as e:
             abort(400, message=str(e))
 
@@ -721,7 +723,7 @@ class EncCalculationsResource(Resource):
         for entry in response:
             calc_dict = get_es_doc_values(entry, calc_prop_map)
             calc_dict["has_dos"] = calc_dict["has_dos"] is not None
-            calc_dict["has_band_structure"] = calc_dict["has_dos"] is not None
+            calc_dict["has_band_structure"] = calc_dict["has_band_structure"] is not None
             calc_dict["has_thermal_properties"] = calc_dict["has_thermal_properties"] is not None
             results.append(calc_dict)
 
@@ -1005,7 +1007,7 @@ class EncCalculationResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
     @api.expect(calculation_property_query, validate=False)
-    @api.marshal_with(calculation_property_result, skip_none=True)
+    # @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("enc_calculation")
     def post(self, material_id, calc_id):
         """Used to return calculation details. Some properties are not
@@ -1031,6 +1033,7 @@ class EncCalculationResource(Resource):
         s = s.query(query)
 
         # Create dictionaries for requested properties
+        references = []
         properties = data["properties"]
         arch_properties = {}
         es_properties = {}
@@ -1038,17 +1041,18 @@ class EncCalculationResource(Resource):
             es_source = calculation_property_map[prop].get("es_source")
             if es_source is not None:
                 es_properties[prop] = es_source
+                if prop in set(("electronic_dos", "electronic_band_structure")):
+                    references.append(prop)
             arch_source = calculation_property_map[prop].get("arch_source")
             if arch_source is not None:
                 arch_properties[prop] = arch_source
 
-        # The query is filtered already on the ES side so we don"t need to
+        # The query is filtered already on the ES side so we don't need to
         # transfer so much data.
         sources = [
             "upload_id",
             "calc_id",
-            "encyclopedia.material.material_type",
-            "encyclopedia.material.bulk.has_free_wyckoff_parameters"
+            "encyclopedia",
         ]
         sources += list(es_properties.values())
 
@@ -1062,6 +1066,17 @@ class EncCalculationResource(Resource):
         # No such material
         if len(response) == 0:
             abort(404, message="There is no material {} with calculation {}".format(material_id, calc_id))
+
+        # Add references that are to be read from the archive
+        print(calc_id)
+        print(sources)
+        print(response[0])
+        for ref in references:
+            arch_path = response[0]
+            for attr in es_properties[ref].split("."):
+                arch_path = arch_path[attr]
+            arch_properties[ref] = arch_path
+            del es_properties[ref]
 
         # If any of the requested properties require data from the Archive, the
         # file is opened and read.
@@ -1080,18 +1095,24 @@ class EncCalculationResource(Resource):
             # Add results from archive
             for key, value in arch_properties.items():
                 value = data[value]
+
+                # DOS results are simplified
+                if key == "electronic_dos":
+                    del value["dos_energies"]
+                    del value["dos_values"]
+                    del value["dos_integrated_values"]
+                    del value["dos_fermi_energy"]
+
                 result[key] = value
 
         # Add results from ES
-        for prop in properties:
-            es_source = calculation_property_map[prop].get("es_source")
-            if es_source is not None:
-                value = response[0]
-                for attr in es_source.split("."):
-                    value = value[attr]
-                if isinstance(value, AttrDict):
-                    value = value.to_dict()
-                result[prop] = value
+        for prop, es_source in es_properties.items():
+            value = response[0]
+            for attr in es_source.split("."):
+                value = value[attr]
+            if isinstance(value, AttrDict):
+                value = value.to_dict()
+            result[prop] = value
 
         return result, 200
 
@@ -1116,8 +1137,15 @@ def read_archive(upload_id: str, calc_id: str, paths: List[str]) -> Dict[str, MS
     with upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
         for path in paths:
-            parts = path.split("/")
+            i_path = path
+            if i_path .startswith("/"):
+                i_path = i_path[1:]
+            parts: Sequence[Union[str, int]] = i_path.split("/")
             for part in parts:
+                try:
+                    part = int(part)
+                except Exception:
+                    pass
                 data = data[part]
             if isinstance(data, ArchiveObject):
                 data = data.to_dict()
