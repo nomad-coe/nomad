@@ -17,6 +17,7 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
+import json
 from typing import List, Dict, Union, Sequence
 
 from flask_restplus import Resource, abort, fields, marshal
@@ -166,12 +167,16 @@ range_query = api.model("range_query", {
     "max": fields.Float,
     "min": fields.Float,
 })
+materials_after = api.model("materials_after", {
+    "materials": fields.String,
+})
 materials_query = api.model("materials_input", {
     "search_by": fields.Nested(api.model("search_query", {
         "exclusive": fields.Boolean(default=False),
         "formula": fields.String,
         "element": fields.String,
         "page": fields.Integer(default=1),
+        "after": fields.Nested(materials_after, allow_null=True),
         "per_page": fields.Integer(default=25),
         "pagination": fields.Boolean,
         "mode": fields.String(default="aggregation"),
@@ -197,6 +202,7 @@ pages_result = api.model("page_info", {
     "total": fields.Integer,
     "page": fields.Integer,
     "pages": fields.Integer,
+    "after": fields.Nested(materials_after),
 })
 
 materials_result = api.model("materials_result", {
@@ -218,11 +224,9 @@ class EncMaterialsResource(Resource):
     def post(self):
         """Used to query a list of materials with the given search options.
         """
-        print("HERE")
         # Get query parameters as json
         try:
             data = marshal(request.get_json(), materials_query)
-            print(data)
         except Exception as e:
             abort(400, message=str(e))
 
@@ -348,6 +352,7 @@ class EncMaterialsResource(Resource):
 
         page = search_by["page"]
         per_page = search_by["per_page"]
+        after = search_by["after"]
         bool_query = Q(
             "bool",
             filter=filters,
@@ -359,41 +364,38 @@ class EncMaterialsResource(Resource):
         # but can return aggregation results in a quick fashion including
         # the number of matches entries per material.
         if mode == "aggregation":
-            after = None
-            # The loop is awkward, but emulates the old behaviour until the GUI is adapted.
-            for _ in range(page):
 
-                # The top query filters out entries based on the user query
-                s = Search(index=config.elastic.index_name)
-                s = s.query(bool_query)
+            # The top query filters out entries based on the user query
+            s = Search(index=config.elastic.index_name)
+            s = s.query(bool_query)
 
-                # The materials are grouped by using three aggregations:
-                # "Composite" to enable scrolling, "Terms" to enable selecting
-                # by material_id and "Top Hits" to fetch a single
-                # representative material document. Unnecessary fields are
-                # filtered to reduce data transfer.
-                terms_agg = A("terms", field="encyclopedia.material.material_id")
-                composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
-                if after is not None:
-                    composite_kwargs["after"] = after
-                composite_agg = A("composite", **composite_kwargs)
-                composite_agg.metric("representative", A(
-                    "top_hits",
-                    size=1,
-                    _source={"includes": list(material_prop_map.values())},
-                ))
-                s.aggs.bucket("materials", composite_agg)
+            # The materials are grouped by using three aggregations:
+            # "Composite" to enable scrolling, "Terms" to enable selecting
+            # by material_id and "Top Hits" to fetch a single
+            # representative material document. Unnecessary fields are
+            # filtered to reduce data transfer.
+            terms_agg = A("terms", field="encyclopedia.material.material_id")
+            composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
+            if after is not None:
+                composite_kwargs["after"] = after
+            composite_agg = A("composite", **composite_kwargs)
+            composite_agg.metric("representative", A(
+                "top_hits",
+                size=1,
+                _source={"includes": list(material_prop_map.values())},
+            ))
+            s.aggs.bucket("materials", composite_agg)
 
-                # We ignore the top level hits
-                s = s.extra(**{
-                    "size": 0,
-                })
+            # We ignore the top level hits
+            s = s.extra(**{
+                "size": 0,
+            })
 
-                response = s.execute()
-                materials = response.aggs.materials.buckets
-                if len(materials) == 0:
-                    abort(404, message="No materials found for the given search criteria or pagination.")
-                after = response.aggs.materials["after_key"]
+            response = s.execute()
+            materials = response.aggs.materials.buckets
+            if len(materials) == 0:
+                abort(404, message="No materials found for the given search criteria or pagination.")
+            after = response.aggs.materials["after_key"]
 
             # Gather results from aggregations
             result_list = []
@@ -409,6 +411,7 @@ class EncMaterialsResource(Resource):
             pages = {
                 "page": page,
                 "per_page": per_page,
+                "after": after,
             }
         # 2. Collapse approach. Quickly provides a list of materials
         # corresponding to the query, offers full pagination, doesn"t include
@@ -446,8 +449,6 @@ class EncMaterialsResource(Resource):
 
         result = {
             "results": result_list,
-            "total_results": len(result_list),
-            "es_query": s.to_dict(),
             "pages": pages,
         }
         return result, 200
@@ -1068,9 +1069,6 @@ class EncCalculationResource(Resource):
             abort(404, message="There is no material {} with calculation {}".format(material_id, calc_id))
 
         # Add references that are to be read from the archive
-        print(calc_id)
-        print(sources)
-        print(response[0])
         for ref in references:
             arch_path = response[0]
             for attr in es_properties[ref].split("."):
