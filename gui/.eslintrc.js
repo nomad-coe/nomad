@@ -1,5 +1,9 @@
 module.exports = {
-    "extends": ["standard", "plugin:react/recommended"],
+    "extends": [
+        "standard",
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended"
+    ],
     "parser": "babel-eslint",
     "parserOptions": {
         "ecmaFeatures": {
@@ -13,7 +17,8 @@ module.exports = {
     },
     "rules": {
         "space-before-function-paren": ["error", "never"],
-        "camelcase": [0]
+        "camelcase": [0],
+        "react-hooks/exhaustive-deps": "off"
     },
     "settings": {
         "react": {

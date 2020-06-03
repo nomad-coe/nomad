@@ -102,7 +102,7 @@ export default function About() {
     makeClickable('search', () => {
       history.push('/search')
     })
-  }, [svg])
+  }, [svg, makeClickable, setText, history])
 
   useEffect(() => {
     const statistics = (info && info.statistics) || {}
@@ -130,7 +130,7 @@ export default function About() {
       value('n_calculations', 'results'),
       value('n_quantities', 'quantities')
     ])
-  }, [svg, info])
+  }, [svg, info, setText])
 
   return <div className={classes.root}>
     <Grid className={classes.container} container spacing={2}>

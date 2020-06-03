@@ -91,7 +91,7 @@ export default function MetaInfoBrowser({visible}) {
     api.getInfo().then(info => {
       setPackages(info.metainfo_packages)
     }).catch(raiseError)
-  }, [api])
+  }, [api, raiseError])
 
   useEffect(() => {
     api.getMetaInfo(pkg).then(metainfos => {
@@ -102,7 +102,7 @@ export default function MetaInfoBrowser({visible}) {
         setMetainfos(metainfos)
       }
     }).catch(raiseError)
-  }, [pkg, metainfoName, api])
+  }, [pkg, metainfoName, api, history, raiseError])
 
   const handleSelectedPackageChanged = event => {
     history.push(`/metainfo/${event.target.value}/section_run`)

@@ -7,7 +7,9 @@ export default function EMSVisualizations(props) {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['ems.method', 'ems.probing_method', 'ems.sample_microstructure', 'ems.sample_constituents'])
+    // eslint-disable-next-line
   }, [])
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={6}>

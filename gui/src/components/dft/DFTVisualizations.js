@@ -9,6 +9,7 @@ export function DFTMethodVisualizations(props) {
   const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['dft.code_name', 'dft.basis_set', 'dft.xc_functional'])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
@@ -47,6 +48,7 @@ export function DFTSystemVisualizations(props) {
   const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['dft.labels_springer_compound_class', 'dft.system', 'dft.crystal_system', 'dft.compound_type'])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
@@ -156,6 +158,7 @@ export function DFTPropertyVisualizations(props) {
       'dft.searchable_quantities',
       'dft.labels_springer_classification'
     ])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
