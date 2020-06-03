@@ -1604,6 +1604,39 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return {key: val for key, val in self.__dict__.items() if not key.startswith('m_')}.values()
 
     def m_xpath(self, expression: str):
+        '''
+        Provides an interface to jmespath search functionality.
+
+        Arguments:
+            expression: A string compatible with the jmespath specs representing the
+                search. See https://jmespath.org/ for complete description.
+
+        .. code-block:: python
+        import jmespath
+
+        metainfo = {
+            "section_run": [
+                {
+                    "code_name": "codeX",
+                    "time": "2020-06-1-00:00:00",
+                    "section_system": [
+                        {
+                            "atom_labels": ["H", "O"],
+                            "atom_positions": [[0, 0, 0 ], [0, 0, 2]],
+                            "lattice_vectors": [[0, 0, 1], [0, 1, 0], [0, 0, 1]]
+                        }
+                    ],
+                    "section_scc": [
+                        {
+                            "energy_total": 2.18122e-18
+                        }
+                    ]
+                }
+            ]
+        }
+
+        energy = jmespath.search('section_run[?code_name==`codeX`].section_scc[0].energy_total', meta)
+        '''
         def to_dict(entries):
             if not isinstance(entries, list):
                 try:
