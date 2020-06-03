@@ -404,7 +404,7 @@ class Method(MSection):
         """,
         a_search=Search()
     )
-    method_hash = Quantity(
+    method_id = Quantity(
         type=str,
         description="""
         A fixed length, unique method identifier in the form of a hash digest.
@@ -413,7 +413,7 @@ class Method(MSection):
         for the used program.
         """
     )
-    group_eos_hash = Quantity(
+    group_eos_id = Quantity(
         type=str,
         description="""
         A fixed length, unique identifier for equation-of-state calculations.
@@ -422,7 +422,7 @@ class Method(MSection):
         """,
         a_search=Search()
     )
-    group_parametervariation_hash = Quantity(
+    group_parametervariation_id = Quantity(
         type=str,
         description="""
         A fixed length, unique identifier for calculations where structure is

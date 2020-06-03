@@ -453,27 +453,10 @@ class EncMaterialsResource(Resource):
         return result, 200
 
 
-group_result = api.model("group_result", {
-    "calculations": fields.List(fields.String),
-    "energies": fields.List(fields.Float),
-    "volumes": fields.List(fields.Float),
-    "energy_minimum": fields.Float,
-    "group_hash": fields.String,
-    "group_type": fields.String,
-    "nr_of_calculations": fields.Integer,
-    "representative_calc_id": fields.String,
-})
 groups_result = api.model("groups_result", {
-    "total_groups": fields.Integer(allow_null=False),
-    "groups": fields.List(fields.Nested(group_result)),
+    "groups_eos": fields.Raw,
+    "groups_par": fields.Raw,
 })
-group_source = {
-    "includes": [
-        "calc_id",
-        "encyclopedia.properties.energies.energy_total",
-        "encyclopedia.material.idealized_structure.cell_volume",
-    ]
-}
 
 
 @ns.route("/materials/<string:material_id>/groups")
@@ -481,11 +464,12 @@ class EncGroupsResource(Resource):
     @api.response(404, "Material not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.expect(material_query, validate=False)
     @api.marshal_with(groups_result)
     @api.doc("enc_materials")
     def get(self, material_id):
-
+        """Returns a summary of the calculation groups that were identified for
+        this material.
+        """
         # Find entries for the given material, which have EOS or parameter
         # variation hashes set.
         bool_query = Q(
@@ -500,8 +484,8 @@ class EncGroupsResource(Resource):
                 Q("exists", field="encyclopedia.material.idealized_structure.cell_volume"),
             ],
             should=[
-                Q("exists", field="encyclopedia.method.group_eos_hash"),
-                Q("exists", field="encyclopedia.method.group_parametervariation_hash"),
+                Q("exists", field="encyclopedia.method.group_eos_id"),
+                Q("exists", field="encyclopedia.method.group_parametervariation_id"),
             ],
             minimum_should_match=1,  # At least one of the should query must match
         )
@@ -511,8 +495,83 @@ class EncGroupsResource(Resource):
 
         # Bucket the calculations by the group hashes. Only create a bucket if an
         # above-minimum number of documents are found.
-        group_eos_bucket = A("terms", field="encyclopedia.method.group_eos_hash", min_doc_count=4)
-        group_param_bucket = A("terms", field="encyclopedia.method.group_parametervariation_hash", min_doc_count=2)
+        group_eos_bucket = A("terms", field="encyclopedia.method.group_eos_id", min_doc_count=4)
+        group_param_bucket = A("terms", field="encyclopedia.method.group_parametervariation_id", min_doc_count=2)
+        calc_aggregation = A(
+            "top_hits",
+            _source={"includes": ["calc_id"]},
+            sort=[{"encyclopedia.properties.energies.energy_total": {"order": "asc"}}],
+            size=100,
+        )
+        group_eos_bucket.bucket("calculations", calc_aggregation)
+        group_param_bucket.bucket("calculations", calc_aggregation)
+        s.aggs.bucket("groups_eos", group_eos_bucket)
+        s.aggs.bucket("groups_param", group_param_bucket)
+
+        # We ignore the top level hits
+        s = s.extra(**{
+            "size": 0,
+        })
+
+        # Collect information for each group from the aggregations
+        response = s.execute()
+        groups_eos = {group.key: [calc.calc_id for calc in group.calculations.hits] for group in response.aggs.groups_eos.buckets}
+        groups_param = {group.key: [calc.calc_id for calc in group.calculations.hits] for group in response.aggs.groups_param.buckets}
+
+        # Return results
+        result = {
+            "groups_eos": groups_eos,
+            "groups_par": groups_param,
+        }
+
+        return result, 200
+
+
+group_result = api.model("group_result", {
+    "calculations": fields.List(fields.String),
+    "energies": fields.List(fields.Float),
+    "volumes": fields.List(fields.Float),
+})
+group_source = {
+    "includes": [
+        "calc_id",
+        "encyclopedia.properties.energies.energy_total",
+        "encyclopedia.material.idealized_structure.cell_volume",
+    ]
+}
+
+
+@ns.route("/materials/<string:material_id>/groups/<string:group_type>/<string:group_id>")
+class EncGroupResource(Resource):
+    @api.response(404, "Group not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "Metadata send", fields.Raw)
+    @api.marshal_with(group_result)
+    @api.doc("enc_group")
+    def get(self, material_id, group_type, group_id):
+        """Used to query detailed information for a specific calculation group.
+        """
+        # Find entries for the given material, which have EOS or parameter
+        # variation hashes set.
+        if group_type == "eos":
+            group_id_source = "encyclopedia.method.group_eos_id"
+        elif group_type == "par":
+            group_id_source = "encyclopedia.method.group_parametervariation_id"
+        else:
+            abort(400, message="Unsupported group type.")
+
+        bool_query = Q(
+            "bool",
+            filter=[
+                Q("term", published=True),
+                Q("term", with_embargo=False),
+                Q("term", encyclopedia__material__material_id=material_id),
+                Q("term", **{group_id_source: group_id}),
+            ],
+        )
+
+        s = Search(index=config.elastic.index_name)
+        s = s.query(bool_query)
 
         # calc_id and energy should be extracted for each matched document. The
         # documents are sorted by energy so that the minimum energy one can be
@@ -526,52 +585,27 @@ class EncGroupsResource(Resource):
             sort=[{"encyclopedia.properties.energies.energy_total": {"order": "asc"}}],
             size=100,
         )
-        group_eos_bucket.bucket("energies", energy_aggregation)
-        group_param_bucket.bucket("energies", energy_aggregation)
-        s.aggs.bucket("groups_eos", group_eos_bucket)
-        s.aggs.bucket("groups_param", group_param_bucket)
+        s.aggs.bucket("groups_eos", energy_aggregation)
 
         # We ignore the top level hits
         s = s.extra(**{
             "size": 0,
         })
 
-        # No hits on the top query level
-        response = s.execute()
-        groups = []
-
         # Collect information for each group from the aggregations
-        groups_eos = response.aggs.groups_eos.buckets
-        groups_param = response.aggs.groups_param.buckets
+        response = s.execute()
 
-        def get_group(group, group_type, group_hash):
-            hits = group.energies.hits
-            calculations = [doc.calc_id for doc in hits]
-            energies = [doc.encyclopedia.properties.energies.energy_total for doc in hits]
-            volumes = [doc.encyclopedia.material.idealized_structure.cell_volume for doc in hits]
-            group_dict = {
-                "group_hash": group_hash,
-                "group_type": group_type,
-                "nr_of_calculations": len(calculations),
-                "representative_calc_id": hits[0].calc_id,
-                "calculations": calculations,
-                "energies": energies,
-                "volumes": volumes,
-                "energy_minimum": hits[0].encyclopedia.properties.energies.energy_total,
-            }
-            return group_dict
-
-        for group in groups_eos:
-            groups.append(get_group(group, "equation of state", group.key))
-        for group in groups_param:
-            groups.append(get_group(group, "parameter variation", group.key))
-
-        # Return results
-        result = {
-            "groups": groups,
-            "total_groups": len(groups),
+        hits = response.aggs.groups_eos.hits
+        calculations = [doc.calc_id for doc in hits]
+        energies = [doc.encyclopedia.properties.energies.energy_total for doc in hits]
+        volumes = [doc.encyclopedia.material.idealized_structure.cell_volume for doc in hits]
+        group_dict = {
+            "calculations": calculations,
+            "energies": energies,
+            "volumes": volumes,
         }
-        return result, 200
+
+        return group_dict, 200
 
 
 suggestions_map = {
