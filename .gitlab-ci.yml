@@ -96,7 +96,7 @@ tests:
 
 install_tests:
   stage: test
-  image: python:3.6
+  image: python:3.7
   before_script:
     - git submodule sync
     - git submodule update --init --jobs=4
