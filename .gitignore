@@ -1,5 +1,6 @@
 .DS_Store
 .*env/
+.pyenv*/
 .pytest/
 .python-version
 .ipynb_checkpoints/

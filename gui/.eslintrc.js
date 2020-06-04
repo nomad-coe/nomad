@@ -1,5 +1,8 @@
 module.exports = {
-    "extends": ["standard", "plugin:react/recommended"],
+    "extends": [
+        "standard",
+        "plugin:react/recommended"
+    ],
     "parser": "babel-eslint",
     "parserOptions": {
         "ecmaFeatures": {

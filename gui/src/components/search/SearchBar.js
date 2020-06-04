@@ -65,7 +65,7 @@ export default function SearchBar() {
 
   const handleOptimadeEntered = useCallback(query => {
     setQuery({'dft.optimade': query})
-  })
+  }, [setQuery])
 
   let helperText = ''
   if (error) {
@@ -119,7 +119,7 @@ export default function SearchBar() {
           setLoading(false)
         })
     }, 200)
-  }, [api, suggestionsTimerRef, apiQuery])
+  }, [api, suggestionsTimerRef, apiQuery, loading, setLoading])
 
   const handleInputChange = useCallback((event, value, reason) => {
     if (reason === 'input') {
@@ -132,7 +132,7 @@ export default function SearchBar() {
         setOptions(defaultOptions)
       }
     }
-  }, [loadOptions])
+  }, [loadOptions, defaultOptions])
 
   const handleChange = (event, entries) => {
     const newQuery = entries.reduce((query, entry) => {
@@ -172,7 +172,7 @@ export default function SearchBar() {
     if (!open) {
       setOptions(defaultOptions)
     }
-  }, [open])
+  }, [open, defaultOptions])
 
   const commonTextFieldProps = params => ({
     error: !!error,

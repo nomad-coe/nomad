@@ -31,8 +31,8 @@ matid==0.6.0
 python-magic
 panedr==0.2
 parmed==3.0.0
-mdtraj==1.9.1
-mdanalysis==0.16.2
+mdtraj
+mdanalysis
 nomadcore
 
 # [infrastructure]
