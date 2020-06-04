@@ -250,7 +250,7 @@ def setup_kwargs():
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'compile':
         kwargs = compile_dependency_setup_kwargs(['dependencies'], **setup_kwargs())
-        kwargs['packages'].remove('nomadcore.md_data_access')
+        # kwargs['packages'].remove('nomadcore.md_data_access')
         with open('setup.json', 'wt') as f:
             json.dump(kwargs, f, indent=2)
         sys.exit(0)

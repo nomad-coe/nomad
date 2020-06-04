@@ -5,6 +5,7 @@
 **/*.pyc
 **/NOMAD.egg-info
 .*env/
+.pyenv*/
 .pytest_cache
 .vscode/
 .volumes/

@@ -464,6 +464,72 @@ parsers = [
         name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/', domain='dft',
         parser_class_name='onetepparser.OnetepParser',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+    ),
+    LegacyParser(
+        name='parsers/openkim', code_name='OpenKIM', domain='dft',
+        parser_class_name='openkimparser.OpenKIMParser',
+        mainfile_contents_re=r'OPENKIM'
+    ),
+    LegacyParser(
+        name='parsers/tinker', code_name='TINKER', domain='dft',
+        parser_class_name='tinkerparser.TinkerParser',
+        mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
+    ),
+    LegacyParser(
+        name='parsers/lammps', code_name='lammps', domain='dft',
+        parser_class_name='lammpsparser.LammpsParser',
+        mainfile_contents_re=r'^LAMMPS'
+    ),
+    LegacyParser(
+        name='parsers/amber', code_name='Amber', domain='dft',
+        parser_class_name='amberparser.AMBERParser',
+        mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
+    ),
+    LegacyParser(
+        name='parsers/gromacs', code_name='Gromacs', domain='dft',
+        parser_class_name='gromacsparser.GROMACSParser',
+        mainfile_contents_re=r'GROMACS - gmx mdrun'
+    ),
+    LegacyParser(
+        name='parsers/gromos', code_name='Gromos', domain='dft',
+        parser_class_name='gromosparser.GromosParser',
+        mainfile_contents_re=r'Bugreports to http://www.gromos.net'
+    ),
+    LegacyParser(
+        name='parsers/namd', code_name='Namd', domain='dft',
+        parser_class_name='namdparser.NamdParser',
+        mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/charmm', code_name='Charmm', domain='dft',
+        parser_class_name='charmmparser.CharmmParser',
+        mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/dftbplus', code_name='DFTb plus', domain='dft',
+        parser_class_name='dftbplusparser.DFTBPlusParser',
+        mainfile_contents_re=r'^ Fermi distribution function\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/asap', code_name='ASAP', domain='dft',
+        parser_class_name='asapparser.AsapParser',
+        mainfile_name_re=r'.*.traj$',
+        mainfile_mime_re=r'application/octet-stream',
+    ),
+    LegacyParser(
+        name='parsers/fplo', code_name='fplo', domain='dft',
+        parser_class_name='fploparser.FploParser',
+        mainfile_contents_re=r'\s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\s*\|\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/mopac', code_name='MOPAC', domain='dft',
+        parser_class_name='mopacparser.MopacParser',
+        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
+        mainfile_mime_re=r'text/.*',
     )
 ]
 
