@@ -798,6 +798,7 @@ statistics_result = api.model("statistics_result", {
     "alpha": fields.Nested(statistics),
     "beta": fields.Nested(statistics),
     "gamma": fields.Nested(statistics),
+    "band_gap": fields.Nested(statistics),
 })
 property_map = {
     "cell_volume": "encyclopedia.material.idealized_structure.cell_volume",
@@ -809,6 +810,7 @@ property_map = {
     "alpha": "encyclopedia.material.idealized_structure.lattice_parameters.alpha",
     "beta": "encyclopedia.material.idealized_structure.lattice_parameters.beta",
     "gamma": "encyclopedia.material.idealized_structure.lattice_parameters.gamma",
+    "band_gap": "encyclopedia.properties.band_gap",
 }
 
 
@@ -825,6 +827,7 @@ class EncStatisticsResource(Resource):
         calculations.
         """
         # Get query parameters as json
+        print(request.get_json())
         try:
             data = marshal(request.get_json(), statistics_query)
         except Exception as e:
@@ -1004,6 +1007,9 @@ calculation_property_map = {
     "cell_volume": {
         "es_source": "encyclopedia.material.idealized_structure.cell_volume"
     },
+    "band_gap": {
+        "es_source": "encyclopedia.properties.band_gap"
+    },
     "electronic_band_structure": {
         "es_source": "encyclopedia.properties.electronic_band_structure"
     },
@@ -1023,6 +1029,15 @@ energies = api.model("energies", {
     "energy_total_T0": fields.Float,
     "energy_free": fields.Float,
 })
+electronic_band_structure = api.model("electronic_band_structure", {
+    "reciprocal_cell": fields.List(fields.List(fields.Float)),
+    "brillouin_zone": fields.Raw,
+    "section_k_band_segment": fields.Raw,
+})
+electronic_dos = api.model("electronic_dos", {
+    "dos_energies": fields.List(fields.Float),
+    "dos_values": fields.List(fields.Float),
+})
 calculation_property_result = api.model("calculation_query", {
     "lattice_parameters": fields.Nested(lattice_parameters),
     "energies": fields.Nested(energies),
@@ -1030,8 +1045,9 @@ calculation_property_result = api.model("calculation_query", {
     "atomic_density": fields.Float,
     "cell_volume": fields.Float,
     "wyckoff_sets": fields.Nested(wyckoff_set_result),
-    # "electronic_band_structure": fields.Nested(electronic_band_structure),
-    # "electronic_dos": fields.Nested(electronic_dos),
+    "band_gap": fields.Float(wyckoff_set_result),
+    "electronic_band_structure": fields.Nested(electronic_band_structure),
+    "electronic_dos": fields.Nested(electronic_dos),
 })
 
 
@@ -1104,9 +1120,13 @@ class EncCalculationResource(Resource):
         # Add references that are to be read from the archive
         for ref in references:
             arch_path = response[0]
-            for attr in es_properties[ref].split("."):
-                arch_path = arch_path[attr]
-            arch_properties[ref] = arch_path
+            try:
+                for attr in es_properties[ref].split("."):
+                    arch_path = arch_path[attr]
+            except KeyError:
+                pass
+            else:
+                arch_properties[ref] = arch_path
             del es_properties[ref]
 
         # If any of the requested properties require data from the Archive, the
@@ -1129,8 +1149,12 @@ class EncCalculationResource(Resource):
 
                 # DOS results are simplified
                 if key == "electronic_dos":
-                    del value["dos_energies"]
-                    del value["dos_values"]
+                    if "dos_energies_normalized" in value:
+                        value["dos_energies"] = value["dos_energies_normalized"]
+                        del value["dos_energies_normalized"]
+                    if "dos_values_normalized" in value:
+                        value["dos_values"] = value["dos_values_normalized"]
+                        del value["dos_values_normalized"]
                     del value["dos_integrated_values"]
                     del value["dos_fermi_energy"]
 
@@ -1139,11 +1163,15 @@ class EncCalculationResource(Resource):
         # Add results from ES
         for prop, es_source in es_properties.items():
             value = response[0]
-            for attr in es_source.split("."):
-                value = value[attr]
-            if isinstance(value, AttrDict):
-                value = value.to_dict()
-            result[prop] = value
+            try:
+                for attr in es_source.split("."):
+                    value = value[attr]
+            except KeyError:
+                pass
+            else:
+                if isinstance(value, AttrDict):
+                    value = value.to_dict()
+                result[prop] = value
 
         return result, 200
 

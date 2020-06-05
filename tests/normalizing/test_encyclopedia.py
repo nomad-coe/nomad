@@ -451,12 +451,12 @@ def test_hashes_exciting(hash_exciting):
     from exciting.
     """
     enc = hash_exciting.entry_archive.section_metadata.encyclopedia
-    method_hash = enc.method.method_hash
-    group_eos_hash = enc.method.group_eos_hash
-    group_parametervariation_hash = enc.method.group_parametervariation_hash
-    assert method_hash is not None
-    assert group_eos_hash is not None
-    assert group_parametervariation_hash is not None
+    method_id = enc.method.method_id
+    group_eos_id = enc.method.group_eos_id
+    group_parametervariation_id = enc.method.group_parametervariation_id
+    assert method_id is not None
+    assert group_eos_id is not None
+    assert group_parametervariation_id is not None
 
 
 def test_hashes_undefined(hash_vasp):
@@ -464,14 +464,14 @@ def test_hashes_undefined(hash_vasp):
     determined at a sufficient accuracy.
     """
     enc = hash_vasp.entry_archive.section_metadata.encyclopedia
-    method_hash = enc.method.method_hash
-    group_eos_hash = enc.method.group_eos_hash
+    method_id = enc.method.method_id
+    group_eos_id = enc.method.group_eos_id
 
     # If the method cannot be determined accurately, the method hash and group
     # hash cannot be set. Parametervariation has may still be valid, as it does
     # not really need the method to be accurately defined.
-    assert method_hash is None
-    assert group_eos_hash is None
+    assert method_id is None
+    assert group_eos_id is None
 
 
 def test_dos(dos_unpolarized_vasp, dos_polarized_vasp):
