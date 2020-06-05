@@ -155,9 +155,9 @@ export default function SearchBar() {
         return true
       }
 
-      const matches = option.value
-        && inputOption.inputValue
-        && option.value.toLowerCase().includes(inputOption.inputValue.toLowerCase())
+      const matches = option.value &&
+        inputOption.inputValue &&
+        option.value.toLowerCase().includes(inputOption.inputValue.toLowerCase())
       if (matches) {
         if (option.value === inputOption.inputValue) {
           inputOption.exists |= true
