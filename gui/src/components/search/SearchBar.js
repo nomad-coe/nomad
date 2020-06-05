@@ -126,13 +126,16 @@ export default function SearchBar() {
       setInputValue(value)
       const [quantity, quantityValue] = Options.split(value)
 
-      if (searchQuantities[quantity]) {
-        loadOptions(quantity, quantityValue)
+      const searchQuantity = Object
+        .keys(searchQuantities)
+        .find(key => key === quantity || key === domain.key + '.' + quantity)
+      if (searchQuantity) {
+        loadOptions(searchQuantity, quantityValue)
       } else {
         setOptions(defaultOptions)
       }
     }
-  }, [loadOptions, defaultOptions])
+  }, [loadOptions, defaultOptions, domain])
 
   const handleChange = (event, entries) => {
     const newQuery = entries.reduce((query, entry) => {
