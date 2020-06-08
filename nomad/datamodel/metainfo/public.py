@@ -2269,6 +2269,28 @@ class section_band_gap(MSection):
     )
 
 
+class section_brillouin_zone(MSection):
+    '''Defines a polyhedra for the Brillouin zone in reciprocal space.
+    '''
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_brillouin_zone'))
+
+    vertices = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, "1..*"],
+        description='''
+        The vertices of the Brillouin zone corners as 3D coordinates in reciprocal space.
+        ''',
+        a_legacy=LegacyDefinition(name='vertices'))
+    faces = Quantity(
+        type=np.dtype(np.int32),
+        shape=["1..*", "3..*"],
+        description='''
+        The faces of the Brillouin zone polyhedron as vertex indices. The
+        surface normal is determined by a right-hand ordering of the points.
+        ''',
+        a_legacy=LegacyDefinition(name='faces'))
+
+
 class section_k_band(MSection):
     '''
     This section stores information on a $k$-band (electronic or vibrational band
@@ -2297,22 +2319,10 @@ class section_k_band(MSection):
         a_legacy=LegacyDefinition(name='reciprocal_cell')
     )
 
-    brillouin_zone = Quantity(
-        type=str,
-        description="""
-        The Brillouin zone that corresponds to the reciprocal cell used in the
-        band calculation. The Brillouin Zone is defined as a list of vertices
-        and facets that are encoded with JSON. The vertices are 3D points in
-        the reciprocal space, and facets are determined by a chain of vertice
-        indices, with a right-hand ordering determining the surface normal
-        direction.
-        {
-          "vertices": [[3, 2, 1], ...]
-          "faces":  [[0, 1, 2, 3], ...]
-        }
-        """,
-        a_legacy=LegacyDefinition(name='brillouin_zone')
-    )
+    brillouin_zone = SubSection(
+        sub_section=SectionProxy('section_brillouin_zone'),
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_k_band_segment'))
 
     section_band_gap = SubSection(
         sub_section=section_band_gap.m_def,

@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import numpy as np
 import ase
 
-from nomad.datamodel.metainfo.public import section_k_band, section_band_gap, section_system
+from nomad.datamodel.metainfo.public import section_k_band, section_band_gap, section_system, section_brillouin_zone
 from nomad.normalizing.normalizer import Normalizer
 from nomad import config, atomutils
 from nomad.constants import pi
@@ -104,9 +103,10 @@ class BandStructureNormalizer(Normalizer):
             self.logger.info("Could not resolve Brillouin zone as reciprocal cell is missing.")
             return
 
-        brillouin_zone = atomutils.get_brillouin_zone(recip_cell.magnitude)
-        bz_json = json.dumps(brillouin_zone)
-        band.brillouin_zone = bz_json
+        brillouin_zone_data = atomutils.get_brillouin_zone(recip_cell.magnitude)
+        section_bz = band.m_create(section_brillouin_zone)
+        section_bz.vertices = brillouin_zone_data["vertices"]
+        section_bz.faces = brillouin_zone_data["faces"]
 
     def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
         """Used to calculate the Euclidean distance of two points in k-space,

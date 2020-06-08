@@ -789,16 +789,16 @@ statistics = api.model("statistics", {
     "histogram": fields.Nested(histogram)
 })
 statistics_result = api.model("statistics_result", {
-    "cell_volume": fields.Nested(statistics),
-    "atomic_density": fields.Nested(statistics),
-    "mass_density": fields.Nested(statistics),
-    "lattice_a": fields.Nested(statistics),
-    "lattice_b": fields.Nested(statistics),
-    "lattice_c": fields.Nested(statistics),
-    "alpha": fields.Nested(statistics),
-    "beta": fields.Nested(statistics),
-    "gamma": fields.Nested(statistics),
-    "band_gap": fields.Nested(statistics),
+    "cell_volume": fields.Nested(statistics, skip_none=True),
+    "atomic_density": fields.Nested(statistics, skip_none=True),
+    "mass_density": fields.Nested(statistics, skip_none=True),
+    "lattice_a": fields.Nested(statistics, skip_none=True),
+    "lattice_b": fields.Nested(statistics, skip_none=True),
+    "lattice_c": fields.Nested(statistics, skip_none=True),
+    "alpha": fields.Nested(statistics, skip_none=True),
+    "beta": fields.Nested(statistics, skip_none=True),
+    "gamma": fields.Nested(statistics, skip_none=True),
+    "band_gap": fields.Nested(statistics, skip_none=True),
 })
 property_map = {
     "cell_volume": "encyclopedia.material.idealized_structure.cell_volume",
@@ -827,7 +827,6 @@ class EncStatisticsResource(Resource):
         calculations.
         """
         # Get query parameters as json
-        print(request.get_json())
         try:
             data = marshal(request.get_json(), statistics_query)
         except Exception as e:
@@ -908,7 +907,7 @@ wyckoff_set_result = api.model("wyckoff_set_result", {
     "wyckoff_letter": fields.String,
     "indices": fields.List(fields.Integer),
     "element": fields.String,
-    "variables": fields.List(fields.Nested(wyckoff_variables_result)),
+    "variables": fields.List(fields.Nested(wyckoff_variables_result, skip_none=True)),
 })
 lattice_parameters = api.model("lattice_parameters", {
     "a": fields.Float,
@@ -1033,21 +1032,22 @@ electronic_band_structure = api.model("electronic_band_structure", {
     "reciprocal_cell": fields.List(fields.List(fields.Float)),
     "brillouin_zone": fields.Raw,
     "section_k_band_segment": fields.Raw,
+    "section_band_gap": fields.Raw,
 })
 electronic_dos = api.model("electronic_dos", {
     "dos_energies": fields.List(fields.Float),
-    "dos_values": fields.List(fields.Float),
+    "dos_values": fields.List(fields.List(fields.Float)),
 })
-calculation_property_result = api.model("calculation_query", {
-    "lattice_parameters": fields.Nested(lattice_parameters),
-    "energies": fields.Nested(energies),
+calculation_property_result = api.model("calculation_property_result", {
+    "lattice_parameters": fields.Nested(lattice_parameters, skip_none=True),
+    "energies": fields.Nested(energies, skip_none=True),
     "mass_density": fields.Float,
     "atomic_density": fields.Float,
     "cell_volume": fields.Float,
-    "wyckoff_sets": fields.Nested(wyckoff_set_result),
-    "band_gap": fields.Float(wyckoff_set_result),
-    "electronic_band_structure": fields.Nested(electronic_band_structure),
-    "electronic_dos": fields.Nested(electronic_dos),
+    "wyckoff_sets": fields.Nested(wyckoff_set_result, skip_none=True),
+    "band_gap": fields.Float,
+    "electronic_band_structure": fields.Nested(electronic_band_structure, skip_none=True),
+    "electronic_dos": fields.Nested(electronic_dos, skip_none=True),
 })
 
 
@@ -1057,7 +1057,7 @@ class EncCalculationResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
     @api.expect(calculation_property_query, validate=False)
-    # @api.marshal_with(calculation_property_result, skip_none=True)
+    @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("enc_calculation")
     def post(self, material_id, calc_id):
         """Used to return calculation details. Some properties are not
