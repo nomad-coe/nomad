@@ -214,7 +214,7 @@ export default function About() {
 
       There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
-      The [NOMAD Analytics Toolkit](https://analytic-toolkit.nomad-coe.eu) allows to use
+      The [NOMAD Analytics Toolkit](https://analytics-toolkit.nomad-coe.eu) allows to use
       this without installation and directly on NOMAD servers.
       `}</Markdown></InfoCard>
       <Grid item xs={12}>
