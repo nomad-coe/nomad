@@ -177,7 +177,7 @@ class DFTMetadata(MSection):
         description='The crystal system type of the simulated system.',
         a_search=Search(
             statistic_values=[
-                'cubic', 'hexagonal', 'monoclinic', 'orthorombic', 'tetragonal',
+                'cubic', 'hexagonal', 'monoclinic', 'orthorhombic', 'tetragonal',
                 'triclinic', 'trigonal', 'unavailable', 'not processed']
         ))
 
