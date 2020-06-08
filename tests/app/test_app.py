@@ -91,5 +91,5 @@ def test_docs(client):
 
 
 def test_dist(client):
-    rv = client.get('/dist/nomad-%s.tar.gz' % config.version)
+    rv = client.get('/dist/nomad-lab.tar.gz')
     assert rv.status_code == 200

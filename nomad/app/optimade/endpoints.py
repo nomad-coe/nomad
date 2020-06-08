@@ -29,7 +29,7 @@ from .models import json_api_single_response_model, entry_listing_endpoint_parse
 from .filterparser import parse_filter, FilterException
 
 
-ns = api.namespace('', description='The (only) API namespace with all OPTiMaDe endpoints.')
+ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
 
 
 # TODO replace with decorator that filters response_fields

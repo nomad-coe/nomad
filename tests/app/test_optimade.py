@@ -26,7 +26,7 @@ from tests.conftest import clear_elastic, clear_raw_files
 
 @pytest.fixture(scope='session')
 def api(session_client):
-    return BlueprintClient(session_client, '/optimade')
+    return BlueprintClient(session_client, '/optimade/v0')
 
 
 def test_get_entry(published: Upload):
