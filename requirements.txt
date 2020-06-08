@@ -20,6 +20,7 @@ aniso8601<=7
 ase==3.19.0
 python-keycloak
 elasticsearch-dsl==6.4.0
+jmespath
 
 # [parsing]
 pandas

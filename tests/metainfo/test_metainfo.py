@@ -613,6 +613,22 @@ class TestM1:
         assert section.float_quantity is None
         assert section.bool_quantity is None
 
+    def test_xpath(self):
+        run = Run()
+        run.code_name = 'amazingX'
+        system = run.m_create(System)
+        system.atom_labels = ['H', 'O']
+        system.system_type = 'molecule'
+        calc = run.m_create(SCC)
+        calc.energy_total = -1.20E-23
+        calc.system = system
+
+        assert run.m_xpath('code_name') == 'amazingX'
+        assert run.m_xpath('systems[-1].system_type') == 'molecule'
+        assert run.m_xpath('sccs[0].system.atom_labels') == ['H', 'O']
+        assert run.m_xpath('systems[?system_type == `molecule`].atom_labels') == [['H', 'O']]
+        assert run.m_xpath('sccs[?energy_total < `1.0E-23`].system') == [{'atom_labels': ['H', 'O'], 'system_type': 'molecule'}]
+
 
 class TestDatatypes:
 
