@@ -46,9 +46,12 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.8.1
+- switched to support Python 3.7
+
 ### v0.8.0
 - new underlying datamodel that allows to maintain multiple domains
-- mulitple domains supported the GUI
+- multiple domains supported the GUI
 - new metainfo implementation
 - API endpoint to access the metainfo
 - new archive based on new metainfo

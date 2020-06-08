@@ -29,7 +29,7 @@ source distribution
 
 .. parsed-literal::
 
-    pip install nomad --extra-index-url |pypi_url|
+    pip install nomad-lab
 
 
 First example
