@@ -272,7 +272,7 @@ export default function About() {
         - domains: ${info ? Object.keys(info.domains).map(domain => info.domains[domain].name).join(', ') : 'loading'}
         - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
         - last commit message: *${info ? info.git.log : 'loading'}*
-        - supported codes: ${info ? info.codes.join(', ') : 'loading'}
+        - supported codes: ${info ? info.codes.map(code => code.code_name).join(', ') : 'loading'}
         - parsers: ${info ? info.parsers.join(', ') : 'loading'}
         - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
       `}</Markdown>
