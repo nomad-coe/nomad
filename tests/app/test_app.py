@@ -15,6 +15,7 @@
 
 
 import json
+import pytest
 
 from nomad import config
 
@@ -75,6 +76,12 @@ def test_internal_server_error_post(client, caplog):
     assert data['endpoint'] == 'api.test_internal_server_error_resource'
     assert data['method'] == 'POST'
     assert data['json']['test_arg'] == 'value'
+
+
+@pytest.mark.parametrize('api', ['api', 'optimade'])
+def test_swagger(client, api):
+    rv = client.get('/%s/swagger.json' % api)
+    assert rv.status_code == 200
 
 
 def test_docs(client):

@@ -147,7 +147,7 @@ class ToplevelLinks:
         self.next = url(endpoint, page_number=min((page_number + 1, last_page)), **rest)
 
 
-json_api_links_model = api.model('Links', {
+json_api_links_model = api.model('ApiLinks', {
     'base_url': fields.String(
         description='The base URL of the implementation'),
 
@@ -164,7 +164,6 @@ json_api_links_model = api.model('Links', {
 
     'first': fields.String(
         description='The first page of data.')
-
 })
 
 
