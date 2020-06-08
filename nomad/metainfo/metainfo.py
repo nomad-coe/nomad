@@ -1612,30 +1612,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 search. See https://jmespath.org/ for complete description.
 
         .. code-block:: python
-        import jmespath
-
-        metainfo = {
-            "section_run": [
-                {
-                    "code_name": "codeX",
-                    "time": "2020-06-1-00:00:00",
-                    "section_system": [
-                        {
-                            "atom_labels": ["H", "O"],
-                            "atom_positions": [[0, 0, 0 ], [0, 0, 2]],
-                            "lattice_vectors": [[0, 0, 1], [0, 1, 0], [0, 0, 1]]
-                        }
-                    ],
-                    "section_scc": [
-                        {
-                            "energy_total": 2.18122e-18
-                        }
-                    ]
-                }
-            ]
-        }
-
-        energy = jmespath.search('section_run[?code_name==`codeX`].section_scc[0].energy_total', meta)
+        metainfo_section.m_xpath('code_name')
+        metainfo_section.m_xpath('systems[-1].system_type')
+        metainfo_section.m_xpath('sccs[0].system.atom_labels')
+        metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
+        metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
         '''
         def to_dict(entries):
             if not isinstance(entries, list):
