@@ -12,21 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Any
-from flask_restplus import Resource, abort
+from flask_restplus import Resource
 from flask import request
-from elasticsearch_dsl import Q
-
-from nomad import search, files, datamodel
-from nomad.datamodel import OptimadeEntry
 
 from .api import api, url, base_request_args
-from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
-    json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
-    ToplevelLinks, LinkObject, json_api_links_response_model, json_api_references_response_model, \
-    json_api_structure_response_model, json_api_structures_response_model
-from .filterparser import parse_filter, FilterException
+from .models import json_api_single_response_model, base_endpoint_parser, json_api_single_response_model, Meta, json_api_list_response_model
 
 ns = api.namespace('', description='This is the OPTiMaDe index for NOMAD\' implementations.')
 
@@ -64,12 +54,13 @@ class Info(Resource):
             data=result
         ), 200
 
+
 @ns.route('/links')
 class Links(Resource):
     @api.doc('index_info')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.expect(base_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
+    @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
         ''' Returns information relating to the API implementation- '''
         base_request_args()
