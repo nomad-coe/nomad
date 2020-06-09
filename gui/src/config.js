@@ -2,7 +2,7 @@ import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
-// export const apiBase = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing-major/api'
+// export const apiBase = 'http://repository.nomad-coe.eu/v0.8/api'
 export const apiBase = `${appBase}/api`
 export const optimadeBase = `${appBase}/optimade`
 export const guiBase = process.env.PUBLIC_URL

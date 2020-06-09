@@ -29,10 +29,6 @@ project = 'nomad-FAIRDI'
 copyright = '2018, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
-rst_epilog = '''
-.. |pypi_url| replace:: https://repository.nomad-coe.eu/v0.8/dist/
-'''
-
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags

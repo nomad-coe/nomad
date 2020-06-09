@@ -26,7 +26,22 @@ from tests.conftest import clear_elastic, clear_raw_files
 
 @pytest.fixture(scope='session')
 def api(session_client):
+    return BlueprintClient(session_client, '/optimade/v0')
+
+
+@pytest.fixture(scope='session')
+def index_api(session_client):
     return BlueprintClient(session_client, '/optimade')
+
+
+def test_index(index_api):
+    rv = index_api.get('/info')
+    assert rv.status_code == 200
+
+    rv = index_api.get('/links')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data['data'][1]['attributes']['base_url']['href'].endswith('v0')
 
 
 def test_get_entry(published: Upload):
@@ -139,7 +154,7 @@ def test_optimade_parser(example_structures, query, results):
 
 
 def test_url():
-    assert url('endpoint', param='value').endswith('/optimade/endpoint?param=value')
+    assert url('endpoint', param='value').endswith('/optimade/v0/endpoint?param=value')
 
 
 def test_list_endpoint(api, example_structures):

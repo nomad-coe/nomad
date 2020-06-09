@@ -75,6 +75,7 @@ COPY . /app
 RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
+RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 
 WORKDIR /app/docs
 RUN make html

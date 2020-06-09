@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Blueprint
+from flask import Blueprint, request, abort
 from flask_restplus import Api
 import urllib.parse
 
@@ -25,17 +25,34 @@ base_url = 'http://%s/%s/optimade' % (
     config.services.api_base_path.strip('/'))
 
 
-def url(endpoint: str = None, **kwargs):
+def url(endpoint: str = None, version='v0', **kwargs):
     ''' Returns the full optimade api url (for a given endpoint) including query parameters. '''
     if endpoint is None:
-        url = base_url
+        if version is not None:
+            url = '%s/%s' % (base_url, version)
+        else:
+            url = base_url
     else:
-        url = '%s/%s' % (base_url, endpoint)
+        if version is not None:
+            url = '%s/%s/%s' % (base_url, version, endpoint)
+        else:
+            url = '%s/%s' % (base_url, endpoint)
 
     if len(kwargs) > 0:
         return '%s?%s' % (url, urllib.parse.urlencode(kwargs))
     else:
         return url
+
+
+# TODO replace with decorator that filters response_fields
+def base_request_args():
+    if request.args.get('response_format', 'json') != 'json':
+        abort(400, 'Response format is not supported.')
+
+    properties_str = request.args.get('request_fields', None)
+    if properties_str is not None:
+        return properties_str.split(',')
+    return None
 
 
 api = Api(
