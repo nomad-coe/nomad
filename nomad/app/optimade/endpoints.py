@@ -20,7 +20,7 @@ from elasticsearch_dsl import Q
 from nomad import search, files, datamodel
 from nomad.datamodel import OptimadeEntry
 
-from .api import api, url
+from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
     json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
@@ -28,19 +28,7 @@ from .models import json_api_single_response_model, entry_listing_endpoint_parse
     json_api_structure_response_model, json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
-
 ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
-
-
-# TODO replace with decorator that filters response_fields
-def base_request_args():
-    if request.args.get('response_format', 'json') != 'json':
-        abort(400, 'Response format is not supported.')
-
-    properties_str = request.args.get('request_fields', None)
-    if properties_str is not None:
-        return properties_str.split(',')
-    return None
 
 
 def base_search_request():
@@ -326,7 +314,7 @@ class Links(Resource):
 
 
 @ns.route('/structures')
-class Structures(Resource):
+class StructureList(Resource):
     @api.doc('structures')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.response(422, 'Validation error')

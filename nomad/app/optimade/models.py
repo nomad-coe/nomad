@@ -194,13 +194,13 @@ json_api_response_model = api.model('Response', {
         model=json_api_links_model),
 
     'meta': fields.Nested(
-        required=True,
+        required=True, skip_none=True,
         description='JSON API meta object.',
         model=json_api_meta_object_model),
 
     'included': fields.List(
         fields.Arbitrary(),
-        required=False,
+        required=False, skip_none=True,
         description=('A list of JSON API resource objects related to the primary data '
                      'contained in data. Responses that contain related resources under '
                      'included are known as compound documents in the JSON API.'))
@@ -225,6 +225,7 @@ json_api_data_object_model = api.model('DataObject', {
 
     # further optional fields: links, meta, relationships
 })
+
 
 json_api_calculation_info_model = api.model('CalculationInfo', {
     'description': fields.String(
@@ -354,7 +355,7 @@ json_api_single_response_model = api.inherit(
     'SingleResponse', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_data_object_model,
-            required=True,
+            required=True, skip_none=True,
             description=('The returned response object.'))
     })
 
@@ -362,7 +363,7 @@ json_api_list_response_model = api.inherit(
     'ListResponse', json_api_response_model, {
         'data': fields.List(
             fields.Nested(json_api_data_object_model),
-            required=True,
+            required=True, skip_none=True,
             description=('The list of returned response objects.'))
     })
 
