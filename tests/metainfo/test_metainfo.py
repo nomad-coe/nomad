@@ -613,6 +613,7 @@ class TestM1:
         assert section.float_quantity is None
         assert section.bool_quantity is None
 
+    @pytest.mark.filterwarnings("ignore")
     def test_xpath(self):
         run = Run()
         run.code_name = 'amazingX'
