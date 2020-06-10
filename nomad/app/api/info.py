@@ -131,8 +131,8 @@ class InfoResource(Resource):
                 for s in search.search_quantities.values()
                 if 'optimade' not in s.qualified_name
             },
-            'version': config.version,
-            'release': config.release,
+            'version': config.meta.version,
+            'release': config.meta.release,
             'git': {
                 'ref': gitinfo.ref,
                 'version': gitinfo.version,

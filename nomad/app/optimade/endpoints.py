@@ -17,14 +17,14 @@ from flask_restplus import Resource, abort
 from flask import request
 from elasticsearch_dsl import Q
 
-from nomad import search, files, datamodel
+from nomad import search, files, datamodel, config
 from nomad.datamodel import OptimadeEntry
 
 from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
     json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
-    ToplevelLinks, LinkObject, json_api_links_response_model, json_api_references_response_model, \
+    ToplevelLinks, json_api_references_response_model, \
     json_api_structure_response_model, json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
@@ -274,43 +274,31 @@ class References(Resource):
 class Links(Resource):
     @api.doc('links')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
-    @api.response(422, 'Validation error')
-    @api.expect(entry_listing_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_links_response_model, skip_none=True, code=200)
+    @api.expect(base_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
-        '''Retrive the links that corresponding to the structures that match the given Optimade filter expression'''
-        try:
-            filter = request.args.get('filter', None)
-            page_limit = int(request.args.get('page_limit', 10))
-            page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced'),
+        ''' Returns information relating to the API implementation- '''
+        base_request_args()
 
-        except Exception:
-            abort(400, message='bad parameter types')  # TODO Specific json API error handling
-
-        result = execute_search(
-            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
-        available = result['pagination']['total']
-        results = to_calc_with_metadata(result['results'])
-        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+        result = [
+            {
+                "type": "parent",
+                "id": "index",
+                "attributes": {
+                    "name": config.meta.name,
+                    "description": config.meta.description,
+                    "base_url": {
+                        "href": url(version=None, prefix='index'),
+                    },
+                    "homepage": config.meta.homepage
+                }
+            }
+        ]
 
         return dict(
-            meta=Meta(
-                query=request.url,
-                returned=len(results),
-                available=available,
-                last_id=results[-1].calc_id if available > 0 else None),
-            links=ToplevelLinks(
-                'structures',
-                available=available,
-                page_number=page_number,
-                page_limit=page_limit,
-                sort=sort, filter=filter
-            ),
-            # TODO Links are about links to other optimade databases, e.g. OQMD, MP, AFLOW.
-            # It is not about links within NOMAD, like LinkObject suggests.
-            data=[LinkObject(d, page_number=page_number, sort=sort, filter=filter) for d in results]
-        )
+            meta=Meta(query=request.url, returned=1),
+            data=result
+        ), 200
 
 
 @ns.route('/structures')

@@ -475,8 +475,8 @@ class TestUploads:
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {})
 
     def test_post_re_process(self, api, published, test_user_auth, monkeypatch):
-        monkeypatch.setattr('nomad.config.version', 're_process_test_version')
-        monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+        monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
+        monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
 
         upload_id = published.upload_id
         rv = api.post(

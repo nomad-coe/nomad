@@ -15,6 +15,8 @@
 from flask_restplus import Resource
 from flask import request
 
+from nomad import config
+
 from .api import api, url, base_request_args
 from .models import json_api_single_response_model, base_endpoint_parser, json_api_single_response_model, Meta, json_api_list_response_model
 
@@ -57,7 +59,7 @@ class Info(Resource):
 
 @ns.route('/links')
 class Links(Resource):
-    @api.doc('index_info')
+    @api.doc('index_links')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
@@ -67,30 +69,20 @@ class Links(Resource):
 
         result = [
             {
-                "type": "parent",
-                "id": "index",
-                "attributes": {
-                    "name": "NOMAD OPTiMaDe index",
-                    "description": "Index for NOMAD's OPTiMaDe implemenations",
-                    "base_url": url(version=None),
-                    "homepage": "http://nomad-coe.eu"
-                }
-            },
-            {
                 "type": "child",
                 "id": "v0",
                 "attributes": {
-                    "name": "NOMAD OPTiMaDe v0",
-                    "description": "Novel Materials Discovery OPTiMaDe implementations v0",
+                    "name": config.meta.name,
+                    "description": config.meta.description,
                     "base_url": {
                         "href": url(),
                     },
-                    "homepage": "http://nomad-coe.eu"
+                    "homepage": config.meta.homepage
                 }
             }
         ]
 
         return dict(
-            meta=Meta(query=request.url, returned=2),
+            meta=Meta(query=request.url, returned=1),
             data=result
         ), 200

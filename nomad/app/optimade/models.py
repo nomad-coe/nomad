@@ -128,7 +128,7 @@ class Meta():
         self.last_id = last_id
         self.implementation = dict(
             name='nomad@fairdi',
-            version=config.version,
+            version=config.meta.version,
             source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
             maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
 

@@ -233,7 +233,7 @@ def setup_kwargs():
 
     return dict(
         name='nomad-lab',
-        version=config.version,
+        version=config.meta.version,
         description='The NOvel MAterials Discovery (NOMAD) Python package',
         package_dir={'': './'},
         packages=['nomad.%s' % pkg for pkg in find_packages('./nomad')] + ['nomad'],

@@ -41,7 +41,7 @@ def test_index(index_api):
     rv = index_api.get('/links')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    assert data['data'][1]['attributes']['base_url']['href'].endswith('v0')
+    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade/v0')
 
 
 def test_get_entry(published: Upload):
@@ -247,13 +247,7 @@ def test_links_endpoint(api, example_structures):
     rv = api.get('/links')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    assert 'data' in data
-    assert len(data['data']) == 4
-    for d in data['data']:
-        for key in ['id', 'type', 'attributes']:
-            assert d.get(key) is not None
-        for key in ['name', 'description', 'base_url', 'homepage']:
-            assert key in d['attributes']
+    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade/index')
 
 
 def test_structures_endpoint(api, example_structures):

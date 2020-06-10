@@ -144,8 +144,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             'logger_name': record.name,
 
             # Nomad specific
-            'nomad.service': config.service,
-            'nomad.release': config.release
+            'nomad.service': config.meta.service,
+            'nomad.release': config.meta.release
         }
 
         if record.name.startswith('nomad'):
@@ -238,7 +238,7 @@ def add_logstash_handler(logger):
         logstash_handler = LogstashHandler(
             config.logstash.host,
             config.logstash.tcp_port, version=1)
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.release])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.meta.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 

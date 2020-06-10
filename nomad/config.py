@@ -261,11 +261,17 @@ datacite = NomadConfig(
     password='*'
 )
 
-version = '0.8.1'
-commit = gitinfo.commit
-release = 'devel'
-default_domain = 'dft'
-service = 'unknown nomad service'
+meta = NomadConfig(
+    version='0.8.1',
+    commit=gitinfo.commit,
+    release='devel',
+    default_domain='dft',
+    service='unknown nomad service',
+    name='novel materials discovery (NOMAD)',
+    description='A FAIR data sharing platform for materials science data',
+    homepage='https://nomad-coe.eu'
+)
+
 auxfile_cutoff = 100
 parser_matching_size = 9128
 console_log_level = logging.WARNING
