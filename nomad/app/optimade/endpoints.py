@@ -23,8 +23,8 @@ from nomad.datamodel import OptimadeEntry
 from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
-    json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
-    ToplevelLinks, json_api_references_response_model, \
+    json_api_info_response_model, json_api_list_response_model, StructureObject, \
+    ToplevelLinks, \
     json_api_structure_response_model, json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
