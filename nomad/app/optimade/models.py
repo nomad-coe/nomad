@@ -362,8 +362,8 @@ json_api_single_response_model = api.inherit(
 json_api_list_response_model = api.inherit(
     'ListResponse', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_data_object_model),
-            required=True, skip_none=True,
+            fields.Nested(json_api_data_object_model, skip_none=True),
+            required=True,
             description=('The list of returned response objects.'))
     })
 
@@ -379,14 +379,14 @@ json_api_structure_response_model = api.inherit(
     'Structure', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_resource_model,
-            required=True,
+            required=True, skip_none=True,
             description=('The returned structure object.'))
     })
 
 json_api_structures_response_model = api.inherit(
     'Structures', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned structure objects.'))
     })
@@ -394,7 +394,7 @@ json_api_structures_response_model = api.inherit(
 json_api_references_response_model = api.inherit(
     'References', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned reference objects.'))
     })
@@ -402,7 +402,7 @@ json_api_references_response_model = api.inherit(
 json_api_links_response_model = api.inherit(
     'Links', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned link objects.'))
     })
