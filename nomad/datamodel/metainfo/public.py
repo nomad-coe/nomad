@@ -5316,6 +5316,32 @@ class section_thermodynamical_properties(MSection):
         ''',
         a_legacy=LegacyDefinition(name='vibrational_free_energy_at_constant_volume'))
 
+    @derived(
+        type=np.dtype(np.float64),
+        shape=['number_of_thermodynamical_property_values'],
+        unit='joule / kilogram',
+        description='''
+        Stores the specific vibrational free energy at constant volume.
+        ''',
+        a_legacy=LegacyDefinition(name='specific_vibrational_free_energy_at_constant_volume'),
+        cached=True
+    )
+    def specific_vibrational_free_energy_at_constant_volume(self) -> np.array:
+        """Returns the specific vibrational free energy by dividing the vibrational free energy per
+        cell with the mass of the atoms in the cell.
+        """
+        import nomad.atomutils
+        s_frame_sequence = self.m_parent
+        first_frame = s_frame_sequence.frame_sequence_local_frames_ref[0]
+        system = first_frame.single_configuration_calculation_to_system_ref
+        atomic_numbers = system.atom_species
+        n_atoms = len(atomic_numbers)
+        mass_per_atom = nomad.atomutils.get_summed_atomic_mass(atomic_numbers) / n_atoms
+        free_energy = self.vibrational_free_energy_at_constant_volume
+        specific_vibrational_free_energy_at_constant_volume = free_energy / mass_per_atom
+
+        return specific_vibrational_free_energy_at_constant_volume
+
 
 class section_volumetric_data(MSection):
     '''

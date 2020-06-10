@@ -74,7 +74,7 @@ class PropertiesNormalizer():
                         min_gap = value
                 representative_gap = band_gaps[min_gap_index]
                 bg_value = representative_gap.value
-                if bg_value is not None and bg_value > 0:
+                if bg_value is not None:
                     properties.band_gap = representative_gap.value
                     properties.band_gap_direct = representative_gap.type == "direct"
 

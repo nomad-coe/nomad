@@ -17,7 +17,6 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
-from typing import List, Dict, Union, Sequence
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
@@ -25,10 +24,9 @@ from elasticsearch_dsl import Search, Q, A
 from elasticsearch_dsl.utils import AttrDict
 
 from nomad import config, files
-from nomad.archive import ArchiveObject
 from nomad.units import ureg
-from nomad.metainfo import MSection
 from nomad.atomutils import get_hill_decomposition
+from nomad.datamodel.datamodel import EntryArchive
 from .api import api
 
 ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
@@ -693,6 +691,8 @@ calc_prop_map = {
     "has_dos": "encyclopedia.properties.electronic_dos",
     "has_band_structure": "encyclopedia.properties.electronic_band_structure",
     "has_thermal_properties": "encyclopedia.properties.thermodynamical_properties",
+    "has_phonon_dos": "encyclopedia.properties.phonon_dos",
+    "has_phonon_band_structure": "encyclopedia.properties.phonon_band_structure",
 }
 calculation_result = api.model("calculation_result", {
     "calc_id": fields.String,
@@ -705,6 +705,8 @@ calculation_result = api.model("calculation_result", {
     "has_dos": fields.Boolean,
     "has_band_structure": fields.Boolean,
     "has_thermal_properties": fields.Boolean,
+    "has_phonon_dos": fields.Boolean,
+    "has_phonon_band_structure": fields.Boolean,
 })
 calculations_result = api.model("calculations_result", {
     "total_results": fields.Integer,
@@ -759,6 +761,8 @@ class EncCalculationsResource(Resource):
             calc_dict["has_dos"] = calc_dict["has_dos"] is not None
             calc_dict["has_band_structure"] = calc_dict["has_band_structure"] is not None
             calc_dict["has_thermal_properties"] = calc_dict["has_thermal_properties"] is not None
+            calc_dict["has_phonon_dos"] = calc_dict["has_phonon_dos"] is not None
+            calc_dict["has_phonon_band_structure"] = calc_dict["has_phonon_band_structure"] is not None
             results.append(calc_dict)
 
         result = {
@@ -985,7 +989,8 @@ class EncIdealizedStructureResource(Resource):
         upload_id = entry.upload_id
         calc_id = entry.calc_id
         ideal_struct_path = "section_metadata/encyclopedia/material/idealized_structure"
-        idealized_structure = read_archive(upload_id, calc_id, ideal_struct_path)[ideal_struct_path]
+        root = read_archive(upload_id, calc_id)
+        idealized_structure = root[ideal_struct_path].m_to_dict()
 
         return idealized_structure, 200
 
@@ -1014,6 +1019,15 @@ calculation_property_map = {
     },
     "electronic_dos": {
         "es_source": "encyclopedia.properties.electronic_dos"
+    },
+    "phonon_band_structure": {
+        "es_source": "encyclopedia.properties.phonon_band_structure"
+    },
+    "phonon_dos": {
+        "es_source": "encyclopedia.properties.phonon_dos"
+    },
+    "thermodynamical_properties": {
+        "es_source": "encyclopedia.properties.thermodynamical_properties"
     },
     "wyckoff_sets": {
         "arch_source": "section_metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
@@ -1048,6 +1062,9 @@ calculation_property_result = api.model("calculation_property_result", {
     "band_gap": fields.Float,
     "electronic_band_structure": fields.Nested(electronic_band_structure, skip_none=True),
     "electronic_dos": fields.Nested(electronic_dos, skip_none=True),
+    "phonon_band_structure": fields.Raw,
+    "phonon_dos": fields.Raw,
+    "thermodynamical_properties": fields.Raw,
 })
 
 
@@ -1087,11 +1104,18 @@ class EncCalculationResource(Resource):
         properties = data["properties"]
         arch_properties = {}
         es_properties = {}
+        ref_properties = set((
+            "electronic_dos",
+            "electronic_band_structure",
+            "thermodynamical_properties",
+            "phonon_dos",
+            "phonon_band_structure",
+        ))
         for prop in properties:
             es_source = calculation_property_map[prop].get("es_source")
             if es_source is not None:
                 es_properties[prop] = es_source
-                if prop in set(("electronic_dos", "electronic_band_structure")):
+                if prop in ref_properties:
                     references.append(prop)
             arch_source = calculation_property_map[prop].get("arch_source")
             if arch_source is not None:
@@ -1133,19 +1157,26 @@ class EncCalculationResource(Resource):
         # file is opened and read.
         result = {}
         if len(arch_properties) != 0:
-            arch_paths = set(arch_properties.values())
             entry = response[0]
             upload_id = entry.upload_id
             calc_id = entry.calc_id
-            data = read_archive(
+            root = read_archive(
                 upload_id,
                 calc_id,
-                arch_paths,
             )
 
             # Add results from archive
-            for key, value in arch_properties.items():
-                value = data[value]
+            for key, arch_path in arch_properties.items():
+                value = root[arch_path]
+
+                # Save derived properties and turn into dict
+                if key == "thermodynamical_properties":
+                    specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
+                    specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
+                value = value.m_to_dict()
+                if key == "thermodynamical_properties":
+                    value["specific_heat_capacity"] = specific_heat_capacity
+                    value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
 
                 # DOS results are simplified
                 if key == "electronic_dos":
@@ -1176,38 +1207,21 @@ class EncCalculationResource(Resource):
         return result, 200
 
 
-def read_archive(upload_id: str, calc_id: str, paths: List[str]) -> Dict[str, MSection]:
+def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
     """Used to read data from the archive.
 
     Args:
         upload_id: Upload id.
         calc_id: Calculation id.
-        paths: List of metainfo paths to read and return.
 
     Returns:
+        MSection: The section_run as MSection
         For each path, a dictionary containing the path as key and the returned
         section as value.
     """
-    if isinstance(paths, str):
-        paths = [paths]
-
-    result = {}
     upload_files = files.UploadFiles.get(upload_id)
     with upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
-        for path in paths:
-            i_path = path
-            if i_path .startswith("/"):
-                i_path = i_path[1:]
-            parts: Sequence[Union[str, int]] = i_path.split("/")
-            for part in parts:
-                try:
-                    part = int(part)
-                except Exception:
-                    pass
-                data = data[part]
-            if isinstance(data, ArchiveObject):
-                data = data.to_dict()
-            result[path] = data
+        root = EntryArchive.m_from_dict(data.to_dict())
 
-    return result
+    return root
