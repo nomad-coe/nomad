@@ -39,7 +39,7 @@ class Info(Resource):
             'attributes': {
                 'api_version': '0.10.0',
                 'available_api_versions': [{
-                    'url': url(),
+                    'url': url(prefix='index'),
                     'version': '0.10.0'
                 }],
                 'formats': ['json'],
