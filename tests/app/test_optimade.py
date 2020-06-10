@@ -31,7 +31,7 @@ def api(session_client):
 
 @pytest.fixture(scope='session')
 def index_api(session_client):
-    return BlueprintClient(session_client, '/optimade')
+    return BlueprintClient(session_client, '/optimade/index/v0')
 
 
 def test_index(index_api):

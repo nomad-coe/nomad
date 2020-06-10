@@ -4,6 +4,7 @@
 .pytest/
 .python-version
 .ipynb_checkpoints/
+.python-version
 __pycache__
 .mypy_cache
 *.pyc

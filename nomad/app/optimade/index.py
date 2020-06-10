@@ -18,7 +18,7 @@ from flask import request
 from .api import api, url, base_request_args
 from .models import json_api_single_response_model, base_endpoint_parser, json_api_single_response_model, Meta, json_api_list_response_model
 
-ns = api.namespace('', description='This is the OPTiMaDe index for NOMAD\' implementations.')
+ns = api.namespace('index/v0', description='This is the OPTiMaDe index for NOMAD\' implementations.')
 
 
 @ns.route('/info')
