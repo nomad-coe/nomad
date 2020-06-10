@@ -790,7 +790,7 @@ statistics = api.model("statistics", {
     "min": fields.Float,
     "max": fields.Float,
     "avg": fields.Float,
-    "histogram": fields.Nested(histogram)
+    "histogram": fields.Nested(histogram, skip_none=True)
 })
 statistics_result = api.model("statistics_result", {
     "cell_volume": fields.Nested(statistics, skip_none=True),
@@ -875,6 +875,8 @@ class EncStatisticsResource(Resource):
         n_bins = data["n_histogram_bins"]
         for prop in properties:
             stats = getattr(response.aggs, "{}_stats".format(prop))
+            if stats.count == 0:
+                continue
             interval = (stats.max * 1.001 - stats.min) / n_bins
             if interval == 0:
                 interval = 1
@@ -886,6 +888,8 @@ class EncStatisticsResource(Resource):
         result = {}
         for prop in properties:
             stats = getattr(response.aggs, "{}_stats".format(prop))
+            if stats.count == 0:
+                continue
             hist = getattr(response_hist.aggs, "{}_hist".format(prop))
             occurrences = [x.doc_count for x in hist.buckets]
             values = [x.key for x in hist.buckets]
@@ -1178,7 +1182,7 @@ class EncCalculationResource(Resource):
                     value["specific_heat_capacity"] = specific_heat_capacity
                     value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
 
-                # DOS results are simplified
+                # DOS results are simplified.
                 if key == "electronic_dos":
                     if "dos_energies_normalized" in value:
                         value["dos_energies"] = value["dos_energies_normalized"]
@@ -1186,8 +1190,6 @@ class EncCalculationResource(Resource):
                     if "dos_values_normalized" in value:
                         value["dos_values"] = value["dos_values_normalized"]
                         del value["dos_values_normalized"]
-                    del value["dos_integrated_values"]
-                    del value["dos_fermi_energy"]
 
                 result[key] = value
 
