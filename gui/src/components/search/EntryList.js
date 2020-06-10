@@ -342,6 +342,7 @@ export class EntryListUnstyled extends React.Component {
           total={total}
           columns={columns}
           selectedColumns={defaultSelectedColumns}
+          selectedColumnsKey="entries"
           entryDetails={this.renderEntryDetails.bind(this)}
           entryActions={this.renderEntryActions.bind(this)}
           data={results}

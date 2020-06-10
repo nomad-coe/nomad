@@ -172,7 +172,7 @@ parsers = [
     TemplateParser(),
     ChaosParser(),
     LegacyParser(
-        name='parsers/phonopy', code_name='Phonopy',
+        name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
         parser_class_name='phonopyparser.PhonopyParserWrapper',
         # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
@@ -190,19 +190,19 @@ parsers = [
         supported_compressions=['gz', 'bz2', 'xz']
     ),
     VaspOutcarParser(
-        name='parsers/vasp-outcar', code_name='VASP',
+        name='parsers/vasp-outcar', code_name='VASP', code_homepage='https://www.vasp.at/',
         parser_class_name='vaspparser.VaspOutcarParser',
         mainfile_name_re=r'(.*/)?OUTCAR(\.[^\.]*)?',
         mainfile_contents_re=(r'^\svasp\.')
     ),
     LegacyParser(
-        name='parsers/exciting', code_name='exciting',
+        name='parsers/exciting', code_name='exciting', code_homepage='http://exciting-code.org/',
         parser_class_name='excitingparser.ExcitingParser',
         mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
         mainfile_contents_re=(r'EXCITING.*started')
     ),
     LegacyParser(
-        name='parsers/fhi-aims', code_name='FHI-aims',
+        name='parsers/fhi-aims', code_name='FHI-aims', code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
         parser_class_name='fhiaimsparser.FHIaimsParser',
         mainfile_contents_re=(
             r'^(.*\n)*'
@@ -211,7 +211,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/cp2k', code_name='CP2K',
+        name='parsers/cp2k', code_name='CP2K', code_homepage='https://www.cp2k.org/',
         parser_class_name='cp2kparser.CP2KParser',
         mainfile_contents_re=(
             r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
@@ -222,7 +222,7 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/crystal', code_name='Crystal',
+        name='parsers/crystal', code_name='Crystal', code_homepage='https://www.crystal.unito.it/',
         parser_class_name='crystalparser.CrystalParser',
         mainfile_contents_re=(
             r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|'
@@ -234,7 +234,7 @@ parsers = [
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
     LegacyParser(
-        name='parsers/cpmd', code_name='CPMD',
+        name='parsers/cpmd', code_name='CPMD', code_homepage='https://www.lcrc.anl.gov/for-users/software/available-software/cpmd/',
         parser_class_name='cpmdparser.CPMDParser',
         mainfile_contents_re=(
             # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
@@ -248,14 +248,14 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/nwchem', code_name='NWChem',
+        name='parsers/nwchem', code_name='NWChem', code_homepage='http://www.nwchem-sw.org/',
         parser_class_name='nwchemparser.NWChemParser',
         mainfile_contents_re=(
             r'Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+'
         )
     ),
     LegacyParser(
-        name='parsers/bigdft', code_name='BigDFT',
+        name='parsers/bigdft', code_name='BigDFT', code_homepage='http://bigdft.org/',
         parser_class_name='bigdftparser.BigDFTParser',
         mainfile_contents_re=(
             # r'__________________________________ A fast and precise DFT wavelet code\s*'
@@ -286,16 +286,16 @@ parsers = [
         )
     ),
     LegacyParser(
-        name='parsers/wien2k', code_name='WIEN2k',
+        name='parsers/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
         parser_class_name='wien2kparser.Wien2kParser',
         mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     LegacyParser(
-        name='parsers/band', code_name='BAND',
+        name='parsers/band', code_name='BAND', code_homepage='https://www.scm.com/product/band_periodicdft/',
         parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
     LegacyParser(
-        name='parsers/gaussian', code_name='Gaussian',
+        name='parsers/gaussian', code_name='Gaussian', code_homepage='http://gaussian.com/',
         parser_class_name='gaussianparser.GaussianParser',
         mainfile_mime_re=r'.*',
         mainfile_contents_re=(
@@ -303,7 +303,7 @@ parsers = [
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
     ),
     LegacyParser(
-        name='parsers/quantumespresso', code_name='Quantum Espresso',
+        name='parsers/quantumespresso', code_name='Quantum Espresso', code_homepage='https://www.quantum-espresso.org/',
         parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
         mainfile_contents_re=(
             r'(Program PWSCF.*starts)|'
@@ -314,12 +314,12 @@ parsers = [
         #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
     ),
     LegacyParser(
-        name='parsers/abinit', code_name='ABINIT',
+        name='parsers/abinit', code_name='ABINIT', code_homepage='https://www.abinit.org/',
         parser_class_name='abinitparser.AbinitParser',
         mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
     ),
     LegacyParser(
-        name='parsers/orca', code_name='ORCA',
+        name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
         parser_class_name='orcaparser.OrcaParser',
         mainfile_contents_re=(
             r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
@@ -329,22 +329,22 @@ parsers = [
             r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
     ),
     LegacyParser(
-        name='parsers/castep', code_name='CASTEP',
+        name='parsers/castep', code_name='CASTEP', code_homepage='http://www.castep.org/',
         parser_class_name='castepparser.CastepParser',
         mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
     ),
     LegacyParser(
-        name='parsers/dl-poly', code_name='DL_POLY',
+        name='parsers/dl-poly', code_name='DL_POLY', code_homepage='https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx',
         parser_class_name='dlpolyparser.DlPolyParserWrapper',
         mainfile_contents_re=(r'\*\* DL_POLY \*\*')
     ),
     LegacyParser(
-        name='parsers/lib-atoms', code_name='libAtoms',
+        name='parsers/lib-atoms', code_name='libAtoms', code_homepage='https://libatoms.github.io/',
         parser_class_name='libatomsparser.LibAtomsParserWrapper',
         mainfile_contents_re=(r'\s*<GAP_params\s')
     ),
     LegacyParser(
-        name='parsers/octopus', code_name='Octopus',
+        name='parsers/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
         parser_class_name='octopusparser.OctopusParserWrapper',
         mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
         # We decided to use the octopus eyes instead of
@@ -352,20 +352,20 @@ parsers = [
     ),
     # match gpaw2 first, other .gpw files are then considered to be "gpaw1"
     LegacyParser(
-        name='parsers/gpaw2', code_name='GPAW',
+        name='parsers/gpaw2', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
         parser_class_name='gpawparser.GPAWParser2Wrapper',
         mainfile_binary_header=b'GPAW',
         mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
         mainfile_mime_re=r'application/(x-tar|octet-stream)'
     ),
     LegacyParser(
-        name='parsers/gpaw', code_name='GPAW',
+        name='parsers/gpaw', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
         parser_class_name='gpawparser.GPAWParserWrapper',
         mainfile_name_re=(r'^.*\.gpw$'),
         mainfile_mime_re=r'application/(x-tar|octet-stream)'
     ),
     LegacyParser(
-        name='parsers/atk', code_name='ATK',
+        name='parsers/atk', code_name='ATK', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
         parser_class_name='atkparser.ATKParserWrapper',
         # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
         mainfile_name_re=r'^.*\.nc',
@@ -373,7 +373,7 @@ parsers = [
         mainfile_mime_re=r'application/octet-stream'
     ),
     LegacyParser(
-        name='parsers/gulp', code_name='gulp',
+        name='parsers/gulp', code_name='gulp', code_homepage='http://gulp.curtin.edu.au/gulp/',
         parser_class_name='gulpparser.GULPParser',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
@@ -381,24 +381,24 @@ parsers = [
             r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')
     ),
     LegacyParser(
-        name='parsers/siesta', code_name='Siesta',
+        name='parsers/siesta', code_name='Siesta', code_homepage='https://departments.icmab.es/leem/siesta/',
         parser_class_name='siestaparser.SiestaParser',
         mainfile_contents_re=(
             r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
             r'(\*\s*WELCOME TO SIESTA\s*\*)')
     ),
     LegacyParser(
-        name='parsers/elk', code_name='elk',
+        name='parsers/elk', code_name='elk', code_homepage='http://elk.sourceforge.net/',
         parser_class_name='elkparser.ElkParser',
         mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
     ),
     LegacyParser(
-        name='parsers/elastic', code_name='elastic',
+        name='parsers/elastic', code_name='elastic', code_homepage='http://exciting-code.org/elastic',
         parser_class_name='elasticparser.ElasticParser',
         mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
     ),
     LegacyParser(
-        name='parsers/gamess', code_name='GAMESS',
+        name='parsers/gamess', code_name='GAMESS', code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',
         parser_class_name='gamessparser.GamessParser',
         mainfile_contents_re=(
             r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
@@ -406,81 +406,152 @@ parsers = [
             r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
     ),
     LegacyParser(
-        name='parsers/turbomole', code_name='turbomole',
+        name='parsers/turbomole', code_name='turbomole', code_homepage='https://www.turbomole.org/',
         parser_class_name='turbomoleparser.TurbomoleParser',
         mainfile_contents_re=(
             r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
     LegacyParser(
-        name='parsers/skeleton', code_name='skeleton', domain='ems',
+        name='parsers/skeleton', code_name='skeleton', code_homepage=None,
+        domain='ems',
         parser_class_name='skeletonparser.SkeletonParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=(r'skeleton experimental metadata format')
     ),
     LegacyParser(
-        name='parsers/mpes', code_name='mpes', domain='ems',
+        name='parsers/mpes', code_name='mpes', code_homepage='https://github.com/mpes-kit/mpes', domain='ems',
         parser_class_name='mpesparser.MPESParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=(r'.*.meta'),
         mainfile_contents_re=(r'"data_repository_name": "zenodo.org"')
     ),
     LegacyParser(
-        name='parsers/aptfim', code_name='mpes', domain='ems',
+        name='parsers/aptfim', code_name='mpes', code_homepage='https://github.com/mpes-kit/mpes', domain='ems',
         parser_class_name='aptfimparser.APTFIMParserInterface',
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_name_re=(r'.*.aptfim')
     ),
     LegacyParser(
-        name='parsers/eels', code_name='eels', domain='ems',
+        name='parsers/eels', code_name='eels', code_homepage='https://eelsdb.eu/', domain='ems',
         parser_class_name='eelsparser.EelsParserInterface',
         mainfile_mime_re=r'text/.*',
         mainfile_name_re=(r'.*.txt'),
         mainfile_contents_re=(r'api_permalink = https://api\.eelsdb\.eu')
     ),
     LegacyParser(
-        name='parsers/qbox', code_name='qbox', domain='dft',
+        name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
         parser_class_name='qboxparser.QboxParser',
         mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(r'http://qboxcode.org')
     ),
     LegacyParser(
-        name='parsers/dmol', code_name='DMol3', domain='dft',
+        name='parsers/dmol', code_name='DMol3', code_homepage='http://dmol3.web.psi.ch/dmol3.html', domain='dft',
         parser_class_name='dmol3parser.Dmol3Parser',
         mainfile_name_re=r'.*\.outmol',
         mainfile_contents_re=r'Materials Studio DMol\^3'
     ),
     LegacyParser(
-        name='parsers/fleur', code_name='fleur', domain='dft',
+        name='parsers/fleur', code_name='fleur', code_homepage='https://www.flapw.de/', domain='dft',
         parser_class_name='fleurparser.FleurParser',
         mainfile_contents_re=r'This output is generated by fleur.'
     ),
     LegacyParser(
-        name='parsers/molcas', code_name='MOLCAS', domain='dft',
+        name='parsers/molcas', code_name='MOLCAS', code_homepage='http://www.molcas.org/', domain='dft',
         parser_class_name='molcasparser.MolcasParser',
         mainfile_contents_re=r'M O L C A S'
     ),
     LegacyParser(
-        name='parsers/onetep', code_name='ONETEP', domain='dft',
+        name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/', domain='dft',
         parser_class_name='onetepparser.OnetepParser',
         mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
+    ),
+    LegacyParser(
+        name='parsers/openkim', code_name='OpenKIM', domain='dft',
+        parser_class_name='openkimparser.OpenKIMParser',
+        mainfile_contents_re=r'OPENKIM'
+    ),
+    LegacyParser(
+        name='parsers/tinker', code_name='TINKER', domain='dft',
+        parser_class_name='tinkerparser.TinkerParser',
+        mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
+    ),
+    LegacyParser(
+        name='parsers/lammps', code_name='lammps', domain='dft',
+        parser_class_name='lammpsparser.LammpsParser',
+        mainfile_contents_re=r'^LAMMPS'
+    ),
+    LegacyParser(
+        name='parsers/amber', code_name='Amber', domain='dft',
+        parser_class_name='amberparser.AMBERParser',
+        mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
+    ),
+    LegacyParser(
+        name='parsers/gromacs', code_name='Gromacs', domain='dft',
+        parser_class_name='gromacsparser.GROMACSParser',
+        mainfile_contents_re=r'GROMACS - gmx mdrun'
+    ),
+    LegacyParser(
+        name='parsers/gromos', code_name='Gromos', domain='dft',
+        parser_class_name='gromosparser.GromosParser',
+        mainfile_contents_re=r'Bugreports to http://www.gromos.net'
+    ),
+    LegacyParser(
+        name='parsers/namd', code_name='Namd', domain='dft',
+        parser_class_name='namdparser.NamdParser',
+        mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/charmm', code_name='Charmm', domain='dft',
+        parser_class_name='charmmparser.CharmmParser',
+        mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/dftbplus', code_name='DFTb plus', domain='dft',
+        parser_class_name='dftbplusparser.DFTBPlusParser',
+        mainfile_contents_re=r'^ Fermi distribution function\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/asap', code_name='ASAP', domain='dft',
+        parser_class_name='asapparser.AsapParser',
+        mainfile_name_re=r'.*.traj$',
+        mainfile_mime_re=r'application/octet-stream',
+    ),
+    LegacyParser(
+        name='parsers/fplo', code_name='fplo', domain='dft',
+        parser_class_name='fploparser.FploParser',
+        mainfile_contents_re=r'\s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\s*\|\s*',
+        mainfile_mime_re=r'text/.*',
+    ),
+    LegacyParser(
+        name='parsers/mopac', code_name='MOPAC', domain='dft',
+        parser_class_name='mopacparser.MopacParser',
+        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
+        mainfile_mime_re=r'text/.*',
     )
 ]
 
 empty_parsers = [
     EmptyParser(
-        name='missing/octopus', code_name='Octopus', domain='dft',
+        name='missing/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
+        domain='dft',
         mainfile_name_re=r'(inp)|(.*/inp)'
     ),
     EmptyParser(
-        name='missing/crystal', code_name='Crystal', domain='dft',
+        name='missing/crystal', code_name='Crystal', code_homepage='https://www.crystal.unito.it/index.php',
+        domain='dft',
         mainfile_name_re=r'.*\.cryst\.out'
     ),
     EmptyParser(
-        name='missing/wien2k', code_name='WIEN2k', domain='dft',
+        name='missing/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
+        domain='dft',
         mainfile_name_re=r'.*\.scf'
     ),
     EmptyParser(
-        name='missing/fhi-aims', code_name='FHI-aims', domain='dft',
+        name='missing/fhi-aims', code_name='FHI-aims', code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
+        domain='dft',
         mainfile_name_re=r'.*\.fhiaims'
     )
 ]

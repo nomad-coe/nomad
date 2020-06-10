@@ -18,6 +18,8 @@ import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/co
 import { compose } from 'recompose'
 import _ from 'lodash'
 
+const globalSelectedColumns = {}
+
 class DataTableToolbarUnStyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
@@ -170,6 +172,11 @@ class DataTableUnStyled extends React.Component {
      */
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
     /**
+     * If this key is given, it is used to globaly store user modifications to the selected
+     * columns under this key.
+     */
+    selectedColumnsKey: PropTypes.string,
+    /**
      * Single element that is rendered to display actions for the selection. With no
      * select actions, no selection will be shown.
      */
@@ -285,21 +292,20 @@ class DataTableUnStyled extends React.Component {
   constructor(props) {
     super(props)
     this.handleSelectAllClick = this.handleSelectAllClick.bind(this)
+    this.handleSelectedColumnsChanged = this.handleSelectedColumnsChanged.bind(this)
+    let selectedColumns = this.props.selectedColumns || Object.keys(this.props.columns)
+    if (this.props.selectedColumnsKey) {
+      selectedColumns = globalSelectedColumns[this.props.selectedColumnsKey] || selectedColumns
+    }
     this.state = {
       ...this.state,
-      selectedColumns: this.props.selectedColumns || Object.keys(this.props.columns)
+      selectedColumns: selectedColumns
     }
   }
 
   state = {
     selectedEntry: null,
     selectedColumns: null
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.columns !== this.props.columns) {
-      this.setState({selectedColumns: this.props.selectedColumns})
-    }
   }
 
   handleRequestSort(event, property) {
@@ -360,6 +366,13 @@ class DataTableUnStyled extends React.Component {
     }
   }
 
+  handleSelectedColumnsChanged(columns) {
+    if (this.props.selectedColumnsKey) {
+      globalSelectedColumns[this.props.selectedColumnsKey] = columns
+    }
+    this.setState({selectedColumns: columns})
+  }
+
   renderDetails(row) {
     const { classes, entryDetails, id, entryActions } = this.props
     const { selectedColumns, selectedEntry } = this.state
@@ -415,7 +428,7 @@ class DataTableUnStyled extends React.Component {
           selectedColumns={selectedColumns}
           selectActions={selectActions}
           actions={actions}
-          onColumnsChanged={columns => this.setState({selectedColumns: columns})}
+          onColumnsChanged={this.handleSelectedColumnsChanged}
         />
         <div className={classes.tableWrapper}>
           <Table className={classes.table} size="small">

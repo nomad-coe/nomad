@@ -1,5 +1,6 @@
 
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useRef } from 'react'
+import PropTypes from 'prop-types'
 import { matchPath, useLocation, useHistory, useRouteMatch } from 'react-router-dom'
 import Viewer from './Viewer'
 import { apiContext } from '../api'
@@ -60,14 +61,22 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function MetaInfoBrowser(props) {
+export default function MetaInfoBrowser({visible}) {
   const classes = useStyles()
 
-  const location = useLocation()
-  const history = useHistory()
+  const routingRef = useRef({})
+  const routing = {
+    location: useLocation(),
+    history: useHistory(),
+    routeMatch: useRouteMatch()
+  }
+  if (visible) {
+    routingRef.current = routing
+  }
+  const {location, history, routeMatch} = routingRef.current
 
   const match = matchPath(location.pathname, {
-    path: `${useRouteMatch().path}/:pkg?/:metainfo?`
+    path: `${routeMatch.path}/:pkg?/:metainfo?`
   })
   const pkg = match.params.pkg || 'general'
   const metainfoName = match.params.metainfo || 'section_run'
@@ -82,7 +91,7 @@ export default function MetaInfoBrowser(props) {
     api.getInfo().then(info => {
       setPackages(info.metainfo_packages)
     }).catch(raiseError)
-  }, [api])
+  }, [api, raiseError])
 
   useEffect(() => {
     api.getMetaInfo(pkg).then(metainfos => {
@@ -93,7 +102,7 @@ export default function MetaInfoBrowser(props) {
         setMetainfos(metainfos)
       }
     }).catch(raiseError)
-  }, [pkg, metainfoName, api])
+  }, [pkg, metainfoName, api, history, raiseError])
 
   const handleSelectedPackageChanged = event => {
     history.push(`/metainfo/${event.target.value}/section_run`)
@@ -112,7 +121,7 @@ export default function MetaInfoBrowser(props) {
   const metainfo = metainfos.resolve(metainfos.createProxy(metainfoName))
   console.log(metainfoName)
 
-  return <div>
+  return <div style={{display: visible ? 'block' : 'none'}}>
     <div className={classes.forms}>
       <form style={{ display: 'flex' }}>
         <MetainfoSearch
@@ -142,4 +151,7 @@ export default function MetaInfoBrowser(props) {
     </div>
     <Viewer key={`${metainfo.package.name}/${metainfo.name}`} rootElement={metainfo} packages={metainfos.contents} />
   </div>
+}
+MetaInfoBrowser.propTypes = {
+  visible: PropTypes.bool
 }

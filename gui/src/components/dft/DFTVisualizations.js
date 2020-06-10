@@ -9,6 +9,7 @@ export function DFTMethodVisualizations(props) {
   const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['dft.code_name', 'dft.basis_set', 'dft.xc_functional'])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
@@ -47,6 +48,7 @@ export function DFTSystemVisualizations(props) {
   const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['dft.labels_springer_compound_class', 'dft.system', 'dft.crystal_system', 'dft.compound_type'])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
@@ -66,14 +68,14 @@ export function DFTSystemVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.compound_type" title="Compound type" initialScale={0.25} />
-      </Grid>
-      <Grid item xs={4}>
         <QuantityHistogram quantity="dft.system" title="System type" initialScale={0.25} />
         <QuantityHistogram quantity="dft.crystal_system" title="Crystal system" />
       </Grid>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.labels_springer_compound_class" title="Springer compound" />
+        <QuantityHistogram quantity="dft.compound_type" title="Compound type" initialScale={0.25} />
+      </Grid>
+      <Grid item xs={4}>
+        <QuantityHistogram quantity="dft.labels_springer_compound_class" title="Compound classification" />
       </Grid>
     </Grid>
   )
@@ -97,13 +99,13 @@ const electronic_quantities = [
   'eigenvalues_values',
   'volumetric_data_values',
   'electronic_kinetic_energy',
-  'total_charge',
-  'atomic_multipole_values'
+  'total_charge'
+  // 'atomic_multipole_values'
 ]
 const forces_quantities = [
   'atom_forces_free',
   'atom_forces_raw',
-  'atom_forces_T0',
+  // 'atom_forces_T0',
   'atom_forces',
   'stress_tensor'
 ]
@@ -156,6 +158,7 @@ export function DFTPropertyVisualizations(props) {
       'dft.searchable_quantities',
       'dft.labels_springer_classification'
     ])
+    // eslint-disable-next-line
   }, [])
 
   if (statistics.code_name && info) {
@@ -177,6 +180,7 @@ export function DFTPropertyVisualizations(props) {
       <Grid item xs={4}>
         <QuantityHistogram quantity="dft.searchable_quantities" values={energy_quantities} valueLabels={labels} title="Energy" initialScale={0.5} tooltips />
         <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} tooltips />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} tooltips />
       </Grid>
       <Grid item xs={4}>
         <QuantityHistogram quantity="dft.searchable_quantities" values={forces_quantities} valueLabels={labels} title="Forces" initialScale={0.5} tooltips />
@@ -184,8 +188,7 @@ export function DFTPropertyVisualizations(props) {
         <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} tooltips />
       </Grid>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.labels_springer_classification" title="Springer classification" initialScale={1} tooltips />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} tooltips />
+        <QuantityHistogram quantity="dft.labels_springer_classification" title="Property classification" initialScale={1} tooltips />
       </Grid>
     </Grid>
   )

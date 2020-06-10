@@ -7,36 +7,25 @@ import searchQuantities from '../../searchQuantities'
 import { apiContext } from '../api'
 
 /**
- * A few helper functions related to format and analyse suggested options
- */
-const Options = {
-  split: (suggestion) => {
-    let [quantity, value] = suggestion.split('=')
-    if (value && searchQuantities[quantity] && searchQuantities[quantity].many) {
-      value = value.split(',')
-    }
-    return [quantity, value]
-  },
-  join: (quantity, value) => `${quantity}=${value}`,
-  splitForCompare: (suggestion) => {
-    const [quantity, value] = suggestion.split('=')
-    return [quantity ? quantity.toLowerCase() : '', value ? value.toLowerCase() : '']
-  }
-}
-
-/**
  * This searchbar component shows a searchbar with autocomplete functionality. The
  * searchbar also includes a status line about the current results. It uses the
  * search context to manipulate the current query and display results. It does its on
  * API calls to provide autocomplete suggestion options.
  */
 export default function SearchBar() {
-  const suggestionsTimerRef = useRef(null)
+  const currentLoadOptionsConfigRef = useRef({
+    timer: null,
+    latestOption: null,
+    requestedOption: null
+  })
   const {response: {statistics, pagination, error}, domain, query, apiQuery, setQuery} = useContext(searchContext)
   const defaultOptions = useMemo(() => {
     return Object.keys(searchQuantities)
-      .map(quantity => searchQuantities[quantity].name)
-      .filter(quantity => !quantity.includes('.') || quantity.startsWith(domain.key + '.'))
+      .map(quantity => ({
+        quantity: quantity,
+        domain: quantity.includes('.') ? quantity.split('.')[0] : null
+      }))
+      .filter(option => !option.domain || option.domain === domain.key)
   }, [domain.key])
 
   const [open, setOpen] = useState(false)
@@ -47,21 +36,23 @@ export default function SearchBar() {
 
   const {api} = useContext(apiContext)
 
-  const autocompleteValue = Object.keys(query).map(quantity => Options.join(quantity, query[quantity]))
+  const autocompleteValue = Object.keys(query).map(quantity => ({
+    quantity: quantity,
+    domain: quantity.includes('.') ? quantity.split('.')[0] : null,
+    value: query[quantity]
+  }))
 
   const handleSearchTypeClicked = useCallback(() => {
     if (searchType === 'nomad') {
       setSearchType('optimade')
-      // handleChange(null, [])
     } else {
       setSearchType('nomad')
-      // handleChange(null, [])
     }
   }, [searchType, setSearchType])
 
   const handleOptimadeEntered = useCallback(query => {
     setQuery({'dft.optimade': query})
-  })
+  }, [setQuery])
 
   let helperText = ''
   if (error) {
@@ -71,43 +62,43 @@ export default function SearchBar() {
       helperText = <span>There are no more entries matching your criteria.</span>
     } else {
       helperText = <span>
-        There {pagination.total === 1 ? 'is' : 'are'} {Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
-          return <span key={key}>
-            {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
-          </span>
-        })}{Object.keys(query).length ? ' left' : ''}.
+        There {pagination.total === 1 ? 'is' : 'are'} {
+          Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
+            return <span key={key}>
+              {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
+            </span>
+          })
+        }{Object.keys(query).length ? ' left' : ''}.
       </span>
     }
   }
 
-  const filterOptions = useCallback((options, params) => {
-    let [quantity, value] = Options.splitForCompare(params.inputValue)
-    const filteredOptions = options.filter(option => {
-      let [optionQuantity, optionValue] = Options.splitForCompare(option)
-      if (!value) {
-        return optionQuantity && (optionQuantity.includes(quantity) || optionQuantity === quantity)
-      } else {
-        return optionValue.includes(value) || optionValue === value
-      }
-    })
-    return filteredOptions
-  }, [])
+  const loadOptions = useCallback(option => {
+    const config = currentLoadOptionsConfigRef.current
+    config.latestOption = option
 
-  const loadOptions = useCallback((quantity, value) => {
-    const size = searchQuantities[quantity].statistic_size
-
-    if (suggestionsTimerRef.current !== null) {
-      clearTimeout(suggestionsTimerRef.current)
+    if (config.timer !== null) {
+      clearTimeout(config.timer)
     }
     if (loading) {
       return
     }
-    suggestionsTimerRef.current = setTimeout(() => {
+    config.timer = setTimeout(() => {
+      config.requestedOption = option
+      const size = searchQuantities[option.quantity].statistic_size
       setLoading(true)
-      api.suggestions_search(quantity, apiQuery, size ? null : value, size || 20, true)
+      api.suggestions_search(option.quantity, apiQuery, size ? null : option.value, size || 20, true)
         .then(response => {
           setLoading(false)
-          const options = response.suggestions.map(value => Options.join(quantity, value))
+          if (!config.latestOption || config.requestedOption.quantity !== config.latestOption.quantity) {
+            // don't do anything if quantity has changed in the meantime
+            return
+          }
+          const options = response.suggestions.map(value => ({
+            quantity: option.quantity,
+            domain: option.domain,
+            value: value
+          }))
           setOptions(options)
           setOpen(true)
         })
@@ -115,37 +106,114 @@ export default function SearchBar() {
           setLoading(false)
         })
     }, 200)
-  }, [api, suggestionsTimerRef, apiQuery])
+  }, [api, currentLoadOptionsConfigRef, apiQuery, loading, setLoading])
+
+  const getOptionLabel = useCallback(option => {
+    let label = option.quantity + '='
+    if (option.value) {
+      if (Array.isArray(option.value)) {
+        label += option.value.join(',')
+      } else {
+        label += option.value
+      }
+    }
+    return label.substring(label.indexOf('.') + 1)
+  }, [])
+
+  const parseOption = useCallback(input => {
+    const [inputQuantity, inputValue] = input.split('=')
+
+    let quantity = inputQuantity
+    let value = inputValue
+    if (!searchQuantities[quantity]) {
+      quantity = domain.key + '.' + quantity
+    }
+    if (value && searchQuantities[quantity] && searchQuantities[quantity].many) {
+      value = value.split(',').map(item => item.trim())
+    }
+    return {
+      inputQuantity: inputQuantity,
+      inputValue: inputValue,
+      domain: inputQuantity.includes('.') ? inputQuantity.split('.')[0] : null,
+      quantity: searchQuantities[quantity] ? quantity : null,
+      value: value
+    }
+  }, [domain.key])
+
+  const filterOptions = useCallback((options, params) => {
+    const inputOption = parseOption(params.inputValue)
+    const filteredOptions = options.filter(option => {
+      if (!inputOption.quantity) {
+        return option.quantity.includes(
+          inputOption.inputQuantity) && (option.domain === domain.key || !option.domain)
+      }
+      if (option.quantity !== inputOption.quantity) {
+        return false
+      }
+
+      if (!inputOption.value) {
+        return true
+      }
+
+      const matches = option.value &&
+        inputOption.inputValue &&
+        option.value.toLowerCase().includes(inputOption.inputValue.toLowerCase())
+      if (matches) {
+        if (option.value === inputOption.inputValue) {
+          inputOption.exists |= true
+        }
+        return true
+      }
+
+      return false
+    })
+
+    // Add the value as option, even if it does not exist to allow search for missing,
+    // faulty, or not yet loaded options
+    if (inputOption.quantity && !inputOption.exists) {
+      filteredOptions.push(inputOption)
+    }
+
+    return filteredOptions
+  }, [domain.key, parseOption])
 
   const handleInputChange = useCallback((event, value, reason) => {
     if (reason === 'input') {
       setInputValue(value)
-      const [quantity, quantityValue] = Options.split(value)
-
-      if (searchQuantities[quantity]) {
-        loadOptions(quantity, quantityValue)
+      const inputOption = parseOption(value)
+      if (inputOption.quantity) {
+        loadOptions(inputOption)
       } else {
         setOptions(defaultOptions)
       }
     }
-  }, [loadOptions])
+  }, [loadOptions, defaultOptions, parseOption])
 
   const handleChange = (event, entries) => {
+    currentLoadOptionsConfigRef.current.latestOption = null
+
+    entries = entries.map(entry => {
+      if (typeof entry === 'string') {
+        return parseOption(entry)
+      } else {
+        return entry
+      }
+    })
+
     const newQuery = entries.reduce((query, entry) => {
       if (entry) {
-        const [quantity, value] = Options.split(entry)
-        if (query[quantity]) {
-          if (searchQuantities[quantity].many) {
-            if (Array.isArray(query[quantity])) {
-              query[quantity].push(value)
+        if (query[entry.quantity]) {
+          if (searchQuantities[entry.quantity].many) {
+            if (Array.isArray(query[entry.quantity])) {
+              query[entry.quantity].push(entry.value)
             } else {
-              query[quantity] = [query[quantity], value]
+              query[entry.quantity] = [query[entry.quantity], entry.value]
             }
           } else {
-            query[quantity] = value
+            query[entry.quantity] = entry.value
           }
         } else {
-          query[quantity] = value
+          query[entry.quantity] = entry.value
         }
       }
       return query
@@ -154,12 +222,11 @@ export default function SearchBar() {
 
     if (entries.length !== 0) {
       const entry = entries[entries.length - 1]
-      const [quantity, value] = Options.split(entry)
-      if (value) {
+      if (entry.value) {
         setInputValue('')
       } else {
-        setInputValue(`${entry}=`)
-        loadOptions(quantity)
+        setInputValue(getOptionLabel(entry))
+        loadOptions(entry)
       }
     }
   }
@@ -168,7 +235,7 @@ export default function SearchBar() {
     if (!open) {
       setOptions(defaultOptions)
     }
-  }, [open])
+  }, [open, defaultOptions])
 
   const commonTextFieldProps = params => ({
     error: !!error,
@@ -209,10 +276,14 @@ export default function SearchBar() {
       }}
       onChange={handleChange}
       onInputChange={handleInputChange}
-      getOptionSelected={(option, value) => option === value}
+      getOptionSelected={(option, inputOption) => {
+        return inputOption.quantity === option.quantity && inputOption.value === option.value
+      }}
+      getOptionLabel={getOptionLabel}
       options={options}
       loading={loading}
       filterOptions={filterOptions}
+      // handleHomeEndKeys
       renderInput={(params) => (
         <TextField
           {...commonTextFieldProps(params)}
@@ -238,7 +309,6 @@ export default function SearchBar() {
       }}
       defaultValue={query['dft.optimade'] || ''}
       onKeyPress={(ev) => {
-        console.log(`Pressed keyCode ${ev.key}`)
         if (ev.key === 'Enter') {
           handleOptimadeEntered(ev.target.value)
           ev.preventDefault()

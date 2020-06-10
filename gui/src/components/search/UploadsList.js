@@ -220,6 +220,7 @@ class UploadListUnstyled extends React.Component {
       total={total}
       columns={this.columns}
       selectedColumns={['upload_time', 'upload_id', 'entries', 'published']}
+      selectedColumnsKey="uploads"
       entryActions={this.renderEntryActions}
       data={results}
       rows={per_page}

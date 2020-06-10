@@ -608,6 +608,7 @@ class Upload extends React.Component {
       query={{upload_id: [upload.upload_id]}}
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
+      selectedColumnsKey={null}
       editable={tasks_status === 'SUCCESS'}
       data={data}
       onChange={this.handleChange}

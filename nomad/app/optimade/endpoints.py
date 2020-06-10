@@ -20,7 +20,7 @@ from elasticsearch_dsl import Q
 from nomad import search, files, datamodel
 from nomad.datamodel import OptimadeEntry
 
-from .api import api, url
+from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
     json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
@@ -28,19 +28,7 @@ from .models import json_api_single_response_model, entry_listing_endpoint_parse
     json_api_structure_response_model, json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
-
-ns = api.namespace('', description='The (only) API namespace with all OPTiMaDe endpoints.')
-
-
-# TODO replace with decorator that filters response_fields
-def base_request_args():
-    if request.args.get('response_format', 'json') != 'json':
-        abort(400, 'Response format is not supported.')
-
-    properties_str = request.args.get('request_fields', None)
-    if properties_str is not None:
-        return properties_str.split(',')
-    return None
+ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
 
 
 def base_search_request():
@@ -74,6 +62,10 @@ def to_calc_with_metadata(results: List[Dict[str, Any]]):
     return result
 
 
+# TODO the Entry/ListEntry endpoints for References, Calculations, Structures should
+# reuse more code.
+# Calculations are identical to structures. Not sure if this is what the optimade
+# specification intends.
 @ns.route('/calculations')
 class CalculationList(Resource):
     @api.doc('list_calculations')
@@ -259,6 +251,9 @@ class References(Resource):
         results = to_calc_with_metadata(result['results'])
         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
+        # TODO References are about returning user provided references to paper or web resources.
+        # The ReferenceObject does not have this kind of information.
+        # TODO Why is TopLevelLinks different from LinksModel. Any what is "TopLevel" about it.
         return dict(
             meta=Meta(
                 query=request.url,
@@ -312,12 +307,14 @@ class Links(Resource):
                 page_limit=page_limit,
                 sort=sort, filter=filter
             ),
+            # TODO Links are about links to other optimade databases, e.g. OQMD, MP, AFLOW.
+            # It is not about links within NOMAD, like LinkObject suggests.
             data=[LinkObject(d, page_number=page_number, sort=sort, filter=filter) for d in results]
         )
 
 
 @ns.route('/structures')
-class Structures(Resource):
+class StructureList(Resource):
     @api.doc('structures')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.response(422, 'Validation error')
@@ -385,4 +382,30 @@ class Structure(Resource):
         return dict(
             meta=Meta(query=request.url, returned=1),
             data=StructureObject(results[0], request_fields=request_fields)
+        ), 200
+
+
+@ns.route('/info/structures')
+class StructuresInfo(Resource):
+    @api.doc('structures_info')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.expect(base_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
+    def get(self):
+        ''' Returns information relating to the API implementation- '''
+        base_request_args()
+
+        result = {
+            'description': 'a structure entry',
+            'properties': {
+                attr.name: dict(description=attr.description)
+                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'formats': ['json'],
+            'output_fields_by_format': {
+                'json': list(OptimadeEntry.m_def.all_properties.keys())}
+        }
+
+        return dict(
+            meta=Meta(query=request.url, returned=1),
+            data=result
         ), 200

@@ -210,6 +210,7 @@ class GroupListUnstyled extends React.Component {
       total={total}
       columns={this.columns}
       selectedColumns={defaultSelectedColumns}
+      selectedColumnsKey="groups"
       entryDetails={this.renderEntryDetails.bind(this)}
       entryActions={this.renderEntryActions}
       data={results}

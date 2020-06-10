@@ -29,6 +29,7 @@ import aniso8601
 from datetime import datetime
 import pytz
 import docstring_parser
+import jmespath
 
 from nomad.units import ureg
 
@@ -1593,6 +1594,40 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def __len__(self):
         return len(self.m_def.all_properties)
+
+    def get(self, key):
+        return self.__dict__.get(key, None)
+
+    def values(self):
+        return {key: val for key, val in self.__dict__.items() if not key.startswith('m_')}.values()
+
+    def m_xpath(self, expression: str):
+        '''
+        Provides an interface to jmespath search functionality.
+
+        Arguments:
+            expression: A string compatible with the jmespath specs representing the
+                search. See https://jmespath.org/ for complete description.
+
+        .. code-block:: python
+        metainfo_section.m_xpath('code_name')
+        metainfo_section.m_xpath('systems[-1].system_type')
+        metainfo_section.m_xpath('sccs[0].system.atom_labels')
+        metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
+        metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
+        '''
+        def to_dict(entries):
+            if not isinstance(entries, list):
+                try:
+                    entries = entries.m_to_dict()
+                except Exception:
+                    pass
+                return entries
+            else:
+                return [to_dict(entry) for entry in entries]
+
+        result = jmespath.search(expression, self)
+        return to_dict(result)
 
 
 class MCategory(metaclass=MObjectMeta):

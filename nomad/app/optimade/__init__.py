@@ -20,5 +20,8 @@ from flask import Blueprint
 from flask_restplus import Api
 
 from .api import blueprint, url, api
-from .endpoints import CalculationList, Calculation
+# TODO ReferenceList, Reference, ReferenceInfo, Links are missing, because the implement
+# the wrong thing.
+from .endpoints import CalculationList, Calculation, CalculationInfo, Info, Structure, StructuresInfo, StructureList
+from .index import Info
 from .filterparser import parse_filter

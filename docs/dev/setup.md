@@ -38,7 +38,7 @@ cd nomad-FAIR
 ### C libs
 
 Even though the NOMAD infrastructure is written in python, there is a C library
-required by one of our pyhton dependencies.
+required by one of our python dependencies.
 
 #### libmagic
 
@@ -52,11 +52,9 @@ brew install libmagic
 ### Virtual environment
 
 #### pyenv
-The nomad code currently targets python 3.6. If you host machine has 3.7 or later installed,
-you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.6 in parallel.
-To use 3.7 there is a slight issue about the `enum34` which fails the compilation of the
-`mdtraj` and `mdanalysis` packages. A possible work arround is to uninstall and tham re-install
-`enum34` once the other packages are installed.
+The nomad code currently targets python 3.7. If you host machine has an older version installed,
+you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.7 in parallel to your
+system's python.
 
 #### virtualenv
 We strongly recommend to use *virtualenv* to create a virtual environment. It will allow you
@@ -73,7 +71,7 @@ source .pyenv/bin/activate
 If you are a conda user, there is an equivalent, but you have to install pip and the
 right python version while creating the environment.
 ```
-conda create --name nomad_env pip python=3.6
+conda create --name nomad_env pip python=3.7
 conda activate nomad_env
 ```
 
