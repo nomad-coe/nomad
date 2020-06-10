@@ -180,9 +180,8 @@ def test_list_endpoint_request_fields(api, example_structures):
     ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
     data['data'] = sorted(data['data'], key=lambda x: x['id'])
     for i in range(len(data['data'])):
-        rf = list(data['data'][i]['attributes'].keys())
-        rf.sort()
-        assert rf == ['elements', 'nelements']
+        rf = sorted(list(data['data'][i]['attributes'].keys()))
+        assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
         assert_eq_attrib(data, 'elements', ref_elements[i], i)
         assert_eq_attrib(data, 'nelements', len(ref_elements[i]), i)
 
@@ -192,8 +191,8 @@ def test_single_endpoint_request_fields(api, example_structures):
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = ['H', 'O']
-    rf = list(data['data']['attributes'].keys())
-    assert rf == ['elements', 'nelements']
+    rf = sorted(list(data['data']['attributes'].keys()))
+    assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
     assert_eq_attrib(data, 'elements', ref_elements)
     assert_eq_attrib(data, 'nelements', len(ref_elements))
 

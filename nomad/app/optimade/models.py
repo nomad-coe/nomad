@@ -213,16 +213,10 @@ json_api_data_object_model = api.model('DataObject', {
     'id': fields.String(
         description='The id of the object.'),
 
-    'immutable_id': fields.String(
-        description='The entries immutable id.'),
-
-    'last_modified': RFC3339DateTime(
-        description='Date and time representing when the entry was last modified.'),
-
     'attributes': fields.Raw(
         description='A dictionary, containing key-value pairs representing the entries properties')
-    # TODO
 
+    # TODO
     # further optional fields: links, meta, relationships
 })
 
@@ -281,11 +275,11 @@ class CalculationDataObject:
             return False
 
         attrs = {key: value for key, value in calc.dft.optimade.m_to_dict().items() if include(key)}
+        attrs['immutable_id'] = calc.calc_id
+        attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
         self.type = 'calculation'
         self.id = calc.calc_id
-        self.immutable_id = calc.calc_id
-        self.last_modified = calc.last_processing if calc.last_processing is not None else calc.upload_time
         self.attributes = attrs
 
 
@@ -294,14 +288,12 @@ class StructureObject:
         optimade_quantities = calc.dft.optimade.m_to_dict()
 
         attrs = {key: val for key, val in optimade_quantities.items() if request_fields is None or key in request_fields}
+        attrs['immutable_id'] = calc.calc_id
         attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
         self.type = 'structure'
         self.id = calc.calc_id
-        self.links = None
-        self.meta = None
         self.attributes = attrs
-        self.relationships = None
 
 
 class ReferenceObject:
@@ -313,10 +305,7 @@ class ReferenceObject:
 
         self.type = 'calculation'
         self.id = calc.calc_id
-        self.links = None
-        self.meta = None
         self.attributes = attrs
-        self.relationships = None
 
 
 class LinkObject:
@@ -329,10 +318,7 @@ class LinkObject:
         )
         self.type = 'child'
         self.id = calc.calc_id
-        self.links = None
-        self.meta = None
         self.attributes = attrs
-        self.relationships = None
 
 
 class Property:
