@@ -80,7 +80,7 @@ class CalculationList(Resource):
             filter = request.args.get('filter', None)
             page_limit = int(request.args.get('page_limit', 10))
             page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced'),
+            sort = request.args.get('sort', 'chemical_formula_reduced')
 
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
