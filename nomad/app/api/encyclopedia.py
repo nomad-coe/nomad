@@ -88,6 +88,8 @@ material_result = api.model("material_result", {
     "formula_reduced": fields.String,
     "system_type": fields.String,
     "n_matches": fields.Integer,
+    # Representative properties shown on overview page
+    "representative_structure": fields.String,
     # Bulk only
     "has_free_wyckoff_parameters": fields.Boolean,
     "strukturbericht_designation": fields.String,
@@ -115,12 +117,17 @@ class EncMaterialResource(Resource):
         # Parse request arguments
         args = material_query.parse_args()
         prop = args.get("property", None)
+        repr_keys = set(["representative_structure"])
         if prop is not None:
-            keys = [prop]
-            es_keys = [material_prop_map[prop]]
+            if prop in repr_keys:
+                es_keys = ["calc_id"]
+                repr_keys = set([prop])
+            else:
+                keys = [prop]
+                es_keys = [material_prop_map[prop]]
         else:
             keys = list(material_prop_map.keys())
-            es_keys = list(material_prop_map.values())
+            es_keys = list(material_prop_map.values()) + ["calc_id"]
 
         # Find the first public entry with this material id and take
         # information from there. In principle all other entries should have
@@ -140,12 +147,30 @@ class EncMaterialResource(Resource):
         )
         s = s.query(query)
 
-        # The query is collapsed already on the ES side so we don"t need to
-        # transfer so much data.
-        s = s.extra(**{
-            "collapse": {"field": "encyclopedia.material.material_id"},
-            "_source": {"includes": es_keys},
-        })
+        # The representative idealized structure simply comes from the first
+        # calculation when the calculations are alphabetically sorted by their
+        # calc_id. Thus we sort the results here if the representative
+        # structure is requested. Coming up with a good way to select the
+        # representative one is pretty tricky in general, there are several
+        # options:
+        # - Lowest energy: This would be most intuitive, but the energy scales
+        #   between codes do not match, and the energy may not have been
+        #   reported.
+        # - Volume that is closest to mean volume: how to calculate volume for
+        #   molecules, surfaces, etc...
+        # - Random: We would want the representative visualization to be
+        #   relatively stable.
+        if "representative_structure" in repr_keys:
+            s = s.extra(**{
+                "sort": [{"calc_id": {"order": "asc"}}],
+                "_source": {"includes": es_keys},
+                "size": 1,
+            })
+        else:
+            s = s.extra(**{
+                "collapse": {"field": "encyclopedia.material.material_id"},
+                "_source": {"includes": es_keys},
+            })
 
         response = s.execute()
 
@@ -153,9 +178,13 @@ class EncMaterialResource(Resource):
         if len(response) == 0:
             abort(404, message="There is no material {}".format(material_id))
 
-        # Create result JSON
+        # Add values from ES entry
         entry = response[0]
         result = get_es_doc_values(entry, material_prop_map, keys)
+
+        # Add representative properties
+        if "representative_structure" in repr_keys:
+            result["representative_structure"] = entry.calc_id
 
         return result, 200
 
@@ -938,67 +967,6 @@ idealized_structure_result = api.model("idealized_structure_result", {
     "wyckoff_sets": fields.List(fields.Nested(wyckoff_set_result)),
 })
 
-
-@ns.route("/materials/<string:material_id>/idealized_structure")
-class EncIdealizedStructureResource(Resource):
-    @api.response(404, "Suggestion not found")
-    @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
-    @api.marshal_with(idealized_structure_result, skip_none=True)
-    @api.doc("enc_material_idealized_structure")
-    def get(self, material_id):
-        """Specialized path for returning a representative idealized structure
-        that is displayed in the gui for this material.
-        """
-        # The representative idealized structure simply comes from the first
-        # calculation when the calculations are alphabetically sorted by their
-        # calc_id. Coming up with a good way to select the representative one
-        # is pretty tricky in general, there are several options:
-        # - Lowest energy: This would be most intuitive, but the energy scales
-        #   between codes do not match, and the energy may not have been
-        #   reported.
-        # - Volume that is closest to mean volume: how to calculate volume for
-        #   molecules, surfaces, etc...
-        # - Random: We would want the representative visualization to be
-        #   relatively stable.
-        s = Search(index=config.elastic.index_name)
-        query = Q(
-            "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
-                Q("term", encyclopedia__material__material_id=material_id),
-            ]
-        )
-        s = s.query(query)
-
-        # The query is filtered already on the ES side so we don"t need to
-        # transfer so much data.
-        s = s.extra(**{
-            "sort": [{"calc_id": {"order": "asc"}}],
-            "_source": {"includes": ["upload_id", "calc_id"]},
-            "size": 1,
-        })
-
-        response = s.execute()
-
-        # No such material
-        if len(response) == 0:
-            abort(404, message="There is no material {}".format(material_id))
-
-        # Read the idealized_structure from the Archive. The structure can be
-        # quite large and no direct search queries are performed against it, so
-        # it is not in the ES index.
-        entry = response[0]
-        upload_id = entry.upload_id
-        calc_id = entry.calc_id
-        ideal_struct_path = "section_metadata/encyclopedia/material/idealized_structure"
-        root = read_archive(upload_id, calc_id)
-        idealized_structure = root[ideal_struct_path].m_to_dict()
-
-        return idealized_structure, 200
-
-
 calculation_property_map = {
     "lattice_parameters": {
         "es_source": "encyclopedia.material.idealized_structure.lattice_parameters"
@@ -1036,6 +1004,9 @@ calculation_property_map = {
     "wyckoff_sets": {
         "arch_source": "section_metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
     },
+    "idealized_structure": {
+        "arch_source": "section_metadata/encyclopedia/material/idealized_structure"
+    },
 }
 
 calculation_property_query = api.model("calculation_query", {
@@ -1063,6 +1034,7 @@ calculation_property_result = api.model("calculation_property_result", {
     "atomic_density": fields.Float,
     "cell_volume": fields.Float,
     "wyckoff_sets": fields.Nested(wyckoff_set_result, skip_none=True),
+    "idealized_structure": fields.Nested(idealized_structure_result, skip_none=True),
     "band_gap": fields.Float,
     "electronic_band_structure": fields.Nested(electronic_band_structure, skip_none=True),
     "electronic_dos": fields.Nested(electronic_dos, skip_none=True),
