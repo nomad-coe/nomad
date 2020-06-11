@@ -233,8 +233,8 @@ pages_result = api.model("page_info", {
 
 materials_result = api.model("materials_result", {
     "total_results": fields.Integer(allow_null=False),
-    "results": fields.List(fields.Nested(material_result)),
-    "pages": fields.Nested(pages_result),
+    "results": fields.List(fields.Nested(material_result, skip_none=True)),
+    "pages": fields.Nested(pages_result, skip_none=True),
     "es_query": fields.String(allow_null=False),
 })
 
@@ -386,9 +386,9 @@ class EncMaterialsResource(Resource):
             must=musts,
         )
 
-        # 1: The paginated approach: No way to know the amount of matches,
+        # 1: The paginated approach: No way to know the amount of materials,
         # but can return aggregation results in a quick fashion including
-        # the number of matches entries per material.
+        # the number of calculation entries per material.
         if mode == "aggregation":
 
             # The top query filters out entries based on the user query
@@ -704,7 +704,7 @@ calcs_query.add_argument(
 )
 calcs_query.add_argument(
     "per_page",
-    default=25,
+    default=10000,
     type=int,
     help="The number of results per page",
     location="args"
@@ -776,7 +776,6 @@ class EncCalculationsResource(Resource):
             "size": per_page,
             "from": page,
         })
-
         response = s.execute()
 
         # No such material
