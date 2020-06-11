@@ -41,6 +41,19 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
+def get_volume(parallelepiped: np.ndarray) -> float:
+    """Calculates a volume of the given parallelepiped.
+
+    Args:
+        cell: The parallellepiped as 3x3 matrix with cell basis vectors as
+        rows.
+
+    Returns:
+        The cell volume.
+    """
+    return np.abs(np.linalg.det(parallelepiped))
+
+
 def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
     """Attempts to find a position within a larger list of positions.
 

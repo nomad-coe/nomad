@@ -41,8 +41,11 @@ class BandStructureNormalizer(Normalizer):
         for scc in self.section_run.section_single_configuration_calculation:
 
             # In order to resolve band gaps, we need a reference to the highest
-            # occupied energy.
-            valence_band_maximum = scc.energy_reference_highest_occupied
+            # occupied energy (semiconductors/insulators) or the Fermi energy
+            # (metals)
+            e_valence = scc.energy_reference_highest_occupied
+            e_fermi = scc.energy_reference_fermi
+            energy_reference = e_fermi if e_valence is None else e_valence
 
             # In order to resolve the special points and the reciprocal cell,
             # we need information about the system.
@@ -52,7 +55,7 @@ class BandStructureNormalizer(Normalizer):
                 if band.band_structure_kind != "vibrational":
                     self.add_reciprocal_cell(band, system)
                     self.add_brillouin_zone(band)
-                    self.add_band_gaps(band, valence_band_maximum)
+                    self.add_band_gaps(band, energy_reference)
                     self.add_path_labels(band, system)
 
     def add_reciprocal_cell(self, band: section_k_band, system: section_system):
@@ -90,10 +93,9 @@ class BandStructureNormalizer(Normalizer):
         band.reciprocal_cell = recip_cell
 
     def add_brillouin_zone(self, band: section_k_band) -> None:
-        """Adds a dictionary containing the information needed to display
-        the Brillouin zone for this material. This functionality could be put
-        into the GUI directly, with the Brillouin zone construction performed
-        from the reciprocal cell.
+        """Adds the information needed to display the Brillouin zone for this
+        material. This functionality could be put into the GUI directly, with
+        the Brillouin zone construction performed from the reciprocal cell.
 
         The Brillouin Zone is a Wigner-Seitz cell, and is thus uniquely
         defined. It's shape does not depend on the used primitive cell.
@@ -125,12 +127,11 @@ class BandStructureNormalizer(Normalizer):
 
         return k_point_distance
 
-    def add_band_gaps(self, band: section_k_band, valence_band_maximum: np.array) -> None:
-        """Given the band structure and fermi level, calculates the band gap
-        for spin channels and also reports the total band gap as the minum gap
-        found.
+    def add_band_gaps(self, band: section_k_band, energy_reference: np.array) -> None:
+        """Given the band structure and an energy reference, calculates the band gap
+        separately for all spin channels.
         """
-        if valence_band_maximum is None:
+        if energy_reference is None:
             self.logger.info("Could not resolve band gaps as the energy reference is missing.")
             return
 
@@ -142,7 +143,7 @@ class BandStructureNormalizer(Normalizer):
         # Gather the energies and k points from each segment into one big
         # array
         reciprocal_cell = reciprocal_cell.magnitude
-        valence_band_maximum = valence_band_maximum.magnitude
+        valence_band_maximum = energy_reference.magnitude
         path: np.array = []
         energies: np.array = []
         for segment in band.section_k_band_segment:

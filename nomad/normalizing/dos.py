@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .normalizer import Normalizer
+from nomad.atomutils import get_volume
 import numpy as np
 
 
@@ -58,7 +59,7 @@ class DosNormalizer(Normalizer):
                     return
 
                 number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
+                unit_cell_volume = get_volume(lattice_vectors.magnitude)
 
                 # Final quantities
                 dos_normed = dos_values / (number_of_atoms * unit_cell_volume)
