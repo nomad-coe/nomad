@@ -302,7 +302,7 @@ class StructureObject:
 #             immutable_id=calc.calc_id,
 #             last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
 #             authors=calc.authors)
-
+#
 #         self.type = 'calculation'
 #         self.id = calc.calc_id
 #         self.attributes = attrs
