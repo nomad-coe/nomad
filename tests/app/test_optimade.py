@@ -41,7 +41,7 @@ def test_index(index_api):
     rv = index_api.get('/links')
     assert rv.status_code == 200
     data = json.loads(rv.data)
-    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade/v0')
+    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade')
 
 
 def test_get_entry(published: Upload):
@@ -128,17 +128,19 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('chemical_formula_descriptive CONTAINS "C" AND NOT chemical_formula_descriptive STARTS WITH "O"', 1),
     ('NOT chemical_formula_anonymous STARTS WITH "A"', 0),
     ('chemical_formula_anonymous CONTAINS "AB2" AND chemical_formula_anonymous ENDS WITH "C"', 1),
-    ('nsites >=3 AND LENGTH elements = 2', 2),
-    ('LENGTH elements = 2', 3),
-    ('LENGTH elements = 3', 1),
-    ('LENGTH dimension_types = 0', 3),
-    ('LENGTH dimension_types = 1', 1),
-    ('nelements = 2 AND LENGTH dimension_types = 1', 1),
-    ('nelements = 3 AND LENGTH dimension_types = 1', 0),
-    ('nelements = 3 OR LENGTH dimension_types = 1', 2),
-    ('nelements > 1 OR LENGTH dimension_types = 1 AND nelements = 2', 4),
-    ('(nelements > 1 OR LENGTH dimension_types = 1) AND nelements = 2', 3),
-    ('NOT LENGTH dimension_types = 1', 3),
+    ('nsites >=3 AND elements LENGTH = 2', 2),
+    ('elements LENGTH = 2', 3),
+    ('elements LENGTH 2', 3),
+    ('elements LENGTH = 3', 1),
+    ('dimension_types LENGTH = 0', 3),
+    ('dimension_types LENGTH = 1', 1),
+    ('nelements = 2 AND dimension_types LENGTH = 1', 1),
+    ('nelements = 3 AND dimension_types LENGTH = 1', 0),
+    ('nelements = 3 OR dimension_types LENGTH = 1', 2),
+    ('nelements > 1 OR dimension_types LENGTH = 1 AND nelements = 2', 4),
+    ('(nelements > 1 OR dimension_types LENGTH = 1) AND nelements = 2', 3),
+    ('NOT dimension_types LENGTH 1', 3),
+    ('nelements LENGTH = 1', -1),
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
     ('elements HAS ONY "H", "O"', -1)

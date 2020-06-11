@@ -112,15 +112,15 @@ class Meta():
 
     def __init__(self, query: str, returned: int, available: int = None, last_id: str = None):
         self.query = dict(representation=query)
-        self.api_version = '0.10.0'
+        self.api_version = '0.10.1'
         self.time_stamp = datetime.datetime.now()
         self.data_returned = returned
         self.more_data_available = available > returned if available is not None else False
         self.provider = dict(
-            name='NOMAD',
-            description='The NOvel MAterials Discovery project and database.',
+            name=config.meta.name,
+            description=config.meta.name,
             prefix='nomad',
-            homepage='https//nomad-coe.eu',
+            homepage=config.meta.homepage,
             index_base_url=base_url
         )
 
@@ -129,8 +129,8 @@ class Meta():
         self.implementation = dict(
             name='nomad@fairdi',
             version=config.meta.version,
-            source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
-            maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
+            source_url=config.meta.source_url,
+            maintainer=dict(email=config.meta.maintainer_email))
 
 
 class ToplevelLinks:
@@ -174,7 +174,7 @@ def Links(endpoint: str, available: int, page_number: int, page_limit: int, **kw
     rest.update(**{key: value for key, value in kwargs.items() if value is not None})
 
     result = dict(
-        base_url=url(),
+        base_url=url(version=None),
         first=url(endpoint, page_number=1, **rest),
         last=url(endpoint, page_number=last_page, **rest))
 
@@ -296,29 +296,16 @@ class StructureObject:
         self.attributes = attrs
 
 
-class ReferenceObject:
-    def __init__(self, calc: EntryMetadata):
-        attrs = dict(
-            immutable_id=calc.calc_id,
-            last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
-            authors=calc.authors)
+# class ReferenceObject:
+#     def __init__(self, calc: EntryMetadata):
+#         attrs = dict(
+#             immutable_id=calc.calc_id,
+#             last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
+#             authors=calc.authors)
 
-        self.type = 'calculation'
-        self.id = calc.calc_id
-        self.attributes = attrs
-
-
-class LinkObject:
-    def __init__(self, calc: EntryMetadata, page_number: int, **kwargs):
-        attrs = dict(
-            name='Calculation %s' % calc.calc_id,
-            description='Calculation entry in NOMAD database.',
-            base_url=url('structures', page_number=page_number, **kwargs),
-            homepage=url()
-        )
-        self.type = 'child'
-        self.id = calc.calc_id
-        self.attributes = attrs
+#         self.type = 'calculation'
+#         self.id = calc.calc_id
+#         self.attributes = attrs
 
 
 class Property:

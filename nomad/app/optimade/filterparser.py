@@ -25,7 +25,7 @@ class FilterException(Exception):
 
 
 _quantities: Dict[str, Quantity] = None
-_parser = LarkParser(version=(0, 10, 0))
+_parser = LarkParser(version=(0, 10, 1))
 _transformer = None
 
 

@@ -37,10 +37,10 @@ class Info(Resource):
             'type': 'info',
             'id': '/',
             'attributes': {
-                'api_version': '0.10.0',
+                'api_version': '0.10.1',
                 'available_api_versions': [{
-                    'url': url(prefix='index'),
-                    'version': '0.10.0'
+                    'url': url(version=None, prefix='index'),
+                    'version': '0.10.1'
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {
@@ -75,7 +75,7 @@ class Links(Resource):
                     "name": config.meta.name,
                     "description": config.meta.description,
                     "base_url": {
-                        "href": url(),
+                        "href": url(version=None),
                     },
                     "homepage": config.meta.homepage
                 }

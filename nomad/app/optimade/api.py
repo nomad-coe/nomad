@@ -60,7 +60,7 @@ def base_request_args():
 api = Api(
     blueprint,
     version='1.0', title='NOMAD\'s OPTiMaDe API implementation',
-    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.0.',
+    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.1.',
     validate=True)
 ''' Provides the flask restplust api instance for the optimade api'''
 
