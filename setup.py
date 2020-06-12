@@ -40,6 +40,9 @@ requirements.txt where specific comments are used to assign an extra to requirem
 '''
 
 
+ignore_extra_requires = ['optimade']
+''' Dependencies where the extra_requires should not be added '''
+
 def parse_requirements():
     '''
     Parses the requirements.txt file to extras install and extra requirements.
@@ -176,9 +179,10 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
 
         # 3. requires
         local_install_requires = set()
-        for extra_require in local_kwargs.get('extras_require', {}).values():
-            for require in extra_require:
-                local_install_requires.add(require)
+        if not name in ignore_extra_requires:
+            for extra_require in local_kwargs.get('extras_require', {}).values():
+                for require in extra_require:
+                    local_install_requires.add(require)
 
         for require in local_kwargs.get('install_requires', []):
             local_install_requires.add(require)
