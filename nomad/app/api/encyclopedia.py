@@ -52,6 +52,18 @@ material_prop_map = {
 }
 
 
+def rgetattr(obj, attr_name):
+    """Used to perform attribute access based on a (possibly nested) attribute
+    name given as string.
+    """
+    try:
+        for attr in attr_name.split("."):
+            obj = obj[attr]
+    except KeyError:
+        return None
+    return obj
+
+
 def get_es_doc_values(es_doc, mapping, keys=None):
     """Used to form a material definition for "materials/<material_id>" from
     the given ElasticSearch root document.
@@ -62,12 +74,7 @@ def get_es_doc_values(es_doc, mapping, keys=None):
     result = {}
     for key in keys:
         es_key = mapping[key]
-        try:
-            value = es_doc
-            for part in es_key.split("."):
-                value = getattr(value, part)
-        except AttributeError:
-            value = None
+        value = rgetattr(es_doc, es_key)
         result[key] = value
 
     return result
@@ -88,8 +95,6 @@ material_result = api.model("material_result", {
     "formula_reduced": fields.String,
     "system_type": fields.String,
     "n_matches": fields.Integer,
-    # Representative properties shown on overview page
-    "representative_structure": fields.String,
     # Bulk only
     "has_free_wyckoff_parameters": fields.Boolean,
     "strukturbericht_designation": fields.String,
@@ -117,17 +122,12 @@ class EncMaterialResource(Resource):
         # Parse request arguments
         args = material_query.parse_args()
         prop = args.get("property", None)
-        repr_keys = set(["representative_structure"])
         if prop is not None:
-            if prop in repr_keys:
-                es_keys = ["calc_id"]
-                repr_keys = set([prop])
-            else:
-                keys = [prop]
-                es_keys = [material_prop_map[prop]]
+            keys = [prop]
+            es_keys = [material_prop_map[prop]]
         else:
             keys = list(material_prop_map.keys())
-            es_keys = list(material_prop_map.values()) + ["calc_id"]
+            es_keys = list(material_prop_map.values())
 
         # Find the first public entry with this material id and take
         # information from there. In principle all other entries should have
@@ -147,31 +147,14 @@ class EncMaterialResource(Resource):
         )
         s = s.query(query)
 
-        # The representative idealized structure simply comes from the first
-        # calculation when the calculations are alphabetically sorted by their
-        # calc_id. Thus we sort the results here if the representative
-        # structure is requested. Coming up with a good way to select the
-        # representative one is pretty tricky in general, there are several
-        # options:
-        # - Lowest energy: This would be most intuitive, but the energy scales
-        #   between codes do not match, and the energy may not have been
-        #   reported.
-        # - Volume that is closest to mean volume: how to calculate volume for
-        #   molecules, surfaces, etc...
-        # - Random: We would want the representative visualization to be
-        #   relatively stable.
-        if "representative_structure" in repr_keys:
-            s = s.extra(**{
-                "sort": [{"calc_id": {"order": "asc"}}],
-                "_source": {"includes": es_keys},
-                "size": 1,
-            })
-        else:
-            s = s.extra(**{
-                "collapse": {"field": "encyclopedia.material.material_id"},
-                "_source": {"includes": es_keys},
-            })
-
+        # If a representative calculation is requested, all calculations are
+        # returned in order to perform the scoring with a custom loop.
+        # Otherwise, only one representative entry is returned.
+        s = s.extra(**{
+            "_source": {"includes": es_keys},
+            "size": 10000,
+            "collapse": {"field": "encyclopedia.material.material_id"},
+        })
         response = s.execute()
 
         # No such material
@@ -181,10 +164,6 @@ class EncMaterialResource(Resource):
         # Add values from ES entry
         entry = response[0]
         result = get_es_doc_values(entry, material_prop_map, keys)
-
-        # Add representative properties
-        if "representative_structure" in repr_keys:
-            result["representative_structure"] = entry.calc_id
 
         return result, 200
 
@@ -694,21 +673,6 @@ class EncSuggestionsResource(Resource):
         return {prop: suggestions}, 200
 
 
-calcs_query = api.parser()
-calcs_query.add_argument(
-    "page",
-    default=0,
-    type=int,
-    help="The page number to return.",
-    location="args"
-)
-calcs_query.add_argument(
-    "per_page",
-    default=10000,
-    type=int,
-    help="The number of results per page",
-    location="args"
-)
 calc_prop_map = {
     "calc_id": "calc_id",
     "code_name": "dft.code_name",
@@ -737,10 +701,17 @@ calculation_result = api.model("calculation_result", {
     "has_phonon_dos": fields.Boolean,
     "has_phonon_band_structure": fields.Boolean,
 })
+representatives_result = api.model("representatives_result", {
+    "idealized_structure": fields.String,
+    "electronic_band_structure": fields.String,
+    "electronic_dos": fields.String,
+    "thermodynamical_properties": fields.String,
+})
 calculations_result = api.model("calculations_result", {
     "total_results": fields.Integer,
     "pages": fields.Nested(pages_result),
     "results": fields.List(fields.Nested(calculation_result)),
+    "representatives": fields.Nested(representatives_result, skip_none=True),
 })
 
 
@@ -749,15 +720,12 @@ class EncCalculationsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.expect(calcs_query, validate=False)
     @api.doc("enc_calculations")
     def get(self, material_id):
-        """Used to return all calculations related to the given material.
+        """Used to return all calculations related to the given material. Also
+        returns a representative calculation for each property shown in the
+        overview page.
         """
-        args = calcs_query.parse_args()
-        page = args["page"]
-        per_page = args["per_page"]
-
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
@@ -772,15 +740,65 @@ class EncCalculationsResource(Resource):
         # The query is filtered already on the ES side so we don"t need to
         # transfer so much data.
         s = s.extra(**{
-            "_source": {"includes": list(calc_prop_map.values())},
-            "size": per_page,
-            "from": page,
+            "_source": {"includes": list(calc_prop_map.values()) + ["dft.xc_functional"]},
+            "size": 10000,
+            "from": 0,
         })
         response = s.execute()
 
         # No such material
         if len(response) == 0:
             abort(404, message="There is no material {}".format(material_id))
+
+        # Add representative properties. It might be possible to write a custom
+        # ES scoring mechanism or aggregation to also perform the selection.
+        representatives = {}
+
+        def calc_score(entry):
+            """Custom scoring function used to sort results by their
+            "quality". Currently built to mimic the scoring that was used
+            in the old Encyclopedia GUI.
+            """
+            score = 0
+            functional_score = {
+                "GGA": 100
+            }
+            code_score = {
+                "FHI-aims": 3,
+                "VASP": 2,
+                "Quantum Espresso": 1,
+            }
+            code_name = entry.dft.code_name
+            functional = entry.dft.xc_functional
+            has_dos = rgetattr(entry, "encyclopedia.properties.electronic_band_structure") is not None
+            has_bs = rgetattr(entry, "encyclopedia.properties.electronic_dos") is not None
+            score += functional_score.get(functional, 0)
+            score += code_score.get(code_name, 0)
+            if has_dos and has_bs:
+                score += 10
+
+            return score
+
+        # The calculations are first sorted by "quality"
+        sorted_calc = sorted(response, key=lambda x: calc_score(x), reverse=True)
+
+        # Get the requested representative properties
+        representatives["idealized_structure"] = sorted_calc[0].calc_id
+        thermo_found = False
+        bs_found = False
+        dos_found = False
+        for calc in sorted_calc:
+            if rgetattr(calc, "encyclopedia.properties.thermodynamical_properties") is not None:
+                representatives["thermodynamical_properties"] = calc.calc_id
+                thermo_found = True
+            if rgetattr(calc, "encyclopedia.properties.electronic_band_structure") is not None:
+                representatives["electronic_band_structure"] = calc.calc_id
+                bs_found = True
+            if rgetattr(calc, "encyclopedia.properties.electronic_dos") is not None:
+                representatives["electronic_dos"] = calc.calc_id
+                dos_found = True
+            if thermo_found and bs_found and dos_found:
+                break
 
         # Create result JSON
         results = []
@@ -796,10 +814,7 @@ class EncCalculationsResource(Resource):
         result = {
             "total_results": len(results),
             "results": results,
-            "pages": {
-                "per_page": per_page,
-                "page": page,
-            }
+            "representatives": representatives,
         }
 
         return result, 200
@@ -1119,12 +1134,8 @@ class EncCalculationResource(Resource):
         # Add references that are to be read from the archive
         for ref in references:
             arch_path = response[0]
-            try:
-                for attr in es_properties[ref].split("."):
-                    arch_path = arch_path[attr]
-            except KeyError:
-                pass
-            else:
+            arch_path = rgetattr(arch_path, es_properties[ref])
+            if arch_path is not None:
                 arch_properties[ref] = arch_path
             del es_properties[ref]
 
@@ -1166,13 +1177,8 @@ class EncCalculationResource(Resource):
 
         # Add results from ES
         for prop, es_source in es_properties.items():
-            value = response[0]
-            try:
-                for attr in es_source.split("."):
-                    value = value[attr]
-            except KeyError:
-                pass
-            else:
+            value = rgetattr(response[0], es_source)
+            if value is not None:
                 if isinstance(value, AttrDict):
                     value = value.to_dict()
                 result[prop] = value
