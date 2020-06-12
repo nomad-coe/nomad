@@ -20,7 +20,7 @@ from nomad import config
 
 blueprint = Blueprint('optimade', __name__)
 
-base_url = 'http://%s/%s/optimade' % (
+base_url = 'https://%s/%s/optimade' % (
     config.services.api_host.strip('/'),
     config.services.api_base_path.strip('/'))
 

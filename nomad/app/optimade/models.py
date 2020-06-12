@@ -110,7 +110,9 @@ json_api_meta_object_model = api.model('MetaObject', {
 
 class Meta():
 
-    def __init__(self, query: str, returned: int, available: int = None, last_id: str = None):
+    def __init__(
+            self, query: str, returned: int, available: int = None, last_id: str = None):
+
         self.query = dict(representation=query)
         self.api_version = '0.10.1'
         self.time_stamp = datetime.datetime.now()
@@ -121,7 +123,7 @@ class Meta():
             description=config.meta.name,
             prefix='nomad',
             homepage=config.meta.homepage,
-            index_base_url=base_url
+            index_base_url=url(version=None, prefix='index')
         )
 
         self.data_available = available
