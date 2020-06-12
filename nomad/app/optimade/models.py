@@ -25,7 +25,7 @@ from nomad import config
 from nomad.app.common import RFC3339DateTime
 from nomad.datamodel import EntryMetadata
 
-from .api import api, base_url, url
+from .api import api, url
 
 
 # TODO error/warning objects
