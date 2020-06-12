@@ -1333,7 +1333,14 @@ class section_dos(MSection):
         ''',
         a_legacy=LegacyDefinition(name='number_of_dos_values'))
 
-
+    dos_fingerprint = Quantity(
+        type=str,
+        description='''
+        The DOS fingerprint.
+        ''',
+        a_legacy=LegacyDefinition(name='dos_fingerprint'))
+    
+    
 class section_eigenvalues(MSection):
     '''
     Section containing (electronic-energy) eigenvalues for one spin channel. If, for

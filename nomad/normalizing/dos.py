@@ -15,6 +15,8 @@
 from .normalizer import Normalizer
 import numpy as np
 
+from nomad_dos_fingerprints import DOSFingerprint
+import json
 
 class DosNormalizer(Normalizer):
 
@@ -62,9 +64,15 @@ class DosNormalizer(Normalizer):
 
                 # Final quantities
                 dos_normed = dos_values / (number_of_atoms * unit_cell_volume)
+                
+                # Data for DOS fingerprint
+                dos_energies = dos.dos_energies
+                print(type(dos_energies))
+                dos_fingerprint = json.dumps(DOSFingerprint().calculate(np.array(dos_energies), dos_normed).to_dict())
 
                 # Add quantities to NOMAD's Metainfo
                 scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
                 self._backend.openContext(scc_url)
                 dos.dos_values_normalized = dos_normed
+                dos.dos_fingerprint = dos_fingerprint
                 self._backend.closeContext(scc_url)
