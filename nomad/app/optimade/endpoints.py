@@ -189,7 +189,7 @@ class Info(Resource):
             'attributes': {
                 'api_version': '0.10.1',
                 'available_api_versions': [{
-                    'url': url(version=None),
+                    'url': url(),
                     'version': '0.10.1'
                 }],
                 'formats': ['json'],
