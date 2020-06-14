@@ -17,6 +17,7 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
+import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request
@@ -974,11 +975,11 @@ idealized_structure_result = api.model("idealized_structure_result", {
     "atom_positions": fields.List(fields.List(fields.Float)),
     "lattice_vectors": fields.List(fields.List(fields.Float)),
     "lattice_vectors_primitive": fields.List(fields.List(fields.Float)),
-    "lattice_parameters": fields.Nested(lattice_parameters),
+    "lattice_parameters": fields.Nested(lattice_parameters, skip_none=True),
     "periodicity": fields.List(fields.Boolean),
     "number_of_atoms": fields.Integer,
     "cell_volume": fields.Float,
-    "wyckoff_sets": fields.List(fields.Nested(wyckoff_set_result)),
+    "wyckoff_sets": fields.List(fields.Nested(wyckoff_set_result, skip_none=True)),
 })
 
 calculation_property_map = {
@@ -1172,6 +1173,23 @@ class EncCalculationResource(Resource):
                     if "dos_values_normalized" in value:
                         value["dos_values"] = value["dos_values_normalized"]
                         del value["dos_values_normalized"]
+
+                # Pre-calculate k-path length to be used as x-coordinate in
+                # plots. If the VBM and CBM information is needed later, it
+                # can be added as indices along the path. The exact
+                # k-points and occupations are removed to save band width.
+                if key == "electronic_band_structure":
+                    segments = value["section_k_band_segment"]
+                    k_path_length = 0
+                    for segment in segments:
+                        k_points = np.array(segment["band_k_points"])
+                        segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
+                        k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
+                        k_path_length += segment_length
+                        segment["k_path_distances"] = k_path_distances.tolist()
+                        del segment["band_k_points"]
+                        if "band_occupations" in segment:
+                            del segment["band_occupations"]
 
                 result[key] = value
 
