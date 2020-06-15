@@ -194,9 +194,9 @@ class Info(Resource):
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {
-                    'json': ['calculations', 'info']
+                    'json': ['structures', 'calculations', 'info']
                 },
-                'available_endpoints': ['calculations', 'info'],
+                'available_endpoints': ['structures', 'calculations', 'info'],
                 'is_index': False
             }
         }
