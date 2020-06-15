@@ -2,11 +2,18 @@ Install the NOMAD client library
 ================================
 
 We release the NOMAD client library as a Python `distutils <https://docs.python.org/3/library/distutils.html>`_ source distribution.
-You can install it the usual way using *pip* (or *conda*).
+You can download and install it the usual way using *pip* (or *conda*).
 
+Install from pypi
 .. parsed-literal::
 
-    pip install nomad --extra-index-url |pypi_url|
+    pip install nomad-lab
+
+Download and install latest release from nomad
+.. parsed-literal::
+
+    curl https://repository.nomad-coe.eu/v0.8/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
+    pip install ./nomad-lab.tar.gz
 
 There are different layers of dependencies that you have to install, in order to use
 certain functions of NOMAD. The base install above, will only install the
@@ -19,9 +26,9 @@ requirements:
 
 .. parsed-literal::
 
-    pip install nomad[parsing] --extra-index-url |pypi_url|
-    pip install nomad[infrastructure] --extra-index-url |pypi_url|
-    pip install nomad[dev] --extra-index-url |pypi_url|
+    pip install nomad-lab[parsing]
+    pip install nomad-lab[infrastructure]
+    pip install nomad-lab[dev]
 
 The various *extras* have the following meaning:
 

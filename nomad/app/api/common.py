@@ -98,7 +98,7 @@ query_model_fields = {
 query_model_fields.update(**{
     'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
     'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
-        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.default_domain)),
+        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.meta.default_domain)),
     'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
@@ -138,7 +138,7 @@ def add_search_parameters(request_parser):
         'domain', type=str,
         help='Specify the domain to search in: %s, default is ``%s``' % (
             ', '.join(['``%s``' % domain for domain in datamodel.domains]),
-            config.default_domain))
+            config.meta.default_domain))
     request_parser.add_argument(
         'owner', type=str,
         help='Specify which calcs to return: ``visible``, ``public``, ``all``, ``user``, ``staging``, default is ``visible``')
@@ -338,7 +338,7 @@ def query_api_clientlib(**kwargs):
 
     kwargs = {
         key: normalize_value(key, value) for key, value in kwargs.items()
-        if key in search.search_quantities and (key != 'domain' or value != config.default_domain)
+        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
     }
 
     out = io.StringIO()

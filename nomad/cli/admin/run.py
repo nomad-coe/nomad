@@ -39,7 +39,7 @@ def app(debug: bool, with_chaos: int):
 
 
 def run_app(**kwargs):
-    config.service = 'app'
+    config.meta.service = 'app'
     from nomad import infrastructure
     from nomad.app.__main__ import run_dev_server
     infrastructure.setup()
@@ -47,7 +47,7 @@ def run_app(**kwargs):
 
 
 def run_worker():
-    config.service = 'worker'
+    config.meta.service = 'worker'
     from nomad import processing
     processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery,uploads,calcs'])
 

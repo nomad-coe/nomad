@@ -150,8 +150,8 @@ class Calc(Proc):
         entry_metadata.upload_id = self.upload_id
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
-        entry_metadata.nomad_version = config.version
-        entry_metadata.nomad_commit = config.commit
+        entry_metadata.nomad_version = config.meta.version
+        entry_metadata.nomad_commit = config.meta.commit
         entry_metadata.uploader = self.upload.user_id
         entry_metadata.upload_time = self.upload.upload_time
         entry_metadata.upload_name = self.upload.name
@@ -280,8 +280,8 @@ class Calc(Proc):
         try:
             self._entry_metadata = self.user_metadata()
             self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.nomad_version = config.version
-            self._entry_metadata.nomad_commit = config.commit
+            self._entry_metadata.nomad_version = config.meta.version
+            self._entry_metadata.nomad_commit = config.meta.commit
             self._entry_metadata.last_processing = datetime.utcnow()
             self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
@@ -296,6 +296,12 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
+    def _setup_fallback_metadata(self):
+        self._entry_metadata = self.create_metadata()
+        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        self._entry_metadata.last_processing = datetime.utcnow()
+        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+
     @process
     def process_calc(self):
         '''
@@ -309,10 +315,7 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            self._entry_metadata = self.create_metadata()
-            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self._setup_fallback_metadata()
 
             if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
@@ -334,6 +337,9 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
+            if self._entry_metadata is None:
+                self._setup_fallback_metadata()
+
             self._entry_metadata.processed = False
 
             self.apply_entry_metadata(self._entry_metadata)
@@ -1145,7 +1151,7 @@ class Upload(Proc):
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
             upload_id=self.upload_id, tasks_status=SUCCESS,
-            metadata__nomad_version__ne=config.version)
+            metadata__nomad_version__ne=config.meta.version)
 
     @property
     def calcs(self):

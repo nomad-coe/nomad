@@ -16,7 +16,7 @@ from typing import Dict
 from elasticsearch_dsl import Q
 
 from optimade.filterparser import LarkParser
-from optimade.filtertransformers.elasticsearch import Transformer, Quantity
+from optimade.filtertransformers.elasticsearch import ElasticTransformer, Quantity
 
 
 class FilterException(Exception):
@@ -25,7 +25,7 @@ class FilterException(Exception):
 
 
 _quantities: Dict[str, Quantity] = None
-_parser = LarkParser(version=(0, 10, 0))
+_parser = LarkParser(version=(0, 10, 1))
 _transformer = None
 
 
@@ -57,7 +57,7 @@ def parse_filter(filter_str: str) -> Q:
         _quantities['elements'].nested_quantity = _quantities['elements_ratios']
         _quantities['elements_ratios'].nested_quantity = _quantities['elements_ratios']
 
-        _transformer = Transformer(quantities=_quantities.values())
+        _transformer = ElasticTransformer(quantities=_quantities.values())
 
     try:
         parse_tree = _parser.parse(filter_str)

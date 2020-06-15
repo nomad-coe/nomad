@@ -97,7 +97,7 @@ class POPO(dict):
 @click.option('--config', help='the config file to use')
 @click.pass_context
 def cli(ctx, verbose: bool, debug: bool, config: str):
-    nomad_config.service = os.environ.get('NOMAD_SERVICE', 'cli')
+    nomad_config.meta.service = os.environ.get('NOMAD_SERVICE', 'cli')
 
     if config is not None:
         nomad_config.load_config(config_file=config)

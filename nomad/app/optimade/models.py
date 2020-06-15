@@ -25,7 +25,7 @@ from nomad import config
 from nomad.app.common import RFC3339DateTime
 from nomad.datamodel import EntryMetadata
 
-from .api import api, base_url, url
+from .api import api, url
 
 
 # TODO error/warning objects
@@ -110,27 +110,29 @@ json_api_meta_object_model = api.model('MetaObject', {
 
 class Meta():
 
-    def __init__(self, query: str, returned: int, available: int = None, last_id: str = None):
+    def __init__(
+            self, query: str, returned: int, available: int = None, last_id: str = None):
+
         self.query = dict(representation=query)
-        self.api_version = '0.10.0'
+        self.api_version = '0.10.1'
         self.time_stamp = datetime.datetime.now()
         self.data_returned = returned
         self.more_data_available = available > returned if available is not None else False
         self.provider = dict(
-            name='NOMAD',
-            description='The NOvel MAterials Discovery project and database.',
+            name=config.meta.name,
+            description=config.meta.name,
             prefix='nomad',
-            homepage='https//nomad-coe.eu',
-            index_base_url=base_url
+            homepage=config.meta.homepage,
+            index_base_url=url(version=None, prefix='index')
         )
 
         self.data_available = available
         self.last_id = last_id
         self.implementation = dict(
             name='nomad@fairdi',
-            version=config.version,
-            source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
-            maintainer=dict(email='markus.scheidgen@physik.hu-berlin.de'))
+            version=config.meta.version,
+            source_url=config.meta.source_url,
+            maintainer=dict(email=config.meta.maintainer_email))
 
 
 class ToplevelLinks:
@@ -147,7 +149,7 @@ class ToplevelLinks:
         self.next = url(endpoint, page_number=min((page_number + 1, last_page)), **rest)
 
 
-json_api_links_model = api.model('Links', {
+json_api_links_model = api.model('ApiLinks', {
     'base_url': fields.String(
         description='The base URL of the implementation'),
 
@@ -164,7 +166,6 @@ json_api_links_model = api.model('Links', {
 
     'first': fields.String(
         description='The first page of data.')
-
 })
 
 
@@ -175,7 +176,7 @@ def Links(endpoint: str, available: int, page_number: int, page_limit: int, **kw
     rest.update(**{key: value for key, value in kwargs.items() if value is not None})
 
     result = dict(
-        base_url=url(),
+        base_url=url(version=None),
         first=url(endpoint, page_number=1, **rest),
         last=url(endpoint, page_number=last_page, **rest))
 
@@ -195,13 +196,13 @@ json_api_response_model = api.model('Response', {
         model=json_api_links_model),
 
     'meta': fields.Nested(
-        required=True,
+        required=True, skip_none=True,
         description='JSON API meta object.',
         model=json_api_meta_object_model),
 
     'included': fields.List(
         fields.Arbitrary(),
-        required=False,
+        required=False, skip_none=True,
         description=('A list of JSON API resource objects related to the primary data '
                      'contained in data. Responses that contain related resources under '
                      'included are known as compound documents in the JSON API.'))
@@ -214,18 +215,13 @@ json_api_data_object_model = api.model('DataObject', {
     'id': fields.String(
         description='The id of the object.'),
 
-    'immutable_id': fields.String(
-        description='The entries immutable id.'),
-
-    'last_modified': RFC3339DateTime(
-        description='Date and time representing when the entry was last modified.'),
-
     'attributes': fields.Raw(
         description='A dictionary, containing key-value pairs representing the entries properties')
-    # TODO
 
+    # TODO
     # further optional fields: links, meta, relationships
 })
+
 
 json_api_calculation_info_model = api.model('CalculationInfo', {
     'description': fields.String(
@@ -281,11 +277,11 @@ class CalculationDataObject:
             return False
 
         attrs = {key: value for key, value in calc.dft.optimade.m_to_dict().items() if include(key)}
+        attrs['immutable_id'] = calc.calc_id
+        attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
         self.type = 'calculation'
         self.id = calc.calc_id
-        self.immutable_id = calc.calc_id
-        self.last_modified = calc.last_processing if calc.last_processing is not None else calc.upload_time
         self.attributes = attrs
 
 
@@ -294,45 +290,24 @@ class StructureObject:
         optimade_quantities = calc.dft.optimade.m_to_dict()
 
         attrs = {key: val for key, val in optimade_quantities.items() if request_fields is None or key in request_fields}
+        attrs['immutable_id'] = calc.calc_id
         attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
         self.type = 'structure'
         self.id = calc.calc_id
-        self.links = None
-        self.meta = None
         self.attributes = attrs
-        self.relationships = None
 
 
-class ReferenceObject:
-    def __init__(self, calc: EntryMetadata):
-        attrs = dict(
-            immutable_id=calc.calc_id,
-            last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
-            authors=calc.authors)
-
-        self.type = 'calculation'
-        self.id = calc.calc_id
-        self.links = None
-        self.meta = None
-        self.attributes = attrs
-        self.relationships = None
-
-
-class LinkObject:
-    def __init__(self, calc: EntryMetadata, page_number: int, **kwargs):
-        attrs = dict(
-            name='Calculation %s' % calc.calc_id,
-            description='Calculation entry in NOMAD database.',
-            base_url=url('structures', page_number=page_number, **kwargs),
-            homepage=url()
-        )
-        self.type = 'child'
-        self.id = calc.calc_id
-        self.links = None
-        self.meta = None
-        self.attributes = attrs
-        self.relationships = None
+# class ReferenceObject:
+#     def __init__(self, calc: EntryMetadata):
+#         attrs = dict(
+#             immutable_id=calc.calc_id,
+#             last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
+#             authors=calc.authors)
+#
+#         self.type = 'calculation'
+#         self.id = calc.calc_id
+#         self.attributes = attrs
 
 
 class Property:
@@ -355,14 +330,14 @@ json_api_single_response_model = api.inherit(
     'SingleResponse', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_data_object_model,
-            required=True,
+            required=True, skip_none=True,
             description=('The returned response object.'))
     })
 
 json_api_list_response_model = api.inherit(
     'ListResponse', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_data_object_model),
+            fields.Nested(json_api_data_object_model, skip_none=True),
             required=True,
             description=('The list of returned response objects.'))
     })
@@ -379,14 +354,14 @@ json_api_structure_response_model = api.inherit(
     'Structure', json_api_response_model, {
         'data': fields.Nested(
             model=json_api_resource_model,
-            required=True,
+            required=True, skip_none=True,
             description=('The returned structure object.'))
     })
 
 json_api_structures_response_model = api.inherit(
     'Structures', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned structure objects.'))
     })
@@ -394,7 +369,7 @@ json_api_structures_response_model = api.inherit(
 json_api_references_response_model = api.inherit(
     'References', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned reference objects.'))
     })
@@ -402,7 +377,7 @@ json_api_references_response_model = api.inherit(
 json_api_links_response_model = api.inherit(
     'Links', json_api_response_model, {
         'data': fields.List(
-            fields.Nested(json_api_resource_model),
+            fields.Nested(json_api_resource_model, skip_none=True),
             required=True,
             description=('The list of returned link objects.'))
     })

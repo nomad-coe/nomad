@@ -506,6 +506,8 @@ class App extends React.PureComponent {
                       if (props.match || route.exists) {
                         route.exists = true
                         return <route.component visible={props.match && true} {...props} />
+                      } else {
+                        return ''
                       }
                     } else {
                       return props.match && <route.component {...props} />

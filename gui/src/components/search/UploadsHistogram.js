@@ -49,7 +49,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
     return () => {
       setDateHistogram(false)
     }
-  }, [])
+  }, [setDateHistogram])
 
   useLayoutEffect(() => {
     fromTimeFieldRef.current.value = Dates.FormDate(query.from_time || Dates.dateHistogramStartDate)
@@ -202,7 +202,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
       setQuery({[key]: value})
     } catch (error) {
     }
-  })
+  }, [setQuery])
 
   return <Card classes={{root: classes.root}}>
     <CardHeader
