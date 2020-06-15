@@ -15,7 +15,9 @@ import * as serviceWorker from './serviceWorker'
 
 const matomo = sendTrackingData ? PiwikReactRouter({
   url: matomoUrl,
-  siteId: matomoSiteId
+  siteId: matomoSiteId,
+  clientTrackerName: 'stat.js',
+  serverTrackerName: 'stat.php'
 }) : null
 
 const keycloak = Keycloak({
