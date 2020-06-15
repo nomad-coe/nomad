@@ -18,6 +18,7 @@ import numpy as np
 
 from nomad_dos_fingerprints import DOSFingerprint
 
+
 class DosNormalizer(Normalizer):
 
     def normalize(self, logger=None) -> None:
@@ -64,19 +65,24 @@ class DosNormalizer(Normalizer):
 
                 # Final quantities
                 dos_normed = dos_values / (number_of_atoms * unit_cell_volume)
-                
+
                 # Data for DOS fingerprint
-                dos_energies = dos.dos_energies
-                dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed)
+                dos_fingerprint = None
+                try:
+                    dos_energies = dos.dos_energies
+                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed)
+                except Exception as e:
+                    logger.error('could not generate dos fingerprint', exc_info=e)
 
                 # Add quantities to NOMAD's Metainfo
                 scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
                 self._backend.openContext(scc_url)
                 dos.dos_values_normalized = dos_normed
-                sec_dos_fingerprint = dos.m_create(section_dos_fingerprint)
-                sec_dos_fingerprint.bins = dos_fingerprint.bins
-                sec_dos_fingerprint.indices = dos_fingerprint.indices
-                sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
-                sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
-                sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
+                if dos_fingerprint is not None:
+                    sec_dos_fingerprint = dos.m_create(section_dos_fingerprint)
+                    sec_dos_fingerprint.bins = dos_fingerprint.bins
+                    sec_dos_fingerprint.indices = dos_fingerprint.indices
+                    sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
+                    sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
+                    sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
                 self._backend.closeContext(scc_url)

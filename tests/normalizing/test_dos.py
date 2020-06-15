@@ -19,7 +19,6 @@ from tests.normalizing.conftest import run_normalize
 
 from nomad_dos_fingerprints import DOSFingerprint, tanimoto_similarity
 
-import matplotlib.pyplot as plt
 
 vasp_parser_dos = (
     'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
@@ -43,12 +42,10 @@ def test_dos_normalizer():
     # Check if DOS fingerprint was created
     backend_dos_fingerprint = backend['section_dos_fingerprint'][0]
     dos_fingerprint = DOSFingerprint().from_dict(dict(
-        bins = backend_dos_fingerprint.bins, 
-        indices = backend_dos_fingerprint.indices, 
-        grid_id = backend_dos_fingerprint.grid_id, 
-        stepsize = backend_dos_fingerprint.stepsize, 
-        filling_factor = backend_dos_fingerprint.filling_factor))
-    
+        bins=backend_dos_fingerprint.bins,
+        indices=backend_dos_fingerprint.indices,
+        grid_id=backend_dos_fingerprint.grid_id,
+        stepsize=backend_dos_fingerprint.stepsize,
+        filling_factor=backend_dos_fingerprint.filling_factor))
+
     assert tanimoto_similarity(dos_fingerprint, dos_fingerprint) == 1
-    
-    
