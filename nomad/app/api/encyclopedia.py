@@ -1178,7 +1178,7 @@ class EncCalculationResource(Resource):
                 # plots. If the VBM and CBM information is needed later, it
                 # can be added as indices along the path. The exact
                 # k-points and occupations are removed to save band width.
-                if key == "electronic_band_structure":
+                if key == "electronic_band_structure" or key == "phonon_band_structure":
                     segments = value["section_k_band_segment"]
                     k_path_length = 0
                     for segment in segments:
