@@ -72,7 +72,7 @@ class DosNormalizer(Normalizer):
                     dos_energies = dos.dos_energies
                     dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed)
                 except Exception as e:
-                    logger.error('could not generate dos fingerprint', exc_info=e)
+                    self.logger.error('could not generate dos fingerprint', exc_info=e)
 
                 # Add quantities to NOMAD's Metainfo
                 scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
