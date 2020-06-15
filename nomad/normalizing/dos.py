@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from .normalizer import Normalizer
+from nomad.datamodel.metainfo.public import section_dos_fingerprint
 import numpy as np
 
 from nomad_dos_fingerprints import DOSFingerprint
-import json
 
 class DosNormalizer(Normalizer):
 
@@ -73,7 +73,7 @@ class DosNormalizer(Normalizer):
                 scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
                 self._backend.openContext(scc_url)
                 dos.dos_values_normalized = dos_normed
-                sec_dos_fingerprint = dos.m_create("section_dos_fingerprint")
+                sec_dos_fingerprint = dos.m_create(section_dos_fingerprint)
                 sec_dos_fingerprint.bins = dos_fingerprint.bins
                 sec_dos_fingerprint.indices = dos_fingerprint.indices
                 sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize

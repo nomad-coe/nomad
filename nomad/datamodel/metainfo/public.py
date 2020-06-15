@@ -1219,7 +1219,7 @@ class section_dos_fingerprint(MSection):
         a_legacy=LegacyDefinition(name='bins'))
     
     indices = Quantity(
-        type=int,
+        type=np.dtype(np.int16),
         shape=['first_index_of_DOS_grid', 'last_index_of_DOS_grid'],
         description='''
         Indices used to compare DOS fingerprints of different energy ranges.
@@ -1238,7 +1238,7 @@ class section_dos_fingerprint(MSection):
         type=np.dtype(np.float64),
         shape=[],
         description='''
-        Proportion of '1' bins in the DOS fingerprint. 
+        Proportion of 1 bins in the DOS fingerprint. 
         ''',
         a_legacy=LegacyDefinition(name='filling_factor'))
       
@@ -1249,7 +1249,6 @@ class section_dos_fingerprint(MSection):
         Similarity can only be calculated if the same grid was used for both fingerprints.
         ''',
         a_legacy=LegacyDefinition(name='grid_id'))
- 
 
 class section_dos(MSection):
     '''
@@ -1383,7 +1382,10 @@ class section_dos(MSection):
         ''',
         a_legacy=LegacyDefinition(name='number_of_dos_values'))
 
-    dos_fingerprint = SubSection(section_dos_fingerprint, repeats=False)
+    section_dos_fingerprint = SubSection(
+        sub_section = SectionProxy('section_dos_fingerprint'),
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
     
     
 class section_eigenvalues(MSection):
