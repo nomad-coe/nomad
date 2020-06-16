@@ -42,6 +42,9 @@ from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.archive import query_archive
+from nomad.datamodel.encyclopedia import (
+    EncyclopediaMetadata,
+)
 import phonopyparser
 
 
@@ -440,7 +443,10 @@ class Calc(Proc):
             self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
             self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
             self._entry_metadata.dft.update_group_hash()
-
+        except Exception as e:
+            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
+            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
+        finally:
             # persist the calc metadata
             with utils.timer(logger, 'saved calc metadata', step='metadata'):
                 self.apply_entry_metadata(self._entry_metadata)
@@ -456,9 +462,6 @@ class Calc(Proc):
 
                 archive_size = self.write_archive(self._parser_backend)
                 log_data.update(archive_size=archive_size)
-
-        except Exception as e:
-            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
 
     @contextmanager
     def use_parser_backend(self, processor_name):

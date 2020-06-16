@@ -239,7 +239,7 @@ class EncyclopediaNormalizer(Normalizer):
                 )
                 return
 
-            # Get the system type, stop if unknown
+            # Get the system type.
             material_enums = Material.material_type.type
             representative_system, material_type = self.material_type(material)
             if material_type != material_enums.bulk and material_type != material_enums.two_d and material_type != material_enums.one_d:
@@ -250,11 +250,15 @@ class EncyclopediaNormalizer(Normalizer):
                     enc_status=status,
                 )
 
-                return
-
-            # Get the method type. For now, we allow unknown method type.
-            # Mostly to allow phonon calculations through.
+            # Get the method type
             representative_method, method_type = self.method_type(method)
+            if method_type == config.services.unavailable_value:
+                status = status_enums.unsupported_method_type
+                sec_enc.status = status
+                self.logger.info(
+                    "unsupported method type for encyclopedia",
+                    enc_status=status,
+                )
 
             # Get representative scc
             try:

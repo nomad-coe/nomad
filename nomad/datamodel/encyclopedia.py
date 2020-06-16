@@ -622,7 +622,7 @@ class EncyclopediaMetadata(MSection):
     properties = SubSection(sub_section=Properties.m_def, repeats=False, a_search='properties')
     calculation = SubSection(sub_section=Calculation.m_def, repeats=False, a_search='calculation')
     status = Quantity(
-        type=MEnum("success", "unsupported_material_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
+        type=MEnum("success", "unsupported_material_type", "unsupported_method_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
         description="""
         The final Encyclopedia processing status for this entry. The meaning of the status is as follows:
 

@@ -108,6 +108,11 @@ material_result = api.model("material_result", {
     "structure_prototype": fields.String,
     "structure_type": fields.String,
 })
+enc_filter = [
+    Q("term", published=True),
+    Q("term", with_embargo=False),
+    Q("term", encyclopedia__staus="success"),
+]
 
 
 @ns.route("/materials/<string:material_id>")
@@ -135,14 +140,12 @@ class EncMaterialResource(Resource):
         # the same information.
         s = Search(index=config.elastic.index_name)
 
-        # Since we are looking for an exact match, we use filter context
+        # Since we are looking for an exact match, we use filtek context
         # together with term search for speed (instead of query context and
         # match search)
         query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
+            filter=enc_filter + [
                 Q("term", encyclopedia__material__material_id=material_id),
             ]
         )
@@ -236,13 +239,9 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        filters = []
+        filters = enc_filter
         must_nots = []
         musts = []
-
-        # Add term filters
-        filters.append(Q("term", published=True))
-        filters.append(Q("term", with_embargo=False))
 
         def add_terms_filter(source, target, query_type="terms"):
             if data[source]:
@@ -481,11 +480,7 @@ class EncGroupsResource(Resource):
         # variation hashes set.
         bool_query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
-                Q("term", encyclopedia__material__material_id=material_id),
-            ],
+            filter=enc_filter + [Q("term", encyclopedia__material__material_id=material_id)],
             must=[
                 Q("exists", field="encyclopedia.properties.energies.energy_total"),
                 Q("exists", field="encyclopedia.material.idealized_structure.cell_volume"),
@@ -569,9 +564,7 @@ class EncGroupResource(Resource):
 
         bool_query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
+            filter=enc_filter + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", **{group_id_source: group_id}),
             ],
@@ -654,10 +647,7 @@ class EncSuggestionsResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
-            ]
+            filter=enc_filter
         )
         s = s.query(query)
         s = s.extra(**{
@@ -730,9 +720,7 @@ class EncCalculationsResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
+            filter=enc_filter + [
                 Q("term", encyclopedia__material__material_id=material_id),
             ]
         )
@@ -883,9 +871,7 @@ class EncStatisticsResource(Resource):
         # Find entries for the given material.
         bool_query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
+            filter=enc_filter + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("terms", calc_id=data["calculations"]),
             ]
@@ -1081,9 +1067,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=[
-                Q("term", published=True),
-                Q("term", with_embargo=False),
+            filter=enc_filter + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
