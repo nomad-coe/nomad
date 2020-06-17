@@ -249,8 +249,10 @@ class EncyclopediaNormalizer(Normalizer):
                     "unsupported material type for encyclopedia",
                     enc_status=status,
                 )
+                return
 
-            # Get the method type
+            # Get the method type. For now, we allow unknown method type to
+            # allow phonon calculations through.
             representative_method, method_type = self.method_type(method)
             if method_type == config.services.unavailable_value:
                 status = status_enums.unsupported_method_type

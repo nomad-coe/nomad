@@ -1032,9 +1032,9 @@ class Upload(Proc):
                 # calculations. TODO: This should be replaced by a more
                 # extensive mechamism that supports more complex dependencies
                 # between calculations.
-                phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
-                for calc in phonon_calculations:
-                    calc.process_phonon()
+                # phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
+                # for calc in phonon_calculations:
+                    # calc.process_phonon()
 
                 self.cleanup()
             else:
