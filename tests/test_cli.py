@@ -233,7 +233,7 @@ class TestAdminUploads:
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
 
     def test_re_process(self, published, monkeypatch):
-        monkeypatch.setattr('nomad.config.version', 'test_version')
+        monkeypatch.setattr('nomad.config.meta.version', 'test_version')
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['nomad_version'] != 'test_version'

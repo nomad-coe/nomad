@@ -29,6 +29,7 @@ import elasticsearch.exceptions
 from typing import List
 import json
 import logging
+import warnings
 
 from nomad import config, infrastructure, parsing, processing, app, utils
 from nomad.utils import structlogging
@@ -42,6 +43,8 @@ from tests.bravado_flask import FlaskTestHttpClient
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
+
+warnings.simplefilter("ignore")
 
 
 structlogging.ConsoleFormatter.short_format = True
@@ -626,9 +629,9 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
 @pytest.fixture
 def reset_config():
     ''' Fixture that resets configuration. '''
-    service = config.service
+    service = config.meta.service
     yield None
-    config.service = service
+    config.meta.service = service
     utils.set_console_log_level(test_log_level)
 
 

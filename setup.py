@@ -40,6 +40,9 @@ requirements.txt where specific comments are used to assign an extra to requirem
 '''
 
 
+ignore_extra_requires = ['optimade']
+''' Dependencies where the extra_requires should not be added '''
+
 def parse_requirements():
     '''
     Parses the requirements.txt file to extras install and extra requirements.
@@ -176,9 +179,10 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
 
         # 3. requires
         local_install_requires = set()
-        for extra_require in local_kwargs.get('extras_require', {}).values():
-            for require in extra_require:
-                local_install_requires.add(require)
+        if not name in ignore_extra_requires:
+            for extra_require in local_kwargs.get('extras_require', {}).values():
+                for require in extra_require:
+                    local_install_requires.add(require)
 
         for require in local_kwargs.get('install_requires', []):
             local_install_requires.add(require)
@@ -233,7 +237,7 @@ def setup_kwargs():
 
     return dict(
         name='nomad-lab',
-        version=config.version,
+        version=config.meta.version,
         description='The NOvel MAterials Discovery (NOMAD) Python package',
         package_dir={'': './'},
         packages=['nomad.%s' % pkg for pkg in find_packages('./nomad')] + ['nomad'],
@@ -251,6 +255,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'compile':
         kwargs = compile_dependency_setup_kwargs(['dependencies'], **setup_kwargs())
         # kwargs['packages'].remove('nomadcore.md_data_access')
+        kwargs['package_data']['optimade.grammar'] = ['*.lark']
         with open('setup.json', 'wt') as f:
             json.dump(kwargs, f, indent=2)
         sys.exit(0)

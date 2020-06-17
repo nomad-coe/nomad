@@ -20,23 +20,25 @@ from nomad import config
 
 blueprint = Blueprint('optimade', __name__)
 
-base_url = 'http://%s/%s/optimade' % (
+base_url = 'https://%s/%s/optimade' % (
     config.services.api_host.strip('/'),
     config.services.api_base_path.strip('/'))
 
 
-def url(endpoint: str = None, version='v0', **kwargs):
+def url(endpoint: str = None, version='v0', prefix=None, **kwargs):
     ''' Returns the full optimade api url (for a given endpoint) including query parameters. '''
-    if endpoint is None:
-        if version is not None:
-            url = '%s/%s' % (base_url, version)
-        else:
-            url = base_url
+    if endpoint is not None:
+        url = '/' + endpoint
     else:
-        if version is not None:
-            url = '%s/%s/%s' % (base_url, version, endpoint)
-        else:
-            url = '%s/%s' % (base_url, endpoint)
+        url = ''
+
+    if version is not None:
+        url = '/' + version + url
+
+    if prefix is not None:
+        url = '/' + prefix + url
+
+    url = base_url + url
 
     if len(kwargs) > 0:
         return '%s?%s' % (url, urllib.parse.urlencode(kwargs))
@@ -58,7 +60,7 @@ def base_request_args():
 api = Api(
     blueprint,
     version='1.0', title='NOMAD\'s OPTiMaDe API implementation',
-    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.0.',
+    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.1.',
     validate=True)
 ''' Provides the flask restplust api instance for the optimade api'''
 
