@@ -111,7 +111,7 @@ material_result = api.model("material_result", {
 enc_filter = [
     Q("term", published=True),
     Q("term", with_embargo=False),
-    Q("term", encyclopedia__staus="success"),
+    Q("term", encyclopedia__status="success"),
 ]
 
 
