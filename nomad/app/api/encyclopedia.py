@@ -1144,7 +1144,10 @@ class EncCalculationResource(Resource):
                 if key == "thermodynamical_properties":
                     specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
                     specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
-                value = value.m_to_dict()
+                if isinstance(value, list):
+                    value = [x.m_to_dict() for x in value]
+                else:
+                    value = value.m_to_dict()
                 if key == "thermodynamical_properties":
                     value["specific_heat_capacity"] = specific_heat_capacity
                     value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
