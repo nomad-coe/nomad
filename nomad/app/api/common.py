@@ -198,7 +198,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     try:
         optimade = args.get('dft.optimade', None)
         if optimade is not None:
-            q = filterparser.parse_filter(optimade)
+            q = filterparser.parse_filter(
+                optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
         abort(400, 'Could not parse optimade query: %s' % (str(e)))
