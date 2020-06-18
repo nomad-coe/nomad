@@ -4,7 +4,7 @@ window.nomadEnv = {
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
-  'sendTrackingData': true,
+  'matomoEnabled': true,
   'matomoUrl': 'https://repository.nomad-coe.eu/fairdi/stat',
   'matomoSiteId': '2'
 }
