@@ -35,6 +35,7 @@ parmed==3.0.0
 mdtraj
 mdanalysis
 nomadcore
+nomadDOSfingerprints
 
 # [infrastructure]
 optimade
