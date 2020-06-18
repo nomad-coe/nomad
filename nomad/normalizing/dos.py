@@ -70,7 +70,7 @@ class DosNormalizer(Normalizer):
                 dos_fingerprint = None
                 try:
                     dos_energies = dos.dos_energies
-                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed)
+                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_values)
                 except Exception as e:
                     self.logger.error('could not generate dos fingerprint', exc_info=e)
 
