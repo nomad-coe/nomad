@@ -16,7 +16,6 @@
 The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
-import math
 import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
@@ -188,7 +187,6 @@ materials_query = api.model("materials_input", {
         "after": fields.Nested(materials_after, allow_null=True),
         "per_page": fields.Integer(default=25),
         "pagination": fields.Boolean,
-        "mode": fields.String(default="aggregation"),
     })),
     "material_name": fields.List(fields.String),
     "structure_type": fields.List(fields.String),
@@ -297,7 +295,6 @@ class EncMaterialsResource(Resource):
 
         # Create query for elements or formula
         search_by = data["search_by"]
-        mode = search_by["mode"]
         formula = search_by["formula"]
         elements = search_by["element"]
         exclusive = search_by["exclusive"]
@@ -365,92 +362,64 @@ class EncMaterialsResource(Resource):
             must=musts,
         )
 
-        # 1: The paginated approach: No way to know the amount of materials,
-        # but can return aggregation results in a quick fashion including
-        # the number of calculation entries per material.
-        if mode == "aggregation":
+        # The top query filters out entries based on the user query
+        s = Search(index=config.elastic.index_name)
+        s = s.query(bool_query)
 
-            # The top query filters out entries based on the user query
-            s = Search(index=config.elastic.index_name)
-            s = s.query(bool_query)
+        # The materials are grouped by using three aggregations:
+        # "Composite" to enable scrolling, "Terms" to enable selecting
+        # by material_id and "Top Hits" to fetch a single
+        # representative material document. Unnecessary fields are
+        # filtered to reduce data transfer.
+        terms_agg = A("terms", field="encyclopedia.material.material_id")
+        composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
 
-            # The materials are grouped by using three aggregations:
-            # "Composite" to enable scrolling, "Terms" to enable selecting
-            # by material_id and "Top Hits" to fetch a single
-            # representative material document. Unnecessary fields are
-            # filtered to reduce data transfer.
-            terms_agg = A("terms", field="encyclopedia.material.material_id")
-            composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
-            if after is not None:
-                composite_kwargs["after"] = after
-            composite_agg = A("composite", **composite_kwargs)
-            composite_agg.metric("representative", A(
-                "top_hits",
-                size=1,
-                _source={"includes": list(material_prop_map.values())},
-            ))
-            s.aggs.bucket("materials", composite_agg)
+        # The number of matched materials is only requested on the first
+        # search, not for each page.
+        if after is not None:
+            composite_kwargs["after"] = after
+        else:
+            cardinality_agg = A("cardinality", field="encyclopedia.material.material_id")
+            s.aggs.metric("n_materials", cardinality_agg)
+        composite_agg = A("composite", **composite_kwargs)
+        composite_agg.metric("representative", A(
+            "top_hits",
+            size=1,
+            _source={"includes": list(material_prop_map.values())},
+        ))
+        s.aggs.bucket("materials", composite_agg)
 
-            # We ignore the top level hits
-            s = s.extra(**{
-                "size": 0,
-            })
+        # We ignore the top level hits
+        s = s.extra(**{
+            "size": 0,
+        })
 
-            response = s.execute()
-            materials = response.aggs.materials.buckets
-            if len(materials) == 0:
-                abort(404, message="No materials found for the given search criteria or pagination.")
-            after = response.aggs.materials["after_key"]
+        response = s.execute()
+        materials = response.aggs.materials.buckets
+        if len(materials) == 0:
+            abort(404, message="No materials found for the given search criteria or pagination.")
+        after_new = response.aggs.materials["after_key"]
 
-            # Gather results from aggregations
-            result_list = []
-            materials = response.aggs.materials.buckets
-            keys = list(material_prop_map.keys())
-            for material in materials:
-                representative = material["representative"][0]
-                mat_dict = get_es_doc_values(representative, material_prop_map, keys)
-                mat_dict["n_matches"] = material.doc_count
-                result_list.append(mat_dict)
+        # Gather results from aggregations
+        result_list = []
+        materials = response.aggs.materials.buckets
+        keys = list(material_prop_map.keys())
+        for material in materials:
+            representative = material["representative"][0]
+            mat_dict = get_es_doc_values(representative, material_prop_map, keys)
+            mat_dict["n_matches"] = material.doc_count
+            result_list.append(mat_dict)
 
-            # Page information is incomplete for aggregations
-            pages = {
-                "page": page,
-                "per_page": per_page,
-                "after": after,
-            }
-        # 2. Collapse approach. Quickly provides a list of materials
-        # corresponding to the query, offers full pagination, doesn"t include
-        # the number of matches per material.
-        elif mode == "collapse":
-            s = Search(index=config.elastic.index_name)
-            s = s.query(bool_query)
-            s = s.extra(**{
-                "collapse": {"field": "encyclopedia.material.material_id"},
-                "size": per_page,
-                "from": (page - 1) * per_page,
-            })
+        # Page information is incomplete for aggregations
+        pages = {
+            "page": page,
+            "per_page": per_page,
+            "after": after_new,
+        }
 
-            # Execute query
-            response = s.execute()
-
-            # No matches
-            if len(response) == 0:
-                abort(404, message="No materials found for the given search criteria or pagination.")
-
-            # Loop over materials
-            result_list = []
-            keys = list(material_prop_map.keys())
-            for material in response:
-                mat_result = get_es_doc_values(material, material_prop_map, keys)
-                result_list.append(mat_result)
-
-            # Full page information available for collapse
-            pages = {
-                "page": page,
-                "per_page": per_page,
-                "pages": math.ceil(response.hits.total / per_page),
-                "total": response.hits.total,
-            }
+        if after is None:
+            n_materials = response.aggs.n_materials.value
+            pages["total"] = n_materials
 
         result = {
             "results": result_list,
