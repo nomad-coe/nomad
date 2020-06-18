@@ -1,4 +1,4 @@
-# Copyright 2018 Markus Scheidgen
+# Copyright 2018 Markus Scheidgen, empty_task
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
-The official NOMAD API.
+"""
+This module contains a global unit registry used thoughout the nomad-FAIR
+package.
+"""
+from pint import UnitRegistry
 
-There is a separate documentation for the API endpoints from a client perspective.
-
-.. automodule:: nomad.app.api.api
-.. automodule:: nomad.app.api.auth
-.. automodule:: nomad.app.api.upload
-.. automodule:: nomad.app.api.repo
-.. automodule:: nomad.app.api.archive
-'''
-
-from .api import api, blueprint
-from . import info, auth, upload, repo, archive, encyclopedia, raw, mirror, dataset, metainfo
+ureg = UnitRegistry()

@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .normalizer import Normalizer
-from nomad.datamodel.metainfo.public import section_dos_fingerprint
 import numpy as np
 
 from nomad_dos_fingerprints import DOSFingerprint
+
+from nomad.datamodel.metainfo.public import section_dos_fingerprint
+from nomad.atomutils import get_volume
+
+from .normalizer import Normalizer
 
 
 class DosNormalizer(Normalizer):
@@ -61,7 +64,7 @@ class DosNormalizer(Normalizer):
                     return
 
                 number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
+                unit_cell_volume = get_volume(lattice_vectors.magnitude)
 
                 # Final quantities
                 dos_normed = dos_values / (number_of_atoms * unit_cell_volume)

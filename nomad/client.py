@@ -151,6 +151,7 @@ from io import StringIO
 
 from nomad import config
 from nomad import metainfo as mi
+from nomad.units import ureg
 from nomad.datamodel import EntryArchive
 
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
@@ -199,11 +200,11 @@ class ApiStatistics(mi.MSection):
         description='Number of entries loaded in the last api call')
 
     last_response_data_size = mi.Quantity(
-        type=int, unit=mi.units.bytes, default=0,
+        type=int, unit=ureg.bytes, default=0,
         description='Bytes loaded in the last api call')
 
     loaded_data_size = mi.Quantity(
-        type=int, unit=mi.units.bytes, default=0,
+        type=int, unit=ureg.bytes, default=0,
         description='Bytes loaded from this query')
 
     loaded_nentries = mi.Quantity(

@@ -68,11 +68,11 @@ gui:
   ## This variable is used in the GUI to show or hide additional information
   debug: false
   ## URL for matomo(piwik) user tracking
-  matomoUrl: 'http://nowhere.no'
+  matomoUrl: 'https://repository.nomad-coe.eu/fairdi/stat'
   ## site id for matomo(piwik) user tracking
   matomoSiteId: 1
   ## send matomo(piwik) user tracking data
-  sendTrackingData: false
+  matomoEnabled: false
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service

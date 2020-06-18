@@ -14,6 +14,8 @@
 
 from typing import Callable, Any, Dict, cast
 import uuid
+import numpy as np
+import pint.quantity
 
 
 from .metainfo import (
@@ -37,13 +39,6 @@ class ElasticDocument(SectionAnnotation):
     classes, sub sections become inner documents, and quantities with the :class:`Elastic`
     extension become fields in their respective document.
 
-    Arguments:
-        index_name: This is used to optionally add the index_name to the resulting
-            elasticsearch_dsl document.
-        id: A callable that produces an id from a section instance that is used as id
-            for the respective elastic search index entry. The default will be randomly
-            generated UUID(4).
-
     Attributes:
         document: The elasticsearch_dsl document class that was generated from the
             metainfo section
@@ -52,6 +47,14 @@ class ElasticDocument(SectionAnnotation):
     _all_documents: Dict[str, Any] = {}
 
     def __init__(self, index_name: str = None, id: Callable[[Any], str] = None):
+        """
+        Args:
+            index_name: This is used to optionally add the index_name to the resulting
+                elasticsearch_dsl document.
+            id: A callable that produces an id from a section instance that is used as id
+                for the respective elastic search index entry. The default will be randomly
+                generated UUID(4).
+        """
         self.index_name = index_name
         self.id = id
 
@@ -63,6 +66,8 @@ class ElasticDocument(SectionAnnotation):
     @classmethod
     def create_index_entry(cls, section: MSection):
         ''' Creates an elasticsearch_dsl document instance for the given section. '''
+        from elasticsearch_dsl import Object
+
         m_def = section.m_def
         annotation = m_def.m_get_annotations(ElasticDocument)
         document_cls = ElasticDocument._all_documents[m_def.qualified_name()]
@@ -85,12 +90,16 @@ class ElasticDocument(SectionAnnotation):
                 if value is None or value == []:
                     continue
 
-                quantity_type = quantity.type
-                if isinstance(quantity_type, Reference):
+                # By default the full section is resolved for references
+                if isinstance(quantity.type, Reference) and isinstance(annotation.mapping, Object):
                     if quantity.is_scalar:
                         value = ElasticDocument.create_index_entry(cast(MSection, value))
                     else:
                         value = [ElasticDocument.create_index_entry(item) for item in value]
+
+                # Only the magnitude of scalar Pint quantity objects is stored
+                if quantity.is_scalar and isinstance(value, pint.quantity._Quantity):
+                    value = value.magnitude
 
                 setattr(obj, annotation.field, value)
 
@@ -137,7 +146,7 @@ class ElasticDocument(SectionAnnotation):
         if document is not None:
             return document
 
-        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object
+        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object, Double, Float, Long
 
         if attrs is None:
             attrs = {}
@@ -156,11 +165,18 @@ class ElasticDocument(SectionAnnotation):
             for annotation in quantity.m_get_annotations(Elastic, as_list=True):
                 if annotation.mapping is None and first:
                     kwargs = dict(index=annotation.index)
-                    # find a mapping based on quantity type
+
+                    # Find a mapping based on quantity type if not explicitly given
                     if quantity.type == str:
                         annotation.mapping = Keyword(**kwargs)
-                    elif quantity.type == int:
+                    elif quantity.type in [float, np.float64] and quantity.is_scalar:
+                        annotation.mapping = Double(**kwargs)
+                    elif quantity.type == np.float32 and quantity.is_scalar:
+                        annotation.mapping = Float(**kwargs)
+                    elif quantity.type in [int, np.int32] and quantity.is_scalar:
                         annotation.mapping = Integer(**kwargs)
+                    elif quantity.type == np.int64 and quantity.is_scalar:
+                        annotation.mapping = Long(**kwargs)
                     elif quantity.type == bool:
                         annotation.mapping = Boolean(**kwargs)
                     elif quantity.type == Datetime:

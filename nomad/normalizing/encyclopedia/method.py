@@ -16,9 +16,9 @@ from typing import List
 from abc import abstractmethod
 from collections import OrderedDict
 import numpy as np
-from pint import UnitRegistry
+from nomad.units import ureg
 
-from nomad.metainfo.encyclopedia import (
+from nomad.datamodel.encyclopedia import (
     Material,
     Method,
 )
@@ -27,8 +27,6 @@ from nomad.normalizing.encyclopedia.basisset import get_basis_set
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.utils import RestrictedDict
 from nomad import config
-
-ureg = UnitRegistry()
 
 
 class MethodNormalizer():
@@ -40,7 +38,7 @@ class MethodNormalizer():
         self.logger = logger
         self.section_run = backend.entry_archive.section_run[0]
 
-    def method_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
+    def method_id(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
             mandatory_keys=[
                 "program_name",
@@ -52,7 +50,7 @@ class MethodNormalizer():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        subsettings = self.method_hash_dict(method, settings_basis_set, repr_method)
+        subsettings = self.method_id_dict(method, settings_basis_set, repr_method)
         method_dict["subsettings"] = subsettings
 
         # If all required information is present, safe the hash
@@ -61,17 +59,17 @@ class MethodNormalizer():
         except (KeyError, ValueError) as e:
             self.logger.info("Could not create method hash: {}".format(e))
         else:
-            method.method_hash = method_dict.hash()
+            method.method_id = method_dict.hash()
 
     @abstractmethod
-    def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+    def method_id_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
         pass
 
-    def group_eos_hash(self, method: Method, material: Material, repr_method: Section):
+    def group_eos_id(self, method: Method, material: Material, repr_method: Section):
         eos_dict = RestrictedDict(
             mandatory_keys=[
                 "upload_id",
-                "method_hash",
+                "method_id",
                 "formula",
             ],
             forbidden_values=[None]
@@ -81,7 +79,7 @@ class MethodNormalizer():
         eos_dict['upload_id'] = self.backend.entry_archive.section_metadata.upload_id
 
         # Method
-        eos_dict["method_hash"] = method.method_hash
+        eos_dict["method_id"] = method.method_id
 
         # The formula should be same for EoS (maybe even symmetries)
         eos_dict["formula"] = material.formula
@@ -92,9 +90,9 @@ class MethodNormalizer():
         except (KeyError, ValueError) as e:
             self.logger.info("Could not create EOS hash: {}".format(e))
         else:
-            method.group_eos_hash = eos_dict.hash()
+            method.group_eos_id = eos_dict.hash()
 
-    def group_parametervariation_hash(self, method: Method, settings_basis_set: RestrictedDict, repr_system: Section, repr_method: Section):
+    def group_parametervariation_id(self, method: Method, settings_basis_set: RestrictedDict, repr_system: Section, repr_method: Section):
         # Create ordered dictionary with the values. Order is important for
         param_dict = RestrictedDict(
             mandatory_keys=[
@@ -136,7 +134,7 @@ class MethodNormalizer():
 
         # The subclasses may define their own method properties that are to be
         # included here.
-        subsettings = self.group_parametervariation_hash_dict(method, settings_basis_set, repr_method)
+        subsettings = self.group_parametervariation_id_dict(method, settings_basis_set, repr_method)
         param_dict["subsettings"] = subsettings
 
         # Form a hash from the dictionary
@@ -145,10 +143,10 @@ class MethodNormalizer():
         except (KeyError, ValueError) as e:
             self.logger.info("Could not create parameter variation hash: {}".format(e))
         else:
-            method.group_parametervariation_hash = param_dict.hash()
+            method.group_parametervariation_id = param_dict.hash()
 
     @abstractmethod
-    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+    def group_parametervariation_id_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
         pass
 
     def group_e_min(self) -> None:
@@ -243,7 +241,7 @@ class MethodDFTNormalizer(MethodNormalizer):
             short_name = self.create_xc_functional_shortname(long_name)
             method.functional_type = short_name
 
-    def method_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
+    def method_id_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section) -> RestrictedDict:
         # Extend by DFT settings.
         hash_dict = RestrictedDict(
             mandatory_keys=(
@@ -294,7 +292,7 @@ class MethodDFTNormalizer(MethodNormalizer):
 
         return hash_dict
 
-    def group_parametervariation_hash_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
+    def group_parametervariation_id_dict(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         """Dictionary containing the parameters used for convergence test
         grouping
         This is the source for generating the related hash."""
@@ -384,7 +382,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         # Fetch resources
         repr_method = context.representative_method
         repr_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
         material = sec_enc.material
         settings_basis_set = get_basis_set(context, self.backend, self.logger)
@@ -393,9 +391,9 @@ class MethodDFTNormalizer(MethodNormalizer):
         self.core_electron_treatment(method)
         self.functional_long_name(method, repr_method)
         self.functional_type(method)
-        self.method_hash(method, settings_basis_set, repr_method)
-        self.group_eos_hash(method, material, repr_method)
-        self.group_parametervariation_hash(method, settings_basis_set, repr_system, repr_method)
+        self.method_id(method, settings_basis_set, repr_method)
+        self.group_eos_id(method, material, repr_method)
+        self.group_parametervariation_id(method, settings_basis_set, repr_system, repr_method)
 
 
 class MethodGWNormalizer(MethodDFTNormalizer):
@@ -423,7 +421,7 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         repr_method = context.representative_method
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
 
         # Fill metainfo

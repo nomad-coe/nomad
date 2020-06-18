@@ -1,13 +1,13 @@
 // trigger rebuild
 
 import React, { useEffect, useState, useContext, useCallback, useRef } from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
+import PropTypes from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent } from '@material-ui/core'
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -17,6 +17,7 @@ import FAQIcon from '@material-ui/icons/QuestionAnswer'
 import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
+import TermsIcon from '@material-ui/icons/Assignment'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -27,8 +28,6 @@ import LoginLogout from './LoginLogout'
 import { guiBase, consent, nomadTheme, appBase } from '../config'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
-import { Cookies, withCookies } from 'react-cookie'
-import Markdown from './Markdown'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
 import DatasetPage from './DatasetPage'
@@ -37,6 +36,9 @@ import {help as userdataHelp, default as UserdataPage} from './UserdataPage'
 import ResolveDOI from './dataset/ResolveDOI'
 import FAQ from './FAQ'
 import EntryQuery from './entry/EntryQuery'
+import {matomo} from '../index'
+import { useCookies } from 'react-cookie'
+import Markdown from './Markdown'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -80,7 +82,7 @@ const useMainMenuItemStyles = makeStyles(theme => ({
   }
 }))
 
-function MainMenuItem({tooltip, title, path, href, icon}) {
+function MainMenuItem({tooltip, title, path, href, onClick, icon}) {
   const {pathname} = useLocation()
   const classes = useMainMenuItemStyles()
   const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
@@ -91,6 +93,7 @@ function MainMenuItem({tooltip, title, path, href, icon}) {
       color={selected ? 'primary' : 'default'}
       size="small"
       startIcon={icon}
+      onClick={onClick}
       {...rest}
     >
       {title}
@@ -102,7 +105,71 @@ MainMenuItem.propTypes = {
   'title': PropTypes.string.isRequired,
   'path': PropTypes.string,
   'href': PropTypes.string,
+  'onClick': PropTypes.func,
   'icon': PropTypes.element.isRequired
+}
+
+function Consent() {
+  const [cookies, setCookie] = useCookies()
+  const [accepted, setAccepted] = useState(cookies['terms-accepted'])
+  const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
+
+  useEffect(() => {
+    if (!optOut) {
+      matomo.push(['setConsentGiven'])
+    } else {
+      matomo.push(['requireConsent'])
+    }
+  })
+
+  const handleClosed = accepted => {
+    if (accepted) {
+      setCookie('terms-accepted', true)
+      setCookie('tracking-enabled', !optOut)
+      setAccepted(true)
+    }
+  }
+  const handleOpen = () => {
+    setCookie('terms-accepted', false)
+    setAccepted(false)
+  }
+
+  return (
+    <React.Fragment>
+      <MainMenuItem
+        title="Terms"
+        onClick={handleOpen}
+        tooltip="NOMAD's terms"
+        icon={<TermsIcon/>}
+      />
+      <Dialog
+        disableBackdropClick disableEscapeKeyDown
+        open={!accepted}
+      >
+        <DialogTitle>Terms of Use</DialogTitle>
+        <DialogContent>
+          <Markdown>{consent}</Markdown>
+          <FormGroup>
+            <FormControlLabel
+              control={<Switch
+                checked={optOut}
+                onChange={(e) => {
+                  setOptOut(!optOut)
+                }}
+                color="primary"
+              />}
+              label="Do not provide information about your use of NOMAD (opt-out)."
+            />
+          </FormGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleClosed(true)} color="primary">
+            Accept
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </React.Fragment>
+  )
 }
 
 const useMainMenuStyles = makeStyles(theme => ({
@@ -186,6 +253,7 @@ function MainMenu() {
       tooltip="NOMAD's Gitlab project"
       icon={<CodeIcon/>}
     />
+    <Consent />
   </MenuList>
 }
 
@@ -378,62 +446,6 @@ class NavigationUnstyled extends React.Component {
 
 const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
-class LicenseAgreementUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    cookies: instanceOf(Cookies).isRequired
-  }
-
-  static styles = theme => ({
-    content: {
-      backgroundColor: theme.palette.primary.main
-    },
-    button: {
-      color: 'white'
-    }
-  })
-
-  constructor(props) {
-    super(props)
-
-    this.handleClosed = this.handleClosed.bind(this)
-  }
-
-  state = {
-    accepted: this.props.cookies.get('terms-accepted')
-  }
-
-  handleClosed(accepted) {
-    if (accepted) {
-      this.props.cookies.set('terms-accepted', true)
-      this.setState({accepted: true})
-    }
-  }
-
-  render() {
-    return (
-      <div>
-        <Dialog
-          disableBackdropClick disableEscapeKeyDown
-          open={!this.state.accepted}
-        >
-          <DialogTitle>Terms of Use</DialogTitle>
-          <DialogContent>
-            <Markdown>{consent}</Markdown>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => this.handleClosed(true)} color="primary">
-              Accept
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </div>
-    )
-  }
-}
-
-const LicenseAgreement = compose(withCookies, withStyles(LicenseAgreementUnstyled.styles))(LicenseAgreementUnstyled)
-
 const routes = {
   'about': {
     exact: true,
@@ -518,7 +530,6 @@ class App extends React.PureComponent {
             </Navigation>
           </ApiProvider>
         </ErrorSnacks>
-        <LicenseAgreement />
       </MuiThemeProvider>
     )
   }

@@ -69,11 +69,11 @@ class Search(Elastic):
             The information can be used (e.g. by the GUI) to fill in empty values.
         group: Indicates that his quantity can be used to group results. The value will
             be the name of the group.
+        derived: A callable that is applied to search parameter values before search.
         search_field: The qualified field in the elastic mapping that is used to search.
             This might be different from the field that is used to store the value in
             elastic search. This is especially useful if the field represents a inner
             document and a subfield of this inner object should be used for search.
-        derived: A callable that is applied to search parameter values before search.
     '''
 
     def __init__(

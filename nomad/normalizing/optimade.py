@@ -21,7 +21,7 @@ import pint.quantity
 
 from nomad.parsing.legacy import Backend
 from nomad.normalizing.normalizer import SystemBasedNormalizer
-from nomad.metainfo import units
+from nomad.units import ureg
 from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
@@ -102,8 +102,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # sites
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
-        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=units.m)
-        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=units.m)
+        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=ureg.m)
+        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=ureg.m)
         optimade.dimension_types = [
             1 if value else 0
             for value in get_value('configuration_periodic_dimensions')]

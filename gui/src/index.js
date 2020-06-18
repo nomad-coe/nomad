@@ -8,12 +8,12 @@ import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
 import history from './history'
 import PiwikReactRouter from 'piwik-react-router'
-import { sendTrackingData, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm, keycloakClientId } from './config'
+import { matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm, keycloakClientId } from './config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 import * as serviceWorker from './serviceWorker'
 
-const matomo = sendTrackingData ? PiwikReactRouter({
+export const matomo = matomoEnabled ? PiwikReactRouter({
   url: matomoUrl,
   siteId: matomoSiteId,
   clientTrackerName: 'stat.js',
@@ -26,9 +26,11 @@ const keycloak = Keycloak({
   clientId: keycloakClientId
 })
 
+// matomo.push('requireConsent')
+
 ReactDOM.render(
   <KeycloakProvider keycloak={keycloak} initConfig={{onLoad: 'check-sso'}} LoadingComponent={<div />}>
-    <Router history={sendTrackingData ? matomo.connectToHistory(history) : history}>
+    <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
       <QueryParamProvider ReactRouterRoute={Route}>
         <App />
       </QueryParamProvider>
