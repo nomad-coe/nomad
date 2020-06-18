@@ -434,6 +434,8 @@ class Calc(Proc):
 
             # Get encyclopedia method information directly from the referenced calculation.
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
+            if ref_enc_method is None or len(ref_enc_method) == 0:
+                raise ValueError("No method information available in referenced calculation.")
             backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
