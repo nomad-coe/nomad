@@ -31,6 +31,8 @@ import pytz
 import docstring_parser
 import jmespath
 
+from nomad.units import ureg
+
 
 m_package: 'Package' = None
 
@@ -219,7 +221,7 @@ class _Dimension(DataType):
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, str):
-            value = units.parse_units(value)
+            value = ureg.parse_units(value)
 
         elif not isinstance(value, pint.unit._Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
@@ -230,11 +232,7 @@ class _Unit(DataType):
         return value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
-        return units.parse_units(value)
-
-
-units = pint.UnitRegistry()
-''' The default pint unit registry that should be used to give units to quantity definitions. '''
+        return ureg.parse_units(value)
 
 
 class _Callable(DataType):
@@ -1441,7 +1439,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         Convinience method to get annotations
 
         Arguments:
-            key: Either the optional annoation name or an annotation class. In the first
+            key: Either the optional annotation name or an annotation class. In the first
                 case the annotation is returned, regardless of its type. In the second
                 case, all names and list for names are iterated and all annotations of the
                 given class are returned.

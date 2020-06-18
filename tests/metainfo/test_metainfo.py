@@ -19,10 +19,11 @@ import datetime
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Datetime, units, Annotation, SectionAnnotation,
+    MetainfoError, Environment, MResource, Datetime, Annotation, SectionAnnotation,
     DefinitionAnnotation, Reference, MProxy, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
+from nomad.units import ureg
 
 from tests import utils as test_utils
 
@@ -389,9 +390,9 @@ class TestM1:
 
     def test_unit_conversion(self):
         system = System()
-        system.atom_positions = [[1, 2, 3]] * units.angstrom
-        assert system.atom_positions.units == units.meter
-        assert system.atom_positions[0][0] < 0.1 * units.meter
+        system.atom_positions = [[1, 2, 3]] * ureg.angstrom
+        assert system.atom_positions.units == ureg.meter
+        assert system.atom_positions[0][0] < 0.1 * ureg.meter
 
     def test_synonym(self):
         system = System()
@@ -542,7 +543,7 @@ class TestM1:
         scc.energy_total_0 = 1.0
         scc.an_int = 1
         assert scc.energy_total_0.m == 1.0  # pylint: disable=no-member
-        assert scc.energy_total_0 == 1.0 * units.J
+        assert scc.energy_total_0 == 1.0 * ureg.J
         assert scc.m_to_dict()['energy_total_0'] == 1.0
         assert scc.an_int == 1
         assert scc.an_int.__class__ == np.int32

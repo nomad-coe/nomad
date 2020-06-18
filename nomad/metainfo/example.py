@@ -17,9 +17,10 @@
 import numpy as np
 from datetime import datetime
 
+from nomad.units import ureg
 from nomad.metainfo import (
-    MSection, MCategory, Section, Quantity, Package, SubSection, MEnum, Datetime, units,
-    constraint)
+    MSection, MCategory, Section, Quantity, Package, SubSection, MEnum,
+    Datetime, constraint)
 
 m_package = Package(links=['http://metainfo.nomad-coe.eu'])
 
@@ -57,11 +58,11 @@ class System(MSection):
         description='The atoms in the simulated systems.')
 
     atom_positions = Quantity(
-        type=np.dtype('f'), shape=['n_atoms', 3], unit=units.m, categories=[SystemHash],
+        type=np.dtype('f'), shape=['n_atoms', 3], unit=ureg.m, categories=[SystemHash],
         description='The atom positions in the simulated system.')
 
     lattice_vectors = Quantity(
-        type=np.dtype('f'), shape=[3, 3], unit=units.m, categories=[SystemHash],
+        type=np.dtype('f'), shape=[3, 3], unit=ureg.m, categories=[SystemHash],
         description='The lattice vectors of the simulated unit cell.')
 
     unit_cell = Quantity(synonym_for='lattice_vectors')
@@ -75,8 +76,8 @@ class System(MSection):
 
 class SCC(MSection):
 
-    energy_total = Quantity(type=float, default=0.0, unit=units.J)
-    energy_total_0 = Quantity(type=np.dtype(np.float32), default=0.0, unit=units.J)
+    energy_total = Quantity(type=float, default=0.0, unit=ureg.J)
+    energy_total_0 = Quantity(type=np.dtype(np.float32), default=0.0, unit=ureg.J)
     an_int = Quantity(type=np.dtype(np.int32))
 
     system = Quantity(type=System, description='The system that this calculation is based on.')

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Dict, List
-from math import gcd as gcd
+from math import gcd
 from functools import reduce
 from abc import abstractmethod
 import re
@@ -25,13 +25,14 @@ import numpy as np
 from matid import SymmetryAnalyzer
 import matid.geometry
 
-from nomad.metainfo.encyclopedia import (
+from nomad.datamodel.encyclopedia import (
     Material,
     Properties,
-    WyckoffSet,
     Bulk,
-    WyckoffVariables,
     IdealizedStructure,
+    WyckoffSet,
+    WyckoffVariables,
+    LatticeParameters,
 )
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.parsing.legacy import Backend
@@ -72,10 +73,22 @@ class MaterialNormalizer():
         formula = atomutils.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
-    def material_hash(self, material: Material, spg_number: int, wyckoff_sets: List[WyckoffSet]) -> None:
+    def species_and_counts(self, material: Material, names: List[str], reduced_counts: List[int]) -> None:
+        parts = []
+        for name, count in zip(names, reduced_counts):
+            if count == 1:
+                parts.append(name)
+            else:
+                parts.append("{}{}".format(name, int(count)))
+        material.species_and_counts = " ".join(parts)
+
+    def species(self, material: Material, names: List[str]) -> None:
+        material.species = " ".join(names)
+
+    def material_id(self, material: Material, spg_number: int, wyckoff_sets: List[WyckoffSet]) -> None:
         # Create and store hash based on SHA512
         norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets)
-        material.material_hash = hash(norm_hash_string)
+        material.material_id = hash(norm_hash_string)
 
     def number_of_atoms(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         ideal.number_of_atoms = len(std_atoms)
@@ -116,7 +129,14 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell() * 1E-10
-        ideal.lattice_parameters = atomutils.get_lattice_parameters(cell_normalized)
+        param_values = atomutils.get_lattice_parameters(cell_normalized)
+        param_section = ideal.m_create(LatticeParameters)
+        param_section.a = float(param_values[0])
+        param_section.b = float(param_values[1])
+        param_section.c = float(param_values[2])
+        param_section.alpha = float(param_values[3])
+        param_section.beta = float(param_values[4])
+        param_section.gamma = float(param_values[5])
 
     def mass_density(self, properties: Properties, repr_system: Atoms) -> None:
         mass = atomutils.get_summed_atomic_mass(repr_system.get_atomic_numbers())
@@ -334,9 +354,9 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         strukturbericht = re.sub('[$_{}]', '', strukturbericht)
         bulk.strukturbericht_designation = strukturbericht
 
-    def wyckoff_sets(self, bulk: Bulk, wyckoff_sets: Dict) -> None:
+    def wyckoff_sets(self, ideal: IdealizedStructure, wyckoff_sets: Dict) -> None:
         for group in wyckoff_sets:
-            wset = bulk.m_create(WyckoffSet)
+            wset = ideal.m_create(WyckoffSet)
             if group.x is not None or group.y is not None or group.z is not None:
                 variables = wset.m_create(WyckoffVariables)
                 if group.x is not None:
@@ -352,7 +372,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         properties = sec_enc.properties
         sec_symmetry = sec_system["section_symmetry"][0]
@@ -371,7 +391,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         bulk = material.m_create(Bulk)
         ideal = material.m_create(IdealizedStructure)
         self.mass_density(properties, repr_atoms)
-        self.material_hash(material, spg_number, wyckoff_sets)
+        self.material_id(material, spg_number, wyckoff_sets)
         self.number_of_atoms(ideal, std_atoms)
         self.atom_labels(ideal, std_atoms)
         self.atom_positions(ideal, std_atoms)
@@ -383,6 +403,8 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
         self.lattice_parameters(ideal, std_atoms)
         self.material_name(material, names, reduced_counts)
@@ -394,7 +416,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.structure_type(bulk, sec_system)
         self.structure_prototype(bulk, sec_system)
         self.strukturbericht_designation(bulk, sec_system)
-        self.wyckoff_sets(bulk, wyckoff_sets)
+        self.wyckoff_sets(ideal, wyckoff_sets)
 
 
 class Material2DNormalizer(MaterialNormalizer):
@@ -411,16 +433,19 @@ class Material2DNormalizer(MaterialNormalizer):
         ideal.lattice_vectors_primitive = cell_prim
 
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
-        # 2D systems only have three lattice parameter: two length and angle between them
+        # 2D systems only have three lattice parameter: two lengths and angle between them
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a_vec = cell[periodic_indices[0], :] * 1e-10
         b_vec = cell[periodic_indices[1], :] * 1e-10
         a = np.linalg.norm(a_vec)
         b = np.linalg.norm(b_vec)
-        alpha = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
-        alpha = np.arccos(alpha)
-        ideal.lattice_parameters = np.array([a, b, 0.0, alpha, 0.0, 0.0])
+        gamma = np.clip(np.dot(a_vec, b_vec) / (a * b), -1.0, 1.0)
+        gamma = np.arccos(gamma)
+        param_section = ideal.m_create(LatticeParameters)
+        param_section.a = float(a)
+        param_section.b = float(b)
+        param_section.gamma = float(gamma)
 
     def periodicity(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         # MatID already provides the correct periodicity
@@ -465,7 +490,7 @@ class Material2DNormalizer(MaterialNormalizer):
 
     def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
@@ -481,7 +506,7 @@ class Material2DNormalizer(MaterialNormalizer):
         # Fill metainfo
         ideal = material.m_create(IdealizedStructure)
         self.periodicity(ideal, std_atoms)
-        self.material_hash(material, spg_number, wyckoff_sets)
+        self.material_id(material, spg_number, wyckoff_sets)
         self.number_of_atoms(ideal, std_atoms)
         self.atom_labels(ideal, std_atoms)
         self.atom_positions(ideal, std_atoms)
@@ -495,7 +520,7 @@ class Material2DNormalizer(MaterialNormalizer):
 class Material1DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 1D structures.
     """
-    def material_hash_1d(self, material: Material, prim_atoms: Atoms) -> None:
+    def material_id_1d(self, material: Material, prim_atoms: Atoms) -> None:
         """Hash to be used as identifier for a material. Different 1D
         materials are defined by their Coulomb matrix eigenvalues and their
         Hill formulas.
@@ -507,7 +532,7 @@ class Material1DNormalizer(MaterialNormalizer):
         id_strings.append(fingerprint)
         hash_seed = ", ".join(id_strings)
         hash_val = hash(hash_seed)
-        material.material_hash = hash_val
+        material.material_id = hash_val
 
     def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
@@ -519,7 +544,8 @@ class Material1DNormalizer(MaterialNormalizer):
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
-        ideal.lattice_parameters = np.array([a, 0.0, 0.0, 0.0, 0.0, 0.0])
+        params = ideal.m_create(LatticeParameters)
+        params.a = float(a)
 
     def periodicity(self, ideal: IdealizedStructure, prim_atoms: Atoms) -> None:
         # Get dimension of system by also taking into account the covalent radii
@@ -680,7 +706,7 @@ class Material1DNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
@@ -701,5 +727,5 @@ class Material1DNormalizer(MaterialNormalizer):
         self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
-        self.material_hash_1d(material, std_atoms)
+        self.material_id_1d(material, std_atoms)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
