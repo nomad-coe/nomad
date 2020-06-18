@@ -379,8 +379,9 @@ class EncMaterialsResource(Resource):
         if after is not None:
             composite_kwargs["after"] = after
         else:
-            cardinality_agg = A("cardinality", field="encyclopedia.material.material_id")
+            cardinality_agg = A("cardinality", field="encyclopedia.material.material_id", precision_threshold=1000)
             s.aggs.metric("n_materials", cardinality_agg)
+
         composite_agg = A("composite", **composite_kwargs)
         composite_agg.metric("representative", A(
             "top_hits",
@@ -914,7 +915,7 @@ wyckoff_set_result = api.model("wyckoff_set_result", {
     "wyckoff_letter": fields.String,
     "indices": fields.List(fields.Integer),
     "element": fields.String,
-    "variables": fields.List(fields.Nested(wyckoff_variables_result, skip_none=True)),
+    "variables": fields.Nested(wyckoff_variables_result, skip_none=True),
 })
 lattice_parameters = api.model("lattice_parameters", {
     "a": fields.Float,
