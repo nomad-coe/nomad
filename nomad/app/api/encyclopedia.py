@@ -1203,8 +1203,8 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
         For each path, a dictionary containing the path as key and the returned
         section as value.
     """
-    upload_files = files.UploadFiles.get(upload_id)
-    with upload_files.read_archive(calc_id) as archive:
+    upload_files = files.PublicUploadFiles(upload_id)
+    with upload_files.read_archive(calc_id, access="public") as archive:
         data = archive[calc_id]
         root = EntryArchive.m_from_dict(data.to_dict())
 
