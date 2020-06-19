@@ -27,8 +27,8 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     band_path_mP_nonstandard,
     band_path_cF_nonstandard,
 )
-from pint import UnitRegistry
-ureg = UnitRegistry()
+
+from nomad.units import ureg
 
 
 def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpolarized_gap_indirect, bands_polarized_gap_indirect):

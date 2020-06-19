@@ -706,14 +706,14 @@ export function DisableOnLoading({children}) {
     const enable = loading ? 'none' : ''
     containerRef.current.style.pointerEvents = enable
     containerRef.current.style.userSelects = enable
-  }, [api])
+  }, [])
 
   useEffect(() => {
     api.onLoading(handleLoading)
     return () => {
       api.removeOnLoading(handleLoading)
     }
-  }, [])
+  }, [api, handleLoading])
 
   return <div ref={containerRef}>{children}</div>
 }

@@ -42,6 +42,9 @@ from nomad.parsing import parser_dict, match_parser, Backend
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.archive import query_archive
+from nomad.datamodel.encyclopedia import (
+    EncyclopediaMetadata,
+)
 import phonopyparser
 
 
@@ -150,8 +153,8 @@ class Calc(Proc):
         entry_metadata.upload_id = self.upload_id
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
-        entry_metadata.nomad_version = config.version
-        entry_metadata.nomad_commit = config.commit
+        entry_metadata.nomad_version = config.meta.version
+        entry_metadata.nomad_commit = config.meta.commit
         entry_metadata.uploader = self.upload.user_id
         entry_metadata.upload_time = self.upload.upload_time
         entry_metadata.upload_name = self.upload.name
@@ -280,8 +283,8 @@ class Calc(Proc):
         try:
             self._entry_metadata = self.user_metadata()
             self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.nomad_version = config.version
-            self._entry_metadata.nomad_commit = config.commit
+            self._entry_metadata.nomad_version = config.meta.version
+            self._entry_metadata.nomad_commit = config.meta.commit
             self._entry_metadata.last_processing = datetime.utcnow()
             self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
@@ -296,6 +299,12 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
+    def _setup_fallback_metadata(self):
+        self._entry_metadata = self.create_metadata()
+        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        self._entry_metadata.last_processing = datetime.utcnow()
+        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+
     @process
     def process_calc(self):
         '''
@@ -309,10 +318,7 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            self._entry_metadata = self.create_metadata()
-            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self._setup_fallback_metadata()
 
             if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
@@ -334,6 +340,9 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
+            if self._entry_metadata is None:
+                self._setup_fallback_metadata()
+
             self._entry_metadata.processed = False
 
             self.apply_entry_metadata(self._entry_metadata)
@@ -424,8 +433,10 @@ class Calc(Proc):
                 ref_archive = EntryArchive.m_from_dict(arch)
 
             # Get encyclopedia method information directly from the referenced calculation.
-            ref_enc_method = ref_archive.section_encyclopedia.method
-            backend.entry_archive.section_encyclopedia.method = ref_enc_method
+            ref_enc_method = ref_archive.section_metadata.encyclopedia.method
+            if ref_enc_method is None or len(ref_enc_method) == 0:
+                raise ValueError("No method information available in referenced calculation.")
+            backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
@@ -434,7 +445,10 @@ class Calc(Proc):
             self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
             self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
             self._entry_metadata.dft.update_group_hash()
-
+        except Exception as e:
+            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
+            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
+        finally:
             # persist the calc metadata
             with utils.timer(logger, 'saved calc metadata', step='metadata'):
                 self.apply_entry_metadata(self._entry_metadata)
@@ -450,9 +464,6 @@ class Calc(Proc):
 
                 archive_size = self.write_archive(self._parser_backend)
                 log_data.update(archive_size=archive_size)
-
-        except Exception as e:
-            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
 
     @contextmanager
     def use_parser_backend(self, processor_name):
@@ -1145,7 +1156,7 @@ class Upload(Proc):
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
             upload_id=self.upload_id, tasks_status=SUCCESS,
-            metadata__nomad_version__ne=config.version)
+            metadata__nomad_version__ne=config.meta.version)
 
     @property
     def calcs(self):

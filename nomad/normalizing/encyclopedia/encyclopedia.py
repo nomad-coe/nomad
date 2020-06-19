@@ -15,8 +15,8 @@
 from typing import Any
 
 from nomad.normalizing.normalizer import Normalizer
-from nomad.metainfo.encyclopedia import (
-    section_encyclopedia,
+from nomad.datamodel.encyclopedia import (
+    EncyclopediaMetadata,
     Material,
     Method,
     Properties,
@@ -205,8 +205,8 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
-        sec_enc = self.backend.entry_archive.m_create(section_encyclopedia)
-        status_enums = section_encyclopedia.status.type
+        sec_enc = self.backend.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
+        status_enums = EncyclopediaMetadata.status.type
 
         # Do nothing if section_run is not present
         if self.section_run is None:
@@ -239,7 +239,7 @@ class EncyclopediaNormalizer(Normalizer):
                 )
                 return
 
-            # Get the system type, stop if unknown
+            # Get the system type.
             material_enums = Material.material_type.type
             representative_system, material_type = self.material_type(material)
             if material_type != material_enums.bulk and material_type != material_enums.two_d and material_type != material_enums.one_d:
@@ -249,12 +249,18 @@ class EncyclopediaNormalizer(Normalizer):
                     "unsupported material type for encyclopedia",
                     enc_status=status,
                 )
-
                 return
 
-            # Get the method type. For now, we allow unknown method type.
-            # Mostly to allow phonon calculations through.
+            # Get the method type. For now, we allow unknown method type to
+            # allow phonon calculations through.
             representative_method, method_type = self.method_type(method)
+            if method_type == config.services.unavailable_value:
+                status = status_enums.unsupported_method_type
+                sec_enc.status = status
+                self.logger.info(
+                    "unsupported method type for encyclopedia",
+                    enc_status=status,
+                )
 
             # Get representative scc
             try:

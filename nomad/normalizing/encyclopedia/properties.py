@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-
-from nomad.metainfo.encyclopedia import (
+from nomad.datamodel.encyclopedia import (
     Calculation,
     Properties,
+    Energies,
 )
 from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
@@ -60,7 +59,24 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_band is not None:
-            properties.electronic_band_structure = representative_band
+            properties.electronic_band_structure = representative_band.m_path()
+
+            # Add band gap information to metadata if present. The channel with
+            # smallest band gap index is chosen as a representative one.
+            band_gaps = properties.electronic_band_structure.section_band_gap
+            if band_gaps is not None and len(band_gaps) > 0:
+                min_gap_index = 0
+                min_gap = float("Inf")
+                for i, gap in enumerate(band_gaps):
+                    value = gap.value
+                    if value < min_gap:
+                        min_gap_index = i
+                        min_gap = value
+                representative_gap = band_gaps[min_gap_index]
+                bg_value = representative_gap.value
+                if bg_value is not None:
+                    properties.band_gap = representative_gap.value
+                    properties.band_gap_direct = representative_gap.type == "direct"
 
     def electronic_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative electonic density
@@ -85,7 +101,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_dos is not None:
-            properties.electronic_dos = representative_dos
+            properties.electronic_dos = representative_dos.m_path()
 
     def elastic_constants_matrix(self) -> None:
         pass
@@ -127,7 +143,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if resolved_section is not None:
-            properties.thermodynamical_properties = resolved_section
+            properties.thermodynamical_properties = resolved_section.m_path()
 
     def phonon_band_structure(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative phonon band
@@ -158,7 +174,7 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_phonon_band is not None:
-            properties.phonon_band_structure = representative_phonon_band
+            properties.phonon_band_structure = representative_phonon_band.m_path()
 
     def phonon_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative phonon density of
@@ -185,25 +201,21 @@ class PropertiesNormalizer():
         except Exception:
             return
         if representative_phonon_dos is not None:
-            properties.phonon_dos = representative_phonon_dos
+            properties.phonon_dos = representative_phonon_dos.m_path()
 
-    def energies(self, properties: Properties, gcd: int, representative_scc: Section) -> None:
-        energy_dict = {}
+    def energies(self, properties: Properties, n_atoms: int, representative_scc: Section) -> None:
         if representative_scc is not None:
-            energies_entries = {
-                "energy_total": "Total E",
-                "energy_total_T0": "Total E projected to T=0",
-                "energy_free": "Free E",
-            }
-            for energy_name, label in energies_entries.items():
-                result = getattr(representative_scc, energy_name)
-                if result is not None:
-                    energy_dict[label] = result.magnitude / gcd
+            energies = Energies()
+            energy_found = False
+            for energy_name in ["energy_total", "energy_total_T0", "energy_free"]:
+                energy_value = getattr(representative_scc, energy_name)
+                if energy_value is not None:
+                    energy_found = True
 
-            if len(energy_dict) == 0:
-                energy_dict = None
-        energies = json.dumps(energy_dict)
-        properties.energies = energies
+                    # The energies are normalized to be per atom
+                    setattr(energies, energy_name, energy_value.magnitude / n_atoms)
+            if energy_found:
+                properties.m_add_sub_section(Properties.energies, energies)
 
     def normalize(self, context: Context) -> None:
         # There needs to be a valid SCC in order to extract any properties
@@ -212,17 +224,17 @@ class PropertiesNormalizer():
             return
 
         # Fetch resources
-        sec_enc = self.backend.entry_archive.section_encyclopedia
+        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
         properties = sec_enc.properties
         calc_type = context.calc_type
         material_type = context.material_type
         sec_system = context.representative_system
-        gcd = context.greatest_common_divisor
+        n_atoms = len(sec_system.atom_labels)
 
         # Save metainfo
         self.electronic_band_structure(properties, calc_type, material_type, context, sec_system)
         self.electronic_dos(properties, context)
-        self.energies(properties, gcd, representative_scc)
+        self.energies(properties, n_atoms, representative_scc)
 
         # Phonon calculations have a specific set of properties to extract
         if context.calc_type == Calculation.calculation_type.type.phonon_calculation:

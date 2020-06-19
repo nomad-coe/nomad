@@ -15,6 +15,7 @@
 
 
 import json
+import pytest
 
 from nomad import config
 
@@ -77,6 +78,12 @@ def test_internal_server_error_post(client, caplog):
     assert data['json']['test_arg'] == 'value'
 
 
+@pytest.mark.parametrize('api', ['api', 'optimade'])
+def test_swagger(client, api):
+    rv = client.get('/%s/swagger.json' % api)
+    assert rv.status_code == 200
+
+
 def test_docs(client):
     rv = client.get('/docs/index.html')
     rv = client.get('/docs/introduction.html')
@@ -84,5 +91,5 @@ def test_docs(client):
 
 
 def test_dist(client):
-    rv = client.get('/dist/nomad-%s.tar.gz' % config.version)
+    rv = client.get('/dist/nomad-lab.tar.gz')
     assert rv.status_code == 200

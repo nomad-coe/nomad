@@ -20,5 +20,7 @@ from flask import Blueprint
 from flask_restplus import Api
 
 from .api import blueprint, url, api
-from .endpoints import CalculationList, Calculation
+from .endpoints import CalculationList, Calculation, CalculationInfo, Info, Structure, \
+    StructuresInfo, StructureList
+from .index import Info
 from .filterparser import parse_filter

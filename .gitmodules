@@ -155,3 +155,42 @@
 [submodule "dependencies/parsers/eels"]
 	path = dependencies/parsers/eels
 	url = https://github.com/markus1978/eels.git
+[submodule "dependencies/parsers/namd"]
+    path = dependencies/parsers/namd
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-namd.git
+[submodule "dependencies/parsers/charmm"]
+    path = dependencies/parsers/charmm
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-charmm.git
+[submodule "dependencies/parsers/dftbplus"]
+    path = dependencies/parsers/dftbplus
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dftb-plus.git
+[submodule "dependencies/parsers/asap"]
+    path = dependencies/parsers/asap
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-asap.git
+[submodule "dependencies/parsers/fplo"]
+    path = dependencies/parsers/fplo
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fplo.git
+[submodule "dependencies/parsers/mopac"]
+    path = dependencies/parsers/mopac
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-mopac.git
+[submodule "dependencies/parsers/amber"]
+    path = dependencies/parsers/amber
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-amber.git
+[submodule "dependencies/parsers/gromacs"]
+    path = dependencies/parsers/gromacs
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromacs.git
+[submodule "dependencies/parsers/gromos"]
+    path = dependencies/parsers/gromos
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromos.git
+[submodule "dependencies/parsers/lammps"]
+    path = dependencies/parsers/lammps
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lammps.git
+[submodule "dependencies/parsers/openkim"]
+    path = dependencies/parsers/openkim
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-openkim.git
+[submodule "dependencies/parsers/tinker"]
+    path = dependencies/parsers/tinker
+    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-tinker.git
+[submodule "dependencies/nomad-dos-fingerprints"]
+	path = dependencies/nomad-dos-fingerprints
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git

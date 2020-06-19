@@ -2,13 +2,11 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 import numpy as np
 from typing import Tuple, List
-from pint import UnitRegistry
+from nomad.units import ureg
 
 from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
 from nomad.utils import RestrictedDict
-
-ureg = UnitRegistry()
 
 
 def get_basis_set(context, backend: Backend, logger) -> RestrictedDict:

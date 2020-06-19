@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Any
+
 from setuptools import setup, find_packages
 from subprocess import call
 from setuptools.command.install import install as setup_install
@@ -20,7 +20,7 @@ import os
 import sys
 import json
 import re
-import fastentrypoints
+import fastentrypoints  # pylint: disable=unused-import
 
 '''
 This setup.py works differently for creating a distribution than installing for
@@ -39,6 +39,9 @@ and all. Where all is the union of the other ones. The extras are parsed from th
 requirements.txt where specific comments are used to assign an extra to requirements.
 '''
 
+
+ignore_extra_requires = ['optimade']
+''' Dependencies where the extra_requires should not be added '''
 
 def parse_requirements():
     '''
@@ -131,7 +134,7 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
                     os.chdir(os.path.dirname(setup_path))
                     try:
                         runpy.run_path(file, run_name='__main__')
-                    except Exception as e:
+                    except Exception:
                         import traceback
                         traceback.print_exc()
                         print('Could not run %s' % setup_path)
@@ -176,9 +179,10 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
 
         # 3. requires
         local_install_requires = set()
-        for extra_require in local_kwargs.get('extras_require', {}).values():
-            for require in extra_require:
-                local_install_requires.add(require)
+        if not name in ignore_extra_requires:
+            for extra_require in local_kwargs.get('extras_require', {}).values():
+                for require in extra_require:
+                    local_install_requires.add(require)
 
         for require in local_kwargs.get('install_requires', []):
             local_install_requires.add(require)
@@ -232,9 +236,9 @@ def setup_kwargs():
     install_requires, extras_require = parse_requirements()
 
     return dict(
-        name='nomad',
-        version=config.version,
-        description='The nomad@FAIRDI infrastructure python package',
+        name='nomad-lab',
+        version=config.meta.version,
+        description='The NOvel MAterials Discovery (NOMAD) Python package',
         package_dir={'': './'},
         packages=['nomad.%s' % pkg for pkg in find_packages('./nomad')] + ['nomad'],
         setup_requires=['pip', 'setuptools', 'wheel', 'fastentrypoints', 'numpy', 'pyyaml'],
@@ -250,7 +254,8 @@ def setup_kwargs():
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'compile':
         kwargs = compile_dependency_setup_kwargs(['dependencies'], **setup_kwargs())
-        kwargs['packages'].remove('nomadcore.md_data_access')
+        # kwargs['packages'].remove('nomadcore.md_data_access')
+        kwargs['package_data']['optimade.grammar'] = ['*.lark']
         with open('setup.json', 'wt') as f:
             json.dump(kwargs, f, indent=2)
         sys.exit(0)

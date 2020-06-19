@@ -26,8 +26,8 @@ if __name__ == '__main__':
                 logger.error('parsing was not successful', status=backend.status)
 
             backend.openNonOverlappingSection('section_entry_info')
-            backend.addValue('upload_id', config.services.unavailable_value)
-            backend.addValue('calc_id', config.services.unavailable_value)
+            backend.addValue('upload_id', config.meta.services.unavailable_value)
+            backend.addValue('calc_id', config.meta.services.unavailable_value)
             backend.addValue('calc_hash', "no hash")
             backend.addValue('mainfile', mainfile_path)
             backend.addValue('parser_name', 'parsers/vasp')

@@ -102,7 +102,7 @@ export default function About() {
     makeClickable('search', () => {
       history.push('/search')
     })
-  }, [svg])
+  }, [svg, makeClickable, setText, history])
 
   useEffect(() => {
     const statistics = (info && info.statistics) || {}
@@ -130,7 +130,7 @@ export default function About() {
       value('n_calculations', 'results'),
       value('n_quantities', 'quantities')
     ])
-  }, [svg, info])
+  }, [svg, info, setText])
 
   return <div className={classes.root}>
     <Grid className={classes.container} container spacing={2}>
@@ -214,7 +214,7 @@ export default function About() {
 
       There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
-      The [NOMAD Analytics Toolkit](https://analytic-toolkit.nomad-coe.eu) allows to use
+      The [NOMAD Analytics Toolkit](https://analytics-toolkit.nomad-coe.eu) allows to use
       this without installation and directly on NOMAD servers.
       `}</Markdown></InfoCard>
       <Grid item xs={12}>
@@ -272,7 +272,7 @@ export default function About() {
         - domains: ${info ? Object.keys(info.domains).map(domain => info.domains[domain].name).join(', ') : 'loading'}
         - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
         - last commit message: *${info ? info.git.log : 'loading'}*
-        - supported codes: ${info ? info.codes.join(', ') : 'loading'}
+        - supported codes: ${info ? info.codes.map(code => code.code_name).join(', ') : 'loading'}
         - parsers: ${info ? info.parsers.join(', ') : 'loading'}
         - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
       `}</Markdown>

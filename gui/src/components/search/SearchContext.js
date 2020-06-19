@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useContext, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import hash from 'object-hash'
 import { errorContext } from '../errors'
@@ -71,7 +71,7 @@ export const searchContext = React.createContext()
  */
 export default function SearchContext({initialRequest, initialQuery, query, children}) {
   const defaultStatistics = [] // ['atoms', 'authors'] TODO
-  const emptyResponse = {
+  const emptyResponse = useMemo(() => ({
     statistics: {
       total: {
         all: {}
@@ -85,7 +85,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       order_by: 'upload_time'
     },
     metric: domains.dft.defaultSearchMetric
-  }
+  }), [])
 
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
@@ -175,7 +175,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
           raiseError(error)
         }
       })
-  }, [requestRef, setResponse, api])
+  }, [requestRef, setResponse, api, raiseError, emptyResponse, initialQuery, initialRequest, query])
 
   // The following are various callbacks that can be used by children to update the
   // request and implicitly trigger a search request to the API. The implicit triggering
@@ -204,6 +204,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
 
   const setStatistics = useCallback(statistics => {
     requestRef.current.statistics = [...statistics, ...defaultStatistics].filter(onlyUnique)
+    // eslint-disable-next-line
   }, [requestRef])
 
   const setGroups = useCallback(groups => {

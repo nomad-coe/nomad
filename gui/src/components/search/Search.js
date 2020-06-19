@@ -224,6 +224,7 @@ function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['uploader'])
+    // eslint-disable-next-line
   }, [])
   return <div>
     <UploadsHistogram tooltips />
@@ -236,6 +237,7 @@ function ElementsVisualization(props) {
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics(['atoms'])
+    // eslint-disable-next-line
   }, [])
 
   const handleExclusiveChanged = () => {
@@ -480,6 +482,7 @@ function SearchResults({availableTabs = ['entries'], initialTab = 'entries', res
     if (openTab !== 'entries') {
       handleTabChange(openTab)
     }
+    // eslint-disable-next-line
   }, [])
 
   return <div className={classes.root}>
@@ -539,7 +542,7 @@ const useScroll = (apiGroupName, afterParameterName) => {
       const requestParameters = {}
       requestParameters[apiAfterParameterName] = queryAfterParameter
       setRequestParameters(requestParameters)
-    }, [queryAfterParameter, setRequestParameters]
+    }, [queryAfterParameter, setRequestParameters, apiAfterParameterName]
   )
 
   const responseGroup = response[`${apiGroupName}_grouped`]

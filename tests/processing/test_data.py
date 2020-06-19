@@ -260,8 +260,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
 
     # reprocess
-    monkeypatch.setattr('nomad.config.version', 're_process_test_version')
-    monkeypatch.setattr('nomad.config.commit', 're_process_test_commit')
+    monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
+    monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
     published.reset()
     published.re_process_upload()
     try:

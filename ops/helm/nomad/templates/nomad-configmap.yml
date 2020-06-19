@@ -9,7 +9,8 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   nomad.yaml: |
-    release: "{{ .Release.Name }}"
+    meta:
+      release: "{{ .Release.Name }}"
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"

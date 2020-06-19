@@ -130,7 +130,7 @@ class SearchRequest:
     There is also scrolling for quantities to go through all quantity values. There is no
     paging for aggregations.
     '''
-    def __init__(self, domain: str = config.default_domain, query=None):
+    def __init__(self, domain: str = config.meta.default_domain, query=None):
         self._domain = domain
         self._query = query
         self._search = Search(index=config.elastic.index_name)

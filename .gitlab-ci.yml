@@ -96,7 +96,7 @@ tests:
 
 install_tests:
   stage: test
-  image: python:3.6
+  image: python:3.7
   before_script:
     - git submodule sync
     - git submodule update --init --jobs=4
@@ -107,9 +107,9 @@ install_tests:
     - pip install numpy
     - python setup.py compile
     - python setup.py sdist
-    - pip install dist/nomad-0.8.0.tar.gz
+    - pip install dist/nomad-lab-*.tar.gz
     - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
-    - pip install dist/nomad-0.8.0.tar.gz[parsing]
+    - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
 
 deploy:

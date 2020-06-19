@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .normalizer import Normalizer
 import numpy as np
+
+from nomad_dos_fingerprints import DOSFingerprint
+
+from nomad.datamodel.metainfo.public import section_dos_fingerprint
+from nomad.atomutils import get_volume
+
+from .normalizer import Normalizer
 
 
 class DosNormalizer(Normalizer):
@@ -58,13 +64,28 @@ class DosNormalizer(Normalizer):
                     return
 
                 number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = np.linalg.det(lattice_vectors.magnitude)
+                unit_cell_volume = get_volume(lattice_vectors.magnitude)
 
                 # Final quantities
                 dos_normed = dos_values / (number_of_atoms * unit_cell_volume)
+
+                # Data for DOS fingerprint
+                dos_fingerprint = None
+                try:
+                    dos_energies = dos.dos_energies
+                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_values)
+                except Exception as e:
+                    self.logger.error('could not generate dos fingerprint', exc_info=e)
 
                 # Add quantities to NOMAD's Metainfo
                 scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
                 self._backend.openContext(scc_url)
                 dos.dos_values_normalized = dos_normed
+                if dos_fingerprint is not None:
+                    sec_dos_fingerprint = dos.m_create(section_dos_fingerprint)
+                    sec_dos_fingerprint.bins = dos_fingerprint.bins
+                    sec_dos_fingerprint.indices = dos_fingerprint.indices
+                    sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
+                    sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
+                    sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
                 self._backend.closeContext(scc_url)

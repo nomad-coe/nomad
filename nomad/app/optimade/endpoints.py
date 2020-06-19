@@ -17,30 +17,18 @@ from flask_restplus import Resource, abort
 from flask import request
 from elasticsearch_dsl import Q
 
-from nomad import search, files, datamodel
+from nomad import search, files, datamodel, config
 from nomad.datamodel import OptimadeEntry
 
-from .api import api, url
+from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
-    json_api_info_response_model, json_api_list_response_model, ReferenceObject, StructureObject, \
-    ToplevelLinks, LinkObject, json_api_links_response_model, json_api_references_response_model, \
-    json_api_structure_response_model, json_api_structures_response_model
+    Links as LinksModel, single_entry_endpoint_parser, base_endpoint_parser, \
+    json_api_info_response_model, json_api_list_response_model, EntryDataObject, \
+    ToplevelLinks, get_entry_properties, json_api_structure_response_model, \
+    json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
-
-ns = api.namespace('', description='The (only) API namespace with all OPTiMaDe endpoints.')
-
-
-# TODO replace with decorator that filters response_fields
-def base_request_args():
-    if request.args.get('response_format', 'json') != 'json':
-        abort(400, 'Response format is not supported.')
-
-    properties_str = request.args.get('request_fields', None)
-    if properties_str is not None:
-        return properties_str.split(',')
-    return None
+ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
 
 
 def base_search_request():
@@ -74,6 +62,10 @@ def to_calc_with_metadata(results: List[Dict[str, Any]]):
     return result
 
 
+# TODO the Entry/ListEntry endpoints for References, Calculations, Structures should
+# reuse more code.
+# Calculations are identical to structures. Not sure if this is what the optimade
+# specification intends.
 @ns.route('/calculations')
 class CalculationList(Resource):
     @api.doc('list_calculations')
@@ -81,14 +73,14 @@ class CalculationList(Resource):
     @api.expect(entry_listing_endpoint_parser, validate=True)
     @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
-        ''' Retrieve a list of calculations that match the given Optimade filter expression. '''
+        ''' Returns a list of calculations that match the given optimade filter expression. '''
         request_fields = base_request_args()
 
         try:
             filter = request.args.get('filter', None)
             page_limit = int(request.args.get('page_limit', 10))
             page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced'),
+            sort = request.args.get('sort', 'chemical_formula_reduced')
 
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
@@ -108,7 +100,7 @@ class CalculationList(Resource):
 
         available = result['pagination']['total']
         results = to_calc_with_metadata(result['results'])
-        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+        assert len(results) == len(result['results']), 'archive and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
@@ -122,7 +114,7 @@ class CalculationList(Resource):
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
-            data=[CalculationDataObject(d, request_fields=request_fields) for d in results]
+            data=[EntryDataObject(d, request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -134,7 +126,7 @@ class Calculation(Resource):
     @api.expect(single_entry_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self, id: str):
-        ''' Retrieve a single calculation for the given id. '''
+        ''' Retrieve a single calculation for the given id '''
         request_fields = base_request_args()
         search_request = base_search_request().search_parameters(calc_id=id)
 
@@ -151,7 +143,7 @@ class Calculation(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=CalculationDataObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], request_fields=request_fields)
         ), 200
 
 
@@ -162,14 +154,12 @@ class CalculationInfo(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
     def get(self):
-        ''' Returns information relating to the API implementation- '''
+        ''' Returns information about the calculation endpoint implementation '''
         base_request_args()
 
         result = {
             'description': 'a calculation entry',
-            'properties': {
-                attr.name: dict(description=attr.description)
-                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'properties': get_entry_properties(),
             'formats': ['json'],
             'output_fields_by_format': {
                 'json': list(OptimadeEntry.m_def.all_properties.keys())}
@@ -188,23 +178,23 @@ class Info(Resource):
     @api.expect(base_endpoint_parser, validate=True)
     @api.marshal_with(json_api_single_response_model, skip_none=True, code=200)
     def get(self):
-        ''' Returns information relating to the API implementation- '''
+        ''' Returns information about this optimade implementation '''
         base_request_args()
 
         result = {
             'type': 'info',
             'id': '/',
             'attributes': {
-                'api_version': '0.10.0',
+                'api_version': '0.10.1',
                 'available_api_versions': [{
                     'url': url(),
-                    'version': '0.10.0'
+                    'version': '0.10.1'
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {
-                    'json': ['calculations', 'info']
+                    'json': ['structures', 'calculations', 'info']
                 },
-                'available_endpoints': ['calculations', 'info'],
+                'available_endpoints': ['structures', 'calculations', 'info'],
                 'is_index': False
             }
         }
@@ -235,96 +225,92 @@ def execute_search(**kwargs):
     return result
 
 
-@ns.route('/references')
-class References(Resource):
-    @api.doc('references')
-    @api.response(400, 'Invalid requests, e.g. bad parameter.')
-    @api.response(422, 'Validation error')
-    @api.expect(entry_listing_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_references_response_model, skip_none=True, code=200)
-    def get(self):
-        '''Retrive the references corresponding to the structures that match the given Optimade filter expression'''
-        try:
-            filter = request.args.get('filter', None)
-            page_limit = int(request.args.get('page_limit', 10))
-            page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced'),
+# TODO This does not return reference
+# TODO This also needs a single entry endpoint?
+# TODO This also needs an info endpoint
+# @ns.route('/references')
+# class References(Resource):
+#     @api.doc('references')
+#     @api.response(400, 'Invalid requests, e.g. bad parameter.')
+#     @api.response(422, 'Validation error')
+#     @api.expect(entry_listing_endpoint_parser, validate=True)
+#     @api.marshal_with(json_api_references_response_model, skip_none=True, code=200)
+#     def get(self):
+#         ''' Returns references for the structures that match the given optimade filter expression'''
+#         try:
+#             filter = request.args.get('filter', None)
+#             page_limit = int(request.args.get('page_limit', 10))
+#             page_number = int(request.args.get('page_number', 1))
+#             sort = request.args.get('sort', 'chemical_formula_reduced'),
 
-        except Exception:
-            abort(400, message='bad parameter types')  # TODO Specific json API error handling
+#         except Exception:
+#             abort(400, message='bad parameter types')  # TODO Specific json API error handling
 
-        result = execute_search(
-            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
-        available = result['pagination']['total']
-        results = to_calc_with_metadata(result['results'])
-        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+#         result = execute_search(
+#             filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
+#         available = result['pagination']['total']
+#         results = to_calc_with_metadata(result['results'])
+#         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
-        return dict(
-            meta=Meta(
-                query=request.url,
-                returned=len(results),
-                available=available,
-                last_id=results[-1].calc_id if available > 0 else None),
-            links=ToplevelLinks(
-                'structures',
-                available=available,
-                page_number=page_number,
-                page_limit=page_limit,
-                sort=sort, filter=filter),
-            data=[ReferenceObject(d) for d in results]
-        ), 200
+#         # TODO References are about returning user provided references to paper or web resources.
+#         # The ReferenceObject does not have this kind of information.
+#         # TODO Why is TopLevelLinks different from LinksModel. Any what is "TopLevel" about it.
+#         return dict(
+#             meta=Meta(
+#                 query=request.url,
+#                 returned=len(results),
+#                 available=available,
+#                 last_id=results[-1].calc_id if available > 0 else None),
+#             links=ToplevelLinks(
+#                 'structures',
+#                 available=available,
+#                 page_number=page_number,
+#                 page_limit=page_limit,
+#                 sort=sort, filter=filter),
+#             data=[ReferenceObject(d) for d in results]
+#         ), 200
 
 
 @ns.route('/links')
 class Links(Resource):
     @api.doc('links')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
-    @api.response(422, 'Validation error')
-    @api.expect(entry_listing_endpoint_parser, validate=True)
-    @api.marshal_with(json_api_links_response_model, skip_none=True, code=200)
+    @api.expect(base_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_list_response_model, skip_none=True, code=200)
     def get(self):
-        '''Retrive the links that corresponding to the structures that match the given Optimade filter expression'''
-        try:
-            filter = request.args.get('filter', None)
-            page_limit = int(request.args.get('page_limit', 10))
-            page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced'),
+        ''' Returns information about related optimade databases '''
+        base_request_args()
 
-        except Exception:
-            abort(400, message='bad parameter types')  # TODO Specific json API error handling
-
-        result = execute_search(
-            filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
-        available = result['pagination']['total']
-        results = to_calc_with_metadata(result['results'])
-        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+        result = [
+            {
+                "type": "parent",
+                "id": "index",
+                "attributes": {
+                    "name": config.meta.name,
+                    "description": config.meta.description,
+                    "base_url": {
+                        "href": url(version=None, prefix='index'),
+                    },
+                    "homepage": config.meta.homepage
+                }
+            }
+        ]
 
         return dict(
-            meta=Meta(
-                query=request.url,
-                returned=len(results),
-                available=available,
-                last_id=results[-1].calc_id if available > 0 else None),
-            links=ToplevelLinks(
-                'structures',
-                available=available,
-                page_number=page_number,
-                page_limit=page_limit,
-                sort=sort, filter=filter
-            ),
-            data=[LinkObject(d, page_number=page_number, sort=sort, filter=filter) for d in results]
-        )
+            meta=Meta(query=request.url, returned=1),
+            data=result
+        ), 200
 
 
 @ns.route('/structures')
-class Structures(Resource):
+class StructureList(Resource):
     @api.doc('structures')
     @api.response(400, 'Invalid requests, e.g. bad parameter.')
     @api.response(422, 'Validation error')
     @api.expect(entry_listing_endpoint_parser, validate=True)
     @api.marshal_with(json_api_structures_response_model, skip_none=True, code=200)
     def get(self):
-        ''' Retrieve the structures that match the given Optimade filter expression. '''
+        ''' Retrieve the structures that match the given optimade filter expression '''
         request_fields = base_request_args()
 
         try:
@@ -355,7 +341,7 @@ class Structures(Resource):
                 page_limit=page_limit,
                 sort=sort, filter=filter
             ),
-            data=[StructureObject(d, request_fields) for d in results]
+            data=[EntryDataObject(d, request_fields) for d in results]
         ), 200
 
 
@@ -367,7 +353,7 @@ class Structure(Resource):
     @api.expect(single_entry_endpoint_parser, validate=True)
     @api.marshal_with(json_api_structure_response_model, skip_none=True, code=200)
     def get(self, id: str):
-        ''' Retrieve a single calculation for the given id. '''
+        ''' Retrieve a single structure for the given id '''
         request_fields = base_request_args()
         search_request = base_search_request().search_parameters(calc_id=id)
 
@@ -384,5 +370,29 @@ class Structure(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=StructureObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], request_fields=request_fields)
+        ), 200
+
+
+@ns.route('/info/structures')
+class StructuresInfo(Resource):
+    @api.doc('structures_info')
+    @api.response(400, 'Invalid requests, e.g. bad parameter.')
+    @api.expect(base_endpoint_parser, validate=True)
+    @api.marshal_with(json_api_info_response_model, skip_none=True, code=200)
+    def get(self):
+        ''' Returns information about the structures endpoint implementation '''
+        base_request_args()
+
+        result = {
+            'description': 'a structure entry',
+            'properties': get_entry_properties(),
+            'formats': ['json'],
+            'output_fields_by_format': {
+                'json': list(OptimadeEntry.m_def.all_properties.keys())}
+        }
+
+        return dict(
+            meta=Meta(query=request.url, returned=1),
+            data=result
         ), 200

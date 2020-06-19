@@ -92,7 +92,7 @@ data:
       "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
       "matomoUrl": "{{ .Values.gui.matomoUrl }}",
-      "sendTrackingData": {{ .Values.gui.sendTrackingData }},
+      "matomoEnabled": {{ .Values.gui.matomoEnabled }},
       "debug": {{ .Values.gui.debug }}
     };
 ---

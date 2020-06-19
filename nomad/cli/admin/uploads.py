@@ -60,7 +60,7 @@ def uploads(
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
-            {'metadata.nomad_version': {'$ne': config.version}})
+            {'metadata.nomad_version': {'$ne': config.meta.version}})
         query |= mongoengine.Q(upload_id__in=uploads)
 
     if code is not None and len(code) > 0:

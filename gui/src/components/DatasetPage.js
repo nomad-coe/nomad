@@ -53,7 +53,7 @@ export default function DatasetPage() {
       setDataset({})
       raiseError(error)
     })
-  }, [location.pathname, api])
+  }, [datasetId, location.pathname, api, raiseError])
 
   if (!dataset) {
     return <div>loading...</div>

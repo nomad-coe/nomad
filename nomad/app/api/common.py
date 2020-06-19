@@ -98,7 +98,7 @@ query_model_fields = {
 query_model_fields.update(**{
     'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
     'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
-        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.default_domain)),
+        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.meta.default_domain)),
     'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
@@ -138,7 +138,7 @@ def add_search_parameters(request_parser):
         'domain', type=str,
         help='Specify the domain to search in: %s, default is ``%s``' % (
             ', '.join(['``%s``' % domain for domain in datamodel.domains]),
-            config.default_domain))
+            config.meta.default_domain))
     request_parser.add_argument(
         'owner', type=str,
         help='Specify which calcs to return: ``visible``, ``public``, ``all``, ``user``, ``staging``, default is ``visible``')
@@ -198,7 +198,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     try:
         optimade = args.get('dft.optimade', None)
         if optimade is not None:
-            q = filterparser.parse_filter(optimade)
+            q = filterparser.parse_filter(
+                optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
         abort(400, 'Could not parse optimade query: %s' % (str(e)))
@@ -336,10 +337,14 @@ def query_api_clientlib(**kwargs):
 
         return value
 
-    kwargs = {
+    query = {
         key: normalize_value(key, value) for key, value in kwargs.items()
-        if key in search.search_quantities and (key != 'domain' or value != config.default_domain)
+        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
     }
+
+    for key in ['dft.optimade']:
+        if key in kwargs:
+            query[key] = kwargs[key]
 
     out = io.StringIO()
     out.write('from nomad import client, config\n')
@@ -347,7 +352,7 @@ def query_api_clientlib(**kwargs):
     out.write('results = client.query_archive(query={%s' % ('' if len(kwargs) == 0 else '\n'))
     out.write(',\n'.join([
         '    \'%s\': %s' % (key, pprint.pformat(value, compact=True))
-        for key, value in kwargs.items()]))
+        for key, value in query.items()]))
     out.write('})\n')
     out.write('print(results)\n')
 
