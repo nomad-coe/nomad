@@ -17,7 +17,7 @@ export const matomo = matomoEnabled ? PiwikReactRouter({
   url: matomoUrl,
   siteId: matomoSiteId,
   clientTrackerName: 'stat.js',
-  serverTrackerName: 'stat.php'
+  serverTrackerName: 'stat'
 }) : null
 
 const keycloak = Keycloak({

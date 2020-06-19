@@ -7,10 +7,11 @@ services:
       - MARIADB_USER=bn_matomo
       - MARIADB_DATABASE=bitnami_matomo
       - ALLOW_EMPTY_PASSWORD=yes
-    volumes:
-      - /nomad/fairdi/db/matomo/mariadb:/bitnami
+      volumes:
+        - /nomad/fairdi/db/matomo/mariadb:/bitnami
   matomo:
-    image: 'bitnami/matomo:3'
+    build: ./matomo
+    image: 'fairdi/matomo:3'
     container_name: nomad_matomo_matomo
     environment:
       - MARIADB_HOST=mariadb
@@ -22,5 +23,5 @@ services:
       - '8001:80'
     depends_on:
       - mariadb
-    volumes:
-      - /nomad/fairdi/db/matomo/matomo:/bitnami
+      volumes:
+        - /nomad/fairdi/db/matomo/matomo:/bitnami
