@@ -16,6 +16,7 @@
 The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
+import math
 import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
@@ -367,61 +368,121 @@ class EncMaterialsResource(Resource):
         s = Search(index=config.elastic.index_name)
         s = s.query(bool_query)
 
-        # The materials are grouped by using three aggregations:
-        # "Composite" to enable scrolling, "Terms" to enable selecting
-        # by material_id and "Top Hits" to fetch a single
-        # representative material document. Unnecessary fields are
-        # filtered to reduce data transfer.
-        terms_agg = A("terms", field="encyclopedia.material.material_id")
-        composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
+        # 1: The paginated approach: No way to know the amount of materials,
+        # but can return aggregation results in a quick fashion including
+        # the number of calculation entries per material.
+        mode = "collapse"
+        if mode == "aggregation":
+            # The materials are grouped by using three aggregations:
+            # "Composite" to enable scrolling, "Terms" to enable selecting
+            # by material_id and "Top Hits" to fetch a single
+            # representative material document. Unnecessary fields are
+            # filtered to reduce data transfer.
+            terms_agg = A("terms", field="encyclopedia.material.material_id")
+            composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
 
-        # The number of matched materials is only requested on the first
-        # search, not for each page.
-        if after is not None:
-            composite_kwargs["after"] = after
-        else:
+            # The number of matched materials is only requested on the first
+            # search, not for each page.
+            if after is not None:
+                composite_kwargs["after"] = after
+            else:
+                cardinality_agg = A("cardinality", field="encyclopedia.material.material_id", precision_threshold=1000)
+                s.aggs.metric("n_materials", cardinality_agg)
+
+            composite_agg = A("composite", **composite_kwargs)
+            composite_agg.metric("representative", A(
+                "top_hits",
+                size=1,
+                _source={"includes": list(material_prop_map.values())},
+            ))
+            s.aggs.bucket("materials", composite_agg)
+
+            # We ignore the top level hits and sort by reduced material formula.
+            s = s.extra(**{
+                "size": 0,
+            })
+
+            response = s.execute()
+            materials = response.aggs.materials.buckets
+            if len(materials) == 0:
+                abort(404, message="No materials found for the given search criteria or pagination.")
+            after_new = response.aggs.materials["after_key"]
+
+            # Gather results from aggregations
+            result_list = []
+            materials = response.aggs.materials.buckets
+            keys = list(material_prop_map.keys())
+            for material in materials:
+                representative = material["representative"][0]
+                mat_dict = get_es_doc_values(representative, material_prop_map, keys)
+                mat_dict["n_matches"] = material.doc_count
+                result_list.append(mat_dict)
+
+            # Page information is incomplete for aggregations
+            pages = {
+                "page": page,
+                "per_page": per_page,
+                "after": after_new,
+            }
+            if after is None:
+                n_materials = response.aggs.n_materials.value
+                pages["total"] = n_materials
+
+        # 2. Collapse approach. Quickly provides a list of materials
+        # corresponding to the query, offers full pagination, doesn"t include
+        # the number of matches per material.
+        elif mode == "collapse":
+            s = Search(index=config.elastic.index_name)
+            s = s.query(bool_query)
+
+            # Add cardinality aggregation that gives out the total number of materials
             cardinality_agg = A("cardinality", field="encyclopedia.material.material_id", precision_threshold=1000)
             s.aggs.metric("n_materials", cardinality_agg)
 
-        composite_agg = A("composite", **composite_kwargs)
-        composite_agg.metric("representative", A(
-            "top_hits",
-            size=1,
-            _source={"includes": list(material_prop_map.values())},
-        ))
-        s.aggs.bucket("materials", composite_agg)
+            s = s.extra(**{
+                "collapse": {"field": "encyclopedia.material.material_id"},
+                "size": per_page,
+                "from": (page - 1) * per_page,
+                "sort": [{"encyclopedia.material.formula_reduced": {"order": "asc"}}],
+                "explain": True,
+            })
 
-        # We ignore the top level hits
-        s = s.extra(**{
-            "size": 0,
-        })
+            # Execute query
+            response = s.execute()
 
-        response = s.execute()
-        materials = response.aggs.materials.buckets
-        if len(materials) == 0:
-            abort(404, message="No materials found for the given search criteria or pagination.")
-        after_new = response.aggs.materials["after_key"]
+            # No matches
+            if len(response) == 0:
+                abort(404, message="No materials found for the given search criteria or pagination.")
 
-        # Gather results from aggregations
-        result_list = []
-        materials = response.aggs.materials.buckets
-        keys = list(material_prop_map.keys())
-        for material in materials:
-            representative = material["representative"][0]
-            mat_dict = get_es_doc_values(representative, material_prop_map, keys)
-            mat_dict["n_matches"] = material.doc_count
-            result_list.append(mat_dict)
+            # Gather number of entries per material with a separate query
+            material_ids = [x.encyclopedia.material.material_id for x in response]
+            s = Search(index=config.elastic.index_name)
+            bool_query = Q(
+                "bool",
+                filter=Q("terms", encyclopedia__material__material_id=material_ids),
+            )
+            s2 = s.query(bool_query)
+            s2.aggs.bucket("n_matches", A("terms", field="encyclopedia.material.material_id"))
+            response2 = s2.execute()
+            matmap = {x.key: x.doc_count for x in response2.aggs.n_matches}
 
-        # Page information is incomplete for aggregations
-        pages = {
-            "page": page,
-            "per_page": per_page,
-            "after": after_new,
-        }
+            # Loop over materials
+            result_list = []
+            keys = list(material_prop_map.keys())
+            for material in response:
+                # Get values from the collapsed doc
+                mat_result = get_es_doc_values(material, material_prop_map, keys)
+                mat_id = material.encyclopedia.material.material_id
+                mat_result["n_matches"] = matmap[mat_id]
+                result_list.append(mat_result)
 
-        if after is None:
-            n_materials = response.aggs.n_materials.value
-            pages["total"] = n_materials
+            # Full page information available for collapse
+            pages = {
+                "page": page,
+                "per_page": per_page,
+                "pages": math.ceil(response.hits.total / per_page),
+                "total": response.aggs.n_materials.value,
+            }
 
         result = {
             "results": result_list,
@@ -1134,8 +1195,8 @@ class EncCalculationResource(Resource):
 
                 # Pre-calculate k-path length to be used as x-coordinate in
                 # plots. If the VBM and CBM information is needed later, it
-                # can be added as indices along the path. The exact
-                # k-points and occupations are removed to save band width.
+                # can be added as indices along the path. The exact k-points
+                # and occupations are removed to save some bandwidth.
                 if key == "electronic_band_structure" or key == "phonon_band_structure":
                     segments = value["section_k_band_segment"]
                     k_path_length = 0
