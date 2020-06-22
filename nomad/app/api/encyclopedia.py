@@ -122,7 +122,8 @@ class EncMaterialResource(Resource):
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
     def get(self, material_id):
-        """Used to retrive basic information related to the specified material.
+        """Used to retrieve basic information related to the specified
+        material.
         """
         # Parse request arguments
         args = material_query.parse_args()
@@ -138,10 +139,6 @@ class EncMaterialResource(Resource):
         # information from there. In principle all other entries should have
         # the same information.
         s = Search(index=config.elastic.index_name)
-
-        # Since we are looking for an exact match, we use filtek context
-        # together with term search for speed (instead of query context and
-        # match search)
         query = Q(
             "bool",
             filter=enc_filter + [
@@ -150,14 +147,14 @@ class EncMaterialResource(Resource):
         )
         s = s.query(query)
 
-        # If a representative calculation is requested, all calculations are
-        # returned in order to perform the scoring with a custom loop.
-        # Otherwise, only one representative entry is returned.
+        # Only one representative entry is returned by collapsing the results.
         s = s.extra(**{
             "_source": {"includes": es_keys},
-            "size": 10000,
+            "size": 1,
             "collapse": {"field": "encyclopedia.material.material_id"},
         })
+        print("================= M QUERY ==================")
+        print(s.to_dict())
         response = s.execute()
 
         # No such material
