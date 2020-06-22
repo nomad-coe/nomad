@@ -80,6 +80,17 @@ def get_es_doc_values(es_doc, mapping, keys=None):
     return result
 
 
+def get_enc_filter():
+    """Returns a shared term filter that will leave out unpublished, embargoed
+    or invalid entries.
+    """
+    return [
+        Q("term", published=True),
+        Q("term", with_embargo=False),
+        Q("term", encyclopedia__status="success"),
+    ]
+
+
 material_query = api.parser()
 material_query.add_argument(
     "property",
@@ -107,11 +118,6 @@ material_result = api.model("material_result", {
     "structure_prototype": fields.String,
     "structure_type": fields.String,
 })
-enc_filter = [
-    Q("term", published=True),
-    Q("term", with_embargo=False),
-    Q("term", encyclopedia__status="success"),
-]
 
 
 @ns.route("/materials/<string:material_id>")
@@ -141,7 +147,7 @@ class EncMaterialResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=enc_filter + [
+            filter=get_enc_filter() + [
                 Q("term", encyclopedia__material__material_id=material_id),
             ]
         )
@@ -153,8 +159,6 @@ class EncMaterialResource(Resource):
             "size": 1,
             "collapse": {"field": "encyclopedia.material.material_id"},
         })
-        print("================= M QUERY ==================")
-        print(s.to_dict())
         response = s.execute()
 
         # No such material
@@ -234,7 +238,7 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        filters = enc_filter
+        filters = get_enc_filter()
         must_nots = []
         musts = []
 
@@ -447,7 +451,7 @@ class EncGroupsResource(Resource):
         # variation hashes set.
         bool_query = Q(
             "bool",
-            filter=enc_filter + [Q("term", encyclopedia__material__material_id=material_id)],
+            filter=get_enc_filter() + [Q("term", encyclopedia__material__material_id=material_id)],
             must=[
                 Q("exists", field="encyclopedia.properties.energies.energy_total"),
                 Q("exists", field="encyclopedia.material.idealized_structure.cell_volume"),
@@ -531,7 +535,7 @@ class EncGroupResource(Resource):
 
         bool_query = Q(
             "bool",
-            filter=enc_filter + [
+            filter=get_enc_filter() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", **{group_id_source: group_id}),
             ],
@@ -614,7 +618,7 @@ class EncSuggestionsResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=enc_filter
+            filter=get_enc_filter()
         )
         s = s.query(query)
         s = s.extra(**{
@@ -687,7 +691,7 @@ class EncCalculationsResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=enc_filter + [
+            filter=get_enc_filter() + [
                 Q("term", encyclopedia__material__material_id=material_id),
             ]
         )
@@ -838,7 +842,7 @@ class EncStatisticsResource(Resource):
         # Find entries for the given material.
         bool_query = Q(
             "bool",
-            filter=enc_filter + [
+            filter=get_enc_filter() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("terms", calc_id=data["calculations"]),
             ]
@@ -1034,7 +1038,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=enc_filter + [
+            filter=get_enc_filter() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
