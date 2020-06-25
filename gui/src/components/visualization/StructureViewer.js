@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import PropTypes from 'prop-types'
 
 import { makeStyles } from '@material-ui/core/styles';
-import { ButtonGroup, Button } from '@material-ui/core'
+import { ButtonGroup, Button, Card, Paper } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -10,12 +10,15 @@ import MoreVertIcon from '@material-ui/icons/MoreVert';
 import FullscreenIcon from '@material-ui/icons/Fullscreen';
 import CameraAltIcon from '@material-ui/icons/CameraAlt';
 import ReplayIcon from '@material-ui/icons/Replay';
-import { flexbox } from '@material-ui/system';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Checkbox from '@material-ui/core/Checkbox';
+import CheckBoxIcon from '@material-ui/icons/CheckBox';
 import Box from '@material-ui/core/Box';
 
 export function StructureViewer(props) {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+  let viewerCanvas = useRef(null);
 
   let viewerOptions = {
     view: {
@@ -43,41 +46,60 @@ export function StructureViewer(props) {
       radiusScale: 0.8,       // Scaling factor for atomic radii
       bondScale: 1.2,         // Scaling factor for the automatic bond detection
       viewCenter: "COC",      // The rotation and view center position. Valid values are: "COP" (center of position), "COC" center of cell, or a custom position given as array of three cartesian coordinates.
+    },
+    style: {
+      backgroundColor: [0xffffff, 1]
     }
   };
+
+  // State
   let [options, setOptions] = useState(viewerOptions);
   let [viewer, setViewer] = useState(null);
+  let [fullscreen, setFullscreen] = useState(false);
 
   // Default styles
   const useStyles = makeStyles({
     root: {
       width: "100%",
     },
+    container: {
+      boxSizing: "border-box",  // This should be a global default?
+      padding: "0.5rem",
+      display: "flex",
+      height: "100%",
+      width: "100%",
+      flexDirection: "column",
+      backgroundColor: "white",
+    },
+    fullscreen: {
+      position: "fixed",
+      zIndex: 2000,
+      left: "50%",
+      top: "50%",
+      width: "80%",
+      height: "50%",
+      transform: "translate(-50%, -50%)",
+    },
     header: {
       display: "flex",
       flexDirection: "row",
     },
     spacer: {
-      flexGrow: 1,
+      flex: 1,
     },
     viewerCanvas: {
-      flexGrow: 1,
-      marginBottom: "2rem",
+      flex: 1,
+      minHeight: 0,  // added min-height: 0 to allow the item to shrink to fit inside the container.
     },
-    container: {
-      display: "flex",
-      height: "100%",
-      width: "100%",
-      flexDirection: "column",
-    }
   });
-
-  let viewerCanvas = useRef(null);
 
   // Settings menu structure
   let showBonds = true;
   const optionMenu = [
-    {label: "Show bonds", func: () => {options.structure.showBonds = !options.structure.showBonds}}
+    {label: "Show bonds", value: options.structure.showBonds, func: () => {
+      options.structure.showBonds = !options.structure.showBonds;
+      setOptions(options);
+    }}
   ];
 
   const handleOpenMenu = (event) => {
@@ -89,12 +111,17 @@ export function StructureViewer(props) {
   };
 
   const handleFullscreen = () => {
+    setFullscreen(!fullscreen);
   };
 
   const handleScreencapture = () => {
+    viewer.takeScreenShot(props.calcId);
   };
 
   const handleReset = () => {
+    viewer.reset();
+    viewer.fitToCanvas();
+    viewer.render();
   };
 
   // Run only on first render to initialize the viewer
@@ -130,6 +157,8 @@ export function StructureViewer(props) {
     viewer.load(bulk);
     viewer.resizeCanvasToHostElement();
     viewer.fitToCanvas();
+    viewer.saveReset();
+    viewer.reset();
   }, []);
 
   // These handle the viewer settings
@@ -137,10 +166,22 @@ export function StructureViewer(props) {
     viewer.toggleBonds(options.structure.showBonds);
   }, [options.structure.showBonds]);
 
+  // Handles fullscreen mode
+  useLayoutEffect(() => {
+    if (viewer !== null) {
+      viewer.resizeCanvasToHostElement();
+      viewer.fitToCanvas();
+      viewer.render();
+    }
+  }, [fullscreen]);
+
   const classes = useStyles(props);
+  let containerClasses = fullscreen ? [classes.container, classes.fullscreen].join(" ") : classes.container;
+  let elevation = fullscreen ? 12 : 0;
+
   return (
     <Box className={classes.root}>
-      <div className={classes.container}>
+      <Paper elevation={elevation} className={containerClasses}>
         <div className={classes.header}>
           <IconButton onClick={handleOpenMenu}>
             <MoreVertIcon />
@@ -167,13 +208,23 @@ export function StructureViewer(props) {
           onClose={handleCloseMenu}
         >
           {optionMenu.map((option) => (
-            <MenuItem key={option.label} selected={option.label === 'Pyxis'} onClick={option.func}>
-              {option.label}
+            <MenuItem>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={option.value}
+                    onChange={option.func}
+                    name="checkedB"
+                    color="primary"
+                  />
+                }
+                label={option.label}
+              />
             </MenuItem>
           ))}
         </Menu>
         <div className={classes.viewerCanvas} ref={viewerCanvas}></div>
-      </div>
+      </Paper>
     </Box>
   )
 }

@@ -25,7 +25,7 @@ class RepoEntryView extends React.Component {
       marginTop: theme.spacing(2)
     },
     structureViewer: {
-      height: "20rem"
+      height: "25rem"
     }
   })
 
@@ -102,7 +102,7 @@ class RepoEntryView extends React.Component {
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
               <CardContent>
-                <StructureViewer classes={{root: classes.structureViewer}}></StructureViewer>
+                <StructureViewer classes={{root: classes.structureViewer}} calcId={this.props.calcId}></StructureViewer>
               </CardContent>
               <Divider />
               <CardContent classes={{root: classes.cardContent}}>
