@@ -2,9 +2,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Typography, Link } from '@material-ui/core'
 import { withApi } from '../api'
-import { StructureViewer } from '../visualization/StructureViewer'
 import { compose } from 'recompose'
 import ApiDialogButton from '../ApiDialogButton'
+import StructureViewer from '../visualization/StructureViewer'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -25,7 +25,8 @@ class RepoEntryView extends React.Component {
       marginTop: theme.spacing(2)
     },
     structureViewer: {
-      height: "25rem"
+      height: "25rem",
+      padding: "0",
     }
   })
 
@@ -101,7 +102,7 @@ class RepoEntryView extends React.Component {
                 title={entryHeader}
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
-              <CardContent>
+              <CardContent classes={{root: classes.cardContent}}>
                 <StructureViewer classes={{root: classes.structureViewer}} calcId={this.props.calcId}></StructureViewer>
               </CardContent>
               <Divider />
