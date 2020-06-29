@@ -25,8 +25,8 @@ class RepoEntryView extends React.Component {
       marginTop: theme.spacing(2)
     },
     structureViewer: {
-      height: "25rem",
-      padding: "0",
+      height: '25rem',
+      padding: '0'
     }
   })
 

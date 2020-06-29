@@ -219,7 +219,7 @@ export default function StructureViewer(props) {
   return (
     <Box className={classes.root}>
       <ClickAwayListener onClickAway={handleClickAway}>
-        <Paper elevation={fullscreen ? 12 : 0} className={fullscreen ? [classes.container, classes.fullscreen].join(" ") : classes.container} ref={refContainer}>
+        <Paper elevation={fullscreen ? 12 : 0} className={fullscreen ? [classes.container, classes.fullscreen].join(' ') : classes.container} ref={refContainer}>
           <div className={classes.header}>
             <IconButton className={classes.iconButton} onClick={handleOpenMenu}>
               <MoreVertIcon />
