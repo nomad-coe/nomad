@@ -191,3 +191,6 @@
 [submodule "dependencies/parsers/tinker"]
     path = dependencies/parsers/tinker
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-tinker.git
+[submodule "dependencies/encyclopedia-gui"]
+	path = dependencies/encyclopedia-gui
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/encyclopedia-gui.git
