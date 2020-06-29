@@ -629,8 +629,8 @@ class EncyclopediaMetadata(MSection):
         | Status                           | Description                                                                   |
         | -------------------------------- | ----------------------------------------------------------------------------- |
         | `"success"`                      | Processed successfully                                                        |
-        | `"unsupported_material_type"`    | The detected material type is currenlty not supported by the Encyclopedia.    |
-        | `"unsupported_calculation_type"` | The detected calculation type is currenlty not supported by the Encyclopedia. |
+        | `"unsupported_material_type"`    | The detected material type is currently not supported by the Encyclopedia.    |
+        | `"unsupported_calculation_type"` | The detected calculation type is currently not supported by the Encyclopedia. |
         | `"invalid_metainfo"`             | The entry could not be processed due to missing or invalid metainfo.          |
         | `"failure"`                      | The entry could not be processed due to an unexpected exception.              |
         """,
