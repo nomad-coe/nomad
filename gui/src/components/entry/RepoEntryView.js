@@ -4,7 +4,7 @@ import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Typography, L
 import { withApi } from '../api'
 import { compose } from 'recompose'
 import ApiDialogButton from '../ApiDialogButton'
-import StructureViewer from '../visualization/StructureViewer'
+import Structure from '../visualization/Structure'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -103,7 +103,7 @@ class RepoEntryView extends React.Component {
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
               <CardContent classes={{root: classes.cardContent}}>
-                <StructureViewer classes={{root: classes.structureViewer}} calcId={this.props.calcId}></StructureViewer>
+                <Structure classes={{root: classes.structureViewer}} calcId={this.props.calcId}></Structure>
               </CardContent>
               <Divider />
               <CardContent classes={{root: classes.cardContent}}>

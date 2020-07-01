@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 
+import { StructureViewer } from '@lauri-codes/matter'
 import { makeStyles } from '@material-ui/core/styles'
 import { Paper } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
@@ -15,7 +16,7 @@ import ClickAwayListener from '@material-ui/core/ClickAwayListener'
 import Checkbox from '@material-ui/core/Checkbox'
 import Box from '@material-ui/core/Box'
 
-export default function StructureViewer(props) {
+export default function Structure(props) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -165,7 +166,7 @@ export default function StructureViewer(props) {
         backgroundColor: [0xffffff, 1]
       }
     }
-    viewer.current = new window.matviewer.StructureViewer(refViewerCanvas.current, options)
+    viewer.current = new StructureViewer(refViewerCanvas.current, options)
     var bulk = {
       'atomicNumbers': [11, 17, 11, 17, 11, 17, 11, 17],
       'cell': [
@@ -277,7 +278,7 @@ export default function StructureViewer(props) {
   )
 }
 
-StructureViewer.propTypes = {
+Structure.propTypes = {
   info: PropTypes.object,
   calcId: PropTypes.string
 }
