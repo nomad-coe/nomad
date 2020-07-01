@@ -15,7 +15,9 @@ git config -f .gitmodules --get-regexp '^submodule\..*\.path$' |
             echo "$path is not clean"
             git stash
             git checkout nomad-fair-metainfo
-            git stash apply && git add -A && git commit -a -m "$1"
+            git stash apply
+            git add -A
+            git commit -a -m "$1"
             git push origin nomad-fair-metainfo
         fi
     done

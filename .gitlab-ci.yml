@@ -112,6 +112,14 @@ install_tests:
     - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
 
+dev_setup_tests:
+  stage: test
+  image: python:3.7
+  script:
+    - pip install --upgrade pip
+    - ./setup.sh
+    - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+
 deploy:
   stage: deploy
   before_script:
