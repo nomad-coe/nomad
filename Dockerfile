@@ -122,9 +122,9 @@ RUN echo "copy 5"
 RUN mkdir -p /app/gui
 COPY --from=gui_build /app/build /app/gui/build
 RUN echo "copy 6"
-# copy the encyclopedia gui code
-COPY dependencies/encyclopedia-gui/client /app/dependencies/encyclopedia-gui/client
-COPY --from=gui_build /encyclopedia/bundle.js /app/dependencies/encyclopedia-gui/client/bundle.js
+# copy the encyclopedia gui production code
+COPY --from=gui_build /encyclopedia /app/dependencies/encyclopedia-gui/client
+RUN rm -rf /app/dependencies/encyclopedia-gui/client/src
 RUN echo "copy 7"
 
 RUN mkdir -p /app/.volumes/fs
