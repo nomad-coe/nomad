@@ -25,7 +25,7 @@ import fastentrypoints  # pylint: disable=unused-import
 '''
 This setup.py works differently for creating a distribution than installing for
 development. The idea is that for distributions, we compile the requirements, packages, and
-data files from all dependencies and install everything under one package called 'nomad'.
+data files from all dependencies and install everything under one package called 'nomad-lab'.
 For development we install each dependency as its own project. This is mainly due to
 pip's limitation of not being able to install from multiple source folders in develop
 mode.
