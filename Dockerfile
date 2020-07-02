@@ -39,9 +39,8 @@ RUN mkdir -p /encyclopedia
 WORKDIR /encyclopedia
 COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
 COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
-RUN npm install webpack
-RUN npm install webpack-cli
-RUN npx webpack
+RUN npm install webpack webpack-cli
+RUN npx webpack --mode=production
 
 # Third, build all python stuff in a python build image
 FROM python:3.7-stretch as build

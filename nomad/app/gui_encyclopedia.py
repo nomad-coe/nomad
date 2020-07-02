@@ -16,5 +16,5 @@ from flask import Blueprint
 import os.path
 
 gui_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../../gui/dependencies/encyclopedia-gui/client'))
+    os.path.dirname(__file__), '../../dependencies/encyclopedia-gui/client'))
 blueprint = Blueprint('gui_encyclopedia', __name__, static_url_path='/', static_folder=gui_folder)
