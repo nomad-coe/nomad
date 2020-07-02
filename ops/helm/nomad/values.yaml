@@ -1,4 +1,9 @@
 ## Default values for nomad@FAIRDI
+version:
+  label: "0.8.1"
+  isBeta: false
+  usesBetaData: false
+  officialUrl: "https://repository.nomad-coe.eu/app/gui"
 
 ## Everything concerning the container images to be used
 image:

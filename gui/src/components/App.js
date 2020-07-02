@@ -1,5 +1,3 @@
-// trigger rebuild
-
 import React, { useEffect, useState, useContext, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { compose } from 'recompose'
@@ -7,7 +5,7 @@ import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch } from '@material-ui/core'
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -18,6 +16,7 @@ import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
+import UnderstoodIcon from '@material-ui/icons/Check'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -25,7 +24,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme, appBase } from '../config'
+import { guiBase, consent, nomadTheme, appBase, version } from '../config'
 import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
@@ -107,6 +106,48 @@ MainMenuItem.propTypes = {
   'href': PropTypes.string,
   'onClick': PropTypes.func,
   'icon': PropTypes.element.isRequired
+}
+
+const useBetaSnackStyles = makeStyles(theme => ({
+  root: {},
+  snack: {
+    backgroundColor: amber[700]
+  }
+}))
+function BetaSnack() {
+  const classes = useBetaSnackStyles()
+  const [understood, setUnderstood] = useState(false)
+
+  if (!version) {
+    console.log.warning('no version data available')
+    return ''
+  }
+
+  if (!version.isBeta) {
+    return ''
+  }
+
+  return <Snackbar className={classes.root}
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left'
+    }}
+    open={!understood}
+  >
+    <SnackbarContent
+      className={classes.snack}
+      message={<span style={{color: 'white'}}>
+        You are using a beta version of NOMAD ({version.label}). {
+          version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.': ''
+        } Click <a style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</a>.
+      </span>}
+       action={[
+        <IconButton key={0} color="inherit" onClick={() => setUnderstood(true)}>
+          <UnderstoodIcon />
+        </IconButton>
+      ]}
+    />
+  </Snackbar>
 }
 
 function Consent() {
@@ -505,6 +546,7 @@ class App extends React.PureComponent {
   render() {
     return (
       <MuiThemeProvider theme={nomadTheme}>
+        <BetaSnack />
         <ErrorSnacks>
           <ApiProvider>
             <Navigation>
