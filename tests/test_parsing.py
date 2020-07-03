@@ -22,7 +22,7 @@ from shutil import copyfile
 from nomad import utils, files, datamodel
 from nomad.parsing import parser_dict, match_parser, BrokenParser, BadContextUri, Backend
 from nomad.app import dump_json
-
+from nomad.metainfo import MSection
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
@@ -305,6 +305,10 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    if isinstance(result, MSection):
+        backend = Backend(parser._metainfo_env, parser.domain)
+        backend.resource.add(result)
+        result = backend
     result.domain = parser.domain
     return add_calculation_info(result, parser_name=parser_name)
 
