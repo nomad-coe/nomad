@@ -1,6 +1,7 @@
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
+export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 // export const apiBase = 'http://repository.nomad-coe.eu/v0.8/api'
 export const apiBase = `${appBase}/api`

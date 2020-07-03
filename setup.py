@@ -43,6 +43,7 @@ requirements.txt where specific comments are used to assign an extra to requirem
 ignore_extra_requires = ['optimade']
 ''' Dependencies where the extra_requires should not be added '''
 
+
 def parse_requirements():
     '''
     Parses the requirements.txt file to extras install and extra requirements.
@@ -179,7 +180,7 @@ def compile_dependency_setup_kwargs(paths, **kwargs):
 
         # 3. requires
         local_install_requires = set()
-        if not name in ignore_extra_requires:
+        if name not in ignore_extra_requires:
             for extra_require in local_kwargs.get('extras_require', {}).values():
                 for require in extra_require:
                     local_install_requires.add(require)
@@ -234,17 +235,26 @@ def setup_kwargs():
     from nomad import config
 
     install_requires, extras_require = parse_requirements()
+    with open("README.md", "r") as fh:
+        long_description = fh.read()
 
     return dict(
         name='nomad-lab',
+        author='NOMAD Laboratory',
+        author_email='markus.scheidgen@physik.hu-berlin.de',
+        url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
         version=config.meta.version,
+        license='APACHE 2.0',
         description='The NOvel MAterials Discovery (NOMAD) Python package',
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         package_dir={'': './'},
         packages=['nomad.%s' % pkg for pkg in find_packages('./nomad')] + ['nomad'],
         setup_requires=['pip', 'setuptools', 'wheel', 'fastentrypoints', 'numpy', 'pyyaml'],
         install_requires=install_requires,
         extras_require=extras_require,
         include_package_data=True,
+        python_requires='>=3.6',
         entry_points='''
             [console_scripts]
             nomad=nomad.cli:run_cli

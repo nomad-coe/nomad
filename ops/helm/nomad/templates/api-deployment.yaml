@@ -93,7 +93,13 @@ data:
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
       "matomoUrl": "{{ .Values.gui.matomoUrl }}",
       "matomoEnabled": {{ .Values.gui.matomoEnabled }},
-      "debug": {{ .Values.gui.debug }}
+      "debug": {{ .Values.gui.debug }},
+      "version": {
+        "label": "{{ .Values.version.label }}",
+        "isBeta": {{ .Values.version.isBeta }},
+        "usesBetaData": {{ .Values.version.usesBetaData }},
+        "officialUrl": "{{ .Values.version.officialUrl }}"
+      }
     };
 ---
 apiVersion: apps/v1
