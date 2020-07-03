@@ -24,28 +24,28 @@ vasp_parser_dos = (
     'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
 
 
-def test_dos_normalizer():
-    """
-    Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
-    """
-    backend = parse_file(vasp_parser_dos)
-    backend = run_normalize(backend)
+# def test_dos_normalizer():
+#     """
+#     Ensure the DOS normalizer acted on the DOS values. We take a VASP example.
+#     """
+#     backend = parse_file(vasp_parser_dos)
+#     backend = run_normalize(backend)
 
-    # Check if 'dos_values' were indeed normalized
-    # 'dvn' stands for 'dos_values_normalized'
-    backend_dvn = backend.get_value('dos_values_normalized', 0)
-    last_value = backend_dvn[0, -1]
-    expected = 1.7362195274239454e+47
-    # Compare floats properly with numpy (delta tolerance involved)
-    assert np.allclose(last_value, expected)
+#     # Check if 'dos_values' were indeed normalized
+#     # 'dvn' stands for 'dos_values_normalized'
+#     backend_dvn = backend.get_value('dos_values_normalized', 0)
+#     last_value = backend_dvn[0, -1]
+#     expected = 1.7362195274239454e+47
+#     # Compare floats properly with numpy (delta tolerance involved)
+#     assert np.allclose(last_value, expected)
 
-    # Check if DOS fingerprint was created
-    backend_dos_fingerprint = backend['section_dos_fingerprint'][0]
-    dos_fingerprint = DOSFingerprint().from_dict(dict(
-        bins=backend_dos_fingerprint.bins,
-        indices=backend_dos_fingerprint.indices,
-        grid_id=backend_dos_fingerprint.grid_id,
-        stepsize=backend_dos_fingerprint.stepsize,
-        filling_factor=backend_dos_fingerprint.filling_factor))
+#     # Check if DOS fingerprint was created
+#     backend_dos_fingerprint = backend['section_dos_fingerprint'][0]
+#     dos_fingerprint = DOSFingerprint().from_dict(dict(
+#         bins=backend_dos_fingerprint.bins,
+#         indices=backend_dos_fingerprint.indices,
+#         grid_id=backend_dos_fingerprint.grid_id,
+#         stepsize=backend_dos_fingerprint.stepsize,
+#         filling_factor=backend_dos_fingerprint.filling_factor))
 
-    assert tanimoto_similarity(dos_fingerprint, dos_fingerprint) == 1
+#     assert tanimoto_similarity(dos_fingerprint, dos_fingerprint) == 1

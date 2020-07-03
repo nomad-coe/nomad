@@ -169,7 +169,10 @@ class BandStructureNormalizer(Normalizer):
         n_channels = energies.shape[0]  # pylint: disable=E1136  # pylint/issues/3139
         for channel in range(n_channels):
             if n_channels == 1:
-                vbm = valence_band_maximum
+                try:
+                    vbm = valence_band_maximum[0]
+                except Exception:
+                    vbm = valence_band_maximum
             else:
                 vbm = valence_band_maximum[channel]
             channel_energies = energies[channel, :, :]
