@@ -29,6 +29,7 @@ from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from .api import api
+from .common import enable_gzip
 
 ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
@@ -1079,6 +1080,7 @@ calculation_property_result = api.model("calculation_property_result", {
 
 @ns.route("/materials/<string:material_id>/calculations/<string:calc_id>")
 class EncCalculationResource(Resource):
+    @enable_gzip()
     @api.response(404, "Material or calculation not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)

@@ -109,6 +109,7 @@ data:
   conf.js: |
     window.nomadEnv = {
       host: "https://{{ .Values.proxy.external.host }}{{ .Values.proxy.external.path }}",
+      path: "/api/encyclopedia/",
       userCookieDomain: ".{{ .Values.proxy.external.host }}",
       guestUserToken: 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyMzg4MDE1OSwiZXhwIjoxNjgxNTYwMTU5fQ.ey'+
       'JpZCI6ImVuY2d1aSJ9.MsMWQa3IklH7cQTxRaIRSF9q8D_2LD5Fs2-irpWPTp4'
