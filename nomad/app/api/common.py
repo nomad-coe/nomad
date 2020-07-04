@@ -365,7 +365,7 @@ def query_api_curl(*args, **kwargs):
     return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
 
 
-def enable_gzip(level: int = 5, min_size: int = 150):
+def enable_gzip(level: int = 1, min_size: int = 1024):
     """
     Args:
         level: The gzip compression level from 1-9

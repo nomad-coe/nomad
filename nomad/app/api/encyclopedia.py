@@ -741,6 +741,7 @@ calculations_result = api.model("calculations_result", {
 
 @ns.route("/materials/<string:material_id>/calculations")
 class EncCalculationsResource(Resource):
+    @enable_gzip()
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
