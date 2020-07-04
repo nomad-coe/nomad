@@ -17,7 +17,7 @@ Common data, variables, decorators, models used throughout the API.
 '''
 from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
-from flask import request, jsonify, make_response
+from flask import request, make_response
 import zipstream
 from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
