@@ -22,10 +22,10 @@ from nomad.datamodel import OptimadeEntry
 
 from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
-    Links as LinksModel, CalculationDataObject, single_entry_endpoint_parser, base_endpoint_parser, \
-    json_api_info_response_model, json_api_list_response_model, StructureObject, \
-    ToplevelLinks, \
-    json_api_structure_response_model, json_api_structures_response_model
+    Links as LinksModel, single_entry_endpoint_parser, base_endpoint_parser, \
+    json_api_info_response_model, json_api_list_response_model, EntryDataObject, \
+    ToplevelLinks, get_entry_properties, json_api_structure_response_model, \
+    json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
 ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
@@ -100,7 +100,7 @@ class CalculationList(Resource):
 
         available = result['pagination']['total']
         results = to_calc_with_metadata(result['results'])
-        assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
+        assert len(results) == len(result['results']), 'archive and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
@@ -114,7 +114,7 @@ class CalculationList(Resource):
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
-            data=[CalculationDataObject(d, request_fields=request_fields) for d in results]
+            data=[EntryDataObject(d, optimade_type='calculations', request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -143,7 +143,7 @@ class Calculation(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=CalculationDataObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], optimade_type='calculations', request_fields=request_fields)
         ), 200
 
 
@@ -159,9 +159,7 @@ class CalculationInfo(Resource):
 
         result = {
             'description': 'a calculation entry',
-            'properties': {
-                attr.name: dict(description=attr.description)
-                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'properties': get_entry_properties(),
             'formats': ['json'],
             'output_fields_by_format': {
                 'json': list(OptimadeEntry.m_def.all_properties.keys())}
@@ -343,7 +341,7 @@ class StructureList(Resource):
                 page_limit=page_limit,
                 sort=sort, filter=filter
             ),
-            data=[StructureObject(d, request_fields) for d in results]
+            data=[EntryDataObject(d, optimade_type='structures', request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -372,7 +370,7 @@ class Structure(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=StructureObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], optimade_type='structures', request_fields=request_fields)
         ), 200
 
 
@@ -388,9 +386,7 @@ class StructuresInfo(Resource):
 
         result = {
             'description': 'a structure entry',
-            'properties': {
-                attr.name: dict(description=attr.description)
-                for attr in OptimadeEntry.m_def.all_properties.values()},
+            'properties': get_entry_properties(),
             'formats': ['json'],
             'output_fields_by_format': {
                 'json': list(OptimadeEntry.m_def.all_properties.keys())}

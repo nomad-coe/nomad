@@ -1,6 +1,7 @@
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
+export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 // export const apiBase = 'http://repository.nomad-coe.eu/v0.8/api'
 export const apiBase = `${appBase}/api`
@@ -12,7 +13,7 @@ export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
-export const sendTrackingData = window.nomadEnv.sendTrackingData
+export const matomoEnabled = window.nomadEnv.matomoEnabled
 export const email = 'webmaster@nomad-coe.eu'
 export const maxLogsToShow = 50
 
@@ -27,8 +28,10 @@ you and users you share your data with. The *embargo period* lasts up to 36 mont
 After the *embargo* your published data will be public. **Note that public data
 is visible to others and files become downloadable by everyone.**
 
-This web-site uses *cookies*. By using this web-site you agree to our use
-of *cookies*. [Learn more](https://www.cookiesandyou.com/).
+This web-site uses *cookies*. We use cookies to track you login status for all NOMAD services
+and optionally to store information about your use of NOMAD. None of this information is
+shared with other parties. By using this web-site you agree to the described use of *cookies*.
+[Learn more](https://www.cookiesandyou.com/).
 `
 export const nomadPrimaryColor = {
   main: '#008DC3',

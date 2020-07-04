@@ -99,6 +99,9 @@ export default function About() {
     makeClickable('encyclopedia', () => {
       window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
     })
+    makeClickable('analytics', () => {
+      window.location.href = 'https://www.nomad-coe.eu/index.php?page=bigdata-analyticstoolkit'
+    })
     makeClickable('search', () => {
       history.push('/search')
     })
@@ -123,8 +126,8 @@ export default function About() {
       }
     }
     setText('repositoryStats', [
-      value('n_entries', 'entries'),
-      value('n_uploads', 'uploads')
+      value('n_entries', 'entries')
+      // value('n_uploads', 'uploads')
     ])
     setText('archiveStats', [
       value('n_calculations', 'results'),

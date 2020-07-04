@@ -20,10 +20,13 @@ from typing import Set
 from flask_restplus import fields
 import datetime
 import math
+from cachetools import cached
 
 from nomad import config
 from nomad.app.common import RFC3339DateTime
 from nomad.datamodel import EntryMetadata
+from nomad.datamodel.dft import DFTMetadata
+from nomad.datamodel.optimade import OptimadeEntry
 
 from .api import api, url
 
@@ -267,8 +270,25 @@ json_api_resource_model = api.model('Resource', {
 })
 
 
-class CalculationDataObject:
-    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
+@cached({})
+def get_entry_properties():
+    properties = {
+        attr.name: dict(description=attr.description)
+        for attr in OptimadeEntry.m_def.all_properties.values()}
+
+    def add_nmd_properties(prefix, section_cls):
+        for quantity in section_cls.m_def.all_quantities.values():
+            name = prefix + quantity.name
+            properties[name] = dict(description=quantity.description)
+
+    add_nmd_properties('_nmd_', EntryMetadata)
+    add_nmd_properties('_nmd_dft_', DFTMetadata)
+
+    return properties
+
+
+class EntryDataObject:
+    def __init__(self, calc: EntryMetadata, optimade_type: str, request_fields: Set[str] = None):
 
         def include(key):
             if request_fields is None or (key in request_fields):
@@ -280,20 +300,21 @@ class CalculationDataObject:
         attrs['immutable_id'] = calc.calc_id
         attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
-        self.type = 'calculation'
-        self.id = calc.calc_id
-        self.attributes = attrs
+        if request_fields is not None:
+            for request_field in request_fields:
+                if not request_field.startswith('_nmd_'):
+                    continue
 
+                try:
+                    if request_field.startswith('_nmd_dft_'):
+                        attrs[request_field] = getattr(calc.dft, request_field[9:])
+                    else:
+                        attrs[request_field] = getattr(calc, request_field[5:])
+                except AttributeError:
+                    # if unknown properties where provided, we will ignore them
+                    pass
 
-class StructureObject:
-    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
-        optimade_quantities = calc.dft.optimade.m_to_dict()
-
-        attrs = {key: val for key, val in optimade_quantities.items() if request_fields is None or key in request_fields}
-        attrs['immutable_id'] = calc.calc_id
-        attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
-
-        self.type = 'structure'
+        self.type = optimade_type
         self.id = calc.calc_id
         self.attributes = attrs
 

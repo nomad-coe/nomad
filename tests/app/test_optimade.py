@@ -224,12 +224,16 @@ def test_base_info_endpoint(api):
     assert data['data']['id'] == '/'
 
 
-def test_calculation_info_endpoint(api):
-    rv = api.get('/info/calculations')
+@pytest.mark.parametrize('entry_type', ['calculations', 'structures'])
+def test_entry_info_endpoint(api, entry_type):
+    rv = api.get('/info/%s' % entry_type)
     assert rv.status_code == 200
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
+
+    assert '_nmd_atoms' in data['data']['properties']
+    assert '_nmd_dft_system' in data['data']['properties']
 
 
 # TODO the implementation should be fixed to return actual references first
@@ -277,3 +281,15 @@ def test_structure_endpoint(api, example_structures):
     assert attr is not None
     assert attr.get('elements') == ['H', 'O']
     assert len(attr.get('dimension_types')) == 3
+
+
+def test_nmd_properties(api, example_structures):
+    rv = api.get('/structures/%s' % 'test_calc_id_1?request_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert attr.get('_nmd_atoms') == ['H', 'O']
+    assert '_nmd_dft_system' in attr
+    assert '_nmd_doesnotexist' not in attr

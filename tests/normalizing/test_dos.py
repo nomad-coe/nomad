@@ -17,6 +17,8 @@ import numpy as np
 from tests.test_parsing import parse_file
 from tests.normalizing.conftest import run_normalize
 
+from nomad_dos_fingerprints import DOSFingerprint, tanimoto_similarity
+
 
 vasp_parser_dos = (
     'parsers/vasp', 'tests/data/parsers/vasp/vasp_dos.xml')
@@ -36,3 +38,14 @@ def test_dos_normalizer():
     expected = 1.7362195274239454e+47
     # Compare floats properly with numpy (delta tolerance involved)
     assert np.allclose(last_value, expected)
+
+    # Check if DOS fingerprint was created
+    backend_dos_fingerprint = backend['section_dos_fingerprint'][0]
+    dos_fingerprint = DOSFingerprint().from_dict(dict(
+        bins=backend_dos_fingerprint.bins,
+        indices=backend_dos_fingerprint.indices,
+        grid_id=backend_dos_fingerprint.grid_id,
+        stepsize=backend_dos_fingerprint.stepsize,
+        filling_factor=backend_dos_fingerprint.filling_factor))
+
+    assert tanimoto_similarity(dos_fingerprint, dos_fingerprint) == 1

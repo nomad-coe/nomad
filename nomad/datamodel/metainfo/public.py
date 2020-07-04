@@ -1201,6 +1201,56 @@ class section_calculation_to_folder_refs(MSection):
         a_legacy=LegacyDefinition(name='calculation_to_folder_kind'))
 
 
+class section_dos_fingerprint(MSection):
+    '''
+    Section for the fingerprint of the electronic density-of-states (DOS).
+    DOS fingerprints are a modification of the D-Fingerprints reported in Chem. Mater. 2015, 27, 3, 735–743
+    (doi:10.1021/cm503507h). The fingerprint consists of a binary representation of the DOS,
+    that is used to evaluate the similarity of materials based on their electronic structure.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
+
+    bins = Quantity(
+        type=str,
+        description='''
+        Byte representation of the DOS fingerprint.
+        ''',
+        a_legacy=LegacyDefinition(name='bins'))
+
+    indices = Quantity(
+        type=np.dtype(np.int16),
+        shape=['first_index_of_DOS_grid', 'last_index_of_DOS_grid'],
+        description='''
+        Indices used to compare DOS fingerprints of different energy ranges.
+        ''',
+        a_legacy=LegacyDefinition(name='indices'))
+
+    stepsize = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Stepsize of interpolation in the first step of the generation of DOS fingerprints.
+        ''',
+        a_legacy=LegacyDefinition(name='stepsize'))
+
+    filling_factor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Proportion of 1 bins in the DOS fingerprint.
+        ''',
+        a_legacy=LegacyDefinition(name='filling_factor'))
+
+    grid_id = Quantity(
+        type=str,
+        description='''
+        Identifier of the DOS grid that was used for the creation of the fingerprint.
+        Similarity can only be calculated if the same grid was used for both fingerprints.
+        ''',
+        a_legacy=LegacyDefinition(name='grid_id'))
+
+
 class section_dos(MSection):
     '''
     Section collecting information of a (electronic-energy or vibrational-energy) density
@@ -1332,6 +1382,11 @@ class section_dos(MSection):
         dos_energies.
         ''',
         a_legacy=LegacyDefinition(name='number_of_dos_values'))
+
+    section_dos_fingerprint = SubSection(
+        sub_section=SectionProxy('section_dos_fingerprint'),
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
 
 
 class section_eigenvalues(MSection):

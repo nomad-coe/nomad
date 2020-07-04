@@ -201,7 +201,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     try:
         optimade = args.get('dft.optimade', None)
         if optimade is not None:
-            q = filterparser.parse_filter(optimade)
+            q = filterparser.parse_filter(
+                optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
         abort(400, 'Could not parse optimade query: %s' % (str(e)))
@@ -339,10 +340,14 @@ def query_api_clientlib(**kwargs):
 
         return value
 
-    kwargs = {
+    query = {
         key: normalize_value(key, value) for key, value in kwargs.items()
         if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
     }
+
+    for key in ['dft.optimade']:
+        if key in kwargs:
+            query[key] = kwargs[key]
 
     out = io.StringIO()
     out.write('from nomad import client, config\n')
@@ -350,7 +355,7 @@ def query_api_clientlib(**kwargs):
     out.write('results = client.query_archive(query={%s' % ('' if len(kwargs) == 0 else '\n'))
     out.write(',\n'.join([
         '    \'%s\': %s' % (key, pprint.pformat(value, compact=True))
-        for key, value in kwargs.items()]))
+        for key, value in query.items()]))
     out.write('})\n')
     out.write('print(results)\n')
 

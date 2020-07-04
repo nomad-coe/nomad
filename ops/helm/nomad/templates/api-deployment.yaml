@@ -92,8 +92,14 @@ data:
       "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
       "matomoSiteId": {{ .Values.gui.matomoSiteId }},
       "matomoUrl": "{{ .Values.gui.matomoUrl }}",
-      "sendTrackingData": {{ .Values.gui.sendTrackingData }},
-      "debug": {{ .Values.gui.debug }}
+      "matomoEnabled": {{ .Values.gui.matomoEnabled }},
+      "debug": {{ .Values.gui.debug }},
+      "version": {
+        "label": "{{ .Values.version.label }}",
+        "isBeta": {{ .Values.version.isBeta }},
+        "usesBetaData": {{ .Values.version.usesBetaData }},
+        "officialUrl": "{{ .Values.version.officialUrl }}"
+      }
     };
 ---
 apiVersion: v1
