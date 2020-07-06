@@ -36,6 +36,7 @@ from .optimade import blueprint as optimade_blueprint, api as optimade
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
+from .encyclopedia import blueprint as encyclopedia_blueprint
 from . import common
 
 
@@ -110,6 +111,7 @@ app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
+app.register_blueprint(encyclopedia_blueprint, url_prefix='/encyclopedia')
 
 
 @app.errorhandler(Exception)

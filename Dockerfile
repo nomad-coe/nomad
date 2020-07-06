@@ -22,7 +22,7 @@
 # We use slim for the final image
 FROM python:3.7-slim as final
 
-# First built the GUI in a gui build image
+# First built the GUI in the gui build image
 FROM node:latest as gui_build
 RUN mkdir -p /app
 WORKDIR /app
@@ -34,7 +34,15 @@ COPY gui /app
 RUN yarn run build
 # RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
 
-# Second, build all python stuff in a python build image
+# Second, build the Encyclopedia GUI in the gui build image
+RUN mkdir -p /encyclopedia
+WORKDIR /encyclopedia
+COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
+COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
+RUN npm install webpack webpack-cli
+RUN npx webpack --mode=production
+
+# Third, build all python stuff in a python build image
 FROM python:3.7-stretch as build
 RUN mkdir /install
 
@@ -114,6 +122,10 @@ RUN echo "copy 5"
 RUN mkdir -p /app/gui
 COPY --from=gui_build /app/build /app/gui/build
 RUN echo "copy 6"
+# copy the encyclopedia gui production code
+COPY --from=gui_build /encyclopedia /app/dependencies/encyclopedia-gui/client
+RUN rm -rf /app/dependencies/encyclopedia-gui/client/src
+RUN echo "copy 7"
 
 RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad
