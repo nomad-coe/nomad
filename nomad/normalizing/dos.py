@@ -72,8 +72,8 @@ class DosNormalizer(Normalizer):
                 # Data for DOS fingerprint
                 dos_fingerprint = None
                 try:
-                    dos_energies = dos.dos_energies
-                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_values)
+                    dos_energies = dos.dos_energies_normalized
+                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed, n_atoms = number_of_atoms)
                 except Exception as e:
                     self.logger.error('could not generate dos fingerprint', exc_info=e)
 

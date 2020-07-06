@@ -22,19 +22,21 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     dos_si_vasp,
 )
 
-# from nomad_dos_fingerprints import DOSFingerprint, tanimoto_similarity
+from nomad_dos_fingerprints import DOSFingerprint
 
 
-# def test_fingerprint(dos_unpolarized_vasp):
-#    # Check if DOS fingerprint was created
-#    backend_dos_fingerprint = dos_unpolarized_vasp['section_dos_fingerprint'][0]
-#    dos_fingerprint = DOSFingerprint().from_dict(dict(
-#        bins=backend_dos_fingerprint.bins,
-#        indices=backend_dos_fingerprint.indices,
-#        grid_id=backend_dos_fingerprint.grid_id,
-#        stepsize=backend_dos_fingerprint.stepsize,
-#        filling_factor=backend_dos_fingerprint.filling_factor))
-#    assert tanimoto_similarity(dos_fingerprint, dos_fingerprint) == 1
+def test_fingerprint(dos_unpolarized_vasp):
+   # Check if DOS fingerprint was created
+   backend_dos_fingerprint = dos_unpolarized_vasp['section_dos_fingerprint'][0]
+   dos_fingerprint = DOSFingerprint().from_dict(dict(
+       bins=backend_dos_fingerprint.bins,
+       indices=backend_dos_fingerprint.indices,
+       grid_id=backend_dos_fingerprint.grid_id,
+       stepsize=backend_dos_fingerprint.stepsize,
+       filling_factor=backend_dos_fingerprint.filling_factor))
+   assert dos_fingerprint.get_similarity(dos_fingerprint) == 1
+   assert dos_fingerprint.filling_factor != 0
+   assert dos_fingerprint.filling_factor != 1
 
 
 # def plot_dos_energies(dos_si_vasp: Backend, dos_si_exciting: Backend, dos_si_fhiaims: Backend):
@@ -46,7 +48,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 #    y_vasp = dos_si_vasp.get_value('dos_values_normalized', 0)
 #    x_fhiaims = dos_si_fhiaims.get_value('dos_energies_normalized', 0)
 #    y_fhiaims = dos_si_fhiaims.get_value('dos_values_normalized', 0)
-#    mpl.plot(x_vasp, y_vasp[0], label="VAP")
+#    mpl.plot(x_vasp, y_vasp[0], label="VASP")
 #    mpl.plot(x_exciting, y_exciting[0], label="exciting")
 #    mpl.plot(x_fhiaims, y_fhiaims[0], label="FHI-aims")
 #    mpl.legend()
