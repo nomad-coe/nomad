@@ -194,6 +194,33 @@ def bands_polarized_gap_indirect() -> Backend:
 
 
 @pytest.fixture(scope='session')
+def dos_si_vasp() -> Backend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/dos/dos_si_vasp/vasprun.xml.relax2.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_si_exciting() -> Backend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/dos/dos_si_exciting/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_si_fhiaims() -> Backend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/dos/dos_si_fhiaims/aims.log"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
 def dos_polarized_vasp() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/dos/polarized_vasp/vasprun.xml.relax2.xz"
