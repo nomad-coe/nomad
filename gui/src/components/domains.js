@@ -114,7 +114,7 @@ export const domains = ({
         supportsSort: true
       },
       'dft.xc_functional': {
-        label: 'XT treatment',
+        label: 'XC functionals',
         supportsSort: true
       },
       'dft.system': {

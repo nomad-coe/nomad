@@ -288,7 +288,7 @@ def get_entry_properties():
 
 
 class EntryDataObject:
-    def __init__(self, calc: EntryMetadata, request_fields: Set[str] = None):
+    def __init__(self, calc: EntryMetadata, optimade_type: str, request_fields: Set[str] = None):
 
         def include(key):
             if request_fields is None or (key in request_fields):
@@ -314,7 +314,7 @@ class EntryDataObject:
                     # if unknown properties where provided, we will ignore them
                     pass
 
-        self.type = 'calculation'
+        self.type = optimade_type
         self.id = calc.calc_id
         self.attributes = attrs
 

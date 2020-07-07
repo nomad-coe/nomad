@@ -6,5 +6,11 @@ window.nomadEnv = {
   'debug': false,
   'matomoEnabled': true,
   'matomoUrl': 'https://repository.nomad-coe.eu/fairdi/stat',
-  'matomoSiteId': '2'
+  'matomoSiteId': '2',
+  'version': {
+    "label": "0.8.1",
+    "isBeta": true,
+    "usesBetaData": true,
+    "officialUrl": "https://repository.nomad-coe.eu/app/gui"
+  }
 }

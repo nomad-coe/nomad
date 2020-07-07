@@ -17,6 +17,7 @@ Common data, variables, decorators, models used throughout the API.
 '''
 from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
+from flask import request, make_response
 import zipstream
 from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
@@ -25,6 +26,8 @@ import io
 
 import sys
 import os.path
+import gzip
+from functools import wraps
 
 from nomad import search, config, datamodel
 from nomad.app.optimade import filterparser
@@ -365,3 +368,29 @@ def query_api_curl(*args, **kwargs):
     '''
     url = query_api_url(*args, **kwargs)
     return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
+
+
+def enable_gzip(level: int = 1, min_size: int = 1024):
+    """
+    Args:
+        level: The gzip compression level from 1-9
+        min_size: The minimum response size in bytes for which the compression
+            will be enabled.
+    """
+    def inner(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            response = make_response(function(*args, **kwargs))
+            if response.status_code == 200:
+                accept_encoding = request.headers["Accept-Encoding"]
+                content_length = int(response.headers["Content-Length"])
+                if "gzip" in accept_encoding and content_length >= min_size:
+                    data = response.data
+                    data = gzip.compress(data, level)
+                    response.data = data
+                    response.headers['Content-Length'] = len(data)
+                    response.headers["Content-Encoding"] = "gzip"
+                    return response
+            return response
+        return wrapper
+    return inner

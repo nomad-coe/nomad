@@ -114,7 +114,7 @@ class CalculationList(Resource):
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
-            data=[EntryDataObject(d, request_fields=request_fields) for d in results]
+            data=[EntryDataObject(d, optimade_type='calculations', request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -143,7 +143,7 @@ class Calculation(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=EntryDataObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], optimade_type='calculations', request_fields=request_fields)
         ), 200
 
 
@@ -341,7 +341,7 @@ class StructureList(Resource):
                 page_limit=page_limit,
                 sort=sort, filter=filter
             ),
-            data=[EntryDataObject(d, request_fields) for d in results]
+            data=[EntryDataObject(d, optimade_type='structures', request_fields=request_fields) for d in results]
         ), 200
 
 
@@ -370,7 +370,7 @@ class Structure(Resource):
 
         return dict(
             meta=Meta(query=request.url, returned=1),
-            data=EntryDataObject(results[0], request_fields=request_fields)
+            data=EntryDataObject(results[0], optimade_type='structures', request_fields=request_fields)
         ), 200
 
 
