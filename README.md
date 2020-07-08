@@ -37,7 +37,7 @@ nomad parse --show-backend <your-file-to-parse>
 
 ### For NOMAD developer
 
-Read the [docs](https://repository.nomad-coe.eu/app/docs). The documentation is also part
+Read the [docs](https://repository.nomad-coe.eu/app/docs/index.html). The documentation is also part
 of the source code. It covers aspects like introduction, architecture, development setup/deployment,
 contributing, and API reference.
 
