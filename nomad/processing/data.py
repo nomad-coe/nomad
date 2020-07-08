@@ -387,6 +387,8 @@ class Calc(Proc):
 
                 if isinstance(self._parser_backend, MSection):
                     backend = Backend(parser._metainfo_env, parser.domain)
+                    root_section = datamodel.domains[parser.domain]['root_section']
+                    setattr(backend.entry_archive, root_section, self._parser_backend)
                     backend.resource.add(self._parser_backend)
                     self._parser_backend = backend
 

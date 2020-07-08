@@ -49,6 +49,8 @@ def parse(
 
     if isinstance(parser_backend, MSection):
         backend = Backend(parser._metainfo_env, parser.domain)
+        root_section = str(datamodel.domains[parser.domain]['root_section'])
+        setattr(backend.entry_archive, root_section, parser_backend)
         backend.resource.add(parser_backend)
         parser_backend = backend
 
