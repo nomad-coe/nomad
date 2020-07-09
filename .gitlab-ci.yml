@@ -147,8 +147,6 @@ release:
     - /^dev-.*$/
   when:
     - manual
-  only:
-    - branches
 
 release_version:
   stage: release
