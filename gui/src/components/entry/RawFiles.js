@@ -63,6 +63,10 @@ class RawFiles extends React.Component {
       whiteSpace: 'nowrap',
       direction: 'rtl',
       textAlign: 'left'
+    },
+    mainfileLabel: {
+      fontSize: '10pt',
+      fontWeight: 'bold'
     }
   })
 
@@ -251,10 +255,10 @@ class RawFiles extends React.Component {
           <div style={{width: '25%'}}>
             {availableFiles.filter(this.filterPotcar.bind(this)).map((file, index) => (
               <FormGroup row key={index} className={classes.fileNameFormGroup}>
-                <Tooltip title={file}>
+                <Tooltip title={file + (index === 0 ? ', the main (output) file of this entry' : '')}>
                   <FormControlLabel
                     style={{flexGrow: 1, overflowX: 'hidden', textOverflow: 'ellipsis'}}
-                    label={this.label(file)}
+                    label={<span>{this.label(file)}{index === 0 ? <b className={classes.mainfileLabel}> (mainfile)</b>: ''}</span>}
                     classes={{
                       root: classes.fileNameFormGroupLabel,
                       label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}
