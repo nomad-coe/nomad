@@ -27,7 +27,7 @@ from nomad_dos_fingerprints import DOSFingerprint
 
 def test_fingerprint(dos_unpolarized_vasp):
     # Check if DOS fingerprint was created
-    backend_dos_fingerprint = dos_unpolarized_vasp['section_dos_fingerprint'][0]
+    backend_dos_fingerprint = dos_unpolarized_vasp.get_value('section_dos_fingerprint', 0)
     dos_fingerprint = DOSFingerprint().from_dict(dict(
         bins=backend_dos_fingerprint.bins,
         indices=backend_dos_fingerprint.indices,
@@ -40,19 +40,19 @@ def test_fingerprint(dos_unpolarized_vasp):
 
 
 # def test_dos_energies(dos_si_vasp: Backend, dos_si_exciting: Backend, dos_si_fhiaims: Backend):
-#   """For debugging.
-#   """
-#   x_exciting = dos_si_exciting.get_value('dos_energies_normalized', 0)
-#   y_exciting = dos_si_exciting.get_value('dos_values_normalized', 0)
-#   x_vasp = dos_si_vasp.get_value('dos_energies_normalized', 0)
-#   y_vasp = dos_si_vasp.get_value('dos_values_normalized', 0)
-#   x_fhiaims = dos_si_fhiaims.get_value('dos_energies_normalized', 0)
-#   y_fhiaims = dos_si_fhiaims.get_value('dos_values_normalized', 0)
-#   mpl.plot(x_vasp, y_vasp[0], label="VASP")
-#   mpl.plot(x_exciting, y_exciting[0], label="exciting")
-#   mpl.plot(x_fhiaims, y_fhiaims[0], label="FHI-aims")
-#   mpl.legend()
-#   mpl.show()
+#  """For debugging.
+#  """
+#  x_exciting = dos_si_exciting.get_value('dos_energies_normalized', 0)
+#  y_exciting = dos_si_exciting.get_value('dos_values_normalized', 0)
+#  x_vasp = dos_si_vasp.get_value('dos_energies_normalized', 0)
+#  y_vasp = dos_si_vasp.get_value('dos_values_normalized', 0)
+#  x_fhiaims = dos_si_fhiaims.get_value('dos_energies_normalized', 0)
+#  y_fhiaims = dos_si_fhiaims.get_value('dos_values_normalized', 0)
+#  mpl.plot(x_vasp, y_vasp[0], label="VASP")
+#  mpl.plot(x_exciting, y_exciting[0], label="exciting")
+#  mpl.plot(x_fhiaims, y_fhiaims[0], label="FHI-aims")
+#  mpl.legend()
+#  mpl.show()
 
 
 def test_dos_magnitude(dos_si_vasp: Backend, dos_si_exciting: Backend, dos_si_fhiaims: Backend):

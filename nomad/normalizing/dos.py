@@ -13,9 +13,8 @@
 # limitations under the License.
 
 import numpy as np
-import bisect
 
-from nomad import config, units
+from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint
 from nomad.datamodel.metainfo.public import section_dos_fingerprint
 from nomad.atomutils import get_volume
@@ -47,7 +46,8 @@ class DosNormalizer(Normalizer):
             for dos in section_dos:
                 dos_values = dos.dos_values
                 dos_energies = dos.dos_energies
-                if dos_energies is None or dos_values is None:
+                energy_reference_fermi = scc.energy_reference_fermi
+                if dos_energies is None or dos_values is None or energy_reference_fermi is None:
                     continue
 
                 # Normalize DOS values to be 1/J/atom/m^3
@@ -67,64 +67,59 @@ class DosNormalizer(Normalizer):
                 unit_cell_volume = get_volume(lattice_vectors.magnitude)
                 dos_values_normalized = dos_values / (number_of_atoms * unit_cell_volume)
 
-                # Normalize energies so that they are normalized to HOMO when
-                # it can be reliably detected and to Fermi level if HOMO could
-                # not be detected.
-                energy_reference_fermi = scc.energy_reference_fermi[0]
-                fermi_idx = (np.abs(dos_energies - energy_reference_fermi)).argmin()
+                # Normalize energies so that they are normalized to HOMO.
+                i_channel = 0
+                fermi_energy = energy_reference_fermi[i_channel]
+                fermi_idx = (np.abs(dos_energies - fermi_energy)).argmin()
                 energy_threshold = config.normalize.band_structure_energy_tolerance
                 value_threshold = 1e-8  # The DOS value that is considered to be zero
                 homo_found = False
                 zero_found = False
-                i_homo = 0
-                energy_distance = 0
+                energy_reference = fermi_energy
 
                 # Walk through the energies in descencing direction to see if a
                 # gap is nearby (see energy_threshold). If gap found, continue
                 # until HOMO found
-                while not homo_found:
+                idx = fermi_idx
+                while True:
                     try:
-                        value = dos_values_normalized[0, fermi_idx + i_homo]
-                        energy_distance = energy_reference_fermi - dos_energies[fermi_idx + i_homo]
+                        value = dos_values_normalized[i_channel, idx]
+                        energy_distance = fermi_energy - dos_energies[idx]
                     except IndexError:
                         break
                     if energy_distance.magnitude > energy_threshold and not zero_found:
                         break
                     if value <= value_threshold:
                         zero_found = True
-                    if zero_found and value > 0:
+                    if zero_found and value > value_threshold:
+                        energy_reference = dos_energies[idx + 1]
                         homo_found = True
-                        i_homo += 1
                         break
-                    i_homo -= 1
+                    idx -= 1
                 # If gap was not found in descending direction, check the
                 # ascending direction for a nearby (see energy_threshold) HOMO
                 # value
                 if not homo_found:
-                    i_homo = 1
-                    while not homo_found:
+                    idx = fermi_idx + 1
+                    while True:
                         try:
-                            value = dos_values_normalized[0, fermi_idx + i_homo]
-                            energy_distance = dos_energies[fermi_idx + i_homo] - energy_reference_fermi
+                            value = dos_values_normalized[i_channel, idx]
+                            energy_distance = dos_energies[idx] - fermi_energy
                         except IndexError:
                             break
                         if energy_distance.magnitude > energy_threshold:
                             break
                         if value <= value_threshold:
-                            homo_found = True
+                            energy_reference = dos_energies[idx]
                             break
-                        i_homo += 1
-                if homo_found:
-                    energy_reference = dos_energies[fermi_idx + i_homo]
-                else:
-                    energy_reference = energy_reference_fermi
+                        idx += 1
+
                 dos_energies_normalized = dos_energies - energy_reference
 
                 # Data for DOS fingerprint
                 dos_fingerprint = None
                 try:
-                    dos_energies = dos.dos_energies_normalized
-                    dos_fingerprint = DOSFingerprint().calculate(np.array(dos_energies), dos_normed, n_atoms=number_of_atoms)
+                    dos_fingerprint = DOSFingerprint().calculate(dos_energies_normalized, dos_values_normalized, n_atoms=number_of_atoms)
                 except Exception as e:
                     self.logger.error('could not generate dos fingerprint', exc_info=e)
 

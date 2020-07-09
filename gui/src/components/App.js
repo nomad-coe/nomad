@@ -138,10 +138,10 @@ function BetaSnack() {
       className={classes.snack}
       message={<span style={{color: 'white'}}>
         You are using a beta version of NOMAD ({version.label}). {
-          version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.': ''
+          version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.' : ''
         } Click <a style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</a>.
       </span>}
-       action={[
+      action={[
         <IconButton key={0} color="inherit" onClick={() => setUnderstood(true)}>
           <UnderstoodIcon />
         </IconButton>

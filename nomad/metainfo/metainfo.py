@@ -822,20 +822,21 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     (quantity_def, value))
             value = value.to(quantity_def.unit).magnitude
 
-        if len(quantity_def.shape) > 0 and type(value) != np.ndarray:
-            try:
-                value = np.asarray(value)
-            except TypeError:
-                raise TypeError(
-                    'Could not convert value %s of %s to a numpy array' %
-                    (value, quantity_def))
-        elif type(value) != quantity_def.type.type:
-            try:
-                value = quantity_def.type.type(value)
-            except TypeError:
-                raise TypeError(
-                    'Could not convert value %s of %s to a numpy scalar' %
-                    (value, quantity_def))
+        if type(value) != np.ndarray:
+            if len(quantity_def.shape) > 0:
+                try:
+                    value = np.asarray(value)
+                except TypeError:
+                    raise TypeError(
+                        'Could not convert value %s of %s to a numpy array' %
+                        (value, quantity_def))
+            elif type(value) != quantity_def.type.type:
+                try:
+                    value = quantity_def.type.type(value)
+                except TypeError:
+                    raise TypeError(
+                        'Could not convert value %s of %s to a numpy scalar' %
+                        (value, quantity_def))
 
         return self.__check_np(quantity_def, value)
 
