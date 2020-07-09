@@ -52,11 +52,28 @@ class BandStructureNormalizer(Normalizer):
             system = scc.single_configuration_calculation_to_system_ref
 
             for band in scc.section_k_band:
-                if band.band_structure_kind != "vibrational":
+                valid_band = self.validate_band(band)
+                if valid_band:
                     self.add_reciprocal_cell(band, system)
                     self.add_brillouin_zone(band)
                     self.add_band_gaps(band, energy_reference)
                     self.add_path_labels(band, system)
+
+    def validate_band(self, band: section_k_band) -> bool:
+        """Used to check that a band has all required information for normalization.
+        """
+        if band.band_structure_kind == "vibrational":
+            return False
+        if len(band.section_k_band_segment) == 0:
+            self.logger.info("Could not normalize band structure as band segments are missing.")
+            return False
+        for segment in band.section_k_band_segment:
+            seg_k_points = segment.band_k_points
+            seg_energies = segment.band_energies
+            if seg_k_points is None or seg_energies is None:
+                self.logger.info("Could not normalize band structure as energies or k points are missing.")
+                return False
+        return True
 
     def add_reciprocal_cell(self, band: section_k_band, system: section_system):
         """A reciprocal cell for this calculation. If the original unit cell is
@@ -143,21 +160,12 @@ class BandStructureNormalizer(Normalizer):
         # Gather the energies and k points from each segment into one big
         # array
         reciprocal_cell = reciprocal_cell.magnitude
-        valence_band_maximum = energy_reference.magnitude
         path: np.array = []
         energies: np.array = []
         for segment in band.section_k_band_segment:
-            try:
-                seg_k_points = segment.band_k_points
-                seg_energies = segment.band_energies
-            except Exception:
-                return
-            if seg_k_points is None or seg_energies is None:
-                self.logger.info("Could not resolve band gaps as energies or k points are missing.")
-                return
-            else:
-                seg_energies = seg_energies.magnitude
-
+            seg_k_points = segment.band_k_points
+            seg_energies = segment.band_energies
+            seg_energies = seg_energies.magnitude
             seg_energies = np.swapaxes(seg_energies, 1, 2)
             path.append(seg_k_points)
             energies.append(seg_energies)
@@ -168,13 +176,7 @@ class BandStructureNormalizer(Normalizer):
         # Handle spin channels separately to find gaps for spin up and down
         n_channels = energies.shape[0]  # pylint: disable=E1136  # pylint/issues/3139
         for channel in range(n_channels):
-            if n_channels == 1:
-                try:
-                    vbm = valence_band_maximum[0]
-                except Exception:
-                    vbm = valence_band_maximum
-            else:
-                vbm = valence_band_maximum[channel]
+            eref = energy_reference.magnitude[channel]
             channel_energies = energies[channel, :, :]
             lower_defined = False
             upper_defined = False
@@ -197,17 +199,17 @@ class BandStructureNormalizer(Normalizer):
 
                 # If any of the bands band crosses the Fermi level, there is no
                 # band gap
-                if band_min_tol <= vbm and band_max_tol >= vbm:
+                if band_min_tol <= eref and band_max_tol >= eref:
                     break
                 # Whole band below Fermi level, save the current highest
                 # occupied band point
-                elif band_min_tol <= vbm and band_max_tol <= vbm:
+                elif band_min_tol <= eref and band_max_tol <= eref:
                     gap_lower_energy = band_max
                     gap_lower_idx = band_maxima_idx[band_idx]
                     lower_defined = True
                 # Whole band above Fermi level, save the current lowest
                 # unoccupied band point
-                elif band_min_tol >= vbm:
+                elif band_min_tol >= eref:
                     gap_upper_energy = band_min
                     gap_upper_idx = band_minima_idx[band_idx]
                     upper_defined = True
@@ -283,12 +285,6 @@ class BandStructureNormalizer(Normalizer):
         # parser are overridden, because one cannot ascertain that those labels
         # are consistent across codes.
         for segment in band.section_k_band_segment:
-
-            seg_k_points = segment.band_k_points
-            if seg_k_points is None:
-                self.logger.info("Could not resolve band path as k points are missing.")
-                return
-
             start_point_cartesian = np.dot(segment.band_k_points[0], reciprocal_cell_trans)
             end_point_cartesian = np.dot(segment.band_k_points[-1], reciprocal_cell_trans)
 
