@@ -146,7 +146,7 @@ release:
   except:
     - /^dev-.*$/
   when:
-      - manual
+    - manual
   only:
     - branches
 
