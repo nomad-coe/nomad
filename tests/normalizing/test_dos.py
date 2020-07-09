@@ -25,9 +25,9 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 from nomad_dos_fingerprints import DOSFingerprint
 
 
-def test_fingerprint(dos_unpolarized_vasp):
+def test_fingerprint(dos_si_vasp):
     # Check if DOS fingerprint was created
-    backend_dos_fingerprint = dos_unpolarized_vasp.get_value('section_dos_fingerprint', 0)
+    backend_dos_fingerprint = dos_si_vasp["section_dos_fingerprint"][0]
     dos_fingerprint = DOSFingerprint().from_dict(dict(
         bins=backend_dos_fingerprint.bins,
         indices=backend_dos_fingerprint.indices,
