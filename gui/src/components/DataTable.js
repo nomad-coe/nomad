@@ -248,7 +248,8 @@ class DataTableUnStyled extends React.Component {
       whiteSpace: 'nowrap',
       maxWidth: 200,
       paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3)
+      paddingRight: theme.spacing(3),
+      height: theme.spacing.unit * 6
     },
     ellipsisFront: {
       direction: 'rtl',
