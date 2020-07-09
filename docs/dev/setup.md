@@ -77,7 +77,7 @@ conda activate nomad_env
 
 To install libmagick for conda, you can use (other channels might also work):
 ```
-conda -c conda-forge install --name nomad_env libmagic
+conda install -c conda-forge --name nomad_env libmagic
 ```
 
 #### pip
