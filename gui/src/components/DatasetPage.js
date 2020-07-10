@@ -75,6 +75,7 @@ export default function DatasetPage() {
       query={{dataset_id: [datasetId]}}
       ownerTypes={['all', 'public']}
       initialResultTab="entries"
+      resultListProps={{showAccessColumn: true}}
       availableResultTabs={['entries', 'groups', 'datasets']}
     />
   </div>

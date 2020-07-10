@@ -145,8 +145,7 @@ release:
     - docker push $LATEST_IMAGE
   except:
     - /^dev-.*$/
-  when:
-      - manual
+  when: manual
   only:
     - branches
 

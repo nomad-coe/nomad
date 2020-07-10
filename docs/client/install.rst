@@ -5,14 +5,16 @@ We release the NOMAD client library as a Python `distutils <https://docs.python.
 You can download and install it the usual way using *pip* (or *conda*).
 
 Install from pypi
+
 .. code-block:: sh
 
     pip install nomad-lab
 
 Download and install latest release from nomad
+
 .. code-block:: sh
 
-    curl https://repository.nomad-coe.eu/v0.8/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
+    curl https://repository.nomad-coe.eu/app/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
     pip install ./nomad-lab.tar.gz
 
 There are different layers of dependencies that you have to install, in order to use

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination, Button } from '@material-ui/core'
 import { compose } from 'recompose'
@@ -9,19 +9,51 @@ import { Link as RouterLink } from 'react-router-dom'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
-import PublishedIcon from '@material-ui/icons/Public'
-import PrivateIcon from '@material-ui/icons/AccountCircle'
+import PublicIcon from '@material-ui/icons/Public'
+import UploaderIcon from '@material-ui/icons/AccountCircle'
+import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
+import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { domains } from '../domains'
+import { apiContext, withApi } from '../api'
 
 export function Published(props) {
+  const api = useContext(apiContext)
   const {entry} = props
   if (entry.published) {
-    return <Tooltip title={entry.with_embargo ? 'published with embargo' : 'published'}>
-      {entry.with_embargo ? <PrivateIcon color="primary"/> : <PublishedIcon color="primary" />}
-    </Tooltip>
+    if (entry.with_embargo) {
+      if (api.user && entry.uploader.user_id === api.user.sub) {
+        if (entry.owners.length === 1) {
+          return <Tooltip title="published with embargo by you and only accessible by you">
+            <UploaderIcon color="error" />
+          </Tooltip>
+        } else {
+          return <Tooltip title="published with embargo by you and only accessible to you and users you shared the data with">
+            <SharedIcon color="error" />
+          </Tooltip>
+        }
+      } else if (api.user && entry.owners.find(user => user.user_id === api.user.sub)) {
+        return <Tooltip title="published with embargo and shared with you">
+          <SharedIcon color="error" />
+        </Tooltip>
+      } else {
+        if (api.user) {
+          return <Tooltip title="published with embargo and not accessible by you">
+            <PrivateIcon color="error" />
+          </Tooltip>
+        } else {
+          return <Tooltip title="published with embargo and might become accessible after login">
+            <PrivateIcon color="error" />
+          </Tooltip>
+        }
+      }
+    } else {
+      return <Tooltip title="published and accessible by everyone">
+        <PublicIcon color="primary" />
+      </Tooltip>
+    }
   } else {
-    return <Tooltip title="not published yet">
-      <PrivateIcon color="error"/>
+    return <Tooltip title="you have not published this entry yet">
+      <UploaderIcon color="error"/>
     </Tooltip>
   }
 }
@@ -45,7 +77,8 @@ export class EntryListUnstyled extends React.Component {
     showEntryActions: PropTypes.func,
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
     domain: PropTypes.object,
-    user: PropTypes.object
+    user: PropTypes.object,
+    showAccessColumn: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -93,11 +126,6 @@ export class EntryListUnstyled extends React.Component {
       render: entry => new Date(entry.upload_time).toLocaleString(),
       supportsSort: true,
       description: 'The time this entry was uploaded.'
-    },
-    published: {
-      label: 'Published',
-      align: 'center',
-      render: (entry) => <Published entry={entry} />
     },
     authors: {
       label: 'Authors',
@@ -159,6 +187,11 @@ export class EntryListUnstyled extends React.Component {
       },
       supportsSort: false,
       description: 'The dataset names that this entry belongs to.'
+    },
+    published: {
+      label: 'Access',
+      align: 'center',
+      render: (entry) => <Published entry={entry} />
     }
   }
 
@@ -293,7 +326,7 @@ export class EntryListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, ...rest } = this.props
+    const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, user, showAccessColumn, ...rest } = this.props
     const { selected } = this.state
 
     const results = data.results || []
@@ -305,8 +338,14 @@ export class EntryListUnstyled extends React.Component {
       ...EntryListUnstyled.defaultColumns
     }
 
-    const defaultSelectedColumns = this.props.selectedColumns || [
-      ...domain.defaultSearchResultColumns, 'authors']
+    let selectedColumns = this.props.selectedColumns
+    if (!selectedColumns) {
+      selectedColumns = [...domain.defaultSearchResultColumns]
+      if (user !== undefined || showAccessColumn) {
+        selectedColumns.push('published')
+      }
+      selectedColumns.push('authors')
+    }
 
     const pagination = <TablePagination
       count={totalNumber}
@@ -341,7 +380,7 @@ export class EntryListUnstyled extends React.Component {
           id={row => row.calc_id}
           total={total}
           columns={columns}
-          selectedColumns={defaultSelectedColumns}
+          selectedColumns={selectedColumns}
           selectedColumnsKey="entries"
           entryDetails={this.renderEntryDetails.bind(this)}
           entryActions={this.renderEntryActions.bind(this)}
@@ -361,6 +400,6 @@ export class EntryListUnstyled extends React.Component {
   }
 }
 
-const EntryList = compose(withRouter, withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+const EntryList = compose(withRouter, withApi(false, false), withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
 
 export default EntryList
