@@ -200,4 +200,4 @@ def setup(app):
     # }, True)
     # app.add_transform(AutoStructify)
 
-extlinks = {'api': ('https://repository.nomad-coe.eu/v0.8/api/%s', 'NOMAD API ')}
+extlinks = {'api': ('https://repository.nomad-coe.eu/app/api/%s', 'NOMAD API ')}

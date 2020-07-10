@@ -407,6 +407,7 @@ const ownerLabel = {
   visible: 'Include your private entries',
   public: 'Only public entries',
   user: 'Only your entries',
+  shared: 'Incl. shared data',
   staging: 'Staging area only'
 }
 
@@ -415,6 +416,7 @@ const ownerTooltips = {
   visible: 'Do also show entries that are only visible to you.',
   public: 'Do not show entries with embargo.',
   user: 'Do only show entries visible to you.',
+  shared: 'Also include data that is shared with you',
   staging: 'Will only show entries that you uploaded, but not yet published.'
 }
 
@@ -422,7 +424,7 @@ function OwnerSelect(props) {
   const {ownerTypes, initialOwner} = props
   const {setOwner} = useContext(searchContext)
 
-  const ownerTypesToRender = ownerTypes.length === 2 ? [ownerTypes[1]] : ownerTypes
+  const ownerTypesToRender = ownerTypes.length === 1 ? [] : ownerTypes.slice(1)
 
   const [ownerParam, setOwnerParam] = useQueryParam('owner', StringParam)
   const owner = ownerParam || initialOwner || 'all'
@@ -432,10 +434,10 @@ function OwnerSelect(props) {
   }, [owner, setOwner])
 
   const handleChange = (event) => {
-    if (ownerTypes.length === 2) {
-      setOwnerParam(event.target.checked ? ownerTypes[1] : ownerTypes[0])
-    } else {
+    if (ownerParam !== event.target.value) {
       setOwnerParam(event.target.value)
+    } else {
+      setOwnerParam(initialOwner)
     }
   }
 
@@ -450,7 +452,7 @@ function OwnerSelect(props) {
           <FormControlLabel
             control={<Checkbox
               checked={owner === ownerToRender}
-              onChange={handleChange} value="owner"
+              onChange={handleChange} value={ownerToRender}
             />}
             label={ownerLabel[ownerToRender]}
           />

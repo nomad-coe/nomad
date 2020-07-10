@@ -17,6 +17,24 @@ data:
       proxy_connect_timeout {{ .Values.proxy.timeout }};
       proxy_read_timeout {{ .Values.proxy.timeout }};
 
+      {{ if .Values.gui.gzip }}
+      gzip_min_length     1000;
+      gzip_buffers        4 8k;
+      gzip_http_version   1.0;
+      gzip_disable        "msie6";
+      gzip_vary           on;
+      gzip on;
+      gzip_proxied any;
+      gzip_types
+          text/css
+          text/javascript
+          text/xml
+          text/plain
+          application/javascript
+          application/x-javascript
+          application/json;
+      {{ end }}
+
       location / {
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
@@ -33,6 +51,28 @@ data:
 
       location @redirect_to_index {
         rewrite ^ {{ .Values.proxy.external.path }}/gui/index.html break;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location {{ .Values.proxy.external.path }}/docs/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index_docs;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location @redirect_to_index_docs {
+        rewrite ^ {{ .Values.proxy.external.path }}/docs/index.html break;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location {{ .Values.proxy.external.path }}/encyclopedia/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_encyclopedia_index;
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
+
+      location @redirect_to_encyclopedia_index {
+        rewrite ^ {{ .Values.proxy.external.path }}/encyclopedia/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 

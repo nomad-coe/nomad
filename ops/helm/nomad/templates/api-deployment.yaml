@@ -102,6 +102,25 @@ data:
       }
     };
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-enc-conf-js
+  labels:
+    app.kubernetes.io/name: {{ include "nomad.name" . }}-enc-conf-js
+    helm.sh/chart: {{ include "nomad.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  conf.js: |
+    window.nomadEnv = {
+      host: "https://{{ .Values.proxy.external.host }}{{ .Values.proxy.external.path }}",
+      path: "/api/encyclopedia/",
+      userCookieDomain: ".{{ .Values.proxy.external.host }}",
+      guestUserToken: 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyMzg4MDE1OSwiZXhwIjoxNjgxNTYwMTU5fQ.ey'+
+      'JpZCI6ImVuY2d1aSJ9.MsMWQa3IklH7cQTxRaIRSF9q8D_2LD5Fs2-irpWPTp4'
+    };
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -151,6 +170,10 @@ spec:
           readOnly: true
           subPath: env.js
           name: gui-env-js
+        - mountPath: /app/dependencies/encyclopedia-gui/client/conf.js
+          readOnly: true
+          subPath: conf.js
+          name: enc-conf-js
         env:
         - name: NOMAD_SERVICE
           value: "app"
@@ -230,6 +253,9 @@ spec:
       - name: gui-env-js
         configMap:
           name: {{ include "nomad.fullname" . }}-gui-env-js
+      - name: enc-conf-js
+        configMap:
+          name: {{ include "nomad.fullname" . }}-enc-conf-js
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}
