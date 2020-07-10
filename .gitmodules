@@ -12,7 +12,7 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/exciting"]
 	path = dependencies/parsers/exciting
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting-fairdi.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/fhi-aims"]
 	path = dependencies/parsers/fhi-aims
