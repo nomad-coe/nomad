@@ -21,11 +21,16 @@ from matid.symmetry.wyckoffset import WyckoffSet
 from nomad.utils import hash
 from nomad import atomutils
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.encyclopedia import (
+    Calculation,
+    EncyclopediaMetadata,
+)
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     run_normalize_for_structure,
     geometry_optimization,
     molecular_dynamics,
     phonon,
+    elastic,
     two_d,
     bulk,
     dos_unpolarized_vasp,
@@ -510,11 +515,13 @@ def test_phonon(phonon: EntryArchive):
     """
     enc = phonon.entry_archive.section_metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
+    status = enc.status
     prop = enc.properties
     band = prop.phonon_band_structure
     dos = prop.phonon_dos
     thermo_props = prop.thermodynamical_properties
-    assert calc_type == "phonon calculation"
+    assert calc_type == Calculation.calculation_type.type.phonon_calculation
+    assert status == EncyclopediaMetadata.status.type.success
 
     # TODO: Check method information
 
@@ -538,3 +545,15 @@ def test_phonon(phonon: EntryArchive):
     assert thermo_props.specific_heat_capacity is not None
     assert thermo_props.thermodynamical_property_temperature is not None
     assert thermo_props.vibrational_free_energy_at_constant_volume is not None
+
+
+def test_elastic(elastic: EntryArchive):
+    """Tests that elastic constants calculations are correctly processed. For
+    now, the method information is not being processed, as it requires an
+    additional processing step similar to phonon calculations.
+    """
+    enc = elastic.entry_archive.section_metadata.encyclopedia
+    calc_type = enc.calculation.calculation_type
+    status = enc.status
+    assert calc_type == Calculation.calculation_type.type.elastic_constants
+    assert status == EncyclopediaMetadata.status.type.unsupported_method_type

@@ -251,16 +251,19 @@ class EncyclopediaNormalizer(Normalizer):
                 )
                 return
 
-            # Get the method type. For now, we allow unknown method type to
-            # allow phonon calculations through.
+            # Get the method type. For now, we allow unknown method type for
+            # phonon calculations, as the method information is resolved at a
+            # later stage.
             representative_method, method_type = self.method_type(method)
             if method_type == config.services.unavailable_value:
-                status = status_enums.unsupported_method_type
-                sec_enc.status = status
+                sec_enc.status = status_enums.unsupported_method_type
                 self.logger.info(
                     "unsupported method type for encyclopedia",
-                    enc_status=status,
+                    enc_status=status_enums.unsupported_method_type,
                 )
+                calc_enums = Calculation.calculation_type.type
+                if calc_type != calc_enums.phonon_calculation:
+                    return
 
             # Get representative scc
             try:

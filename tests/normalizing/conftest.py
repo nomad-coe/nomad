@@ -104,6 +104,15 @@ def phonon() -> Backend:
 
 
 @pytest.fixture(scope='session')
+def elastic() -> Backend:
+    parser_name = "parsers/elastic"
+    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
 def bulk() -> Backend:
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
