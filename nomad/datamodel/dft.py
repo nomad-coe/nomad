@@ -19,7 +19,7 @@ DFT specific metadata
 import re
 
 from nomad import config, utils
-from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
+from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection, Package
 from nomad.metainfo.search_extension import Search
 
 from .common import get_optional_backend_value

@@ -26,9 +26,14 @@ from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
-from .encyclopedia import EncyclopediaMetadata
-from .metainfo.public import section_run
-from .metainfo.general_experimental import section_experiment
+
+# This is usually defined automatically when the first metainfo definition is evaluated, but
+# due to the next imports requireing the m_package already, this would be too late.
+m_package = metainfo.Package()
+
+from .encyclopedia import EncyclopediaMetadata  # noqa
+from .metainfo.public import section_run  # noqa
+from .metainfo.general_experimental import section_experiment  # noqa
 
 
 def _only_atoms(atoms):
