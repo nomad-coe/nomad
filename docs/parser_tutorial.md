@@ -313,7 +313,7 @@ is stored in a database for analysis. Do not abuse the logging.
 ## Testing and Debugging
 You a writing a python program. You know what to do.
 
-## Added the parser to nomad@FAIRDI
+## Adding the parser to nomad@FAIRDI
 
 First, you add your parser to the dependencies. Put it into the dependencies folder, then:
 ```
@@ -346,13 +346,13 @@ parser_examples = [
 
 ## FAIRDI parsers
 The new fairdi parsers avoid the use of a backend and instead make use of the new metainfo
-sections. The project structure is the same as above with the addition of a ``metainfo``
+sections. The project structure is the same as above with the addition of a `metainfo`
 folder
 
 ```
 myparser/myparser/metainfo
 ```
-This contains a file containing the definitions and an ``__init__.py``. One should refer
+This contains a file containing the definitions and an `__init__.py`. One should refer
 to `nomad.metainfo.example.py` for a guide in writing the metainfo definitions.
 Consequently, the parser class implementation is modified as in the following example.
 
