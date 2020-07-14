@@ -203,6 +203,10 @@ class Backend(AbstractParserBackend):
             warnings and errors.
     '''
 
+    @staticmethod
+    def filter_legacy_defs(definition):
+        return definition.m_get_annotations('legacy') is not None
+
     def __init__(
             self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None,
             logger=None):
@@ -252,7 +256,8 @@ class Backend(AbstractParserBackend):
         return self.__legacy_env
 
     def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
-        return self.env.resolve_definition(normalize_name(name), section_cls)
+        return self.env.resolve_definition(
+            normalize_name(name), section_cls, Backend.filter_legacy_defs)
 
     def resolve_context(self, context_uri: str):
         path = context_uri.strip('/').split('/')

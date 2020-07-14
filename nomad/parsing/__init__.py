@@ -80,6 +80,9 @@ from nomad.parsing.legacy import (
 from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser
 from nomad.parsing.artificial import (
     TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser)
+from eelsparser import EelsParser
+from mpesparser import MPESParser
+from aptfimparser import APTFIMParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -418,26 +421,9 @@ parsers = [
         mainfile_mime_re=r'(application/json)|(text/.*)',
         mainfile_contents_re=(r'skeleton experimental metadata format')
     ),
-    LegacyParser(
-        name='parsers/mpes', code_name='mpes', code_homepage='https://github.com/mpes-kit/mpes', domain='ems',
-        parser_class_name='mpesparser.MPESParserInterface',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=(r'.*.meta'),
-        mainfile_contents_re=(r'"data_repository_name": "zenodo.org"')
-    ),
-    LegacyParser(
-        name='parsers/aptfim', code_name='mpes', code_homepage='https://github.com/mpes-kit/mpes', domain='ems',
-        parser_class_name='aptfimparser.APTFIMParserInterface',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=(r'.*.aptfim')
-    ),
-    LegacyParser(
-        name='parsers/eels', code_name='eels', code_homepage='https://eelsdb.eu/', domain='ems',
-        parser_class_name='eelsparser.EelsParserInterface',
-        mainfile_mime_re=r'text/.*',
-        mainfile_name_re=(r'.*.txt'),
-        mainfile_contents_re=(r'api_permalink = https://api\.eelsdb\.eu')
-    ),
+    MPESParser(),
+    APTFIMParser(),
+    EelsParser(),
     LegacyParser(
         name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
         parser_class_name='qboxparser.QboxParser',

@@ -217,7 +217,7 @@ function Markdown(props) {
   return (
     <Typography variant="body1"
       className={classes.root}
-      dangerouslySetInnerHTML={{__html: marked(content)}}
+      dangerouslySetInnerHTML={{__html: marked(content || '')}}
     />
   )
 }
