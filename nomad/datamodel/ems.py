@@ -20,8 +20,6 @@ from nomad import config
 from nomad.metainfo import Quantity, MSection, Section, Datetime, Package
 from nomad.metainfo.search_extension import Search
 
-from .common import get_optional_backend_value
-
 
 class EMSMetadata(MSection):
     m_def = Section(a_domain='ems')
@@ -57,13 +55,10 @@ class EMSMetadata(MSection):
             return
 
         entry = self.m_parent
-        logger = utils.get_logger(__name__).bind(
-            upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
-        entry.formula = get_optional_backend_value(
-            backend, 'sample_chemical_formula', 'section_sample', logger=logger)
-        atoms = get_optional_backend_value(
-            backend, 'sample_atom_labels', 'section_sample', logger=logger)
+        root_section = backend.entry_archive.section_experiment
+        entry.formula = root_section.section_sample[0].sample_chemical_formula
+        atoms = root_section.section_sample[0].sample_atom_labels
         if hasattr(atoms, 'tolist'):
             atoms = atoms.tolist()
         entry.n_atoms = len(atoms)
@@ -72,35 +67,23 @@ class EMSMetadata(MSection):
         atoms.sort()
         entry.atoms = atoms
 
-        self.chemical = get_optional_backend_value(
-            backend, 'sample_chemical_name', 'section_sample', logger=logger)
-        self.sample_microstructure = get_optional_backend_value(
-            backend, 'sample_microstructure', 'section_sample', logger=logger)
-        self.sample_constituents = get_optional_backend_value(
-            backend, 'sample_constituents', 'section_sample', logger=logger)
+        self.chemical = root_section.section_sample[0].sample_chemical_name
+        self.sample_microstructure = root_section.section_sample[0].sample_microstructure
+        self.sample_constituents = root_section.section_sample[0].sample_constituents
 
-        self.experiment_summary = get_optional_backend_value(
-            backend, 'experiment_summary', 'section_experiment', logger=logger)
-        self.experiment_location = get_optional_backend_value(
-            backend, 'experiment_location', 'section_experiment', logger=logger)
-        experiment_time = get_optional_backend_value(
-            backend, 'experiment_time', 'section_experiment', None, logger=logger)
+        self.experiment_summary = root_section.experiment_summary
+        self.experiment_location = root_section.experiment_location
+        experiment_time = root_section.experiment_time
         if experiment_time != config.services.unavailable_value:
             self.experiment_time = experiment_time
 
-        self.method = get_optional_backend_value(
-            backend, 'experiment_method_name', 'section_method', logger=logger)
-        self.probing_method = get_optional_backend_value(
-            backend, 'probing_method', 'section_method', logger=logger)
+        self.method = root_section.section_method[0].experiment_method_name
+        self.probing_method = root_section.section_method[0].probing_method
 
-        self.repository_name = get_optional_backend_value(
-            backend, 'data_repository_name', 'section_data', logger=logger)
-        self.repository_url = get_optional_backend_value(
-            backend, 'data_repository_url', 'section_data', logger=logger)
-        self.preview_url = get_optional_backend_value(
-            backend, 'data_preview_url', 'section_data', logger=logger)
-        self.entry_repository_url = get_optional_backend_value(
-            backend, 'entry_repository_url', 'section_data', logger=logger)
+        self.repository_name = root_section.section_data[0].data_repository_name
+        self.repository_url = root_section.section_data[0].data_repository_url
+        self.preview_url = root_section.section_data[0].data_preview_url
+        self.entry_repository_url = root_section.section_data[0].entry_repository_url
 
         self.group_hash = utils.hash(
             entry.formula,
@@ -111,7 +94,6 @@ class EMSMetadata(MSection):
 
         quantities = set()
 
-        root_section = backend.entry_archive.section_experiment
         quantities.add(root_section.m_def.name)
         for _, property_def, _ in root_section.m_traverse():
             quantities.add(property_def.name)

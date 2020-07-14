@@ -343,3 +343,71 @@ parser_examples = [
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
 ]
 ```
+
+## FAIRDI parsers
+The new fairdi parsers avoid the use of a backend and instead make use of the new metainfo
+sections. The project structure is the same as above with the addition of a ``metainfo``
+folder
+
+```
+myparser/myparser/metainfo
+```
+This contains a file containing the definitions and an ``__init__.py``. One should refer
+to `nomad.metainfo.example.py` for a guide in writing the metainfo definitions.
+Consequently, the parser class implementation is modified as in the following example.
+
+```python
+import json
+
+from .metainfo import m_env
+from nomad.parsing.parser import MatchingParser
+from nomad.datamodel.metainfo.general_experimental import section_experiment as msection_experiment
+from nomad.datamodel.metainfo.general_experimental import section_data as msection_data
+from nomad.datamodel.metainfo.general_experimental_method import section_method as msection_method
+from nomad.datamodel.metainfo.general_experimental_sample import section_sample as msection_sample
+
+
+class ExampleParser(MatchingParser):
+    def __init__(self):
+        super().__init__(
+            name='parsers/example', code_name='example', code_homepage='https://github.com/example/example',
+            domain='ems', mainfile_mime_re=r'(application/json)|(text/.*)', mainfile_name_re=(r'.*.example')
+        )
+
+    def run(self, filepath, logger=None):
+        self._metainfo_env = m_env
+
+        with open(filepath, 'rt') as f:
+            data = json.load(f)
+
+        section_experiment = msection_experiment()
+
+        # Read general tool environment details
+        section_experiment.experiment_location = data.get('experiment_location')
+        section_experiment.experiment_facility_institution = data.get('experiment_facility_institution')
+
+        # Read data parameters
+        section_data = section_experiment.m_create(msection_data)
+        section_data.data_repository_name = data.get('data_repository_name')
+        section_data.data_preview_url = data.get('data_repository_url')
+
+        # Read parameters related to method
+        section_method = section_experiment.m_create(msection_method)
+        section_method.experiment_method_name = data.get('experiment_method')
+        section_method.probing_method = 'electric pulsing'
+
+        # Read parameters related to sample
+        section_sample = section_experiment.m_create(msection_sample)
+        section_sample.sample_description = data.get('specimen_description')
+        section_sample.sample_microstructure = data.get('specimen_microstructure')
+        section_sample.sample_constituents = data.get('specimen_constitution')
+
+        return section_experiment
+```
+The parser extends the ``MatchingParser`` class which already implements the determination
+of the necessary file for parsing. The main difference to the old framework is the absense
+the opening and closing of sections. One only needs to create a section which can be
+accessed at any point in the code. The ``run`` method should return the root section.
+
+Lastly, one should add an instance of the parser class in the list of parsers at
+``nomad.parsing``.
