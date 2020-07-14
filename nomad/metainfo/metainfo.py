@@ -2618,15 +2618,22 @@ class Environment(MSection):
 
         return all_definitions_by_name
 
-    def resolve_definitions(self, name: str, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
+    def resolve_definitions(
+            self, name: str, section_cls: Type[MSectionBound],
+            filter: TypingCallable[[MSection], bool] = None) -> List[MSectionBound]:
+
         return [
             definition
             for definition in self.all_definitions_by_name.get(name, [])
             if isinstance(definition, section_cls)
-            if not (isinstance(definition, Section) and definition.extends_base_section)]
+            if not (isinstance(definition, Section) and definition.extends_base_section)
+            if filter is None or filter(definition)]
 
-    def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
-        defs = self.resolve_definitions(name, section_cls)
+    def resolve_definition(
+            self, name, section_cls: Type[MSectionBound],
+            filter: TypingCallable[[MSection], bool] = None) -> MSectionBound:
+
+        defs = self.resolve_definitions(name, section_cls, filter=filter)
         if len(defs) == 1:
             return defs[0]
         elif len(defs) > 1:
