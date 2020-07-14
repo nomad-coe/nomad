@@ -307,8 +307,6 @@ def run_parser(parser_name, mainfile):
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
     if isinstance(result, MSection):
         backend = Backend(parser._metainfo_env, parser.domain)
-        root_section = datamodel.domains[parser.domain]['root_section']
-        setattr(backend.entry_archive, root_section, result)
         backend.resource.add(result)
         result = backend
     result.domain = parser.domain
