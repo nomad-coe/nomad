@@ -393,7 +393,7 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                                     'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
                         else:
                             config[key] = value
-                            logger.info('override config key %s with value %s' % (key, str(value)))
+                            logger.debug('override config key %s with value %s' % (key, str(value)))
                 else:
                     logger.error('config key %s does not exist' % key)
 

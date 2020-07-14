@@ -258,7 +258,7 @@ class RawFiles extends React.Component {
                 <Tooltip title={file + (index === 0 ? ', the main (output) file of this entry' : '')}>
                   <FormControlLabel
                     style={{flexGrow: 1, overflowX: 'hidden', textOverflow: 'ellipsis'}}
-                    label={<span>{this.label(file)}{index === 0 ? <b className={classes.mainfileLabel}> (mainfile)</b>: ''}</span>}
+                    label={<span>{this.label(file)}{index === 0 ? <b className={classes.mainfileLabel}> (mainfile)</b> : ''}</span>}
                     classes={{
                       root: classes.fileNameFormGroupLabel,
                       label: file === shownFile ? classes.shownFile : classes.fileNameLabel}}

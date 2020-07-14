@@ -17,7 +17,7 @@ Experimental material science specific metadata
 '''
 
 from nomad import config
-from nomad.metainfo import Quantity, MSection, Section, Datetime, Package
+from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
 
 
