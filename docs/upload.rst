@@ -1,6 +1,6 @@
-==============
-Uploading Data
-==============
+======================================
+Uploading Data to the NOMAD Repository
+======================================
 
 To contribute your data to the repository, please, login to our `upload page <../uploads>`_ (you need to register first, if you do not have a NOMAD account yet).
 
