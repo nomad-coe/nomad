@@ -1,4 +1,4 @@
-# How to write a parser for nomad@FAIRDI
+# How to write a parser
 
 ## The parser project
 
