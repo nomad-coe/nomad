@@ -830,7 +830,9 @@ class EncCalculationsResource(Resource):
         def calc_score(entry):
             """Custom scoring function used to sort results by their
             "quality". Currently built to mimic the scoring that was used
-            in the old Encyclopedia GUI.
+            in the old Encyclopedia GUI. Primarily sorts by quality measure,
+            ties are broken by alphabetic sorting of entry_id in order to
+            return consistent results.
             """
             score = 0
             functional_score = {
@@ -850,7 +852,7 @@ class EncCalculationsResource(Resource):
             if has_dos and has_bs:
                 score += 10
 
-            return score
+            return (score, entry["calc_id"])
 
         # The calculations are first sorted by "quality"
         sorted_calc = sorted(response, key=lambda x: calc_score(x), reverse=True)
