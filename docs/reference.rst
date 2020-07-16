@@ -1,5 +1,5 @@
-Reference
-=========
+Python Reference
+================
 
 nomad.metainfo
 --------------

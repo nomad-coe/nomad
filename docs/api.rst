@@ -1,4 +1,4 @@
-API(s) Documentation
+API Reference
 ====================
 
 This is just a brief summary of all API endpoints of the NOMAD API. For a more compelling documention

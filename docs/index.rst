@@ -1,5 +1,5 @@
-nomad@FAIRDI
-============
+NOMAD Repository and Archive
+============================
 
 This project is a prototype for the continuation of the original NOMAD-coe software
 and infrastructure with a simplyfied architecture and consolidated code base.
@@ -10,12 +10,12 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    introduction.md
    upload.rst
    api_tutorial.md
-   api.rst
-   archive.rst
-   metainfo.rst
    client/client.rst
+   metainfo.rst
+   archive.rst
    ops/ops.rst
    dev/setup.md
    dev/dev_guidelines.rst
-   parser_tutorial.md
+   dev/parser_tutorial.md
+   api.rst
    reference.rst

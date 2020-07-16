@@ -1064,6 +1064,15 @@ class TestRepo():
         histogram = data.get('statistics').get('date_histogram')
         assert len(histogram) == nbuckets
 
+    def test_search_date_histogram_metrics(self, api, example_elastic_calcs, no_warn):
+        rv = api.get('/repo/?date_histogram=true&metrics=unique_entries')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        histogram = data.get('statistics').get('date_histogram')
+        bucket = histogram[list(histogram.keys())[0]]
+        assert 'code_runs' in bucket
+        assert 'unique_entries' in bucket
+
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):
         rv = api.get('/repo/?&page=%d&per_page=%d&statistics=dft.system' % (page, per_page))

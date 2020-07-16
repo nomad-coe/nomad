@@ -54,7 +54,7 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 
 function UserdataPage() {
   return <Search
-    ownerTypes={['user', 'staging']}
+    ownerTypes={['user', 'shared', 'staging']}
     initialOwner="user"
     initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
     initialResultTab="uploads"

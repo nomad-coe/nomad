@@ -15,6 +15,7 @@
 from typing import List
 from abc import ABCMeta, abstractmethod
 import re
+import importlib
 
 from nomad.metainfo import Environment
 
@@ -151,6 +152,32 @@ class MatchingParser(Parser):
 
     def __repr__(self):
         return self.name
+
+
+class FairdiParser(MatchingParser):
+
+    def __init__(self, parser_class_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parser_class_name = parser_class_name
+
+        module_name = self.parser_class_name.split('.')[:-1]
+        parser_class_name = self.parser_class_name.split('.')[-1]
+        self.__parser_impl = module_name, parser_class_name
+        self.__parser_class = None
+
+    @property
+    def parser_class(self):
+        if self.__parser_class is None:
+            module_name, parser_class_name = self.__parser_impl
+            module = importlib.import_module('.'.join(module_name))
+            self.__parser_class = getattr(module, parser_class_name)
+
+        return self.__parser_class
+
+    def run(self, mainfile: str, logger=None):
+        parser = self.parser_class()  # pylint: disable=not-callable
+        root_section = parser.parse(mainfile, logger)
+        return root_section
 
 
 class MissingParser(MatchingParser):

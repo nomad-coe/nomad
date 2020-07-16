@@ -69,10 +69,24 @@ identified an entry (given via a `upload_id`/`calc_id`, see the query output), a
 you want to download it:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/raw/calc/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX/*" -o download.zip
+curl "http://repository.nomad-coe.eu/app/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/*" -o download.zip
 ```
 
-This basically requests all the files (`*`) that belong to this entry. If you have a query
+With `*` you basically requests all the files under an entry or path..
+If you need a specific file (that you already know) of that calculation:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/INFO.OUT"
+```
+
+You can also download a specific file from the upload (given a `upload_id`), if you know
+the path of that file:
+
+```
+curl "http://repository.nomad-coe.eu/app/api/raw/JvdvikbhQp673R4ucwQgiA/exciting_basis_set_error_study/monomers_expanded_k8_rgkmax_080_PBE/72_Hf/INFO.OUT"
+```
+
+If you have a query
 that is more selective, you can also download all results. Here all compounds that only
 consist of Si, O, bulk material simulations of cubic systems (currently ~100 entries):
 

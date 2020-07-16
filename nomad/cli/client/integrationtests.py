@@ -166,7 +166,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
             'shared_with': [{'value': 'author3-id'}],
             'datasets': [{'value': dataset}]}
 
-        payload = dict(actions=actions, query=dict(upload_id=upload.upload_id))
+        payload = dict(actions=actions, query=dict(upload_id=[upload.upload_id]))
         result = client.repo.edit_repo(payload=payload).response().result
         assert result.success
         assert client.datasets.get_dataset(name=dataset).response().result['name'] == dataset

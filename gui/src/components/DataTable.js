@@ -248,7 +248,8 @@ class DataTableUnStyled extends React.Component {
       whiteSpace: 'nowrap',
       maxWidth: 200,
       paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3)
+      paddingRight: theme.spacing(3),
+      height: theme.spacing.unit * 6
     },
     ellipsisFront: {
       direction: 'rtl',
@@ -293,14 +294,14 @@ class DataTableUnStyled extends React.Component {
     super(props)
     this.handleSelectAllClick = this.handleSelectAllClick.bind(this)
     this.handleSelectedColumnsChanged = this.handleSelectedColumnsChanged.bind(this)
+  }
+
+  defaultSelectedColumns() {
     let selectedColumns = this.props.selectedColumns || Object.keys(this.props.columns)
     if (this.props.selectedColumnsKey) {
       selectedColumns = globalSelectedColumns[this.props.selectedColumnsKey] || selectedColumns
     }
-    this.state = {
-      ...this.state,
-      selectedColumns: selectedColumns
-    }
+    return selectedColumns
   }
 
   state = {
@@ -375,7 +376,8 @@ class DataTableUnStyled extends React.Component {
 
   renderDetails(row) {
     const { classes, entryDetails, id, entryActions } = this.props
-    const { selectedColumns, selectedEntry } = this.state
+    const { selectedEntry } = this.state
+    const selectedColumns = this.state.selectedColumns || this.defaultSelectedColumns()
     if (entryDetails) {
       return (
         <tr>
@@ -400,7 +402,8 @@ class DataTableUnStyled extends React.Component {
     const {
       classes, data, total, order, orderBy, id, rows, selectActions, actions,
       entryDetails, entryActions, columns, entityLabels, pagination } = this.props
-    const { selectedColumns, selectedEntry } = this.state
+    const { selectedEntry } = this.state
+    const selectedColumns = this.state.selectedColumns || this.defaultSelectedColumns()
 
     const totalNumber = total || 0
 

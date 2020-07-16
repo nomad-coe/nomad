@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.8.1"
+  label: "0.8.2"
   isBeta: false
   usesBetaData: false
   officialUrl: "https://repository.nomad-coe.eu/app/gui"
@@ -78,6 +78,8 @@ gui:
   matomoSiteId: 1
   ## send matomo(piwik) user tracking data
   matomoEnabled: false
+  ## automatically gz based on header
+  gzip: true
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service

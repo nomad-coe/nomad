@@ -3,7 +3,7 @@ from nomad import config, infrastructure, search
 
 config.elastic.host = 'localhost'
 config.elastic.port = 19202
-config.elastic.index_name = 'fairdi_nomad_prod_v0_7'
+config.elastic.index_name = 'fairdi_nomad_prod_v0_8'
 
 infrastructure.setup_elastic()
 

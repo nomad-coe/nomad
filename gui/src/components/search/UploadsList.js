@@ -12,7 +12,21 @@ import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
-import { Published } from './EntryList'
+import PublicIcon from '@material-ui/icons/Public'
+import UploaderIcon from '@material-ui/icons/AccountCircle'
+
+export function Published(props) {
+  const {entry} = props
+  if (entry.published) {
+    return <Tooltip title="published upload">
+      <PublicIcon color="primary" />
+    </Tooltip>
+  } else {
+    return <Tooltip title="this upload is not yet published">
+      <UploaderIcon color="error"/>
+    </Tooltip>
+  }
+}
 
 class UploadIdUnstyled extends React.Component {
   static propTypes = {
@@ -89,11 +103,12 @@ class UploadActionsUnstyled extends React.Component {
     const query = {upload_id: [upload.example.upload_id]}
 
     return <FormGroup row classes={{root: classes.group}}>
+      {user.sub === upload.example.uploader.user_id &&
       <Tooltip title="Open this upload on the uploads page">
         <IconButton onClick={this.handleClickDetails}>
           <DetailsIcon />
         </IconButton>
-      </Tooltip>
+      </Tooltip>}
       {<DownloadButton query={query} tooltip="Download upload" />}
       {editable && <EditUserMetadataDialog
         title="Edit metadata of all entries in this upload"
