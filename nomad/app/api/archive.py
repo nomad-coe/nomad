@@ -167,6 +167,8 @@ class ArchiveDownloadResource(Resource):
                             common.logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
+                    upload_files._is_authorized = create_authorization_predicate(
+                        upload_id=upload_id, calc_id=calc_id)
                     with upload_files.read_archive(calc_id) as archive:
                         f = BytesIO(orjson.dumps(
                             archive[calc_id].to_dict(),
@@ -311,6 +313,8 @@ class ArchiveQueryResource(Resource):
 
             if with_embargo:
                 access = 'restricted'
+                upload_files._is_authorized = create_authorization_predicate(
+                    upload_id=upload_id, calc_id=calc_id)
             else:
                 access = 'public'
 
@@ -330,8 +334,8 @@ class ArchiveQueryResource(Resource):
                 # We simply skip this entry
                 pass
             except Restricted:
-                # TODO in reality this should not happen
-                pass
+                # this should not happen
+                common.logger.error('supposedly unreachable code', upload_id=upload_id, calc_id=calc_id)
             except Exception as e:
                 if raise_errors:
                     raise e
