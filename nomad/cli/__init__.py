@@ -36,6 +36,7 @@ lazy_import.lazy_module('nomad.config')
 lazy_import.lazy_module('nomad.infrastructure')
 lazy_import.lazy_module('nomad.utils')
 lazy_import.lazy_module('nomad.parsing')
+lazy_import.lazy_module('nomad.parsing.parsers')
 lazy_import.lazy_module('nomad.normalizing')
 lazy_import.lazy_module('nomad.datamodel')
 lazy_import.lazy_module('nomad.search')
@@ -46,5 +47,5 @@ lazy_import.lazy_module('nomad.client')
 lazy_import.lazy_module('nomadcore')
 lazy_import.lazy_module('nomadcore.simple_parser')
 
-from . import dev, parse, admin, client  # noqa
+from . import dev, admin, parse, client  # noqa
 from .cli import run_cli, cli  # noqa
