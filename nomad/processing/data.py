@@ -1036,7 +1036,7 @@ class Upload(Proc):
             modified_upload = self._get_collection().find_one_and_update(
                 {'_id': self.upload_id, 'joined': {'$ne': True}},
                 {'$set': {'joined': True}})
-            if modified_upload is not None:
+            if modified_upload['joined'] is False:
                 self.get_logger().info('join')
 
                 # Before cleaning up, run an additional normalizer on phonon
