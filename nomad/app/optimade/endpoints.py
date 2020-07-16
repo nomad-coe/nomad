@@ -16,6 +16,7 @@ from typing import List, Dict, Any
 from flask_restplus import Resource, abort
 from flask import request
 from elasticsearch_dsl import Q
+from cachetools import cached, TTLCache
 
 from nomad import search, files, datamodel, config
 from nomad.datamodel import OptimadeEntry
@@ -24,7 +25,7 @@ from .api import api, url, base_request_args
 from .models import json_api_single_response_model, entry_listing_endpoint_parser, Meta, \
     Links as LinksModel, single_entry_endpoint_parser, base_endpoint_parser, \
     json_api_info_response_model, json_api_list_response_model, EntryDataObject, \
-    ToplevelLinks, get_entry_properties, json_api_structure_response_model, \
+    get_entry_properties, json_api_structure_response_model, \
     json_api_structures_response_model
 from .filterparser import parse_filter, FilterException
 
@@ -62,10 +63,12 @@ def to_calc_with_metadata(results: List[Dict[str, Any]]):
     return result
 
 
-# TODO the Entry/ListEntry endpoints for References, Calculations, Structures should
-# reuse more code.
-# Calculations are identical to structures. Not sure if this is what the optimade
-# specification intends.
+@cached(TTLCache(maxsize=1, ttl=60 * 60))
+def nentries():
+    ''' Gives the overall number of public calculations. '''
+    return search.SearchRequest().owner(owner_type='public').execute()['total']
+
+
 @ns.route('/calculations')
 class CalculationList(Resource):
     @api.doc('list_calculations')
@@ -98,19 +101,19 @@ class CalculationList(Resource):
             per_page=page_limit)
         # order_by='optimade.%s' % sort)  # TODO map the Optimade property
 
-        available = result['pagination']['total']
+        returned = result['pagination']['total']
         results = to_calc_with_metadata(result['results'])
         assert len(results) == len(result['results']), 'archive and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
                 query=request.url,
-                returned=len(results),
-                available=available,
-                last_id=results[-1].calc_id if available > 0 else None),
+                returned=returned,
+                available=nentries(),
+                last_id=results[-1].calc_id if returned > 0 else None),
             links=LinksModel(
                 'calculations',
-                available=available,
+                returned=returned,
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter),
@@ -159,7 +162,7 @@ class CalculationInfo(Resource):
 
         result = {
             'description': 'a calculation entry',
-            'properties': get_entry_properties(),
+            'properties': get_entry_properties(include_optimade=False),
             'formats': ['json'],
             'output_fields_by_format': {
                 'json': list(OptimadeEntry.m_def.all_properties.keys())}
@@ -225,52 +228,6 @@ def execute_search(**kwargs):
     return result
 
 
-# TODO This does not return reference
-# TODO This also needs a single entry endpoint?
-# TODO This also needs an info endpoint
-# @ns.route('/references')
-# class References(Resource):
-#     @api.doc('references')
-#     @api.response(400, 'Invalid requests, e.g. bad parameter.')
-#     @api.response(422, 'Validation error')
-#     @api.expect(entry_listing_endpoint_parser, validate=True)
-#     @api.marshal_with(json_api_references_response_model, skip_none=True, code=200)
-#     def get(self):
-#         ''' Returns references for the structures that match the given optimade filter expression'''
-#         try:
-#             filter = request.args.get('filter', None)
-#             page_limit = int(request.args.get('page_limit', 10))
-#             page_number = int(request.args.get('page_number', 1))
-#             sort = request.args.get('sort', 'chemical_formula_reduced'),
-
-#         except Exception:
-#             abort(400, message='bad parameter types')  # TODO Specific json API error handling
-
-#         result = execute_search(
-#             filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
-#         available = result['pagination']['total']
-#         results = to_calc_with_metadata(result['results'])
-#         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
-
-#         # TODO References are about returning user provided references to paper or web resources.
-#         # The ReferenceObject does not have this kind of information.
-#         # TODO Why is TopLevelLinks different from LinksModel. Any what is "TopLevel" about it.
-#         return dict(
-#             meta=Meta(
-#                 query=request.url,
-#                 returned=len(results),
-#                 available=available,
-#                 last_id=results[-1].calc_id if available > 0 else None),
-#             links=ToplevelLinks(
-#                 'structures',
-#                 available=available,
-#                 page_number=page_number,
-#                 page_limit=page_limit,
-#                 sort=sort, filter=filter),
-#             data=[ReferenceObject(d) for d in results]
-#         ), 200
-
-
 @ns.route('/links')
 class Links(Resource):
     @api.doc('links')
@@ -324,19 +281,19 @@ class StructureList(Resource):
 
         result = execute_search(
             filter=filter, page_limit=page_limit, page_number=page_number, sort=sort)
-        available = result['pagination']['total']
+        returned = result['pagination']['total']
         results = to_calc_with_metadata(result['results'])
         assert len(results) == len(result['results']), 'Mongodb and elasticsearch are not consistent'
 
         return dict(
             meta=Meta(
                 query=request.url,
-                returned=len(results),
-                available=available,
-                last_id=results[-1].calc_id if available > 0 else None),
-            links=ToplevelLinks(
+                returned=returned,
+                available=nentries(),
+                last_id=results[-1].calc_id if returned > 0 else None),
+            links=LinksModel(
                 'structures',
-                available=available,
+                returned=returned,
                 page_number=page_number,
                 page_limit=page_limit,
                 sort=sort, filter=filter

@@ -138,9 +138,9 @@ class Meta():
             maintainer=dict(email=config.meta.maintainer_email))
 
 
-class ToplevelLinks:
-    def __init__(self, endpoint: str, available: int, page_number: int, page_limit: int, **kwargs):
-        last_page = math.ceil(available / page_limit)
+class Links:
+    def __init__(self, endpoint: str, returned: int, page_number: int, page_limit: int, **kwargs):
+        last_page = math.ceil(returned / page_limit)
 
         rest = dict(page_limit=page_limit)
         rest.update(**{key: value for key, value in kwargs.items() if value is not None})
@@ -170,25 +170,6 @@ json_api_links_model = api.model('ApiLinks', {
     'first': fields.String(
         description='The first page of data.')
 })
-
-
-def Links(endpoint: str, available: int, page_number: int, page_limit: int, **kwargs):
-    last_page = math.ceil(available / page_limit)
-
-    rest = dict(page_limit=page_limit)
-    rest.update(**{key: value for key, value in kwargs.items() if value is not None})
-
-    result = dict(
-        base_url=url(version=None),
-        first=url(endpoint, page_number=1, **rest),
-        last=url(endpoint, page_number=last_page, **rest))
-
-    if page_number > 1:
-        result['prev'] = url(endpoint, page_number=page_number - 1, **rest)
-    if page_number * page_limit < available:
-        result['next'] = url(endpoint, page_number=page_number + 1, **rest)
-
-    return result
 
 
 json_api_response_model = api.model('Response', {
@@ -271,10 +252,11 @@ json_api_resource_model = api.model('Resource', {
 
 
 @cached({})
-def get_entry_properties():
+def get_entry_properties(include_optimade: bool = True):
     properties = {
         attr.name: dict(description=attr.description)
-        for attr in OptimadeEntry.m_def.all_properties.values()}
+        for attr in OptimadeEntry.m_def.all_properties.values()
+        if include_optimade}
 
     def add_nmd_properties(prefix, section_cls):
         for quantity in section_cls.m_def.all_quantities.values():
@@ -291,6 +273,9 @@ class EntryDataObject:
     def __init__(self, calc: EntryMetadata, optimade_type: str, request_fields: Set[str] = None):
 
         def include(key):
+            if optimade_type == 'calculations':
+                return False
+
             if request_fields is None or (key in request_fields):
                 return True
 
@@ -317,18 +302,6 @@ class EntryDataObject:
         self.type = optimade_type
         self.id = calc.calc_id
         self.attributes = attrs
-
-
-# class ReferenceObject:
-#     def __init__(self, calc: EntryMetadata):
-#         attrs = dict(
-#             immutable_id=calc.calc_id,
-#             last_modified=calc.last_processing if calc.last_processing is not None else calc.upload_time,
-#             authors=calc.authors)
-#
-#         self.type = 'calculation'
-#         self.id = calc.calc_id
-#         self.attributes = attrs
 
 
 class Property:
