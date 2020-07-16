@@ -117,7 +117,7 @@ class Meta():
             self, query: str, returned: int, available: int = None, last_id: str = None):
 
         self.query = dict(representation=query)
-        self.api_version = '0.10.1'
+        self.api_version = '1.0.0'
         self.time_stamp = datetime.datetime.now()
         self.data_returned = returned
         self.more_data_available = available > returned if available is not None else False

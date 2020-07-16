@@ -37,10 +37,10 @@ class Info(Resource):
             'type': 'info',
             'id': '/',
             'attributes': {
-                'api_version': '0.10.1',
+                'api_version': '1.0.0',
                 'available_api_versions': [{
                     'url': url(),
-                    'version': '0.10.1'
+                    'version': '1.0.0'
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {

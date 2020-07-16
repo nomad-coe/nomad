@@ -26,12 +26,12 @@ from tests.conftest import clear_elastic, clear_raw_files
 
 @pytest.fixture(scope='session')
 def api(session_client):
-    return BlueprintClient(session_client, '/optimade/v0')
+    return BlueprintClient(session_client, '/optimade/v1')
 
 
 @pytest.fixture(scope='session')
 def index_api(session_client):
-    return BlueprintClient(session_client, '/optimade/index/v0')
+    return BlueprintClient(session_client, '/optimade/index/v1')
 
 
 def test_index(index_api):
@@ -156,7 +156,7 @@ def test_optimade_parser(example_structures, query, results):
 
 
 def test_url():
-    assert url('endpoint', param='value').endswith('/optimade/v0/endpoint?param=value')
+    assert url('endpoint', param='value').endswith('/optimade/v1/endpoint?param=value')
 
 
 def test_list_endpoint(api, example_structures):

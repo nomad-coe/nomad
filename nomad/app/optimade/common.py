@@ -22,7 +22,7 @@ from nomad import search
 from .api import api
 
 
-ns = api.namespace('v0', description='The version v0 API namespace with all OPTiMaDe endpoints.')
+ns = api.namespace('v1', description='The version v1 API namespace with all OPTiMaDe endpoints.')
 
 
 # TODO replace with decorator that filters response_fields

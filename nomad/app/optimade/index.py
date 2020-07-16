@@ -21,7 +21,7 @@ from .api import api, url
 from .common import base_request_args
 from .models import json_api_single_response_model, base_endpoint_parser, json_api_single_response_model, Meta, json_api_list_response_model
 
-ns = api.namespace('index/v0', description='This is the OPTiMaDe index for NOMAD\' implementations.')
+ns = api.namespace('index/v1', description='This is the OPTiMaDe index for NOMAD\' implementations.')
 
 
 @ns.route('/info')
@@ -38,10 +38,10 @@ class Info(Resource):
             'type': 'info',
             'id': '/',
             'attributes': {
-                'api_version': '0.10.1',
+                'api_version': '1.0.0',
                 'available_api_versions': [{
                     'url': url(prefix='index'),
-                    'version': '0.10.1'
+                    'version': '1.0.0'
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {
@@ -53,7 +53,7 @@ class Info(Resource):
             'relationships': {
                 'default': {
                     'data': {
-                        'id': 'v0',
+                        'id': 'v1',
                         'type': 'links'
                     }
                 }
@@ -79,7 +79,7 @@ class Links(Resource):
         result = [
             {
                 "type": "child",
-                "id": "v0",
+                "id": "v1",
                 "attributes": {
                     "name": config.meta.name,
                     "description": config.meta.description,
