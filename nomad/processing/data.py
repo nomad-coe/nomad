@@ -38,7 +38,8 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parser_dict, match_parser, Backend
+from nomad.parsing import Backend
+from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.archive import query_archive
@@ -1036,7 +1037,7 @@ class Upload(Proc):
             modified_upload = self._get_collection().find_one_and_update(
                 {'_id': self.upload_id, 'joined': {'$ne': True}},
                 {'$set': {'joined': True}})
-            if modified_upload['joined'] is False:
+            if modified_upload is None or modified_upload['joined'] is False:
                 self.get_logger().info('join')
 
                 # Before cleaning up, run an additional normalizer on phonon

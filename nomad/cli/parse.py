@@ -4,10 +4,9 @@ import json
 import click
 import sys
 
-from nomad import utils
-from nomad import parsing
-from nomad import normalizing
-from nomad import datamodel
+from nomad import utils, parsing, normalizing, datamodel
+from nomad.parsing.parsers import parser_dict, match_parser
+
 import nomadcore
 
 from .cli import cli
@@ -27,10 +26,10 @@ def parse(
     if logger is None:
         logger = utils.get_logger(__name__)
     if parser_name is not None:
-        parser = parsing.parser_dict.get(parser_name)
+        parser = parser_dict.get(parser_name)
         assert parser is not None, 'the given parser must exist'
     else:
-        parser = parsing.match_parser(mainfile_path, strict=strict)
+        parser = match_parser(mainfile_path, strict=strict)
         if isinstance(parser, parsing.MatchingParser):
             parser_name = parser.name
         else:

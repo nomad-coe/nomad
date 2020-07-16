@@ -3,7 +3,7 @@ if __name__ == '__main__':
     import logging
     import time
     from nomad import config, utils
-    from nomad.parsing import parser_dict
+    from nomad.parsing.parsers import parser_dict
     from nomad.cli.parse import normalize_all
     from nomad.metainfo.legacy import LegacyMetainfoEnvironment
     from nomad.parsing.legacy import Backend
