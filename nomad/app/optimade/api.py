@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Blueprint, request, abort
+from flask import Blueprint
 from flask_restplus import Api
 import urllib.parse
 
@@ -44,17 +44,6 @@ def url(endpoint: str = None, version='v0', prefix=None, **kwargs):
         return '%s?%s' % (url, urllib.parse.urlencode(kwargs))
     else:
         return url
-
-
-# TODO replace with decorator that filters response_fields
-def base_request_args():
-    if request.args.get('response_format', 'json') != 'json':
-        abort(400, 'Response format is not supported.')
-
-    properties_str = request.args.get('request_fields', None)
-    if properties_str is not None:
-        return properties_str.split(',')
-    return None
 
 
 api = Api(

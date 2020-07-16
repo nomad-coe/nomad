@@ -16,13 +16,13 @@
 All the API flask restplus models.
 '''
 
-from typing import Set
+from typing import Set, List, Dict, Any
 from flask_restplus import fields
 import datetime
 import math
 from cachetools import cached
 
-from nomad import config
+from nomad import config, datamodel, files
 from nomad.app.common import RFC3339DateTime
 from nomad.datamodel import EntryMetadata
 from nomad.datamodel.dft import DFTMetadata
@@ -207,7 +207,7 @@ json_api_data_object_model = api.model('DataObject', {
 })
 
 
-json_api_calculation_info_model = api.model('CalculationInfo', {
+json_api_info_model = api.model('CalculationInfo', {
     'description': fields.String(
         description='Description of the entry'),
 
@@ -225,29 +225,6 @@ json_api_calculation_info_model = api.model('CalculationInfo', {
                      'type, where the keys are the values of the formats list'
                      'and the values are the keys of the properties dictionary'))
 
-})
-
-json_api_resource_model = api.model('Resource', {
-    'id': fields.String(
-        description='The id of the object.'),
-
-    'type': fields.String(
-        description='The type of the object.'),
-
-    'links': fields.Raw(
-        description='Links related to the resource.'
-    ),
-
-    'meta': fields.Raw(
-        description='Meta information about the resource.'
-    ),
-
-    'attributes': fields.Raw(
-        description='A dictionary, containing key-value pairs representing the entry details.'),
-
-    'relationships': fields.Raw(
-        description='A dictionary containing references to other entries.'
-    )
 })
 
 
@@ -270,23 +247,25 @@ def get_entry_properties(include_optimade: bool = True):
 
 
 class EntryDataObject:
-    def __init__(self, calc: EntryMetadata, optimade_type: str, request_fields: Set[str] = None):
+    def __init__(self, calc: EntryMetadata, optimade_type: str, response_fields: Set[str] = None):
 
         def include(key):
-            if optimade_type == 'calculations':
+            if optimade_type == 'calculations' and key not in ['immutable_id', 'last_modified']:
                 return False
 
-            if request_fields is None or (key in request_fields):
+            if response_fields is None or (key in response_fields):
                 return True
 
             return False
 
         attrs = {key: value for key, value in calc.dft.optimade.m_to_dict().items() if include(key)}
-        attrs['immutable_id'] = calc.calc_id
-        attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
+        if include('immutable_id'):
+            attrs['immutable_id'] = calc.calc_id
+        if include('last_modified'):
+            attrs['last_modified'] = calc.last_processing if calc.last_processing is not None else calc.upload_time
 
-        if request_fields is not None:
-            for request_field in request_fields:
+        if response_fields is not None:
+            for request_field in response_fields:
                 if not request_field.startswith('_nmd_'):
                     continue
 
@@ -339,42 +318,11 @@ json_api_list_response_model = api.inherit(
 json_api_info_response_model = api.inherit(
     'InfoResponse', json_api_response_model, {
         'data': fields.Nested(
-            model=json_api_calculation_info_model,
+            model=json_api_info_model,
             required=True,
             description=('The returned response object.'))
     })
 
-json_api_structure_response_model = api.inherit(
-    'Structure', json_api_response_model, {
-        'data': fields.Nested(
-            model=json_api_resource_model,
-            required=True, skip_none=True,
-            description=('The returned structure object.'))
-    })
-
-json_api_structures_response_model = api.inherit(
-    'Structures', json_api_response_model, {
-        'data': fields.List(
-            fields.Nested(json_api_resource_model, skip_none=True),
-            required=True,
-            description=('The list of returned structure objects.'))
-    })
-
-json_api_references_response_model = api.inherit(
-    'References', json_api_response_model, {
-        'data': fields.List(
-            fields.Nested(json_api_resource_model, skip_none=True),
-            required=True,
-            description=('The list of returned reference objects.'))
-    })
-
-json_api_links_response_model = api.inherit(
-    'Links', json_api_response_model, {
-        'data': fields.List(
-            fields.Nested(json_api_resource_model, skip_none=True),
-            required=True,
-            description=('The list of returned link objects.'))
-    })
 
 base_endpoint_parser = api.parser()
 base_endpoint_parser.add_argument(
@@ -404,3 +352,28 @@ entry_listing_endpoint_parser.add_argument(
     help='Name of the property to sort the results by.')
 
 single_entry_endpoint_parser = base_endpoint_parser.copy()
+
+
+def to_calc_with_metadata(results: List[Dict[str, Any]]):
+    ''' Translates search results into :class:`EntryMetadata` objects read from archive. '''
+
+    upload_files_cache: Dict[str, files.UploadFiles] = {}
+
+    def transform(result):
+        calc_id, upload_id = result['calc_id'], result['upload_id']
+        upload_files = upload_files_cache.get(upload_id)
+
+        if upload_files is None:
+            upload_files = files.UploadFiles.get(upload_id)
+            upload_files_cache[upload_id] = upload_files
+
+        archive = upload_files.read_archive(calc_id)  # , access='public')
+        metadata = archive[calc_id]['section_metadata'].to_dict()
+        return datamodel.EntryMetadata.m_from_dict(metadata)
+
+    result = [transform(result) for result in results]
+
+    for upload_files in upload_files_cache.values():
+        upload_files.close()
+
+    return result

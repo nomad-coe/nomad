@@ -175,26 +175,26 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data'][item]['attributes'][key] == ref
 
 
-def test_list_endpoint_request_fields(api, example_structures):
-    rv = api.get('/structures?request_fields=nelements,elements')
+def test_list_endpoint_response_fields(api, example_structures):
+    rv = api.get('/structures?response_fields=nelements,elements')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
     data['data'] = sorted(data['data'], key=lambda x: x['id'])
     for i in range(len(data['data'])):
         rf = sorted(list(data['data'][i]['attributes'].keys()))
-        assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
+        assert rf == ['elements', 'nelements']
         assert_eq_attrib(data, 'elements', ref_elements[i], i)
         assert_eq_attrib(data, 'nelements', len(ref_elements[i]), i)
 
 
-def test_single_endpoint_request_fields(api, example_structures):
-    rv = api.get('/structures/%s?request_fields=nelements,elements' % 'test_calc_id_1')
+def test_single_endpoint_response_fields(api, example_structures):
+    rv = api.get('/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = ['H', 'O']
     rf = sorted(list(data['data']['attributes'].keys()))
-    assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
+    assert rf == ['elements', 'nelements']
     assert_eq_attrib(data, 'elements', ref_elements)
     assert_eq_attrib(data, 'nelements', len(ref_elements))
 
@@ -271,16 +271,6 @@ def test_structure_endpoint(api, example_structures):
 
 
 def test_calculations_endpoint(api, example_structures):
-    rv = api.get('/calculations/%s' % 'test_calc_id_1')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert data.get('data') is not None
-    attr = data['data'].get('attributes')
-    assert attr is not None
-    assert len(attr) == 2
-
-
-def test_calculations_endpoint(api, example_structures):
     rv = api.get('/calculations')
     assert rv.status_code == 200
     data = json.loads(rv.data)
@@ -293,8 +283,18 @@ def test_calculations_endpoint(api, example_structures):
             assert key in d['attributes']
 
 
+def test_calculation_endpoint(api, example_structures):
+    rv = api.get('/calculations/%s' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert len(attr) == 2
+
+
 def test_nmd_properties(api, example_structures):
-    rv = api.get('/structures/%s' % 'test_calc_id_1?request_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
+    rv = api.get('/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     assert data.get('data') is not None
