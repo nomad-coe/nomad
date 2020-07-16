@@ -457,7 +457,10 @@ class Calc(Proc):
             self._entry_metadata.dft.update_group_hash()
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exception=e)
+            if self._entry_metadata.encyclopedia is None:
+                self._entry_metadata.encyclopedia = EncyclopediaMetadata()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
+
         finally:
             # persist the calc metadata
             with utils.timer(logger, 'saved calc metadata', step='metadata'):
