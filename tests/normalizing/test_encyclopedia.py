@@ -197,7 +197,7 @@ def test_2d_material_identification():
         indices=[0, 1]
     )]
     space_group_number = 191
-    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets)
+    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets, is_2d=True)
     graphene_material_id = hash(norm_hash_string)
 
     # Graphene orthogonal cell
@@ -285,7 +285,7 @@ def test_2d_material_identification():
         )
     ]
     space_group_number = 11
-    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets)
+    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets, is_2d=True)
     mos2_material_id = hash(norm_hash_string)
 
     # MoS2 orthogonal cell

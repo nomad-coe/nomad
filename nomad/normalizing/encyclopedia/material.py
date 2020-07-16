@@ -427,7 +427,7 @@ class Material2DNormalizer(MaterialNormalizer):
         # is treated as a 3D structure. Due to this the hash may overlap with
         # real 3D structures unless we include a distinguishing label for 2D
         # structures in the hash seed.
-        norm_hash_string = "2D " + atomutils.get_symmetry_string(spg_number, wyckoff_sets)
+        norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets, is_2d=True)
         material.material_id = hash(norm_hash_string)
 
     def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
