@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'nomad-FAIRDI'
-copyright = '2018, FAIRDI e.V.'
+project = 'NOMAD Repository and Archive'
+copyright = '2014-2020, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
 # The short X.Y version

@@ -1,7 +1,42 @@
 .. _metainfo-label:
 
-Metainfo
-========
+NOMAD Metainfo
+==============
+
+Introduction
+------------
+
+The NOMAD Metainfo stores descriptive and structured information about materials-science
+data contained in the NOMAD Archive. The Metainfo can be understood as the schema of
+the Archive. The NOMAD Archive data is
+structured to be independent of the electronic-structure theory code or molecular-simulation,
+(or beyond). The NOMAD Metainfo can be browsed as part of the `NOMAD Repository and Archive web application <https://repository.nomad-coe.eu/app/gui/metainfo>`_.
+
+Typically (meta-)data definitions are generated only for a predesigned and specific scientific field,
+application or code. In contrast, the NOMAD Metainfo considers all pertinent information
+in the input and output files of the supported electronic-structure theory, quantum chemistry,
+and molecular-dynamics (force-field) codes. This ensures a complete coverage of all
+material and molecule properties, even though some properties might not be as important as
+others, or are missing in some input/output files of electronic-structure programs.
+
+.. image:: assets/metainfo_example.png
+
+NOMAD Metainfo is kept independent of the actual storage format and is not bound to any
+specific storage method. In our practical implementation, we use a binary form of JSON,
+called `msgpack <https://msgpack.org/>`_ on our servers and provide Archive data as JSON via
+our API. For NOMAD end-users the internal storage format is of little relevance, because
+the archive data is solely served by NOMAD's API.
+
+The NOMAD Metainfo started within the `NOMAD Laboratory <https://nomad-lab.eu>`_. It was discussed at the
+`CECAM workshop Towards a Common Format for Computational Materials Science Data <https://th.fhi-berlin.mpg.de/meetings/FCMSD2016/>`_
+and is open to external contributions and extensions. More information can be found in:
+
+- `Towards a Common Format for Computational Materials Science Data (Psi-K 2016 Highlight) <http://th.fhi-berlin.mpg.de/site/uploads/Publications/Psik_Highlight_131-2016.pdf>`_ provides a description on how to establish code-independent formats in detail and presents the challenges and practical strategies for achieving a common format for the representation of computational material-science data.
+- `The Novel Materials Discovery Laboratory - Data formats and compression, D1.1 <https://www.nomad-coe.eu/uploads/outreach/Public%20Deliverables/NOMAD%20D1.1%20public%20KO20June2016.pdf>`_ outlines possible data formats, concepts, and compression techniques used to build a homogeneous (code-independent) data archive, called the NOMA
+
+
+Metainfo Python Interface
+-------------------------
 
 .. automodule:: nomad.metainfo
 
@@ -33,6 +68,9 @@ Python modules:
 
     from nomad.datamodel.metainfo.public import section_run
     my_run = section_run()
+
+Many more examples about how to read the NOMAD Metainfo programmatically can be found
+`here <https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/master/examples/access_metainfo.py>`_.
 
 API
 ___

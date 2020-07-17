@@ -44,6 +44,16 @@ def parse(
 
     parser_backend = parser.run(mainfile_path, logger=logger)
 
+    from nomad.metainfo import MSection
+    from nomad.parsing.legacy import Backend
+
+    if isinstance(parser_backend, MSection):
+        backend = Backend(parser._metainfo_env, parser.domain)
+        root_section = str(datamodel.domains[parser.domain]['root_section'])
+        setattr(backend.entry_archive, root_section, parser_backend)
+        backend.resource.add(parser_backend)
+        parser_backend = backend
+
     if not parser_backend.status[0] == 'ParseSuccess':
         logger.error('parsing was not successful', status=parser_backend.status)
 

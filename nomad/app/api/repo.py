@@ -180,10 +180,14 @@ class RepoCalcsResource(Resource):
         except Exception as e:
             abort(400, message='bad parameters: %s' % str(e))
 
+        for metric in metrics:
+            if metric not in search_extension.metrics:
+                abort(400, message='there is no metric %s' % metric)
+
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, args)
         if date_histogram:
-            search_request.date_histogram(interval=interval)
+            search_request.date_histogram(interval=interval, metrics_to_use=metrics)
 
         try:
             assert page >= 1
@@ -193,10 +197,6 @@ class RepoCalcsResource(Resource):
 
         if order not in [-1, 1]:
             abort(400, message='invalid pagination')
-
-        for metric in metrics:
-            if metric not in search_extension.metrics:
-                abort(400, message='there is no metric %s' % metric)
 
         if len(statistics) > 0:
             search_request.statistics(statistics, metrics_to_use=metrics)

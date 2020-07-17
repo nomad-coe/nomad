@@ -38,7 +38,7 @@ nomadcore
 nomad_dos_fingerprints
 
 # [infrastructure]
-optimade
+optimade==0.8.1
 structlog
 elasticsearch==6.4.0
 msgpack<0.6.0

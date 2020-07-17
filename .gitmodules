@@ -1,7 +1,3 @@
-[submodule "dependencies/nomad-meta-info"]
-	path = dependencies/nomad-meta-info
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git
-	branch = nomad-fair
 [submodule "dependencies/python_common"]
 	path = dependencies/python_common
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git

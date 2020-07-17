@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Blueprint, request, abort
+from flask import Blueprint
 from flask_restplus import Api
 import urllib.parse
 
@@ -25,7 +25,7 @@ base_url = 'https://%s/%s/optimade' % (
     config.services.api_base_path.strip('/'))
 
 
-def url(endpoint: str = None, version='v0', prefix=None, **kwargs):
+def url(endpoint: str = None, version='v1', prefix=None, **kwargs):
     ''' Returns the full optimade api url (for a given endpoint) including query parameters. '''
     if endpoint is not None:
         url = '/' + endpoint
@@ -46,21 +46,10 @@ def url(endpoint: str = None, version='v0', prefix=None, **kwargs):
         return url
 
 
-# TODO replace with decorator that filters response_fields
-def base_request_args():
-    if request.args.get('response_format', 'json') != 'json':
-        abort(400, 'Response format is not supported.')
-
-    properties_str = request.args.get('request_fields', None)
-    if properties_str is not None:
-        return properties_str.split(',')
-    return None
-
-
 api = Api(
     blueprint,
     version='1.0', title='NOMAD\'s OPTiMaDe API implementation',
-    description='NOMAD\'s OPTiMaDe API implementation, version 0.10.1.',
+    description='NOMAD\'s OPTiMaDe API implementation, version 1.0.0.',
     validate=True)
 ''' Provides the flask restplust api instance for the optimade api'''
 

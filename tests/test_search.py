@@ -15,6 +15,7 @@
 from typing import List, Iterable
 from elasticsearch_dsl import Q
 import pytest
+from datetime import datetime
 
 from nomad import datamodel, search, processing, parsing, infrastructure, config
 from nomad.search import entry_document, SearchRequest
@@ -71,7 +72,8 @@ def test_index_upload(elastic, processed: processing.Upload):
 def example_search_data(elastic, normalized: parsing.Backend):
     entry_metadata = normalized.entry_archive.section_metadata
     entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id')
+        domain='dft', upload_id='test upload id', calc_id='test id',
+        upload_time=datetime.now())
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
     refresh_index()
@@ -178,15 +180,17 @@ def test_search_statistics(elastic, example_search_data):
     use_metrics = search_extension.metrics.keys()
 
     request = SearchRequest(domain='dft').statistic(
-        'dft.system', size=10, metrics_to_use=use_metrics).date_histogram()
+        'dft.system', size=10, metrics_to_use=use_metrics).date_histogram(metrics_to_use=use_metrics)
     results = request.execute()
 
     statistics = results['statistics']
     assert 'results' not in results
     assert 'bulk' in statistics['dft.system']
+    assert 'date_histogram' in statistics
 
     example_statistic = statistics['dft.system']['bulk']
     assert_metrics(example_statistic, use_metrics)
+    assert_metrics(statistics['date_histogram'][list(statistics['date_histogram'].keys())[0]], use_metrics)
     assert_metrics(statistics['total']['all'], [])
 
     assert 'quantities' not in results
