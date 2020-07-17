@@ -358,11 +358,10 @@ def test_bulk_material_identification():
     assert hash5 != hash1
 
 
-def test_1d_structure_structure_at_cell_boundary():
-    """Tests that the visualization that is made for 1D systems has the
-    correct form even if the cell boundary is at the middle of the
-    structure.
+def test_1d_idealized_structure():
+    """Tests that the idealized structure for 1D systems has the correct form.
     """
+    # Cell boundary in the middle of the structure.
     atoms = Atoms(
         symbols=["H", "C"],
         positions=[
@@ -398,11 +397,11 @@ def test_1d_structure_structure_at_cell_boundary():
     assert np.allclose(ideal.lattice_vectors, expected_cell)
 
 
-def test_2d_structure_structure_at_cell_boundary():
+def test_2d_idealized_structure():
     """Tests that the visualization that is made for 2D systems has the
-    correct form even if the cell boundary is at the middle of the
-    structure.
+    correct form.
     """
+    # Cell boundary in the middle of the structure.
     atoms = Atoms(
         symbols=["H", "C"],
         positions=[

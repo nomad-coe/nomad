@@ -28,7 +28,7 @@ h5py
 hjson
 scipy
 scikit-learn==0.20.2
-matid==0.6.0
+matid==0.6.1
 python-magic
 panedr==0.2
 parmed==3.0.0
