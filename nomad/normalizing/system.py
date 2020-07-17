@@ -248,7 +248,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         system_type = config.services.unavailable_value
         if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
-                classifier = Classifier(cluster_threshold=config.normalize.cluster_threshold)
+                classifier = Classifier(radii="covalent", cluster_threshold=config.normalize.cluster_threshold)
                 cls = classifier.classify(atoms)
             except Exception as e:
                 self.logger.error(

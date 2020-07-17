@@ -229,7 +229,7 @@ normalize = NomadConfig(
     max_2d_single_cell_size=7,
     # The distance tolerance between atoms for grouping them into the same
     # cluster. Used in detecting system type.
-    cluster_threshold=3.1,
+    cluster_threshold=2.5,
     # Defines the "bin size" for rounding cell angles for the material hash
     angle_rounding=float(10.0),  # unit: degree
     # The threshold for a system to be considered "flat". Used e.g. when
