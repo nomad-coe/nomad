@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography, Link } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -17,7 +17,6 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase, appBase } from '../../config'
 import qs from 'qs'
 import { CodeList } from '../About'
-import { Link } from '@material-ui/core'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
