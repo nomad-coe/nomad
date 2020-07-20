@@ -22,7 +22,7 @@ import importlib
 
 from nomad.metainfo.legacy import python_package_mapping, LegacyMetainfoEnvironment
 from nomad.metainfo import Package
-from nomad.parsing import parsers
+from nomad.parsing.parsers import parsers
 
 from .api import api
 

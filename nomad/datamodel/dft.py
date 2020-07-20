@@ -266,7 +266,7 @@ class DFTMetadata(MSection):
     def code_name_from_parser(self):
         entry = self.m_parent
         if entry.parser_name is not None:
-            from nomad.parsing import parser_dict
+            from nomad.parsing.parsers import parser_dict
             parser = parser_dict.get(entry.parser_name)
             if hasattr(parser, 'code_name'):
                 return parser.code_name

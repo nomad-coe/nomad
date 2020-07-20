@@ -22,7 +22,8 @@ import datetime
 from ase.data import chemical_symbols
 from ase.spacegroup import Spacegroup
 
-from nomad import datamodel, parsing, utils, files
+from nomad import datamodel, utils, files
+from nomad.parsing.parsers import parser_dict
 
 number_of = 20
 
@@ -37,7 +38,7 @@ systems = ['atom', 'molecule/cluster', '2D/surface', 'bulk']
 comments = [gen.sentence() for _ in range(0, number_of)]
 references = [(i + 1, gen.url()) for i in range(0, number_of)]
 datasets = [(i + 1, gen.slug()) for i in range(0, number_of)]
-codes = list(set([parser.code_name for parser in parsing.parser_dict.values() if hasattr(parser, 'code_name')]))  # type: ignore
+codes = list(set([parser.code_name for parser in parser_dict.values() if hasattr(parser, 'code_name')]))  # type: ignore
 filepaths = ['/'.join(gen.url().split('/')[3:]) for _ in range(0, number_of)]
 
 low_numbers_for_atoms = [1, 1, 2, 2, 2, 2, 2, 3, 3, 4]

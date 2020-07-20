@@ -8,7 +8,7 @@ window.nomadEnv = {
   'matomoUrl': 'https://repository.nomad-coe.eu/fairdi/stat',
   'matomoSiteId': '2',
   'version': {
-    "label": "0.8.2",
+    "label": "0.8.3",
     "isBeta": false,
     "usesBetaData": false,
     "officialUrl": "https://repository.nomad-coe.eu/app/gui"

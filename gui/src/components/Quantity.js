@@ -17,7 +17,10 @@ class Quantity extends React.Component {
     row: PropTypes.bool,
     column: PropTypes.bool,
     data: PropTypes.object,
-    quantity: PropTypes.string,
+    quantity: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.func
+    ]),
     withClipboard: PropTypes.bool,
     ellipsisFront: PropTypes.bool
   }
@@ -79,8 +82,18 @@ class Quantity extends React.Component {
       valueClassName = `${valueClassName} ${classes.ellipsisFront}`
     }
 
+    let value
     if (!loading) {
-      const value = data && quantity && _.get(data, quantity)
+      if (typeof quantity === 'string') {
+        value = data && quantity && _.get(data, quantity)
+      } else {
+        try {
+          value = quantity(data)
+        } catch {
+          value = undefined
+        }
+      }
+
       if (children && children.length !== 0) {
         content = children
       } else if (value) {
@@ -95,12 +108,14 @@ class Quantity extends React.Component {
       }
     }
 
+    const useLabel = label || (typeof quantity === 'string' ? quantity : 'MISSING LABEL')
+
     if (row || column) {
       return <div className={row ? classes.row : classes.column}>{children}</div>
     } else {
       return (
         <div className={classes.root}>
-          <Typography noWrap classes={{root: classes.label}} variant="caption">{label || quantity}</Typography>
+          <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
           <div className={classes.valueContainer}>
             {loading
               ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
@@ -108,7 +123,7 @@ class Quantity extends React.Component {
               </Typography> : content}
             {withClipboard
               ? <CopyToClipboard className={classes.valueAction} text={clipboardContent} onCopy={() => null}>
-                <Tooltip title={`Copy ${label || quantity} to clipboard`}>
+                <Tooltip title={`Copy ${useLabel} to clipboard`}>
                   <div>
                     <IconButton disabled={!clipboardContent} classes={{root: classes.valueActionButton}} >
                       <ClipboardIcon classes={{root: classes.valueActionIcon}}/>
