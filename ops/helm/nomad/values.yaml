@@ -1,9 +1,9 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.8.2"
+  label: "0.8.3"
   isBeta: false
   usesBetaData: false
-  officialUrl: "https://repository.nomad-coe.eu/app/gui"
+  officialUrl: "https://nomad-lab.eu/prod/rae/gui"
 
 ## Everything concerning the container images to be used
 image:
@@ -73,7 +73,7 @@ gui:
   ## This variable is used in the GUI to show or hide additional information
   debug: false
   ## URL for matomo(piwik) user tracking
-  matomoUrl: 'https://repository.nomad-coe.eu/fairdi/stat'
+  matomoUrl: 'https://nomad-lab.eu/prod/stat'
   ## site id for matomo(piwik) user tracking
   matomoSiteId: 1
   ## send matomo(piwik) user tracking data
@@ -140,8 +140,8 @@ client:
   username: admin
 
 keycloak:
-  serverExternalUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
-  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
+  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  serverUrl: "https://nomad-lab.eu/keycloak/auth/"
   realmName: "fairdi_nomad_test"
   username: "admin"
   clientId: "nomad_public"

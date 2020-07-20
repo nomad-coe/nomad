@@ -14,9 +14,10 @@ This is the documentation of **nomad@FAIRDI**, the Open-Source continuation of t
 original NOMAD-coe software that reconciles the original code base,
 integrate it's services, allows 3rd parties to run individual and federated instance of
 the nomad infrastructure, provides nomad to other material science domains, and applies
-the FAIRDI principles as proliferated by the [FAIRDI Data Infrastructure e.V.](http://fairdi.eu).
+the FAIRDI principles as proliferated by the [FAIRDI Data Infrastructure e.V.](https://fairdi.eu).
 A central and publically available instance of the nomad software is run at the
-[MPCDF](https://www.mpcdf.mpg.de/) in Garching, Germany.
+[MPCDF](https://www.mpcdf.mpg.de/) in Garching, Germany. Software development and the
+operation of NOMAD is done by the [NOMAD Laboratory](https://nomad-lab.eu)
 
 The nomad software runs SAAS on a server and is used via web-based GUI and ReSTful
 API. Originally developed and hosted as individual services, **nomad@FAIRDI**
@@ -24,8 +25,7 @@ provides all services behind one GUI and API into a single coherent, integrated,
 modular software project.
 
 This documentation is only about the nomad *software*; it is about architecture,
-how to contribute, code reference, engineering and operation of nomad. It is not a
-nomad user manual.
+how to contribute, code reference, engineering and operation of nomad.
 
 
 ## Architecture

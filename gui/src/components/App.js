@@ -278,7 +278,7 @@ function MainMenu() {
     />
     <MainMenuItem
       title="FAQ"
-      path="/faq"
+      href="https://nomad-lab.eu/index.php?page=repository-archive-faqs"
       tooltip="Frequently Asked Questions (FAQ)"
       icon={<FAQIcon/>}
     />
@@ -456,7 +456,7 @@ class NavigationUnstyled extends React.Component {
                 disableGutters
               >
                 <div className={classes.title}>
-                  <a href="https://nomad-coe.eu">
+                  <a href="https://nomad-lab.eu">
                     <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
                   </a>
                   <Typography variant="h6" color="inherit" noWrap>

@@ -20,7 +20,8 @@ import os
 from shutil import copyfile
 
 from nomad import utils, files, datamodel
-from nomad.parsing import parser_dict, match_parser, BrokenParser, BadContextUri, Backend
+from nomad.parsing import BrokenParser, BadContextUri, Backend
+from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.app import dump_json
 from nomad.metainfo import MSection
 

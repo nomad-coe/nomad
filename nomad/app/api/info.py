@@ -20,7 +20,8 @@ from typing import Dict, Any
 from flask_restplus import Resource, fields
 from datetime import datetime
 
-from nomad import config, parsing, normalizing, datamodel, gitinfo, search
+from nomad import config, normalizing, datamodel, gitinfo, search
+from nomad.parsing import parsers, MatchingParser
 
 from .api import api
 
@@ -94,8 +95,8 @@ class InfoResource(Resource):
     def get(self):
         ''' Return information about the nomad backend and its configuration. '''
         codes_dict = {}
-        for parser in parsing.parser_dict.values():
-            if isinstance(parser, parsing.MatchingParser) and parser.domain == 'dft':
+        for parser in parsers.parser_dict.values():
+            if isinstance(parser, MatchingParser) and parser.domain == 'dft':
                 code_name = parser.code_name
                 if code_name in codes_dict:
                     continue
@@ -105,10 +106,10 @@ class InfoResource(Resource):
         return {
             'parsers': [
                 key[key.index('/') + 1:]
-                for key in parsing.parser_dict.keys()],
+                for key in parsers.parser_dict.keys()],
             'metainfo_packages': ['general', 'general.experimental', 'common', 'public'] + sorted([
                 key[key.index('/') + 1:]
-                for key in parsing.parser_dict.keys()]),
+                for key in parsers.parser_dict.keys()]),
             'codes': codes,
             'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
             'statistics': statistics(),
