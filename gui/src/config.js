@@ -3,7 +3,7 @@ import { createMuiTheme } from '@material-ui/core'
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
-// export const apiBase = 'http://repository.nomad-coe.eu/v0.8/api'
+// export const apiBase = 'http://nomad-lab.eu/prod/rae/api'
 export const apiBase = `${appBase}/api`
 export const optimadeBase = `${appBase}/optimade`
 export const guiBase = process.env.PUBLIC_URL
@@ -19,7 +19,7 @@ export const maxLogsToShow = 50
 
 export const consent = `
 By using this web-site and by uploading and downloading data, you agree to the
-[terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
+[terms of use](https://nomad-lab.eu/index.php?page=terms).
 
 Uploaded data is licensed under the Creative Commons Attribution license
 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish

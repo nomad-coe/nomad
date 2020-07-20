@@ -30,7 +30,7 @@ from nomad import config, utils
 def edit_url(doi: str, url: str = None):
     ''' Changes the URL of an already findable DOI. '''
     if url is None:
-        url = 'https://repository.nomad-coe.eu/app/gui/datasets/doi/%s' % doi
+        url = 'https://nomad-lab.eu/prod/rae/gui/datasets/doi/%s' % doi
 
     metadata_url = '%s/doi/%s' % (config.datacite.mds_host, doi)
     response = requests.put(

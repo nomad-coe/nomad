@@ -14,7 +14,7 @@ Download and install latest release from nomad
 
 .. code-block:: sh
 
-    curl https://repository.nomad-coe.eu/app/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
+    curl https://nomad-lab.eu/prod/rae/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
     pip install ./nomad-lab.tar.gz
 
 There are different layers of dependencies that you have to install, in order to use

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from keycloak import KeycloakOpenID
 from time import time
 
-nomad_url = 'http://repository.nomad-coe.eu/app/api'
+nomad_url = 'http://nomad-lab.eu/prod/rae/api'
 user = 'yourusername'
 password = 'yourpassword'
 
@@ -21,7 +21,7 @@ class KeycloakAuthenticator(Authenticator):
         self.password = password
         self.token = None
         self.__oidc = KeycloakOpenID(
-            server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+            server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
             realm_name='fairdi_nomad_prod',
             client_id='nomad_public')
 

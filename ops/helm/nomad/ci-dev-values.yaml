@@ -27,7 +27,7 @@ logstash:
 dbname: nomad_dev_v0_8
 
 keycloak:
-  serverUrl: "https://repository.nomad-coe.eu/fairdi/keycloak/auth/"
+  serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
   realmName: 'fairdi_nomad_prod'
   clientId: 'nomad_public'

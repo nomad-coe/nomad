@@ -120,7 +120,7 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+    server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
@@ -250,7 +250,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://repository.nomad-coe.eu/app/api'
+    url='http://nomad-lab.eu/prod/rae/api'
 )
 
 datacite = NomadConfig(
@@ -269,7 +269,7 @@ meta = NomadConfig(
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
     description='A FAIR data sharing platform for materials science data',
-    homepage='https://repository.nomad-coe.eu/v0.8',
+    homepage='https://https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de'
 )

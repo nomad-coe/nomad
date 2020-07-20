@@ -5,7 +5,7 @@ This project implements the new *nomad@FAIRDI* infrastructure. Contrary to its N
 predecessor, it implements the NOMAD Repository and NOMAD Archive functionality within
 a single cohesive application. This project provides all necessary artifacts to develop,
 test, deploy, and operate the NOMAD Respository and Archive, e.g. at
-[https://repository.nomad-coe.eu/app/gui](https://repository.nomad-coe.eu/app/gui).
+[https://nomad-lab.eu](https://nomad-lab.eu).
 
 In the future, this project's aim is to integrate more NOMAD CoE components, like the NOMAD
 Encyclopedia and NOMAD Analytics Toolkit, to fully integrate NOMAD with one GUI and consistent
@@ -37,7 +37,7 @@ nomad parse --show-backend <your-file-to-parse>
 
 ### For NOMAD developer
 
-Read the [docs](https://repository.nomad-coe.eu/app/docs/index.html). The documentation is also part
+Read the [docs](https://nomad-lab.eu/prod/rae/docs/index.html). The documentation is also part
 of the source code. It covers aspects like introduction, architecture, development setup/deployment,
 contributing, and API reference.
 

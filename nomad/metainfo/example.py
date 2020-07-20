@@ -22,7 +22,7 @@ from nomad.metainfo import (
     MSection, MCategory, Section, Quantity, Package, SubSection, MEnum,
     Datetime, constraint)
 
-m_package = Package(links=['http://metainfo.nomad-coe.eu'])
+m_package = Package(links=['https://nomad-lab.eu/prod/rae/docs/metainfo.html'])
 
 
 class SystemHash(MCategory):
