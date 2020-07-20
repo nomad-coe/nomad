@@ -522,6 +522,8 @@ class Material2DNormalizer(MaterialNormalizer):
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
@@ -735,5 +737,7 @@ class Material1DNormalizer(MaterialNormalizer):
         self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.material_id_1d(material, std_atoms)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
