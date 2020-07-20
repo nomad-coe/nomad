@@ -239,8 +239,8 @@ normalize = NomadConfig(
     # The threshold for point equality in k-space. Unit: 1/m.
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
-    # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
-    band_structure_energy_tolerance=300 * 1.38064852E-23,
+    # level in order to detect a gap. Unit: Joule.
+    band_structure_energy_tolerance=1.6022e-20,  # 0.1 eV
     springer_db_path=os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'normalizing/data/springer.msg'

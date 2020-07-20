@@ -1264,10 +1264,17 @@ class section_dos(MSection):
         shape=['number_of_dos_values'],
         unit='joule',
         description='''
-        Array containing the set of discrete energy values with respect to the top of the
-        valence band for the density (electronic-energy) of states (DOS). This is the
-        total DOS, see atom_projected_dos_energies and species_projected_dos_energies for
+        Array containing the set of discrete energy values with respect to the
+        highest occupied energy level. This is the total DOS, see
+        atom_projected_dos_energies and species_projected_dos_energies for
         partial density of states.
+
+        If not available through energy_reference_highest_occupied, the highest
+        occupied energy level is detected by searching for a non-zero DOS value
+        below (or nearby) the reported energy_reference_fermi. In case the
+        highest occupied energy level cannot be detected accurately, the
+        normalized values are not reported. For calculations with multiple
+        spin-channels, the normalization is determined by the first channel.
         ''',
         a_legacy=LegacyDefinition(name='dos_energies_normalized'))
 
