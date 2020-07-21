@@ -293,4 +293,5 @@ from .metainfo import (
     SectionAnnotation,
     SectionProxy,
     derived,
-    constraint)
+    constraint,
+    units)
