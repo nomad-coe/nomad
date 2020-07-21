@@ -77,7 +77,8 @@ function ReloadSnack() {
 
 const useMainMenuItemStyles = makeStyles(theme => ({
   button: {
-    margin: theme.spacing(1)
+    margin: theme.spacing(1),
+    whiteSpace: 'nowrap'
   }
 }))
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Card, CardContent, Button, Typography, Dialog, DialogContent, DialogActions, DialogTitle } from '@material-ui/core'
+import { withStyles, Fab, Card, CardContent, Button, Typography, Dialog, DialogContent, DialogActions, DialogTitle, Box } from '@material-ui/core'
 import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import Markdown from '../Markdown'
@@ -10,6 +10,7 @@ import Download from './Download'
 import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 import ApiDialogButton from '../ApiDialogButton'
 import { withRouter } from 'react-router'
+import ArchiveBrowser from '../archive/ArchiveBrowser'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -190,6 +191,18 @@ class ArchiveEntryView extends React.Component {
       )
     }
 
+    const renderJson = (data) => <ReactJson
+      src={data}
+      enableClipboard={false}
+      collapsed={2}
+      displayObjectSize={false}
+      onSelect={this.handleShowMetaInfo.bind(this)}
+    />
+
+    const renderBrowser = data => <Box margin={-2} marginBottom={-3}><ArchiveBrowser data={data} /></Box>
+
+    const renderArchive = renderBrowser
+
     return (
       <div className={classes.root}>
         {metaInfoData && <MetainfoDialog metaInfoData={metaInfoData} onClose={() => this.setState({showMetaInfo: false})} />}
@@ -197,12 +210,7 @@ class ArchiveEntryView extends React.Component {
           <CardContent>
             {
               data && typeof data !== 'string'
-                ? <ReactJson
-                  src={this.state.data}
-                  enableClipboard={false}
-                  collapsed={2}
-                  displayObjectSize={false}
-                  onSelect={this.handleShowMetaInfo.bind(this)} />
+                ? renderArchive(data)
                 : <div>{
                   data
                     ? <div>
