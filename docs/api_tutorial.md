@@ -12,7 +12,7 @@ trade-offs between expressiveness, learning curve, and convinience:
 - use a generic Python HTTP library like [requests](https://requests.readthedocs.io/en/master/)
 - use more specific Python libraries like [bravado](https://github.com/Yelp/bravado) that turn HTTP requests into NOMAD
   specific function calls based on an [OpenAPI spec](https://swagger.io/specification/) that NOMAD offers and that describes our API
-- directly in the browser via our generated [swagger dashboard](https://repository.nomad-coe.eu/app/api/)
+- directly in the browser via our generated [swagger dashboard](../api/)
 - use the NOMAD Python client library, which offers custom and more powerful
   implementations for certain tasks (currently only for accessing the NOMAD Archive)
 
@@ -39,7 +39,7 @@ our gui) for entries that fit search criteria, like compounds having atoms *Si* 
 it:
 
 ```
-curl -X GET "http://repository.nomad-coe.eu/app/api/repo/?atoms=Si&atoms=O"
+curl -X GET "http://nomad-lab.eu/prod/rae/api/repo/?atoms=Si&atoms=O"
 ```
 
 Here we used curl to send an HTTP GET request to return the resource located by the given URL.
@@ -47,20 +47,20 @@ In practice you can omit the `-X GET` (which is the default) and you might want 
 the output:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/repo/?atoms=Si&atoms=O" | python -m json.tool
+curl "http://nomad-lab.eu/prod/rae/api/repo/?atoms=Si&atoms=O" | python -m json.tool
 ```
 
 You'll see the the metadata of the first 10 entries that match your criteria. There
 are various other query parameters. You find a full list in the generated [swagger dashboard
-of our API](https://repository.nomad-coe.eu/app/api/).
+of our API](https://nomad-lab.eu/prod/rae/api/).
 
 Besides search criteria you can determine how many results (`per_page`) and what page of
 results should be returned (`page`). If you want to go beyond the first 10.000 results
 you can use our *scroll* API (`scroll=true`, `scroll_after`). You can limit what properties
 should be returned (`include`, `exclude`). See the the generated [swagger dashboard
-of our API](https://repository.nomad-coe.eu/app/api/) for more parameters.
+of our API](https://nomad-lab.eu/prod/rae/api/) for more parameters.
 
-If you use the [NOMAD Repository and Archive search interface](https://repository.nomad-coe.eu/app/gui/search)
+If you use the [NOMAD Repository and Archive search interface](https://nomad-lab.eu/prod/rae/gui/search)
 and create a query, you can click th a **<>**-button (right and on top of the result list).
 This will give you some code examples with URLs for your search query.
 
@@ -69,21 +69,21 @@ identified an entry (given via a `upload_id`/`calc_id`, see the query output), a
 you want to download it:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/*" -o download.zip
+curl "http://nomad-lab.eu/prod/rae/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/*" -o download.zip
 ```
 
 With `*` you basically requests all the files under an entry or path..
 If you need a specific file (that you already know) of that calculation:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/INFO.OUT"
+curl "http://nomad-lab.eu/prod/rae/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/INFO.OUT"
 ```
 
 You can also download a specific file from the upload (given a `upload_id`), if you know
 the path of that file:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/raw/JvdvikbhQp673R4ucwQgiA/exciting_basis_set_error_study/monomers_expanded_k8_rgkmax_080_PBE/72_Hf/INFO.OUT"
+curl "http://nomad-lab.eu/prod/rae/api/raw/JvdvikbhQp673R4ucwQgiA/exciting_basis_set_error_study/monomers_expanded_k8_rgkmax_080_PBE/72_Hf/INFO.OUT"
 ```
 
 If you have a query
@@ -91,19 +91,19 @@ that is more selective, you can also download all results. Here all compounds th
 consist of Si, O, bulk material simulations of cubic systems (currently ~100 entries):
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/raw/query?only_atoms=Si&only_atoms=O&system=bulk&crystal_system=cubic" -o download.zip
+curl "http://nomad-lab.eu/prod/rae/api/raw/query?only_atoms=Si&only_atoms=O&system=bulk&crystal_system=cubic" -o download.zip
 ```
 
 In a similar way you can see the archive of an entry:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/archive/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX" | python -m json.tool
+curl "http://nomad-lab.eu/prod/rae/api/archive/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX" | python -m json.tool
 ```
 
 Or query and display the first page of 10 archives:
 
 ```
-curl "http://repository.nomad-coe.eu/app/api/archive/query?only_atoms=Si&only_atoms=O" | python -m json.tool
+curl "http://nomad-lab.eu/prod/rae/api/archive/query?only_atoms=Si&only_atoms=O" | python -m json.tool
 ```
 
 ## Using Python's *request* library
@@ -115,7 +115,7 @@ client library that allows you to send requests:
 import requests
 import json
 
-response = requests.get("http://repository.nomad-coe.eu/app/api/archive/query?only_atoms=Si&only_atoms=O")
+response = requests.get("http://nomad-lab.eu/prod/rae/api/archive/query?only_atoms=Si&only_atoms=O")
 data = response.json()
 print(json.dumps(data), indent=2)
 ```
@@ -128,7 +128,7 @@ specific functions for you.
 
 ```python
 from bravado.client import SwaggerClient
-nomad_url = 'http://repository.nomad-coe.eu/app/api'
+nomad_url = 'http://nomad-lab.eu/prod/rae/api'
 
 # create the bravado client
 client = SwaggerClient.from_url('%s/swagger.json' % nomad_url)
@@ -194,7 +194,7 @@ data you also need an account (email, password). The toy account used here, shou
 available on most nomad installations:
 
 ```python
-nomad_url = 'https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/api'
+nomad_url = 'https://nomad-lab.eu/prod/rae/api'
 user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 ```
@@ -220,7 +220,7 @@ class KeycloakAuthenticator(Authenticator):
         self.password = password
         self.token = None
         self.__oidc = KeycloakOpenID(
-            server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+            server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
             realm_name='fairdi_nomad_prod',
             client_id='nomad_public')
 
@@ -296,7 +296,7 @@ if upload.tasks_status != 'SUCCESS':
 ```
 
 Of course, you can also visit the nomad GUI
-([https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/gui/uploads](https://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/latest/gui/uploads))
+([https://nomad-lab.eu/prod/rae/gui/uploads](https://nomad-lab.eu/prod/rae/gui/uploads))
 to inspect your uploads. (You might click reload, if you had the page already open.)
 
 
@@ -379,7 +379,7 @@ or downloading data are only **GET** operations controlled by URL parameters. Fo
 
 Downloading data:
 ```
-curl http://repository.nomad-coe.eu/app/api/raw/query?upload_id=<your_upload_id> -o download.zip
+curl http://nomad-lab.eu/prod/rae/api/raw/query?upload_id=<your_upload_id> -o download.zip
 ```
 
 It is a litle bit trickier, if you need to authenticate yourself, e.g. to download
@@ -387,18 +387,18 @@ not yet published or embargoed data. All endpoints support and most require the 
 an access token. To acquire an access token from our usermanagement system with curl:
 ```
 curl --data 'grant_type=password&client_id=nomad_public&username=<your_username>&password=<your password>' \
-    https://repository.nomad-coe.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+    https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
 ```
 
 You can use the access-token with:
 ```
 curl -H 'Authorization: Bearer <you_access_token>' \
-    http://repository.nomad-coe.eu/app/api/raw/query?upload_id=<your_upload_id> -o download.zip
+    http://nomad-lab.eu/prod/rae/api/raw/query?upload_id=<your_upload_id> -o download.zip
 ```
 
 ### Conclusions
 This was just a small glimpse into the nomad API. You should checkout our
-[swagger-ui](https://repository.nomad-coe.eu/app/api/)
+[swagger-ui](nomad-lab.eu/prod/rae/api/)
 for more details on all the API endpoints and their parameters. You can explore the
 API via the swagger-ui and even try it in your browser.
 

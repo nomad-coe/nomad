@@ -1,16 +1,16 @@
 window.nomadEnv = {
-  'keycloakBase': 'https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+  'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
   'keycloakRealm': 'fairdi_nomad_test',
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
-  'matomoEnabled': true,
-  'matomoUrl': 'https://repository.nomad-coe.eu/fairdi/stat',
+  'matomoEnabled': false,
+  'matomoUrl': 'https://nomad-lab.eu/prod/stat',
   'matomoSiteId': '2',
   'version': {
-    "label": "0.8.3",
+    "label": "0.8.4",
     "isBeta": false,
     "usesBetaData": false,
-    "officialUrl": "https://repository.nomad-coe.eu/app/gui"
+    "officialUrl": "https://nomad-lab.eu/prod/rae/gui"
   }
 }

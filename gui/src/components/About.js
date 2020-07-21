@@ -100,7 +100,7 @@ export default function About() {
       window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
     })
     makeClickable('analytics', () => {
-      window.location.href = 'https://www.nomad-coe.eu/index.php?page=bigdata-analyticstoolkit'
+      window.location.href = 'https://nomad-lab.eu/index.php?page=AItutorials'
     })
     makeClickable('search', () => {
       history.push('/search')
@@ -144,10 +144,14 @@ export default function About() {
         This is the *graphical user interface* (GUI) for the NOMAD Repository and
         Archive. It allows you to **search, access, and download all NOMAD data** in its
         raw (Repository) and processed (Archive) form. You can **upload and manage your own
-        raw materials science data**. Learn more about what data can be uploaded
-        and how to prepare your data on the [NOMAD Repository homepage](https://repository.nomad-coe.eu/).
-        You can access all published data without an account. If you want to provide
-        your own data, please login or register for an account.
+        raw materials science data**. You can access all published data without an account.
+        If you want to provide your own data, please login or register for an account.
+
+        You can learn more about on the NOMAD Repository and Archive
+        [homepage](https://nomad-lab.eu/index.php?page=repo-arch), our
+        [documentation](${appBase}/docs/index.html).
+        There is also an [FAQ](https://nomad-lab.eu/index.php?page=repository-archive-faqs)
+        and the more detailed [uploader documentation](${appBase}/docs/upload.html).
         `}</Markdown>
       </Grid>
       <InfoCard xs={6} title="Interactive Search" top>
@@ -217,7 +221,7 @@ export default function About() {
 
       There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
-      The [NOMAD Analytics Toolkit](https://analytics-toolkit.nomad-coe.eu) allows to use
+      The [NOMAD Analytics Toolkit](https://nomad-lab.eu/index.php?page=AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
       `}</Markdown></InfoCard>
       <Grid item xs={12}>

@@ -120,7 +120,7 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+    server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
@@ -239,8 +239,8 @@ normalize = NomadConfig(
     # The threshold for point equality in k-space. Unit: 1/m.
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
-    # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
-    band_structure_energy_tolerance=300 * 1.38064852E-23,
+    # level in order to detect a gap. Unit: Joule.
+    band_structure_energy_tolerance=1.6022e-20,  # 0.1 eV
     springer_db_path=os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'normalizing/data/springer.msg'
@@ -250,7 +250,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://repository.nomad-coe.eu/app/api'
+    url='http://nomad-lab.eu/prod/rae/api'
 )
 
 datacite = NomadConfig(
@@ -262,14 +262,14 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.8.3',
+    version='0.8.4',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
     description='A FAIR data sharing platform for materials science data',
-    homepage='https://repository.nomad-coe.eu/v0.8',
+    homepage='https://https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de'
 )

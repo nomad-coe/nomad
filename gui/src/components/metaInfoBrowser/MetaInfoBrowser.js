@@ -8,6 +8,7 @@ import MetainfoSearch from './MetainfoSearch'
 import { FormControl, Select, Input, MenuItem, ListItemText, InputLabel, makeStyles } from '@material-ui/core'
 import { schema } from '../MetaInfoRepository'
 import { errorContext } from '../errors'
+import { appBase } from '../../config'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -37,7 +38,7 @@ reference (blue) relations.
 If you bookmark this page, you can save the definition represented by the highlighted
 *main* card.
 
-To learn more about the meta-info, visit the [meta-info homepage](https://metainfo.nomad-coe.eu/nomadmetainfo_public/archive.html).
+To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 const MenuProps = {
   PaperProps: {

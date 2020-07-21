@@ -27,7 +27,7 @@ Here is a breakdown of the different arguments:
 
   * :code:`-n <url>`: Url to the API endpoint in the source deployment. This API will
     be queried to fetch the data to be mirrored. E.g.
-    http://repository.nomad-coe.eu/api
+    http://nomad-lab.eu/prod/rae/api
   * :code:`-u <username>`: Your username that is used for authentication in the API call.
   * :code:`-w <password>`: Your password that is used for authentication in the API call.
   * :code:`mirror <query>`: Your query as a JSON dictionary. See the documentation for
