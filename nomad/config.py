@@ -169,10 +169,14 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-def gui_url():
+def gui_url(page: str = None):
     base = api_url(True)[:-3]
     if base.endswith('/'):
         base = base[:-1]
+
+    if page is not None:
+        return '%s/gui/%s' % (base, page)
+
     return '%s/gui' % base
 
 

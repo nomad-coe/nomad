@@ -1075,7 +1075,7 @@ class Upload(Proc):
             '',
             'your data %suploaded at %s has completed processing.' % (
                 '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % config.gui_url(),
+            'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
             '',
             'If you encouter any issues with your upload, please let us know and replay to this email.',
             '',
