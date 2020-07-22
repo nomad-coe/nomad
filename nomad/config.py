@@ -273,7 +273,7 @@ meta = NomadConfig(
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
     description='A FAIR data sharing platform for materials science data',
-    homepage='https://https://nomad-lab.eu',
+    homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de'
 )
