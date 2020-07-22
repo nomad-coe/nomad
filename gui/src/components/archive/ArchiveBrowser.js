@@ -3,6 +3,7 @@ import React, { useEffect, useState, useContext, useCallback, useRef, useMemo, u
 import { makeStyles, Typography, Box } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
+import { json } from 'd3';
 
 const exampleData = {
   "section_one": {
@@ -23,83 +24,70 @@ const exampleData = {
   "value2": "1.2"
 }
 
+function jsonAdaptorFactory(child) {
+  if (Array.isArray(child)) {
+    if (child.length === 1) {
+      return new ObjectAdaptor(child[0])
+    }
+    return new ArrayAdaptor(child)
+  } else if (typeof child === 'string') {
+    return new ValueAdaptor(child)
+  } else if (typeof child === 'object') {
+    return new ObjectAdaptor(child)
+  } else {
+    return new ValueAdaptor(child)
+  }
+}
+
 class Adaptor {
   constructor(e) {
     this.e = e
   }
 
-  hasItems() {
-    return false
-  }
-
-  item(key) {
-    return null
-  }
-
   itemAdaptor(key) {
-    return null
-  }
-
-  items() {
-    return []
-  }
-
-  renderItem(key) {
-    return null
-  }
-
-  renderContent() {
     return null
   }
 }
 
 class ObjectAdaptor extends Adaptor {
-  hasItems() {
-    return  this.e.length > 0
-  }
-
-  item(key) {
-    return this.e[key]
-  }
-
   itemAdaptor(key) {
-    const child = this.e[key]
-    if (Array.isArray(child)) {
-      if (child.length === 1) {
-        return new ObjectAdaptor(child[0])
-      }
-      return new ArrayAdaptor(child)
-    } else if (typeof child === 'string') {
-      return new ValueAdaptor(child)
-    } else if (typeof child === 'object') {
-      return new ObjectAdaptor(child)
-    } else {
-      return new ValueAdaptor(child)
-    }
+    return jsonAdaptorFactory(this.e[key])
   }
-
-  items() {
-    return Object.keys(this.e)
-  }
-
-  renderItem(key) {
-    return <Typography>{key}</Typography>
-  }
-
-  renderContent() {
-    return null
+  render() {
+    return <React.Fragment>
+      {Object.keys(this.e).map(key => (
+        <Item key={key} itemKey={key}>
+          <Typography>
+            {key}
+          </Typography>
+        </Item>
+      ))}
+    </React.Fragment>
   }
 }
 
 class ValueAdaptor extends Adaptor {
-  renderContent() {
-    return <Typography>{String(this.e)}</Typography>
+  render() {
+    return <Content>
+      <Typography>{String(this.e)}</Typography>
+    </Content>
   }
 }
 
 class ArrayAdaptor extends Adaptor {
-  renderContent() {
-    return <Typography>ARRAY</Typography>
+  itemAdaptor(index) {
+    return jsonAdaptorFactory(this.e[index])
+  }
+  render() {
+    return <React.Fragment>
+      {this.e.map((_, index) => (
+        <Item key={index} itemKey={index}>
+          <Typography>
+            {index + 1}
+          </Typography>
+        </Item>
+      ))}
+    </React.Fragment>
   }
 }
 
@@ -139,7 +127,7 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
-  const [lanes, setLanes] = useState([{key: 'root', adaptor: new ObjectAdaptor(data)}])
+  const [lanes, setLanes] = useState([{key: 'root', adaptor: jsonAdaptorFactory(data)}])
   return (
     <div className={classes.root} ref={rootRef} >
       <div className={classes.lanesContainer} ref={outerRef} >
@@ -158,6 +146,7 @@ export default function ArchiveBrowser({data}) {
   )
 }
 
+const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
   root: {
     minWidth: 200,
@@ -174,46 +163,55 @@ function Lane({adaptor, onSetNext}) {
   const classes = useLaneStyles()
   const [selected, setSelected] = useState()
 
+  const onSelect = key => {
+    setSelected(key)
+    onSetNext(key)
+  }
+
   return <div className={classes.root}>
     <div className={classes.container}>
-      {adaptor.items().map(itemKey => (
-        <Item
-          key={itemKey}
-          selected={selected === itemKey}
-          onClick={() => {
-            setSelected(itemKey)
-            onSetNext(itemKey)
-          }}
-        >
-          {adaptor.renderItem(itemKey)}
-        </Item>
-      ))}&nbsp;
+      <laneContext.Provider value={[selected, onSelect]}>
+        {adaptor.render()}
+      </laneContext.Provider>
     </div>
   </div>
 }
 
 const useItemStyles = makeStyles(theme => ({
   root: {
-    padding: `0 ${theme.spacing(1)}px`,
+    padding: `0 0 0 ${theme.spacing(1)}px`,
     '&:hover': {
       backgroundColor: grey[300]
     }
   },
   selected: {
-    padding: `0 ${theme.spacing(1)}px`,
+    padding: `0 0 0 ${theme.spacing(1)}px`,
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText
   }
 }))
-function Item({children, selected, hasItems, ...rest}) {
+function Item({children, itemKey}) {
   const classes = useItemStyles()
+  const [selected, setSelected] = useContext(laneContext)
   return <Box
-    display="flex" classes={{root: selected ? classes.selected : classes.root}}
-    {...rest}
+    display="flex" classes={{root: selected === itemKey ? classes.selected : classes.root}}
+    onClick={() => setSelected(itemKey)}
   >
     <Box flexGrow={1}>
       {children}
     </Box>
     <ArrowRightIcon/>
   </Box>
+}
+
+const useContentStyles = makeStyles(theme => ({
+  root: {
+    padding: `0 ${theme.spacing(1)}px`
+  }
+}))
+function Content({children}) {
+  const classes = useContentStyles()
+  return <div className={classes.root}>
+    {children}
+  </div>
 }
