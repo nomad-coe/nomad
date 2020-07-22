@@ -287,6 +287,16 @@ class EncyclopediaNormalizer(Normalizer):
             # Put the encyclopedia section into backend
             self.fill(context)
 
+            # Check that the necessary information is in place
+            functional_type = method.functional_type
+            if functional_type is None:
+                sec_enc.status = status_enums.unsupported_method_type
+                self.logger.info(
+                    "unsupported functinoal type for encyclopedia",
+                    enc_status=status_enums.unsupported_method_type,
+                )
+                return
+
         except Exception:
             status = status_enums.failure
             sec_enc.status = status
