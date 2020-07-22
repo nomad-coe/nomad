@@ -401,7 +401,8 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                 else:
                     logger.error('config key %s does not exist' % key)
 
-        adapt(globals(), config_data)
+        if config_data is not None:
+            adapt(globals(), config_data)
 
     # load env and override yaml and defaults
     kwargs = {
