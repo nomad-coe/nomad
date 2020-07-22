@@ -123,7 +123,7 @@ class Meta():
         self.more_data_available = available > returned if available is not None else False
         self.provider = dict(
             name=config.meta.name,
-            description=config.meta.name,
+            description=config.meta.description,
             prefix='nomad',
             homepage=config.meta.homepage,
             index_base_url=url(version=None, prefix='index')
@@ -200,10 +200,10 @@ json_api_data_object_model = api.model('DataObject', {
         description='The id of the object.'),
 
     'attributes': fields.Raw(
-        description='A dictionary, containing key-value pairs representing the entries properties')
+        description='A dictionary, containing key-value pairs representing the entries properties'),
 
-    # TODO
-    # further optional fields: links, meta, relationships
+    'relationships': fields.Raw(
+        description='In accordance with section Relationships, all entry types MAY use relationships to describe relations to other entries.')
 })
 
 
