@@ -114,11 +114,14 @@ metadata:
 data:
   conf.js: |
     window.nomadEnv = {
-      host: "https://{{ .Values.proxy.external.host }}{{ .Values.proxy.external.path }}",
-      path: "/api/encyclopedia/",
+      apiRoot: "https://{{ .Values.proxy.external.host }}{{ .Values.proxy.external.path }}/api/encyclopedia/",
+      guiRoot: "https://{{ .Values.proxy.external.host }}{{ .Values.proxy.external.path }}",
       userCookieDomain: ".{{ .Values.proxy.external.host }}",
       guestUserToken: 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyMzg4MDE1OSwiZXhwIjoxNjgxNTYwMTU5fQ.ey'+
-      'JpZCI6ImVuY2d1aSJ9.MsMWQa3IklH7cQTxRaIRSF9q8D_2LD5Fs2-irpWPTp4'
+      'JpZCI6ImVuY2d1aSJ9.MsMWQa3IklH7cQTxRaIRSF9q8D_2LD5Fs2-irpWPTp4',
+      keycloakBase: "{{ .Values.keycloak.serverExternalUrl }}",
+      keycloakRealm: "{{ .Values.keycloak.realmName }}",
+      keycloakClientId: "{{ .Values.keycloak.guiClientId }}"
     };
 ---
 apiVersion: apps/v1
