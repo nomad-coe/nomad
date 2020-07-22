@@ -62,6 +62,12 @@ gui_linting:
     - cd gui
     - yarn
     - yarn run eslint 'src/**/*.js'
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 tests:
   stage: test
@@ -111,6 +117,12 @@ install_tests:
     - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
     - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 dev_setup_tests:
   stage: test
@@ -119,6 +131,12 @@ dev_setup_tests:
     - pip install --upgrade pip
     - ./setup.sh
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
 deploy:
   stage: deploy
