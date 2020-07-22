@@ -133,7 +133,7 @@ class SectionProxy(MProxy):
     def m_proxy_resolve(self):
         if self.m_proxy_section and not self.m_proxy_resolved:
             root = self.m_proxy_section
-            while root is not None and not isinstance(root, Package):
+            while root.m_parent is not None and not isinstance(root, Package):
                 root = root.m_parent
 
             if isinstance(root, Package):
@@ -344,7 +344,7 @@ class Reference(DataType):
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(self.target_section_def, MProxy):
             proxy = self.target_section_def
-            proxy.m_proxy_section = section
+            proxy.m_proxy_section = section.m_def
             proxy.m_proxy_quantity = quantity_def
             self.target_section_def = proxy.m_proxy_resolve()
 
