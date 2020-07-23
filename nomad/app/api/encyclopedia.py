@@ -1301,7 +1301,7 @@ class ReportsResource(Resource):
     @api.response(204, "Report succesfully sent", fields.Raw)
     @api.expect(calculation_property_query, validate=False)
     @api.marshal_with(calculation_property_result, skip_none=True)
-    @api.doc("enc_calculation")
+    @api.doc("enc_report")
     @authenticate(required=True)
     def post(self, material_id):
 
