@@ -17,6 +17,7 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
+import json
 import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
@@ -24,12 +25,12 @@ from flask import request
 from elasticsearch_dsl import Search, Q, A
 from elasticsearch_dsl.utils import AttrDict
 
-from nomad import config, files
+from nomad import config, files, infrastructure
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from .api import api
-from .common import enable_gzip
+from .auth import authenticate
 
 ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
@@ -791,7 +792,6 @@ calculations_result = api.model("calculations_result", {
 
 @ns.route("/materials/<string:material_id>/calculations")
 class EncCalculationsResource(Resource):
-    @enable_gzip()
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
@@ -1133,7 +1133,6 @@ calculation_property_result = api.model("calculation_property_result", {
 
 @ns.route("/materials/<string:material_id>/calculations/<string:calc_id>")
 class EncCalculationResource(Resource):
-    @enable_gzip()
     @api.response(404, "Material or calculation not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
@@ -1281,6 +1280,63 @@ class EncCalculationResource(Resource):
                 result[prop] = value
 
         return result, 200
+
+
+report_query = api.model("report_query", {
+    "server": fields.String,
+    "username": fields.String,
+    "email": fields.String,
+    "first_name": fields.String,
+    "last_name": fields.String,
+    "category": fields.String,
+    "subcategory": fields.String(allow_null=True),
+    "representatives": fields.Raw(Raw=True),
+    "message": fields.String,
+})
+
+
+@ns.route("/materials/<string:material_id>/reports")
+class ReportsResource(Resource):
+    @api.response(500, "Error sending report")
+    @api.response(400, "Bad request")
+    @api.response(204, "Report succesfully sent", fields.Raw)
+    @api.expect(calculation_property_query, validate=False)
+    @api.marshal_with(calculation_property_result, skip_none=True)
+    @api.doc("enc_calculation")
+    @authenticate(required=True)
+    def post(self, material_id):
+
+        # Get query parameters as json
+        try:
+            query = marshal(request.get_json(), report_query)
+        except Exception as e:
+            abort(400, message=str(e))
+
+        # Send the report as an email
+        query["material_id"] = material_id
+        representatives = query["representatives"]
+        if representatives is not None:
+            representatives = "\n" + "\n".join(["  {}: {}".format(key, value) for key, value in representatives.items()])
+            query["representatives"] = representatives
+        mail = (
+            "Server: {server}\n\n"
+            "Username: {username}\n"
+            "First name: {first_name}\n"
+            "Last name: {last_name}\n"
+            "Email: {email}\n\n"
+            "Material id: {material_id}\n"
+            "Category: {category}\n"
+            "Subcategory: {subcategory}\n"
+            "Representative calculations: {representatives}\n\n"
+            "Message: {message}"
+        ).format(**query)
+        try:
+            infrastructure.send_mail(
+                name="webmaster", email="lauri.himanen@gmail.com", message=mail, subject='Encyclopedia error report')
+        except Exception as e:
+            abort(500, message="Error sending error report email.")
+        print(mail)
+        return "", 204
 
 
 def read_archive(upload_id: str, calc_id: str) -> EntryArchive:

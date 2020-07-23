@@ -444,7 +444,7 @@ class Calc(Proc):
 
             # Get encyclopedia method information directly from the referenced calculation.
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
-            if ref_enc_method is None or len(ref_enc_method) == 0:
+            if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
                 raise ValueError("No method information available in referenced calculation.")
             backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
@@ -455,6 +455,7 @@ class Calc(Proc):
             self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
             self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
             self._entry_metadata.dft.update_group_hash()
+            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exception=e)
             if self._entry_metadata.encyclopedia is None:

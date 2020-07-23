@@ -207,6 +207,7 @@ class EncyclopediaNormalizer(Normalizer):
         """
         sec_enc = self.backend.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
         status_enums = EncyclopediaMetadata.status.type
+        calc_enums = Calculation.calculation_type.type
 
         # Do nothing if section_run is not present
         if self.section_run is None:
@@ -261,7 +262,6 @@ class EncyclopediaNormalizer(Normalizer):
                     "unsupported method type for encyclopedia",
                     enc_status=status_enums.unsupported_method_type,
                 )
-                calc_enums = Calculation.calculation_type.type
                 if calc_type != calc_enums.phonon_calculation:
                     return
 
@@ -292,7 +292,7 @@ class EncyclopediaNormalizer(Normalizer):
             if functional_type is None:
                 sec_enc.status = status_enums.unsupported_method_type
                 self.logger.info(
-                    "unsupported functinoal type for encyclopedia",
+                    "unsupported functional type for encyclopedia",
                     enc_status=status_enums.unsupported_method_type,
                 )
                 return

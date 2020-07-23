@@ -520,9 +520,9 @@ def test_phonon(phonon: EntryArchive):
     dos = prop.phonon_dos
     thermo_props = prop.thermodynamical_properties
     assert calc_type == Calculation.calculation_type.type.phonon_calculation
-    assert status == EncyclopediaMetadata.status.type.success
 
-    # TODO: Check method information
+    # The method information is filled after the whole upload has been processed.
+    assert status == EncyclopediaMetadata.status.type.unsupported_method_type
 
     # Check dos
     assert dos is not None
