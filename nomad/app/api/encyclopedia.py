@@ -17,7 +17,6 @@ The encyclopedia API of the nomad@FAIRDI APIs.
 """
 import re
 import math
-import json
 import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
