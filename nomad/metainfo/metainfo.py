@@ -1088,7 +1088,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 def reference_serialize(value):
                     if isinstance(value, MProxy):
-                        return value.m_proxy_url
+                        if value.m_proxy_resolved is not None:
+                            return quantity_type.serialize(self, quantity, value)
+                        else:
+                            return value.m_proxy_url
                     else:
                         return quantity_type.serialize(self, quantity, value)
                 serialize = reference_serialize

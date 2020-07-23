@@ -11,6 +11,7 @@ import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
 import ApiDialogButton from '../ApiDialogButton'
 import { withRouter } from 'react-router'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
+import { EntryPageContent } from './EntryPage'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -204,7 +205,7 @@ class ArchiveEntryView extends React.Component {
     const renderArchive = renderBrowser
 
     return (
-      <div className={classes.root}>
+      <EntryPageContent className={classes.root}>
         {metaInfoData && <MetainfoDialog metaInfoData={metaInfoData} onClose={() => this.setState({showMetaInfo: false})} />}
         <Card>
           <CardContent>
@@ -230,7 +231,7 @@ class ArchiveEntryView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-      </div>
+      </EntryPageContent>
     )
   }
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Tab, Tabs } from '@material-ui/core'
+import { withStyles, Tab, Tabs, Box } from '@material-ui/core'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RepoEntryView from './RepoEntryView'
@@ -22,26 +22,22 @@ all parsed data.
 The *log* tab, will show you a log of the entry's processing.
 `
 
-class EntryPage extends React.Component {
-  static styles = theme => ({
-    root: {
-    },
-    content: {
-      padding: `0 ${theme.spacing(3)}px`,
-      maxWidth: 1024,
-      margin: 'auto'
-    }
-  })
+export function EntryPageContent({children, fixed}) {
+  const props = fixed ? {maxWidth: 1024} : {}
+  return <Box padding={3} margin="auto" {...props}>
+    {children}
+  </Box>
+}
 
+class EntryPage extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
     location: PropTypes.object,
     match: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired
   }
 
   render() {
-    const { classes, location, match, history } = this.props
+    const { location, match, history } = this.props
     const { path } = match
 
     const entryMatch = matchPath(location.pathname, {
@@ -52,9 +48,8 @@ class EntryPage extends React.Component {
     if (calcId && uploadId) {
       const calcProps = { calcId: calcId, uploadId: uploadId }
       return (
-        <div className={classes.root}>
+        <React.Fragment>
           <Tabs
-            className={classes.tabs}
             value={tab || 'raw'}
             onChange={(_, value) => history.push(`${match.url}/${uploadId}/${calcId}/${value}`)}
             indicatorColor="primary"
@@ -66,12 +61,10 @@ class EntryPage extends React.Component {
             <Tab label="Logs" value="logs"/>
           </Tabs>
 
-          <div className={classes.content}>
-            <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
-            <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
-            <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
-          </div>
-        </div>
+          <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
+          <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
+          <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
+        </React.Fragment>
       )
     } else {
       return ''

@@ -1,95 +1,9 @@
 
-import React, { useEffect, useState, useContext, useCallback, useRef, useMemo, useLayoutEffect } from 'react'
+import React, { useState, useContext, useRef, useLayoutEffect } from 'react'
 import { makeStyles, Typography, Box } from '@material-ui/core'
-import grey from '@material-ui/core/colors/grey';
-import ArrowRightIcon from '@material-ui/icons/ArrowRight';
-import { json } from 'd3';
-
-const exampleData = {
-  "section_one": {
-    "value1": "1.1",
-    "value2": "1.2"
-  },
-  "section_two": [
-    {
-      "value1": "2.1",
-      "value2": "2.2"
-    },
-    {
-      "value1": "3.1",
-      "value2": "3.2"
-    }
-  ],
-  "value1": "1.1",
-  "value2": "1.2"
-}
-
-function jsonAdaptorFactory(child) {
-  if (Array.isArray(child)) {
-    if (child.length === 1) {
-      return new ObjectAdaptor(child[0])
-    }
-    return new ArrayAdaptor(child)
-  } else if (typeof child === 'string') {
-    return new ValueAdaptor(child)
-  } else if (typeof child === 'object') {
-    return new ObjectAdaptor(child)
-  } else {
-    return new ValueAdaptor(child)
-  }
-}
-
-class Adaptor {
-  constructor(e) {
-    this.e = e
-  }
-
-  itemAdaptor(key) {
-    return null
-  }
-}
-
-class ObjectAdaptor extends Adaptor {
-  itemAdaptor(key) {
-    return jsonAdaptorFactory(this.e[key])
-  }
-  render() {
-    return <React.Fragment>
-      {Object.keys(this.e).map(key => (
-        <Item key={key} itemKey={key}>
-          <Typography>
-            {key}
-          </Typography>
-        </Item>
-      ))}
-    </React.Fragment>
-  }
-}
-
-class ValueAdaptor extends Adaptor {
-  render() {
-    return <Content>
-      <Typography>{String(this.e)}</Typography>
-    </Content>
-  }
-}
-
-class ArrayAdaptor extends Adaptor {
-  itemAdaptor(index) {
-    return jsonAdaptorFactory(this.e[index])
-  }
-  render() {
-    return <React.Fragment>
-      {this.e.map((_, index) => (
-        <Item key={index} itemKey={index}>
-          <Typography>
-            {index + 1}
-          </Typography>
-        </Item>
-      ))}
-    </React.Fragment>
-  }
-}
+import grey from '@material-ui/core/colors/grey'
+import ArrowRightIcon from '@material-ui/icons/ArrowRight'
+import { SectionAdaptor, entryArchiveDef } from './archive'
 
 const useBrowserStyles = makeStyles(theme => ({
   root: {
@@ -100,6 +14,7 @@ const useBrowserStyles = makeStyles(theme => ({
     flex: '1 1 auto',
     height: '100%',
     overflowX: 'auto',
+    overflowY: 'hidden',
     scrollBehavior: 'smooth'
   },
   lanes: {
@@ -107,14 +22,11 @@ const useBrowserStyles = makeStyles(theme => ({
     overflow: 'scroll',
     height: '100%',
     overflowY: 'hidden',
-    width: 'fit-content',
-    margin: `${theme.spacing(1)}px 0`
+    width: 'fit-content'
   }
 }))
 
 export default function ArchiveBrowser({data}) {
-  data = data || exampleData
-
   const classes = useBrowserStyles()
   const rootRef = useRef()
   const outerRef = useRef()
@@ -127,7 +39,11 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
-  const [lanes, setLanes] = useState([{key: 'root', adaptor: jsonAdaptorFactory(data)}])
+  const contextData = {
+    archive: data
+  }
+
+  const [lanes, setLanes] = useState([{key: 'root', adaptor: new SectionAdaptor(data, entryArchiveDef, contextData)}])
   return (
     <div className={classes.root} ref={rootRef} >
       <div className={classes.lanesContainer} ref={outerRef} >
@@ -150,6 +66,7 @@ const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
   root: {
     minWidth: 200,
+    maxWidth: 512,
     borderRight: `solid 1px ${grey[500]}`,
     display: 'table-cell',
   },
@@ -179,18 +96,22 @@ function Lane({adaptor, onSetNext}) {
 
 const useItemStyles = makeStyles(theme => ({
   root: {
+    margin: `0 -${theme.spacing(1)}px`,
     padding: `0 0 0 ${theme.spacing(1)}px`,
     '&:hover': {
       backgroundColor: grey[300]
-    }
+    },
+    whiteSpace: 'nowrap'
   },
   selected: {
+    margin: `0 -${theme.spacing(1)}px`,
     padding: `0 0 0 ${theme.spacing(1)}px`,
     backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText
+    color: theme.palette.primary.contrastText,
+    whiteSpace: 'nowrap'
   }
 }))
-function Item({children, itemKey}) {
+export function Item({children, itemKey}) {
   const classes = useItemStyles()
   const [selected, setSelected] = useContext(laneContext)
   return <Box
@@ -204,14 +125,8 @@ function Item({children, itemKey}) {
   </Box>
 }
 
-const useContentStyles = makeStyles(theme => ({
-  root: {
-    padding: `0 ${theme.spacing(1)}px`
-  }
-}))
-function Content({children}) {
-  const classes = useContentStyles()
-  return <div className={classes.root}>
+export function Content({children}) {
+  return <Box padding={1}>
     {children}
-  </div>
+  </Box>
 }
