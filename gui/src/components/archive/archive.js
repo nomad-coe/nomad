@@ -8,13 +8,34 @@ import Markdown from '../Markdown'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 
 const sectionDefs = {}
+const packageDefs = {}
 metainfo.packages.forEach(pkg => {
+  packageDefs[pkg.name] = pkg
+  pkg._sections = {}
   pkg.section_definitions.forEach(sectionDef => {
+    pkg._sections[sectionDef.name] = sectionDef
     sectionDefs[sectionDef.name] = sectionDef
-    sectionDef._properties = {}
-    const addProperty = property => {sectionDef._properties[property.name] = property}
     sectionDef.quantities = sectionDef.quantities || []
     sectionDef.sub_sections = sectionDef.sub_sections || []
+
+    const addPropertiesFromSections = sections => sections
+      .map(ref => resolveRef(ref)).forEach(extendingSectionDef => {
+        if (extendingSectionDef.quantities) {
+          sectionDef.quantities.push(...extendingSectionDef.quantities)
+        }
+        if (extendingSectionDef.sub_sections) {
+          sectionDef.sub_sections.push(...extendingSectionDef.sub_sections)
+        }
+      })
+    sectionDef.extending_sections = sectionDef.extending_sections || []
+    addPropertiesFromSections(sectionDef.extending_sections)
+    if (!sectionDef.extends_base_section) {
+      addPropertiesFromSections(sectionDef.base_sections)
+      sectionDef.base_sections = sectionDef.base_sections || []
+    }
+
+    sectionDef._properties = {}
+    const addProperty = property => {sectionDef._properties[property.name] = property}
     sectionDef.quantities.forEach(quantitiy => {
       addProperty(quantitiy)
       quantitiy.shape = quantitiy.shape || []
@@ -33,6 +54,11 @@ function resolveRef(ref, data) {
   return segments.reduce(reducer, data)
 }
 
+function metainfoDef(name) {
+  console.log('###', name, packageDefs['nomad.metainfo.metainfo'])
+  return packageDefs['nomad.metainfo.metainfo']._sections[name]
+}
+
 class ArchiveAdaptor extends Adaptor {
   constructor(obj, def, context) {
     super(obj)
@@ -40,13 +66,21 @@ class ArchiveAdaptor extends Adaptor {
     this.context = context
   }
 
-  adaptorFactory(obj, def) {
+  adaptorFactory(obj, def, context) {
     if (def.m_def === 'Section') {
-      return new SectionAdaptor(obj, def, this.context)
+      return new SectionAdaptor(obj, def, context || this.context)
     } else if (def.m_def === 'SubSection') {
-      return new SubSectionAdaptor(obj, def, this.context)
+      return new SubSectionAdaptor(obj, def, context || this.context)
     } else if (def.m_def === 'Quantity') {
-      return new QuantityAdaptor(obj, def, this.context)
+      return new QuantityAdaptor(obj, def, context || this.context)
+    }
+  }
+
+  itemAdaptor(key) {
+    if (key === '_metainfo') {
+      return this.adaptorFactory(this.def, metainfoDef(this.def.m_def), {archive: metainfo})
+    } else {
+      throw new Error('Unknown item key')
     }
   }
 }
@@ -55,7 +89,9 @@ export class SectionAdaptor extends ArchiveAdaptor {
   itemAdaptor(key) {
     const property = this.def._properties[key]
     const value = this.e[key]
-    if (property.m_def === 'SubSection') {
+    if (!property) {
+      return super.itemAdaptor(key)
+    } else if (property.m_def === 'SubSection') {
       const sectionDef = resolveRef(property.sub_section)
       if (Array.isArray(value)) {
         if (value.length === 1) {
@@ -240,5 +276,12 @@ function Definition({def}) {
         <Markdown>{def.description}</Markdown>
       </Box>
     }
+    <Box marginTop={1}>
+      <Item itemKey="_metainfo">
+        <Typography>
+          metainfo definition
+        </Typography>
+      </Item>
+    </Box>
   </Box>
 }

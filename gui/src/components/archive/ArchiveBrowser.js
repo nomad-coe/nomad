@@ -118,7 +118,7 @@ export function Item({children, itemKey}) {
     display="flex" classes={{root: selected === itemKey ? classes.selected : classes.root}}
     onClick={() => setSelected(itemKey)}
   >
-    <Box flexGrow={1}>
+    <Box flexGrow={1} overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
       {children}
     </Box>
     <ArrowRightIcon/>

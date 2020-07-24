@@ -2139,7 +2139,7 @@ class Section(Definition):
 
         extends_base_section:
             If True, this definition must have exactly one ``base_sections``.
-            Instead of inheriting properties, he quantity and sub-section definitions
+            Instead of inheriting properties, the quantity and sub-section definitions
             of this section will be added to the base section.
 
             This allows to add further properties to an existing section definition.

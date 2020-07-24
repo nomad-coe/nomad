@@ -48,9 +48,20 @@ def metainfo():
     import json
     from nomad.metainfo import Package, Environment
 
+    # TODO the __init_metainfo__() should not be necessary and automatically performed
     # Also load and initialize the datamodel definitions
-    from nomad.datamodel.datamodel import m_package
-    m_package.__init_metainfo__()
+    import nomad.metainfo.metainfo
+    import nomad.datamodel.datamodel
+    import nomad.datamodel.dft
+    import nomad.datamodel.ems
+    import nomad.datamodel.optimade
+    import nomad.datamodel.encyclopedia
+    nomad.metainfo.metainfo.m_package.__init_metainfo__()
+    nomad.datamodel.datamodel.m_package.__init_metainfo__()
+    nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
 
     # Ensure all parser metainfo is loaded
     from nomad.parsing.parsers import parsers
