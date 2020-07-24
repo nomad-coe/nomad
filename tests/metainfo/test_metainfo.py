@@ -20,7 +20,7 @@ import datetime
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, MResource, Datetime, Annotation, SectionAnnotation,
-    DefinitionAnnotation, Reference, MProxy, derived)
+    DefinitionAnnotation, Reference, MProxy, derived, SectionProxy)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
 from nomad.units import ureg
@@ -584,6 +584,24 @@ class TestM1:
 
         obj = ReferencingSection.m_from_dict(obj.m_to_dict(with_meta=True))
         assert obj.proxy.name == 'test_value'
+
+    def test_ref_with_section_proxy(self):
+        package = Package(name='test_package')
+
+        class OtherSection(MSection):
+            name = Quantity(type=str)
+
+        class ReferencingSection(MSection):
+            reference = Quantity(type=Reference(SectionProxy('OtherSection')))
+
+        package.m_add_sub_section(Package.section_definitions, OtherSection.m_def)
+        package.m_add_sub_section(Package.section_definitions, ReferencingSection.m_def)
+
+        referencing = ReferencingSection()
+        reference = OtherSection()
+        referencing.reference = reference
+
+        assert referencing.reference == reference
 
     def test_copy(self):
         run = Run()

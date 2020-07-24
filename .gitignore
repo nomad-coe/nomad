@@ -29,3 +29,4 @@ build/
 dist/
 setup.json
 parser.osio.log
+gui/src/metainfo.json

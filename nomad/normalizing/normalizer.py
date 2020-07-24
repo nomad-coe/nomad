@@ -34,6 +34,7 @@ class Normalizer(metaclass=ABCMeta):
 
     def __init__(self, backend: Backend) -> None:
         self._backend = backend
+        self.entry_archive = backend.entry_archive
         try:
             self.section_run = backend.entry_archive.section_run[0]
         except (AttributeError, IndexError):

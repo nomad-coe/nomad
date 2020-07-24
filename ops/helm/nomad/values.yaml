@@ -5,6 +5,12 @@ version:
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
 
+meta:
+  service: "app"
+  homepage: "https://nomad-lab.eu"
+  source_url: "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+  maintainer_email: "markus.scheidgen@physik.hu-berlin.de"
+
 ## Everything concerning the container images to be used
 image:
   ## The kubernetes docker-registry secret that can be used to access the registry

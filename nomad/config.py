@@ -169,10 +169,14 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-def gui_url():
+def gui_url(page: str = None):
     base = api_url(True)[:-3]
     if base.endswith('/'):
         base = base[:-1]
+
+    if page is not None:
+        return '%s/gui/%s' % (base, page)
+
     return '%s/gui' % base
 
 
@@ -269,7 +273,7 @@ meta = NomadConfig(
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
     description='A FAIR data sharing platform for materials science data',
-    homepage='https://https://nomad-lab.eu',
+    homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de'
 )
@@ -397,7 +401,8 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                 else:
                     logger.error('config key %s does not exist' % key)
 
-        adapt(globals(), config_data)
+        if config_data is not None:
+            adapt(globals(), config_data)
 
     # load env and override yaml and defaults
     kwargs = {
