@@ -1,5 +1,5 @@
 import React from 'react'
-import Adaptor from './adaptor'
+import Adaptor from './adaptors'
 import { Item, Content } from './ArchiveBrowser'
 import { Typography } from '@material-ui/core'
 

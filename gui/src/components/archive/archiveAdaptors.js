@@ -1,62 +1,15 @@
 import React, { useState } from 'react'
-import Adaptor from './adaptor'
-import { Item, Content } from './ArchiveBrowser'
-import { Typography, makeStyles, Box, Button, IconButton } from '@material-ui/core'
-import metainfo from '../../metainfo'
-import { jsonAdaptorFactory } from './json'
+import Adaptor from './adaptors'
+import { Item, Content, Compartment } from './ArchiveBrowser'
+import { Typography, Box, IconButton } from '@material-ui/core'
+import { jsonAdaptorFactory } from './jsonAdaptors'
 import Markdown from '../Markdown'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
+import metainfo, { metainfoDef, resolveRef, sectionDefs } from './metainfo'
+import { Definition, metainfoAdaptorFactory } from './metainfoAdaptors'
 
-const sectionDefs = {}
-const packageDefs = {}
-metainfo.packages.forEach(pkg => {
-  packageDefs[pkg.name] = pkg
-  pkg._sections = {}
-  pkg.section_definitions.forEach(sectionDef => {
-    pkg._sections[sectionDef.name] = sectionDef
-    sectionDefs[sectionDef.name] = sectionDef
-    sectionDef.quantities = sectionDef.quantities || []
-    sectionDef.sub_sections = sectionDef.sub_sections || []
-
-    const addPropertiesFromSections = sections => sections
-      .map(ref => resolveRef(ref)).forEach(extendingSectionDef => {
-        if (extendingSectionDef.quantities) {
-          sectionDef.quantities.push(...extendingSectionDef.quantities)
-        }
-        if (extendingSectionDef.sub_sections) {
-          sectionDef.sub_sections.push(...extendingSectionDef.sub_sections)
-        }
-      })
-    sectionDef.extending_sections = sectionDef.extending_sections || []
-    addPropertiesFromSections(sectionDef.extending_sections)
-    if (!sectionDef.extends_base_section) {
-      addPropertiesFromSections(sectionDef.base_sections)
-      sectionDef.base_sections = sectionDef.base_sections || []
-    }
-
-    sectionDef._properties = {}
-    const addProperty = property => {sectionDef._properties[property.name] = property}
-    sectionDef.quantities.forEach(quantitiy => {
-      addProperty(quantitiy)
-      quantitiy.shape = quantitiy.shape || []
-    })
-    sectionDef.sub_sections.forEach(addProperty)
-  })
-})
-export const entryArchiveDef = sectionDefs['EntryArchive']
-
-function resolveRef(ref, data) {
-  data = data || metainfo
-  const segments = ref.split('/').filter(segment => segment !== '')
-  const reducer = (current, segment) => {
-    return isNaN(segment) ? current[segment] : current[parseInt(segment)]
-  }
-  return segments.reduce(reducer, data)
-}
-
-function metainfoDef(name) {
-  console.log('###', name, packageDefs['nomad.metainfo.metainfo'])
-  return packageDefs['nomad.metainfo.metainfo']._sections[name]
+export default function archiveAdaptorFactory(data, sectionDef) {
+  return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
 }
 
 class ArchiveAdaptor extends Adaptor {
@@ -78,7 +31,7 @@ class ArchiveAdaptor extends Adaptor {
 
   itemAdaptor(key) {
     if (key === '_metainfo') {
-      return this.adaptorFactory(this.def, metainfoDef(this.def.m_def), {archive: metainfo})
+      return metainfoAdaptorFactory(this.def)
     } else {
       throw new Error('Unknown item key')
     }
@@ -249,39 +202,4 @@ function Quantity({value, def}) {
     <Definition def={def} />
     <QuantityValue value={value} def={def} />
   </Content>
-}
-
-function Compartment({title, children}) {
-  if (!React.Children.count(children)) {
-    return ''
-  }
-  return <React.Fragment>
-    <Box paddingTop={1}>
-      {title && <Typography variant="overline">{title}</Typography>}
-    </Box>
-    {children}
-  </React.Fragment>
-}
-
-const definitionLabels = {
-  'Section': 'section',
-  'Quantity': 'quantity'
-}
-function Definition({def}) {
-  return <Box>
-    <Typography variant="h6">{def.name}</Typography>
-    <Typography variant="caption">{definitionLabels[def.m_def]}</Typography>
-    {def.description && def.description !== 'None' &&
-      <Box marginTop={1}>
-        <Markdown>{def.description}</Markdown>
-      </Box>
-    }
-    <Box marginTop={1}>
-      <Item itemKey="_metainfo">
-        <Typography>
-          metainfo definition
-        </Typography>
-      </Item>
-    </Box>
-  </Box>
 }
