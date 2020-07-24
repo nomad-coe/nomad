@@ -433,6 +433,14 @@ def reset(remove: bool):
 
 
 def send_mail(name: str, email: str, message: str, subject: str):
+    """Used to programmatically send mails.
+
+    Args:
+        name: The email recipient name.
+        email: The email recipient address.
+        messsage: The email body.
+        subject: The subject line.
+    """
     if not config.mail.enabled:
         return
 
@@ -453,7 +461,6 @@ def send_mail(name: str, email: str, message: str, subject: str):
 
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'The nomad team <%s>' % config.mail.from_address
     msg['To'] = name
     to_addrs = [email]
 

@@ -422,6 +422,14 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 class Material2DNormalizer(MaterialNormalizer):
     """Processes structure related metainfo for Encyclopedia 2D structures.
     """
+    def material_id(self, material: Material, spg_number: int, wyckoff_sets: List[WyckoffSet]) -> None:
+        # The hash is based on the symmetry analysis of the structure when it
+        # is treated as a 3D structure. Due to this the hash may overlap with
+        # real 3D structures unless we include a distinguishing label for 2D
+        # structures in the hash seed.
+        norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets, is_2d=True)
+        material.material_id = hash(norm_hash_string)
+
     def lattice_vectors(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell()
         cell_normalized *= 1e-10
@@ -514,6 +522,8 @@ class Material2DNormalizer(MaterialNormalizer):
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
@@ -727,5 +737,7 @@ class Material1DNormalizer(MaterialNormalizer):
         self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
         self.formula_reduced(material, names, reduced_counts)
+        self.species(material, names)
+        self.species_and_counts(material, names, reduced_counts)
         self.material_id_1d(material, std_atoms)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)

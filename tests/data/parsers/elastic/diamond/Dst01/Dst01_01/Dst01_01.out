@@ -1,0 +1,455 @@
+
+     Program PWSCF     v.4.1.1  starts ...
+     Today is 25Nov2010 at 15:41:55 
+
+     Parallel version (MPI)
+
+     Number of processors in use:       4
+     R & G space division:  proc/pool =    4
+
+     For Norm-Conserving or Ultrasoft (Vanderbilt) Pseudopotentials or PAW
+
+     Current dimensions of program pwscf are:
+     Max number of different atomic species (ntypx) = 10
+     Max number of k-points (npk) =  40000
+     Max angular momentum in pseudopotentials (lmaxx) =  3
+     Waiting for input...
+     file C.pbe-rrkjus.UPF: wavefunction(s)  2S 2P renormalized
+
+     Subspace diagonalization in iterative solution of the eigenvalue problem:
+     a parallel distributed memory algorithm will be used,
+     eigenstates matrixes will be distributed block like on
+     ortho sub-group =    2*   2 procs
+
+     warning: symmetry operation #  5 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation #  6 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation #  7 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation #  8 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation #  9 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 10 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 11 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 12 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 13 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 14 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 15 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 16 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 25 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 26 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 27 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 28 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 41 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 42 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 43 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 44 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 45 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 46 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 47 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+     warning: symmetry operation # 48 not allowed.   fractional translation:
+      -0.2500000 -0.2500000 -0.2500000  in crystal coordinates
+
+     Planes per process (thick) : nr3 = 30 npp =   8 ncplane =  900
+     Planes per process (smooth): nr3s= 22 npps=   6 ncplanes=  484
+ 
+     Proc/  planes cols     G    planes cols    G      columns  G
+     Pool       (dense grid)       (smooth grid)      (wavefct grid)
+        1     8    148     2429    6     75      866     27      175
+        2     8    149     2430    6     75      872     27      175
+        3     7    149     2431    5     75      867     27      176
+        4     7    149     2431    5     76      874     28      175
+     tot     30    595     9721   22    301     3479    109      701
+ 
+
+
+     bravais-lattice index     =            0
+     lattice parameter (a_0)   =       6.7413  a.u.
+     unit-cell volume          =      54.8027 (a.u.)^3
+     number of atoms/cell      =            2
+     number of atomic types    =            1
+     number of electrons       =         8.00
+     number of Kohn-Sham states=            4
+     kinetic-energy cutoff     =      60.0000  Ry
+     charge density cutoff     =     480.0000  Ry
+     convergence threshold     =      1.0E-08
+     mixing beta               =       0.7000
+     number of iterations used =            8  plain     mixing
+     Exchange-correlation      =  SLA  PW   PBE  PBE (1434)
+     nstep                     =           50
+
+
+     celldm(1)=   6.741280  celldm(2)=   0.000000  celldm(3)=   0.000000
+     celldm(4)=   0.000000  celldm(5)=   0.000000  celldm(6)=   0.000000
+
+     crystal axes: (cart. coord. in units of a_0)
+               a(1) = (  0.000000  0.447214  0.447214 )  
+               a(2) = (  0.447214  0.000000  0.447214 )  
+               a(3) = (  0.447214  0.447214  0.000000 )  
+
+     reciprocal axes: (cart. coord. in units 2 pi/a_0)
+               b(1) = ( -1.118034  1.118034  1.118034 )  
+               b(2) = (  1.118034 -1.118034  1.118034 )  
+               b(3) = (  1.118034  1.118034 -1.118034 )  
+
+
+     PseudoPot. # 1 for C  read from file C.pbe-rrkjus.UPF
+     Pseudo is Ultrasoft, Zval =  4.0
+     Generated by new atomic code, or converted to UPF format
+     Using radial grid of  627 points,  4 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+                l(3) =   1
+                l(4) =   1
+     Q(r) pseudized with 0 coefficients 
+
+
+     atomic species   valence    mass     pseudopotential
+        C              4.00    12.01070     C ( 1.00)
+
+     24 Sym.Ops. (no inversion)
+
+
+   Cartesian axes
+
+     site n.     atom                  positions (a_0 units)
+         1           C   tau(  1) = (   0.0000000   0.0000000   0.0000000  )
+         2           C   tau(  2) = (   0.2236068   0.2236068   0.2236068  )
+
+     number of k points=   29
+                       cart. coord. in units 2pi/a_0
+        k(    1) = (   0.0000000   0.0000000   0.0000000), wk =   0.0039062
+        k(    2) = (   0.1397542   0.1397542  -0.1397542), wk =   0.0312500
+        k(    3) = (   0.2795085   0.2795085  -0.2795085), wk =   0.0312500
+        k(    4) = (   0.4192627   0.4192627  -0.4192627), wk =   0.0312500
+        k(    5) = (  -0.5590170  -0.5590170   0.5590170), wk =   0.0156250
+        k(    6) = (   0.2795085   0.0000000   0.0000000), wk =   0.0234375
+        k(    7) = (   0.4192627   0.1397542  -0.1397542), wk =   0.0937500
+        k(    8) = (   0.5590170   0.2795085  -0.2795085), wk =   0.0937500
+        k(    9) = (  -0.4192627  -0.6987712   0.6987712), wk =   0.0937500
+        k(   10) = (  -0.2795085  -0.5590170   0.5590170), wk =   0.0937500
+        k(   11) = (  -0.1397542  -0.4192627   0.4192627), wk =   0.0937500
+        k(   12) = (   0.0000000  -0.2795085   0.2795085), wk =   0.0468750
+        k(   13) = (   0.5590170   0.0000000   0.0000000), wk =   0.0234375
+        k(   14) = (   0.6987712   0.1397542  -0.1397542), wk =   0.0937500
+        k(   15) = (  -0.2795085  -0.8385255   0.8385255), wk =   0.0937500
+        k(   16) = (  -0.1397542  -0.6987712   0.6987712), wk =   0.0937500
+        k(   17) = (   0.0000000  -0.5590170   0.5590170), wk =   0.0468750
+        k(   18) = (   0.8385255   0.0000000   0.0000000), wk =   0.0234375
+        k(   19) = (  -0.1397542  -0.9782797   0.9782797), wk =   0.0937500
+        k(   20) = (   0.0000000  -0.8385255   0.8385255), wk =   0.0468750
+        k(   21) = (  -1.1180340   0.0000000   0.0000000), wk =   0.0117188
+        k(   22) = (   0.5590170   0.2795085   0.0000000), wk =   0.0937500
+        k(   23) = (  -0.4192627  -0.6987712   0.9782797), wk =   0.1875000
+        k(   24) = (  -0.2795085  -0.5590170   0.8385255), wk =   0.0937500
+        k(   25) = (  -0.2795085  -0.8385255   1.1180340), wk =   0.0937500
+        k(   26) = (  -0.1397542  -0.6987712   0.9782797), wk =   0.1875000
+        k(   27) = (   0.0000000  -0.5590170   0.8385255), wk =   0.0937500
+        k(   28) = (  -1.1180340   0.2795085   0.0000000), wk =   0.0468750
+        k(   29) = (  -1.1180340   0.5590170   0.0000000), wk =   0.0234375
+
+     G cutoff =  552.5432  (   9721 G-vectors)     FFT grid: ( 30, 30, 30)
+     G cutoff =  276.2716  (   3479 G-vectors)  smooth grid: ( 22, 22, 22)
+
+     Largest allocated arrays     est. size (Mb)     dimensions
+        Kohn-Sham Wavefunctions         0.01 Mb     (    116,   4)
+        NL pseudopotentials             0.03 Mb     (    116,  16)
+        Each V/rho on FFT grid          0.11 Mb     (   7200)
+        Each G-vector array             0.02 Mb     (   2429)
+        G-vector shells                 0.00 Mb     (    149)
+     Largest temporary arrays     est. size (Mb)     dimensions
+        Auxiliary wavefunctions         0.03 Mb     (    116,  16)
+        Each subspace H/S matrix        0.00 Mb     (     16,  16)
+        Each <psi_i|beta_j> matrix      0.00 Mb     (     16,   4)
+        Arrays for rho mixing           0.88 Mb     (   7200,   8)
+
+     Initial potential from superposition of free atoms
+
+     starting charge    7.99989, renormalised to    8.00000
+     Starting wfc are    8 atomic wfcs
+
+     total cpu time spent up to now is      0.38 secs
+
+     per-process dynamical memory:    54.4 Mb
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  1.00E-02,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is      0.70 secs
+
+     total energy              =     -22.60428399 Ry
+     Harris-Foulkes estimate   =     -22.72162827 Ry
+     estimated scf accuracy    <       0.23092744 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  2.89E-03,  avg # of iterations =  1.1
+
+     total cpu time spent up to now is      0.94 secs
+
+     total energy              =     -22.61895483 Ry
+     Harris-Foulkes estimate   =     -22.62031334 Ry
+     estimated scf accuracy    <       0.00453837 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  5.67E-05,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is      1.31 secs
+
+     total energy              =     -22.62028944 Ry
+     Harris-Foulkes estimate   =     -22.62028333 Ry
+     estimated scf accuracy    <       0.00004671 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  5.84E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is      1.66 secs
+
+     total energy              =     -22.62030825 Ry
+     Harris-Foulkes estimate   =     -22.62030691 Ry
+     estimated scf accuracy    <       0.00000359 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  4.49E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is      2.01 secs
+
+     total energy              =     -22.62030878 Ry
+     Harris-Foulkes estimate   =     -22.62030882 Ry
+     estimated scf accuracy    <       0.00000013 Ry
+
+     iteration #  6     ecut=    60.00 Ry     beta=0.70
+     Davidson diagonalization with overlap
+     ethr =  1.62E-09,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is      2.34 secs
+
+     End of self-consistent calculation
+
+          k = 0.0000 0.0000 0.0000 (   411 PWs)   bands (ev):
+
+    -6.2486  20.1707  20.1707  20.1707
+
+          k = 0.1398 0.1398-0.1398 (   429 PWs)   bands (ev):
+
+    -5.7140  17.0223  19.2464  19.2464
+
+          k = 0.2795 0.2795-0.2795 (   429 PWs)   bands (ev):
+
+    -4.1185  11.7889  17.7749  17.7749
+
+          k = 0.4193 0.4193-0.4193 (   425 PWs)   bands (ev):
+
+    -1.4928   6.6610  16.7561  16.7561
+
+          k =-0.5590-0.5590 0.5590 (   434 PWs)   bands (ev):
+
+     1.7331   2.5615  16.4063  16.4063
+
+          k = 0.2795 0.0000 0.0000 (   435 PWs)   bands (ev):
+
+    -5.5359  17.7048  17.7048  18.8158
+
+          k = 0.4193 0.1398-0.1398 (   436 PWs)   bands (ev):
+
+    -4.2946  13.6737  16.1591  17.7417
+
+          k = 0.5590 0.2795-0.2795 (   427 PWs)   bands (ev):
+
+    -2.0141   8.6549  15.3295  16.1578
+
+          k =-0.4193-0.6988 0.6988 (   432 PWs)   bands (ev):
+
+     1.2149   4.0542  14.8509  15.3712
+
+          k =-0.2795-0.5590 0.5590 (   433 PWs)   bands (ev):
+
+     0.0477   5.5104  14.2224  16.2324
+
+          k =-0.1398-0.4193 0.4193 (   426 PWs)   bands (ev):
+
+    -2.8881  10.3541  14.4333  17.6975
+
+          k = 0.0000-0.2795 0.2795 (   445 PWs)   bands (ev):
+
+    -4.8260  15.1962  15.6957  19.1769
+
+          k = 0.5590 0.0000 0.0000 (   431 PWs)   bands (ev):
+
+    -3.4114  14.4686  14.4686  15.1888
+
+          k = 0.6988 0.1398-0.1398 (   434 PWs)   bands (ev):
+
+    -1.4895  10.9204  13.5106  13.5189
+
+          k =-0.2795-0.8385 0.8385 (   431 PWs)   bands (ev):
+
+     1.4004   6.6407  11.5537  13.5031
+
+          k =-0.1398-0.6988 0.6988 (   426 PWs)   bands (ev):
+
+     2.4872   5.3922  10.2277  14.4317
+
+          k = 0.0000-0.5590 0.5590 (   423 PWs)   bands (ev):
+
+    -0.6391   9.5506  10.0693  16.0690
+
+          k = 0.8385 0.0000 0.0000 (   444 PWs)   bands (ev):
+
+     0.0665  10.0960  12.3269  12.3269
+
+          k =-0.1398-0.9783 0.9783 (   429 PWs)   bands (ev):
+
+     2.5869   7.5229  10.1317  12.0941
+
+          k = 0.0000-0.8385 0.8385 (   434 PWs)   bands (ev):
+
+     5.0847   5.9500   7.2087  12.8513
+
+          k =-1.1180 0.0000 0.0000 (   444 PWs)   bands (ev):
+
+     4.7241   4.7241  11.5912  11.5912
+
+          k = 0.5590 0.2795 0.0000 (   426 PWs)   bands (ev):
+
+    -2.7119  12.1990  12.7560  16.4080
+
+          k =-0.4193-0.6988 0.9783 (   425 PWs)   bands (ev):
+
+    -0.1220   7.7995  12.1043  14.6568
+
+          k =-0.2795-0.5590 0.8385 (   428 PWs)   bands (ev):
+
+     2.9264   3.9928  12.2321  13.6972
+
+          k =-0.2795-0.8385 1.1180 (   428 PWs)   bands (ev):
+
+     0.7368   9.6137  10.7693  11.9575
+
+          k =-0.1398-0.6988 0.9783 (   429 PWs)   bands (ev):
+
+     3.7865   6.4397   9.1121  11.4410
+
+          k = 0.0000-0.5590 0.8385 (   424 PWs)   bands (ev):
+
+     2.6744   7.6447   8.2678  12.7043
+
+          k =-1.1180 0.2795 0.0000 (   434 PWs)   bands (ev):
+
+     5.2779   5.2779  10.1967  10.1967
+
+          k =-1.1180 0.5590 0.0000 (   444 PWs)   bands (ev):
+
+     6.2299   6.2299   8.5556   8.5556
+
+!    total energy              =     -22.62030880 Ry
+     Harris-Foulkes estimate   =     -22.62030880 Ry
+     estimated scf accuracy    <          6.4E-11 Ry
+
+     The total energy is the sum of the following terms:
+
+     one-electron contribution =      12.06211462 Ry
+     hartree contribution      =       1.61981076 Ry
+     xc contribution           =      -7.71360621 Ry
+     ewald contribution        =     -28.58862797 Ry
+
+     convergence has been achieved in   6 iterations
+
+     Forces acting on atoms (Ry/au):
+
+     atom   1 type  1   force =     0.00000000    0.00000000    0.00000000
+     atom   2 type  1   force =     0.00000000    0.00000000    0.00000000
+
+     Total force =     0.000000     Total SCF correction =     0.000000
+
+
+     entering subroutine stress ...
+
+          total   stress  (Ry/bohr**3)                   (kbar)     P= 2631.20
+   0.01788656   0.00000000   0.00000000       2631.20      0.00      0.00
+   0.00000000   0.01788656   0.00000000          0.00   2631.20      0.00
+   0.00000000   0.00000000   0.01788656          0.00      0.00   2631.20
+
+
+     BFGS Geometry Optimization
+
+     bfgs converged in   1 scf cycles and   0 bfgs steps
+     (criteria: energy < 0.10E-08, force < 0.10E-05)
+
+     End of BFGS Geometry Optimization
+
+     Final energy   =     -22.6203087966 Ry
+
+ATOMIC_POSITIONS (crystal)
+C        0.000000000   0.000000000   0.000000000
+C        0.250000000   0.250000000   0.250000000
+
+
+
+     Writing output data file pwscf.save
+ 
+     PWSCF        :     2.62s CPU time,    3.80s wall time
+
+     init_run     :     0.30s CPU
+     electrons    :     1.96s CPU
+     forces       :     0.02s CPU
+     stress       :     0.08s CPU
+
+     Called by init_run:
+     wfcinit      :     0.14s CPU
+     potinit      :     0.02s CPU
+
+     Called by electrons:
+     c_bands      :     1.55s CPU (       6 calls,   0.258 s avg)
+     sum_band     :     0.19s CPU (       6 calls,   0.032 s avg)
+     v_of_rho     :     0.08s CPU (       7 calls,   0.011 s avg)
+     newd         :     0.02s CPU (       7 calls,   0.003 s avg)
+     mix_rho      :     0.00s CPU (       6 calls,   0.000 s avg)
+
+     Called by c_bands:
+     init_us_2    :     0.01s CPU (     435 calls,   0.000 s avg)
+     cegterg      :     1.50s CPU (     174 calls,   0.009 s avg)
+
+     Called by *egterg:
+     h_psi        :     0.60s CPU (     528 calls,   0.001 s avg)
+     s_psi        :     0.00s CPU (     528 calls,   0.000 s avg)
+     g_psi        :     0.01s CPU (     325 calls,   0.000 s avg)
+     cdiaghg      :     0.76s CPU (     499 calls,   0.002 s avg)
+
+     Called by h_psi:
+     add_vuspsi   :     0.02s CPU (     528 calls,   0.000 s avg)
+
+     General routines
+     calbec       :     0.03s CPU (     760 calls,   0.000 s avg)
+     cft3s        :     0.64s CPU (    5105 calls,   0.000 s avg)
+     interpolate  :     0.02s CPU (      13 calls,   0.001 s avg)
+     davcio       :     0.10s CPU (     609 calls,   0.000 s avg)
+ 
+     Parallel routines
+     fft_scatter  :     0.15s CPU (    5105 calls,   0.000 s avg)

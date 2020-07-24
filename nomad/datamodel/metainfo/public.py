@@ -1290,14 +1290,6 @@ class section_dos(MSection):
         ''',
         a_legacy=LegacyDefinition(name='dos_energies'))
 
-    dos_fermi_energy = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Stores the Fermi energy of the density of states.
-        ''',
-        a_legacy=LegacyDefinition(name='dos_fermi_energy'))
-
     dos_integrated_values = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_spin_channels', 'number_of_dos_values'],

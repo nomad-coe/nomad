@@ -75,7 +75,7 @@ def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, Non
         return None
 
 
-def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet]) -> str:
+def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d: bool = False) -> str:
     """Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.
@@ -84,6 +84,9 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet]) -> str
         space_group: 3D space group number
         wyckoff_sets: Wyckoff sets that map a Wyckoff letter to related
             information
+        is_2d: Whether the symmetry information is analyzed from a 2D
+            structure. If true, a prefix is added to the string to distinguish
+            2D from 3D.
 
     Returns:
         A string that encodes the symmetry properties of an atomistic
@@ -97,7 +100,10 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet]) -> str
         i_string = "{} {} {}".format(element, wyckoff_letter, n_atoms)
         wyckoff_strings.append(i_string)
     wyckoff_string = ", ".join(sorted(wyckoff_strings))
-    string = "{} {}".format(space_group, wyckoff_string)
+    if is_2d:
+        string = "2D {} {}".format(space_group, wyckoff_string)
+    else:
+        string = "{} {}".format(space_group, wyckoff_string)
 
     return string
 

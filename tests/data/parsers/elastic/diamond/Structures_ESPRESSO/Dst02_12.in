@@ -1,0 +1,39 @@
+&CONTROL
+   calculation      = 'relax'
+   restart_mode     = 'from_scratch'
+   pseudo_dir       = './'
+   outdir           = './'
+   tstress          = .true.
+   tprnfor          = .true.
+   etot_conv_thr    = 1.0d-9
+   forc_conv_thr    = 1.0d-6
+ /
+&SYSTEM
+   ibrav            = 0
+   celldm(1)        = 6.74128
+   nat              = 2
+   ntyp             = 1
+   occupations      = 'fixed'
+   ecutwfc          = 60.0
+   ecutrho          = 480.0
+ /
+&ELECTRONS
+   diagonalization  = 'david'
+   mixing_mode      = 'plain'
+   mixing_beta      = 0.7
+   conv_thr         = 1.0d-8
+ /
+&IONS
+   ion_dynamics     = 'bfgs'
+ /
+ATOMIC_SPECIES
+  C  12.0107      C.pbe-rrkjus.UPF
+ATOMIC_POSITIONS (crystal)
+   C       0.0000000000     0.0000000000     0.0000000000
+   C       0.2500000000     0.2500000000     0.2500000000
+K_POINTS (automatic)
+  8 8 8  0 0 0
+CELL_PARAMETERS (cubic)
+   -0.5049752469     0.0000000000     0.5000000000
+    0.0000000000     0.5049752469     0.5000000000
+   -0.5049752469     0.5049752469     0.0000000000
