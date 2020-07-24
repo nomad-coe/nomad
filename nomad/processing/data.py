@@ -1078,7 +1078,7 @@ class Upload(Proc):
                 '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
             'You can review your data on your upload page: %s' % config.gui_url(),
             '',
-            'If you encouter any issues with your upload, please let us know and replay to this email.',
+            'If you encounter any issues with your upload, please let us know and reply to this email.',
             '',
             'The nomad team'
         ])

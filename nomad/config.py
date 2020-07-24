@@ -200,10 +200,10 @@ def check_config():
 
 
 mail = NomadConfig(
-    enabled=False,
+    enabled="true",
     with_login=False,
-    host='',
-    port=8995,
+    host='mailrelay.mpcdf.mpg.de',
+    port=25,
     user='',
     password='',
     from_address='webmaster@nomad-coe.eu',

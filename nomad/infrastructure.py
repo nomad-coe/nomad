@@ -433,6 +433,14 @@ def reset(remove: bool):
 
 
 def send_mail(name: str, email: str, message: str, subject: str):
+    """Used to programmatically send mails.
+
+    Args:
+        name: The email recipient name.
+        email: The email recipient address.
+        messsage: The email body.
+        subject: The subject line.
+    """
     if not config.mail.enabled:
         return
 
