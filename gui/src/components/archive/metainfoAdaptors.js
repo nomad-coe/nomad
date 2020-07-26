@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment, viewConfigState } from './ArchiveBrowser'
+import { Item, Content, Compartment, viewConfigState, filterConfigState } from './ArchiveBrowser'
 import { Typography, Box } from '@material-ui/core'
 import Markdown from '../Markdown'
 import { metainfoDef, resolveRef } from './metainfo'
@@ -58,12 +58,14 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
 }
 
 function SectionDef({def}) {
+  const filterConfig = useRecoilValue(filterConfigState)
+  const filter = filterConfig.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content style={{backgroundColor: 'grey'}}>
     <Compartment>
       <Definition def={def} isDefinition/>
     </Compartment>
     <Compartment title="sub section definitions">
-      {def.sub_sections
+      {def.sub_sections.filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
           return <Item key={key} itemKey={key}>
@@ -77,7 +79,7 @@ function SectionDef({def}) {
       }
     </Compartment>
     <Compartment title="quantity definitions">
-      {def.quantities
+      {def.quantities.filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           return <Item key={key} itemKey={key}>
