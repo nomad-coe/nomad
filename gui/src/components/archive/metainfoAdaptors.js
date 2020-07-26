@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment } from './ArchiveBrowser'
+import { Item, Content, Compartment, viewConfigState } from './ArchiveBrowser'
 import { Typography, Box, IconButton } from '@material-ui/core'
 import { jsonAdaptorFactory } from './jsonAdaptors'
 import Markdown from '../Markdown'
@@ -123,21 +124,26 @@ const definitionLabels = {
   'SubSection': 'sub section'
 }
 export function Definition({def, isDefinition}) {
+  const viewConfig = useRecoilValue(viewConfigState)
   const color = isDefinition ? 'primary' : 'initial'
-  return <Box>
-    <Typography color={color} variant="h6">{def.name}</Typography>
+  if (viewConfig.showDefinitions) {
+    return <Box>
+      <Typography color={color} variant="h6">{def.name}</Typography>
       <Typography color={color} variant="caption">{definitionLabels[def.m_def]}{isDefinition ? ' definition' : ''}</Typography>
-    {def.description && def.description !== 'None' &&
+      {def.description && def.description !== 'None' && viewConfig.showDescriptions &&
+        <Box marginTop={1}>
+          <Markdown>{def.description}</Markdown>
+        </Box>
+      }
       <Box marginTop={1}>
-        <Markdown>{def.description}</Markdown>
+        <Item itemKey="_metainfo">
+          <Typography>
+            metainfo definition
+          </Typography>
+        </Item>
       </Box>
-    }
-    <Box marginTop={1}>
-      <Item itemKey="_metainfo">
-        <Typography>
-          metainfo definition
-        </Typography>
-      </Item>
     </Box>
-  </Box>
+  } else {
+    return ''
+  }
 }

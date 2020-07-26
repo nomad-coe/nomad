@@ -1,15 +1,33 @@
 
 import React, { useState, useContext, useRef, useLayoutEffect } from 'react'
-import { makeStyles, Typography, Box } from '@material-ui/core'
+import { RecoilRoot, atom, useRecoilState } from 'recoil'
+import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import archiveAdaptorFactory from './archiveAdaptors'
 import classNames from 'classnames'
 
+export const viewConfigState = atom({
+  key: 'viewConfig',
+  default: {
+    'showDescriptions': false,
+    'showDefinitions': false
+  }
+})
+
+export const filterConfigState = atom({
+  key: 'filterConfig',
+  default: {
+    'showCodeSpecific': false
+  }
+})
+
 const useBrowserStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
-    flexFlow: 'column'
+    flexFlow: 'column',
+    margin: `-${theme.spacing(2)}px`,
+    marginBottom: `-${theme.spacing(3)}px`
   },
   lanesContainer: {
     flex: '1 1 auto',
@@ -40,27 +58,81 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
+
+
   const contextData = {
     archive: data
   }
 
   const [lanes, setLanes] = useState([{key: 'root', adaptor: archiveAdaptorFactory(data)}])
-  return (
-    <div className={classes.root} ref={rootRef} >
-      <div className={classes.lanesContainer} ref={outerRef} >
-        <div className={classes.lanes} ref={innerRef} >
-          {lanes.map((lane, index) => (
-            <Lane
-              key={`${lane.key}:${index}`} adaptor={lane.adaptor}
-              onSetNext={next => setLanes(
-                [...lanes.slice(0, index + 1), {key: next, adaptor: lane.adaptor.itemAdaptor(next)}]
-              )}
-            />
-          ))}
+  return <RecoilRoot>
+    <ArchiveBrowserConfig />
+    <Card>
+      <CardContent>
+        <div className={classes.root} ref={rootRef} >
+          <div className={classes.lanesContainer} ref={outerRef} >
+            <div className={classes.lanes} ref={innerRef} >
+              {lanes.map((lane, index) => (
+                <Lane
+                  key={`${lane.key}:${index}`} adaptor={lane.adaptor}
+                  onSetNext={next => setLanes(
+                    [...lanes.slice(0, index + 1), {key: next, adaptor: lane.adaptor.itemAdaptor(next)}]
+                  )}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  )
+      </CardContent>
+    </Card>
+  </RecoilRoot>
+}
+
+function ArchiveBrowserConfig() {
+  const [viewConfig, setViewConfig] = useRecoilState(viewConfigState)
+  const handleViewConfigChange = event => setViewConfig({
+    ...viewConfig,
+    [event.target.name]: event.target.checked
+  })
+
+  const [filterConfig, setFilterConfig] = useRecoilState(filterConfigState)
+  const handleFilterConfigChange = event => setFilterConfig({
+    ...filterConfig,
+    [event.target.name]: event.target.checked
+  })
+
+  return <FormGroup row>
+    <FormControlLabel
+      control={
+        <Checkbox
+          checked={filterConfig.showCodeSpecific}
+          onChange={handleFilterConfigChange}
+          name="showCodeSpecific"
+        />
+      }
+      label="include code specific"
+    />
+    <Box margin={2} />
+    <FormControlLabel
+      control={
+        <Checkbox
+          checked={viewConfig.showDefinitions}
+          onChange={handleViewConfigChange}
+          name="showDefinitions" />
+      }
+      label="show definitions"
+    />
+    <FormControlLabel
+      disabled={!viewConfig.showDefinitions}
+      control={
+        <Checkbox
+          checked={viewConfig.showDescriptions}
+          onChange={handleViewConfigChange}
+          name="showDescriptions" />
+      }
+      label="show descriptions"
+    />
+  </FormGroup>
 }
 
 const laneContext = React.createContext()

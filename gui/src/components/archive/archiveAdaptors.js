@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment } from './ArchiveBrowser'
+import { Item, Content, Compartment, filterConfigState } from './ArchiveBrowser'
 import { Typography, Box, IconButton } from '@material-ui/core'
 import { jsonAdaptorFactory } from './jsonAdaptors'
 import Markdown from '../Markdown'
@@ -131,6 +132,8 @@ function QuantityValue({value, def}) {
 }
 
 function Section({section, def}) {
+  const filterConfig = useRecoilValue(filterConfigState)
+  const filter = filterConfig.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Compartment>
       <Definition def={def} />
@@ -138,6 +141,7 @@ function Section({section, def}) {
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name])
+        .filter(filter)
         .map(subSectionDef => {
           const sectionDef = resolveRef(subSectionDef.sub_section)
           const key = subSectionDef.name
@@ -155,6 +159,7 @@ function Section({section, def}) {
     <Compartment title="quantities">
       {def.quantities
         .filter(quantityDef => section[quantityDef.name])
+        .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           return <Item key={key} itemKey={key}>
