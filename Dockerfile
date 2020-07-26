@@ -67,7 +67,7 @@ RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
-RUN python -m nomad dev metainfo > gui/src/metainfo.json
+RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 WORKDIR /install/docs
 # COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
@@ -85,6 +85,7 @@ COPY gui/package.json /app/package.json
 COPY gui/yarn.lock /app/yarn.lock
 RUN yarn
 COPY gui /app
+COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 RUN yarn run build
 # RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
 
