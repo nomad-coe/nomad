@@ -1,5 +1,6 @@
 
 import React, { useState, useContext, useRef, useLayoutEffect } from 'react'
+import PropTypes from 'prop-types'
 import { RecoilRoot, atom, useRecoilState } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
@@ -58,12 +59,6 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
-
-
-  const contextData = {
-    archive: data
-  }
-
   const [lanes, setLanes] = useState([{key: 'root', adaptor: archiveAdaptorFactory(data)}])
   return <RecoilRoot>
     <ArchiveBrowserConfig />
@@ -87,6 +82,9 @@ export default function ArchiveBrowser({data}) {
     </Card>
   </RecoilRoot>
 }
+ArchiveBrowser.propTypes = ({
+  data: PropTypes.object.isRequired
+})
 
 function ArchiveBrowserConfig() {
   const [viewConfig, setViewConfig] = useRecoilState(viewConfigState)
@@ -141,7 +139,7 @@ const useLaneStyles = makeStyles(theme => ({
     minWidth: 200,
     maxWidth: 512,
     borderRight: `solid 1px ${grey[500]}`,
-    display: 'table-cell',
+    display: 'table-cell'
   },
   container: {
     display: 'block',
@@ -166,6 +164,10 @@ function Lane({adaptor, onSetNext}) {
     </div>
   </div>
 }
+Lane.propTypes = ({
+  adaptor: PropTypes.object.isRequired,
+  onSetNext: PropTypes.func.isRequired
+})
 
 const useItemStyles = makeStyles(theme => ({
   root: {
@@ -206,12 +208,25 @@ export function Item({children, itemKey}) {
     <ArrowRightIcon/>
   </span>
 }
+Item.propTypes = ({
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired,
+  itemKey: PropTypes.string.isRequired
+})
 
 export function Content({children}) {
   return <Box padding={1}>
     {children}
   </Box>
 }
+Content.propTypes = ({
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
+})
 
 export function Compartment({title, children}) {
   if (!React.Children.count(children)) {
@@ -224,4 +239,10 @@ export function Compartment({title, children}) {
     {children}
   </React.Fragment>
 }
-
+Compartment.propTypes = ({
+  title: PropTypes.string.isRequired,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
+})

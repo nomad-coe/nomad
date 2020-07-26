@@ -1,15 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Card, CardContent, Button, Typography, Dialog, DialogContent, DialogActions, DialogTitle, Box } from '@material-ui/core'
-import ReactJson from 'react-json-view'
+import { withStyles, Fab, Card, CardContent, Typography } from '@material-ui/core'
 import { compose } from 'recompose'
-import Markdown from '../Markdown'
 import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
-import { ValueAttributes, MetaAttribute } from '../metaInfoBrowser/ValueCard'
-import ApiDialogButton from '../ApiDialogButton'
-import { withRouter } from 'react-router'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
 import { EntryPageContent } from './EntryPage'
 
@@ -51,12 +46,10 @@ class ArchiveEntryView extends React.Component {
 
   static defaultState = {
     data: null,
-    showMetaInfo: false,
     doesNotExist: false
   }
 
   state = {
-    metaInfo: null,
     ...ArchiveEntryView.defaultState
   }
 
@@ -102,8 +95,7 @@ class ArchiveEntryView extends React.Component {
 
   render() {
     const { classes, uploadId, calcId } = this.props
-    const { data, showMetaInfo, metaInfo, doesNotExist } = this.state
-    const metaInfoData = metaInfo ? metaInfo.get(showMetaInfo) : null
+    const { data, doesNotExist } = this.state
 
     if (doesNotExist) {
       return (

@@ -1,12 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
+import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, viewConfigState } from './ArchiveBrowser'
-import { Typography, Box, IconButton } from '@material-ui/core'
-import { jsonAdaptorFactory } from './jsonAdaptors'
+import { Typography, Box } from '@material-ui/core'
 import Markdown from '../Markdown'
-import MoreVertIcon from '@material-ui/icons/MoreVert'
-import metainfo, { metainfoDef, resolveRef, sectionDefs } from './metainfo'
+import { metainfoDef, resolveRef } from './metainfo'
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -19,7 +18,6 @@ export function metainfoAdaptorFactory(obj) {
     throw new Error('Unknown metainfo definition type')
   }
 }
-
 
 class MetainfoAdaptor extends Adaptor {
   itemAdaptor(key) {
@@ -70,7 +68,7 @@ function SectionDef({def}) {
           const key = subSectionDef.name
           return <Item key={key} itemKey={key}>
             <Typography component="span">
-              <Box component="span" fontWeight="bold" component="span">
+              <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
               </Box>
             </Typography>
@@ -85,7 +83,7 @@ function SectionDef({def}) {
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span">
-                <Box fontWeight="bold"  component="span">
+                <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>
               </Typography>
@@ -96,6 +94,9 @@ function SectionDef({def}) {
     </Compartment>
   </Content>
 }
+SectionDef.propTypes = ({
+  def: PropTypes.object
+})
 
 function SubSectionDef({def}) {
   return <Content>
@@ -104,19 +105,25 @@ function SubSectionDef({def}) {
     </Compartment>
     <Item itemKey="sub_section">
       <Typography component="span">
-        <Box component="span" fontWeight="bold" component="span">
+        <Box fontWeight="bold" component="span">
           section
         </Box>
       </Typography>: {resolveRef(def.sub_section).name}
     </Item>
   </Content>
 }
+SubSectionDef.propTypes = ({
+  def: PropTypes.object
+})
 
 function QuantityDef({def}) {
   return <Content>
     <Definition def={def} isDefinition/>
   </Content>
 }
+QuantityDef.propTypes = ({
+  def: PropTypes.object
+})
 
 const definitionLabels = {
   'Section': 'section',
@@ -147,3 +154,7 @@ export function Definition({def, isDefinition}) {
     return ''
   }
 }
+Definition.propTypes = ({
+  def: PropTypes.object,
+  isDefinition: PropTypes.bool
+})

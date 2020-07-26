@@ -28,6 +28,13 @@ export function EntryPageContent({children, fixed}) {
     {children}
   </Box>
 }
+EntryPageContent.propTypes = ({
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired,
+  fixed: PropTypes.bool
+})
 
 class EntryPage extends React.Component {
   static propTypes = {

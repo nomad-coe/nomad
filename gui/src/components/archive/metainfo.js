@@ -29,7 +29,7 @@ metainfo.packages.forEach(pkg => {
     }
 
     sectionDef._properties = {}
-    const addProperty = property => {sectionDef._properties[property.name] = property}
+    const addProperty = property => { sectionDef._properties[property.name] = property }
     sectionDef.quantities.forEach(quantitiy => {
       addProperty(quantitiy)
       quantitiy.shape = quantitiy.shape || []

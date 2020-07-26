@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
+import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, filterConfigState } from './ArchiveBrowser'
 import { Typography, Box, IconButton } from '@material-ui/core'
-import { jsonAdaptorFactory } from './jsonAdaptors'
-import Markdown from '../Markdown'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
-import metainfo, { metainfoDef, resolveRef, sectionDefs } from './metainfo'
+import { resolveRef, sectionDefs } from './metainfo'
 import { Definition, metainfoAdaptorFactory } from './metainfoAdaptors'
 
 export default function archiveAdaptorFactory(data, sectionDef) {
@@ -95,7 +94,7 @@ function QuantityItemPreview({value, def}) {
   if (def.shape.length > 0) {
     const dimensions = []
     let current = value
-    for(let i = 0; i < def.shape.length; i++) {
+    for (let i = 0; i < def.shape.length; i++) {
       dimensions.push(current.length)
       current = current[0]
     }
@@ -112,14 +111,18 @@ function QuantityItemPreview({value, def}) {
       }
     }
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
-        <Typography component="span">{`[${dimensions.join(', ')}] ${typeLabel}`}</Typography>
-      </Box>
+      <Typography component="span">{`[${dimensions.join(', ')}] ${typeLabel}`}</Typography>
+    </Box>
   } else {
     return <Box component="span" whiteSpace="nowarp">
       <Typography component="span">{String(value)}</Typography>
     </Box>
   }
 }
+QuantityItemPreview.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired
+})
 
 function QuantityValue({value, def}) {
   return <Box
@@ -130,6 +133,10 @@ function QuantityValue({value, def}) {
     </Typography>
   </Box>
 }
+QuantityValue.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired
+})
 
 function Section({section, def}) {
   const filterConfig = useRecoilValue(filterConfigState)
@@ -143,11 +150,10 @@ function Section({section, def}) {
         .filter(subSectionDef => section[subSectionDef.name])
         .filter(filter)
         .map(subSectionDef => {
-          const sectionDef = resolveRef(subSectionDef.sub_section)
           const key = subSectionDef.name
           return <Item key={key} itemKey={key}>
             <Typography component="span">
-              <Box component="span" fontWeight="bold" component="span">
+              <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
               </Box>
               {subSectionDef.repeats ? ` (${section[subSectionDef.name].length})` : ''}
@@ -165,7 +171,7 @@ function Section({section, def}) {
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span">
-                <Box fontWeight="bold"  component="span">
+                <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>
               </Typography> = <QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} />
@@ -176,6 +182,10 @@ function Section({section, def}) {
     </Compartment>
   </Content>
 }
+Section.propTypes = ({
+  section: PropTypes.object.isRequired,
+  def: PropTypes.object.isRequired
+})
 
 function SubSection({sections, def}) {
   const [showAll, setShowAll] = useState(false)
@@ -201,6 +211,10 @@ function SubSection({sections, def}) {
     </Content>
   }
 }
+SubSection.propTypes = ({
+  sections: PropTypes.arrayOf(PropTypes.object).isRequired,
+  def: PropTypes.object.isRequired
+})
 
 function Quantity({value, def}) {
   return <Content>
@@ -208,3 +222,7 @@ function Quantity({value, def}) {
     <QuantityValue value={value} def={def} />
   </Content>
 }
+Quantity.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired
+})
