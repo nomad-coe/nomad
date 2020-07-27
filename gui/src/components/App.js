@@ -278,7 +278,7 @@ function MainMenu() {
     />
     <MainMenuItem
       title="FAQ"
-      href="https://nomad-lab.eu/index.php?page=repository-archive-faqs"
+      href="https://nomad-lab.eu/repository-archive-faqs"
       tooltip="Frequently Asked Questions (FAQ)"
       icon={<FAQIcon/>}
     />
