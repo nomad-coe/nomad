@@ -521,8 +521,23 @@ class MResource():
         return cast(MSectionBound, result)
 
     def add(self, section):
-        section.m_resource = self
-        self.__data.setdefault(section.m_def, []).append(section)
+        '''
+        Add the given section to this resource. Will also add all its contents to the
+        resource and make all contest available for :func:`all`. Will also remove
+        all contents from possible other resources. A section can only be contained in
+        one resource at a time.
+
+        This is potentially expensive. Do not add a section that already has a deep tree
+        of sub-sections. Ideally, add the root section first. If you create sub sections
+        afterwards, they will be automatically added to this resource.
+        '''
+        if section.m_resource is not None:
+            section.m_resource.remove(section)
+
+        for content in section.m_all_contents(include_self=True):
+            content.m_resource = self
+            self.__data.setdefault(content.m_def, []).append(content)
+
         if section.m_parent is None:
             self.contents.append(section)
 

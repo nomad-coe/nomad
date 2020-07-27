@@ -414,7 +414,7 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            logger = self.get_logger(**context)
+            logger = self.get_logger(parser=self.parser, step=self.parser)
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
@@ -425,7 +425,6 @@ class Calc(Proc):
             self._calc_proc_logs = phonon_archive.processing_logs
 
             # Re-create a backend
-            context = dict(parser=self.parser, step=self.parser)
             metainfo = phonopyparser.metainfo.m_env
             self._parser_backend = Backend(metainfo, logger=logger, domain="dft")
             self._parser_backend.entry_archive = phonon_archive

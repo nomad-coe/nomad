@@ -519,6 +519,22 @@ class TestM1:
 
         assert len(resource.all(System)) == 2
 
+    def test_resource_add(self):
+        # adding
+        resource = MResource()
+        run = Run()
+        resource.add(run)
+        run.m_create(System)
+        run.m_create(System)
+        assert len(resource.all(Run)) == 1
+        assert len(resource.all(System)) == 2
+
+        # implicitly moving to another resource
+        resource = MResource()
+        resource.add(run)
+        assert len(resource.all(Run)) == 1
+        assert len(resource.all(System)) == 2
+
     def test_resource_move(self):
         resource = MResource()
         run = resource.create(Run)
