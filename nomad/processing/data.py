@@ -47,7 +47,7 @@ from nomad.datamodel.encyclopedia import (
     EncyclopediaMetadata,
 )
 from nomad.metainfo import MSection
-import phonopyparser
+import phonopyparser.metainfo
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -414,28 +414,26 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            # Re-create a backend
-            context = dict(parser=self.parser, step=self.parser)
             logger = self.get_logger(**context)
-            metainfo = phonopyparser.metainfo.m_env
-            backend = Backend(metainfo, logger=logger, domain="dft")
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
             with upload_files.read_archive(self.calc_id) as archive:
                 arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
                 phonon_archive = EntryArchive.m_from_dict(arch)
-
-            # Save Archive contents, metadata and logs from the old entry
-            backend.entry_archive = phonon_archive
-            self._parser_backend = backend
-            self._entry_metadata = backend.entry_archive.section_metadata
+            self._entry_metadata = phonon_archive.section_metadata
             self._calc_proc_logs = phonon_archive.processing_logs
+
+            # Re-create a backend
+            context = dict(parser=self.parser, step=self.parser)
+            metainfo = phonopyparser.metainfo.m_env
+            self._parser_backend = Backend(metainfo, logger=logger, domain="dft")
+            self._parser_backend.entry_archive = phonon_archive
 
             # Read in the first referenced calculation. The reference is given as
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
-            scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
+            scc = self._parser_backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
@@ -446,7 +444,7 @@ class Calc(Proc):
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
             if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
                 raise ValueError("No method information available in referenced calculation.")
-            backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
+            self._parser_backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
@@ -458,6 +456,10 @@ class Calc(Proc):
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
+            if self._entry_metadata is None:
+                self._setup_fallback_metadata()
+                self._entry_metadata.processed = False
+
             try:
                 if self._entry_metadata.encyclopedia is None:
                     self._entry_metadata.encyclopedia = EncyclopediaMetadata()
