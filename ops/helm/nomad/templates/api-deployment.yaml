@@ -178,7 +178,7 @@ spec:
           subPath: conf.js
           name: enc-conf-js
         env:
-        - name: NOMAD_SERVICE
+        - name: NOMAD_META_SERVICE
           value: "app"
         - name: NOMAD_CONSOLE_LOGLEVEL
           value: "{{ .Values.app.console_loglevel }}"
