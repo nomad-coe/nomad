@@ -101,6 +101,12 @@ data:
         proxy_read_timeout {{ .Values.proxy.mirrorTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
+
+      location ~ \/api\/repo\/edit {
+        proxy_buffering off;
+        proxy_read_timeout {{ .Values.proxy.editTimeout }};
+        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
+      }
     }
 ---
 apiVersion: apps/v1
