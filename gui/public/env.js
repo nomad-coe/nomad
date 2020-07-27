@@ -12,5 +12,6 @@ window.nomadEnv = {
     "isBeta": false,
     "usesBetaData": false,
     "officialUrl": "https://nomad-lab.eu/prod/rae/gui"
-  }
+  },
+  'encyclopediaEnabled': true
 }

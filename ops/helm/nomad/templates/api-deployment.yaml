@@ -99,7 +99,8 @@ data:
         "isBeta": {{ .Values.version.isBeta }},
         "usesBetaData": {{ .Values.version.usesBetaData }},
         "officialUrl": "{{ .Values.version.officialUrl }}"
-      }
+      },
+      "encyclopediaEnabled": {{ .Values.gui.encyclopediaEnabled }}
     };
 ---
 apiVersion: v1

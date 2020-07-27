@@ -14,6 +14,7 @@ export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
 export const matomoEnabled = window.nomadEnv.matomoEnabled
+export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled
 export const email = 'webmaster@nomad-coe.eu'
 export const maxLogsToShow = 50
 
