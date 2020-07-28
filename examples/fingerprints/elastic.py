@@ -1,13 +1,14 @@
 '''
 This examplefies how to send raw queries to elasticsearch.
+
+Specifically this will read all materials with fingerprints from the search engine
+and store them in a local file. We use composite aggregations with after-based
+pagination.
 '''
-from typing import Iterable, Tuple, Set, Any
-from concurrent.futures import ThreadPoolExecutor
-from threading import Event, Lock
-from queue import Queue, Empty
+
 import json
 
-from nomad import search, infrastructure, files, config
+from nomad import infrastructure, config
 
 infrastructure.setup_files()
 infrastructure.setup_elastic()
@@ -15,6 +16,7 @@ infrastructure.setup_elastic()
 
 results = []
 after = None
+count = 0
 while True:
     request = {
         "query": {
@@ -99,8 +101,10 @@ while True:
         upload_id = entry['upload_id']
         calc_id = entry['calc_id']
         results.append(dict(material_id=material_id, upload_id=upload_id, calc_id=calc_id))
+        count += 1
 
-    print('.')
+    print(count)
 
 results.sort(key=lambda item: item['upload_id'])
-print(json.dumps(results, indent=2))
+with open('local/materials.json', 'wt') as f:
+    f.write(json.dumps(results, indent=2))
