@@ -72,6 +72,7 @@ worker:
   routing: "queue"
   storage: "disk"
   nomadNodeType: "worker"
+  timeout: 7200
 
 ## Everthing concerning the nomad gui
 gui:

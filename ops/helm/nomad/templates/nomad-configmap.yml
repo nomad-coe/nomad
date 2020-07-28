@@ -57,7 +57,7 @@ data:
       from_address: "{{ .Values.mail.from }}"
     celery:
       routing: "{{ .Values.worker.routing }}"
-      timeout: 7200
+      timeout: {{ .Values.worker.timeout }}
     client:
       user: "{{ .Values.client.username }}"
     keycloak:
