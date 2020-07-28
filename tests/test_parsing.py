@@ -289,13 +289,22 @@ def create_reference(data, pretty):
         return json.dumps(data, separators=(',', ':'))
 
 
-def assert_parser_result(backend, error=False):
-    status, errors = backend.status
-    assert status == 'ParseSuccess'
-    if error:
-        assert len(errors) > 0
-    else:
-        assert errors is None or len(errors) == 0
+@pytest.fixture(scope='function')
+def assert_parser_result(caplog):
+    def _assert(backend, error=False):
+        status, errors = backend.status
+        assert status == 'ParseSuccess'
+        if error:
+            if not errors:
+                errors = []
+                for record in caplog.get_records(when='call'):
+                    if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
+                        errors.append(record.msg)
+            assert len(errors) > 0
+        else:
+            assert errors is None or len(errors) == 0
+
+    return _assert
 
 
 def assert_parser_dir_unchanged(previous_wd, current_wd):
@@ -308,8 +317,9 @@ def run_parser(parser_name, mainfile):
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
     if isinstance(result, MSection):
         backend = Backend(parser._metainfo_env, parser.domain)
-        root_section = datamodel.domains[parser.domain]['root_section']
-        setattr(backend.entry_archive, root_section, result)
+        root_section = result.m_def.name
+        section_def = getattr(datamodel.EntryArchive, root_section)
+        backend.entry_archive.m_add_sub_section(section_def, result)
         backend.resource.add(result)
         result = backend
     result.domain = parser.domain
@@ -357,7 +367,7 @@ def add_calculation_info(backend: Backend, **kwargs) -> Backend:
 
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
-def test_parser(parser_name, mainfile):
+def test_parser(parser_name, mainfile, assert_parser_result):
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
@@ -365,7 +375,7 @@ def test_parser(parser_name, mainfile):
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
 
-def test_broken_xml_vasp():
+def test_broken_xml_vasp(assert_parser_result):
     parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)

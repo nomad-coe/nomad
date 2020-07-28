@@ -244,11 +244,14 @@ class Backend(AbstractParserBackend):
         if section_def.extends_base_section:
             section_def = section_def.base_sections[0]
 
+        section = self.__open_sections.get((section_def, -1), None)
+        if not section:
+            section = self.open_sections[(section_def, -1)]
         if isinstance(property_def, Quantity):
-            return self.__open_sections[(section_def, -1)].m_get(property_def)
+            return section.m_get(property_def)
 
         elif isinstance(property_def, SubSection):
-            return self.__open_sections[(section_def, -1)].m_get_sub_sections(property_def)
+            return section.m_get_sub_sections(property_def)
 
     def metaInfoEnv(self):
         if self.__legacy_env is None:
@@ -301,6 +304,12 @@ class Backend(AbstractParserBackend):
         ''' Close priorly opened existing archive data again. '''
         section = self.resolve_context(context_uri)
         self.__close(section)
+
+    @property
+    def open_sections(self):
+        for section in self.entry_archive.m_all_contents():
+            self.__open(section)
+        return self.__open_sections
 
     def __open(self, section):
         if section.m_parent_index != -1:
@@ -357,7 +366,9 @@ class Backend(AbstractParserBackend):
         if section_def.extends_base_section:
             section_def = section_def.base_sections[0]
 
-        section = self.__open_sections[(section_def, g_index)]
+        section = self.__open_sections.get((section_def, g_index), None)
+        if not section:
+            section = self.open_sections[(section_def, g_index)]
 
         return section, quantity_def
 

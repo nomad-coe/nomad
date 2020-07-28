@@ -24,6 +24,7 @@ from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, Chaos
 from eelsparser import EelsParser
 from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
+from vaspparser import VASPParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -121,18 +122,7 @@ parsers = [
         # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
         mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
     ),
-    LegacyParser(
-        name='parsers/vasp', code_name='VASP', code_homepage='https://www.vasp.at/',
-        parser_class_name='vaspparser.VASPRunParser',
-        mainfile_mime_re=r'(application/.*)|(text/.*)',
-        mainfile_contents_re=(
-            r'^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*'
-            r'?\s*<modeling>'
-            r'?\s*<generator>'
-            r'?\s*<i name="program" type="string">\s*vasp\s*</i>'
-            r'?'),
-        supported_compressions=['gz', 'bz2', 'xz']
-    ),
+    VASPParser(),
     VaspOutcarParser(
         name='parsers/vasp-outcar', code_name='VASP', code_homepage='https://www.vasp.at/',
         parser_class_name='vaspparser.VaspOutcarParser',

@@ -3439,6 +3439,11 @@ class section_run(MSection):
         repeats=True,
         a_legacy=LegacyDefinition(name='section_system'))
 
+    section_workflow = SubSection(
+        sub_section=SectionProxy('section_workflow'),
+        repeats=True
+    )
+
 
 class section_sampling_method(MSection):
     '''
@@ -5573,6 +5578,39 @@ class section_XC_functionals(MSection):
         ''',
         categories=[settings_physical_parameter],
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
+
+
+class section_workflow(MSection):
+    '''
+    Section containing the  results of a workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_workflow'))
+
+    workflow_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The type of calculation workflow. Can be one of relaxation, elastic, phonon,
+        molecular dynamics.
+        ''',
+        a_legacy=LegacyDefinition(name='workflow_type'))
+
+    relaxation_energy_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The tolerance value in the energy between relaxation steps for convergence.
+        ''',
+        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'))
+
+    workflow_final_calculation_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=[],
+        description='''
+        Reference to last calculation step.
+        ''')
 
 
 m_package.__init_metainfo__()
