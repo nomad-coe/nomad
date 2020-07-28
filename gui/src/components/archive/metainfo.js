@@ -43,14 +43,14 @@ metainfo.packages.forEach(pkg => {
       addProperty(quantitiy)
       quantitiy.shape = quantitiy.shape || []
       if (isReference(quantitiy)) {
-        referencedSection = resolveRef(quantitiy.type.type_data)
+        const referencedSection = resolveRef(quantitiy.type.type_data)
         referencedSection._incomingRefs = referencedSection._incomingRefs || []
         referencedSection._incomingRefs.push(quantitiy)
       }
     })
     sectionDef.sub_sections.forEach(subSection => {
       addProperty(subSection)
-      subSectionsSectionDef = resolveRef(subSection.sub_section)
+      const subSectionsSectionDef = resolveRef(subSection.sub_section)
       subSectionsSectionDef._parentSections = subSectionsSectionDef._parentSections || []
       subSectionsSectionDef._parentSections.push(sectionDef)
     })
@@ -112,7 +112,7 @@ export function vicinityGraph(def) {
         const parentIndex = addNode(parentSection)
         addEdge(node.index, parentIndex, {})
       })
-      current.quantities
+      def.quantities
         .filter(quantity => quantity.type.type_kind === 'reference')
         .forEach(reference => {
           const referencedSectionDef = resolveRef(reference.type_data)
@@ -120,7 +120,7 @@ export function vicinityGraph(def) {
           addEdge(node.index, index, reference)
         })
     } else if (def.m_def === 'Quantity') {
-      sectionIndex = addNode(def._section)
+      const sectionIndex = addNode(def._section)
       addEdge(node.index, sectionIndex, {})
     }
 
@@ -135,6 +135,11 @@ export function vicinityGraph(def) {
   }
 
   addNode(def)
+
+  return {
+    nodes: nodes,
+    edges: edges
+  }
 }
 
 export default metainfo

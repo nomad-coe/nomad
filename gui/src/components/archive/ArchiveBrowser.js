@@ -1,5 +1,5 @@
 
-import React, { useState, useContext, useRef, useLayoutEffect } from 'react'
+import React, { useState, useContext, useRef, useLayoutEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot, atom, useRecoilState } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
@@ -7,6 +7,7 @@ import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import archiveAdaptorFactory from './archiveAdaptors'
 import classNames from 'classnames'
+import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 
 export const viewConfigState = atom({
   key: 'viewConfig',
@@ -59,7 +60,29 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
-  const [lanes, setLanes] = useState([{key: 'root', adaptor: archiveAdaptorFactory(data)}])
+  const { pathname } = useLocation()
+  const { url } = useRouteMatch()
+  const archivePath = pathname.substring(url.length).split('/')
+
+  const root = useMemo(() => ({
+    key: 'root',
+    path: url.endsWith('/') ? url.substring(0, url.length - 1) : url,
+    adaptor: archiveAdaptorFactory(data),
+    next: null
+  }), [data])
+
+  const lanes = [root]
+  archivePath.filter(segment => segment).forEach((segment, i) => {
+    const prev = lanes[i]
+    const lane = {
+      key: segment,
+      path: `${prev.path}/${segment}`,
+      adaptor: prev.adaptor.itemAdaptor(segment)
+    }
+    lanes.push(lane)
+    prev.next = lane
+  })
+
   return <RecoilRoot>
     <ArchiveBrowserConfig />
     <Card>
@@ -68,12 +91,7 @@ export default function ArchiveBrowser({data}) {
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
               {lanes.map((lane, index) => (
-                <Lane
-                  key={`${lane.key}:${index}`} adaptor={lane.adaptor}
-                  onSetNext={next => setLanes(
-                    [...lanes.slice(0, index + 1), {key: next, adaptor: lane.adaptor.itemAdaptor(next)}]
-                  )}
-                />
+                <Lane key={index} lane={lane} />
               ))}
             </div>
           </div>
@@ -147,30 +165,26 @@ const useLaneStyles = makeStyles(theme => ({
     overflowY: 'scroll'
   }
 }))
-function Lane({adaptor, onSetNext}) {
+function Lane({lane}) {
   const classes = useLaneStyles()
-  const [selected, setSelected] = useState()
-
-  const onSelect = key => {
-    setSelected(key)
-    onSetNext(key)
-  }
+  const { adaptor } = lane
 
   return <div className={classes.root}>
     <div className={classes.container}>
-      <laneContext.Provider value={[selected, onSelect]}>
+      <laneContext.Provider value={lane}>
         {adaptor.render()}
       </laneContext.Provider>
     </div>
   </div>
 }
 Lane.propTypes = ({
-  adaptor: PropTypes.object.isRequired,
-  onSetNext: PropTypes.func.isRequired
+  lane: PropTypes.object.isRequired
 })
 
 const useItemStyles = makeStyles(theme => ({
   root: {
+    color: theme.palette.text.primary,
+    textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
     padding: `0 0 0 ${theme.spacing(1)}px`,
     whiteSpace: 'nowrap',
@@ -196,17 +210,18 @@ const useItemStyles = makeStyles(theme => ({
 
 export function Item({children, itemKey}) {
   const classes = useItemStyles()
-  const [selected, setSelected] = useContext(laneContext)
-  return <span
+  const lane = useContext(laneContext)
+  const selected = lane.next && lane.next.key
+  return <Link
     className={classNames(
       classes.root,
       selected === itemKey ? classes.rootSelected : classes.rootUnSelected
     )}
-    onClick={() => setSelected(itemKey)}
+    to={`${lane.path}/${itemKey}`}
   >
     <span className={classes.childContainer}>{children}</span>
     <ArrowRightIcon/>
-  </span>
+  </Link>
 }
 Item.propTypes = ({
   children: PropTypes.oneOfType([
@@ -240,7 +255,7 @@ export function Compartment({title, children}) {
   </React.Fragment>
 }
 Compartment.propTypes = ({
-  title: PropTypes.string.isRequired,
+  title: PropTypes.string,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

@@ -50,7 +50,7 @@ class ArrayAdaptor extends Adaptor {
   render() {
     return <React.Fragment>
       {this.e.map((_, index) => (
-        <Item key={index} itemKey={index}>
+        <Item key={index} itemKey={index.toString()}>
           <Typography>
             {index + 1}
           </Typography>

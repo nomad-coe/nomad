@@ -192,7 +192,7 @@ function SubSection({sections, def}) {
   const length = sections.length
 
   const renderItem = (section, index) => (
-    <Item key={index} itemKey={index}>
+    <Item key={index} itemKey={index.toString()}>
       <Typography><Box fontWeight="bold">{index}</Box></Typography>
     </Item>
   )

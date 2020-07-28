@@ -1,14 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Tab, Tabs, Box } from '@material-ui/core'
+import { Tab, Tabs, Box } from '@material-ui/core'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RepoEntryView from './RepoEntryView'
-import { withApi } from '../api'
-import { compose } from 'recompose'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
-import { matchPath } from 'react-router-dom'
+import { matchPath, useLocation, useRouteMatch, useHistory, Route } from 'react-router-dom'
 
 export const help = `
 The *raw files* tab, will show you all files that belong to the entry and offers a download
@@ -36,47 +34,40 @@ EntryPageContent.propTypes = ({
   fixed: PropTypes.bool
 })
 
-class EntryPage extends React.Component {
-  static propTypes = {
-    location: PropTypes.object,
-    match: PropTypes.object.isRequired,
-    history: PropTypes.object.isRequired
-  }
+export default function EntryPage() {
 
-  render() {
-    const { location, match, history } = this.props
-    const { path } = match
+  const history = useHistory()
+  const { path, url } = useRouteMatch()
 
-    const entryMatch = matchPath(location.pathname, {
-      path: `${path}/:uploadId?/:calcId?/:tab?`
-    })
-    const { tab, calcId, uploadId } = entryMatch.params
+  return (
+    <Route
+      path={`${path}/:uploadId?/:calcId?/:tab?`}
+      render={({match: {params: {uploadId, calcId, tab = 'raw'}}}) => {
+        if (calcId && uploadId) {
+          const calcProps = { calcId: calcId, uploadId: uploadId }
+          return (
+            <React.Fragment>
+              <Tabs
+                value={tab || 'raw'}
+                onChange={(_, value) => history.push(`${url}/${uploadId}/${calcId}/${value}`)}
+                indicatorColor="primary"
+                textColor="primary"
+                variant="fullWidth"
+              >
+                <Tab label="Raw data" value="raw" />
+                <Tab label="Archive" value="archive"/>
+                <Tab label="Logs" value="logs"/>
+              </Tabs>
 
-    if (calcId && uploadId) {
-      const calcProps = { calcId: calcId, uploadId: uploadId }
-      return (
-        <React.Fragment>
-          <Tabs
-            value={tab || 'raw'}
-            onChange={(_, value) => history.push(`${match.url}/${uploadId}/${calcId}/${value}`)}
-            indicatorColor="primary"
-            textColor="primary"
-            variant="fullWidth"
-          >
-            <Tab label="Raw data" value="raw" />
-            <Tab label="Archive" value="archive"/>
-            <Tab label="Logs" value="logs"/>
-          </Tabs>
-
-          <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
-          <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
-          <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
-        </React.Fragment>
-      )
-    } else {
-      return ''
-    }
-  }
+              <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
+            </React.Fragment>
+          )
+        } else {
+          return ''
+        }
+      }}
+    />
+  )
 }
-
-export default compose(withApi(false, true), withStyles(EntryPage.styles))(EntryPage)

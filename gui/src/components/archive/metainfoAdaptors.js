@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, viewConfigState, filterConfigState } from './ArchiveBrowser'
 import { Typography, Box } from '@material-ui/core'
 import Markdown from '../Markdown'
-import { metainfoDef, resolveRef } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -63,6 +63,9 @@ function SectionDef({def}) {
   return <Content style={{backgroundColor: 'grey'}}>
     <Compartment>
       <Definition def={def} isDefinition/>
+    </Compartment>
+    <Compartment title="visualization">
+      <VicinityGraph def={def} />
     </Compartment>
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
@@ -159,4 +162,13 @@ export function Definition({def, isDefinition}) {
 Definition.propTypes = ({
   def: PropTypes.object,
   isDefinition: PropTypes.bool
+})
+
+function VicinityGraph({def}) {
+  const graph = useMemo(() => vicinityGraph(def), [def])
+  console.log(graph)
+  return 'VicinityGraph'
+}
+Definition.propTypes = ({
+  def: PropTypes.object.isRequired
 })
