@@ -4,18 +4,17 @@ import numpy as np
 from typing import Tuple, List
 from nomad.units import ureg
 
-from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
 from nomad.utils import RestrictedDict
 
 
-def get_basis_set(context, backend: Backend, logger) -> RestrictedDict:
+def get_basis_set(context, entry_archive, logger) -> RestrictedDict:
     """Decide which type of basis set settings are applicable to the entry and
     return a corresponding settings as a RestrictedDict.
 
     Args:
         context: The calculation context.
-        backend: Backend from which values are extracted.
+        entry_archive: EntryArchive from which values are extracted.
         logger: Shared logger.
 
     Returns:
@@ -24,11 +23,11 @@ def get_basis_set(context, backend: Backend, logger) -> RestrictedDict:
         returns None.
     """
     settings: BasisSet = None
-    program_name = backend.entry_archive.section_run[0].program_name
+    program_name = entry_archive.section_run[0].program_name
     if program_name == "exciting":
-        settings = BasisSetExciting(context, backend, logger)
+        settings = BasisSetExciting(context, entry_archive, logger)
     elif program_name == "FHI-aims":
-        settings = BasisSetFHIAims(context, backend, logger)
+        settings = BasisSetFHIAims(context, entry_archive, logger)
     else:
         return None
 
@@ -40,11 +39,11 @@ class BasisSet(ABC):
     subclasses that inherit this class and hierarchically add new mandatory and
     optional settings with the setup()-function.
     """
-    def __init__(self, context, backend, logger):
+    def __init__(self, context, entry_archive, logger):
         """
         """
         self._ctx = context
-        self._backend = backend
+        self._entry_archive = entry_archive
         self._logger = logger
         mandatory, optional = self.setup()
         self.settings = RestrictedDict(mandatory, optional, forbidden_values=[None])

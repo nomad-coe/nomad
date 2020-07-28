@@ -17,7 +17,6 @@ from nomad.datamodel.encyclopedia import (
     Properties,
     Energies,
 )
-from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
 from nomad.normalizing.encyclopedia.context import Context
 
@@ -26,8 +25,8 @@ class PropertiesNormalizer():
     """A base class that is used for processing calculated quantities that
     should be extracted to Encyclopedia.
     """
-    def __init__(self, backend: Backend, logger):
-        self.backend = backend
+    def __init__(self, entry_archive, logger):
+        self.entry_archive = entry_archive
         self.logger = logger
 
     def electronic_band_structure(self, properties: Properties, calc_type: str, material_type: str, context: Context, sec_system: Section) -> None:
@@ -131,7 +130,7 @@ class PropertiesNormalizer():
         """
         try:
             resolved_section = None
-            frame_sequences = self.backend.entry_archive.section_run[0].section_frame_sequence
+            frame_sequences = self.entry_archive.section_run[0].section_frame_sequence
             for frame_sequence in reversed(frame_sequences):
                 thermodynamical_props = frame_sequence.section_thermodynamical_properties
                 for thermodynamical_prop in thermodynamical_props:
@@ -224,7 +223,7 @@ class PropertiesNormalizer():
             return
 
         # Fetch resources
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         properties = sec_enc.properties
         calc_type = context.calc_type
         material_type = context.material_type

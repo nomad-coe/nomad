@@ -35,7 +35,6 @@ from nomad.datamodel.encyclopedia import (
     LatticeParameters,
 )
 from nomad.normalizing.encyclopedia.context import Context
-from nomad.parsing.legacy import Backend
 from nomad.metainfo import Section
 from nomad import atomutils
 from nomad.utils import hash
@@ -48,9 +47,9 @@ class MaterialNormalizer():
     """A base class that is used for processing material-related information
     in the Encylopedia.
     """
-    def __init__(self, backend: Backend, logger):
-        self.backend = backend
+    def __init__(self, entry_archive, logger):
         self.logger = logger
+        self.entry_archive = entry_archive
 
     def atom_labels(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         ideal.atom_labels = std_atoms.get_chemical_symbols()
@@ -372,7 +371,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         properties = sec_enc.properties
         sec_symmetry = sec_system["section_symmetry"][0]
@@ -498,7 +497,7 @@ class Material2DNormalizer(MaterialNormalizer):
 
     def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
@@ -716,7 +715,7 @@ class Material1DNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)

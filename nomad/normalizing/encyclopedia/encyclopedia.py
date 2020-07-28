@@ -180,32 +180,32 @@ class EncyclopediaNormalizer(Normalizer):
         # Fill structure related metainfo
         struct: Any = None
         if context.material_type == Material.material_type.type.bulk:
-            struct = MaterialBulkNormalizer(self.backend, self.logger)
+            struct = MaterialBulkNormalizer(self.entry_archive, self.logger)
         elif context.material_type == Material.material_type.type.two_d:
-            struct = Material2DNormalizer(self.backend, self.logger)
+            struct = Material2DNormalizer(self.entry_archive, self.logger)
         elif context.material_type == Material.material_type.type.one_d:
-            struct = Material1DNormalizer(self.backend, self.logger)
+            struct = Material1DNormalizer(self.entry_archive, self.logger)
         if struct is not None:
             struct.normalize(context)
 
         # Fill method related metainfo
         method = None
         if context.method_type == Method.method_type.type.DFT or context.method_type == Method.method_type.type.DFTU:
-            method = MethodDFTNormalizer(self._backend, self.logger)
+            method = MethodDFTNormalizer(self.entry_archive, self.logger)
         elif context.method_type == Method.method_type.type.GW:
-            method = MethodGWNormalizer(self._backend, self.logger)
+            method = MethodGWNormalizer(self.entry_archive, self.logger)
         if method is not None:
             method.normalize(context)
 
         # Fill properties related metainfo
-        properties = PropertiesNormalizer(self.backend, self.logger)
+        properties = PropertiesNormalizer(self.entry_archive, self.logger)
         properties.normalize(context)
 
     def normalize(self, logger=None) -> None:
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
-        sec_enc = self.backend.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
+        sec_enc = self.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
         status_enums = EncyclopediaMetadata.status.type
         calc_enums = Calculation.calculation_type.type
 
@@ -222,7 +222,6 @@ class EncyclopediaNormalizer(Normalizer):
 
         try:
             super().normalize(logger)
-
             # Initialise metainfo structure
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
