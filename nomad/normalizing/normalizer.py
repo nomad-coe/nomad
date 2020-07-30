@@ -33,7 +33,6 @@ class Normalizer(metaclass=ABCMeta):
     ''' The domain this normalizer should be used in. Default for all normalizer is 'DFT'. '''
 
     def __init__(self, backend: Backend) -> None:
-        self._backend = backend
         self.entry_archive = backend.entry_archive
         try:
             self.section_run = backend.entry_archive.section_run[0]
@@ -74,13 +73,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         ]
 
     def _normalize_system(self, system, is_representative):
-        context = '/section_run/0/section_system/%d' % system.m_parent_index
-
-        self._backend.openContext(context)
-        try:
-            return self.normalize_system(system, is_representative)
-        finally:
-            self._backend.closeContext(context)
+        return self.normalize_system(system, is_representative)
 
     @abstractmethod
     def normalize_system(self, system: MSection, is_representative: bool) -> bool:
@@ -194,6 +187,6 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # All the rest if requested
         if not self.only_representatives:
-            for isys, system in enumerate(self._backend.entry_archive.section_run[0].section_system):
+            for isys, system in enumerate(self.section_run.section_system):
                 if isys != repr_sys_idx:
                     self.__normalize_system(system, False, logger)

@@ -132,8 +132,6 @@ class DosNormalizer(Normalizer):
                                 idx += 1
 
                 # Add quantities to NOMAD's Metainfo
-                scc_url = '/section_run/0/section_single_configuration_calculation/%d/section_dos/0' % scc.m_parent_index
-                self._backend.openContext(scc_url)
                 dos.dos_values_normalized = dos_values_normalized
 
                 # Data for DOS fingerprint
@@ -155,4 +153,3 @@ class DosNormalizer(Normalizer):
                         sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
                         sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
                         sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
-                self._backend.closeContext(scc_url)

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import glob
 import os.path
 import json
 import numpy as np
@@ -25,12 +24,9 @@ controlIn_nucleus = 'x_fhi_aims_controlIn_nucleus'
 
 pure_types_json = dict()
 
-files = glob.glob(os.path.join(__file__, "data/*.json"))
-for file in files:
-    pure_types_str = os.path.basename(os.path.split(file)[-1])
-
-    with open(file) as data_file:
-        json_data = json.load(data_file)
+for pure_types_str in ['light', 'really_tight', 'tight']:
+    with open(os.path.join(os.path.dirname(__file__), 'data', pure_types_str + '.json')) as f:
+        json_data = json.load(f)
         section_method = json_data['sections']['section_run-0']['sections']['section_method-0']
         pure_types_json[pure_types_str] = section_method[controlIn_basis_set]
 
@@ -90,14 +86,13 @@ class FhiAimsBaseNormalizer(Normalizer):
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
+        if not self.section_run or self.section_run.program_name != 'FHI-aims':
+            return
 
-        for index in self._backend.get_sections('section_method'):
-            try:
-                to_compare = self._backend.get_value(controlIn_basis_set, index)
-                if to_compare is None:
-                    # not fhi aims data
-                    continue
-            except KeyError:
+        for method in self.section_run.section_method:
+            to_compare = getattr(method, controlIn_basis_set, None)
+            if to_compare is None:
+                # not fhi aims data
                 continue
 
             matrix_hits_int = dict.fromkeys(pure_types_json, 0)
@@ -112,9 +107,6 @@ class FhiAimsBaseNormalizer(Normalizer):
 
                     # matrix_hits[key]=matrix_hits[key]+CompareToDefaults(val[AtomIndex],to_compare[i])
 
-            context_uri = '/section_run/0/section_method/%d' % index
-            self._backend.openContext(context_uri)
-
             closest_base_int = min(matrix_hits_int, key=matrix_hits_int.get)
             if (matrix_hits_basis[min(matrix_hits_basis, key=matrix_hits_basis.get)] == 0):
                 closest_base_base = ''
@@ -122,18 +114,11 @@ class FhiAimsBaseNormalizer(Normalizer):
                 closest_base_base = '+'
 
             if (matrix_hits_int[closest_base_int] == 0):
-                # print(closest_base_int +closest_base_base)
-                self._backend.addValue('basis_set', closest_base_int + closest_base_base)
+                method.basis_set = closest_base_int + closest_base_base
             elif(matrix_hits_int[closest_base_int] <= 5):
-                # print('~'+closest_base_int+closest_base_base)
-                self._backend.addValue('basis_set', '~' + closest_base_int + closest_base_base)
+                method.basis_set = '~' + closest_base_int + closest_base_base
             elif(matrix_hits_int[closest_base_int] > 5):
-                self._backend.addValue('basis_set', 'custom-' + closest_base_int)
-                # print('custom-'+closest_base_int)
-
-            self._backend.closeContext(context_uri)
-
-        self._backend.finishedParsingSession("ParseSuccess", None)
+                method.basis_set = 'custom-' + closest_base_int
 
 
 # import setup_paths
