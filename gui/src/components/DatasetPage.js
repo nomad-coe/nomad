@@ -59,7 +59,6 @@ export default function DatasetPage() {
     return <div>loading...</div>
   }
 
-  console.log('### DatasetPage', dataset)
   return <div>
     <div className={classes.header}>
       <div className={classes.description}>

@@ -315,7 +315,10 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_search=Search()
+        a_search=Search(
+            group='materials_grouped',
+            metric='cardinality', metric_name='materials',
+            description='Search for a particular material by its id.')
     )
     material_name = Quantity(
         type=str,

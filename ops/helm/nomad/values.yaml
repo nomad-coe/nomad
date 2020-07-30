@@ -88,7 +88,7 @@ gui:
   ## automatically gz based on header
   gzip: true
   ## enable links to the 'new' encyclopedia
-  encyclopediaEnabled: false
+  encyclopediaEnabled: true
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
