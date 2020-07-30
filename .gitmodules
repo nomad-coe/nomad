@@ -109,10 +109,6 @@
 	path = dependencies/parsers/turbomole
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole.git
 	branch = nomad-fair
-[submodule "dependencies/parsers/photoemission"]
-	path = dependencies/parsers/photoemission
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-photoemission.git
-	branch = nomad-fair
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
