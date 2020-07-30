@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Dict, List
-from math import gcd
+from math import gcd, isnan
 from functools import reduce
 from abc import abstractmethod
 import re
@@ -140,7 +140,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def mass_density(self, properties: Properties, repr_system: Atoms) -> None:
         mass = atomutils.get_summed_atomic_mass(repr_system.get_atomic_numbers())
         orig_volume = repr_system.get_volume() * (1e-10)**3
-        properties.mass_density = float(mass / orig_volume)
+        mass_density = float(mass / orig_volume)
+        if isnan(mass_density):
+            properties.mass_density = 0
+        else:
+            properties.mass_density = mass_density
 
     def material_name(self, material: Material, symbols: list, numbers: list) -> None:
         # Systems with one element are named after it
