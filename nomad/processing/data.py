@@ -528,7 +528,7 @@ class Calc(Proc):
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 with self.use_parser_backend(normalizer_name) as backend:
                     try:
-                        normalizer(backend).normalize(logger=logger)
+                        normalizer(backend.entry_archive).normalize(logger=logger)
                     except Exception as e:
                         self._parser_backend.finishedParsingSession('ParseFailure', [str(e)])
                         logger.error(

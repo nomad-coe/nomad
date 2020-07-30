@@ -32,7 +32,7 @@ def run_normalize(backend: Backend) -> Backend:
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
+        normalizer = normalizer_class(backend.entry_archive)
         normalizer.normalize()
     return backend
 

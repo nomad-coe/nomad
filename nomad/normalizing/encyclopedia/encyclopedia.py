@@ -22,7 +22,6 @@ from nomad.datamodel.encyclopedia import (
     Properties,
     Calculation,
 )
-from nomad.parsing.legacy import Backend
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.encyclopedia.material import MaterialBulkNormalizer, Material2DNormalizer, Material1DNormalizer
 from nomad.normalizing.encyclopedia.method import MethodDFTNormalizer, MethodGWNormalizer
@@ -37,10 +36,6 @@ class EncyclopediaNormalizer(Normalizer):
     within a new section called "encyclopedia". In the future these separate
     metainfos could be absorbed into the existing metainfo hiearchy.
     """
-    def __init__(self, backend: Backend):
-        super().__init__(backend)
-        self.backend: Backend = backend
-
     def calc_type(self, calc: Calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
