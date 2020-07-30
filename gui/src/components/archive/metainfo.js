@@ -6,13 +6,18 @@ export const packageDefs = {}
 metainfo.packages.forEach(pkg => {
   packageDefs[pkg.name] = pkg
   pkg._sections = {}
+  if (pkg.category_definitions) {
+    pkg.category_definitions.forEach(categoryDef => {
+      categoryDef._qualifiedName = `${pkg.name}:${categoryDef.name}`
+    })
+  }
   pkg.section_definitions.forEach(sectionDef => {
     pkg._sections[sectionDef.name] = sectionDef
     sectionDefs[sectionDef.name] = sectionDef
     sectionDef.quantities = sectionDef.quantities || []
     sectionDef.sub_sections = sectionDef.sub_sections || []
-    sectionDef._incomingRefs = []
-    sectionDef._parentSections = []
+    sectionDef._incomingRefs = sectionDef._incomingRefs || []
+    sectionDef._parentSections = sectionDef._parentSections || []
     sectionDef._qualifiedName = `${pkg.name}:${sectionDef.name}`
 
     const addPropertiesFromSections = sections => sections
@@ -88,57 +93,63 @@ export function vicinityGraph(def) {
   function addEdge(from, to, def) {
     const edge = {
       def: def,
-      from: from,
-      to: to
+      source: from.id,
+      target: to.id,
+      value: 1
     }
     edges.push(edge)
   }
 
-  function addNode(def, x, y) {
+  function addNode(def, more) {
+    const {x, y, recursive} = more || {}
     if (nodesMap[def._qualifiedName]) {
+      console.log('####### B', def._qualifiedName)
       return nodesMap[def._qualifiedName]
     }
 
     const node = {
+      id: def._qualifiedName,
       def: def,
       x: x || 0,
       y: y || 0
     }
-    node.index = nodes.push(node)
+    nodes.push(node)
     nodesMap[def._qualifiedName] = node
 
-    if (def.m_def === 'Section') {
-      def._parentSections.forEach(parentSection => {
-        const parentIndex = addNode(parentSection)
-        addEdge(node.index, parentIndex, {})
-      })
-      def.quantities
-        .filter(quantity => quantity.type.type_kind === 'reference')
-        .forEach(reference => {
-          const referencedSectionDef = resolveRef(reference.type_data)
-          const index = addNode(referencedSectionDef)
-          addEdge(node.index, index, reference)
-        })
-    } else if (def.m_def === 'Quantity') {
-      const sectionIndex = addNode(def._section)
-      addEdge(node.index, sectionIndex, {})
-    }
+    if (recursive) {
+      if (def.m_def === 'Section') {
+          def._parentSections.forEach(parentSection => {
+            const parent = addNode(parentSection, {recursive: true})
+            addEdge(node, parent, {})
+          })
+          def.quantities
+            .filter(quantity => quantity.type.type_kind === 'reference')
+            .forEach(reference => {
+              const referencedSectionDef = resolveRef(reference.type.type_data)
+              const referenced = addNode(referencedSectionDef)
+              addEdge(node, referenced, reference)
+            })
+      } else if (def.m_def === 'Quantity') {
+        const section = addNode(def._section, {recursive: true})
+        addEdge(node, section, {})
+      }
 
-    if (def.categories) {
-      def.categories.forEach(category => {
-        const categoryIndex = addNode(category)
-        addEdge(node.index, categoryIndex, {})
-      })
+      if (def.categories) {
+        def.categories.forEach(categoryDef => {
+          const category = addNode(resolveRef(categoryDef), {recursive: true})
+          addEdge(node, category, {})
+        })
+      }
     }
 
     return node
   }
 
-  addNode(def)
+  addNode(def, {recursive: true})
 
   return {
     nodes: nodes,
-    edges: edges
+    links: edges
   }
 }
 

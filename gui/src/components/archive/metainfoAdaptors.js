@@ -1,11 +1,17 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, viewConfigState, filterConfigState } from './ArchiveBrowser'
-import { Typography, Box } from '@material-ui/core'
+import { Typography, Box, makeStyles } from '@material-ui/core'
 import Markdown from '../Markdown'
 import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
+import * as d3 from 'd3'
+
+import blue from '@material-ui/core/colors/blue';
+import teal from '@material-ui/core/colors/teal';
+import lime from '@material-ui/core/colors/lime';
+import purple from '@material-ui/core/colors/purple';
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -123,7 +129,12 @@ SubSectionDef.propTypes = ({
 
 function QuantityDef({def}) {
   return <Content>
-    <Definition def={def} isDefinition/>
+    <Compartment>
+      <Definition def={def} isDefinition/>
+    </Compartment>
+    <Compartment title="visualization">
+      <VicinityGraph def={def} />
+    </Compartment>
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -164,10 +175,126 @@ Definition.propTypes = ({
   isDefinition: PropTypes.bool
 })
 
+const useVicinityGraphStyles = makeStyles(theme => ({
+  root: {
+    '& .links line': {
+      // stroke: '#000'
+      strokeWidth: 3
+    },
+    '& text': {
+      fontSize: 10
+    }
+  }
+}))
 function VicinityGraph({def}) {
+  const linkColors = {
+    'Quantity': purple[500]
+  }
+  const nodeColors = {
+    'Quantity': lime[500],
+    'Section': blue[500],
+    'Category': teal[500]
+  }
   const graph = useMemo(() => vicinityGraph(def), [def])
   console.log(graph)
-  return 'VicinityGraph'
+
+  const classes = useVicinityGraphStyles()
+  const svgRef = useRef()
+  useEffect(() => {
+    console.log('#####')
+    const svg = d3.select(svgRef.current)
+    const width = svg.attr("width")
+    const height = svg.attr("height")
+
+    var color = d3.scaleOrdinal(d3.schemeAccent);
+
+    var simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id(d => d.id).distance(75).strength(1))
+      .force("charge", d3.forceManyBody().strength(-400))
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
+
+    var link = svg.select(".links")
+      .selectAll("line")
+      .data(graph.links)
+      .enter().append("line")
+      .attr('marker-end','url(#arrowhead)')
+      .attr("stroke", d => linkColors[d.def.m_def] || '#000')
+
+    var node = svg.select(".nodes")
+      .selectAll("g")
+      .data(graph.nodes)
+      .enter().append("g")
+
+    node.append("circle")
+      .attr("r", 10)
+      .attr("fill", d => nodeColors[d.def.m_def] || '#000')
+      .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended))
+
+    node.append("text")
+      .text(d => d.def.name)
+      .attr('x', 6)
+      .attr('y', 3)
+
+    simulation
+      .nodes(graph.nodes)
+      .on("tick", ticked)
+
+    simulation.force("link")
+      .links(graph.links)
+
+    function ticked() {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y)
+
+      node
+        .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+    }
+
+    function dragstarted(d) {
+      d3.event.sourceEvent.stopPropagation()
+      if (!d3.event.active) {
+        simulation.alphaTarget(0.3).restart()
+      }
+      d.fx = d.x
+      d.fy = d.y
+    }
+
+    function dragged(d) {
+      d.fx = d3.event.x
+      d.fy = d3.event.y
+    }
+
+    function dragended(d) {
+      if (!d3.event.active) {
+        simulation.alphaTarget(0)
+      }
+      d.fx = null
+      d.fy = null
+    }
+  }, [graph])
+  return <svg className={classes.root} width="300" height="300" ref={svgRef}>
+    <g className="links" />
+    <g className="nodes" />
+    <marker
+      id="arrowhead"
+      viewBox="-0 -5 10 10"
+      refX="21"
+      refY="0"
+      orient="auto"
+      markerWidth="3"
+      markerHeight="4"
+      xoverflow="visible">
+        <path d="M 0,-5 L 10 ,0 L 0,5" fill="#000" stroke="#000" />
+      </marker>
+  </svg>
 }
 Definition.propTypes = ({
   def: PropTypes.object.isRequired
