@@ -236,8 +236,6 @@ class FhiAimsBaseNormalizer(Normalizer):
 
 # #          matrix_hits[key]=matrix_hits[key]+CompareToDefaults(val[AtomIndex],to_compare[i])
 
-#     Copen=backend.openContext(context)
-
 
 #     closest_base_int=min(matrix_hits_int, key=matrix_hits_int.get)
 #     if (matrix_hits_basis[min(matrix_hits_basis, key=matrix_hits_basis.get)] ==0):
@@ -253,8 +251,6 @@ class FhiAimsBaseNormalizer(Normalizer):
 #     elif(matrix_hits_int[closest_base_int]>5):
 #       backend.addValue("basis_set",'custom-'+closest_base_int)
 # #      print('custom-'+closest_base_int)
-
-#     backend.closeContext(context)
 
 #   backend.finishedParsingSession("ParseSuccess", None)
 #   sys.stdout.flush()

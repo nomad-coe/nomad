@@ -20,7 +20,7 @@ import os
 from shutil import copyfile
 
 from nomad import utils, files, datamodel
-from nomad.parsing import BrokenParser, BadContextUri, Backend
+from nomad.parsing import BrokenParser, Backend
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.app import dump_json
 from nomad.metainfo import MSection
@@ -224,62 +224,6 @@ class TestBackend(object):
         assert len(run['section_single_configuration_calculation']) == 2
         assert len(run['section_single_configuration_calculation'][0].section_dos) == 1
         assert len(run['section_single_configuration_calculation'][1].section_dos) == 0
-
-    def test_context(self, backend: Backend, no_warn):
-        backend.openSection('section_run')
-        backend.openSection('section_method')
-        backend.closeSection('section_method', -1)
-        backend.closeSection('section_run', -1)
-
-        backend.openSection('section_run')
-        backend.closeSection('section_run', -1)
-
-        backend.openContext('/section_run/0')
-        backend.addValue('program_name', 't1')
-        backend.closeContext('/section_run/0')
-
-        backend.openContext('/section_run/1')
-        backend.addValue('program_name', 't2')
-        backend.closeContext('/section_run/1')
-
-        backend.openContext('/section_run/0/section_method/0')
-        backend.closeContext('/section_run/0/section_method/0')
-
-        from nomad.datamodel.metainfo.public import section_run
-        runs = backend.resource.all(section_run)
-        assert runs[0]['program_name'] == 't1'
-        assert runs[1]['program_name'] == 't2'
-
-    def test_multi_context(self, backend: Backend, no_warn):
-        backend.openSection('section_run')
-        backend.closeSection('section_run', -1)
-
-        backend.openContext('/section_run/0')
-        backend.openSection('section_method')
-        backend.closeSection('section_method', -1)
-        backend.closeContext('/section_run/0')
-
-        backend.openContext('/section_run/0')
-        backend.openSection('section_method')
-        backend.closeSection('section_method', -1)
-        backend.closeContext('/section_run/0')
-
-        from nomad.datamodel.metainfo.public import section_run
-        runs = backend.resource.all(section_run)
-        assert len(runs[0].section_method) == 2
-
-    def test_bad_context(self, backend: Backend, no_warn):
-        try:
-            backend.openContext('section_run/0')
-            assert False
-        except BadContextUri:
-            pass
-
-        try:
-            backend.openContext('dsfds')
-            assert False
-        except BadContextUri:
-            pass
 
 
 def create_reference(data, pretty):
