@@ -23,7 +23,6 @@ from nomad import utils, files, datamodel
 from nomad.parsing import BrokenParser, Backend
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.app import dump_json
-from nomad.metainfo import MSection
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
@@ -259,13 +258,7 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     result = parser.run(mainfile, logger=utils.get_logger(__name__))
-    if isinstance(result, MSection):
-        backend = Backend(parser._metainfo_env, parser.domain)
-        root_section = result.m_def.name
-        section_def = getattr(datamodel.EntryArchive, root_section)
-        backend.entry_archive.m_add_sub_section(section_def, result)
-        backend.resource.add(result)
-        result = backend
+
     result.domain = parser.domain
     return add_calculation_info(result, parser_name=parser_name)
 

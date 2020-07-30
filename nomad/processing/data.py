@@ -46,7 +46,6 @@ from nomad.archive import query_archive
 from nomad.datamodel.encyclopedia import (
     EncyclopediaMetadata,
 )
-from nomad.metainfo import MSection
 import phonopyparser.metainfo
 
 
@@ -385,14 +384,6 @@ class Calc(Proc):
             try:
                 self._parser_backend = parser.run(
                     self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
-
-                if isinstance(self._parser_backend, MSection):
-                    backend = Backend(parser._metainfo_env, parser.domain)
-                    root_section = self._parser_backend.m_def.name
-                    section_def = getattr(datamodel.EntryArchive, root_section)
-                    backend.entry_archive.m_add_sub_section(section_def, self._parser_backend)
-                    backend.resource.add(self._parser_backend)
-                    self._parser_backend = backend
 
             except Exception as e:
                 self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
