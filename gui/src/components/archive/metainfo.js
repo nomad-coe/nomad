@@ -102,20 +102,23 @@ export function vicinityGraph(def) {
     edges.push(edge)
   }
 
-  function addNode(def, more) {
+  function addNode(def, more, id) {
+    id = id || (d => d._qualifiedName)
     const {recursive, x, y, i} = more || {}
-    if (nodesMap[def._qualifiedName]) {
-      return nodesMap[def._qualifiedName]
+
+    const key = id(def)
+    if (nodesMap[key]) {
+      return nodesMap[key]
     }
 
     const node = {
-      id: def._qualifiedName,
+      id: key,
       def: def,
       x: x, y: y, i: i
     }
 
     nodes.push(node)
-    nodesMap[def._qualifiedName] = node
+    nodesMap[key] = node
 
     if (recursive) {
       if (def.m_def === 'Section') {
@@ -129,8 +132,10 @@ export function vicinityGraph(def) {
           const layoutMiddle = (references.length - 1) * dx / 2
           references.forEach((reference, i) => {
               const referencedSectionDef = resolveRef(reference.type.type_data)
-              const referenced = addNode(referencedSectionDef, {
-                x: x + i * dx - layoutMiddle, y: y + dy, i: i})
+              const referenced = addNode(
+                referencedSectionDef,
+                {x: x + i * dx - layoutMiddle, y: y + dy, i: i},
+                () => reference._qualifiedName)
               addEdge(node, referenced, reference)
             })
       } else if (def.m_def === 'Quantity') {

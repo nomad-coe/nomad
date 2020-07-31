@@ -18,7 +18,7 @@ export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
     return new SectionDefAdaptor(obj)
   } else if (obj.m_def === 'SubSection') {
-    return new SubSectionDefAdaptor(obj)
+    return new Error('SubSections are not represented in the browser')
   } else if (obj.m_def === 'Quantity') {
     return new QuantityDefAdaptor(obj)
   } else {
@@ -44,6 +44,9 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
     if (!property) {
       return super.itemAdaptor(key)
     } else {
+      if (property.m_def === 'SubSection') {
+        return metainfoAdaptorFactory(resolveRef(property.sub_section))
+      }
       return metainfoAdaptorFactory(property)
     }
   }
@@ -55,12 +58,6 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
 class QuantityDefAdaptor extends MetainfoAdaptor {
   render() {
     return <QuantityDef def={this.e} />
-  }
-}
-
-class SubSectionDefAdaptor extends MetainfoAdaptor {
-  render() {
-    return <SubSectionDef def={this.e} />
   }
 }
 
@@ -85,7 +82,7 @@ function SectionDef({def}) {
             <Typography component="span">
               <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
-              </Box>
+              </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
             </Typography>
           </Item>
         })
@@ -107,29 +104,10 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
-    <Meta def={metainfoDef(def.m_def)} />
+    {/* <Meta def={metainfoDef(def.m_def)} /> */}
   </Content>
 }
 SectionDef.propTypes = ({
-  def: PropTypes.object
-})
-
-function SubSectionDef({def}) {
-  return <Content>
-    <Title def={def} isDefinition/>
-    <Box marginTop={1}>
-      <Item itemKey="sub_section">
-        <Typography component="span">
-          <Box fontWeight="bold" component="span">
-            section
-          </Box>
-        </Typography>: {resolveRef(def.sub_section).name}
-      </Item>
-    </Box>
-    <Meta def={metainfoDef(def.m_def)} />
-  </Content>
-}
-SubSectionDef.propTypes = ({
   def: PropTypes.object
 })
 
@@ -139,7 +117,7 @@ function QuantityDef({def}) {
     <Compartment title="visualization">
       <VicinityGraph def={def} />
     </Compartment>
-    <Meta def={metainfoDef(def.m_def)} />
+    {/* <Meta def={metainfoDef(def.m_def)} /> */}
   </Content>
 }
 QuantityDef.propTypes = ({
