@@ -1,10 +1,9 @@
-import React, { useMemo, useEffect, useRef } from 'react'
+import React, { useMemo, useEffect, useRef, useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment, viewConfigState, filterConfigState } from './ArchiveBrowser'
+import { Item, Content, Compartment, configState } from './ArchiveBrowser'
 import { Typography, Box, makeStyles } from '@material-ui/core'
-import Markdown from '../Markdown'
 import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
 import * as d3 from 'd3'
 
@@ -12,6 +11,8 @@ import blue from '@material-ui/core/colors/blue';
 import teal from '@material-ui/core/colors/teal';
 import lime from '@material-ui/core/colors/lime';
 import purple from '@material-ui/core/colors/purple';
+import grey from '@material-ui/core/colors/grey';
+import Markdown from '../Markdown'
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -64,13 +65,16 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
 }
 
 function SectionDef({def}) {
-  const filterConfig = useRecoilValue(filterConfigState)
-  const filter = filterConfig.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  const config = useRecoilValue(configState)
+  const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content style={{backgroundColor: 'grey'}}>
+    <Title def={def} isDefinition/>
+    {def.description &&
+      <Box marginTop={1} marginBottom={1}>
+        <Markdown>{def.description}</Markdown>
+      </Box>
+    }
     <Compartment>
-      <Definition def={def} isDefinition/>
-    </Compartment>
-    <Compartment title="visualization">
       <VicinityGraph def={def} />
     </Compartment>
     <Compartment title="sub section definitions">
@@ -103,6 +107,7 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
+    <Meta def={metainfoDef(def.m_def)} />
   </Content>
 }
 SectionDef.propTypes = ({
@@ -111,16 +116,17 @@ SectionDef.propTypes = ({
 
 function SubSectionDef({def}) {
   return <Content>
-    <Compartment>
-      <Definition def={def} isDefinition/>
-    </Compartment>
-    <Item itemKey="sub_section">
-      <Typography component="span">
-        <Box fontWeight="bold" component="span">
-          section
-        </Box>
-      </Typography>: {resolveRef(def.sub_section).name}
-    </Item>
+    <Title def={def} isDefinition/>
+    <Box marginTop={1}>
+      <Item itemKey="sub_section">
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            section
+          </Box>
+        </Typography>: {resolveRef(def.sub_section).name}
+      </Item>
+    </Box>
+    <Meta def={metainfoDef(def.m_def)} />
   </Content>
 }
 SubSectionDef.propTypes = ({
@@ -129,12 +135,11 @@ SubSectionDef.propTypes = ({
 
 function QuantityDef({def}) {
   return <Content>
-    <Compartment>
-      <Definition def={def} isDefinition/>
-    </Compartment>
+    <Title def={def} isDefinition />
     <Compartment title="visualization">
       <VicinityGraph def={def} />
     </Compartment>
+    <Meta def={metainfoDef(def.m_def)} />
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -146,83 +151,121 @@ const definitionLabels = {
   'Quantity': 'quantity',
   'SubSection': 'sub section'
 }
-export function Definition({def, isDefinition}) {
-  const viewConfig = useRecoilValue(viewConfigState)
+export function Title({def, isDefinition}) {
   const color = isDefinition ? 'primary' : 'initial'
-  if (viewConfig.showDefinitions) {
-    return <Box>
-      <Typography color={color} variant="h6">{def.name}</Typography>
-      <Typography color={color} variant="caption">{definitionLabels[def.m_def]}{isDefinition ? ' definition' : ''}</Typography>
-      {def.description && def.description !== 'None' && viewConfig.showDescriptions &&
-        <Box marginTop={1}>
-          <Markdown>{def.description}</Markdown>
-        </Box>
-      }
-      <Box marginTop={1}>
-        <Item itemKey="_metainfo">
-          <Typography>
-            metainfo definition
-          </Typography>
-        </Item>
-      </Box>
-    </Box>
-  } else {
-    return ''
-  }
+  return <Compartment>
+    <Typography color={color} variant="h6">{def.name}</Typography>
+    <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
+  </Compartment>
 }
-Definition.propTypes = ({
-  def: PropTypes.object,
+Title.propTypes = ({
+  def: PropTypes.object.isRequired,
   isDefinition: PropTypes.bool
 })
 
+export function DefinitionLabel({def, isDefinition, ...props}) {
+  const color = isDefinition ? 'primary' : 'initial'
+  return <Typography {...props}>{definitionLabels[def.m_def]}{isDefinition ? ' definition' : ''}</Typography>
+}
+DefinitionLabel.propTypes = ({
+  def: PropTypes.object.isRequired,
+  isDefinition: PropTypes.bool
+})
+
+const useMetaStyles = makeStyles(theme => ({
+  description: {
+    marginTop: theme.spacing(1)
+  },
+  graph: {
+    marginTop: theme.spacing(3)
+  },
+  metainfo: {
+    marginBottom: theme.spacing(2)
+  },
+  metainfoItem: {
+    fontWeight: 'bold'
+  }
+}))
+export function Meta({def}) {
+  const classes = useMetaStyles()
+  const config = useRecoilValue(configState)
+  if (!config.showMeta) {
+    return ''
+  }
+  return <Compartment title="meta" color="primary">
+    <div className={classes.metainfo}>
+      <Item itemKey="_metainfo">
+        <DefinitionLabel classes={{root: classes.metainfoItem}} def={def} isDefinition component="span" />
+      </Item>
+    </div>
+    <Markdown classes={{root: classes.description}}>{def.description}</Markdown>
+    <div className={classes.graph}>
+      <VicinityGraph def={def} />
+    </div>
+  </Compartment>
+}
+Meta.propTypes = ({
+  def: PropTypes.object
+})
+
+
 const useVicinityGraphStyles = makeStyles(theme => ({
   root: {
+    with: '100%',
+    minWidth: 300,
     '& .links line': {
       // stroke: '#000'
       strokeWidth: 3
     },
     '& text': {
-      fontSize: 10
+      fontFamily: 'Titillium Web, sans',
+      fontSize: 12,
+      fontWeight: 'bold'
     }
   }
 }))
-function VicinityGraph({def}) {
+export function VicinityGraph({def}) {
   const linkColors = {
-    'Quantity': purple[500]
+    'Quantity': purple[500],
+    '_none': grey[700]
   }
   const nodeColors = {
     'Quantity': lime[500],
     'Section': blue[500],
     'Category': teal[500]
   }
-  const graph = useMemo(() => vicinityGraph(def), [def])
+  const graph = useMemo(() => {
+    const graph = vicinityGraph(def)
+    let x1 = Math.min(...graph.nodes.map(n => n.x)) - 32
+    let y1 = Math.min(...graph.nodes.map(n => n.y)) - 24
+    let x2 = Math.max(...graph.nodes.map(n => n.x)) + 32
+    let y2 = Math.max(...graph.nodes.map(n => n.y)) + 24
+    const w = Math.max(200, Math.abs(x2 - x1))
+    const h = Math.abs(y2 - y1)
+    const px = w < 400 ? (400 - w)/2 : 0
+    x1 -= px; x2 += px
+    graph.viewBox = `${x1} ${y1} ${x2-x1} ${y2-y1}`
+    graph.aspectRatio = Math.abs((x2-x1) / (y2-y1))
+
+    console.log(w, h, px, x1, x2)
+    return graph
+  }, [def])
   console.log(graph)
 
   const classes = useVicinityGraphStyles()
   const svgRef = useRef()
   useEffect(() => {
-    console.log('#####')
+    console.log(graph)
     const svg = d3.select(svgRef.current)
-    const width = svg.attr("width")
-    const height = svg.attr("height")
 
-    var color = d3.scaleOrdinal(d3.schemeAccent);
-
-    var simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id(d => d.id).distance(75).strength(1))
-      .force("charge", d3.forceManyBody().strength(-400))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX())
-      .force("y", d3.forceY())
-
-    var link = svg.select(".links")
+    const link = svg.select(".links")
       .selectAll("line")
       .data(graph.links)
       .enter().append("line")
-      .attr('marker-end','url(#arrowhead)')
-      .attr("stroke", d => linkColors[d.def.m_def] || '#000')
+      .attr('marker-end', d => `url(#arrowhead-${d.def.m_def || '_none'})`)
+      .attr("stroke", d => linkColors[d.def.m_def || '_none'])
 
-    var node = svg.select(".nodes")
+    const node = svg.select(".nodes")
       .selectAll("g")
       .data(graph.nodes)
       .enter().append("g")
@@ -231,21 +274,16 @@ function VicinityGraph({def}) {
       .attr("r", 10)
       .attr("fill", d => nodeColors[d.def.m_def] || '#000')
       .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended))
+        .on("drag", d => {
+          d.x = d3.event.x
+          d.y = d3.event.y
+          ticked()
+        }))
 
     node.append("text")
       .text(d => d.def.name)
-      .attr('x', 6)
-      .attr('y', 3)
-
-    simulation
-      .nodes(graph.nodes)
-      .on("tick", ticked)
-
-    simulation.force("link")
-      .links(graph.links)
+      .attr('text-anchor', 'middle')
+      .attr('y', d => ((d.i % 2) === 0) ? 20 : -14)
 
     function ticked() {
       link
@@ -257,45 +295,36 @@ function VicinityGraph({def}) {
       node
         .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
     }
+    ticked()
+  }, [graph, linkColors, nodeColors])
 
-    function dragstarted(d) {
-      d3.event.sourceEvent.stopPropagation()
-      if (!d3.event.active) {
-        simulation.alphaTarget(0.3).restart()
-      }
-      d.fx = d.x
-      d.fy = d.y
-    }
+  useLayoutEffect(() => {
+    svgRef.current.style.height = svgRef.current.clientWidth / graph.aspectRatio
+  }, [graph, svgRef])
 
-    function dragged(d) {
-      d.fx = d3.event.x
-      d.fy = d3.event.y
-    }
-
-    function dragended(d) {
-      if (!d3.event.active) {
-        simulation.alphaTarget(0)
-      }
-      d.fx = null
-      d.fy = null
-    }
-  }, [graph])
-  return <svg className={classes.root} width="300" height="300" ref={svgRef}>
+  return <svg
+      className={classes.root} ref={svgRef}
+      viewBox={graph.viewBox}
+  >
     <g className="links" />
     <g className="nodes" />
-    <marker
-      id="arrowhead"
-      viewBox="-0 -5 10 10"
-      refX="21"
-      refY="0"
-      orient="auto"
-      markerWidth="3"
-      markerHeight="4"
-      xoverflow="visible">
-        <path d="M 0,-5 L 10 ,0 L 0,5" fill="#000" stroke="#000" />
+    {Object.keys(linkColors).map(colorKey => {
+      const color = linkColors[colorKey]
+      return <marker
+        key={colorKey}
+        id={`arrowhead-${colorKey}`}
+        viewBox="-0 -5 10 10"
+        refX="21"
+        refY="0"
+        orient="auto"
+        markerWidth="3"
+        markerHeight="4"
+        xoverflow="visible">
+          <path d="M 0,-5 L 10 ,0 L 0,5" fill={color} stroke={color} />
       </marker>
+    })}
   </svg>
 }
-Definition.propTypes = ({
+VicinityGraph.propTypes = ({
   def: PropTypes.object.isRequired
 })

@@ -1,5 +1,5 @@
 
-import React, { useState, useContext, useRef, useLayoutEffect, useMemo } from 'react'
+import React, { useContext, useRef, useLayoutEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot, atom, useRecoilState } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
@@ -9,18 +9,12 @@ import archiveAdaptorFactory from './archiveAdaptors'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 
-export const viewConfigState = atom({
-  key: 'viewConfig',
+export const configState = atom({
+  key: 'config',
   default: {
-    'showDescriptions': false,
-    'showDefinitions': false
-  }
-})
-
-export const filterConfigState = atom({
-  key: 'filterConfig',
-  default: {
-    'showCodeSpecific': false
+    'showMeta': true,
+    'showCodeSpecific': false,
+    'showAllDefined': true
   }
 })
 
@@ -69,7 +63,7 @@ export default function ArchiveBrowser({data}) {
     path: url.endsWith('/') ? url.substring(0, url.length - 1) : url,
     adaptor: archiveAdaptorFactory(data),
     next: null
-  }), [data])
+  }), [data, url])
 
   const lanes = [root]
   archivePath.filter(segment => segment).forEach((segment, i) => {
@@ -105,48 +99,46 @@ ArchiveBrowser.propTypes = ({
 })
 
 function ArchiveBrowserConfig() {
-  const [viewConfig, setViewConfig] = useRecoilState(viewConfigState)
-  const handleViewConfigChange = event => setViewConfig({
-    ...viewConfig,
-    [event.target.name]: event.target.checked
-  })
-
-  const [filterConfig, setFilterConfig] = useRecoilState(filterConfigState)
-  const handleFilterConfigChange = event => setFilterConfig({
-    ...filterConfig,
-    [event.target.name]: event.target.checked
-  })
+  const [config, setConfig] = useRecoilState(configState)
+  const handleConfigChange = event => {
+    const changes= {[event.target.name]: event.target.checked}
+    if (changes.showCodeSpecific) {
+      changes.showAllDefined = !changes.showCodeSpecific
+    } else if (changes.showAllDefined) {
+      changes.showCodeSpecific = !changes.showAllDefined
+    }
+    setConfig({...config, ...changes})
+  }
 
   return <FormGroup row>
     <FormControlLabel
       control={
         <Checkbox
-          checked={filterConfig.showCodeSpecific}
-          onChange={handleFilterConfigChange}
+          checked={config.showCodeSpecific}
+          onChange={handleConfigChange}
           name="showCodeSpecific"
         />
       }
       label="include code specific"
     />
-    <Box margin={2} />
     <FormControlLabel
       control={
         <Checkbox
-          checked={viewConfig.showDefinitions}
-          onChange={handleViewConfigChange}
-          name="showDefinitions" />
+          checked={config.showAllDefined}
+          onChange={handleConfigChange}
+          name="showAllDefined"
+        />
       }
-      label="show definitions"
+      label="show all defined metadata"
     />
     <FormControlLabel
-      disabled={!viewConfig.showDefinitions}
       control={
         <Checkbox
-          checked={viewConfig.showDescriptions}
-          onChange={handleViewConfigChange}
-          name="showDescriptions" />
+          checked={config.showMeta}
+          onChange={handleConfigChange}
+          name="showMeta" />
       }
-      label="show descriptions"
+      label="show metainfo definitions"
     />
   </FormGroup>
 }
@@ -200,6 +192,9 @@ const useItemStyles = makeStyles(theme => ({
       backgroundColor: grey[300]
     }
   },
+  disabled: {
+    color: 'grey'
+  },
   childContainer: {
     flexGrow: 1,
     overflow: 'hidden',
@@ -208,10 +203,13 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
-export function Item({children, itemKey}) {
+export function Item({children, itemKey, disabled}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
+  if (disabled) {
+    return <div className={classNames(classes.childContainer, classes.disabled)}>{children}</div>
+  }
   return <Link
     className={classNames(
       classes.root,
@@ -228,7 +226,8 @@ Item.propTypes = ({
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]).isRequired,
-  itemKey: PropTypes.string.isRequired
+  itemKey: PropTypes.string.isRequired,
+  disabled: PropTypes.bool
 })
 
 export function Content({children}) {
@@ -243,19 +242,20 @@ Content.propTypes = ({
   ]).isRequired
 })
 
-export function Compartment({title, children}) {
+export function Compartment({title, children, color}) {
   if (!React.Children.count(children)) {
     return ''
   }
   return <React.Fragment>
     <Box paddingTop={1}>
-      {title && <Typography variant="overline">{title}</Typography>}
+      {title && <Typography color={color} variant="overline">{title}</Typography>}
     </Box>
     {children}
   </React.Fragment>
 }
 Compartment.propTypes = ({
   title: PropTypes.string,
+  color: PropTypes.string,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

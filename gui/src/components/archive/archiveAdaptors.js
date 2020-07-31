@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment, filterConfigState } from './ArchiveBrowser'
+import { Item, Content, Compartment, configState } from './ArchiveBrowser'
 import { Typography, Box, IconButton } from '@material-ui/core'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import { resolveRef, sectionDefs } from './metainfo'
-import { Definition, metainfoAdaptorFactory } from './metainfoAdaptors'
+import { Title, metainfoAdaptorFactory, Meta } from './metainfoAdaptors'
+import Markdown from '../Markdown'
 
 export default function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
@@ -139,24 +140,23 @@ QuantityValue.propTypes = ({
 })
 
 function Section({section, def}) {
-  const filterConfig = useRecoilValue(filterConfigState)
-  const filter = filterConfig.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  const config = useRecoilValue(configState)
+  const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
-    <Compartment>
-      <Definition def={def} />
-    </Compartment>
+    <Title def={def} />
     <Compartment title="sub sections">
       {def.sub_sections
-        .filter(subSectionDef => section[subSectionDef.name])
+        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
         .filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
-          return <Item key={key} itemKey={key}>
+          const disabled = section[key] === undefined
+          return <Item key={key} itemKey={key} disabled={disabled}>
             <Typography component="span">
               <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
               </Box>
-              {subSectionDef.repeats ? ` (${section[subSectionDef.name].length})` : ''}
+              {!disabled && subSectionDef.repeats ? ` (${section[subSectionDef.name].length})` : ''}
             </Typography>
           </Item>
         })
@@ -164,22 +164,25 @@ function Section({section, def}) {
     </Compartment>
     <Compartment title="quantities">
       {def.quantities
-        .filter(quantityDef => section[quantityDef.name])
+        .filter(quantityDef => section[quantityDef.name] || config.showAllDefined)
         .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
-          return <Item key={key} itemKey={key}>
+          console.log(key)
+          const disabled = section[key] === undefined
+          return <Item key={key} itemKey={key} disabled={disabled}>
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span">
                 <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>
-              </Typography> = <QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} />
+              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} /></span>}
             </Box>
           </Item>
         })
       }
     </Compartment>
+    <Meta def={def} />
   </Content>
 }
 Section.propTypes = ({
@@ -218,8 +221,9 @@ SubSection.propTypes = ({
 
 function Quantity({value, def}) {
   return <Content>
-    <Definition def={def} />
+    <Title def={def} />
     <QuantityValue value={value} def={def} />
+    <Meta def={def} />
   </Content>
 }
 Quantity.propTypes = ({

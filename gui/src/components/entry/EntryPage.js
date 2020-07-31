@@ -6,7 +6,7 @@ import ArchiveLogView from './ArchiveLogView'
 import RepoEntryView from './RepoEntryView'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
-import { matchPath, useLocation, useRouteMatch, useHistory, Route } from 'react-router-dom'
+import { useRouteMatch, useHistory, Route } from 'react-router-dom'
 
 export const help = `
 The *raw files* tab, will show you all files that belong to the entry and offers a download

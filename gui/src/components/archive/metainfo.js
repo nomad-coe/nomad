@@ -89,54 +89,64 @@ export function vicinityGraph(def) {
   const nodesMap = {}
   const nodes = []
   const edges = []
+  const dx = 100
+  const dy = 75
 
   function addEdge(from, to, def) {
     const edge = {
       def: def,
-      source: from.id,
-      target: to.id,
+      source: from,
+      target: to,
       value: 1
     }
     edges.push(edge)
   }
 
   function addNode(def, more) {
-    const {x, y, recursive} = more || {}
+    const {recursive, x, y, i} = more || {}
     if (nodesMap[def._qualifiedName]) {
-      console.log('####### B', def._qualifiedName)
       return nodesMap[def._qualifiedName]
     }
 
     const node = {
       id: def._qualifiedName,
       def: def,
-      x: x || 0,
-      y: y || 0
+      x: x, y: y, i: i
     }
+
     nodes.push(node)
     nodesMap[def._qualifiedName] = node
 
     if (recursive) {
       if (def.m_def === 'Section') {
           def._parentSections.forEach(parentSection => {
-            const parent = addNode(parentSection, {recursive: true})
+            const parent = addNode(parentSection, {
+              recursive: true,
+              x: x - dx, y: y, i: i + 1})
             addEdge(node, parent, {})
           })
-          def.quantities
-            .filter(quantity => quantity.type.type_kind === 'reference')
-            .forEach(reference => {
+          const references = def.quantities.filter(quantity => quantity.type.type_kind === 'reference')
+          const layoutMiddle = (references.length - 1) * dx / 2
+          references.forEach((reference, i) => {
               const referencedSectionDef = resolveRef(reference.type.type_data)
-              const referenced = addNode(referencedSectionDef)
+              const referenced = addNode(referencedSectionDef, {
+                x: x + i * dx - layoutMiddle, y: y + dy, i: i})
               addEdge(node, referenced, reference)
             })
       } else if (def.m_def === 'Quantity') {
-        const section = addNode(def._section, {recursive: true})
+        const section = addNode(def._section, {
+          recursive: true,
+          x: x - dx, y: y, i: i + 1})
         addEdge(node, section, {})
       }
 
       if (def.categories) {
-        def.categories.forEach(categoryDef => {
-          const category = addNode(resolveRef(categoryDef), {recursive: true})
+        const layoutMiddle = (def.categories.length - 1) * dx / 2
+        def.categories.forEach((categoryDef, i) => {
+          const category = addNode(resolveRef(categoryDef), {
+            recursive: true,
+            x: x + i * dx - layoutMiddle, y: y - dy, i: i
+          })
           addEdge(node, category, {})
         })
       }
@@ -145,7 +155,7 @@ export function vicinityGraph(def) {
     return node
   }
 
-  addNode(def, {recursive: true})
+  addNode(def, {recursive: true, x: 0, y: 0, i: 0})
 
   return {
     nodes: nodes,
