@@ -24,12 +24,12 @@ from flask import request
 from elasticsearch_dsl import Search, Q, A
 from elasticsearch_dsl.utils import AttrDict
 
-from nomad import config, files
+from nomad import config, files, infrastructure
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from .api import api
-from .common import enable_gzip
+from .auth import authenticate
 
 ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
@@ -240,14 +240,65 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
+        # The queries that correspond to AND queries typically need to access
+        # multiple calculations at once to find the material ids that
+        # correspond to the query. To implement this behaviour we need to run
+        # an initial aggregation that checks that the requested properties are
+        # present for a material. This is a a very crude solution that does not
+        # scale to complex queries, but I'm not sure we can do much better
+        # until we have a separate index for materials.
+        property_map = {
+            "has_thermal_properties": "encyclopedia.properties.thermodynamical_properties",
+            "has_band_structure": "encyclopedia.properties.electronic_band_structure",
+            "has_dos": "encyclopedia.properties.electronic_dos",
+            "has_fermi_surface": "encyclopedia.properties.fermi_surface",
+        }
+        requested_properties = []
+        # The size is set very large because all the results need to be
+        # returned. We cannot get the results in a paginated way with composite
+        # aggregation, because pipeline aggregations are not compatible with
+        # them.
+        agg_parent = A("terms", field="encyclopedia.material.material_id", size=5000000)
+        for key, value in property_map.items():
+            if data[key] is True:
+                agg = A("filter", exists={"field": value})
+                agg_parent.bucket(key, agg)
+                requested_properties.append(key)
+        if len(requested_properties) > 1:
+            bool_query = Q(
+                "bool",
+                filter=get_enc_filter(),
+            )
+            s = Search(index=config.elastic.index_name)
+            s = s.query(bool_query)
+            s.aggs.bucket("materials", agg_parent)
+            buckets_path = {x: "{}._count".format(x) for x in requested_properties}
+            script = " && ".join(["params.{} > 0".format(x) for x in requested_properties])
+            agg_parent.pipeline("selector", A(
+                "bucket_selector",
+                buckets_path=buckets_path,
+                script=script,
+            ))
+            s = s.extra(**{
+                "size": 0,
+            })
+            response = s.execute()
+            material_ids = [x["key"] for x in response.aggs.materials.buckets]
+            if len(material_ids) == 0:
+                abort(404, message="No materials found for the given search criteria or pagination.")
+
+        # After finding the material ids that fill the AND conditions, continue
+        # with a simple OR query.
         filters = get_enc_filter()
         must_nots = []
         musts = []
 
         def add_terms_filter(source, target, query_type="terms"):
-            if data[source]:
+            if data[source] is not None:
                 filters.append(Q(query_type, **{target: data[source]}))
 
+        if len(requested_properties) > 1:
+            filters.append(Q("terms", encyclopedia__material__material_id=material_ids))
         add_terms_filter("material_name", "encyclopedia.material.material_name")
         add_terms_filter("structure_type", "encyclopedia.material.bulk.structure_type")
         add_terms_filter("space_group_number", "encyclopedia.material.bulk.space_group_number")
@@ -258,7 +309,8 @@ class EncMaterialsResource(Resource):
         add_terms_filter("basis_set_type", "dft.basis_set")
         add_terms_filter("code_name", "dft.code_name")
 
-        # Add exists filters
+        # Add exists filters if only one property was requested. The initial
+        # aggregation will handlei multiple simultaneous properties.
         def add_exists_filter(source, target):
             param = data[source]
             if param is not None:
@@ -267,11 +319,9 @@ class EncMaterialsResource(Resource):
                     filters.append(query)
                 elif param is False:
                     must_nots.append(query)
-
-        add_exists_filter("has_thermal_properties", "encyclopedia.properties.thermodynamical_properties")
-        add_exists_filter("has_band_structure", "encyclopedia.properties.electronic_band_structure")
-        add_exists_filter("has_dos", "encyclopedia.properties.electronic_dos")
-        add_exists_filter("has_fermi_surface", "encyclopedia.properties.fermi_surface")
+        if len(requested_properties) == 1:
+            prop_name = requested_properties[0]
+            add_exists_filter(prop_name, property_map[prop_name])
 
         # Add range filters
         def add_range_filter(source, target, source_unit=None, target_unit=None):
@@ -430,8 +480,8 @@ class EncMaterialsResource(Resource):
                 pages["total"] = n_materials
 
         # 2. Collapse approach. Quickly provides a list of materials
-        # corresponding to the query, offers full pagination, doesn"t include
-        # the number of matches per material.
+        # corresponding to the query, offers full pagination, the number of
+        # matches per material needs to be requested with a separate query.
         elif mode == "collapse":
             s = Search(index=config.elastic.index_name)
             s = s.query(bool_query)
@@ -741,7 +791,6 @@ calculations_result = api.model("calculations_result", {
 
 @ns.route("/materials/<string:material_id>/calculations")
 class EncCalculationsResource(Resource):
-    @enable_gzip()
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
@@ -780,7 +829,9 @@ class EncCalculationsResource(Resource):
         def calc_score(entry):
             """Custom scoring function used to sort results by their
             "quality". Currently built to mimic the scoring that was used
-            in the old Encyclopedia GUI.
+            in the old Encyclopedia GUI. Primarily sorts by quality measure,
+            ties are broken by alphabetic sorting of entry_id in order to
+            return consistent results.
             """
             score = 0
             functional_score = {
@@ -800,7 +851,7 @@ class EncCalculationsResource(Resource):
             if has_dos and has_bs:
                 score += 10
 
-            return score
+            return (score, entry["calc_id"])
 
         # The calculations are first sorted by "quality"
         sorted_calc = sorted(response, key=lambda x: calc_score(x), reverse=True)
@@ -1081,7 +1132,6 @@ calculation_property_result = api.model("calculation_property_result", {
 
 @ns.route("/materials/<string:material_id>/calculations/<string:calc_id>")
 class EncCalculationResource(Resource):
-    @enable_gzip()
     @api.response(404, "Material or calculation not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
@@ -1175,15 +1225,20 @@ class EncCalculationResource(Resource):
             for key, arch_path in arch_properties.items():
                 value = root[arch_path]
 
-                # Save derived properties and turn into dict
+                # Replace unnormalized thermodynamical properties with
+                # normalized ones and turn into dict
                 if key == "thermodynamical_properties":
                     specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
                     specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
+                    specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
+                    specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
                 if isinstance(value, list):
                     value = [x.m_to_dict() for x in value]
                 else:
                     value = value.m_to_dict()
                 if key == "thermodynamical_properties":
+                    del value["thermodynamical_property_heat_capacity_C_v"]
+                    del value["vibrational_free_energy_at_constant_volume"]
                     value["specific_heat_capacity"] = specific_heat_capacity
                     value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
 
@@ -1224,6 +1279,63 @@ class EncCalculationResource(Resource):
                 result[prop] = value
 
         return result, 200
+
+
+report_query = api.model("report_query", {
+    "server": fields.String,
+    "username": fields.String,
+    "email": fields.String,
+    "first_name": fields.String,
+    "last_name": fields.String,
+    "category": fields.String,
+    "subcategory": fields.String(allow_null=True),
+    "representatives": fields.Raw(Raw=True),
+    "message": fields.String,
+})
+
+
+@ns.route("/materials/<string:material_id>/reports")
+class ReportsResource(Resource):
+    @api.response(500, "Error sending report")
+    @api.response(400, "Bad request")
+    @api.response(204, "Report succesfully sent", fields.Raw)
+    @api.expect(calculation_property_query, validate=False)
+    @api.marshal_with(calculation_property_result, skip_none=True)
+    @api.doc("enc_report")
+    @authenticate(required=True)
+    def post(self, material_id):
+
+        # Get query parameters as json
+        try:
+            query = marshal(request.get_json(), report_query)
+        except Exception as e:
+            abort(400, message=str(e))
+
+        # Send the report as an email
+        query["material_id"] = material_id
+        representatives = query["representatives"]
+        if representatives is not None:
+            representatives = "\n" + "\n".join(["  {}: {}".format(key, value) for key, value in representatives.items()])
+            query["representatives"] = representatives
+        mail = (
+            "Server: {server}\n\n"
+            "Username: {username}\n"
+            "First name: {first_name}\n"
+            "Last name: {last_name}\n"
+            "Email: {email}\n\n"
+            "Material id: {material_id}\n"
+            "Category: {category}\n"
+            "Subcategory: {subcategory}\n"
+            "Representative calculations: {representatives}\n\n"
+            "Message: {message}"
+        ).format(**query)
+        try:
+            infrastructure.send_mail(
+                name="webmaster", email="lauri.himanen@gmail.com", message=mail, subject='Encyclopedia error report')
+        except Exception as e:
+            abort(500, message="Error sending error report email.")
+        print(mail)
+        return "", 204
 
 
 def read_archive(upload_id: str, calc_id: str) -> EntryArchive:

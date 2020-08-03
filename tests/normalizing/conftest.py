@@ -32,7 +32,7 @@ def run_normalize(backend: Backend) -> Backend:
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
+        normalizer = normalizer_class(backend.entry_archive)
         normalizer.normalize()
     return backend
 
@@ -98,6 +98,15 @@ def molecular_dynamics(bulk) -> Backend:
 def phonon() -> Backend:
     parser_name = "parsers/phonopy"
     filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def elastic() -> Backend:
+    parser_name = "parsers/elastic"
+    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend

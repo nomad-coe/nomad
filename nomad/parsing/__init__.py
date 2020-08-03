@@ -70,6 +70,6 @@ based on nomad@fairdi's metainfo:
     :members:
 '''
 
-from nomad.parsing.legacy import AbstractParserBackend, Backend, BackendError, BadContextUri, LegacyParser
+from nomad.parsing.legacy import AbstractParserBackend, Backend, BackendError, LegacyParser
 from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser

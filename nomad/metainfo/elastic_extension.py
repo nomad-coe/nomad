@@ -153,8 +153,9 @@ class ElasticDocument(SectionAnnotation):
 
         # create an field for each sub section
         for sub_section in section.all_sub_sections.values():
+            sub_sectoin_prefix = '%s.%s' % (prefix, sub_section.name) if prefix else sub_section.name
             inner_document = ElasticDocument.create_document(
-                sub_section.sub_section, inner_doc=True, prefix=sub_section.name)
+                sub_section.sub_section, inner_doc=True, prefix=sub_sectoin_prefix)
             if inner_document is not None:
                 # sub sections with no elastic quantities get a None document
                 attrs[sub_section.name] = Object(inner_document)

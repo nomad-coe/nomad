@@ -43,6 +43,22 @@ def qa(skip_tests: bool, exitfirst: bool):
     sys.exit(ret_code)
 
 
+@dev.command(help='Generates a JSON with all metainfo.')
+def metainfo():
+    import json
+
+    from nomad.metainfo import Package
+    from nomad.parsing.parsers import parsers
+
+    # Ensure all metainfo is loaded
+    for parser in parsers:
+        _ = parser.metainfo_env
+
+    data = {key: value.m_to_dict() for key, value in Package.registry.items()}
+
+    print(json.dumps(data, indent=2))
+
+
 @dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
 @click.argument('path', nargs=-1)
 def legacy_metainfo(path):

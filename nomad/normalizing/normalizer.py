@@ -15,27 +15,27 @@
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from nomad.parsing import Backend
 from nomad.utils import get_logger
 from nomad.metainfo import MSection
+from nomad.datamodel import EntryArchive
 
 
 class Normalizer(metaclass=ABCMeta):
     '''
-    A base class for normalizers. Normalizers work on a :class:`Backend` instance
+    A base class for normalizers. Normalizers work on a :class:`EntryArchive` section
     for read and write. Normalizer instances are reused.
 
     Arguments:
-        backend: The backend used to read and write data from and to.
+        entry_archive: The entry_archive root section of the archive to normalize.
     '''
 
     domain = 'dft'
     ''' The domain this normalizer should be used in. Default for all normalizer is 'DFT'. '''
 
-    def __init__(self, backend: Backend) -> None:
-        self._backend = backend
+    def __init__(self, entry_archive: EntryArchive) -> None:
+        self.entry_archive = entry_archive
         try:
-            self.section_run = backend.entry_archive.section_run[0]
+            self.section_run = entry_archive.section_run[0]
         except (AttributeError, IndexError):
             self.section_run = None
         self.logger = get_logger(__name__)
@@ -57,8 +57,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
     Args:
         only_representatives: Will only normalize the `representative` systems.
     '''
-    def __init__(self, backend: Backend, only_representatives: bool = False):
-        super().__init__(backend)
+    def __init__(self, entry_archive: EntryArchive, only_representatives: bool = False):
+        super().__init__(entry_archive)
         self.only_representatives = only_representatives
 
     @property
@@ -73,13 +73,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         ]
 
     def _normalize_system(self, system, is_representative):
-        context = '/section_run/0/section_system/%d' % system.m_parent_index
-
-        self._backend.openContext(context)
-        try:
-            return self.normalize_system(system, is_representative)
-        finally:
-            self._backend.closeContext(context)
+        return self.normalize_system(system, is_representative)
 
     @abstractmethod
     def normalize_system(self, system: MSection, is_representative: bool) -> bool:
@@ -193,6 +187,6 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # All the rest if requested
         if not self.only_representatives:
-            for isys, system in enumerate(self._backend.entry_archive.section_run[0].section_system):
+            for isys, system in enumerate(self.section_run.section_system):
                 if isys != repr_sys_idx:
                     self.__normalize_system(system, False, logger)

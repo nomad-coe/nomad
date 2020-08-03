@@ -276,7 +276,7 @@ class UploadPage extends React.Component {
           Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
           uploads</b> simultaneously. Your uploaded data is not published right away.
           Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
-          our <Link href="https://nomad-lab.eu/index.php?page=repository-archive-faqs">FAQs</Link>.
+          our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
         </Typography>
         <Typography>
           The following codes are supported: <CodeList/>.

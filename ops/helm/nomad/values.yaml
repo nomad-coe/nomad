@@ -1,9 +1,15 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.8.3"
+  label: "0.8.4"
   isBeta: false
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
+
+meta:
+  service: "app"
+  homepage: "https://nomad-lab.eu"
+  source_url: "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+  maintainer_email: "markus.scheidgen@physik.hu-berlin.de"
 
 ## Everything concerning the container images to be used
 image:
@@ -66,6 +72,7 @@ worker:
   routing: "queue"
   storage: "disk"
   nomadNodeType: "worker"
+  timeout: 7200
 
 ## Everthing concerning the nomad gui
 gui:
@@ -80,6 +87,8 @@ gui:
   matomoEnabled: false
   ## automatically gz based on header
   gzip: true
+  ## enable links to the 'new' encyclopedia
+  encyclopediaEnabled: true
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
@@ -89,6 +98,7 @@ proxy:
   nodeIP:
   timeout: 120
   mirrorTimeout: 600
+  editTimeout: 1800
   external:
     host: "labdev-nomad.esc.rzg.mpg.de"
     port: 80

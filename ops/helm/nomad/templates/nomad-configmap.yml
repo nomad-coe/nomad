@@ -11,6 +11,10 @@ data:
   nomad.yaml: |
     meta:
       release: "{{ .Release.Name }}"
+      service: "{{ .Values.meta.service }}"
+      homepage: "{{ .Values.meta.homepage }}"
+      source_url: "{{ .Values.meta.source_url }}"
+      maintainer_email: "{{ .Values.meta.maintainer_email }}"
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
@@ -53,7 +57,7 @@ data:
       from_address: "{{ .Values.mail.from }}"
     celery:
       routing: "{{ .Values.worker.routing }}"
-      timeout: 7200
+      timeout: {{ .Values.worker.timeout }}
     client:
       user: "{{ .Values.client.username }}"
     keycloak:

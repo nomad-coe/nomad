@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 import { apiContext } from '../api'
 import Search from './Search'
 import { domains } from '../domains'
+import { encyclopediaEnabled } from '../../config'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page
@@ -52,7 +53,7 @@ export default function SearchPage() {
 
   return <Search
     initialVisualizationTab="elements"
-    availableResultTabs={['entries', 'groups', 'datasets']}
+    availableResultTabs={['entries', ...(encyclopediaEnabled ? ['materials'] : []), 'groups', 'datasets']}
     initialOwner="public"
     ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
   />

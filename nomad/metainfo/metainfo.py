@@ -31,7 +31,7 @@ import pytz
 import docstring_parser
 import jmespath
 
-from nomad.units import ureg
+from nomad.units import ureg as units
 
 
 m_package: 'Package' = None
@@ -133,7 +133,7 @@ class SectionProxy(MProxy):
     def m_proxy_resolve(self):
         if self.m_proxy_section and not self.m_proxy_resolved:
             root = self.m_proxy_section
-            while root is not None and not isinstance(root, Package):
+            while root.m_parent is not None and not isinstance(root, Package):
                 root = root.m_parent
 
             if isinstance(root, Package):
@@ -221,7 +221,7 @@ class _Dimension(DataType):
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, str):
-            value = ureg.parse_units(value)
+            value = units.parse_units(value)
 
         elif not isinstance(value, pint.unit._Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
@@ -232,7 +232,7 @@ class _Unit(DataType):
         return value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
-        return ureg.parse_units(value)
+        return units.parse_units(value)
 
 
 class _Callable(DataType):
@@ -344,7 +344,7 @@ class Reference(DataType):
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(self.target_section_def, MProxy):
             proxy = self.target_section_def
-            proxy.m_proxy_section = section
+            proxy.m_proxy_section = section.m_def
             proxy.m_proxy_quantity = quantity_def
             self.target_section_def = proxy.m_proxy_resolve()
 
@@ -521,8 +521,23 @@ class MResource():
         return cast(MSectionBound, result)
 
     def add(self, section):
-        section.m_resource = self
-        self.__data.setdefault(section.m_def, []).append(section)
+        '''
+        Add the given section to this resource. Will also add all its contents to the
+        resource and make all contest available for :func:`all`. Will also remove
+        all contents from possible other resources. A section can only be contained in
+        one resource at a time.
+
+        This is potentially expensive. Do not add a section that already has a deep tree
+        of sub-sections. Ideally, add the root section first. If you create sub sections
+        afterwards, they will be automatically added to this resource.
+        '''
+        if section.m_resource is not None:
+            section.m_resource.remove(section)
+
+        for content in section.m_all_contents(include_self=True):
+            content.m_resource = self
+            self.__data.setdefault(content.m_def, []).append(content)
+
         if section.m_parent is None:
             self.contents.append(section)
 

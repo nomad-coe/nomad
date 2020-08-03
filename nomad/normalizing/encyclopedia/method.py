@@ -33,10 +33,10 @@ class MethodNormalizer():
     """A base class that is used for processing method related information
     in the Encylopedia.
     """
-    def __init__(self, backend, logger):
-        self.backend = backend
+    def __init__(self, entry_archive, logger):
         self.logger = logger
-        self.section_run = backend.entry_archive.section_run[0]
+        self.entry_archive = entry_archive
+        self.section_run = entry_archive.section_run[0]
 
     def method_id(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
@@ -76,7 +76,7 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        eos_dict['upload_id'] = self.backend.entry_archive.section_metadata.upload_id
+        eos_dict['upload_id'] = self.entry_archive.section_metadata.upload_id
 
         # Method
         eos_dict["method_id"] = method.method_id
@@ -106,11 +106,11 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        param_dict['upload_id'] = self.backend.entry_archive.section_metadata.upload_id
+        param_dict['upload_id'] = self.entry_archive.section_metadata.upload_id
 
         # The same code and functional type is required
-        param_dict['program_name'] = self.backend["program_name"]
-        param_dict['program_version'] = self.backend["program_version"]
+        param_dict['program_name'] = self.section_run.program_name
+        param_dict['program_version'] = self.section_run.program_version
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -166,7 +166,7 @@ class MethodDFTNormalizer(MethodNormalizer):
     """
     def core_electron_treatment(self, method: Method) -> None:
         treatment = config.services.unavailable_value
-        code_name = self.backend["program_name"]
+        code_name = self.section_run.program_name
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -382,10 +382,10 @@ class MethodDFTNormalizer(MethodNormalizer):
         # Fetch resources
         repr_method = context.representative_method
         repr_system = context.representative_system
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
         material = sec_enc.material
-        settings_basis_set = get_basis_set(context, self.backend, self.logger)
+        settings_basis_set = get_basis_set(context, self.entry_archive, self.logger)
 
         # Fill metainfo
         self.core_electron_treatment(method)
@@ -421,7 +421,7 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         repr_method = context.representative_method
-        sec_enc = self.backend.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.section_metadata.encyclopedia
         method = sec_enc.method
 
         # Fill metainfo

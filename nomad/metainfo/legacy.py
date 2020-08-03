@@ -22,6 +22,7 @@ from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple
 import numpy as np
 from pint.errors import UndefinedUnitError
 import os.path
+import importlib
 
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl, InfoKindEnv
@@ -104,6 +105,22 @@ class LegacyMetainfoEnvironment(Environment):
     A metainfo environment with functions to create a legacy metainfo version of
     the environment.
     '''
+
+    @staticmethod
+    def from_legacy_package_path(path):
+        metainfo_package_name = os.path.basename(path)
+        package = metainfo_package_name
+        if package.endswith('.nomadmetainfo.json'):
+            package = package[:-19]
+        if package.endswith('.json'):
+            package = package[:-5]
+
+        python_package_name, _ = python_package_mapping(package)
+        python_package_name = '.'.join(python_package_name.split('.')[:-1])
+        python_module = importlib.import_module(python_package_name)
+        metainfo = getattr(python_module, 'm_env')
+
+        return metainfo
 
     legacy_package_name = Quantity(type=str)
 

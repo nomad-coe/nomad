@@ -23,7 +23,7 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
-from nomad import config, datamodel, infrastructure, datamodel, utils
+from nomad import config, datamodel, infrastructure, utils
 from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities
 
 

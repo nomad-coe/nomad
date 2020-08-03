@@ -100,7 +100,7 @@ export default function About() {
       window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
     })
     makeClickable('analytics', () => {
-      window.location.href = 'https://nomad-lab.eu/index.php?page=AItutorials'
+      window.location.href = 'https://nomad-lab.eu/AItutorials'
     })
     makeClickable('search', () => {
       history.push('/search')
@@ -148,9 +148,9 @@ export default function About() {
         If you want to provide your own data, please login or register for an account.
 
         You can learn more about on the NOMAD Repository and Archive
-        [homepage](https://nomad-lab.eu/index.php?page=repo-arch), our
+        [homepage](https://nomad-lab.eu/repo-arch), our
         [documentation](${appBase}/docs/index.html).
-        There is also an [FAQ](https://nomad-lab.eu/index.php?page=repository-archive-faqs)
+        There is also an [FAQ](https://nomad-lab.eu/repository-archive-faqs)
         and the more detailed [uploader documentation](${appBase}/docs/upload.html).
         `}</Markdown>
       </Grid>
@@ -221,7 +221,7 @@ export default function About() {
 
       There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
-      The [NOMAD Analytics Toolkit](https://nomad-lab.eu/index.php?page=AIToolkit) allows to use
+      The [NOMAD Analytics Toolkit](https://nomad-lab.eu/AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
       `}</Markdown></InfoCard>
       <Grid item xs={12}>

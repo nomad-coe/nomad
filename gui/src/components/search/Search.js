@@ -19,12 +19,18 @@ import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
 import {objectFilter} from '../../utils'
+import MaterialsList from './MaterialsList'
 
 const resultTabs = {
   'entries': {
     label: 'Entries',
     groups: {},
     component: SearchEntryList
+  },
+  'materials': {
+    label: 'Materials',
+    groups: {'encyclopedia.material.materials_grouped': true},
+    component: SearchMaterialsList
   },
   'groups': {
     label: 'Grouped entries',
@@ -605,5 +611,14 @@ function SearchUploadList(props) {
     onEdit={update}
     actions={<ReRunSearchButton/>}
     {...response} {...props} {...useScroll('uploads')}
+  />
+}
+
+function SearchMaterialsList(props) {
+  const {response} = useContext(searchContext)
+  return <MaterialsList
+    data={response}
+    actions={<ReRunSearchButton/>}
+    {...response} {...props} {...useScroll('encyclopedia.material.materials', 'materials_after')}
   />
 }

@@ -14,12 +14,13 @@ export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
 export const matomoEnabled = window.nomadEnv.matomoEnabled
+export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled
 export const email = 'webmaster@nomad-coe.eu'
 export const maxLogsToShow = 50
 
 export const consent = `
 By using this web-site and by uploading and downloading data, you agree to the
-[terms of use](https://nomad-lab.eu/index.php?page=terms).
+[terms of use](https://nomad-lab.eu/terms).
 
 Uploaded data is licensed under the Creative Commons Attribution license
 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish

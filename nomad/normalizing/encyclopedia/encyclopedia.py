@@ -22,7 +22,6 @@ from nomad.datamodel.encyclopedia import (
     Properties,
     Calculation,
 )
-from nomad.parsing.legacy import Backend
 from nomad.normalizing.encyclopedia.context import Context
 from nomad.normalizing.encyclopedia.material import MaterialBulkNormalizer, Material2DNormalizer, Material1DNormalizer
 from nomad.normalizing.encyclopedia.method import MethodDFTNormalizer, MethodGWNormalizer
@@ -37,10 +36,6 @@ class EncyclopediaNormalizer(Normalizer):
     within a new section called "encyclopedia". In the future these separate
     metainfos could be absorbed into the existing metainfo hiearchy.
     """
-    def __init__(self, backend: Backend):
-        super().__init__(backend)
-        self.backend: Backend = backend
-
     def calc_type(self, calc: Calculation) -> str:
         """Decides what type of calculation this is: single_point, md,
         geometry_optimization, etc.
@@ -180,33 +175,34 @@ class EncyclopediaNormalizer(Normalizer):
         # Fill structure related metainfo
         struct: Any = None
         if context.material_type == Material.material_type.type.bulk:
-            struct = MaterialBulkNormalizer(self.backend, self.logger)
+            struct = MaterialBulkNormalizer(self.entry_archive, self.logger)
         elif context.material_type == Material.material_type.type.two_d:
-            struct = Material2DNormalizer(self.backend, self.logger)
+            struct = Material2DNormalizer(self.entry_archive, self.logger)
         elif context.material_type == Material.material_type.type.one_d:
-            struct = Material1DNormalizer(self.backend, self.logger)
+            struct = Material1DNormalizer(self.entry_archive, self.logger)
         if struct is not None:
             struct.normalize(context)
 
         # Fill method related metainfo
         method = None
         if context.method_type == Method.method_type.type.DFT or context.method_type == Method.method_type.type.DFTU:
-            method = MethodDFTNormalizer(self._backend, self.logger)
+            method = MethodDFTNormalizer(self.entry_archive, self.logger)
         elif context.method_type == Method.method_type.type.GW:
-            method = MethodGWNormalizer(self._backend, self.logger)
+            method = MethodGWNormalizer(self.entry_archive, self.logger)
         if method is not None:
             method.normalize(context)
 
         # Fill properties related metainfo
-        properties = PropertiesNormalizer(self.backend, self.logger)
+        properties = PropertiesNormalizer(self.entry_archive, self.logger)
         properties.normalize(context)
 
     def normalize(self, logger=None) -> None:
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
-        sec_enc = self.backend.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
+        sec_enc = self.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
         status_enums = EncyclopediaMetadata.status.type
+        calc_enums = Calculation.calculation_type.type
 
         # Do nothing if section_run is not present
         if self.section_run is None:
@@ -221,7 +217,6 @@ class EncyclopediaNormalizer(Normalizer):
 
         try:
             super().normalize(logger)
-
             # Initialise metainfo structure
             material = sec_enc.m_create(Material)
             method = sec_enc.m_create(Method)
@@ -251,16 +246,18 @@ class EncyclopediaNormalizer(Normalizer):
                 )
                 return
 
-            # Get the method type. For now, we allow unknown method type to
-            # allow phonon calculations through.
+            # Get the method type. For now, we allow unknown method type for
+            # phonon calculations, as the method information is resolved at a
+            # later stage.
             representative_method, method_type = self.method_type(method)
             if method_type == config.services.unavailable_value:
-                status = status_enums.unsupported_method_type
-                sec_enc.status = status
+                sec_enc.status = status_enums.unsupported_method_type
                 self.logger.info(
                     "unsupported method type for encyclopedia",
-                    enc_status=status,
+                    enc_status=status_enums.unsupported_method_type,
                 )
+                if calc_type != calc_enums.phonon_calculation:
+                    return
 
             # Get representative scc
             try:
@@ -283,6 +280,16 @@ class EncyclopediaNormalizer(Normalizer):
 
             # Put the encyclopedia section into backend
             self.fill(context)
+
+            # Check that the necessary information is in place
+            functional_type = method.functional_type
+            if functional_type is None:
+                sec_enc.status = status_enums.unsupported_method_type
+                self.logger.info(
+                    "unsupported functional type for encyclopedia",
+                    enc_status=status_enums.unsupported_method_type,
+                )
+                return
 
         except Exception:
             status = status_enums.failure

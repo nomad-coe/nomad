@@ -1,3 +1,7 @@
+'''
+A simple example that uses the NOMAD client library to access the archive.
+'''
+
 from nomad import config
 from nomad.client import ArchiveQuery
 from nomad.metainfo import units

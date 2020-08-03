@@ -1,32 +1,40 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Button, makeStyles, Tooltip } from '@material-ui/core'
+import { Typography, Tooltip, Link } from '@material-ui/core'
 import Quantity from '../Quantity'
 import _ from 'lodash'
-import {appBase} from '../../config'
-
-const useStyles = makeStyles(theme => ({
-  actions: {
-    marginTop: theme.spacing(1),
-    textAlign: 'right',
-    margin: -theme.spacing(1)
-  }
-}))
+import {appBase, encyclopediaEnabled} from '../../config'
 
 export default function DFTEntryOverview(props) {
-  const classes = useStyles()
   const {data} = props
   if (!data.dft) {
     return <Typography color="error">No metadata available</Typography>
   }
 
-  const material_name = entry => entry.encyclopedia.material.material_name
+  const material_name = entry => {
+    let name
+    try {
+      name = entry.encyclopedia.material.material_name
+    } catch {}
+    name = name || 'unnamed'
+
+    if (encyclopediaEnabled && data.encyclopedia && data.encyclopedia.material && data.published && !data.with_embargo) {
+      const url = `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
+      return (
+        <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
+          <Link href={url}>{name}</Link>
+        </Tooltip>
+      )
+    } else {
+      return name
+    }
+  }
 
   return <div>
     <Quantity column>
       <Quantity row>
         <Quantity quantity="formula" label='formula' noWrap {...props} />
-        <Quantity quantity={material_name} label='material name' noWrap {...props} />
+        <Quantity quantity={material_name} label='material' noWrap {...props} />
       </Quantity>
       <Quantity row>
         <Quantity quantity="dft.code_name" label='dft code' noWrap {...props} />
@@ -46,15 +54,6 @@ export default function DFTEntryOverview(props) {
         </Quantity>
       </Quantity>
     </Quantity>
-    {data.encyclopedia && data.encyclopedia.material &&
-      <div className={classes.actions}>
-        <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
-          <Button color="primary" href={`${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`}>
-            material
-          </Button>
-        </Tooltip>
-      </div>
-    }
   </div>
 }
 
