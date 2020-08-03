@@ -24,6 +24,7 @@ from nomad.metainfo.search_extension import Search
 
 from .common import get_optional_backend_value
 from .optimade import OptimadeEntry
+from .metainfo.public import Workflow
 
 
 xc_treatments = {
@@ -263,6 +264,8 @@ class DFTMetadata(MSection):
         description='Metadata used for the optimade API.',
         a_search='optimade')
 
+    workflow = Quantity(type=Workflow, a_search=Search())
+
     def code_name_from_parser(self):
         entry = self.m_parent
         if entry.parser_name is not None:
@@ -404,3 +407,6 @@ class DFTMetadata(MSection):
         if aflow_id is not None and aflow_label is not None:
             self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
+
+        if backend.entry_archive.section_workflow:
+            self.workflow = backend.entry_archive.section_workflow
