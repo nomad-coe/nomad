@@ -154,6 +154,7 @@ function Consent() {
   const [cookies, setCookie] = useCookies()
   const [accepted, setAccepted] = useState(cookies['terms-accepted'])
   const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
+  const forever = new Date(2147483647 * 1000)
 
   useEffect(() => {
     if (!optOut) {
@@ -165,8 +166,8 @@ function Consent() {
 
   const handleClosed = accepted => {
     if (accepted) {
-      setCookie('terms-accepted', true)
-      setCookie('tracking-enabled', !optOut)
+      setCookie('terms-accepted', true, {expires: forever})
+      setCookie('tracking-enabled', !optOut, {expires: forever})
       setAccepted(true)
     }
   }
