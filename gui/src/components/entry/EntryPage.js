@@ -35,7 +35,6 @@ EntryPageContent.propTypes = ({
 })
 
 export default function EntryPage() {
-
   const history = useHistory()
   const { path, url } = useRouteMatch()
 

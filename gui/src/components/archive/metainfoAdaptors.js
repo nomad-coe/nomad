@@ -7,11 +7,11 @@ import { Typography, Box, makeStyles } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
 import * as d3 from 'd3'
 
-import blue from '@material-ui/core/colors/blue';
-import teal from '@material-ui/core/colors/teal';
-import lime from '@material-ui/core/colors/lime';
-import purple from '@material-ui/core/colors/purple';
-import grey from '@material-ui/core/colors/grey';
+import blue from '@material-ui/core/colors/blue'
+import teal from '@material-ui/core/colors/teal'
+import lime from '@material-ui/core/colors/lime'
+import purple from '@material-ui/core/colors/purple'
+import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
 
 export function metainfoAdaptorFactory(obj) {
@@ -142,7 +142,6 @@ Title.propTypes = ({
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {
-  const color = isDefinition ? 'primary' : 'initial'
   return <Typography {...props}>{definitionLabels[def.m_def]}{isDefinition ? ' definition' : ''}</Typography>
 }
 DefinitionLabel.propTypes = ({
@@ -186,7 +185,6 @@ Meta.propTypes = ({
   def: PropTypes.object
 })
 
-
 const useVicinityGraphStyles = makeStyles(theme => ({
   root: {
     with: '100%',
@@ -220,10 +218,10 @@ export function VicinityGraph({def}) {
     let y2 = Math.max(...graph.nodes.map(n => n.y)) + 24
     const w = Math.max(200, Math.abs(x2 - x1))
     const h = Math.abs(y2 - y1)
-    const px = w < 400 ? (400 - w)/2 : 0
+    const px = w < 400 ? (400 - w) / 2 : 0
     x1 -= px; x2 += px
-    graph.viewBox = `${x1} ${y1} ${x2-x1} ${y2-y1}`
-    graph.aspectRatio = Math.abs((x2-x1) / (y2-y1))
+    graph.viewBox = `${x1} ${y1} ${x2 - x1} ${y2 - y1}`
+    graph.aspectRatio = Math.abs((x2 - x1) / (y2 - y1))
 
     console.log(w, h, px, x1, x2)
     return graph
@@ -236,42 +234,42 @@ export function VicinityGraph({def}) {
     console.log(graph)
     const svg = d3.select(svgRef.current)
 
-    const link = svg.select(".links")
-      .selectAll("line")
+    const link = svg.select('.links')
+      .selectAll('line')
       .data(graph.links)
-      .enter().append("line")
+      .enter().append('line')
       .attr('marker-end', d => `url(#arrowhead-${d.def.m_def || '_none'})`)
-      .attr("stroke", d => linkColors[d.def.m_def || '_none'])
+      .attr('stroke', d => linkColors[d.def.m_def || '_none'])
 
-    const node = svg.select(".nodes")
-      .selectAll("g")
+    const node = svg.select('.nodes')
+      .selectAll('g')
       .data(graph.nodes)
-      .enter().append("g")
+      .enter().append('g')
 
-    node.append("circle")
-      .attr("r", 10)
-      .attr("fill", d => nodeColors[d.def.m_def] || '#000')
+    node.append('circle')
+      .attr('r', 10)
+      .attr('fill', d => nodeColors[d.def.m_def] || '#000')
       .call(d3.drag()
-        .on("drag", d => {
+        .on('drag', d => {
           d.x = d3.event.x
           d.y = d3.event.y
           ticked()
         }))
 
-    node.append("text")
+    node.append('text')
       .text(d => d.def.name)
       .attr('text-anchor', 'middle')
       .attr('y', d => ((d.i % 2) === 0) ? 20 : -14)
 
     function ticked() {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y)
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y)
 
       node
-        .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+        .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     }
     ticked()
   }, [graph, linkColors, nodeColors])
@@ -281,24 +279,25 @@ export function VicinityGraph({def}) {
   }, [graph, svgRef])
 
   return <svg
-      className={classes.root} ref={svgRef}
-      viewBox={graph.viewBox}
+    className={classes.root} ref={svgRef}
+    viewBox={graph.viewBox}
   >
-    <g className="links" />
-    <g className="nodes" />
+    <g className='links' />
+    <g className='nodes' />
     {Object.keys(linkColors).map(colorKey => {
       const color = linkColors[colorKey]
       return <marker
         key={colorKey}
         id={`arrowhead-${colorKey}`}
-        viewBox="-0 -5 10 10"
-        refX="21"
-        refY="0"
-        orient="auto"
-        markerWidth="3"
-        markerHeight="4"
-        xoverflow="visible">
-          <path d="M 0,-5 L 10 ,0 L 0,5" fill={color} stroke={color} />
+        viewBox='-0 -5 10 10'
+        refX='21'
+        refY='0'
+        orient='auto'
+        markerWidth='3'
+        markerHeight='4'
+        xoverflow='visible'
+      >
+        <path d='M 0,-5 L 10 ,0 L 0,5' fill={color} stroke={color} />
       </marker>
     })}
   </svg>

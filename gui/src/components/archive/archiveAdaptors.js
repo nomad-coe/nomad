@@ -2,12 +2,11 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
-import { Item, Content, Compartment, configState } from './ArchiveBrowser'
+import { Item, Content, Compartment, configState, List } from './ArchiveBrowser'
 import { Typography, Box, IconButton } from '@material-ui/core'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import { resolveRef, sectionDefs } from './metainfo'
 import { Title, metainfoAdaptorFactory, Meta } from './metainfoAdaptors'
-import Markdown from '../Markdown'
 
 export default function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
@@ -23,8 +22,6 @@ class ArchiveAdaptor extends Adaptor {
   adaptorFactory(obj, def, context) {
     if (def.m_def === 'Section') {
       return new SectionAdaptor(obj, def, context || this.context)
-    } else if (def.m_def === 'SubSection') {
-      return new SubSectionAdaptor(obj, def, context || this.context)
     } else if (def.m_def === 'Quantity') {
       return new QuantityAdaptor(obj, def, context || this.context)
     }
@@ -41,18 +38,15 @@ class ArchiveAdaptor extends Adaptor {
 
 export class SectionAdaptor extends ArchiveAdaptor {
   itemAdaptor(key) {
-    const property = this.def._properties[key]
-    const value = this.e[key]
+    const [name, index] = key.split(':')
+    const property = this.def._properties[name]
+    const value = this.e[name]
     if (!property) {
       return super.itemAdaptor(key)
     } else if (property.m_def === 'SubSection') {
       const sectionDef = resolveRef(property.sub_section)
-      if (Array.isArray(value)) {
-        if (value.length === 1) {
-          return this.adaptorFactory(value[0], sectionDef)
-        } else {
-          return this.adaptorFactory(value, property)
-        }
+      if (property.repeats) {
+        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef)
       } else {
         return this.adaptorFactory(value, sectionDef)
       }
@@ -73,16 +67,6 @@ export class SectionAdaptor extends ArchiveAdaptor {
 class QuantityAdaptor extends ArchiveAdaptor {
   render() {
     return <Quantity value={this.e} def={this.def} />
-  }
-}
-
-class SubSectionAdaptor extends ArchiveAdaptor {
-  itemAdaptor(key) {
-    const sectionDef = resolveRef(this.def.sub_section)
-    return this.adaptorFactory(this.e[key], sectionDef)
-  }
-  render() {
-    return <SubSection sections={this.e} def={this.def} />
   }
 }
 
@@ -151,14 +135,19 @@ function Section({section, def}) {
         .map(subSectionDef => {
           const key = subSectionDef.name
           const disabled = section[key] === undefined
-          return <Item key={key} itemKey={key} disabled={disabled}>
-            <Typography component="span">
-              <Box fontWeight="bold" component="span">
-                {subSectionDef.name}
-              </Box>
-              {!disabled && subSectionDef.repeats ? ` (${section[subSectionDef.name].length})` : ''}
-            </Typography>
-          </Item>
+          if (!disabled && subSectionDef.repeats && section[key].length > 1) {
+            return <List
+              title={subSectionDef.name} disabled={disabled} itemKey={subSectionDef.name}
+            />
+          } else {
+            return <Item key={key} itemKey={key} disabled={disabled}>
+              <Typography component="span">
+                <Box fontWeight="bold" component="span">
+                  {subSectionDef.name}
+                </Box>
+              </Typography>
+            </Item>
+          }
         })
       }
     </Compartment>
