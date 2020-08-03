@@ -79,11 +79,21 @@ section. We currently have the following domain specific metadata classes/sectio
 .. automodule:: nomad.datamodel.encyclopedia
     :members:
 '''
+import sys
+
+from nomad.metainfo import Environment
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
 from .datamodel import Dataset, User, EditableUserMetadata, MongoMetadata, EntryMetadata, EntryArchive
 from .optimade import OptimadeEntry, Species
+from .metainfo import m_env
+
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.dft'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.ems'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.encyclopedia'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore
 
 domains = {
     'dft': {
@@ -98,4 +108,4 @@ domains = {
     }
 }
 
-root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry']
+root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry', 'Workflow']
