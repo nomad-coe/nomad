@@ -6,6 +6,8 @@ import { Item, Content, Compartment, configState, List } from './ArchiveBrowser'
 import { Typography, Box } from '@material-ui/core'
 import { resolveRef, sectionDefs } from './metainfo'
 import { Title, metainfoAdaptorFactory, Meta } from './metainfoAdaptors'
+import { Matrix, Number } from './visualizations'
+import shape from '@material-ui/core/styles/shape'
 
 export default function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
@@ -95,11 +97,12 @@ function QuantityItemPreview({value, def}) {
       }
     }
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
-      <Typography component="span">{`[${dimensions.join(', ')}] ${typeLabel}`}</Typography>
+      <Typography component="span">{dimensions.map((v, i) => <span>{i > 0 && <span>&nbsp;&times;&nbsp;</span>}{new String(v)}</span>)}&nbsp;{typeLabel}</Typography>
     </Box>
   } else {
     return <Box component="span" whiteSpace="nowarp">
-      <Typography component="span">{String(value)}</Typography>
+      <Number component="span" variant="body1" value={value} exp={8} />
+      {def.unit && <Typography component="span">&nbsp;{def.unit}</Typography>}
     </Box>
   }
 }
@@ -112,9 +115,9 @@ function QuantityValue({value, def}) {
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
-    <Typography>
-      {String(value)}
-    </Typography>
+    {def.shape.length > 0 ? <Matrix values={value} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={value} exp={16} variant="body2" />}
+    {def.shape.length > 0 && <Typography nowrap variant="caption">({def.shape.map((v, i) => <span>{i > 0 && <span>&nbsp;&times;&nbsp;</span>}{new String(v)}</span>)}&nbsp;)</Typography>}
+    {def.unit && <Typography nowrap>{def.unit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({

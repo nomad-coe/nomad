@@ -13,9 +13,9 @@ import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 export const configState = atom({
   key: 'config',
   default: {
-    'showMeta': true,
+    'showMeta': false,
     'showCodeSpecific': false,
-    'showAllDefined': true
+    'showAllDefined': false
   }
 })
 
