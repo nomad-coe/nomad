@@ -228,7 +228,7 @@ export default function About() {
         <Markdown>{`
         ### Getting Help
         If you encounter any difficulties, please write to
-        [webmaster@nomad-coe.eu](mailto:webmaster@nomad-coe.eu). If you think
+        [support@nomad-lab.eu](mailto:support@nomad-lab.eu). If you think
         that this web-page is not working as expected, or if you want to start a discussion
         about possible features, feel free to open an issue on our [issue tracking
         system](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/issues).

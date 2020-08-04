@@ -41,7 +41,7 @@ All docker container are configured via docker-compose an the respective `docker
 Further, we will need to mount some configuration files to configure the NOMAD services within
 their respective containers.
 
-Please [write us](mailto:webmaster@nomad-coe.eu) to register your NOMAD account as an OASIS
+Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
 admin and to register your hostname. Please replace the indicated configuration items with
 the right information.
 

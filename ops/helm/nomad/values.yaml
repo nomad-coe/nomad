@@ -144,7 +144,7 @@ mail:
   enabled: "false"
   host: 'localhost'
   port: 25
-  from: 'webmaster@nomad-coe.eu'
+  from: 'support@nomad-lab.eu'
 
 client:
   username: admin

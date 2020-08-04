@@ -1249,8 +1249,8 @@
     "auth": "",
     "port": "25",
     "host": "mailrelay.mpcdf.mpg.de",
-    "replyTo": "webmaster@nomad-coe.eu",
-    "from": "webmaster@nomad-coe.eu",
+    "replyTo": "support@nomad-lab.eu",
+    "from": "support@nomad-lab.eu",
     "fromDisplayName": "The nomad team",
     "ssl": ""
   },
