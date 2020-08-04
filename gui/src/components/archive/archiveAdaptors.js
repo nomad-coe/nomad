@@ -1,10 +1,9 @@
-import React, { useState } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, configState, List } from './ArchiveBrowser'
-import { Typography, Box, IconButton } from '@material-ui/core'
-import MoreVertIcon from '@material-ui/icons/MoreVert'
+import { Typography, Box } from '@material-ui/core'
 import { resolveRef, sectionDefs } from './metainfo'
 import { Title, metainfoAdaptorFactory, Meta } from './metainfoAdaptors'
 
@@ -137,7 +136,9 @@ function Section({section, def}) {
           const disabled = section[key] === undefined
           if (!disabled && subSectionDef.repeats && section[key].length > 1) {
             return <List
-              title={subSectionDef.name} disabled={disabled} itemKey={subSectionDef.name}
+              key={subSectionDef.name}
+              itemKey={subSectionDef.name}
+              title={subSectionDef.name} disabled={disabled}
             />
           } else {
             return <Item key={key} itemKey={key} disabled={disabled}>
@@ -157,7 +158,6 @@ function Section({section, def}) {
         .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
-          console.log(key)
           const disabled = section[key] === undefined
           return <Item key={key} itemKey={key} disabled={disabled}>
             <Box component="span" whiteSpace="nowrap">
@@ -176,35 +176,6 @@ function Section({section, def}) {
 }
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
-  def: PropTypes.object.isRequired
-})
-
-function SubSection({sections, def}) {
-  const [showAll, setShowAll] = useState(false)
-  const length = sections.length
-
-  const renderItem = (section, index) => (
-    <Item key={index} itemKey={index.toString()}>
-      <Typography><Box component="span" fontWeight="bold">{index}</Box></Typography>
-    </Item>
-  )
-
-  if (length <= 5 || showAll) {
-    return <Content>{sections.map(renderItem)}</Content>
-  } else {
-    return <Content>
-      {sections.slice(0, 3).map(renderItem)}
-      <Box marginLeft={3} marginTop={1} marginBottom={1}>
-        <IconButton onClick={() => setShowAll(true)}>
-          <MoreVertIcon />
-        </IconButton>
-      </Box>
-      {sections.slice(length - 2, length).map((section, index) => renderItem(section, index + length - 2))}
-    </Content>
-  }
-}
-SubSection.propTypes = ({
-  sections: PropTypes.arrayOf(PropTypes.object).isRequired,
   def: PropTypes.object.isRequired
 })
 

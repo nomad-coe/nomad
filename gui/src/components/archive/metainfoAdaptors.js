@@ -114,6 +114,11 @@ SectionDef.propTypes = ({
 function QuantityDef({def}) {
   return <Content>
     <Title def={def} isDefinition />
+    {def.description &&
+      <Box marginTop={1} marginBottom={1}>
+        <Markdown>{def.description}</Markdown>
+      </Box>
+    }
     <Compartment title="visualization">
       <VicinityGraph def={def} />
     </Compartment>
@@ -176,9 +181,6 @@ export function Meta({def}) {
       </Item>
     </div>
     <Markdown classes={{root: classes.description}}>{def.description}</Markdown>
-    <div className={classes.graph}>
-      <VicinityGraph def={def} />
-    </div>
   </Compartment>
 }
 Meta.propTypes = ({

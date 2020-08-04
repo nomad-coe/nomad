@@ -1,8 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import marked from 'marked'
+// import remark from 'remark'
 import { withStyles, Typography } from '@material-ui/core'
 import extend from '@babel/runtime/helpers/extends'
+import ReactMarkdown from 'react-markdown'
+import MathJax from 'react-mathjax'
+import RemarkMathPlugin from 'remark-math'
 
 /**
  * A simple markdown component.
@@ -32,16 +35,17 @@ var styles = theme => {
       },
       '& code': {
         display: 'inline-block',
-        lineHeight: 1.6,
+        lineHeight: 1,
         fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
-        padding: '3px 6px',
+        padding: '5px 4px 2px 4px',
         color: theme.palette.text.primary,
         backgroundColor: theme.palette.secondary.veryLight,
+        borderRadius: theme.shape.borderRadius,
         fontSize: 14
       },
       '& p code, & ul code, & pre code': {
         fontSize: 14,
-        lineHeight: 1.6
+        lineHeight: 1
       },
       '& p:first-child': {
         marginTop: 0
@@ -207,18 +211,33 @@ var styles = theme => {
 }
 
 function Markdown(props) {
-  const { classes, text, children } = props
+  const { classes, text, children, ...moreProps } = props
 
   let content = text
   if (children) {
     content = children.replace(/^ +/gm, '')
   }
 
+  const newProps = {
+    ...moreProps,
+    children: content,
+    plugins: [
+      RemarkMathPlugin
+    ],
+    renderers: {
+      ...moreProps.renderer,
+      math: props => <MathJax.Node formula={props.value} />,
+      inlineMath: props => <MathJax.Node inline formula={props.value} />
+    }
+  }
+  const md = (
+    <MathJax.Provider input="tex">
+      <ReactMarkdown {...newProps} />
+    </MathJax.Provider>
+  )
+
   return (
-    <Typography variant="body1"
-      className={classes.root}
-      dangerouslySetInnerHTML={{__html: marked(content || '')}}
-    />
+    <div className={classes.root}>{md}</div>
   )
 }
 
