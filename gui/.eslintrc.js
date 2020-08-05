@@ -22,7 +22,7 @@ module.exports = {
         "camelcase": [0],
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
-        "react/display-name": ["error", "never"]
+        "react/display-name": [0]
     },
     "settings": {
         "react": {

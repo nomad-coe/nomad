@@ -7,7 +7,6 @@ import { Typography, Box } from '@material-ui/core'
 import { resolveRef, sectionDefs } from './metainfo'
 import { Title, metainfoAdaptorFactory, Meta } from './metainfoAdaptors'
 import { Matrix, Number } from './visualizations'
-import shape from '@material-ui/core/styles/shape'
 
 export default function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
@@ -97,7 +96,13 @@ function QuantityItemPreview({value, def}) {
       }
     }
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
-      <Typography component="span">{dimensions.map((v, i) => <span>{i > 0 && <span>&nbsp;&times;&nbsp;</span>}{new String(v)}</span>)}&nbsp;{typeLabel}</Typography>
+      <Typography component="span">
+        {dimensions.map((dimension, index) => (
+          <span key={index}>
+            {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+          </span>
+        ))}&nbsp;{typeLabel}
+      </Typography>
     </Box>
   } else {
     return <Box component="span" whiteSpace="nowarp">
@@ -116,7 +121,13 @@ function QuantityValue({value, def}) {
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
     {def.shape.length > 0 ? <Matrix values={value} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={value} exp={16} variant="body2" />}
-    {def.shape.length > 0 && <Typography nowrap variant="caption">({def.shape.map((v, i) => <span>{i > 0 && <span>&nbsp;&times;&nbsp;</span>}{new String(v)}</span>)}&nbsp;)</Typography>}
+    {def.shape.length > 0 &&
+      <Typography nowrap variant="caption">
+        ({def.shape.map((dimension, index) => <span key={index}>
+          {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+        </span>)}&nbsp;)
+      </Typography>
+    }
     {def.unit && <Typography nowrap>{def.unit}</Typography>}
   </Box>
 }

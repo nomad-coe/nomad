@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { FixedSizeGrid as Grid } from 'react-window'
-import { Typography, makeStyles, FormGroup, Button, FormLabel, Grid as MuiGrid, Box } from '@material-ui/core'
+import { Typography, makeStyles, Button, Grid as MuiGrid, Box } from '@material-ui/core'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 export function Number({value, exp, variant, ...props}) {
@@ -25,7 +25,9 @@ export function Number({value, exp, variant, ...props}) {
   return <Typography {...props} variant={variant} >{html}</Typography>
 }
 Number.propTypes = ({
-  value: PropTypes.any
+  value: PropTypes.any,
+  variant: PropTypes.string,
+  exp: PropTypes.number
 })
 
 function MatrixPagination({length, page, onChange}) {
@@ -42,12 +44,12 @@ function MatrixPagination({length, page, onChange}) {
       </Button>
     </MuiGrid>
     <MuiGrid item>
-    <Typography>{page}</Typography>
+      <Typography>{page}</Typography>
     </MuiGrid>
     <MuiGrid item>
-    <Button size="small" disabled={page + 1 === length} onClick={() => onChange(page + 1)}>
+      <Button size="small" disabled={page + 1 === length} onClick={() => onChange(page + 1)}>
       next
-    </Button>
+      </Button>
     </MuiGrid>
   </MuiGrid>
 }

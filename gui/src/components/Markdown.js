@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 // import remark from 'remark'
-import { withStyles, Typography } from '@material-ui/core'
+import { withStyles } from '@material-ui/core'
 import extend from '@babel/runtime/helpers/extends'
 import ReactMarkdown from 'react-markdown'
 import MathJax from 'react-mathjax'
@@ -218,6 +218,8 @@ function Markdown(props) {
     content = children.replace(/^ +/gm, '')
   }
 
+  const math = ({value}) => <MathJax.Node formula={value} />
+  const inlineMath = ({value}) => <MathJax.Node inline formula={value} />
   const newProps = {
     ...moreProps,
     children: content,
@@ -226,8 +228,8 @@ function Markdown(props) {
     ],
     renderers: {
       ...moreProps.renderer,
-      math: props => <MathJax.Node formula={props.value} />,
-      inlineMath: props => <MathJax.Node inline formula={props.value} />
+      math: math,
+      inlineMath: inlineMath
     }
   }
   const md = (
