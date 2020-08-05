@@ -1,45 +1,39 @@
-import React from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Tooltip, Typography } from '@material-ui/core'
+import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Tooltip, Typography, makeStyles } from '@material-ui/core'
 import CodeIcon from '@material-ui/icons/Code'
 import ReactJson from 'react-json-view'
 import Markdown from './Markdown'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 
-class ApiDialogUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    data: PropTypes.any.isRequired,
-    title: PropTypes.string,
-    onClose: PropTypes.func
+const useApiDialogStyles = makeStyles(theme => ({
+  content: {
+    paddingBottom: 0
+  },
+  json: {
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2)
+  },
+  codeContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'flex-start'
+  },
+  code: {
+    flexGrow: 1,
+    marginRight: theme.spacing(1),
+    overflow: 'hidden'
+  },
+  codeActions: {
+    marginTop: theme.spacing(3)
   }
+}))
 
-  static styles = (theme) => ({
-    content: {
-      paddingBottom: 0
-    },
-    json: {
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2)
-    },
-    codeContainer: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'flex-start'
-    },
-    code: {
-      flexGrow: 1,
-      marginRight: theme.spacing(1),
-      overflow: 'hidden'
-    },
-    codeActions: {
-      marginTop: theme.spacing(3)
-    }
-  })
+export function ApiDialog({title, data, onClose, ...dialogProps}) {
+  const classes = useApiDialogStyles()
 
-  renderCode(title, code) {
-    const {classes} = this.props
+  const renderCode = (title, code) => {
     return <React.Fragment>
       <Typography>{title}</Typography>
       <div className={classes.codeContainer}>
@@ -59,101 +53,78 @@ class ApiDialogUnstyled extends React.Component {
     </React.Fragment>
   }
 
-  render() {
-    const { classes, title, data, onClose, ...dialogProps } = this.props
+  return (
+    <Dialog maxWidth="lg" fullWidth {...dialogProps}>
+      <DialogTitle>{title || 'API Code'}</DialogTitle>
 
-    return (
-      <Dialog maxWidth="lg" fullWidth {...dialogProps}>
-        <DialogTitle>{title || 'API Code'}</DialogTitle>
+      <DialogContent classes={{root: classes.content}}>
+        { data.code && data.code.curl &&
+          renderCode(<span>Access the archive as JSON via <i>curl</i>:</span>, data.code.curl)}
+        { data.code && data.code.python &&
+          renderCode(<span>Access the archive in <i>python</i>:</span>, data.code.python)}
+        { data.code && data.code.clientlib &&
+          renderCode(<span>Access the archive with the <i>NOMAD client library</i>:</span>, data.code.clientlib)}
 
-        <DialogContent classes={{root: classes.content}}>
-          { data.code && data.code.curl &&
-            this.renderCode(<span>Access the archive as JSON via <i>curl</i>:</span>, data.code.curl)}
-          { data.code && data.code.python &&
-            this.renderCode(<span>Access the archive in <i>python</i>:</span>, data.code.python)}
-          { data.code && data.code.clientlib &&
-            this.renderCode(<span>Access the archive with the <i>NOMAD client library</i>:</span>, data.code.clientlib)}
-
-          <Typography>The repository API response as JSON:</Typography>
-          <div className={classes.codeContainer}>
-            <div className={classes.code}>
-              <div className={classes.json}>
-                <ReactJson
-                  src={data}
-                  enableClipboard={false}
-                  collapsed={2}
-                  displayObjectSize={false}
-                />
-              </div>
-            </div>
-            <div className={classes.codeActions}>
-              <CopyToClipboard text={data} onCopy={() => null}>
-                <Tooltip title="Copy to clipboard">
-                  <IconButton>
-                    <ClipboardIcon />
-                  </IconButton>
-                </Tooltip>
-              </CopyToClipboard>
+        <Typography>The repository API response as JSON:</Typography>
+        <div className={classes.codeContainer}>
+          <div className={classes.code}>
+            <div className={classes.json}>
+              <ReactJson
+                src={data}
+                enableClipboard={false}
+                collapsed={2}
+                displayObjectSize={false}
+              />
             </div>
           </div>
-        </DialogContent>
+          <div className={classes.codeActions}>
+            <CopyToClipboard text={data} onCopy={() => null}>
+              <Tooltip title="Copy to clipboard">
+                <IconButton>
+                  <ClipboardIcon />
+                </IconButton>
+              </Tooltip>
+            </CopyToClipboard>
+          </div>
+        </div>
+      </DialogContent>
 
-        <DialogActions>
-          <Button onClick={onClose}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-    )
-  }
+      <DialogActions>
+        <Button onClick={onClose}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+ApiDialog.propTypes = {
+  classes: PropTypes.object.isRequired,
+  data: PropTypes.any.isRequired,
+  title: PropTypes.string,
+  onClose: PropTypes.func
 }
 
-export const ApiDialog = withStyles(ApiDialogUnstyled.styles)(ApiDialogUnstyled)
+export default function ApiDialogButton({component, ...dialogProps}) {
+  const [showDialog, setShowDialog] = useState(false)
 
-class ApiDialogButtonUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    data: PropTypes.any.isRequired,
-    title: PropTypes.string,
-    component: PropTypes.func
-  }
-
-  static styles = theme => ({
-    root: {}
-  })
-
-  state = {
-    showDialog: false
-  }
-
-  constructor(props) {
-    super(props)
-    this.handleShowDialog = this.handleShowDialog.bind(this)
-  }
-
-  handleShowDialog() {
-    this.setState({showDialog: !this.state.showDialog})
-  }
-
-  render() {
-    const { classes, component, ...dialogProps } = this.props
-    const { showDialog } = this.state
-
-    return (
-      <div className={classes.root}>
-        {component ? component({onClick: this.handleShowDialog}) : <Tooltip title="Show API code">
-          <IconButton onClick={this.handleShowDialog}>
-            <CodeIcon />
-          </IconButton>
-        </Tooltip>
-        }
-        <ApiDialog
-          {...dialogProps} open={showDialog}
-          onClose={() => this.setState({showDialog: false})}
-        />
-      </div>
-    )
-  }
+  return (
+    <React.Fragment>
+      {component ? component({onClick: () => setShowDialog(true)}) : <Tooltip title="Show API code">
+        <IconButton onClick={() => setShowDialog(true)}>
+          <CodeIcon />
+        </IconButton>
+      </Tooltip>
+      }
+      <ApiDialog
+        {...dialogProps} open={showDialog}
+        onClose={() => setShowDialog(false)}
+      />
+    </React.Fragment>
+  )
 }
-
-export default withStyles(ApiDialogButtonUnstyled.styles)(ApiDialogButtonUnstyled)
+ApiDialogButton.propTypes = {
+  classes: PropTypes.object.isRequired,
+  data: PropTypes.any.isRequired,
+  title: PropTypes.string,
+  component: PropTypes.func
+}

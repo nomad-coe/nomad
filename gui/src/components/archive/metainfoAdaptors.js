@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
 import { Item, Content, Compartment, configState } from './ArchiveBrowser'
-import { Typography, Box, makeStyles } from '@material-ui/core'
+import { Typography, Box, makeStyles, Grid } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
 import * as d3 from 'd3'
 
@@ -13,6 +13,7 @@ import lime from '@material-ui/core/colors/lime'
 import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
+import { JsonCodeDialogButton } from '../CodeDialogButton'
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -65,7 +66,7 @@ function SectionDef({def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content style={{backgroundColor: 'grey'}}>
-    <Title def={def} isDefinition/>
+    <Title def={def} kindLabel="section definition" isDefinition/>
     {def.description &&
       <Box marginTop={1} marginBottom={1}>
         <Markdown>{def.description}</Markdown>
@@ -113,7 +114,7 @@ SectionDef.propTypes = ({
 
 function QuantityDef({def}) {
   return <Content>
-    <Title def={def} isDefinition />
+    <Title def={def} kindLabel="quantity definition" isDefinition />
     {def.description &&
       <Box marginTop={1} marginBottom={1}>
         <Markdown>{def.description}</Markdown>
@@ -134,16 +135,29 @@ const definitionLabels = {
   'Quantity': 'quantity',
   'SubSection': 'sub section'
 }
-export function Title({def, isDefinition}) {
+export function Title({def, isDefinition, data, kindLabel}) {
   const color = isDefinition ? 'primary' : 'initial'
   return <Compartment>
-    <Typography color={color} variant="h6">{def.name}</Typography>
-    <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
+    <Grid container justify="space-between">
+      <Grid item>
+        <Typography color={color} variant="h6">{def.name}</Typography>
+        <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
+      </Grid>
+      <Grid item>
+        <JsonCodeDialogButton
+          tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
+          title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
+          buttonProps={{size: 'small'}} json={data || def}
+        />
+      </Grid>
+    </Grid>
   </Compartment>
 }
 Title.propTypes = ({
   def: PropTypes.object.isRequired,
-  isDefinition: PropTypes.bool
+  data: PropTypes.any,
+  isDefinition: PropTypes.bool,
+  kindLabel: PropTypes.string
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {

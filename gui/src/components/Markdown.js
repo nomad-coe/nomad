@@ -43,9 +43,12 @@ var styles = theme => {
         borderRadius: theme.shape.borderRadius,
         fontSize: 14
       },
-      '& p code, & ul code, & pre code': {
+      '& p code, & ul code': {
+        fontSize: 14
+      },
+      '& pre code': {
         fontSize: 14,
-        lineHeight: 1
+        lineHeight: 1.6
       },
       '& p:first-child': {
         marginTop: 0

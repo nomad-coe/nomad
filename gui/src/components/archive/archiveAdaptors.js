@@ -140,7 +140,7 @@ function Section({section, def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
-    <Title def={def} />
+    <Title def={def} data={section} kindLabel="section" />
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
@@ -195,7 +195,7 @@ Section.propTypes = ({
 
 function Quantity({value, def}) {
   return <Content>
-    <Title def={def} />
+    <Title def={def} data={value} kindLabel="value" />
     <QuantityValue value={value} def={def} />
     <Meta def={def} />
   </Content>
