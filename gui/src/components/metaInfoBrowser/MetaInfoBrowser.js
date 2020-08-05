@@ -120,7 +120,6 @@ export default function MetaInfoBrowser({visible}) {
   }
 
   const metainfo = metainfos.resolve(metainfos.createProxy(metainfoName))
-  console.log(metainfoName)
 
   return <div style={{display: visible ? 'block' : 'none'}}>
     <div className={classes.forms}>

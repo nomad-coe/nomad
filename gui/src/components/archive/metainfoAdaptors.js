@@ -138,7 +138,7 @@ const definitionLabels = {
 export function Title({def, isDefinition, data, kindLabel}) {
   const color = isDefinition ? 'primary' : 'initial'
   return <Compartment>
-    <Grid container justify="space-between">
+    <Grid container justify="space-between" wrap="nowrap" spacing={1}>
       <Grid item>
         <Typography color={color} variant="h6">{def.name}</Typography>
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
@@ -239,15 +239,13 @@ export function VicinityGraph({def}) {
     graph.viewBox = `${x1} ${y1} ${x2 - x1} ${y2 - y1}`
     graph.aspectRatio = Math.abs((x2 - x1) / (y2 - y1))
 
-    console.log(w, h, px, x1, x2)
     return graph
   }, [def])
-  console.log(graph)
 
   const classes = useVicinityGraphStyles()
   const svgRef = useRef()
+
   useEffect(() => {
-    console.log(graph)
     const svg = d3.select(svgRef.current)
 
     const link = svg.select('.links')

@@ -2,13 +2,14 @@
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot, atom, useRecoilState } from 'recoil'
-import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox } from '@material-ui/core'
+import { makeStyles, Card, CardContent, Box, Typography, FormGroup, FormControlLabel, Checkbox, TextField } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
-import archiveAdaptorFactory from './archiveAdaptors'
+import archiveAdaptorFactory, {archiveSearchOptions} from './archiveAdaptors'
 import classNames from 'classnames'
-import { useLocation, useRouteMatch, Link } from 'react-router-dom'
+import { useLocation, useRouteMatch, Link, useHistory } from 'react-router-dom'
+import Autocomplete from '@material-ui/lab/Autocomplete'
 
 export const configState = atom({
   key: 'config',
@@ -18,6 +19,12 @@ export const configState = atom({
     'showAllDefined': false
   }
 })
+
+export default function ArchiveBrowser(props) {
+  return <RecoilRoot>
+    <Browser {...props} />
+  </RecoilRoot>
+}
 
 const useBrowserStyles = makeStyles(theme => ({
   root: {
@@ -41,12 +48,13 @@ const useBrowserStyles = makeStyles(theme => ({
     width: 'fit-content'
   }
 }))
-
-export default function ArchiveBrowser({data}) {
+function Browser({data}) {
   const classes = useBrowserStyles()
   const rootRef = useRef()
   const outerRef = useRef()
   const innerRef = useRef()
+
+  const properties = useMemo(() => archiveSearchOptions(data), [data])
 
   useLayoutEffect(() => {
     const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
@@ -55,6 +63,7 @@ export default function ArchiveBrowser({data}) {
     outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
   })
 
+  const history = useHistory()
   const { pathname } = useLocation()
   const { url } = useRouteMatch()
   const archivePath = pathname.substring(url.length).split('/')
@@ -78,8 +87,63 @@ export default function ArchiveBrowser({data}) {
     prev.next = lane
   })
 
-  return <RecoilRoot>
-    <ArchiveBrowserConfig />
+  const [config, setConfig] = useRecoilState(configState)
+  const handleConfigChange = event => {
+    const changes = {[event.target.name]: event.target.checked}
+    if (changes.showCodeSpecific) {
+      changes.showAllDefined = !changes.showCodeSpecific
+    } else if (changes.showAllDefined) {
+      changes.showCodeSpecific = !changes.showAllDefined
+    }
+    setConfig({...config, ...changes})
+  }
+
+  return <React.Fragment>
+    <Box marginTop={-6}>
+      <FormGroup row style={{alignItems: 'flex-end'}}>
+        <Autocomplete
+          options={properties}
+          getOptionLabel={(option) => option.name}
+          style={{ width: 350 }}
+          onChange={(_, value) => {
+            if (value) {
+              history.push(url + value.path)
+            }
+          }}
+          renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+        />
+        <Box flexGrow={1} />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={config.showCodeSpecific}
+              onChange={handleConfigChange}
+              name="showCodeSpecific"
+            />
+          }
+          label="include code specific"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={config.showAllDefined}
+              onChange={handleConfigChange}
+              name="showAllDefined"
+            />
+          }
+          label="show all defined metadata"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={config.showMeta}
+              onChange={handleConfigChange}
+              name="showMeta" />
+          }
+          label="show metainfo definitions"
+        />
+      </FormGroup>
+    </Box>
     <Card>
       <CardContent>
         <div className={classes.root} ref={rootRef} >
@@ -93,56 +157,11 @@ export default function ArchiveBrowser({data}) {
         </div>
       </CardContent>
     </Card>
-  </RecoilRoot>
+  </React.Fragment>
 }
-ArchiveBrowser.propTypes = ({
+Browser.propTypes = ({
   data: PropTypes.object.isRequired
 })
-
-function ArchiveBrowserConfig() {
-  const [config, setConfig] = useRecoilState(configState)
-  const handleConfigChange = event => {
-    const changes = {[event.target.name]: event.target.checked}
-    if (changes.showCodeSpecific) {
-      changes.showAllDefined = !changes.showCodeSpecific
-    } else if (changes.showAllDefined) {
-      changes.showCodeSpecific = !changes.showAllDefined
-    }
-    setConfig({...config, ...changes})
-  }
-
-  return <FormGroup row>
-    <FormControlLabel
-      control={
-        <Checkbox
-          checked={config.showCodeSpecific}
-          onChange={handleConfigChange}
-          name="showCodeSpecific"
-        />
-      }
-      label="include code specific"
-    />
-    <FormControlLabel
-      control={
-        <Checkbox
-          checked={config.showAllDefined}
-          onChange={handleConfigChange}
-          name="showAllDefined"
-        />
-      }
-      label="show all defined metadata"
-    />
-    <FormControlLabel
-      control={
-        <Checkbox
-          checked={config.showMeta}
-          onChange={handleConfigChange}
-          name="showMeta" />
-      }
-      label="show metainfo definitions"
-    />
-  </FormGroup>
-}
 
 const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({

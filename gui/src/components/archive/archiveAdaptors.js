@@ -12,6 +12,68 @@ export default function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
 }
 
+export function archiveSearchOptions(data) {
+  const options = []
+  const optionDefs = {}
+  const optionKeys = {}
+  function traverse(data, def, parentPath) {
+    for (let key in data) {
+      const childDef = def._properties[key]
+      if (!childDef) {
+        continue
+      }
+
+      const child = data[key]
+      if (!child) {
+        continue
+      }
+
+      let path = `${parentPath}/${key}`
+      if (childDef.m_def === 'SubSection') {
+        const sectionDef = resolveRef(childDef.sub_section)
+        if (Array.isArray(child) && child.length > 0 && child[0]) {
+          if (child.length > 1) {
+            child.forEach((value, index) => traverse(value, sectionDef, `${path}:${index}`))
+          } else {
+            traverse(child[0], sectionDef, path)
+          }
+        } else {
+          traverse(child, sectionDef, path)
+        }
+      }
+
+      if (optionDefs[childDef._qualifiedName]) {
+        continue
+      }
+      optionDefs[childDef._qualifiedName] = childDef
+
+      const option = {
+        name: key,
+        data: data,
+        def: childDef,
+        path: path
+      }
+      options.push(option)
+
+      if (optionKeys[key]) {
+        const addPath = option => {
+          const parents = option.path.split('/')
+          const parent = parents[parents.length - 2].replace(/:[0-9]+$/, '')
+          option.name += ` (${parent})`
+        }
+        if (!optionKeys[key].name.includes('(')) {
+          addPath(optionKeys[key])
+        }
+        addPath(option)
+      } else {
+        optionKeys[key] = option
+      }
+    }
+  }
+  traverse(data, sectionDefs['EntryArchive'], '')
+  return options
+}
+
 class ArchiveAdaptor extends Adaptor {
   constructor(obj, def, context) {
     super(obj)
@@ -122,13 +184,13 @@ function QuantityValue({value, def}) {
   >
     {def.shape.length > 0 ? <Matrix values={value} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={value} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
-      <Typography nowrap variant="caption">
+      <Typography noWrap variant="caption">
         ({def.shape.map((dimension, index) => <span key={index}>
           {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
         </span>)}&nbsp;)
       </Typography>
     }
-    {def.unit && <Typography nowrap>{def.unit}</Typography>}
+    {def.unit && <Typography noWrap>{def.unit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({
