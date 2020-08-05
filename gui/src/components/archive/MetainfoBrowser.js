@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
-import Adaptor from './adaptors'
-import { Item, Content, Compartment, configState } from './ArchiveBrowser'
+import { configState } from './ArchiveBrowser'
+import Browser, { Item, Content, Compartment, Adaptor } from './Browser'
 import { Typography, Box, makeStyles, Grid } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph, sectionDefs } from './metainfo'
 import * as d3 from 'd3'
 import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
@@ -15,6 +15,52 @@ import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
 import { JsonCodeDialogButton } from '../CodeDialogButton'
 import Histogram from '../Histogram'
+import { appBase } from '../../config'
+
+export const help = `
+The NOMAD *metainfo* defines all quantities used to represent archive data in
+NOMAD. You could say it is the archive *schema*. You can browse this schema and
+all its definitions here.
+
+The NOMAD metainfo contains three different *kinds* of definitions:
+
+- **sections**: A section is a nested groups of quantities that allow a hierarchical data structure
+- **values**: Actual quantities that contain data
+- **references**: References that allow to connect related sections.
+
+All definitions have a name that you can search for. Furthermore, all definitions
+are organized in packages. There is a *common* pkg with definitions that are
+used by all codes and there are packages for each code with code specific definitions.
+You can select the pkg to browse below.
+
+Depending on the selected pkg, there are quite a large number of definitions.
+You can use the *definition* field to search based on definition names.
+
+All definitions are represented as *cards* below. Click on the various card items
+to expand sub-sections, open values or references, hide and show compartments, or
+collapse cards again. The highlighted *main* card cannot be collapsed. The
+shapes in the background represent section containment (grey) and
+reference (blue) relations.
+
+If you bookmark this page, you can save the definition represented by the highlighted
+*main* card.
+
+To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
+`
+
+export function MetainfoPage() {
+  return <Box margin={3}>
+    <Browser
+      adaptor={metainfoAdaptorFactory(sectionDefs['EntryArchive'])}
+    />
+  </Box>
+}
+
+export default function MetainfoBrowser() {
+  return <Browser
+    adaptor={metainfoAdaptorFactory(sectionDefs['EntryArchive'])}
+  />
+}
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -98,7 +144,6 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
-    {/* <Meta def={metainfoDef(def.m_def)} /> */}
   </Content>
 }
 SectionDef.propTypes = ({
@@ -157,7 +202,6 @@ function Definition({def, ...props}) {
         <Typography color="error"><i>This metadata is not used at all.</i></Typography>
       )}
     </Compartment>
-    {/* <Meta def={metainfoDef(def.m_def)} /> */}
   </React.Fragment>
 }
 Definition.propTypes = {
@@ -200,39 +244,6 @@ export function DefinitionLabel({def, isDefinition, ...props}) {
 DefinitionLabel.propTypes = ({
   def: PropTypes.object.isRequired,
   isDefinition: PropTypes.bool
-})
-
-const useMetaStyles = makeStyles(theme => ({
-  description: {
-    marginTop: theme.spacing(1)
-  },
-  graph: {
-    marginTop: theme.spacing(3)
-  },
-  metainfo: {
-    marginBottom: theme.spacing(2)
-  },
-  metainfoItem: {
-    fontWeight: 'bold'
-  }
-}))
-export function Meta({def}) {
-  const classes = useMetaStyles()
-  const config = useRecoilValue(configState)
-  if (!config.showMeta) {
-    return ''
-  }
-  return <Compartment title="meta" color="primary">
-    <div className={classes.metainfo}>
-      <Item itemKey="_metainfo">
-        <DefinitionLabel classes={{root: classes.metainfoItem}} def={def} isDefinition component="span" />
-      </Item>
-    </div>
-    <Markdown classes={{root: classes.description}}>{def.description}</Markdown>
-  </Compartment>
-}
-Meta.propTypes = ({
-  def: PropTypes.object
 })
 
 const useVicinityGraphStyles = makeStyles(theme => ({
