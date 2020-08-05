@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useLayoutEffect } from 'react'
+import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
 import Adaptor from './adaptors'
@@ -6,7 +6,7 @@ import { Item, Content, Compartment, configState } from './ArchiveBrowser'
 import { Typography, Box, makeStyles, Grid } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph } from './metainfo'
 import * as d3 from 'd3'
-
+import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
 import lime from '@material-ui/core/colors/lime'
@@ -14,6 +14,7 @@ import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
 import { JsonCodeDialogButton } from '../CodeDialogButton'
+import Histogram from '../Histogram'
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -66,15 +67,7 @@ function SectionDef({def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content style={{backgroundColor: 'grey'}}>
-    <Title def={def} kindLabel="section definition" isDefinition/>
-    {def.description &&
-      <Box marginTop={1} marginBottom={1}>
-        <Markdown>{def.description}</Markdown>
-      </Box>
-    }
-    <Compartment>
-      <VicinityGraph def={def} />
-    </Compartment>
+    <Definition def={def} kindLabel="section definition" />
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
@@ -114,21 +107,62 @@ SectionDef.propTypes = ({
 
 function QuantityDef({def}) {
   return <Content>
-    <Title def={def} kindLabel="quantity definition" isDefinition />
-    {def.description &&
-      <Box marginTop={1} marginBottom={1}>
-        <Markdown>{def.description}</Markdown>
-      </Box>
-    }
-    <Compartment title="visualization">
-      <VicinityGraph def={def} />
-    </Compartment>
-    {/* <Meta def={metainfoDef(def.m_def)} /> */}
+    <Definition def={def} kindLabel="quantity definition"/>
   </Content>
 }
 QuantityDef.propTypes = ({
   def: PropTypes.object
 })
+
+function Definition({def, ...props}) {
+  const {api} = useContext(apiContext)
+  const [usage, setUsage] = useState(null)
+
+  useEffect(() => {
+    api.quantity_search({
+      'dft.quantities': [def.name],
+      size: 100, // make sure we get all codes
+      quantity: 'dft.code_name'
+    }).then(result => {
+      setUsage(result.quantity.values)
+    })
+  }, [api, def.name, setUsage])
+
+  return <React.Fragment>
+    <Title def={def} isDefinition {...props} />
+    {def.description &&
+      <Compartment title="description">
+        <Box marginTop={1} marginBottom={1}>
+          <Markdown>{def.description}</Markdown>
+        </Box>
+      </Compartment>
+    }
+    <Compartment title="graph">
+      <VicinityGraph def={def} />
+    </Compartment>
+    <Compartment title="usage">
+      {!usage && <Typography><i>loading ...</i></Typography>}
+      {usage && Object.keys(usage).length > 0 && (
+        <Histogram
+          data={Object.keys(usage).map(key => ({
+            key: key,
+            name: key,
+            value: usage[key].total
+          }))}
+          initialScale={0.5}
+          title="Metadata use per code"
+        />
+      )}
+      {usage && Object.keys(usage).length === 0 && (
+        <Typography color="error"><i>This metadata is not used at all.</i></Typography>
+      )}
+    </Compartment>
+    {/* <Meta def={metainfoDef(def.m_def)} /> */}
+  </React.Fragment>
+}
+Definition.propTypes = {
+  def: PropTypes.object.isRequired
+}
 
 const definitionLabels = {
   'Section': 'section',

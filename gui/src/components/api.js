@@ -474,6 +474,15 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async quantity_search(search) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.quantity_search(search))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
   async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
     if (!noLoadingIndicator) {
       this.onStartLoading()
