@@ -233,7 +233,6 @@ export function VicinityGraph({def}) {
     let x2 = Math.max(...graph.nodes.map(n => n.x)) + 32
     let y2 = Math.max(...graph.nodes.map(n => n.y)) + 24
     const w = Math.max(200, Math.abs(x2 - x1))
-    const h = Math.abs(y2 - y1)
     const px = w < 400 ? (400 - w) / 2 : 0
     x1 -= px; x2 += px
     graph.viewBox = `${x1} ${y1} ${x2 - x1} ${y2 - y1}`
