@@ -143,11 +143,13 @@ your queries. To authenticate simply provide your NOMAD username and password to
 from typing import Dict, Union, Any, List
 import collections.abc
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 from bravado import requests_client as bravado_requests_client
 import time
 from keycloak import KeycloakOpenID
 from io import StringIO
+import numpy as np
+import threading
 
 from nomad import config
 from nomad import metainfo as mi
@@ -253,11 +255,11 @@ class ArchiveQuery(collections.abc.Sequence):
             self,
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
-            per_page: int = 10, max: int = None,
+            per_page: int = 10, max: int = None, parallel: int = None,
             raise_errors: bool = False,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
-        self._after = None
+        self._afters = None
         self.page = 1
         self.per_page = per_page
         self.max = max
@@ -293,11 +295,14 @@ class ArchiveQuery(collections.abc.Sequence):
         self.username = username
         self.url = config.client.url if url is None else url
         self._authentication = authentication
+        self.parallel = parallel
 
         self._total = -1
         self._capped_total = -1
         self._results: List[dict] = []
         self._statistics = ApiStatistics()
+        self._totals: List[int] = []
+        self._upload_ids = self.get_upload_ids()
 
     @property
     def authentication(self):
@@ -321,18 +326,78 @@ class ArchiveQuery(collections.abc.Sequence):
         else:
             return self._authentication
 
-    def call_api(self):
+    def get_upload_ids(self):
         '''
-        Calls the API to retrieve the next set of results. Is automatically called, if
-        not yet downloaded entries are accessed.
+
         '''
+        query = self.query['query']
+        url = '%s/repo/quantity/upload_id?%s' % (self.url, urlencode(query, doseq=True))
+
+        response = requests.get(url, headers=self.authentication)
+
+        data = response.json
+        if not isinstance(data, dict):
+            data = data()
+
+        quantity = data['quantity']
+        after = quantity['after']
+        values = quantity['values']
+
+        while True:
+            response = requests.get('%s&after=%s' % (url, after), headers=self.authentication)
+
+            data = response.json
+            if not isinstance(data, dict):
+                data = data()
+
+            quantity = data['quantity']
+            if quantity.get('after') is None:
+                break
+
+            values.update(quantity['values'])
+
+        if self.parallel is None:
+            ids_per_proc = 1000
+            upload_ids = []
+            count = 0
+            ids = []
+            keys = list(values.keys())
+            for key in keys:
+                count += values[key]['total']
+                ids.append(key)
+                if count >= ids_per_proc or key == keys[-1]:
+                    upload_ids.append(ids)
+                    count = 0
+                    ids = []
+
+        elif isinstance(self.parallel, int):
+            upload_ids = np.array_split(values.keys(), self.parallel)
+
+        self._afters = [None] * len(upload_ids)
+        self._data_sizes = [0] * len(upload_ids)
+        self._totals = [-1] * len(upload_ids)
+        self._nresults = [0] * len(upload_ids)
+
+        return upload_ids
+
+    def _api_proc(self, proc_id):
         url = '%s/%s/%s' % (self.url, 'archive', 'query')
 
-        aggregation = self.query.setdefault('aggregation', {'per_page': self.per_page})
-        if self._after is not None:
-            aggregation['after'] = self._after
+        upload_id = self._upload_ids[proc_id]
+        after = self._afters[proc_id]
 
-        response = requests.post(url, headers=self.authentication, json=self.query)
+        if after is None and self._results:
+            return
+
+        query = dict(self.query)
+        if upload_id:
+            query['query'].setdefault('upload_id', []).extend(upload_id)
+
+        aggregation = query.setdefault('aggregation', {'per_page': self.per_page})
+        if after is not None:
+            aggregation['after'] = after
+
+        response = requests.post(url, headers=self.authentication, json=query)
         if response.status_code != 200:
             if response.status_code == 400:
                 message = response.json().get('message')
@@ -348,15 +413,6 @@ class ArchiveQuery(collections.abc.Sequence):
         if not isinstance(data, dict):
             data = data()
 
-        aggregation = data['aggregation']
-        self._after = aggregation.get('after')
-        self._total = aggregation['total']
-
-        if self.max is not None:
-            self._capped_total = min(self.max, self._total)
-        else:
-            self._capped_total = self._total
-
         results = data.get('results', [])
 
         for result in results:
@@ -365,18 +421,48 @@ class ArchiveQuery(collections.abc.Sequence):
             self._results.append(archive)
 
         try:
-            data_size = len(response.content)
+            self._data_sizes[proc_id] = len(response.content)
+            self._nresults[proc_id] = len(results)
+            self._statistics.last_response_nentries += len(results)
+        except Exception:
+            pass
+
+        self._afters[proc_id] = data['aggregation'].get('after')
+        self._totals[proc_id] = data['aggregation']['total']
+
+    def call_api(self):
+        '''
+        Calls the API to retrieve the next set of results. Is automatically called, if
+        not yet downloaded entries are accessed.
+        '''
+
+        procs = []
+        for i in range(len(self._upload_ids)):
+            p = threading.Thread(target=self._api_proc, args=(i, ))
+            procs.append(p)
+        [p.start() for p in procs]
+        [p.join() for p in procs]
+
+        self._total = sum(self._totals)
+
+        if self.max is not None:
+            self._capped_total = min(self.max, self._total)
+        else:
+            self._capped_total = self._total
+
+        try:
+            data_size = sum(self._data_sizes)
             self._statistics.last_response_data_size = data_size
             self._statistics.loaded_data_size += data_size
             self._statistics.nentries = self._total
-            self._statistics.last_response_nentries = len(results)
+            self._statistics.last_response_nentries = sum(self._nresults)
             self._statistics.loaded_nentries = len(self._results)
-            self._statistics.napi_calls += 1
+            self._statistics.napi_calls += len(procs)
         except Exception:
             # fails in test due to mocked requests library
             pass
 
-        if self._after is None:
+        if self._afters.count(None) == 0:
             # there are no more search results, we need to avoid further calls
             self._capped_total = len(self._results)
             self._total = len(self._results)
@@ -432,7 +518,6 @@ class ArchiveQuery(collections.abc.Sequence):
                 remove all results.
         '''
         for i, _ in enumerate(self._results[:index]):
-            print(i)
             self._results[i] = None
 
 

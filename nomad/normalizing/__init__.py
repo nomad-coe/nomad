@@ -42,6 +42,7 @@ from .dos import DosNormalizer
 from .normalizer import Normalizer
 from .band_structure import BandStructureNormalizer
 from .encyclopedia.encyclopedia import EncyclopediaNormalizer
+from .workflow import WorkflowNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
@@ -50,4 +51,5 @@ normalizers: Iterable[Type[Normalizer]] = [
     DosNormalizer,
     BandStructureNormalizer,
     EncyclopediaNormalizer,
+    WorkflowNormalizer,
 ]

@@ -5576,6 +5576,69 @@ class section_XC_functionals(MSection):
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
 
 
+class Relaxation(MSection):
+    '''
+    Section containing the results of a relaxation workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_relaxation'))
+
+    relaxation_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The type of relaxation ionic, cell_shape, cell_volume.
+        ''',
+        a_legacy=LegacyDefinition(name='relaxation_type')
+    )
+
+    input_energy_difference_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The input energy difference tolerance criterion.
+        ''',
+        a_legacy=LegacyDefinition(name='input_energy_difference_tolerance'))
+
+    input_force_maximum_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='newton',
+        description='''
+        The input maximum net force tolerance criterion.
+        ''',
+        a_legacy=LegacyDefinition(name='input_force_maximum_tolerance'))
+
+    final_energy_difference = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The difference in the energy between the last two steps during relaxation.
+        ''',
+        a_legacy=LegacyDefinition(name='final_energy_difference'),
+        a_search=Search())
+
+    final_force_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='newton',
+        description='''
+        The maximum net force in the last relaxation step.
+        ''',
+        a_legacy=LegacyDefinition(name='final_force_maximum')
+    )
+
+    final_calculation_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=[],
+        description='''
+        Reference to last calculation step.
+        ''',
+        a_legacy=LegacyDefinition(name='final_calculation_ref'))
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -5593,23 +5656,9 @@ class Workflow(MSection):
         a_legacy=LegacyDefinition(name='workflow_type'),
         a_search=Search())
 
-    relaxation_energy_tolerance = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        The tolerance value in the energy between relaxation steps for convergence.
-        ''',
-        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'),
-        a_search=Search())
-
-    workflow_final_calculation_ref = Quantity(
-        type=Reference(SectionProxy('section_single_configuration_calculation')),
-        shape=[],
-        description='''
-        Reference to last calculation step.
-        ''',
-        a_legacy=LegacyDefinition(name='workflow_final_calculation_ref'))
+    section_relaxation = SubSection(
+        sub_section=SectionProxy('Relaxation'),
+        a_legacy=LegacyDefinition(name='section_relaxation'))
 
 
 m_package.__init_metainfo__()
