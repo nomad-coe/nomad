@@ -1,12 +1,16 @@
 from typing import List
 import pytest
+import os
 
 from nomad.client import query_archive
 from nomad.metainfo import MSection, SubSection
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import section_run
+from nomad import config
 
 from tests.app.test_app import BlueprintClient
+from tests.processing import test_data as test_processing_data
+from tests.test_files import example_file
 
 
 # TODO with the existing published_wo_user_metadata fixture there is only one entry
@@ -18,6 +22,30 @@ def api(client, monkeypatch):
     api = BlueprintClient(client, '/api')
     monkeypatch.setattr('nomad.client.requests', api)
     return api
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+@pytest.fixture(scope='function')
+def example_multiple_upload(test_user, proc_infra, mongo, elastic):
+
+    def _example(n_uploads):
+        upload_ids = []
+        uploads = []
+        for i in range(n_uploads):
+            upload_id = '%s_%d' % (os.path.basename(example_file).replace('.zip', ''), i)
+            processed = test_processing_data.run_processing(
+                (upload_id, example_file), test_user)
+            # processed.publish_upload()
+            # try:
+            #     processed.block_until_complete(interval=.01)
+            # except Exception:
+            #     pass
+            upload_ids.append(upload_id)
+            uploads.append(processed)
+
+        return upload_ids
+
+    return _example
 
 
 def assert_results(
@@ -37,6 +65,18 @@ def assert_results(
                 sub_sections = current.m_get_sub_sections(sub_section_def)
                 assert len(sub_sections) > 0
                 current = sub_sections[0]
+
+
+def test_query_parallel(api, example_multiple_upload, test_user_auth):
+    n_uploads = 8
+    upload_ids = example_multiple_upload(n_uploads)
+    upload_ids.sort()
+    results = query_archive(authentication=test_user_auth, parallel=4)
+    upload_ids_query = []
+    for result in results:
+        upload_ids_query.append(result.section_metadata.upload_id)
+    upload_ids_query.sort()
+    assert upload_ids == upload_ids_query
 
 
 def test_query(api, published_wo_user_metadata):

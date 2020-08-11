@@ -149,7 +149,7 @@ import time
 from keycloak import KeycloakOpenID
 from io import StringIO
 import numpy as np
-import threading
+import multiprocessing
 
 from nomad import config
 from nomad import metainfo as mi
@@ -301,7 +301,6 @@ class ArchiveQuery(collections.abc.Sequence):
         self._capped_total = -1
         self._results: List[dict] = []
         self._statistics = ApiStatistics()
-        self._totals: List[int] = []
         self._upload_ids = self.get_upload_ids()
 
     @property
@@ -327,9 +326,6 @@ class ArchiveQuery(collections.abc.Sequence):
             return self._authentication
 
     def get_upload_ids(self):
-        '''
-
-        '''
         query = self.query['query']
         url = '%s/repo/quantity/upload_id?%s' % (self.url, urlencode(query, doseq=True))
 
@@ -371,27 +367,25 @@ class ArchiveQuery(collections.abc.Sequence):
                     ids = []
 
         elif isinstance(self.parallel, int):
-            upload_ids = np.array_split(values.keys(), self.parallel)
+            upload_ids = np.array_split(list(values.keys()), self.parallel)
 
         self._afters = [None] * len(upload_ids)
-        self._data_sizes = [0] * len(upload_ids)
-        self._totals = [-1] * len(upload_ids)
-        self._nresults = [0] * len(upload_ids)
 
         return upload_ids
 
-    def _api_proc(self, proc_id):
+    def _api_proc(self, proc_id, queue):
         url = '%s/%s/%s' % (self.url, 'archive', 'query')
 
         upload_id = self._upload_ids[proc_id]
-        after = self._afters[proc_id]
+        if upload_id is None:
+            return
 
+        after = self._afters[proc_id]
         if after is None and self._results:
             return
 
         query = dict(self.query)
-        if upload_id:
-            query['query'].setdefault('upload_id', []).extend(upload_id)
+        query['query']['upload_id'] = list(upload_id)
 
         aggregation = query.setdefault('aggregation', {'per_page': self.per_page})
         if after is not None:
@@ -407,28 +401,36 @@ class ArchiveQuery(collections.abc.Sequence):
 
                 raise QueryError('The query is invalid for unknown reasons.')
 
-            raise response.raise_for_status()
+            try:
+                raise response.raise_for_status()
+
+            except Exception:
+                pass
 
         data = response.json
+
+        if not data:
+            return
+
         if not isinstance(data, dict):
             data = data()
 
         results = data.get('results', [])
 
-        for result in results:
-            archive = EntryArchive.m_from_dict(result['archive'])
-
-            self._results.append(archive)
-
         try:
-            self._data_sizes[proc_id] = len(response.content)
-            self._nresults[proc_id] = len(results)
-            self._statistics.last_response_nentries += len(results)
+            data_size = len(response.content)
+            nresults = len(results)
         except Exception:
-            pass
+            data_size = 0
+            nresults = 0
 
-        self._afters[proc_id] = data['aggregation'].get('after')
-        self._totals[proc_id] = data['aggregation']['total']
+        after = data['aggregation'].get('after', None)
+        total = data['aggregation'].get('total')
+
+        for result in results:
+            queue.put((proc_id, [result, data_size, nresults, after, total]))
+
+        queue.put((proc_id, [None, data_size, nresults, after, total]))
 
     def call_api(self):
         '''
@@ -437,32 +439,46 @@ class ArchiveQuery(collections.abc.Sequence):
         '''
 
         procs = []
-        for i in range(len(self._upload_ids)):
-            p = threading.Thread(target=self._api_proc, args=(i, ))
-            procs.append(p)
-        [p.start() for p in procs]
-        [p.join() for p in procs]
+        queue = multiprocessing.Queue()
+        for idx in range(len(self._upload_ids)):
+            procs.append(multiprocessing.Process(target=self._api_proc, args=(idx, queue,)))
 
-        self._total = sum(self._totals)
+        for p in procs:
+            p.start()
+
+        # the outputs are fetched one at a time because of the large size of archive
+        # each process outputs None if there are no more results
+        n_none = 0
+        data_size = 0
+        nresults = 0
+        self._total = 0
+        while n_none < len(self._upload_ids):
+            idx, output = queue.get()
+            if output[0] is None:
+                data_size += output[1]
+                nresults += output[2]
+                self._afters[idx] = output[3]
+                self._total += output[4]
+                n_none += 1
+            else:
+                self._results.append(EntryArchive.m_from_dict(output[0]['archive']))
+
+        for p in procs:
+            p.join()
 
         if self.max is not None:
             self._capped_total = min(self.max, self._total)
         else:
             self._capped_total = self._total
 
-        try:
-            data_size = sum(self._data_sizes)
-            self._statistics.last_response_data_size = data_size
-            self._statistics.loaded_data_size += data_size
-            self._statistics.nentries = self._total
-            self._statistics.last_response_nentries = sum(self._nresults)
-            self._statistics.loaded_nentries = len(self._results)
-            self._statistics.napi_calls += len(procs)
-        except Exception:
-            # fails in test due to mocked requests library
-            pass
+        self._statistics.last_response_data_size = data_size
+        self._statistics.loaded_data_size += data_size
+        self._statistics.nentries = self._total
+        self._statistics.last_response_nentries = nresults
+        self._statistics.loaded_nentries = len(self._results)
+        self._statistics.napi_calls += len(procs)
 
-        if self._afters.count(None) == 0:
+        if self._afters.count(None) == len(self._upload_ids):
             # there are no more search results, we need to avoid further calls
             self._capped_total = len(self._results)
             self._total = len(self._results)
