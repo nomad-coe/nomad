@@ -1,7 +1,16 @@
 import metainfo from '../../metainfo'
 
+export const defs = {}
 export const sectionDefs = {}
 export const packageDefs = {}
+
+const addDef = def => {
+  const defsForName = defs[def.name] || []
+  defs[def.name] = defsForName
+  if (!defsForName.find(existing => existing === def)) {
+    defsForName.push(def)
+  }
+}
 
 metainfo.packages.forEach(pkg => {
   packageDefs[pkg.name] = pkg
@@ -9,6 +18,8 @@ metainfo.packages.forEach(pkg => {
   if (pkg.category_definitions) {
     pkg.category_definitions.forEach(categoryDef => {
       categoryDef._qualifiedName = `${pkg.name}:${categoryDef.name}`
+      categoryDef._package = pkg
+      addDef(categoryDef)
     })
   }
   pkg.section_definitions.forEach(sectionDef => {
@@ -19,6 +30,7 @@ metainfo.packages.forEach(pkg => {
     sectionDef._incomingRefs = sectionDef._incomingRefs || []
     sectionDef._parentSections = sectionDef._parentSections || []
     sectionDef._qualifiedName = `${pkg.name}:${sectionDef.name}`
+    sectionDef._package = pkg
 
     const addPropertiesFromSections = sections => sections
       .map(ref => resolveRef(ref)).forEach(extendingSectionDef => {
@@ -34,6 +46,7 @@ metainfo.packages.forEach(pkg => {
     if (!sectionDef.extends_base_section) {
       addPropertiesFromSections(sectionDef.base_sections)
       sectionDef.base_sections = sectionDef.base_sections || []
+      addDef(sectionDef)
     }
 
     sectionDef._properties = {}
@@ -43,6 +56,9 @@ metainfo.packages.forEach(pkg => {
         property._section = sectionDef
         property._qualifiedName = `${sectionDef._qualifiedName}:${property.name}`
       }
+      property._parentSections = [sectionDef]
+      property._package = pkg
+      addDef(property)
     }
     sectionDef.quantities.forEach(quantitiy => {
       addProperty(quantitiy)
@@ -77,6 +93,26 @@ export function metainfoDef(name) {
 
 export function isReference(property) {
   return property.type && property.type.type_kind === 'reference'
+}
+
+export function path(nameOrDef) {
+  let def
+  if (typeof nameOrDef === 'string') {
+    def = defs[nameOrDef] && defs[nameOrDef].find(def => def.m_def !== 'SubSection')
+  } else {
+    def = nameOrDef
+  }
+
+  if (!def) {
+    return null
+  }
+
+  const path = []
+  while (def._parentSections && def._parentSections[0]) {
+    path.push(def.name)
+    def = def._parentSections && def._parentSections[0]
+  }
+  return path.reverse().join('/')
 }
 
 /**

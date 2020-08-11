@@ -98,7 +98,6 @@ export function ApiDialog({title, data, onClose, ...dialogProps}) {
   )
 }
 ApiDialog.propTypes = {
-  classes: PropTypes.object.isRequired,
   data: PropTypes.any.isRequired,
   title: PropTypes.string,
   onClose: PropTypes.func
@@ -123,7 +122,6 @@ export default function ApiDialogButton({component, ...dialogProps}) {
   )
 }
 ApiDialogButton.propTypes = {
-  classes: PropTypes.object.isRequired,
   data: PropTypes.any.isRequired,
   title: PropTypes.string,
   component: PropTypes.func

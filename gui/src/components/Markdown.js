@@ -1,11 +1,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 // import remark from 'remark'
-import { withStyles } from '@material-ui/core'
+import { withStyles, Link } from '@material-ui/core'
+import { Link as RouterLink } from 'react-router-dom'
 import extend from '@babel/runtime/helpers/extends'
 import ReactMarkdown from 'react-markdown'
 import MathJax from 'react-mathjax'
 import RemarkMathPlugin from 'remark-math'
+import { path as metainfoPath } from './archive/metainfo'
 
 /**
  * A simple markdown component.
@@ -218,7 +220,49 @@ function Markdown(props) {
 
   let content = text
   if (children) {
-    content = children.replace(/^ +/gm, '')
+    const state = []
+    // We modify the children for the following reasons:
+    // - remove unnecessary whitespaces that might break the markdown layout
+    // - escape _ (usually in metainfo names) with sensitivity to _ used in latex math
+    // - put metainfo names into code quotes
+    // - turn metainfo names into links into the metainfo
+    let word = ''
+    content = children.replace(/^ +/gm, '').split('').map((c, i) => {
+      if (c === '$') {
+        if (state[state.length - 1] === 'math') {
+          state.pop()
+        } else {
+          state.push('math')
+        }
+      } else if (c === '`') {
+        if (state[state.length - 1] === 'code') {
+          state.pop()
+        } else {
+          state.push('code')
+        }
+      } else {
+        if (state.peek === 'escape') {
+          state.pop()
+        }
+      }
+
+      if (!state[state.length - 1] && c.match(/[a-zA-Z0-9_]/)) {
+        word += c
+      } else {
+        if (word.match(/_/g)) {
+          const path = metainfoPath(word)
+          if (path) {
+            word = `[\`${word}\`](/metainfo/${metainfoPath(word)})`
+          } else {
+            word = `\`${word}\``
+          }
+        }
+        const result = word + c
+        word = ''
+        return result
+      }
+      return ''
+    }).join('')
   }
 
   const math = ({value}) => <MathJax.Node formula={value} />
@@ -232,7 +276,8 @@ function Markdown(props) {
     renderers: {
       ...moreProps.renderer,
       math: math,
-      inlineMath: inlineMath
+      inlineMath: inlineMath,
+      link: ({href, ...props}) => <Link component={RouterLink} to={href} {...props} />
     }
   }
   const md = (

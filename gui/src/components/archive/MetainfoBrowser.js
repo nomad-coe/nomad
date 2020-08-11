@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
 import PropTypes from 'prop-types'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor } from './Browser'
-import { Typography, Box, makeStyles, Grid } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, sectionDefs } from './metainfo'
+import { Typography, Box, makeStyles, Grid, FormGroup, TextField } from '@material-ui/core'
+import { metainfoDef, resolveRef, vicinityGraph, sectionDefs, path as metainfoPath, packageDefs } from './metainfo'
 import * as d3 from 'd3'
 import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
@@ -16,6 +16,8 @@ import Markdown from '../Markdown'
 import { JsonCodeDialogButton } from '../CodeDialogButton'
 import Histogram from '../Histogram'
 import { appBase } from '../../config'
+import { useHistory, useRouteMatch } from 'react-router-dom'
+import Autocomplete from '@material-ui/lab/Autocomplete'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -48,18 +50,62 @@ If you bookmark this page, you can save the definition represented by the highli
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 
+export const metainfoConfigState = atom({
+  key: 'metainfoConfig',
+  default: {
+    'package': packageDefs['nomad.datamodel.metainfo.public']
+  }
+})
+
 export function MetainfoPage() {
   return <Box margin={3}>
-    <Browser
-      adaptor={metainfoAdaptorFactory(sectionDefs['EntryArchive'])}
-    />
+    <MetainfoBrowser />
   </Box>
 }
 
 export default function MetainfoBrowser() {
   return <Browser
     adaptor={metainfoAdaptorFactory(sectionDefs['EntryArchive'])}
+    form={<MetainfoConfigForm />}
   />
+}
+
+function MetainfoConfigForm(props) {
+  const [config, setConfig] = useRecoilState(metainfoConfigState)
+
+  const history = useHistory()
+  const { url } = useRouteMatch()
+
+  const searchOptions = useMemo(() => {
+    return []
+  }, [])
+
+  return (
+    <Box marginTop={-2}>
+      <FormGroup row style={{alignItems: 'flex-end'}}>
+        <Autocomplete
+          options={searchOptions}
+          getOptionLabel={(option) => option.name}
+          style={{ width: 350 }}
+          onChange={(_, value) => {
+            if (value) {
+              history.push(url + value.path)
+            }
+          }}
+          renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+        />
+        <Box margin={1} />
+        <Autocomplete
+          value={config.package}
+          options={Object.keys(packageDefs).map(packageName => packageDefs[packageName])}
+          getOptionLabel={(option) => option.name}
+          style={{ width: 350 }}
+          onChange={(_, value) => setConfig({...config, package: value})}
+          renderInput={(params) => <TextField {...params} label="package" margin="normal" />}
+        />
+      </FormGroup>
+    </Box>
+  )
 }
 
 export function metainfoAdaptorFactory(obj) {
@@ -69,6 +115,8 @@ export function metainfoAdaptorFactory(obj) {
     return new Error('SubSections are not represented in the browser')
   } else if (obj.m_def === 'Quantity') {
     return new QuantityDefAdaptor(obj)
+  } else if (obj.m_def === 'Category') {
+    return new CategoryDefAdaptor(obj)
   } else {
     throw new Error('Unknown metainfo definition type')
   }
@@ -76,7 +124,10 @@ export function metainfoAdaptorFactory(obj) {
 
 class MetainfoAdaptor extends Adaptor {
   itemAdaptor(key) {
-    if (key === '_metainfo') {
+    if (key.startsWith('_category:')) {
+      const categoryName = key.split(':')[1]
+      return metainfoAdaptorFactory(this.e.categories.map(ref => resolveRef(ref)).find(categoryDef => categoryDef.name === categoryName))
+    } else if (key === '_metainfo') {
       return metainfoAdaptorFactory(metainfoDef(this.e.m_def))
     } else if (this.e[key]) {
       return metainfoAdaptorFactory(resolveRef(this.e[key]))
@@ -109,9 +160,29 @@ class QuantityDefAdaptor extends MetainfoAdaptor {
   }
 }
 
+class CategoryDefAdaptor extends MetainfoAdaptor {
+  render() {
+    return <Content>
+      <Definition def={this.e} />
+    </Content>
+  }
+}
+
 function SectionDef({def}) {
   const config = useRecoilValue(configState)
-  const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  const metainfoConfig = useRecoilValue(metainfoConfigState)
+  const filter = def => {
+    if (def._package.name.startsWith('nomad.datamodel')) {
+      return true
+    }
+    if (metainfoConfig.package) {
+      return def._package === metainfoConfig.package
+    }
+    if (config.showCodeSpecific) {
+      return true
+    }
+    return false
+  }
   return <Content style={{backgroundColor: 'grey'}}>
     <Definition def={def} kindLabel="section definition" />
     <Compartment title="sub section definitions">
@@ -185,23 +256,33 @@ function Definition({def, ...props}) {
     <Compartment title="graph">
       <VicinityGraph def={def} />
     </Compartment>
-    <Compartment title="usage">
-      {!usage && <Typography><i>loading ...</i></Typography>}
-      {usage && Object.keys(usage).length > 0 && (
-        <Histogram
-          data={Object.keys(usage).map(key => ({
-            key: key,
-            name: key,
-            value: usage[key].total
-          }))}
-          initialScale={0.5}
-          title="Metadata use per code"
-        />
-      )}
-      {usage && Object.keys(usage).length === 0 && (
-        <Typography color="error"><i>This metadata is not used at all.</i></Typography>
-      )}
-    </Compartment>
+    {def.m_def !== 'Category' && def.name !== 'EntryArchive' &&
+      <Compartment title="usage">
+        {!usage && <Typography><i>loading ...</i></Typography>}
+        {usage && Object.keys(usage).length > 0 && (
+          <Histogram
+            data={Object.keys(usage).map(key => ({
+              key: key,
+              name: key,
+              value: usage[key].total
+            }))}
+            initialScale={0.5}
+            title="Metadata use per code"
+          />
+        )}
+        {usage && Object.keys(usage).length === 0 && (
+          <Typography color="error"><i>This metadata is not used at all.</i></Typography>
+        )}
+      </Compartment>
+    }
+    {def.categories && def.categories.length > 0 && <Compartment title="Categories">
+      {def.categories.map(categoryRef => {
+        const categoryDef = resolveRef(categoryRef)
+        return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
+          <Typography>{categoryDef.name}</Typography>
+        </Item>
+      })}
+    </Compartment>}
   </React.Fragment>
 }
 Definition.propTypes = {
@@ -211,7 +292,8 @@ Definition.propTypes = {
 const definitionLabels = {
   'Section': 'section',
   'Quantity': 'quantity',
-  'SubSection': 'sub section'
+  'SubSection': 'sub section',
+  'Category': 'category'
 }
 export function Title({def, isDefinition, data, kindLabel}) {
   const color = isDefinition ? 'primary' : 'initial'
@@ -288,6 +370,7 @@ export function VicinityGraph({def}) {
 
   const classes = useVicinityGraphStyles()
   const svgRef = useRef()
+  const history = useHistory()
 
   useEffect(() => {
     const svg = d3.select(svgRef.current)
@@ -298,6 +381,14 @@ export function VicinityGraph({def}) {
       .enter().append('line')
       .attr('marker-end', d => `url(#arrowhead-${d.def.m_def || '_none'})`)
       .attr('stroke', d => linkColors[d.def.m_def || '_none'])
+      .on('click', d => {
+        if (d.def.m_def === 'Quantity') {
+          const path = metainfoPath(d.def)
+          if (path) {
+            history.push(`/metainfo/${path}`)
+          }
+        }
+      })
 
     const node = svg.select('.nodes')
       .selectAll('g')
@@ -307,6 +398,12 @@ export function VicinityGraph({def}) {
     node.append('circle')
       .attr('r', 10)
       .attr('fill', d => nodeColors[d.def.m_def] || '#000')
+      .on('click', d => {
+        const path = metainfoPath(d.def)
+        if (path) {
+          history.push(`/metainfo/${path}`)
+        }
+      })
       .call(d3.drag()
         .on('drag', d => {
           d.x = d3.event.x
@@ -330,7 +427,7 @@ export function VicinityGraph({def}) {
         .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     }
     ticked()
-  }, [graph, linkColors, nodeColors])
+  }, [graph, history, linkColors, nodeColors])
 
   useLayoutEffect(() => {
     svgRef.current.style.height = svgRef.current.clientWidth / graph.aspectRatio

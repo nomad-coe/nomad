@@ -2017,9 +2017,9 @@ class section_gaussian_basis_group(MSection):
     '''
     Section that describes a group of Gaussian contractions. Groups allow one to calculate
     the primitive Gaussian integrals once for several different linear combinations of
-    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\\\sum_{j} c_{i
-    j} A(l_i, \\\\alpha_j) exp(-\\\\alpha_j r^2)$ where $A(l_i, \\\\alpha_j)$ is a the
-    normalization coefficient for primitive Gaussian basis functions. Here, $\\\\alpha_j$ is
+    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\sum_{j} c_{i
+    j} A(l_i, \\alpha_j) exp(-\\alpha_j r^2)$ where $A(l_i, \\alpha_j)$ is a the
+    normalization coefficient for primitive Gaussian basis functions. Here, $\\alpha_j$ is
     defined in gaussian_basis_group_exponents, $l_i$ is given in gaussian_basis_group_ls,
     and $c_{i j}$ is given in gaussian_basis_group_contractions, whereas the radial part
     is given by the spherical harmonics $Y_{l m}$.
