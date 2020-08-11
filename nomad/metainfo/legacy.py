@@ -18,7 +18,7 @@ new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a un
 wrapper for parsers, parser logging, and a parser backend.
 '''
 
-from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple
+from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple, Type
 import numpy as np
 from pint.errors import UndefinedUnitError
 import os.path
@@ -31,7 +31,7 @@ from nomad import utils
 from nomad.units import ureg
 from nomad.metainfo import (
     Definition, SubSection, Package, Quantity, Category, Section, Reference,
-    Environment, MEnum, MSection, DefinitionAnnotation)
+    Environment, MEnum, MSection, DefinitionAnnotation, MetainfoError, MSectionBound)
 
 logger = utils.get_logger(__name__)
 
@@ -127,6 +127,26 @@ class LegacyMetainfoEnvironment(Environment):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__section_to_sub_section_name = None
+        self.__legacy_names = None
+
+    def from_legacy_name(self, name: str, section_cls: Type[MSectionBound]) -> MSectionBound:
+        ''' Returns the definition of the given globally unique legacy metainfo name. '''
+        if self.__legacy_names is None:
+            self.__legacy_names = dict()
+            for definition in self.m_all_contents():
+                try:
+                    if isinstance(definition, Section):
+                        if definition.extends_base_section:
+                            continue
+                    legacy = definition.a_legacy
+                    key = (legacy.name, definition.m_def.section_cls)
+                    if key in self.__legacy_names:
+                        raise MetainfoError('Legacy name %s is not globally unique' % legacy.name)
+                    self.__legacy_names[key] = definition
+                except AttributeError:
+                    pass
+
+        return self.__legacy_names.get((name, section_cls))
 
     @property
     def section_to_sub_section_name(self) -> Dict[str, str]:

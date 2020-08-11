@@ -2377,7 +2377,7 @@ class section_k_band(MSection):
     brillouin_zone = SubSection(
         sub_section=SectionProxy('section_brillouin_zone'),
         repeats=False,
-        a_legacy=LegacyDefinition(name='section_k_band_segment'))
+        a_legacy=LegacyDefinition(name='brillouin_zone'))
 
     section_band_gap = SubSection(
         sub_section=section_band_gap.m_def,
