@@ -93,7 +93,7 @@ export default function Browser({adaptor, form}) {
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
               {lanes.map((lane, index) => (
-                <Lane key={index} lane={lane} />
+                <Lane key={lane.key} lane={lane} />
               ))}
             </div>
           </div>
@@ -107,7 +107,7 @@ Browser.propTypes = ({
   form: PropTypes.node
 })
 
-const laneContext = React.createContext()
+export const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
   root: {
     minWidth: 200,

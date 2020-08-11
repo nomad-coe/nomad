@@ -6,7 +6,7 @@ import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, make
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
-import { resolveRef, sectionDefs } from './metainfo'
+import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
@@ -99,7 +99,7 @@ ArchiveConfigForm.propTypes = ({
 })
 
 function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || sectionDefs['EntryArchive'], {archive: data})
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), {archive: data})
 }
 
 function archiveSearchOptions(data) {
@@ -160,7 +160,7 @@ function archiveSearchOptions(data) {
       }
     }
   }
-  traverse(data, sectionDefs['EntryArchive'], '')
+  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), '')
   return options
 }
 

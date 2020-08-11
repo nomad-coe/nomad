@@ -1,34 +1,44 @@
 import metainfo from '../../metainfo'
 
-export const defs = {}
-export const sectionDefs = {}
+export const defs = []
+export const defsByName = {}
 export const packageDefs = {}
+export const packagePrefixes = {}
 
 const addDef = def => {
-  const defsForName = defs[def.name] || []
-  defs[def.name] = defsForName
+  const defsForName = defsByName[def.name] || []
+  defsByName[def.name] = defsForName
   if (!defsForName.find(existing => existing === def)) {
     defsForName.push(def)
   }
+  defs.push(def)
+}
+
+function sortDefs(defs) {
+  return defs.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 metainfo.packages.forEach(pkg => {
   packageDefs[pkg.name] = pkg
+  const prefix = pkg.name.split('.')[0]
+  packagePrefixes[prefix] = packagePrefixes[prefix] || {}
+  packagePrefixes[prefix][pkg.name] = pkg
+
   pkg._sections = {}
-  if (pkg.category_definitions) {
-    pkg.category_definitions.forEach(categoryDef => {
-      categoryDef._qualifiedName = `${pkg.name}:${categoryDef.name}`
-      categoryDef._package = pkg
-      addDef(categoryDef)
-    })
-  }
+  pkg.category_definitions = pkg.category_definitions || []
+  pkg.section_definitions = pkg.section_definitions || []
+  pkg.category_definitions.forEach(categoryDef => {
+    categoryDef._qualifiedName = `${pkg.name}:${categoryDef.name}`
+    categoryDef._package = pkg
+    addDef(categoryDef)
+  })
   pkg.section_definitions.forEach(sectionDef => {
     pkg._sections[sectionDef.name] = sectionDef
-    sectionDefs[sectionDef.name] = sectionDef
     sectionDef.quantities = sectionDef.quantities || []
     sectionDef.sub_sections = sectionDef.sub_sections || []
     sectionDef._incomingRefs = sectionDef._incomingRefs || []
     sectionDef._parentSections = sectionDef._parentSections || []
+    sectionDef._parentSubSections = sectionDef._parentSubSections || []
     sectionDef._qualifiedName = `${pkg.name}:${sectionDef.name}`
     sectionDef._package = pkg
 
@@ -74,9 +84,16 @@ metainfo.packages.forEach(pkg => {
       const subSectionsSectionDef = resolveRef(subSection.sub_section)
       subSectionsSectionDef._parentSections = subSectionsSectionDef._parentSections || []
       subSectionsSectionDef._parentSections.push(sectionDef)
+      subSectionsSectionDef._parentSubSections = subSectionsSectionDef._parentSubSections || []
+      subSectionsSectionDef._parentSubSections.push(subSection)
+      subSection._section = sectionDef
     })
   })
 })
+
+export const rootSections = sortDefs(defs.filter(def => (
+  def.m_def === 'Section' && !def.extends_base_section && def._parentSections.length === 0)
+))
 
 export function resolveRef(ref, data) {
   data = data || metainfo
@@ -98,7 +115,7 @@ export function isReference(property) {
 export function path(nameOrDef) {
   let def
   if (typeof nameOrDef === 'string') {
-    def = defs[nameOrDef] && defs[nameOrDef].find(def => def.m_def !== 'SubSection')
+    def = defsByName[nameOrDef] && defsByName[nameOrDef].find(def => def.m_def !== 'SubSection')
   } else {
     def = nameOrDef
   }
@@ -107,10 +124,26 @@ export function path(nameOrDef) {
     return null
   }
 
+  if (def.m_def === 'Category') {
+    return `${def._package.name.split('.')[0]}/category_definitions@${def._qualifiedName}`
+  }
+
   const path = []
-  while (def._parentSections && def._parentSections[0]) {
+  while (def) {
+    const parentSubSection = def._parentSubSections && def._parentSubSections[0]
+    if (parentSubSection) {
+      def = parentSubSection
+    }
     path.push(def.name)
-    def = def._parentSections && def._parentSections[0]
+    if (def.m_def === 'SubSection') {
+      def = def._section
+    } else {
+      def = def._parentSections && def._parentSections[0]
+    }
+
+    while (def && def.extends_base_section) {
+      def = resolveRef(def.base_sections[0])
+    }
   }
   return path.reverse().join('/')
 }

@@ -215,6 +215,13 @@ var styles = theme => {
   }
 }
 
+function MarkdownLink({href, ...props}) {
+  return <Link component={RouterLink} to={href} {...props} />
+}
+MarkdownLink.propTypes = {
+  href: PropTypes.string.isRequired
+}
+
 function Markdown(props) {
   const { classes, text, children, ...moreProps } = props
 
@@ -277,7 +284,7 @@ function Markdown(props) {
       ...moreProps.renderer,
       math: math,
       inlineMath: inlineMath,
-      link: ({href, ...props}) => <Link component={RouterLink} to={href} {...props} />
+      link: props => <MarkdownLink {...props} />
     }
   }
   const md = (

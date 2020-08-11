@@ -2,9 +2,9 @@ import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useStat
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
 import { Typography, Box, makeStyles, Grid, FormGroup, TextField } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, sectionDefs, path as metainfoPath, packageDefs } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
 import * as d3 from 'd3'
 import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
@@ -53,7 +53,7 @@ To learn more about the meta-info, visit the [meta-info documentation](${appBase
 export const metainfoConfigState = atom({
   key: 'metainfoConfig',
   default: {
-    'package': packageDefs['nomad.datamodel.metainfo.public']
+    'packagePrefix': 'nomad'
   }
 })
 
@@ -65,7 +65,7 @@ export function MetainfoPage() {
 
 export default function MetainfoBrowser() {
   return <Browser
-    adaptor={metainfoAdaptorFactory(sectionDefs['EntryArchive'])}
+    adaptor={new MetainfoRootAdaptor()}
     form={<MetainfoConfigForm />}
   />
 }
@@ -77,31 +77,41 @@ function MetainfoConfigForm(props) {
   const { url } = useRouteMatch()
 
   const searchOptions = useMemo(() => {
-    return []
-  }, [])
+    return Object.keys(defsByName).reduce((results, name) => {
+      const defsForName = defsByName[name].filter(def => (
+        !def.extends_base_section && def.m_def !== 'SubSection' && (
+          def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
+      ))
+      results.push(...defsForName.map(def => ({
+        path: url + '/' + metainfoPath(def),
+        label: `${def.name}${defsForName.length > 1 ? ` (${def._parentSections[0].name})` : ''} [${def.m_def.toLowerCase()}]`
+      })))
+      return results
+    }, []).sort((a, b) => a.label.localeCompare(b.label))
+  }, [config.packagePrefix, url])
 
   return (
     <Box marginTop={-2}>
       <FormGroup row style={{alignItems: 'flex-end'}}>
         <Autocomplete
           options={searchOptions}
-          getOptionLabel={(option) => option.name}
-          style={{ width: 350 }}
+          getOptionLabel={(option) => option.label}
+          style={{ width: 500 }}
           onChange={(_, value) => {
             if (value) {
-              history.push(url + value.path)
+              history.push(value.path)
             }
           }}
           renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
         />
         <Box margin={1} />
         <Autocomplete
-          value={config.package}
-          options={Object.keys(packageDefs).map(packageName => packageDefs[packageName])}
-          getOptionLabel={(option) => option.name}
+          value={config.packagePrefix}
+          options={Object.keys(packagePrefixes)}
+          getOptionLabel={option => option.replace(/parser/g, '')}
           style={{ width: 350 }}
-          onChange={(_, value) => setConfig({...config, package: value})}
-          renderInput={(params) => <TextField {...params} label="package" margin="normal" />}
+          onChange={(_, value) => setConfig({...config, packagePrefix: value})}
+          renderInput={(params) => <TextField {...params} label="source" margin="normal" />}
         />
       </FormGroup>
     </Box>
@@ -137,8 +147,97 @@ class MetainfoAdaptor extends Adaptor {
   }
 }
 
+export class MetainfoRootAdaptor extends MetainfoAdaptor {
+  itemAdaptor(key) {
+    const rootSection = rootSections.find(def => def.name === key)
+    if (rootSection) {
+      return metainfoAdaptorFactory(rootSection)
+    } else if (packagePrefixes[key]) {
+      return new PackagePrefixAdaptor(packagePrefixes[key])
+    } else {
+      super.itemAdaptor(key)
+    }
+  }
+  render() {
+    return <Metainfo />
+  }
+}
+
+export class PackagePrefixAdaptor extends MetainfoAdaptor {
+  itemAdaptor(key) {
+    const [type, name] = key.split('@')
+    const def = Object.keys(this.e)
+      .map(key => this.e[key])
+      .reduce((value, pkg) => value || pkg[type].find(def => def._qualifiedName === name), null)
+    return metainfoAdaptorFactory(def)
+  }
+  render() {
+    const sectionDefs = Object.keys(this.e)
+      .map(key => this.e[key])
+      .reduce((defs, pkg) => {
+        pkg.section_definitions.forEach(def => defs.push(def))
+        return defs
+      }, [])
+    const categoryDefs = Object.keys(this.e)
+      .map(key => this.e[key])
+      .reduce((defs, pkg) => {
+        pkg.category_definitions.forEach(def => defs.push(def))
+        return defs
+      }, [])
+
+    return <Content>
+      <Compartment title="Sections">
+        {sectionDefs.filter(def => !def.extends_base_section).map(def => {
+          const key = `section_definitions@${def._qualifiedName}`
+          return <Item key={key} itemKey={key}>
+            <Typography>{def.name}</Typography>
+          </Item>
+        })}
+      </Compartment>
+      <Compartment title="Section Extensions">
+        {sectionDefs.filter(def => def.extends_base_section).map(def => {
+          const key = `section_definitions@${def._qualifiedName}`
+          return <Item key={key} itemKey={key}>
+            <Typography>{def.name}</Typography>
+          </Item>
+        })}
+      </Compartment>
+      <Compartment title="Categories">
+        {categoryDefs.map(def => {
+          const key = `category_definitions@${def._qualifiedName}`
+          return <Item key={key} itemKey={key}>
+            <Typography>{def.name}</Typography>
+          </Item>
+        })}
+      </Compartment>
+    </Content>
+  }
+}
+
+function Metainfo(props) {
+  return <Content>
+    <Compartment title="root sections">
+      {rootSections.map(def => (
+        <Item key={def.name} itemKey={def.name}>
+          <Typography>
+            {def.name}
+          </Typography>
+        </Item>
+      ))}
+    </Compartment>
+    <Compartment title="sources">
+      {Object.keys(packagePrefixes).map(key => <Item key={key} itemKey={key}>
+        <Typography>{key.replace(/parser$/, '')}</Typography>
+      </Item>)}
+    </Compartment>
+  </Content>
+}
+
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
+    if (key === '_baseSection') {
+      return metainfoAdaptorFactory(resolveRef(this.e.base_sections[0]))
+    }
     const property = this.e._properties[key]
     if (!property) {
       return super.itemAdaptor(key)
@@ -171,12 +270,12 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
 function SectionDef({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
-  const filter = def => {
-    if (def._package.name.startsWith('nomad.datamodel')) {
+  const filter = def.extends_base_section ? () => true : def => {
+    if (def._package.name.startsWith('nomad')) {
       return true
     }
-    if (metainfoConfig.package) {
-      return def._package === metainfoConfig.package
+    if (metainfoConfig.packagePrefix) {
+      return def._package.name.startsWith(metainfoConfig.packagePrefix)
     }
     if (config.showCodeSpecific) {
       return true
@@ -185,6 +284,16 @@ function SectionDef({def}) {
   }
   return <Content style={{backgroundColor: 'grey'}}>
     <Definition def={def} kindLabel="section definition" />
+    {def.extends_base_section &&
+      <Compartment title="base section">
+        {def.base_sections.map(baseSectionRef => {
+          const baseSection = resolveRef(baseSectionRef)
+          return <Item key={baseSectionRef} itemKey="_baseSection">
+            <Typography>{baseSection.name}</Typography>
+          </Item>
+        })}
+      </Compartment>
+    }
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
@@ -232,6 +341,8 @@ QuantityDef.propTypes = ({
 
 function Definition({def, ...props}) {
   const {api} = useContext(apiContext)
+  const lane = useContext(laneContext)
+  const isLast = !lane.next
   const [usage, setUsage] = useState(null)
 
   useEffect(() => {
@@ -246,17 +357,19 @@ function Definition({def, ...props}) {
 
   return <React.Fragment>
     <Title def={def} isDefinition {...props} />
-    {def.description &&
+    {isLast && def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
           <Markdown>{def.description}</Markdown>
         </Box>
       </Compartment>
     }
-    <Compartment title="graph">
-      <VicinityGraph def={def} />
-    </Compartment>
-    {def.m_def !== 'Category' && def.name !== 'EntryArchive' &&
+    {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
+      <Compartment title="graph">
+        <VicinityGraph def={def} />
+      </Compartment>
+    }
+    {isLast && def.m_def !== 'Category' && def.name !== 'EntryArchive' && !def.extends_base_section &&
       <Compartment title="usage">
         {!usage && <Typography><i>loading ...</i></Typography>}
         {usage && Object.keys(usage).length > 0 && (
@@ -321,7 +434,13 @@ Title.propTypes = ({
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {
-  return <Typography {...props}>{definitionLabels[def.m_def]}{isDefinition ? ' definition' : ''}</Typography>
+  let label = definitionLabels[def.m_def]
+  if (def.extends_base_section) {
+    label += ' extension'
+  }
+  return <Typography {...props}>
+    {label}{isDefinition ? ' definition' : ''}
+  </Typography>
 }
 DefinitionLabel.propTypes = ({
   def: PropTypes.object.isRequired,
@@ -427,7 +546,7 @@ export function VicinityGraph({def}) {
         .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     }
     ticked()
-  }, [graph, history, linkColors, nodeColors])
+  }, [graph, history, linkColors, nodeColors, svgRef])
 
   useLayoutEffect(() => {
     svgRef.current.style.height = svgRef.current.clientWidth / graph.aspectRatio
