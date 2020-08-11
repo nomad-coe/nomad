@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useContext, useCallback, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
@@ -154,7 +154,10 @@ function Consent() {
   const [cookies, setCookie] = useCookies()
   const [accepted, setAccepted] = useState(cookies['terms-accepted'])
   const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
-  const forever = new Date(2147483647 * 1000)
+  const cookieOptions = useMemo(() => ({
+    expires: new Date(2147483647 * 1000),
+    path: '/' + guiBase.split('/').slice(1).join('/')
+  }), [])
 
   useEffect(() => {
     if (!optOut) {
@@ -164,15 +167,23 @@ function Consent() {
     }
   })
 
+  // Write again to push forwards Safari's hard-coded 7 days ITP window
+  useEffect(() => {
+    setCookie('terms-accepted', cookies['terms-accepted'], cookieOptions)
+    setCookie('tracking-enabled', cookies['tracking-enabled'], cookieOptions)
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [])
+
   const handleClosed = accepted => {
     if (accepted) {
-      setCookie('terms-accepted', true, {expires: forever})
-      setCookie('tracking-enabled', !optOut, {expires: forever})
+      setCookie('terms-accepted', true, cookieOptions)
+      setCookie('tracking-enabled', !optOut, cookieOptions)
       setAccepted(true)
     }
   }
   const handleOpen = () => {
-    setCookie('terms-accepted', false)
+    setCookie('terms-accepted', false, cookieOptions)
     setAccepted(false)
   }
 

@@ -210,8 +210,8 @@ mail = NomadConfig(
     port=8995,
     user='',
     password='',
-    from_address='webmaster@nomad-coe.eu',
-    cc_address='webmaster@nomad-coe.eu'
+    from_address='support@nomad-lab.eu',
+    cc_address='support@nomad-lab.eu'
 )
 
 normalize = NomadConfig(
