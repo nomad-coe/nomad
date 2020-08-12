@@ -21,7 +21,8 @@ module.exports = {
         "space-before-function-paren": ["error", "never"],
         "camelcase": [0],
         "react-hooks/rules-of-hooks": "error",
-        "react-hooks/exhaustive-deps": "warn"
+        "react-hooks/exhaustive-deps": "warn",
+        "react/display-name": [0]
     },
     "settings": {
         "react": {

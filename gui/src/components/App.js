@@ -25,7 +25,6 @@ import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
 import { guiBase, consent, nomadTheme, appBase, version } from '../config'
-import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
@@ -38,6 +37,7 @@ import EntryQuery from './entry/EntryQuery'
 import {matomo} from '../index'
 import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
+import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -77,7 +77,8 @@ function ReloadSnack() {
 
 const useMainMenuItemStyles = makeStyles(theme => ({
   button: {
-    margin: theme.spacing(1)
+    margin: theme.spacing(1),
+    whiteSpace: 'nowrap'
   }
 }))
 
@@ -548,9 +549,7 @@ const routes = {
   },
   'metainfo': {
     path: '/metainfo',
-    keepState: true,
-    exists: false,
-    component: MetaInfoBrowser
+    component: MetainfoPage
   }
 }
 
@@ -567,18 +566,7 @@ class App extends React.PureComponent {
                 const { path, exact } = route
                 return <Route key={routeKey} exact={exact} path={path}
                   // eslint-disable-next-line react/no-children-prop
-                  children={props => {
-                    if (route.keepState) {
-                      if (props.match || route.exists) {
-                        route.exists = true
-                        return <route.component visible={props.match && true} {...props} />
-                      } else {
-                        return ''
-                      }
-                    } else {
-                      return props.match && <route.component {...props} />
-                    }
-                  }}
+                  children={props => props.match && <route.component {...props} />}
                 />
               })}
             </Navigation>

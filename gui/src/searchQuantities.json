@@ -69,68 +69,68 @@
     "description": null,
     "many": false
   },
-  "labels.label": {
-    "name": "labels.label",
+  "dft.labels.label": {
+    "name": "dft.labels.label",
     "description": "The label as a string",
     "many": false
   },
-  "labels.type": {
-    "name": "labels.type",
+  "dft.labels.type": {
+    "name": "dft.labels.type",
     "description": "The type of the label",
     "many": false
   },
-  "labels.source": {
-    "name": "labels.source",
+  "dft.labels.source": {
+    "name": "dft.labels.source",
     "description": "The source that this label was taken from.",
     "many": false
   },
-  "optimade.elements": {
-    "name": "optimade.elements",
+  "dft.optimade.elements": {
+    "name": "dft.optimade.elements",
     "description": "Names of the different elements present in the structure.",
     "many": false
   },
-  "optimade.nelements": {
-    "name": "optimade.nelements",
+  "dft.optimade.nelements": {
+    "name": "dft.optimade.nelements",
     "description": "Number of different elements in the structure as an integer.",
     "many": false
   },
-  "optimade.elements_ratios": {
-    "name": "optimade.elements_ratios",
+  "dft.optimade.elements_ratios": {
+    "name": "dft.optimade.elements_ratios",
     "description": "Relative proportions of different elements in the structure.",
     "many": false
   },
-  "optimade.chemical_formula_descriptive": {
-    "name": "optimade.chemical_formula_descriptive",
+  "dft.optimade.chemical_formula_descriptive": {
+    "name": "dft.optimade.chemical_formula_descriptive",
     "description": "The chemical formula for a structure as a string in a form chosen by the API\nimplementation.",
     "many": false
   },
-  "optimade.chemical_formula_reduced": {
-    "name": "optimade.chemical_formula_reduced",
+  "dft.optimade.chemical_formula_reduced": {
+    "name": "dft.optimade.chemical_formula_reduced",
     "description": "The reduced chemical formula for a structure as a string with element symbols and\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
     "many": false
   },
-  "optimade.chemical_formula_hill": {
-    "name": "optimade.chemical_formula_hill",
+  "dft.optimade.chemical_formula_hill": {
+    "name": "dft.optimade.chemical_formula_hill",
     "description": "The chemical formula for a structure in Hill form with element symbols followed by\ninteger chemical proportion numbers. The proportion number MUST be omitted if it is 1.",
     "many": false
   },
-  "optimade.chemical_formula_anonymous": {
-    "name": "optimade.chemical_formula_anonymous",
+  "dft.optimade.chemical_formula_anonymous": {
+    "name": "dft.optimade.chemical_formula_anonymous",
     "description": "The anonymous formula is the chemical_formula_reduced, but where the elements are\ninstead first ordered by their chemical proportion number, and then, in order left to\nright, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and\nso on.",
     "many": false
   },
-  "optimade.dimension_types": {
-    "name": "optimade.dimension_types",
+  "dft.optimade.dimension_types": {
+    "name": "dft.optimade.dimension_types",
     "description": "List of three integers. For each of the three directions indicated by the three lattice\nvectors (see property lattice_vectors). This list indicates if the direction is\nperiodic (value 1) or non-periodic (value 0). Note: the elements in this list each\nrefer to the direction of the corresponding entry in lattice_vectors and not\nthe Cartesian x, y, z directions.",
     "many": false
   },
-  "optimade.nsites": {
-    "name": "optimade.nsites",
+  "dft.optimade.nsites": {
+    "name": "dft.optimade.nsites",
     "description": "An integer specifying the length of the cartesian_site_positions property.",
     "many": false
   },
-  "optimade.structure_features": {
-    "name": "optimade.structure_features",
+  "dft.optimade.structure_features": {
+    "name": "dft.optimade.structure_features",
     "description": "A list of strings that flag which special features are used by the structure.\n\n- disorder: This flag MUST be present if any one entry in the species list has a\nchemical_symbols list that is longer than 1 element.\n- unknown_positions: This flag MUST be present if at least one component of the\ncartesian_site_positions list of lists has value null.\n- assemblies: This flag MUST be present if the assemblies list is present.",
     "many": false
   },
@@ -233,56 +233,7 @@
   "dft.code_name": {
     "name": "dft.code_name",
     "description": "The name of the used code.",
-    "many": false,
-    "statistic_size": 46,
-    "statistic_values": [
-      "ABINIT",
-      "Amber",
-      "ASAP",
-      "ATK",
-      "BAND",
-      "BigDFT",
-      "CASTEP",
-      "Charmm",
-      "CP2K",
-      "CPMD",
-      "Crystal",
-      "DFTb plus",
-      "DL_POLY",
-      "DMol3",
-      "elastic",
-      "elk",
-      "exciting",
-      "FHI-aims",
-      "fleur",
-      "fplo",
-      "GAMESS",
-      "Gaussian",
-      "GPAW",
-      "Gromacs",
-      "Gromos",
-      "gulp",
-      "lammps",
-      "libAtoms",
-      "MOLCAS",
-      "MOPAC",
-      "Namd",
-      "NWChem",
-      "Octopus",
-      "ONETEP",
-      "OpenKIM",
-      "ORCA",
-      "Phonopy",
-      "qbox",
-      "Quantum Espresso",
-      "Siesta",
-      "TINKER",
-      "turbomole",
-      "VASP",
-      "WIEN2k",
-      "unavailable",
-      "not processed"
-    ]
+    "many": false
   },
   "dft.code_version": {
     "name": "dft.code_version",
@@ -341,6 +292,236 @@
     "description": "Springer classification by property.",
     "many": true,
     "statistic_size": 20
+  },
+  "dft.workflow.workflow_type": {
+    "name": "dft.workflow.workflow_type",
+    "description": "The type of calculation workflow. Can be one of relaxation, elastic, phonon,\nmolecular dynamics.",
+    "many": false
+  },
+  "dft.workflow.relaxation_energy_tolerance": {
+    "name": "dft.workflow.relaxation_energy_tolerance",
+    "description": "The tolerance value in the energy between relaxation steps for convergence.",
+    "many": false
+  },
+  "dft.workflow": {
+    "name": "dft.workflow",
+    "description": null,
+    "many": false
+  },
+  "encyclopedia.material.bulk.bravais_lattice": {
+    "name": "encyclopedia.material.bulk.bravais_lattice",
+    "description": "The Bravais lattice type in the Pearson notation, where the first\nlowercase letter indicates the crystal system, and the second uppercase\nletter indicates the lattice type. The value can only be one of the 14\ndifferent Bravais lattices in three dimensions.\n\nCrystal system letters:\n\na = Triclinic\nm = Monoclinic\no = Orthorhombic\nt = Tetragonal\nh = Hexagonal and Trigonal\nc = Cubic\n\nLattice type letters:\n\nP = Primitive\nS (A, B, C) = One side/face centred\nI = Body centered\nR = Rhombohedral centring\nF = All faces centred",
+    "many": false
+  },
+  "encyclopedia.material.bulk.crystal_system": {
+    "name": "encyclopedia.material.bulk.crystal_system",
+    "description": "The detected crystal system. One of seven possibilities in three dimensions.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.has_free_wyckoff_parameters": {
+    "name": "encyclopedia.material.bulk.has_free_wyckoff_parameters",
+    "description": "Whether the material has any Wyckoff sites with free parameters. If a\nmaterials has free Wyckoff parameters, at least some of the atoms are\nnot bound to a particular location in the structure but are allowed to\nmove with possible restrictions set by the symmetry.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.point_group": {
+    "name": "encyclopedia.material.bulk.point_group",
+    "description": "Point group in Hermann-Mauguin notation, part of crystal structure\nclassification. There are 32 point groups in three dimensional space.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.space_group_number": {
+    "name": "encyclopedia.material.bulk.space_group_number",
+    "description": "Integer representation of the space group, part of crystal structure\nclassification, part of material definition.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.space_group_international_short_symbol": {
+    "name": "encyclopedia.material.bulk.space_group_international_short_symbol",
+    "description": "International short symbol notation of the space group.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.structure_prototype": {
+    "name": "encyclopedia.material.bulk.structure_prototype",
+    "description": "The prototypical material for this crystal structure.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.structure_type": {
+    "name": "encyclopedia.material.bulk.structure_type",
+    "description": "Classification according to known structure type, considering the point\ngroup of the crystal and the occupations with different atom types.",
+    "many": false
+  },
+  "encyclopedia.material.bulk.strukturbericht_designation": {
+    "name": "encyclopedia.material.bulk.strukturbericht_designation",
+    "description": "Classification of the material according to the historically grown \"strukturbericht\".",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.a": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.a",
+    "description": "Length of the first basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.b": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.b",
+    "description": "Length of the second basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.c": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.c",
+    "description": "Length of the third basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.alpha": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.alpha",
+    "description": "Angle between second and third basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.beta": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.beta",
+    "description": "Angle between first and third basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.lattice_parameters.gamma": {
+    "name": "encyclopedia.material.idealized_structure.lattice_parameters.gamma",
+    "description": "Angle between first and second basis vector.",
+    "many": false
+  },
+  "encyclopedia.material.idealized_structure.cell_volume": {
+    "name": "encyclopedia.material.idealized_structure.cell_volume",
+    "description": "Volume of the idealized cell. The cell volume can only be reported\nconsistently after idealization and may not perfectly correspond to the\noriginal simulation cell.",
+    "many": false
+  },
+  "encyclopedia.material.material_type": {
+    "name": "encyclopedia.material.material_type",
+    "description": "\"Broad structural classification for the material, e.g. bulk, 2D, 1D... \",",
+    "many": false
+  },
+  "encyclopedia.material.material_id": {
+    "name": "encyclopedia.material.material_id",
+    "description": "Search for a particular material by its id.",
+    "many": false
+  },
+  "encyclopedia.material.material_name": {
+    "name": "encyclopedia.material.material_name",
+    "description": "Most meaningful name for a material.",
+    "many": false
+  },
+  "encyclopedia.material.formula": {
+    "name": "encyclopedia.material.formula",
+    "description": "Formula giving the composition and occurrences of the elements in the\nHill notation. For periodic materials the formula is calculated fom the\nprimitive unit cell.",
+    "many": false
+  },
+  "encyclopedia.material.formula_reduced": {
+    "name": "encyclopedia.material.formula_reduced",
+    "description": "Formula giving the composition and occurrences of the elements in the\nHill notation where the number of occurences have been divided by the\ngreatest common divisor.",
+    "many": false
+  },
+  "encyclopedia.material.species_and_counts": {
+    "name": "encyclopedia.material.species_and_counts",
+    "description": "The formula separated into individual terms containing both the atom\ntype and count. Used for searching parts of a formula.",
+    "many": false
+  },
+  "encyclopedia.material.species": {
+    "name": "encyclopedia.material.species",
+    "description": "The formula separated into individual terms containing only unique atom\nspecies. Used for searching materials containing specific elements.",
+    "many": false
+  },
+  "encyclopedia.method.method_type": {
+    "name": "encyclopedia.method.method_type",
+    "description": "Generic name for the used methodology.",
+    "many": false
+  },
+  "encyclopedia.method.core_electron_treatment": {
+    "name": "encyclopedia.method.core_electron_treatment",
+    "description": "How the core electrons are described.",
+    "many": false
+  },
+  "encyclopedia.method.functional_long_name": {
+    "name": "encyclopedia.method.functional_long_name",
+    "description": "Full identified for the used exchange-correlation functional.",
+    "many": false
+  },
+  "encyclopedia.method.functional_type": {
+    "name": "encyclopedia.method.functional_type",
+    "description": "Basic type of the used exchange-correlation functional.",
+    "many": false
+  },
+  "encyclopedia.method.group_eos_id": {
+    "name": "encyclopedia.method.group_eos_id",
+    "description": "A fixed length, unique identifier for equation-of-state calculations.\nOnly calculations within the same upload and with a method hash\navailable will be grouped under the same hash.",
+    "many": false
+  },
+  "encyclopedia.method.group_parametervariation_id": {
+    "name": "encyclopedia.method.group_parametervariation_id",
+    "description": "A fixed length, unique identifier for calculations where structure is\nidentical but the used computational parameters are varied. Only\ncalculations within the same upload and with a method hash available\nwill be grouped under the same hash.",
+    "many": false
+  },
+  "encyclopedia.properties.energies.energy_total": {
+    "name": "encyclopedia.properties.energies.energy_total",
+    "description": "Total energy.",
+    "many": false
+  },
+  "encyclopedia.properties.energies.energy_total_T0": {
+    "name": "encyclopedia.properties.energies.energy_total_T0",
+    "description": "Total energy projected to T=0.",
+    "many": false
+  },
+  "encyclopedia.properties.energies.energy_free": {
+    "name": "encyclopedia.properties.energies.energy_free",
+    "description": "Free energy.",
+    "many": false
+  },
+  "encyclopedia.properties.atomic_density": {
+    "name": "encyclopedia.properties.atomic_density",
+    "description": "Atomic density of the material (atoms/volume).\"",
+    "many": false
+  },
+  "encyclopedia.properties.mass_density": {
+    "name": "encyclopedia.properties.mass_density",
+    "description": "Mass density of the material.",
+    "many": false
+  },
+  "encyclopedia.properties.band_gap": {
+    "name": "encyclopedia.properties.band_gap",
+    "description": "Band gap value. If multiple spin channels are present, this value is\ntaken from the channel with smallest band gap value.",
+    "many": false
+  },
+  "encyclopedia.properties.band_gap_direct": {
+    "name": "encyclopedia.properties.band_gap_direct",
+    "description": "Whether band gap is direct or not. If multiple spin channels are\npresent, this value is taken from the channel with smallest band gap\nvalue.",
+    "many": false
+  },
+  "encyclopedia.properties.electronic_band_structure": {
+    "name": "encyclopedia.properties.electronic_band_structure",
+    "description": "Reference to an electronic band structure.",
+    "many": false
+  },
+  "encyclopedia.properties.electronic_dos": {
+    "name": "encyclopedia.properties.electronic_dos",
+    "description": "Reference to an electronic density of states.",
+    "many": false
+  },
+  "encyclopedia.properties.phonon_band_structure": {
+    "name": "encyclopedia.properties.phonon_band_structure",
+    "description": "Reference to a phonon band structure.",
+    "many": false
+  },
+  "encyclopedia.properties.phonon_dos": {
+    "name": "encyclopedia.properties.phonon_dos",
+    "description": "Reference to a phonon density of states.",
+    "many": false
+  },
+  "encyclopedia.properties.thermodynamical_properties": {
+    "name": "encyclopedia.properties.thermodynamical_properties",
+    "description": "Reference to a section containing thermodynamical properties.",
+    "many": false
+  },
+  "encyclopedia.calculation.calculation_type": {
+    "name": "encyclopedia.calculation.calculation_type",
+    "description": "Defines the type of calculation that was detected for this entry.",
+    "many": false
+  },
+  "encyclopedia.status": {
+    "name": "encyclopedia.status",
+    "description": "The final Encyclopedia processing status for this entry. The meaning of the status is as follows:\n\n| Status                           | Description                                                                   |\n| -------------------------------- | ----------------------------------------------------------------------------- |\n| `\"success\"`                      | Processed successfully                                                        |\n| `\"unsupported_material_type\"`    | The detected material type is currently not supported by the Encyclopedia.    |\n| `\"unsupported_calculation_type\"` | The detected calculation type is currently not supported by the Encyclopedia. |\n| `\"invalid_metainfo\"`             | The entry could not be processed due to missing or invalid metainfo.          |\n| `\"failure\"`                      | The entry could not be processed due to an unexpected exception.              |",
+    "many": false
   },
   "upload_id": {
     "name": "upload_id",

@@ -1088,7 +1088,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 def reference_serialize(value):
                     if isinstance(value, MProxy):
-                        return value.m_proxy_url
+                        if value.m_proxy_resolved is not None:
+                            return quantity_type.serialize(self, quantity, value)
+                        else:
+                            return value.m_proxy_url
                     else:
                         return quantity_type.serialize(self, quantity, value)
                 serialize = reference_serialize
@@ -2136,7 +2139,7 @@ class Section(Definition):
 
         extends_base_section:
             If True, this definition must have exactly one ``base_sections``.
-            Instead of inheriting properties, he quantity and sub-section definitions
+            Instead of inheriting properties, the quantity and sub-section definitions
             of this section will be added to the base section.
 
             This allows to add further properties to an existing section definition.

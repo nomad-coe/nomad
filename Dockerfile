@@ -22,27 +22,7 @@
 # We use slim for the final image
 FROM python:3.7-slim as final
 
-# First built the GUI in the gui build image
-FROM node:latest as gui_build
-RUN mkdir -p /app
-WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
-COPY gui/package.json /app/package.json
-COPY gui/yarn.lock /app/yarn.lock
-RUN yarn
-COPY gui /app
-RUN yarn run build
-# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
-
-# Second, build the Encyclopedia GUI in the gui build image
-RUN mkdir -p /encyclopedia
-WORKDIR /encyclopedia
-COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
-COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
-RUN npm install webpack webpack-cli
-RUN npx webpack --mode=production
-
-# Third, build all python stuff in a python build image
+# Build all python stuff in a python build image
 FROM python:3.7-stretch as build
 RUN mkdir /install
 
@@ -87,6 +67,7 @@ RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 WORKDIR /install/docs
 # COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
@@ -94,6 +75,27 @@ RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+
+# Built the GUI in the gui build image
+FROM node:latest as gui_build
+RUN mkdir -p /app
+WORKDIR /app
+ENV PATH /app/node_modules/.bin:$PATH
+COPY gui/package.json /app/package.json
+COPY gui/yarn.lock /app/yarn.lock
+RUN yarn
+COPY gui /app
+COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
+RUN yarn run build
+# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
+
+# Build the Encyclopedia GUI in the gui build image
+RUN mkdir -p /encyclopedia
+WORKDIR /encyclopedia
+COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
+COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
+RUN npm install webpack webpack-cli
+RUN npx webpack --mode=production
 
 # Third, create a slim final image
 FROM final

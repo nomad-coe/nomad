@@ -4,6 +4,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived
 )
+from nomad.metainfo.search_extension import Search
 from nomad.metainfo.legacy import LegacyDefinition
 
 
@@ -2016,9 +2017,9 @@ class section_gaussian_basis_group(MSection):
     '''
     Section that describes a group of Gaussian contractions. Groups allow one to calculate
     the primitive Gaussian integrals once for several different linear combinations of
-    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\\\sum_{j} c_{i
-    j} A(l_i, \\\\alpha_j) exp(-\\\\alpha_j r^2)$ where $A(l_i, \\\\alpha_j)$ is a the
-    normalization coefficient for primitive Gaussian basis functions. Here, $\\\\alpha_j$ is
+    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\sum_{j} c_{i
+    j} A(l_i, \\alpha_j) exp(-\\alpha_j r^2)$ where $A(l_i, \\alpha_j)$ is a the
+    normalization coefficient for primitive Gaussian basis functions. Here, $\\alpha_j$ is
     defined in gaussian_basis_group_exponents, $l_i$ is given in gaussian_basis_group_ls,
     and $c_{i j}$ is given in gaussian_basis_group_contractions, whereas the radial part
     is given by the spherical harmonics $Y_{l m}$.
@@ -3438,11 +3439,6 @@ class section_run(MSection):
         sub_section=SectionProxy('section_system'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_system'))
-
-    section_workflow = SubSection(
-        sub_section=SectionProxy('section_workflow'),
-        repeats=True
-    )
 
 
 class section_sampling_method(MSection):
@@ -5580,7 +5576,7 @@ class section_XC_functionals(MSection):
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
 
 
-class section_workflow(MSection):
+class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
     '''
@@ -5594,7 +5590,8 @@ class section_workflow(MSection):
         The type of calculation workflow. Can be one of relaxation, elastic, phonon,
         molecular dynamics.
         ''',
-        a_legacy=LegacyDefinition(name='workflow_type'))
+        a_legacy=LegacyDefinition(name='workflow_type'),
+        a_search=Search())
 
     relaxation_energy_tolerance = Quantity(
         type=np.dtype(np.float64),
@@ -5603,14 +5600,16 @@ class section_workflow(MSection):
         description='''
         The tolerance value in the energy between relaxation steps for convergence.
         ''',
-        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'))
+        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'),
+        a_search=Search())
 
     workflow_final_calculation_ref = Quantity(
         type=Reference(SectionProxy('section_single_configuration_calculation')),
         shape=[],
         description='''
         Reference to last calculation step.
-        ''')
+        ''',
+        a_legacy=LegacyDefinition(name='workflow_final_calculation_ref'))
 
 
 m_package.__init_metainfo__()
