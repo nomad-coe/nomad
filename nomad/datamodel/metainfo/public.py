@@ -1220,7 +1220,7 @@ class section_dos_fingerprint(MSection):
 
     indices = Quantity(
         type=np.dtype(np.int16),
-        shape=['first_index_of_DOS_grid', 'last_index_of_DOS_grid'],
+        shape=[2],
         description='''
         Indices used to compare DOS fingerprints of different energy ranges.
         ''',
