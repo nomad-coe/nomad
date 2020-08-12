@@ -225,6 +225,18 @@ class ApiStatistics(mi.MSection):
         return out.getvalue()
 
 
+class QProcess(multiprocessing.Process):
+    def __init__(self, queue, **kwargs):
+        multiprocessing.Process.__init__(self, **kwargs)
+        self.queue = queue
+
+    def run(self):
+        result = self._target(*self._args)
+        self.queue.put(result)
+        time.sleep(0.2)
+        exit(0)
+
+
 class ArchiveQuery(collections.abc.Sequence):
     '''
     Object of this class represent a query on the NOMAD Archive. It is solely configured
@@ -353,7 +365,7 @@ class ArchiveQuery(collections.abc.Sequence):
             values.update(quantity['values'])
 
         if self.parallel is None:
-            ids_per_proc = 1000
+            ids_per_proc = 100
             upload_ids = []
             count = 0
             ids = []
@@ -373,7 +385,7 @@ class ArchiveQuery(collections.abc.Sequence):
 
         return upload_ids
 
-    def _api_proc(self, proc_id, queue):
+    def _api_proc(self, proc_id):
         url = '%s/%s/%s' % (self.url, 'archive', 'query')
 
         upload_id = self._upload_ids[proc_id]
@@ -409,62 +421,51 @@ class ArchiveQuery(collections.abc.Sequence):
 
         data = response.json
 
-        if not data:
-            return
-
         if not isinstance(data, dict):
             data = data()
 
-        results = data.get('results', [])
+        if not data:
+            return
+
+        result = data.get('results', [])
 
         try:
             data_size = len(response.content)
-            nresults = len(results)
+            nresult = len(result)
         except Exception:
             data_size = 0
-            nresults = 0
+            nresult = 0
 
         after = data['aggregation'].get('after', None)
-        total = data['aggregation'].get('total')
+        total = data['aggregation'].get('total', 0)
 
-        for result in results:
-            queue.put((proc_id, [result, data_size, nresults, after, total]))
-
-        queue.put((proc_id, [None, data_size, nresults, after, total]))
+        return (proc_id, [result, data_size, nresult, after, total])
 
     def call_api(self):
         '''
         Calls the API to retrieve the next set of results. Is automatically called, if
         not yet downloaded entries are accessed.
         '''
-
         procs = []
-        queue = multiprocessing.Queue()
+        queue = multiprocessing.Manager().Queue()
         for idx in range(len(self._upload_ids)):
-            procs.append(multiprocessing.Process(target=self._api_proc, args=(idx, queue,)))
-
-        for p in procs:
-            p.start()
-
-        # the outputs are fetched one at a time because of the large size of archive
-        # each process outputs None if there are no more results
-        n_none = 0
-        data_size = 0
-        nresults = 0
-        self._total = 0
-        while n_none < len(self._upload_ids):
-            idx, output = queue.get()
-            if output[0] is None:
-                data_size += output[1]
-                nresults += output[2]
-                self._afters[idx] = output[3]
-                self._total += output[4]
-                n_none += 1
-            else:
-                self._results.append(EntryArchive.m_from_dict(output[0]['archive']))
+            proc = QProcess(target=self._api_proc, args=(idx,), queue=queue)
+            proc.start()
+            procs.append(proc)
 
         for p in procs:
             p.join()
+
+        data_size = 0
+        nresults = 0
+        self._total = 0
+        while not queue.empty():
+            pid, output = queue.get()
+            self._results += [EntryArchive.m_from_dict(calc['archive']) for calc in output[0]]
+            data_size += output[1]
+            nresults += output[2]
+            self._afters[pid] = output[3]
+            self._total += output[4]
 
         if self.max is not None:
             self._capped_total = min(self.max, self._total)

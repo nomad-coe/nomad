@@ -67,11 +67,13 @@ def assert_results(
                 current = sub_sections[0]
 
 
-def test_query_parallel(api, example_multiple_upload, test_user_auth):
-    n_uploads = 8
+@pytest.mark.parametrize('n_uploads, parallel', [
+    (2, 1), (8, 4), (4, 4), (8, 1), (2, None), (8, None)
+])
+def test_query_parallel(api, example_multiple_upload, test_user_auth, n_uploads, parallel):
     upload_ids = example_multiple_upload(n_uploads)
     upload_ids.sort()
-    results = query_archive(authentication=test_user_auth, parallel=4)
+    results = query_archive(authentication=test_user_auth, parallel=parallel)
     upload_ids_query = []
     for result in results:
         upload_ids_query.append(result.section_metadata.upload_id)
