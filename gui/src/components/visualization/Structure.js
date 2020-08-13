@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 
-import { StructureViewer } from '@lauri-codes/matter'
+import { StructureViewer } from '@lauri-codes/materia'
 import { makeStyles } from '@material-ui/core/styles'
 import { Paper } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
