@@ -1,0 +1,428 @@
+{
+    "tutorials": [
+        {
+            "authors": [
+                "Ahmetcik, Emre",
+                "Ziletti, Angelo",
+                "Ouyang, Runhai",
+                "Scheffler, Matthias",
+                "Ghiringhelli, Luca M."
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "Symbolic regression via compressed sensing: a tutorial",
+            "description": "In this tutorial we will show how to find descriptive parameters to predict materials properties using symbolic regrression combined with compressed sensing tools. The relative stability of the zincblende (ZB) versus rocksalt (RS) structure of binary materials is predicted and compared against a model trained with kernel ridge regression.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-compressed-sensing",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/compressed_sensing.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/compressed_sensing.ipynb",
+            "updated": "2019-04-05",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Compressed sensing",
+                    "Symbolic regression",
+                    "Descriptors"
+                ],
+                "application_section": [
+                    "Tutorials for artificial-intelligence methods"
+                ],
+                "application_system": [
+                    "Octet binary materials"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "LASSO",
+                    "SISSO",
+                    "Kernel ridge regression"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Ziletti, Angelo",
+                "Leitherer, Andreas",
+                "Ghiringhelli, Luca M."
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "Convolutional Neural network tutorial ",
+            "description": "In this tutorial, we briefly introduce the main ideas behind convolutional neural networks, build a neural network model with Keras, and explain the classification decision process using attentive response maps.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-convolutional-nn",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/convolutional_nn.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/convolutional_nn.ipynb",
+            "updated": "2019-04-01",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Classification",
+                    "Neural Networks"
+                ],
+                "application_section": [
+                    "Tutorials for artificial-intelligence methods"
+                ],
+                "application_system": [
+                    "Images"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Convolutional Neural networks",
+                    "Attentive response map"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Ziletti, Angelo",
+                "Ahmetcik, Emre",
+                "Arif, Mohammad-Yasin",
+                "Sbail\u00f2, Luigi",
+                "Ouyang, Runhai",
+                "Ghiringhelli, Luca M.",
+                "Scheffler, Matthias"
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "Predicting energy differences between crystal structures: (Meta-)stability of octet-binary compounds",
+            "description": "A tool for predicting the difference in the total energy between different polymorphs for 82 octet binary compounds, which gives an indication of the stability of the material. This is accomplished by identifying a set of descriptive parameters (a descriptor) from the free-atom data for the binary atomic species comprising the material using the Sure Independent Screening (SIS) + l0-norm minimization approach.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-descriptor-role",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/descriptor_role.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/descriptor_role.ipynb",
+            "updated": "2020-06-14",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Octet binaries"
+                ],
+                "application_section": [
+                    "Timely artificial-intelligence applications to Materials Science"
+                ],
+                "application_system": [
+                    "Rock salt",
+                    "Zinc blende"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "SISSO"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Bieniek, Bj\u00f6rn",
+                "Strange, Mikkel",
+                "Carbogno, Christian",
+                "Arif, Mohammad-Yasin",
+                "Sbail\u00f2, Luigi",
+                "Scheffler, Matthias"
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "Error estimates from high-accuracy electronic structure reference calculations",
+            "description": "A set of tools to analyze the error in electronic structure calculations due to the choice of numerical settings. We use the NOMAD infrastructure to systematically investigate the deviances in total and relative energies as function of typical settings for basis sets, k-grids, etc. for 71 elemental and 81 binary solids in three different electronic-structure codes.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-error-estimates",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/error_estimates.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/error_estimates.ipynb",
+            "updated": "2020-07-03",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Binaries",
+                    "Elemental solids"
+                ],
+                "application_section": [
+                    "Timely artificial-intelligence applications to Materials Science"
+                ],
+                "category": [
+                    "Demo"
+                ],
+                "data_analytics_method": [
+                    "Linear Least-squares Regression"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Fekete, \u00c1d\u00e1m",
+                "Stella, Martina",
+                "Lambert, Henry",
+                "De Vita, Alessandro",
+                "Cs\u00e1nyi, G\u00e1bor"
+            ],
+            "email": "adam.fekete@kcl.ac.uk",
+            "title": "The SOAP descriptor, Gaussian Approximation Potentials (GAP) and machine-learning of force fields",
+            "description": "In this tutorial we will be using a Gaussian Approximation Potentials to analyse results of TB DFT calculations of Si surface. Along the way we will learn about different descriptors (2b, 3b, soap) to describe local atomic environment in order to predict energies and forces of Si surface.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-gap-si-surface",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/gap_si_surface.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/gap_si_surface.ipynb",
+            "updated": "2019-06-01",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "SOAP descriptor",
+                    "Gaussian Approximation Potentials (GAP)"
+                ],
+                "application_section": [
+                    "Tutorials for artificial-intelligence methods"
+                ],
+                "application_system": [
+                    "Si"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Gaussian-process regression",
+                    "Kernel ridge regression"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Fekete, \u00c1d\u00e1m",
+                "Stella, Martina",
+                "Lambert, Henry",
+                "De Vita, Alessandro",
+                "Cs\u00e1nyi, G\u00e1bor"
+            ],
+            "email": "adam.fekete@kcl.ac.uk",
+            "title": "Grain boundaries of alpha-Fe tutorial",
+            "description": "In this tutorial we will be using a machine learning method (clustering) to analyse results of Grain Boundary (GB) calculations of alpha-iron. Along the way we will learn about different methods to describe local atomic environment in order to calculate properties of GBs. We will use these properties to separate the different regions of the GB using clustering methods. Finally we will determine how the energy of the GB is changing according to the angle difference of the regions.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-grain-boundaries",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/grain_boundaries.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/grain_boundaries.ipynb",
+            "updated": "2019-06-01",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Grain boundaries"
+                ],
+                "application_section": [
+                    "Timely artificial-intelligence applications to Materials Science"
+                ],
+                "application_system": [
+                    "Iron"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Clustering",
+                    "K-means",
+                    "Gaussian mixture"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Liu, Xiangyue",
+                "Sutton, Christopher",
+                "Yamamoto, Takenori",
+                "Lysogorskiy, Yury",
+                "Blumenthal, Lars",
+                "Hammerschmidt, Thomas",
+                "Golebiowski, Jacek",
+                "Ziletti, Angelo",
+                "Scheffler, Matthias",
+                "Ghiringhelli, Luca M."
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "NOMAD 2018 Kaggle research competition",
+            "description": "In this tutorial, we will explore the best results of the NOMAD 2018 Kaggle research competition. The goal of this competition was to develop machine-learning models for the prediction of two target properties: the formation energy and the bandgap energy of transparent semiconducting oxides. The purpose of the modelling is to facilitate the discovery of new such materials and allow for advancements in (opto)electronic technologies",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-kaggle-competition",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/kaggle_competition.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/kaggle_competition.ipynb",
+            "updated": "2020-02-06",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Formation energy prediction",
+                    "Band gap energy prediction"
+                ],
+                "application_section": [
+                    "Timely artificial-intelligence applications to Materials Science"
+                ],
+                "application_system": [
+                    "Group-III oxidess"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Kernel ridge regression",
+                    "Neural networks",
+                    "SOAP",
+                    "n-gram"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Sbail\u00f2, Luigi",
+                "Scheffler, Matthias",
+                "Ghiringhelli, Luca M."
+            ],
+            "email": "ghiringhelli@fhi-berlin.mpg.de",
+            "title": "Querying the Archive and performing Artificial Intelligence modeling",
+            "description": "In this tutorial, we demonstrate how to query the NOMAD Archive from the NOMAD Analytics toolkit. We then show examples of machine learning analysis performed on the retrieved data set.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-query-nomad-repository",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb",
+            "updated": "2020-05-03",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "Materials properties prediction",
+                    "Data visualization"
+                ],
+                "application_section": [
+                    "Analysing the content of the Archive"
+                ],
+                "application_system": [
+                    "Materials"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Clustering",
+                    "Dimension reduction",
+                    "Random forest"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Cs\u00e1nyi, G\u00e1bor",
+                "Kermode, James R."
+            ],
+            "email": "gc121@cam.ac.uk",
+            "title": "Learning atomic charges",
+            "description": "In this tutorial, we will use Gaussian process regression, GPR (or equivalently, Kernel Ridge Regression, KRR) to train and predict charges of atoms in small organic molecules.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-soap-atomic-charges",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/soap_atomic_charges.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/soap_atomic_charges.ipynb",
+            "updated": "2019-06-01",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "GDB molecular database"
+                ],
+                "application_section": [
+                    "Tutorials for artificial-intelligence methods"
+                ],
+                "application_system": [
+                    "GDB7"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Gaussian-process regression",
+                    "Kernel ridge regression"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        },
+        {
+            "authors": [
+                "Regler, Benjamin",
+                "Scheffler, Matthias",
+                "Ghiringhelli, Luca M."
+            ],
+            "email": "regler@fhi-berlin.mpg.de",
+            "title": "Total cumulative mutual information",
+            "description": "This interactive notebook includes the original implementation of total cumulative mutual information (TCMI) to reproduce the main results presented in the publication.",
+            "url": "https://gitlab.mpcdf.mpg.de/nomad-lab/analytics-tcmi",
+            "link": "https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks/tutorials/tcmi.ipynb",
+            "link_public": "https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/tcmi.ipynb",
+            "updated": "2020-01-14",
+            "flags": {
+                "featured": true,
+                "top_of_list": false
+            },
+            "labels": {
+                "application_keyword": [
+                    "information theory",
+                    "mutual information",
+                    "cumulative entropy",
+                    "feature selection"
+                ],
+                "application_section": [
+                    "Timely artificial-intelligence applications to Materials Science"
+                ],
+                "application_system": [
+                    "System"
+                ],
+                "category": [
+                    "Tutorial"
+                ],
+                "data_analytics_method": [
+                    "Clustering",
+                    "TCMI"
+                ],
+                "language": [
+                    "python",
+                    "javascript"
+                ],
+                "platform": [
+                    "jupyter"
+                ]
+            }
+        }
+    ]
+}

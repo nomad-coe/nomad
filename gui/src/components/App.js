@@ -17,6 +17,7 @@ import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import UnderstoodIcon from '@material-ui/icons/Check'
+import AnalyticsIcon from '@material-ui/icons/ShowChart'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -38,6 +39,7 @@ import {matomo} from '../index'
 import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
+import AnalyticsPage from './analytics/AnalyticsPage'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -277,7 +279,13 @@ function MainMenu() {
       icon={<UserDataIcon/>}
     />
     <MainMenuItem
-      title="Meta Info"
+      title="Analytics"
+      path="/analytics"
+      tooltip="NOMAD's analytics (AI) toolkit tutorial jupyter notebooks"
+      icon={<AnalyticsIcon/>}
+    />
+    <MainMenuItem
+      title="Metainfo"
       path="/metainfo"
       tooltip="Browse the archive schema"
       icon={<MetainfoIcon/>}
@@ -550,6 +558,10 @@ const routes = {
   'metainfo': {
     path: '/metainfo',
     component: MetainfoPage
+  },
+  'analytics': {
+    path: '/analytics',
+    component: AnalyticsPage
   }
 }
 

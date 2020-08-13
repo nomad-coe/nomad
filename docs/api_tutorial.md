@@ -94,6 +94,14 @@ consist of Si, O, bulk material simulations of cubic systems (currently ~100 ent
 curl "http://nomad-lab.eu/prod/rae/api/raw/query?only_atoms=Si&only_atoms=O&system=bulk&crystal_system=cubic" -o download.zip
 ```
 
+Here are a few more examples for downloading the raw data of based on DOI or dataset.
+You will have to encode non URL safe characters in potential dataset names (e.g. with a service like [www.urlencoder.org](https://www.urlencoder.org/)):
+
+```
+curl "http://nomad-lab.eu/prod/rae/api/raw/query?doi=10.17172/NOMAD/2020.03.18-1" -o download.zip
+curl "http://nomad-lab.eu/prod/rae/api/raw/query?dataset=Full%20ahnarmonic%20stAViC%20approach%3A%20Silicon%20and%20SrTiO3" -o download.zip
+```
+
 In a similar way you can see the archive of an entry:
 
 ```

@@ -216,7 +216,11 @@ var styles = theme => {
 }
 
 function MarkdownLink({href, ...props}) {
-  return <Link component={RouterLink} to={href} {...props} />
+  if (href.match(/^https?:\/\//)) {
+    return <Link href={href} {...props} />
+  } else {
+    return <Link component={RouterLink} to={href} {...props} />
+  }
 }
 MarkdownLink.propTypes = {
   href: PropTypes.string.isRequired
