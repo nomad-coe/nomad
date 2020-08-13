@@ -51,7 +51,7 @@
     "remark": "^12.0.1",
     "remark-math": "^2.0.1",
     "swagger-client": "^3.8.22",
-    "@lauri-codes/matter": "0.0.3",
+    "@lauri-codes/materia": "0.0.2",
     "url-parse": "^1.4.3",
     "use-query-params": "^0.6.0"
   },
