@@ -72,6 +72,11 @@ export const domains = ({
         tooltip: 'Aggregates the number of simulated system geometries in all entries.',
         renderResultString: count => (<span> that simulate <b>{count.toLocaleString()}</b> unique geometrie{count === 1 ? '' : 's'}</span>)
       },
+      'encyclopedia.material.materials': {
+        label: 'Materials',
+        tooltip: 'Shows statistics in terms of materials.',
+        renderResultString: count => (<span> of <b>{count.toLocaleString()}</b> material{count === 1 ? '' : 's'}</span>)
+      },
       datasets: {
         label: 'Datasets',
         tooltip: 'Shows statistics in terms of datasets that entries belong to.',
@@ -114,7 +119,7 @@ export const domains = ({
         supportsSort: true
       },
       'dft.xc_functional': {
-        label: 'XT treatment',
+        label: 'XC functionals',
         supportsSort: true
       },
       'dft.system': {
@@ -152,7 +157,7 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    searchTabs: ['entries', 'datasets', 'groups', 'uploads']
+    searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
     name: 'EMS',

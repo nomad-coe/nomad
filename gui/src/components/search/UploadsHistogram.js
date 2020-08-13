@@ -12,6 +12,9 @@ const useStyles = makeStyles(theme => ({
   root: {
     marginTop: theme.spacing(2)
   },
+  header: {
+    paddingBottom: 0
+  },
   content: {
     paddingTop: 0,
     position: 'relative',
@@ -66,7 +69,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
       data = Object.keys(statistics.date_histogram).map(key => ({
         time: Dates.JSDate(parseInt(key)),
         value: statistics.date_histogram[key][metric]
-      }))
+      })).filter(d => d.value)
     }
 
     const fromTime = Dates.JSDate(response.from_time || Dates.dateHistogramStartDate)
@@ -89,7 +92,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
     const width = containerRef.current.offsetWidth
     const height = 250
     const marginRight = 32
-    const marginTop = 0
+    const marginTop = 16
     const marginBottom = 16
 
     const y = scalePow().range([height - marginBottom, marginTop]).exponent(scale)
@@ -132,14 +135,6 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
       .call(yAxis)
 
     const {label, shortLabel} = domain.searchMetrics[metric]
-    // svg.select('.ylabel').remove()
-    // svg.append('text')
-    //   .attr('class', 'ylabel')
-    //   .attr('x', 0)
-    //   .attr('y', 0)
-    //   .attr('dy', '1em')
-    //   .attr('font-size', '12px')
-    //   .text(`${shortLabel || label}`)
 
     let withData = svg
       .selectAll('.bar').remove().exit()
@@ -147,6 +142,15 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
 
     let item = withData.enter()
       .append('g')
+
+    item
+      .append('rect')
+      .attr('x', d => x(d.time) + 1)
+      .attr('y', y(max))
+      .attr('width', d => x(Dates.addSeconds(d.time, interval)) - x(d.time) - 2)
+      .attr('class', 'background')
+      .style('opacity', 0)
+      .attr('height', y(0) - y(max))
 
     item
       .append('rect')
@@ -206,6 +210,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
 
   return <Card classes={{root: classes.root}}>
     <CardHeader
+      classes={{root: classes.header}}
       title={title}
       titleTypographyProps={{variant: 'body1'}}
       action={(

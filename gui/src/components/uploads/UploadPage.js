@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes, { instanceOf } from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography } from '@material-ui/core'
+import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography, Link } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import Upload from './Upload'
@@ -14,13 +14,13 @@ import { withApi } from '../api'
 import { withCookies, Cookies } from 'react-cookie'
 import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { guiBase } from '../../config'
+import { guiBase, appBase } from '../../config'
 import qs from 'qs'
 import { CodeList } from '../About'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
-identify the main output files of [supported codes](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-howtoupload)
+identify the main output files of supported codes.
 and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
 Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
 describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
@@ -275,6 +275,8 @@ class UploadPage extends React.Component {
           NOMAD will search through all files and identify the relevant files automatically.
           Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
           uploads</b> simultaneously. Your uploaded data is not published right away.
+          Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
+          our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
         </Typography>
         <Typography>
           The following codes are supported: <CodeList/>.

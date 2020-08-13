@@ -15,14 +15,21 @@
 from typing import List
 from abc import ABCMeta, abstractmethod
 import re
+import importlib
 
 from nomad.metainfo import Environment
+from nomad.datamodel import EntryArchive
 
 
 class Parser(metaclass=ABCMeta):
     '''
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
+
+    TODO: There are currently two "run" functions. :func:`run` and :func:`parse`.
+    Because we are in the middle of transitioning out of the backend dependence we currently
+    have both, where 'run' creates a backend and 'parse' simply gets an archive that the
+    parser is supposed to populate. Eventually, we will only have the 'parse' function.
     '''
     name = "parsers/parser"
 
@@ -62,6 +69,19 @@ class Parser(metaclass=ABCMeta):
         Returns:
             The used :class:`Backend` with status information and result data.
         '''
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        '''
+        Runs the parser on the given mainfile and populates the result in the given
+        archive root_section. It allows to be run repeatedly for different mainfiles.
+
+        Args:
+            mainfile: A path to a mainfile that this parser can parse.
+            archive: An instance of the section :class:`EntryArchive`. It might contain
+                a ``section_metadata`` with information about the entry.
+            logger: A optional logger
+        '''
+        pass
 
 
 class BrokenParser(Parser):
@@ -151,6 +171,26 @@ class MatchingParser(Parser):
 
     def __repr__(self):
         return self.name
+
+
+class FairdiParser(MatchingParser):
+
+    def run(self, mainfile: str, logger=None):
+        from .legacy import Backend
+        python_module = importlib.import_module(self.__module__ + '.metainfo')
+        metainfo = getattr(python_module, 'm_env')
+        backend = Backend(metainfo, domain=self.domain, logger=logger)
+        self.parse(mainfile, backend.entry_archive, logger=logger)
+        return backend
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+        raise NotImplementedError()
+
+    @classmethod
+    def main(cls, mainfile):
+        archive = EntryArchive()
+        cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
+        return archive
 
 
 class MissingParser(MatchingParser):

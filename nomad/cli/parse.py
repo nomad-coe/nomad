@@ -4,10 +4,8 @@ import json
 import click
 import sys
 
-from nomad import utils
-from nomad import parsing
-from nomad import normalizing
-from nomad import datamodel
+from nomad import utils, parsing, normalizing, datamodel
+
 import nomadcore
 
 from .cli import cli
@@ -22,15 +20,16 @@ def parse(
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
     '''
+    from nomad.parsing import parsers
     mainfile = os.path.basename(mainfile_path)
 
     if logger is None:
         logger = utils.get_logger(__name__)
     if parser_name is not None:
-        parser = parsing.parser_dict.get(parser_name)
+        parser = parsers.parser_dict.get(parser_name)
         assert parser is not None, 'the given parser must exist'
     else:
-        parser = parsing.match_parser(mainfile_path, strict=strict)
+        parser = parsers.match_parser(mainfile_path, strict=strict)
         if isinstance(parser, parsing.MatchingParser):
             parser_name = parser.name
         else:
@@ -64,7 +63,7 @@ def normalize(
             if normalizer_instance.__class__.__name__ == normalizer)
 
     assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
-    normalizer_instance = typing.cast(typing.Callable, normalizer)(parser_backend)
+    normalizer_instance = typing.cast(typing.Callable, normalizer)(parser_backend.entry_archive)
     logger = logger.bind(normalizer=normalizer_instance.__class__.__name__)
     logger.info('identified normalizer')
 

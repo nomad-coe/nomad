@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'nomad-FAIRDI'
-copyright = '2018, FAIRDI e.V.'
+project = 'NOMAD Repository and Archive'
+copyright = '2014-2020, FAIRDI e.V.'
 author = 'FAIRDI e.V.'
 
 # The short X.Y version
@@ -200,4 +200,4 @@ def setup(app):
     # }, True)
     # app.add_transform(AutoStructify)
 
-extlinks = {'api': ('https://repository.nomad-coe.eu/v0.8/api/%s', 'NOMAD API ')}
+extlinks = {'api': ('https://nomad-lab.eu/prod/rae/api/%s', 'NOMAD API ')}

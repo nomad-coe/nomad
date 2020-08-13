@@ -22,6 +22,7 @@ from typing import cast, Dict, List, Union, Any, Set, Iterable, Tuple
 import numpy as np
 from pint.errors import UndefinedUnitError
 import os.path
+import importlib
 
 
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl, InfoKindEnv
@@ -52,6 +53,13 @@ class LegacyPackage(LegacyDefinition):
 
         self.python_module = python_module
         self.python_path = python_path
+
+
+def def_name(definition):
+    try:
+        return definition.a_legacy.name
+    except AttributeError:
+        return definition.name
 
 
 def normalize_name(name: str):
@@ -98,27 +106,60 @@ class LegacyMetainfoEnvironment(Environment):
     the environment.
     '''
 
+    @staticmethod
+    def from_legacy_package_path(path):
+        metainfo_package_name = os.path.basename(path)
+        package = metainfo_package_name
+        if package.endswith('.nomadmetainfo.json'):
+            package = package[:-19]
+        if package.endswith('.json'):
+            package = package[:-5]
+
+        python_package_name, _ = python_package_mapping(package)
+        python_package_name = '.'.join(python_package_name.split('.')[:-1])
+        python_module = importlib.import_module(python_package_name)
+        metainfo = getattr(python_module, 'm_env')
+
+        return metainfo
+
     legacy_package_name = Quantity(type=str)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__section_to_sub_section_name = None
+
+    @property
+    def section_to_sub_section_name(self) -> Dict[str, str]:
+        if self.__section_to_sub_section_name is not None:
+            return self.__section_to_sub_section_name
+
+        self.__section_to_sub_section_name = dict()
+        for definition in self.m_all_contents():
+            if definition.m_def == SubSection.m_def:
+                self.__section_to_sub_section_name[definition.sub_section.name] = definition.name
+
+        return self.__section_to_sub_section_name
 
     def legacy_info(self, definition: Definition, *args, **kwargs) -> InfoKindEl:
         ''' Creates a legacy metainfo object for the given definition. '''
         super_names: List[str] = list()
         result: Dict[str, Any] = dict(
-            name=definition.a_legacy.name,
+            name=def_name(definition),
             description=definition.description,
             superNames=super_names)
 
         for category in definition.categories:
-            super_names.append(category.a_legacy.name)
+            super_names.append(def_name(category))
 
         if isinstance(definition, Section):
+            sub_section_name = self.section_to_sub_section_name.get(definition.name, definition.name)
             result['kindStr'] = 'type_section'
             result['repeats'] = any(
                 sub_section.repeats
-                for sub_section in self.resolve_definitions(definition.name, SubSection))
+                for sub_section in self.resolve_definitions(sub_section_name, SubSection))
 
-            for sub_section in self.resolve_definitions(definition.name, SubSection):
-                super_names.append(sub_section.m_parent_as(Definition).a_legacy.name)
+            for sub_section in self.resolve_definitions(sub_section_name, SubSection):
+                super_names.append(def_name(sub_section.m_parent_as(Definition)))
 
         elif isinstance(definition, Quantity):
             result['kindStr'] = 'type_document_content'
@@ -135,7 +176,7 @@ class LegacyMetainfoEnvironment(Environment):
             elif isinstance(definition.type, Reference):
                 dtype_str = 'r'
                 result['referencedSections'] = [
-                    definition.type.target_section_def.m_resolved().a_legacy.name]
+                    def_name(definition.type.target_section_def.m_resolved())]
             elif isinstance(definition.type, MEnum):
                 dtype_str = 'C'
             elif type(definition.type) == np.dtype:
@@ -143,12 +184,13 @@ class LegacyMetainfoEnvironment(Environment):
             elif definition.type == Any:
                 dtype_str = 'D'
             else:
-                raise TypeError(
-                    'Unsupported quantity type %s in %s.' % (definition.type, definition))
+                dtype_str = str(definition.type)
+                # raise TypeError(
+                #     'Unsupported quantity type %s in %s.' % (definition.type, definition))
             result['dtypeStr'] = dtype_str
             if definition.unit is not None:
                 result['units'] = str(definition.unit)
-            super_names.append(definition.m_parent_as(Definition).a_legacy.name)
+            super_names.append(def_name(definition.m_parent_as(Definition)))
 
         elif isinstance(definition, Category):
             result['kindStr'] = 'type_abstract_document_content'
@@ -215,7 +257,7 @@ class LegacyMetainfoEnvironment(Environment):
             'type': 'nomad_meta_info_1_0',
             'description': description,
             'dependencies': [
-                {'relativePath': dependency.a_legacy.name}
+                {'relativePath': def_name(dependency)}
                 for dependency in dependencies],
             'metaInfos': definitions
         }

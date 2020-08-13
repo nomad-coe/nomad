@@ -537,7 +537,7 @@ def statistics_table(html, geometries, public_path):
                 </ul>
                 <p>
                     For more and interactive statistics, use the <i>metadata</i> view of
-                    the <a href="https://repository.nomad-coe.eu/app/gui/search">NOMAD Repository and Archvi search</a>.
+                    the <a href="https://nomad-lab.eu/prod/rae/gui/search">NOMAD Repository and Archvi search</a>.
                 </p>
                 <p>
                     90% of VASP calculations are provided by
@@ -554,7 +554,7 @@ def statistics_table(html, geometries, public_path):
                 <p>
                     The archive data is represented in a code-independent, structured
                     form. The archive structure and all quantities are described via the
-                    <a href="https://www.nomad-coe.eu/the-project/nomad-archive/archive-meta-info">NOMAD Metainfo</a>.
+                    <a href="https://nomad-lab.eu/prod/rae/gui/metainfo">NOMAD Metainfo</a>.
                     The NOMAD Metainfo defines a conceptual model to store the values connected
                     to atomistic or <i>ab initio</i> calculations. A clear and usable metadata definition
                     is a prerequisites to preparing the data for analysis that everybody

@@ -32,7 +32,7 @@ def run_normalize(backend: Backend) -> Backend:
     assert status == 'ParseSuccess'
 
     for normalizer_class in normalizers:
-        normalizer = normalizer_class(backend)
+        normalizer = normalizer_class(backend.entry_archive)
         normalizer.normalize()
     return backend
 
@@ -98,6 +98,15 @@ def molecular_dynamics(bulk) -> Backend:
 def phonon() -> Backend:
     parser_name = "parsers/phonopy"
     filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def elastic() -> Backend:
+    parser_name = "parsers/elastic"
+    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend
@@ -188,6 +197,33 @@ def bands_unpolarized_no_gap() -> Backend:
 def bands_polarized_gap_indirect() -> Backend:
     parser_name = "parsers/vasp"
     filepath = "tests/data/normalizers/band_structure/polarized_gap/vasprun.xml.bands.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_si_vasp() -> Backend:
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/dos/dos_si_vasp/vasprun.xml.relax2.xz"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_si_exciting() -> Backend:
+    parser_name = "parsers/exciting"
+    filepath = "tests/data/normalizers/dos/dos_si_exciting/INFO.OUT"
+    backend = parse_file((parser_name, filepath))
+    backend = run_normalize(backend)
+    return backend
+
+
+@pytest.fixture(scope='session')
+def dos_si_fhiaims() -> Backend:
+    parser_name = "parsers/fhi-aims"
+    filepath = "tests/data/normalizers/dos/dos_si_fhiaims/aims.log"
     backend = parse_file((parser_name, filepath))
     backend = run_normalize(backend)
     return backend

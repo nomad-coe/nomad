@@ -22,19 +22,7 @@
 # We use slim for the final image
 FROM python:3.7-slim as final
 
-# First built the GUI in a gui build image
-FROM node:latest as gui_build
-RUN mkdir -p /app
-WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
-COPY gui/package.json /app/package.json
-COPY gui/yarn.lock /app/yarn.lock
-RUN yarn
-COPY gui /app
-RUN yarn run build
-# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
-
-# Second, build all python stuff in a python build image
+# Build all python stuff in a python build image
 FROM python:3.7-stretch as build
 RUN mkdir /install
 
@@ -79,6 +67,7 @@ RUN python setup.py compile
 RUN pip install .[all]
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 WORKDIR /install/docs
 # COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
@@ -86,6 +75,27 @@ RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+
+# Built the GUI in the gui build image
+FROM node:latest as gui_build
+RUN mkdir -p /app
+WORKDIR /app
+ENV PATH /app/node_modules/.bin:$PATH
+COPY gui/package.json /app/package.json
+COPY gui/yarn.lock /app/yarn.lock
+RUN yarn
+COPY gui /app
+COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
+RUN yarn run build
+# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
+
+# Build the Encyclopedia GUI in the gui build image
+RUN mkdir -p /encyclopedia
+WORKDIR /encyclopedia
+COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
+COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
+RUN npm install webpack webpack-cli
+RUN npx webpack --mode=production
 
 # Third, create a slim final image
 FROM final
@@ -98,21 +108,22 @@ WORKDIR /app
 # transfer installed packages from dependency stage
 COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
 RUN echo "copy 1"
-# copy the meta-info, since it files are loaded via relative paths. TODO that should change.
-COPY --from=build /install/dependencies/nomad-meta-info /app/dependencies/nomad-meta-info
-RUN echo "copy 2"
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/.build /app/docs/.build
-RUN echo "copy 3"
+RUN echo "copy 2"
 # copy the source distribution, its files will be served by the API
 COPY --from=build /install/dist /app/dist
-RUN echo "copy 4"
+RUN echo "copy 3"
 # copy the nomad command
 COPY --from=build /usr/local/bin/nomad /usr/bin/nomad
-RUN echo "copy 5"
+RUN echo "copy 4"
 # copy the gui
 RUN mkdir -p /app/gui
 COPY --from=gui_build /app/build /app/gui/build
+RUN echo "copy 5"
+# copy the encyclopedia gui production code
+COPY --from=gui_build /encyclopedia /app/dependencies/encyclopedia-gui/client
+RUN rm -rf /app/dependencies/encyclopedia-gui/client/src
 RUN echo "copy 6"
 
 RUN mkdir -p /app/.volumes/fs

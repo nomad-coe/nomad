@@ -1,6 +1,7 @@
 import React from 'react'
 import { withApi } from './api'
 import Search from './search/Search'
+import { encyclopediaEnabled } from '../config'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
@@ -54,11 +55,11 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 
 function UserdataPage() {
   return <Search
-    ownerTypes={['user', 'staging']}
+    ownerTypes={['user', 'shared', 'staging']}
     initialOwner="user"
     initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
     initialResultTab="uploads"
-    availableResultTabs={['uploads', 'datasets', 'entries']}
+    availableResultTabs={['uploads', 'datasets', 'entries', ...(encyclopediaEnabled ? ['materials'] : [])]}
     resultListProps={{selectedColumnsKey: 'userEntries', selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
   />
 }

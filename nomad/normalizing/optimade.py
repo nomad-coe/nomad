@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, cast
+from typing import Any, Dict
 import numpy as np
 import re
 import ase.data
 from string import ascii_uppercase
 import pint.quantity
 
-from nomad.parsing.legacy import Backend
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
 from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
+from nomad.datamodel.metainfo.public import section_system
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
@@ -43,16 +43,15 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         '''
 
-        backend = cast(Backend, self._backend)
-        if backend.entry_archive.section_metadata is None:
-            backend.entry_archive.m_create(EntryMetadata)
-        if backend.entry_archive.section_metadata.dft is None:
-            backend.entry_archive.section_metadata.m_create(DFTMetadata)
-        optimade = backend.entry_archive.section_metadata.dft.m_create(OptimadeEntry)
+        if self.entry_archive.section_metadata is None:
+            self.entry_archive.m_create(EntryMetadata)
+        if self.entry_archive.section_metadata.dft is None:
+            self.entry_archive.section_metadata.m_create(DFTMetadata)
+        optimade = self.entry_archive.section_metadata.dft.m_create(OptimadeEntry)
 
-        def get_value(key: str, default: Any = None, numpy: bool = False, unit=None) -> Any:
+        def get_value(quantity_def, default: Any = None, numpy: bool = False, unit=None) -> Any:
             try:
-                value = self._backend.get_value(key, index)
+                value = self.section_run.section_system[-1].m_get(quantity_def)
                 if type(value) == np.ndarray and not numpy:
                     return value.tolist()
                 if isinstance(value, list) and numpy:
@@ -70,7 +69,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         from nomad.normalizing.system import normalized_atom_labels
 
-        nomad_species = get_value('atom_labels')
+        nomad_species = get_value(section_system.atom_labels)
 
         # elements
         atoms = normalized_atom_labels(nomad_species)
@@ -89,8 +88,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             for element in optimade.elements]
 
         # formulas
-        optimade.chemical_formula_reduced = get_value('chemical_composition_reduced')
-        optimade.chemical_formula_hill = get_value('chemical_composition_bulk_reduced')
+        optimade.chemical_formula_reduced = get_value(section_system.chemical_composition_reduced)
+        optimade.chemical_formula_hill = get_value(section_system.chemical_composition_bulk_reduced)
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
         optimade.chemical_formula_anonymous = ''
         for i in range(len(optimade.elements)):
@@ -102,11 +101,11 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # sites
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
-        optimade.lattice_vectors = get_value('lattice_vectors', numpy=True, unit=ureg.m)
-        optimade.cartesian_site_positions = get_value('atom_positions', numpy=True, unit=ureg.m)
+        optimade.lattice_vectors = get_value(section_system.lattice_vectors, numpy=True, unit=ureg.m)
+        optimade.cartesian_site_positions = get_value(section_system.atom_positions, numpy=True, unit=ureg.m)
         optimade.dimension_types = [
             1 if value else 0
-            for value in get_value('configuration_periodic_dimensions')]
+            for value in get_value(section_system.configuration_periodic_dimensions)]
 
         # species
         for species_label in set(nomad_species):

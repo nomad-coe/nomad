@@ -46,7 +46,7 @@ from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
-    FhiAimsBaseNormalizer,
+    # FhiAimsBaseNormalizer,
     DosNormalizer,
     BandStructureNormalizer,
     EncyclopediaNormalizer,

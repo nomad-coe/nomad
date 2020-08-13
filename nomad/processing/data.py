@@ -38,14 +38,19 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import parser_dict, match_parser, Backend
+from nomad.parsing import Backend
+from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.archive import query_archive
 from nomad.datamodel.encyclopedia import (
     EncyclopediaMetadata,
 )
-import phonopyparser
+import phonopyparser.metainfo
+
+
+section_metadata = datamodel.EntryArchive.section_metadata.name
+section_workflow = datamodel.EntryArchive.section_workflow.name
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -175,8 +180,15 @@ class Calc(Proc):
         '''
         archive = upload_files.read_archive(self.calc_id)
         try:
-            entry_metadata = datamodel.EntryMetadata.m_from_dict(
-                archive[self.calc_id][datamodel.EntryArchive.section_metadata.name].to_dict())
+            # instead of loading the whole archive, it should be enough to load the
+            # parts that are referenced by section_metadata/EntryMetadata
+            # TODO somehow it should determine which root setions too load from the metainfo
+            # or configuration
+            calc_archive = archive[self.calc_id]
+            entry_archive_dict = {section_metadata: calc_archive[section_metadata].to_dict()}
+            if section_workflow in calc_archive:
+                entry_archive_dict[section_workflow] = calc_archive[section_workflow].to_dict()
+            entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
 
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not
@@ -383,6 +395,7 @@ class Calc(Proc):
             try:
                 self._parser_backend = parser.run(
                     self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+
             except Exception as e:
                 self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
                 return
@@ -404,28 +417,25 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            # Re-create a backend
-            context = dict(parser=self.parser, step=self.parser)
-            logger = self.get_logger(**context)
-            metainfo = phonopyparser.metainfo.m_env
-            backend = Backend(metainfo, logger=logger, domain="dft")
+            logger = self.get_logger(parser=self.parser, step=self.parser)
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
             with upload_files.read_archive(self.calc_id) as archive:
                 arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
                 phonon_archive = EntryArchive.m_from_dict(arch)
-
-            # Save Archive contents, metadata and logs from the old entry
-            backend.entry_archive = phonon_archive
-            self._parser_backend = backend
-            self._entry_metadata = backend.entry_archive.section_metadata
+            self._entry_metadata = phonon_archive.section_metadata
             self._calc_proc_logs = phonon_archive.processing_logs
+
+            # Re-create a backend
+            metainfo = phonopyparser.metainfo.m_env
+            self._parser_backend = Backend(metainfo, logger=logger, domain="dft")
+            self._parser_backend.entry_archive = phonon_archive
 
             # Read in the first referenced calculation. The reference is given as
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
-            scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
+            scc = self._parser_backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
@@ -434,9 +444,9 @@ class Calc(Proc):
 
             # Get encyclopedia method information directly from the referenced calculation.
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
-            if ref_enc_method is None or len(ref_enc_method) == 0:
+            if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
                 raise ValueError("No method information available in referenced calculation.")
-            backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
+            self._parser_backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
@@ -445,9 +455,20 @@ class Calc(Proc):
             self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
             self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
             self._entry_metadata.dft.update_group_hash()
+            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
-            logger.error("Could not retrieve method information for phonon calculation.", exception=e)
-            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
+            logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
+            if self._entry_metadata is None:
+                self._setup_fallback_metadata()
+                self._entry_metadata.processed = False
+
+            try:
+                if self._entry_metadata.encyclopedia is None:
+                    self._entry_metadata.encyclopedia = EncyclopediaMetadata()
+                self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
+            except Exception as e:
+                logger.error("Could set encyclopedia status.", exc_info=e)
+
         finally:
             # persist the calc metadata
             with utils.timer(logger, 'saved calc metadata', step='metadata'):
@@ -509,7 +530,7 @@ class Calc(Proc):
                     logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 with self.use_parser_backend(normalizer_name) as backend:
                     try:
-                        normalizer(backend).normalize(logger=logger)
+                        normalizer(backend.entry_archive).normalize(logger=logger)
                     except Exception as e:
                         self._parser_backend.finishedParsingSession('ParseFailure', [str(e)])
                         logger.error(
@@ -1027,8 +1048,8 @@ class Upload(Proc):
             modified_upload = self._get_collection().find_one_and_update(
                 {'_id': self.upload_id, 'joined': {'$ne': True}},
                 {'$set': {'joined': True}})
-            if modified_upload is not None:
-                self.get_logger().debug('join')
+            if modified_upload is None or modified_upload['joined'] is False:
+                self.get_logger().info('join')
 
                 # Before cleaning up, run an additional normalizer on phonon
                 # calculations. TODO: This should be replaced by a more
@@ -1062,9 +1083,9 @@ class Upload(Proc):
             '',
             'your data %suploaded at %s has completed processing.' % (
                 '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % config.gui_url(),
+            'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
             '',
-            'If you encouter any issues with your upload, please let us know and replay to this email.',
+            'If you encounter any issues with your upload, please let us know and reply to this email.',
             '',
             'The nomad team'
         ])

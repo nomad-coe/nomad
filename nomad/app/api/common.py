@@ -17,6 +17,7 @@ Common data, variables, decorators, models used throughout the API.
 '''
 from typing import Callable, IO, Set, Tuple, Iterable, Dict, Any
 from flask_restplus import fields
+from flask import request, make_response
 import zipstream
 from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
@@ -25,6 +26,8 @@ import io
 
 import sys
 import os.path
+import gzip
+from functools import wraps
 
 from nomad import search, config, datamodel
 from nomad.app.optimade import filterparser
@@ -198,7 +201,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
     try:
         optimade = args.get('dft.optimade', None)
         if optimade is not None:
-            q = filterparser.parse_filter(optimade)
+            q = filterparser.parse_filter(
+                optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
         abort(400, 'Could not parse optimade query: %s' % (str(e)))
@@ -336,10 +340,14 @@ def query_api_clientlib(**kwargs):
 
         return value
 
-    kwargs = {
+    query = {
         key: normalize_value(key, value) for key, value in kwargs.items()
         if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
     }
+
+    for key in ['dft.optimade']:
+        if key in kwargs:
+            query[key] = kwargs[key]
 
     out = io.StringIO()
     out.write('from nomad import client, config\n')
@@ -347,7 +355,7 @@ def query_api_clientlib(**kwargs):
     out.write('results = client.query_archive(query={%s' % ('' if len(kwargs) == 0 else '\n'))
     out.write(',\n'.join([
         '    \'%s\': %s' % (key, pprint.pformat(value, compact=True))
-        for key, value in kwargs.items()]))
+        for key, value in query.items()]))
     out.write('})\n')
     out.write('print(results)\n')
 
@@ -360,3 +368,29 @@ def query_api_curl(*args, **kwargs):
     '''
     url = query_api_url(*args, **kwargs)
     return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
+
+
+def enable_gzip(level: int = 1, min_size: int = 1024):
+    """
+    Args:
+        level: The gzip compression level from 1-9
+        min_size: The minimum response size in bytes for which the compression
+            will be enabled.
+    """
+    def inner(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            response = make_response(function(*args, **kwargs))
+            if response.status_code == 200:
+                accept_encoding = request.headers["Accept-Encoding"]
+                content_length = int(response.headers["Content-Length"])
+                if "gzip" in accept_encoding and content_length >= min_size:
+                    data = response.data
+                    data = gzip.compress(data, level)
+                    response.data = data
+                    response.headers['Content-Length'] = len(data)
+                    response.headers["Content-Encoding"] = "gzip"
+                    return response
+            return response
+        return wrapper
+    return inner

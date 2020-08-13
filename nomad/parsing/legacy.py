@@ -18,7 +18,7 @@ new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a un
 wrapper for parsers, parser logging, and a parser backend.
 '''
 
-from typing import Dict, List, Union, Any, Tuple, Type, cast
+from typing import List, Union, Any, Tuple, Type, cast
 from abc import ABCMeta, abstractmethod
 import importlib
 import os.path
@@ -30,7 +30,7 @@ import sys
 
 from nomad import utils, datamodel, config
 from nomad.metainfo import (
-    SubSection, Quantity, Section, Reference, MResource, MSection, MSectionBound, Property)
+    SubSection, Quantity, Section, SectionProxy, Reference, MResource, MSection, MSectionBound, Property)
 from nomad.metainfo.legacy import (
     LegacyMetainfoEnvironment, python_package_mapping, normalize_name)
 
@@ -38,10 +38,6 @@ from .parser import MatchingParser
 
 
 class BackendError(Exception):
-    pass
-
-
-class BadContextUri(Exception):
     pass
 
 
@@ -69,16 +65,6 @@ class AbstractParserBackend(metaclass=ABCMeta):
             self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
             parsingStats=None):
         ''' Called when the parsing finishes. '''
-        pass
-
-    @abstractmethod
-    def openContext(self, contextUri: str):
-        ''' Open existing archive data to introduce new data into an existing section. '''
-        pass
-
-    @abstractmethod
-    def closeContext(self, contextUri: str):
-        ''' Close priorly opened existing archive data again. '''
         pass
 
     @abstractmethod
@@ -203,6 +189,10 @@ class Backend(AbstractParserBackend):
             warnings and errors.
     '''
 
+    @staticmethod
+    def filter_legacy_defs(definition):
+        return definition.m_get_annotations('legacy') is not None
+
     def __init__(
             self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None,
             logger=None):
@@ -225,7 +215,6 @@ class Backend(AbstractParserBackend):
         self.entry_archive = datamodel.EntryArchive()
         self.resource.add(self.entry_archive)
 
-        self.__open_sections: Dict[Tuple[Section, int], MSection] = {}
         self.strict = False  # TODO
 
         self.reset_status()
@@ -234,17 +223,36 @@ class Backend(AbstractParserBackend):
         # self._known_attributes = ['results']
         # self.fileOut = io.StringIO()
 
+    def __open_section(self, section_def: Union[Section, SectionProxy], index: int = -1) -> MSection:
+        ''' Returns the last opened section with the given parent index. '''
+        sections = self.resource.all(section_def.section_cls)
+
+        if sections is None:
+            raise KeyError(
+                'section %s with given parent index %s does not exist' % (section_def.name, index))
+
+        if index == -1:
+            return sections[-1]
+
+        for section in reversed(sections):
+            if section.m_parent_index == index:
+                return section
+
+        raise KeyError(
+            'section %s with given parent index %s does not exist (B)' % (section_def.name, index))
+
     def __getitem__(self, key):
         property_def = self.resolve_definition(key, Property)
         section_def = property_def.m_parent
         if section_def.extends_base_section:
             section_def = section_def.base_sections[0]
 
+        section = self.__open_section(section_def)
         if isinstance(property_def, Quantity):
-            return self.__open_sections[(section_def, -1)].m_get(property_def)
+            return section.m_get(property_def)
 
         elif isinstance(property_def, SubSection):
-            return self.__open_sections[(section_def, -1)].m_get_sub_sections(property_def)
+            return section.m_get_sub_sections(property_def)
 
     def metaInfoEnv(self):
         if self.__legacy_env is None:
@@ -252,64 +260,8 @@ class Backend(AbstractParserBackend):
         return self.__legacy_env
 
     def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
-        return self.env.resolve_definition(normalize_name(name), section_cls)
-
-    def resolve_context(self, context_uri: str):
-        path = context_uri.strip('/').split('/')
-        path.reverse()
-        current = None
-        while len(path) > 0:
-            section = path.pop()
-            if len(path) == 0:
-                raise BadContextUri(context_uri)
-            index = int(path.pop())
-            if current is None:
-                section_def = self.resolve_definition(section, Section)
-                if section_def is None:
-                    raise BadContextUri(context_uri)
-                i = 0
-                for content in self.entry_archive.m_contents():
-                    if content.m_follows(section_def):
-                        if i == index:
-                            current = content
-                            break
-
-                        i += 1
-
-            else:
-                sub_section_def = self.resolve_definition(section, SubSection)
-                if sub_section_def is None:
-                    raise BadContextUri(context_uri)
-                current = current.m_get_sub_section(sub_section_def, index)
-
-        if current is None:
-            raise BadContextUri(context_uri)
-
-        return current
-
-    def openContext(self, context_uri: str):
-        ''' Open existing archive data to introduce new data into an existing section. '''
-        section = self.resolve_context(context_uri)
-        self.__open(section)
-
-    def closeContext(self, context_uri: str):
-        ''' Close priorly opened existing archive data again. '''
-        section = self.resolve_context(context_uri)
-        self.__close(section)
-
-    def __open(self, section):
-        if section.m_parent_index != -1:
-            self.__open_sections[(section.m_def, section.m_parent_index)] = section
-
-        # here -1 meaning the last opened section
-        self.__open_sections[(section.m_def, -1)] = section
-
-    def __close(self, section):
-        # TODO
-        pass
-        # if section.m_parent_index != -1 and self.__open_sections.get((section.m_def, -1)) == section:
-        #     del(self.__open_sections[(section.m_def, -1)])
-        # del(self.__open_sections[(section.m_def, section.m_parent_index)])
+        return self.env.resolve_definition(
+            normalize_name(name), section_cls, Backend.filter_legacy_defs)
 
     def openSection(self, name, parent_index: int = -1, return_section=False):
         '''
@@ -335,10 +287,8 @@ class Backend(AbstractParserBackend):
             if parent_section_def.extends_base_section:
                 parent_section_def = parent_section_def.base_sections[0]
 
-            parent = self.__open_sections[(parent_section_def, parent_index)]
+            parent = self.__open_section(parent_section_def, parent_index)
             section = parent.m_create(section_def.section_cls, sub_section_def)
-
-        self.__open(section)
 
         if return_section:
             return section
@@ -352,16 +302,12 @@ class Backend(AbstractParserBackend):
         if section_def.extends_base_section:
             section_def = section_def.base_sections[0]
 
-        section = self.__open_sections[(section_def, g_index)]
+        section = self.__open_section(section_def, g_index)
 
         return section, quantity_def
 
     def closeSection(self, name, g_index):
-        # TODO
-        if self.strict:
-            section_def = self.resolve_definition(name, Section)
-            section = self.__open_sections[(section_def, g_index)]
-            self.__close(section)
+        pass
 
     def openNonOverlappingSection(self, metaName):
         return self.openSection(metaName)
@@ -388,14 +334,11 @@ class Backend(AbstractParserBackend):
         section, quantity_def = self.get_open_section_for_quantity(name, g_index)
         if isinstance(quantity_def.type, Reference):
             # quantity is a reference
-            possible_targets = self.resource.all(quantity_def.type.target_section_def.section_cls)
-            referenced_target = None
-            for target in possible_targets:
-                if target.m_parent_index == value:
-                    referenced_target = target
-
-            if referenced_target is None:
-                raise BackendError('There is not section for the given reference index')
+            try:
+                referenced_target = self.__open_section(
+                    quantity_def.type.target_section_def, value)
+            except KeyError as e:
+                raise BackendError(str(e))
 
             value = referenced_target
 
@@ -428,15 +371,12 @@ class Backend(AbstractParserBackend):
         section, quantity_def = self.get_open_section_for_quantity(name, gIndex)
         if isinstance(quantity_def.type, Reference):
             # quantity is a reference
-            possible_targets = self.resource.all(quantity_def.type.target_section_def.section_cls)
             resolved_values = []
             for value in values:
-                referenced_target = None
-                for target in possible_targets:
-                    if target.m_parent_index == value:
-                        referenced_target = target
-
-                if referenced_target is None:
+                # quantity is a reference
+                try:
+                    referenced_target = self.__open_section(quantity_def.type.target_section_def, value)
+                except KeyError:
                     raise BackendError('There is not section for the given reference index')
 
                 resolved_values.append(referenced_target)

@@ -12,9 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Blueprint
+from flask import Blueprint, request
 import os.path
 
 gui_folder = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '../../gui/build'))
 blueprint = Blueprint('gui', __name__, static_url_path='/', static_folder=gui_folder)
+
+
+@blueprint.after_request
+def add_header(response):
+    if request.url.endswith('index.html'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    if request.url.endswith('.js'):
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    return response

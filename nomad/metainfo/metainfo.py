@@ -31,7 +31,7 @@ import pytz
 import docstring_parser
 import jmespath
 
-from nomad.units import ureg
+from nomad.units import ureg as units
 
 
 m_package: 'Package' = None
@@ -133,7 +133,7 @@ class SectionProxy(MProxy):
     def m_proxy_resolve(self):
         if self.m_proxy_section and not self.m_proxy_resolved:
             root = self.m_proxy_section
-            while root is not None and not isinstance(root, Package):
+            while root.m_parent is not None and not isinstance(root, Package):
                 root = root.m_parent
 
             if isinstance(root, Package):
@@ -221,7 +221,7 @@ class _Dimension(DataType):
 class _Unit(DataType):
     def set_normalize(self, section, quantity_def: 'Quantity', value):
         if isinstance(value, str):
-            value = ureg.parse_units(value)
+            value = units.parse_units(value)
 
         elif not isinstance(value, pint.unit._Unit):
             raise TypeError('Units must be given as str or pint Unit instances.')
@@ -232,7 +232,7 @@ class _Unit(DataType):
         return value.__str__()
 
     def deserialize(self, section, quantity_def: 'Quantity', value):
-        return ureg.parse_units(value)
+        return units.parse_units(value)
 
 
 class _Callable(DataType):
@@ -344,7 +344,7 @@ class Reference(DataType):
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(self.target_section_def, MProxy):
             proxy = self.target_section_def
-            proxy.m_proxy_section = section
+            proxy.m_proxy_section = section.m_def
             proxy.m_proxy_quantity = quantity_def
             self.target_section_def = proxy.m_proxy_resolve()
 
@@ -521,8 +521,23 @@ class MResource():
         return cast(MSectionBound, result)
 
     def add(self, section):
-        section.m_resource = self
-        self.__data.setdefault(section.m_def, []).append(section)
+        '''
+        Add the given section to this resource. Will also add all its contents to the
+        resource and make all contest available for :func:`all`. Will also remove
+        all contents from possible other resources. A section can only be contained in
+        one resource at a time.
+
+        This is potentially expensive. Do not add a section that already has a deep tree
+        of sub-sections. Ideally, add the root section first. If you create sub sections
+        afterwards, they will be automatically added to this resource.
+        '''
+        if section.m_resource is not None:
+            section.m_resource.remove(section)
+
+        for content in section.m_all_contents(include_self=True):
+            content.m_resource = self
+            self.__data.setdefault(content.m_def, []).append(content)
+
         if section.m_parent is None:
             self.contents.append(section)
 
@@ -822,20 +837,21 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     (quantity_def, value))
             value = value.to(quantity_def.unit).magnitude
 
-        if len(quantity_def.shape) > 0 and type(value) != np.ndarray:
-            try:
-                value = np.asarray(value)
-            except TypeError:
-                raise TypeError(
-                    'Could not convert value %s of %s to a numpy array' %
-                    (value, quantity_def))
-        elif type(value) != quantity_def.type.type:
-            try:
-                value = quantity_def.type.type(value)
-            except TypeError:
-                raise TypeError(
-                    'Could not convert value %s of %s to a numpy scalar' %
-                    (value, quantity_def))
+        if type(value) != np.ndarray:
+            if len(quantity_def.shape) > 0:
+                try:
+                    value = np.asarray(value)
+                except TypeError:
+                    raise TypeError(
+                        'Could not convert value %s of %s to a numpy array' %
+                        (value, quantity_def))
+            elif type(value) != quantity_def.type.type:
+                try:
+                    value = quantity_def.type.type(value)
+                except TypeError:
+                    raise TypeError(
+                        'Could not convert value %s of %s to a numpy scalar' %
+                        (value, quantity_def))
 
         return self.__check_np(quantity_def, value)
 
@@ -1072,7 +1088,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 def reference_serialize(value):
                     if isinstance(value, MProxy):
-                        return value.m_proxy_url
+                        if value.m_proxy_resolved is not None:
+                            return quantity_type.serialize(self, quantity, value)
+                        else:
+                            return value.m_proxy_url
                     else:
                         return quantity_type.serialize(self, quantity, value)
                 serialize = reference_serialize
@@ -2120,7 +2139,7 @@ class Section(Definition):
 
         extends_base_section:
             If True, this definition must have exactly one ``base_sections``.
-            Instead of inheriting properties, he quantity and sub-section definitions
+            Instead of inheriting properties, the quantity and sub-section definitions
             of this section will be added to the base section.
 
             This allows to add further properties to an existing section definition.
@@ -2617,15 +2636,22 @@ class Environment(MSection):
 
         return all_definitions_by_name
 
-    def resolve_definitions(self, name: str, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
+    def resolve_definitions(
+            self, name: str, section_cls: Type[MSectionBound],
+            filter: TypingCallable[[MSection], bool] = None) -> List[MSectionBound]:
+
         return [
             definition
             for definition in self.all_definitions_by_name.get(name, [])
             if isinstance(definition, section_cls)
-            if not (isinstance(definition, Section) and definition.extends_base_section)]
+            if not (isinstance(definition, Section) and definition.extends_base_section)
+            if filter is None or filter(definition)]
 
-    def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
-        defs = self.resolve_definitions(name, section_cls)
+    def resolve_definition(
+            self, name, section_cls: Type[MSectionBound],
+            filter: TypingCallable[[MSection], bool] = None) -> MSectionBound:
+
+        defs = self.resolve_definitions(name, section_cls, filter=filter)
         if len(defs) == 1:
             return defs[0]
         elif len(defs) > 1:

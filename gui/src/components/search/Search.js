@@ -19,12 +19,18 @@ import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext } from './SearchContext'
 import {objectFilter} from '../../utils'
+import MaterialsList from './MaterialsList'
 
 const resultTabs = {
   'entries': {
     label: 'Entries',
     groups: {},
     component: SearchEntryList
+  },
+  'materials': {
+    label: 'Materials',
+    groups: {'encyclopedia.material.materials_grouped': true},
+    component: SearchMaterialsList
   },
   'groups': {
     label: 'Grouped entries',
@@ -113,7 +119,7 @@ Search.propTypes = {
 const useSearchEntryStyles = makeStyles(theme => ({
   search: {
     marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(8),
+    marginBottom: theme.spacing(2),
     maxWidth: 1024,
     margin: 'auto',
     width: '100%'
@@ -130,7 +136,8 @@ const useSearchEntryStyles = makeStyles(theme => ({
     marginRight: 0
   },
   searchBar: {
-    marginTop: theme.spacing(1)
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   },
   selectButton: {
     margin: theme.spacing(1)
@@ -227,7 +234,7 @@ function UsersVisualization() {
     // eslint-disable-next-line
   }, [])
   return <div>
-    <UploadsHistogram tooltips />
+    <UploadsHistogram tooltips initialScale={0.5} />
     <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
@@ -407,6 +414,7 @@ const ownerLabel = {
   visible: 'Include your private entries',
   public: 'Only public entries',
   user: 'Only your entries',
+  shared: 'Incl. shared data',
   staging: 'Staging area only'
 }
 
@@ -415,6 +423,7 @@ const ownerTooltips = {
   visible: 'Do also show entries that are only visible to you.',
   public: 'Do not show entries with embargo.',
   user: 'Do only show entries visible to you.',
+  shared: 'Also include data that is shared with you',
   staging: 'Will only show entries that you uploaded, but not yet published.'
 }
 
@@ -422,7 +431,7 @@ function OwnerSelect(props) {
   const {ownerTypes, initialOwner} = props
   const {setOwner} = useContext(searchContext)
 
-  const ownerTypesToRender = ownerTypes.length === 2 ? [ownerTypes[1]] : ownerTypes
+  const ownerTypesToRender = ownerTypes.length === 1 ? [] : ownerTypes.slice(1)
 
   const [ownerParam, setOwnerParam] = useQueryParam('owner', StringParam)
   const owner = ownerParam || initialOwner || 'all'
@@ -432,10 +441,10 @@ function OwnerSelect(props) {
   }, [owner, setOwner])
 
   const handleChange = (event) => {
-    if (ownerTypes.length === 2) {
-      setOwnerParam(event.target.checked ? ownerTypes[1] : ownerTypes[0])
-    } else {
+    if (ownerParam !== event.target.value) {
       setOwnerParam(event.target.value)
+    } else {
+      setOwnerParam(initialOwner)
     }
   }
 
@@ -450,7 +459,7 @@ function OwnerSelect(props) {
           <FormControlLabel
             control={<Checkbox
               checked={owner === ownerToRender}
-              onChange={handleChange} value="owner"
+              onChange={handleChange} value={ownerToRender}
             />}
             label={ownerLabel[ownerToRender]}
           />
@@ -465,7 +474,9 @@ OwnerSelect.propTypes = {
 }
 
 const useSearchResultStyles = makeStyles(theme => ({
-  root: theme.spacing(4)
+  root: {
+    marginTop: theme.spacing(4)
+  }
 }))
 function SearchResults({availableTabs = ['entries'], initialTab = 'entries', resultListProps = {}}) {
   const classes = useSearchResultStyles()
@@ -600,5 +611,14 @@ function SearchUploadList(props) {
     onEdit={update}
     actions={<ReRunSearchButton/>}
     {...response} {...props} {...useScroll('uploads')}
+  />
+}
+
+function SearchMaterialsList(props) {
+  const {response} = useContext(searchContext)
+  return <MaterialsList
+    data={response}
+    actions={<ReRunSearchButton/>}
+    {...response} {...props} {...useScroll('encyclopedia.material.materials', 'materials_after')}
   />
 }

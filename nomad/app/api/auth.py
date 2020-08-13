@@ -320,7 +320,6 @@ def create_authorization_predicate(upload_id, calc_id=None):
             if g.user.user_id == upload.user_id:
                 return True
 
-            # TODO I doubt if shared_with is actually working
             if calc_id is not None:
                 try:
                     calc = processing.Calc.get(calc_id)

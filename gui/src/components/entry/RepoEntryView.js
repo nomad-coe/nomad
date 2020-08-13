@@ -9,6 +9,7 @@ import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
+import { EntryPageContent } from './EntryPage'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -94,7 +95,7 @@ class RepoEntryView extends React.Component {
     }
 
     return (
-      <div className={classes.root}>
+      <EntryPageContent className={classes.root} fixed>
         <Grid container spacing={2}>
           <Grid item xs={7}>
             <Card>
@@ -147,11 +148,10 @@ class RepoEntryView extends React.Component {
               <CardContent classes={{root: classes.cardContent}}>
                 <Quantity column style={{maxWidth: 350}}>
                   <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps} />
-                  <Quantity quantity="pid" label='PID' loading={loading} placeholder="not yet assigned" noWrap {...quantityProps} withClipboard />
+                  <Quantity quantity={entry => entry.encyclopedia.material.material_id} label='material id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />
                   <Quantity quantity="mainfile" loading={loading} noWrap ellipsisFront {...quantityProps} withClipboard />
-                  <Quantity quantity="calc_hash" label={`${domain ? domain.entryLabel : 'entry'} hash`} loading={loading} noWrap {...quantityProps} />
                   <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                   <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
                     <Typography noWrap>
@@ -175,7 +175,7 @@ class RepoEntryView extends React.Component {
         </Grid>
 
         {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />}
-      </div>
+      </EntryPageContent>
     )
   }
 }

@@ -41,7 +41,7 @@ All docker container are configured via docker-compose an the respective `docker
 Further, we will need to mount some configuration files to configure the NOMAD services within
 their respective containers.
 
-Please [write us](mailto:webmaster@nomad-coe.eu) to register your NOMAD account as an OASIS
+Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
 admin and to register your hostname. Please replace the indicated configuration items with
 the right information.
 
@@ -203,7 +203,7 @@ The GUI also has a config file, called `env.js` with a similar function than `no
 ```js
 window.nomadEnv = {
   'appBase': '/nomad-oasis/',
-  'keycloakBase': 'https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+  'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
   'keycloakRealm': 'fairdi_nomad_prod',
   'keycloakClientId': 'nomad_public',
   'debug': false,
@@ -352,7 +352,7 @@ Will will probably provide functionality in the API of the central NOMAD to uplo
 ### How to maintain an Oasis installation?
 
 #### How to install a NOMAD Oasis?
-Follow our guide: https://repository.nomad-coe.eu/app/docs/ops.html#operating-a-nomad-oasis
+Follow our guide: https://nomad-lab.eu/prod/rae/docs/ops.html#operating-a-nomad-oasis
 
 #### How do version numbers work?
 There are still a lot of thing in NOMAD that are subject to change. Currently, changes in the minor version number (0.x.0) designate major changes that require data migration. Changes in the patch version number (0.7.x) just contain minor changes and fixes and do not require data migration. Once we reach 1.0.0, NOMAD will use the regular semantic versioning conventions.

@@ -109,6 +109,12 @@ export default function SearchBar() {
   }, [api, currentLoadOptionsConfigRef, apiQuery, loading, setLoading])
 
   const getOptionLabel = useCallback(option => {
+    if (option.quantity === 'from_time' || option.quantity === 'until_time') {
+      if (option.value) {
+        return `${option.quantity.replace('_time', '')}=${option.value.substring(0, 10)}`
+      }
+    }
+
     let label = option.quantity + '='
     if (option.value) {
       if (Array.isArray(option.value)) {

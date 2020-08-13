@@ -14,9 +14,15 @@ module.exports = {
         "fetch": false,
         "browser": true
     },
+    "plugins": [
+        "react", "react-hooks"
+    ],
     "rules": {
         "space-before-function-paren": ["error", "never"],
-        "camelcase": [0]
+        "camelcase": [0],
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn",
+        "react/display-name": [0]
     },
     "settings": {
         "react": {

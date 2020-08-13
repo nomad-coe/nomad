@@ -5,14 +5,16 @@ We release the NOMAD client library as a Python `distutils <https://docs.python.
 You can download and install it the usual way using *pip* (or *conda*).
 
 Install from pypi
-.. parsed-literal::
+
+.. code-block:: sh
 
     pip install nomad-lab
 
 Download and install latest release from nomad
-.. parsed-literal::
 
-    curl https://repository.nomad-coe.eu/v0.8/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
+.. code-block:: sh
+
+    curl https://nomad-lab.eu/prod/rae/dist/nomad-lab.tar.gz -o nomad-lab.tar.gz
     pip install ./nomad-lab.tar.gz
 
 There are different layers of dependencies that you have to install, in order to use
@@ -24,14 +26,16 @@ Other functions, e.g. using the NOMAD parsers to parse your code output, require
 additional dependencies. You can use the ``[extra]`` notation to install these extra
 requirements:
 
-.. parsed-literal::
+.. code-block:: sh
 
     pip install nomad-lab[parsing]
     pip install nomad-lab[infrastructure]
     pip install nomad-lab[dev]
+    pip install nomad-lab[all]
 
 The various *extras* have the following meaning:
 
 - ``parsing``, everything necessary to run the parsers
 - ``infrastructure``, everything to run NOMAD services
 - ``dev``, additional tools that are necessary to develop NOMAD
+- ``all``, all of the above

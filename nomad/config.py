@@ -120,7 +120,7 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
-    server_url='https://repository.nomad-coe.eu/fairdi/keycloak/auth/',
+    server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_test',
     username='admin',
     password='password',
@@ -169,10 +169,14 @@ def api_url(ssl: bool = True):
         services.api_base_path.strip('/'))
 
 
-def gui_url():
+def gui_url(page: str = None):
     base = api_url(True)[:-3]
     if base.endswith('/'):
         base = base[:-1]
+
+    if page is not None:
+        return '%s/gui/%s' % (base, page)
+
     return '%s/gui' % base
 
 
@@ -206,8 +210,8 @@ mail = NomadConfig(
     port=8995,
     user='',
     password='',
-    from_address='webmaster@nomad-coe.eu',
-    cc_address='webmaster@nomad-coe.eu'
+    from_address='support@nomad-lab.eu',
+    cc_address='support@nomad-lab.eu'
 )
 
 normalize = NomadConfig(
@@ -229,7 +233,7 @@ normalize = NomadConfig(
     max_2d_single_cell_size=7,
     # The distance tolerance between atoms for grouping them into the same
     # cluster. Used in detecting system type.
-    cluster_threshold=3.1,
+    cluster_threshold=2.5,
     # Defines the "bin size" for rounding cell angles for the material hash
     angle_rounding=float(10.0),  # unit: degree
     # The threshold for a system to be considered "flat". Used e.g. when
@@ -239,8 +243,8 @@ normalize = NomadConfig(
     # The threshold for point equality in k-space. Unit: 1/m.
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
-    # level in order to detect a gap. k_B x T at room temperature. Unit: Joule
-    band_structure_energy_tolerance=300 * 1.38064852E-23,
+    # level in order to detect a gap. Unit: Joule.
+    band_structure_energy_tolerance=1.6022e-20,  # 0.1 eV
     springer_db_path=os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'normalizing/data/springer.msg'
@@ -250,7 +254,7 @@ normalize = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://repository.nomad-coe.eu/app/api'
+    url='http://nomad-lab.eu/prod/rae/api'
 )
 
 datacite = NomadConfig(
@@ -262,14 +266,14 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.8.1',
+    version='0.8.4',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
     description='A FAIR data sharing platform for materials science data',
-    homepage='https://repository.nomad-coe.eu/v0.8',
+    homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de'
 )
@@ -393,11 +397,12 @@ def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml'))
                                     'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
                         else:
                             config[key] = value
-                            logger.info('override config key %s with value %s' % (key, str(value)))
+                            logger.debug('override config key %s with value %s' % (key, str(value)))
                 else:
                     logger.error('config key %s does not exist' % key)
 
-        adapt(globals(), config_data)
+        if config_data is not None:
+            adapt(globals(), config_data)
 
     # load env and override yaml and defaults
     kwargs = {

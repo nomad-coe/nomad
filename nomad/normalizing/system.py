@@ -24,6 +24,9 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 
 from nomad import atomutils, archive
 from nomad import utils, config
+from nomad.datamodel.metainfo.public import section_symmetry, section_std_system, \
+    section_primitive_system, section_original_system, section_springer_material, \
+    section_prototype, section_system
 
 from .normalizer import SystemBasedNormalizer
 
@@ -89,10 +92,13 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         Returns: True, iff the normalization was successful
         '''
+        if self.section_run is None:
+            self.logger.error('section_run is not present.')
+            return False
 
-        def get_value(key: str, default: Any = None, numpy: bool = True) -> Any:
+        def get_value(quantity_def, default: Any = None, numpy: bool = True) -> Any:
             try:
-                value = self._backend.get_value(key, system.m_parent_index)
+                value = system.m_get(quantity_def)
                 if not numpy and type(value).__module__ == np.__name__:
                     value = value.tolist()
 
@@ -103,18 +109,15 @@ class SystemNormalizer(SystemBasedNormalizer):
             except (KeyError, IndexError):
                 return default
 
-        def set_value(key: str, value: Any):
-            self._backend.addValue(key, value)
-
         if is_representative:
-            self._backend.addValue('is_representative', is_representative)
+            system.is_representative = is_representative
 
         # analyze atoms labels
-        atom_labels = get_value('atom_labels', numpy=False)
+        atom_labels = get_value(section_system.atom_labels, numpy=False)
         if atom_labels is not None:
             atom_labels = normalized_atom_labels(atom_labels)
 
-        atom_species = get_value('atom_species', numpy=False)
+        atom_species = get_value(section_system.atom_species, numpy=False)
         if atom_labels is None and atom_species is None:
             self.logger.warn('system has neither atom species nor labels')
             return False
@@ -127,7 +130,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 self.logger.error('system has atom species that are out of range')
                 return False
 
-            self._backend.addArrayValues('atom_labels', atom_labels)
+            system.atom_labels = atom_labels
 
         # At this point we should have atom labels.
         try:
@@ -144,7 +147,7 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         if atom_species is None:
             atom_species = atoms.get_atomic_numbers().tolist()
-            self._backend.addArrayValues('atom_species', atom_species)
+            system.atom_species = atom_species
         else:
             if not isinstance(atom_species, list):
                 atom_species = [atom_species]
@@ -153,14 +156,14 @@ class SystemNormalizer(SystemBasedNormalizer):
                     'atom species do not match labels',
                     atom_labels=atom_labels[:10], atom_species=atom_species[:10])
                 atom_species = atoms.get_atomic_numbers().tolist()
-            set_value('atom_species', atom_species)
+            system.atom_species = atom_species
 
         # periodic boundary conditions
-        pbc = get_value('configuration_periodic_dimensions', numpy=False)
+        pbc = get_value(section_system.configuration_periodic_dimensions, numpy=False)
         if pbc is None:
             pbc = [False, False, False]
             self.logger.warning('missing configuration_periodic_dimensions')
-            set_value('configuration_periodic_dimensions', pbc)
+            system.configuration_periodic_dimensions = pbc
         try:
             atoms.set_pbc(pbc)
         except Exception as e:
@@ -169,12 +172,12 @@ class SystemNormalizer(SystemBasedNormalizer):
             return False
 
         # formulas
-        set_value('chemical_composition', atoms.get_chemical_formula(mode='all'))
-        set_value('chemical_composition_reduced', atoms.get_chemical_formula(mode='reduce'))
-        set_value('chemical_composition_bulk_reduced', atoms.get_chemical_formula(mode='hill'))
+        system.chemical_composition = atoms.get_chemical_formula(mode='all')
+        system.chemical_composition_reduced = atoms.get_chemical_formula(mode='reduce')
+        system.chemical_composition_bulk_reduced = atoms.get_chemical_formula(mode='hill')
 
         # positions
-        atom_positions = get_value('atom_positions', None, numpy=True)
+        atom_positions = get_value(section_system.atom_positions, numpy=True)
         if atom_positions is None:
             self.logger.warning('no atom positions, skip further system analysis')
             return False
@@ -191,11 +194,11 @@ class SystemNormalizer(SystemBasedNormalizer):
             return False
 
         # lattice vectors
-        lattice_vectors = get_value('lattice_vectors', numpy=True)
+        lattice_vectors = get_value(section_system.lattice_vectors, numpy=True)
         if lattice_vectors is None:
-            lattice_vectors = get_value('simulation_cell', numpy=True)
+            lattice_vectors = get_value(section_system.simulation_cell, numpy=True)
             if lattice_vectors is not None:
-                set_value('lattice_vectors', lattice_vectors)
+                system.lattice_vectors = lattice_vectors
         if lattice_vectors is None:
             if any(pbc):
                 self.logger.error('no lattice vectors but periodicity', pbc=pbc)
@@ -213,7 +216,7 @@ class SystemNormalizer(SystemBasedNormalizer):
             atoms.cell.tolist() if atoms.cell is not None else None,
             atoms.pbc.tolist()]
         configuration_id = utils.hash(json.dumps(configuration).encode('utf-8'))
-        set_value('configuration_raw_gid', configuration_id)
+        system.configuration_raw_gid = configuration_id
 
         if is_representative:
             # Save the Atoms as a temporary variable
@@ -226,8 +229,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                         system_size=len(atoms)):
                     self.system_type_analysis(atoms)
 
-            system_type = self._backend.get_value("system_type")
-
+            system_type = system.system_type
             # Symmetry analysis
             if atom_positions is not None and (lattice_vectors is not None or not any(pbc)) and system_type == "bulk":
                 with utils.timer(
@@ -240,7 +242,7 @@ class SystemNormalizer(SystemBasedNormalizer):
     def system_type_analysis(self, atoms: Atoms) -> None:
         '''
         Determine the system type with MatID. Write the system type to the
-        backend.
+        entry_archive.
 
         Args:
             atoms: The structure to analyse
@@ -248,7 +250,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         system_type = config.services.unavailable_value
         if len(atoms) <= config.normalize.system_classification_with_clusters_threshold:
             try:
-                classifier = Classifier(cluster_threshold=config.normalize.cluster_threshold)
+                classifier = Classifier(radii="covalent", cluster_threshold=config.normalize.cluster_threshold)
                 cls = classifier.classify(atoms)
             except Exception as e:
                 self.logger.error(
@@ -269,22 +271,23 @@ class SystemNormalizer(SystemBasedNormalizer):
                     system_type = '2D'
         else:
             self.logger.info("system type analysis not run due to large system size")
-
-        self._backend.addValue('system_type', system_type)
+        idx = self.section_run.m_cache["representative_system_idx"]
+        self.section_run.section_system[idx].system_type = system_type
+        self.section_run.section_system[-1].system_type = system_type
 
     def symmetry_analysis(self, system, atoms: ase.Atoms) -> None:
         '''Analyze the symmetry of the material being simulated. Only performed
         for bulk materials.
 
         We feed in the parsed values in section_system to the the symmetry
-        analyzer. The analysis results are written to the backend.
+        analyzer. The analysis results are written to the entry_archive.
 
         Args:
             atoms: The atomistic structure to analyze.
 
         Returns:
             None: The method should write symmetry variables
-            to the backend which is member of this class.
+            to the entry_archive which is member of this class.
         '''
         # Try to use MatID's symmetry analyzer to analyze the ASE object.
         try:
@@ -329,7 +332,8 @@ class SystemNormalizer(SystemBasedNormalizer):
 
         # Write data extracted from MatID's symmetry analysis to the
         # representative section_system.
-        sec_symmetry = self._backend.openSection("section_symmetry", return_section=True)
+
+        sec_symmetry = system.m_create(section_symmetry)
         sec_symmetry.m_cache["symmetry_analyzer"] = symm
 
         sec_symmetry.symmetry_method = 'MatID (spg)'
@@ -343,21 +347,21 @@ class SystemNormalizer(SystemBasedNormalizer):
         sec_symmetry.origin_shift = origin_shift
         sec_symmetry.transformation_matrix = transform
 
-        sec_std = self._backend.openSection("section_std_system", return_section=True)
+        sec_std = sec_symmetry.m_create(section_std_system)
         sec_std.lattice_vectors_std = conv_cell
         sec_std.atom_positions_std = conv_pos
         sec_std.atomic_numbers_std = conv_num
         sec_std.wyckoff_letters_std = conv_wyckoff
         sec_std.equivalent_atoms_std = conv_equivalent_atoms
 
-        sec_prim = self._backend.openSection("section_primitive_system", return_section=True)
+        sec_prim = sec_symmetry.m_create(section_primitive_system)
         sec_prim.lattice_vectors_primitive = prim_cell
         sec_prim.atom_positions_primitive = prim_pos
         sec_prim.atomic_numbers_primitive = prim_num
         sec_prim.wyckoff_letters_primitive = prim_wyckoff
         sec_prim.equivalent_atoms_primitive = prim_equivalent_atoms
 
-        sec_orig = self._backend.openSection("section_original_system", return_section=True)
+        sec_orig = sec_symmetry.m_create(section_original_system)
         sec_orig.wyckoff_letters_original = orig_wyckoff
         sec_orig.equivalent_atoms_original = orig_equivalent_atoms
 
@@ -367,25 +371,24 @@ class SystemNormalizer(SystemBasedNormalizer):
     def springer_classification(self, atoms, space_group_number):
         normalized_formula = formula_normalizer(atoms)
         springer_data = query_springer_data(normalized_formula, space_group_number)
+        idx = self.section_run.m_cache["representative_system_idx"]
 
         for material in springer_data.values():
-            self._backend.openNonOverlappingSection('section_springer_material')
+            sec_springer_mat = self.section_run.section_system[idx].m_create(section_springer_material)
 
-            self._backend.addValue('springer_id', material['spr_id'])
-            self._backend.addValue('springer_alphabetical_formula', material['spr_aformula'])
-            self._backend.addValue('springer_url', material['spr_url'])
+            sec_springer_mat.springer_id = material['spr_id']
+            sec_springer_mat.springer_alphabetical_formula = material['spr_aformula']
+            sec_springer_mat.springer_url = material['spr_url']
 
             compound_classes = material['spr_compound']
             if compound_classes is None:
                 compound_classes = []
-            self._backend.addArrayValues('springer_compound_class', compound_classes)
+            sec_springer_mat.springer_compound_class = compound_classes
 
             classifications = material['spr_classification']
             if classifications is None:
                 classifications = []
-            self._backend.addArrayValues('springer_classification', classifications)
-
-            self._backend.closeNonOverlappingSection('section_springer_material')
+            sec_springer_mat.springer_classification = classifications
 
         # Check the 'springer_classification' and 'springer_compound_class' information
         # found is the same for all springer_id's
@@ -424,7 +427,8 @@ class SystemNormalizer(SystemBasedNormalizer):
                 aflow_prototype_name,
                 protoDict.get("Pearsons Symbol", "-")
             )
-            sec_prototype = self._backend.openSection("section_prototype", return_section=True)
+            idx = self.section_run.m_cache["representative_system_idx"]
+            sec_prototype = self.section_run.section_system[idx].m_create(section_prototype)
             sec_prototype.prototype_label = prototype_label
             sec_prototype.prototype_aflow_id = aflow_prototype_id
             sec_prototype.prototype_aflow_url = aflow_prototype_url

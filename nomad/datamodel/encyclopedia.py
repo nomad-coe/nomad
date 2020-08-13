@@ -1,8 +1,14 @@
 import numpy as np
-from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference
-from nomad.datamodel.metainfo.public import section_k_band, section_dos, section_thermodynamical_properties
-from nomad.metainfo.search_extension import Search
 from elasticsearch_dsl import Text, Keyword
+
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Reference, Package
+from nomad.metainfo.search_extension import Search
+
+# This is usally defined automatically when the first metainfo definition is evaluated, but
+# due to the next imports requireing the m_package already, this would be too late.
+m_package = Package()
+
+from .metainfo.public import section_k_band, section_dos, section_thermodynamical_properties  # noqa
 
 
 class WyckoffVariables(MSection):
@@ -309,7 +315,10 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_search=Search()
+        a_search=Search(
+            group='materials_grouped',
+            metric='cardinality', metric_name='materials',
+            description='Search for a particular material by its id.')
     )
     material_name = Quantity(
         type=str,

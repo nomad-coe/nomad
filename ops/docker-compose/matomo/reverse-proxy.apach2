@@ -1,5 +1,5 @@
 RewriteRule "^/fairdi/stat/stat.js$" "http://<the ip address>:8001/piwik.js" [p]
-RewriteRule "^/fairdi/stat/stat.php$" "http://<the ip address>:8001/piwik.php" [p]
+RewriteRule "^/fairdi/stat/stat$" "http://<the ip address>:8001/piwik.php" [p]
 ProxyPass /fairdi/stat http://<the ip address>:8001
 ProxyPassReverse /fairdi/stat http://<the ip address>:8001
 <Proxy http://<the ip address>:8001/app>

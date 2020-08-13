@@ -59,7 +59,6 @@ export default function DatasetPage() {
     return <div>loading...</div>
   }
 
-  console.log('### DatasetPage', dataset)
   return <div>
     <div className={classes.header}>
       <div className={classes.description}>
@@ -75,6 +74,7 @@ export default function DatasetPage() {
       query={{dataset_id: [datasetId]}}
       ownerTypes={['all', 'public']}
       initialResultTab="entries"
+      resultListProps={{showAccessColumn: true}}
       availableResultTabs={['entries', 'groups', 'datasets']}
     />
   </div>

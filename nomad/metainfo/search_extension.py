@@ -125,7 +125,6 @@ class Search(Elastic):
         super().init_annotation(definition)
 
     def register(self, prefix, field):
-        # TODO support more deeply nested quantities
         domain_or_all = self.definition.m_parent.m_get_annotations('domain', '__all__')
 
         prefix_and_dot = prefix + '.' if prefix is not None else ''

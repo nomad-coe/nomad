@@ -22,7 +22,7 @@ import importlib
 
 from nomad.metainfo.legacy import python_package_mapping, LegacyMetainfoEnvironment
 from nomad.metainfo import Package
-from nomad.parsing import parsers
+from nomad.parsing.parsers import parsers
 
 from .api import api
 
@@ -102,21 +102,12 @@ class LegacyMetainfoResource(Resource):
         Other required packages might also be returned, e.g. a parser might organize its
         definitions in multiple packages.
         '''
-        package = metainfo_package_name
-        if package.endswith('.nomadmetainfo.json'):
-            package = package[:-19]
-        if package.endswith('.json'):
-            package = package[:-5]
-
         try:
-            python_package_name, _ = python_package_mapping(package)
-            python_package_name = '.'.join(python_package_name.split('.')[:-1])
-            python_module = importlib.import_module(python_package_name)
-            metainfo = getattr(python_module, 'm_env')
+            metainfo = LegacyMetainfoEnvironment.from_legacy_package_path(metainfo_package_name)
         except (ImportError, KeyError, FileNotFoundError, AttributeError):
-            abort(404, message='Metainfo package %s does not exist.' % package)
+            abort(404, message='Metainfo package %s does not exist.' % metainfo_package_name)
 
         if isinstance(metainfo, LegacyMetainfoEnvironment):
             return metainfo.to_legacy_dict(metainfo.packages)
         else:
-            abort(404, message='Metainfo package %s is not a legacy package.' % package)
+            abort(404, message='Metainfo package %s is not a legacy package.' % metainfo_package_name)

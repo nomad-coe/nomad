@@ -795,6 +795,7 @@ class TestRepo():
             domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
         entry_metadata.files = ['test/mainfile.txt']
         entry_metadata.apply_domain_metadata(normalized)
+        entry_metadata.encyclopedia = normalized.entry_archive.section_metadata.encyclopedia
 
         entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 
@@ -1029,6 +1030,7 @@ class TestRepo():
             'metrics': metrics,
             'group_statistics': True,
             'dft.groups_grouped': True,
+            'encyclopedia.material.materials_grouped': True,
             'datasets_grouped': True,
             'uploads_grouped': True}, doseq=True))
 
@@ -1044,7 +1046,7 @@ class TestRepo():
                 else:
                     assert len(metrics_result) == 1  # code_runs is the only metric for authors
 
-        for group in ['dft.groups_grouped', 'uploads_grouped', 'datasets_grouped']:
+        for group in ['dft.groups_grouped', 'uploads_grouped', 'datasets_grouped', 'encyclopedia.material.materials_grouped']:
             assert group in data
             assert 'after' in data[group]
             assert 'values' in data[group]
@@ -1063,6 +1065,15 @@ class TestRepo():
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
         assert len(histogram) == nbuckets
+
+    def test_search_date_histogram_metrics(self, api, example_elastic_calcs, no_warn):
+        rv = api.get('/repo/?date_histogram=true&metrics=unique_entries')
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        histogram = data.get('statistics').get('date_histogram')
+        bucket = histogram[list(histogram.keys())[0]]
+        assert 'code_runs' in bucket
+        assert 'unique_entries' in bucket
 
     @pytest.mark.parametrize('n_results, page, per_page', [(2, 1, 5), (1, 1, 1), (0, 2, 3)])
     def test_search_pagination(self, api, example_elastic_calcs, no_warn, n_results, page, per_page):

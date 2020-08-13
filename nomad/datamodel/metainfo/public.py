@@ -4,6 +4,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived
 )
+from nomad.metainfo.search_extension import Search
 from nomad.metainfo.legacy import LegacyDefinition
 
 
@@ -1201,6 +1202,56 @@ class section_calculation_to_folder_refs(MSection):
         a_legacy=LegacyDefinition(name='calculation_to_folder_kind'))
 
 
+class section_dos_fingerprint(MSection):
+    '''
+    Section for the fingerprint of the electronic density-of-states (DOS).
+    DOS fingerprints are a modification of the D-Fingerprints reported in Chem. Mater. 2015, 27, 3, 735–743
+    (doi:10.1021/cm503507h). The fingerprint consists of a binary representation of the DOS,
+    that is used to evaluate the similarity of materials based on their electronic structure.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
+
+    bins = Quantity(
+        type=str,
+        description='''
+        Byte representation of the DOS fingerprint.
+        ''',
+        a_legacy=LegacyDefinition(name='bins'))
+
+    indices = Quantity(
+        type=np.dtype(np.int16),
+        shape=['first_index_of_DOS_grid', 'last_index_of_DOS_grid'],
+        description='''
+        Indices used to compare DOS fingerprints of different energy ranges.
+        ''',
+        a_legacy=LegacyDefinition(name='indices'))
+
+    stepsize = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Stepsize of interpolation in the first step of the generation of DOS fingerprints.
+        ''',
+        a_legacy=LegacyDefinition(name='stepsize'))
+
+    filling_factor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Proportion of 1 bins in the DOS fingerprint.
+        ''',
+        a_legacy=LegacyDefinition(name='filling_factor'))
+
+    grid_id = Quantity(
+        type=str,
+        description='''
+        Identifier of the DOS grid that was used for the creation of the fingerprint.
+        Similarity can only be calculated if the same grid was used for both fingerprints.
+        ''',
+        a_legacy=LegacyDefinition(name='grid_id'))
+
+
 class section_dos(MSection):
     '''
     Section collecting information of a (electronic-energy or vibrational-energy) density
@@ -1214,10 +1265,17 @@ class section_dos(MSection):
         shape=['number_of_dos_values'],
         unit='joule',
         description='''
-        Array containing the set of discrete energy values with respect to the top of the
-        valence band for the density (electronic-energy) of states (DOS). This is the
-        total DOS, see atom_projected_dos_energies and species_projected_dos_energies for
+        Array containing the set of discrete energy values with respect to the
+        highest occupied energy level. This is the total DOS, see
+        atom_projected_dos_energies and species_projected_dos_energies for
         partial density of states.
+
+        If not available through energy_reference_highest_occupied, the highest
+        occupied energy level is detected by searching for a non-zero DOS value
+        below (or nearby) the reported energy_reference_fermi. In case the
+        highest occupied energy level cannot be detected accurately, the
+        normalized values are not reported. For calculations with multiple
+        spin-channels, the normalization is determined by the first channel.
         ''',
         a_legacy=LegacyDefinition(name='dos_energies_normalized'))
 
@@ -1232,14 +1290,6 @@ class section_dos(MSection):
         of states.
         ''',
         a_legacy=LegacyDefinition(name='dos_energies'))
-
-    dos_fermi_energy = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        description='''
-        Stores the Fermi energy of the density of states.
-        ''',
-        a_legacy=LegacyDefinition(name='dos_fermi_energy'))
 
     dos_integrated_values = Quantity(
         type=np.dtype(np.float64),
@@ -1332,6 +1382,11 @@ class section_dos(MSection):
         dos_energies.
         ''',
         a_legacy=LegacyDefinition(name='number_of_dos_values'))
+
+    section_dos_fingerprint = SubSection(
+        sub_section=SectionProxy('section_dos_fingerprint'),
+        repeats=False,
+        a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
 
 
 class section_eigenvalues(MSection):
@@ -1962,9 +2017,9 @@ class section_gaussian_basis_group(MSection):
     '''
     Section that describes a group of Gaussian contractions. Groups allow one to calculate
     the primitive Gaussian integrals once for several different linear combinations of
-    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\\\sum_{j} c_{i
-    j} A(l_i, \\\\alpha_j) exp(-\\\\alpha_j r^2)$ where $A(l_i, \\\\alpha_j)$ is a the
-    normalization coefficient for primitive Gaussian basis functions. Here, $\\\\alpha_j$ is
+    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\sum_{j} c_{i
+    j} A(l_i, \\alpha_j) exp(-\\alpha_j r^2)$ where $A(l_i, \\alpha_j)$ is a the
+    normalization coefficient for primitive Gaussian basis functions. Here, $\\alpha_j$ is
     defined in gaussian_basis_group_exponents, $l_i$ is given in gaussian_basis_group_ls,
     and $c_{i j}$ is given in gaussian_basis_group_contractions, whereas the radial part
     is given by the spherical harmonics $Y_{l m}$.
@@ -5519,6 +5574,42 @@ class section_XC_functionals(MSection):
         ''',
         categories=[settings_physical_parameter],
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
+
+
+class Workflow(MSection):
+    '''
+    Section containing the  results of a workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_workflow'))
+
+    workflow_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The type of calculation workflow. Can be one of relaxation, elastic, phonon,
+        molecular dynamics.
+        ''',
+        a_legacy=LegacyDefinition(name='workflow_type'),
+        a_search=Search())
+
+    relaxation_energy_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The tolerance value in the energy between relaxation steps for convergence.
+        ''',
+        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'),
+        a_search=Search())
+
+    workflow_final_calculation_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=[],
+        description='''
+        Reference to last calculation step.
+        ''',
+        a_legacy=LegacyDefinition(name='workflow_final_calculation_ref'))
 
 
 m_package.__init_metainfo__()

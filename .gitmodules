@@ -1,7 +1,3 @@
-[submodule "dependencies/nomad-meta-info"]
-	path = dependencies/nomad-meta-info
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git
-	branch = nomad-fair
 [submodule "dependencies/python_common"]
 	path = dependencies/python_common
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git
@@ -12,7 +8,7 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/exciting"]
 	path = dependencies/parsers/exciting
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting.git
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting-fairdi.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/fhi-aims"]
 	path = dependencies/parsers/fhi-aims
@@ -113,10 +109,6 @@
 	path = dependencies/parsers/turbomole
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole.git
 	branch = nomad-fair
-[submodule "dependencies/parsers/photoemission"]
-	path = dependencies/parsers/photoemission
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-photoemission.git
-	branch = nomad-fair
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
@@ -191,3 +183,9 @@
 [submodule "dependencies/parsers/tinker"]
     path = dependencies/parsers/tinker
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-tinker.git
+[submodule "dependencies/encyclopedia-gui"]
+	path = dependencies/encyclopedia-gui
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-gui.git
+[submodule "dependencies/nomad-dos-fingerprints"]
+	path = dependencies/nomad-dos-fingerprints
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git

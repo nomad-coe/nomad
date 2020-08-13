@@ -1,8 +1,9 @@
 import { createMuiTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
+export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
-// export const apiBase = 'http://repository.nomad-coe.eu/v0.8/api'
+// export const apiBase = 'http://nomad-lab.eu/prod/rae/api'
 export const apiBase = `${appBase}/api`
 export const optimadeBase = `${appBase}/optimade`
 export const guiBase = process.env.PUBLIC_URL
@@ -12,13 +13,14 @@ export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
-export const sendTrackingData = window.nomadEnv.sendTrackingData
-export const email = 'webmaster@nomad-coe.eu'
+export const matomoEnabled = window.nomadEnv.matomoEnabled
+export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled
+export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 
 export const consent = `
 By using this web-site and by uploading and downloading data, you agree to the
-[terms of use](https://www.nomad-coe.eu/the-project/nomad-repository/nomad-repository-terms).
+[terms of use](https://nomad-lab.eu/terms).
 
 Uploaded data is licensed under the Creative Commons Attribution license
 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). You can publish
@@ -27,8 +29,10 @@ you and users you share your data with. The *embargo period* lasts up to 36 mont
 After the *embargo* your published data will be public. **Note that public data
 is visible to others and files become downloadable by everyone.**
 
-This web-site uses *cookies*. By using this web-site you agree to our use
-of *cookies*. [Learn more](https://www.cookiesandyou.com/).
+This web-site uses *cookies*. We use cookies to track you login status for all NOMAD services
+and optionally to store information about your use of NOMAD. None of this information is
+shared with other parties. By using this web-site you agree to the described use of *cookies*.
+[Learn more](https://www.cookiesandyou.com/).
 `
 export const nomadPrimaryColor = {
   main: '#008DC3',

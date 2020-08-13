@@ -26,12 +26,12 @@ from tests.conftest import clear_elastic, clear_raw_files
 
 @pytest.fixture(scope='session')
 def api(session_client):
-    return BlueprintClient(session_client, '/optimade/v0')
+    return BlueprintClient(session_client, '/optimade/v1')
 
 
 @pytest.fixture(scope='session')
 def index_api(session_client):
-    return BlueprintClient(session_client, '/optimade/index/v0')
+    return BlueprintClient(session_client, '/optimade/index/v1')
 
 
 def test_index(index_api):
@@ -156,11 +156,11 @@ def test_optimade_parser(example_structures, query, results):
 
 
 def test_url():
-    assert url('endpoint', param='value').endswith('/optimade/v0/endpoint?param=value')
+    assert url('endpoint', param='value').endswith('/optimade/v1/endpoint?param=value')
 
 
 def test_list_endpoint(api, example_structures):
-    rv = api.get('/calculations')
+    rv = api.get('/structures')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     for entry in ['data', 'links', 'meta']:
@@ -175,32 +175,32 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data'][item]['attributes'][key] == ref
 
 
-def test_list_endpoint_request_fields(api, example_structures):
-    rv = api.get('/calculations?request_fields=nelements,elements')
+def test_list_endpoint_response_fields(api, example_structures):
+    rv = api.get('/structures?response_fields=nelements,elements')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
     data['data'] = sorted(data['data'], key=lambda x: x['id'])
     for i in range(len(data['data'])):
         rf = sorted(list(data['data'][i]['attributes'].keys()))
-        assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
+        assert rf == ['elements', 'nelements']
         assert_eq_attrib(data, 'elements', ref_elements[i], i)
         assert_eq_attrib(data, 'nelements', len(ref_elements[i]), i)
 
 
-def test_single_endpoint_request_fields(api, example_structures):
-    rv = api.get('/calculations/%s?request_fields=nelements,elements' % 'test_calc_id_1')
+def test_single_endpoint_response_fields(api, example_structures):
+    rv = api.get('/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     ref_elements = ['H', 'O']
     rf = sorted(list(data['data']['attributes'].keys()))
-    assert rf == ['elements', 'immutable_id', 'last_modified', 'nelements']
+    assert rf == ['elements', 'nelements']
     assert_eq_attrib(data, 'elements', ref_elements)
     assert_eq_attrib(data, 'nelements', len(ref_elements))
 
 
 def test_single_endpoint(api, example_structures):
-    rv = api.get('/calculations/%s' % 'test_calc_id_1')
+    rv = api.get('/structures/%s' % 'test_calc_id_1')
     assert rv.status_code == 200
     data = json.loads(rv.data)
     for key in ['type', 'id', 'attributes']:
@@ -224,25 +224,16 @@ def test_base_info_endpoint(api):
     assert data['data']['id'] == '/'
 
 
-def test_calculation_info_endpoint(api):
-    rv = api.get('/info/calculations')
+@pytest.mark.parametrize('entry_type', ['calculations', 'structures'])
+def test_entry_info_endpoint(api, entry_type):
+    rv = api.get('/info/%s' % entry_type)
     assert rv.status_code == 200
     data = json.loads(rv.data)
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
 
-
-# TODO the implementation should be fixed to return actual references first
-# def test_references_endpoint(api, example_structures):
-#     rv = api.get('/references')
-#     assert rv.status_code == 200
-#     data = json.loads(rv.data)
-#     assert 'data' in data
-#     assert len(data['data']) == 4
-#     for d in data['data']:
-#         for key in ['id', 'attributes']:
-#             assert(d.get(key)) is not None
-#         assert 'last_modified' in d['attributes']
+    assert '_nmd_atoms' in data['data']['properties']
+    assert '_nmd_dft_system' in data['data']['properties']
 
 
 def test_links_endpoint(api, example_structures):
@@ -277,3 +268,38 @@ def test_structure_endpoint(api, example_structures):
     assert attr is not None
     assert attr.get('elements') == ['H', 'O']
     assert len(attr.get('dimension_types')) == 3
+
+
+def test_calculations_endpoint(api, example_structures):
+    rv = api.get('/calculations')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert len(data['data']) == 4
+    for d in data['data']:
+        for key in ['id', 'attributes']:
+            assert d.get(key) is not None
+        required_keys = ['last_modified']
+        for key in required_keys:
+            assert key in d['attributes']
+
+
+def test_calculation_endpoint(api, example_structures):
+    rv = api.get('/calculations/%s' % 'test_calc_id_1')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert len(attr) == 2
+
+
+def test_nmd_properties(api, example_structures):
+    rv = api.get('/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert attr.get('_nmd_atoms') == ['H', 'O']
+    assert '_nmd_dft_system' in attr
+    assert '_nmd_doesnotexist' not in attr

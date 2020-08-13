@@ -51,7 +51,7 @@ spec:
         - mountPath: /nomad
           name: nomad-volume
         env:
-        - name: NOMAD_SERVICE
+        - name: NOMAD_META_SERVICE
           value: "worker"
         - name: NOMAD_CONSOLE_LOG_LEVEL
           value: "{{ .Values.worker.console_loglevel }}"
