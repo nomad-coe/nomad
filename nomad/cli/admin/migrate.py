@@ -17,15 +17,17 @@ import click
 from .admin import admin
 
 
-@admin.group(help='Migrate data from older NOMAD versions')
+@admin.command(help='Migrate data from older NOMAD versions')
 @click.option('--mongo-db', help='The database name of the existing data', type=str)
-def migrate(mongo_db: str, elastic_index: str):
+def migrate(mongo_db: str):
     import pymongo
     import sys
-    import json
-    from nomad import config, processing as proc, doi as nomad_doi, datamodel
+    from nomad import config, processing as proc, doi as nomad_doi, datamodel, infrastructure
     from nomad.app.api.mirror import _upload_data
     from nomad.cli.client.mirror import v0Dot7, fix_time, _Dataset
+    from bson.json_util import dumps
+
+    infrastructure.setup()
 
     _Dataset = datamodel.Dataset.m_def.a_mongo.mongo_cls
 
@@ -35,14 +37,12 @@ def migrate(mongo_db: str, elastic_index: str):
         print('The given mongo database %s does not exist' % mongo_db)
         sys.exit(1)
 
-    for upload in db.uploads.find():
+    print('There are %d uploads in the source database' % db.upload.find().count())
+    for upload in db.upload.find():
         print('migrating upload with id %s' % upload['_id'])
-        upload_data = _upload_data(upload['_id'], json.dumps(upload), calcs_col=db.calcs, datasets_col=db.datasets, dois_col=db.d_o_i)
+        upload_json = dumps(upload)
+        upload_data = _upload_data(upload['_id'], upload_json, calcs_col=db.calc, datasets_col=db.dataset, dois_col=db.d_o_i)
         upload_data = v0Dot7(upload_data)
-
-        proc.Upload._get_collection().insert(upload)
-        for calc in db.calcs.find(dict(upload_id=upload['_id'])):
-            proc.Upload.from_dict(upload).save()
 
         # create mongo
         try:

@@ -13,8 +13,8 @@ export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
-export const matomoEnabled = window.nomadEnv.matomoEnabled
-export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled
+export const matomoEnabled = window.nomadEnv.matomoEnabled || false
+export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled || false
 export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 

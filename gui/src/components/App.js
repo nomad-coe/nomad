@@ -122,7 +122,7 @@ function BetaSnack() {
   const [understood, setUnderstood] = useState(false)
 
   if (!version) {
-    console.log.warning('no version data available')
+    console.warn('no version data available')
     return ''
   }
 

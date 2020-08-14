@@ -18,6 +18,8 @@ x-common-variables: &nomad_backend_env
     NOMAD_RABBITMQ_HOST: rabbitmq
     NOMAD_ELASTIC_HOST: elastic
     NOMAD_MONGO_HOST: mongo
+    NOMAD_MONGO_DB_NAME: nomad_v0_8
+    NOMAD_ELASTIC_INDEX_NAME: nomad_v0_8
 
 services:
     # broker for celery
@@ -56,7 +58,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: nomad/local:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -66,14 +68,13 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
     # nomad app (api + gui)
     app:
         restart: always
-        image: nomad/local:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -83,7 +84,6 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
             - ./gunicorn.log.conf:/app/gunicorn.log.conf

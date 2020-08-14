@@ -378,7 +378,7 @@ class StagingUploadFiles(UploadFiles):
             target_dir: Overwrite the used directory to extract to. Default is the raw directory of this upload.
         '''
         assert not self.is_frozen
-        assert os.path.exists(path)
+        assert os.path.exists(path), '%s does not exist' % path
         self._size += os.stat(path).st_size
         target_dir = self._raw_dir if target_dir is None else target_dir
         if prefix is not None:
