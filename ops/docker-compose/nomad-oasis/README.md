@@ -114,8 +114,8 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
+            - nomad_oasis_files:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
     # nomad app (api + gui)
@@ -131,11 +131,11 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
             - ./gunicorn.log.conf:/app/gunicorn.log.conf
             - ./gunicorn.conf:/app/gunicorn.conf
+            - nomad_oasis_files:/app/.volumes/fs
         command: ["./run.sh", "/nomad-oasis"]
 
     # nomad gui (a reverse proxy for nomad)
@@ -227,15 +227,29 @@ proxy is an nginx server and needs a configuration similar to this:
 ```
 server {
     listen        80;
-    server_name   www.example.com;
+    server_name   <your-host>;
+    proxy_set_header Host $host;
 
-    location /nomad-oasis {
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+    location / {
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/gui/service-worker.js {
+    location ~ /nomad-oasis\/?(gui)?$ {
+        rewrite ^ /nomad-oasis/gui/ permanent;
+    }
+
+    location /nomad-oasis/gui/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index;
+        proxy_pass http://app:8000;
+    }
+
+    location @redirect_to_index {
+        rewrite ^ /nomad-oasis/gui/index.html break;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/gui\/(service-worker\.js|meta\.json)$ {
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
         if_modified_since off;
@@ -244,18 +258,20 @@ server {
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/api/uploads {
+    location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/api/raw {
+    location ~ \/api\/(raw|archive) {
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/api\/mirror {
+        proxy_buffering off;
+        proxy_read_timeout 600;
         proxy_pass http://app:8000;
     }
 }
@@ -356,16 +372,17 @@ To migrate the data, we created a command that you can run within your OASIS' NO
 application container. This command takes the old database name as argument, it will copy
 all data over and then reprocess the data to create data in the new archive format and
 populate the search index. The default database name in version 0.7.x installations was `nomad_fairdi`.
+Be patient.
 
 ```
-docker exec nomad_oasis_app -- nomad admin migrate --mongo-db nomad_fairdi
+docker exec -ti nomad_oasis_app bash -c 'nomad admin migrate --mongo-db nomad_fairdi'
 ```
 
 Now all your data should appear in your OASIS again. If you like, you can remove the
 old index and database:
 
 ```
-docker exec nomad_oasis_app bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
+docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
 docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
 ```
 
