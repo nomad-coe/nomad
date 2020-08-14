@@ -5,5 +5,6 @@ window.nomadEnv = {
   'keycloakClientId': 'nomad_public',
   'debug': false,
   'matomoEnabled': false,
-  'encyclopediaEnabled': false
+  'encyclopediaEnabled': false,
+  'oasis': true
 };
