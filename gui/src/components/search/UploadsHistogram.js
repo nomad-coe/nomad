@@ -214,7 +214,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
       title={title}
       titleTypographyProps={{variant: 'body1'}}
       action={(
-        <Grid container alignItems='flex-end' spacing={2}>
+        <Grid container alignItems='flex-end' style={{flexWrap: 'nowrap'}} spacing={2}>
           <Grid item>
             <TextField
               inputRef={fromTimeFieldRef}
