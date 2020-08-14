@@ -25,7 +25,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme, appBase, version } from '../config'
+import { guiBase, consent, nomadTheme, appBase, version, oasis } from '../config'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
@@ -122,7 +122,7 @@ function BetaSnack() {
   const [understood, setUnderstood] = useState(false)
 
   if (!version) {
-    console.log.warning('no version data available')
+    console.warn('no version data available')
     return ''
   }
 
@@ -278,12 +278,12 @@ function MainMenu() {
       tooltip="Manage your data"
       icon={<UserDataIcon/>}
     />
-    <MainMenuItem
+    {!oasis && <MainMenuItem
       title="Analytics"
       path="/analytics"
       tooltip="NOMAD's analytics (AI) toolkit tutorial jupyter notebooks"
       icon={<AnalyticsIcon/>}
-    />
+    />}
     <MainMenuItem
       title="Metainfo"
       path="/metainfo"
