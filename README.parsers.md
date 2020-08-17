@@ -1,5 +1,8 @@
 ***Note:** This is a general README file for NOMAD parsers, consult the README of specific parser projects for more detailed information!*
 
+This is a NOMAD parser for [$code-name$]($code-url$). It will read $code-name$ input and
+output files and provide all information in NOMAD's unified Metainfo based Archive format.
+
 ## Preparing code input and output file for uploading to NOMAD
 
 NOMAD accepts `.zip` and `.tar.gz` archives as uploads. Each upload can contain arbitrary
