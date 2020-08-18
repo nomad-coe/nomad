@@ -116,6 +116,14 @@ Finally, you can add nomad to the environment itself (including all extras)
 pip install -e .[all]
 ```
 
+### Generate GUI artifacts
+The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
+```
+nomad dev metainfo > gui/src/metainfo.json
+nomad dev searchQuantities > gui/src/searchQuantities.json
+./gitinfo.sh
+```
+
 ## Build and run the infrastructure with docker
 
 ### Docker and nomad
