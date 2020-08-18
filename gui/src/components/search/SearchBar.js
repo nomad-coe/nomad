@@ -5,6 +5,27 @@ import TextField from '@material-ui/core/TextField'
 import { CircularProgress, InputAdornment, Button, Tooltip } from '@material-ui/core'
 import searchQuantities from '../../searchQuantities'
 import { apiContext } from '../api'
+import { defsByName as metainfoDefs } from '../archive/metainfo'
+
+const metainfoOptions = []
+
+const quantitiesWithAlternativeOptions = {
+  calc_id: () => [],
+  upload_id: () => [],
+  calc_hash: () => [],
+  'dft.quantities': () => {
+    if (metainfoOptions.length === 0) {
+      metainfoOptions.push(...Object.keys(metainfoDefs)
+        .filter(name => !name.startsWith('x_'))
+        .map(name => ({
+          domain: 'dft',
+          quantity: 'dft.quantities',
+          value: name
+        })))
+    }
+    return metainfoOptions
+  }
+}
 
 /**
  * This searchbar component shows a searchbar with autocomplete functionality. The
@@ -85,6 +106,13 @@ export default function SearchBar() {
     }
     config.timer = setTimeout(() => {
       config.requestedOption = option
+
+      const alternativeOptions = quantitiesWithAlternativeOptions[option.quantity]
+      if (alternativeOptions) {
+        setOptions(alternativeOptions())
+        return
+      }
+
       const size = searchQuantities[option.quantity].statistic_size
       setLoading(true)
       api.suggestions_search(option.quantity, apiQuery, size ? null : option.value, size || 20, true)
