@@ -32,7 +32,8 @@ from nomad.app import common
 
 from .auth import authenticate, create_authorization_predicate
 from .api import api
-from .common import calc_route, streamed_zipfile, search_model, add_search_parameters, apply_search_parameters, query_model
+from .common import calc_route, streamed_zipfile, search_model, add_search_parameters,\
+    apply_search_parameters
 
 
 ns = api.namespace(
@@ -212,7 +213,6 @@ class ArchiveDownloadResource(Resource):
 
 
 _archive_query_model = api.inherit('ArchiveSearch', search_model, {
-    'query': fields.Nested(query_model, description='The query used to find the requested entries.', skip_none=True),
     'required': fields.Raw(description='A dictionary that defines what archive data to retrive.'),
     'query_schema': fields.Raw(description='Deprecated, use required instead.'),
     'raise_errors': fields.Boolean(description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
@@ -253,6 +253,8 @@ class ArchiveQueryResource(Resource):
 
             query = data_in.get('query', {})
 
+            query_expression = {key: val for key, val in query.items() if '$' in key}
+
             required: Dict[str, Any] = None
             if 'required' in data_in:
                 required = data_in.get('required')
@@ -276,6 +278,9 @@ class ArchiveQueryResource(Resource):
         apply_search_parameters(search_request, query)
         if not aggregation:
             search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
+
+        if query_expression:
+            search_request.query_expression(query_expression)
 
         try:
             if aggregation:

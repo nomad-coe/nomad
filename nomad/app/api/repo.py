@@ -117,6 +117,16 @@ for qualified_name, quantity in search_extension.search_quantities.items():
     _repo_calcs_model_fields[qualified_name] = fields.Raw(
         description=quantity.description, allow_null=True, skip_none=True)
 
+_repo_calcs_model_fields.update(**{
+    'date_histogram': fields.Boolean(default=False, description='Add an additional aggregation over the upload time', allow_null=True, skip_none=True),
+    'interval': fields.String(description='Interval to use for upload time aggregation.', allow_null=True, skip_none=True),
+    'metrics': fields.List(fields.String, description=(
+        'Metrics to aggregate over all quantities and their values as comma separated list. '
+        'Possible values are %s.' % ', '.join(search_extension.metrics.keys())), allow_null=True, skip_none=True),
+    'statistics_required': fields.List(fields.String, description='Quantities for which to aggregate values and their metrics.', allow_null=True, skip_none=True),
+    'exclude': fields.List(fields.String, description='Excludes the given keys in the returned data.', allow_null=True, skip_none=True)
+})
+
 _repo_calcs_model = api.inherit('RepoCalculations', search_model, _repo_calcs_model_fields)
 
 
@@ -247,6 +257,151 @@ class RepoCalcsResource(Resource):
 
             # build python code/curl snippet
             code_args = dict(request.args)
+            if 'statistics' in code_args:
+                del(code_args['statistics'])
+            results['code'] = {
+                'curl': query_api_curl('archive', 'query', query_string=code_args),
+                'python': query_api_python('archive', 'query', query_string=code_args),
+                'clientlib': query_api_clientlib(**code_args)
+            }
+
+            return results, 200
+        except search.ScrollIdNotFound:
+            abort(400, 'The given scroll_id does not exist.')
+        except KeyError as e:
+            import traceback
+            traceback.print_exc()
+            abort(400, str(e))
+
+    @api.doc('post_search')
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.expect(_repo_calcs_model)
+    @api.marshal_with(_repo_calcs_model, skip_none=True, code=200, description='Search results send')
+    @authenticate()
+    def post(self):
+        '''
+        Search for calculations in the repository form, paginated.
+
+        The ``owner`` parameter determines the overall entries to search through.
+        Possible values are: ``all`` (show all entries visible to the current user), ``public``
+        (show all publically visible entries), ``user`` (show all user entries, requires login),
+        ``staging`` (show all user entries in staging area, requires login).
+
+        You can use the various quantities to search/filter for. For some of the
+        indexed quantities this endpoint returns aggregation information. This means
+        you will be given a list of all possible values and the number of entries
+        that have the certain value. You can also use these aggregations on an empty
+        search to determine the possible values.
+
+        The pagination parameters allows determine which page to return via the
+        ``page`` and ``per_page`` parameters. Pagination however, is limited to the first
+        100k (depending on ES configuration) hits.
+
+        An alternative to pagination is to use ``scroll`` and ``scroll_id``. With ``scroll``
+        you will get a ``scroll_id`` on the first request. Each call with ``scroll`` and
+        the respective ``scroll_id`` will return the next ``per_page`` (here the default is 1000)
+        results. Scroll however, ignores ordering and does not return aggregations.
+        The scroll view used in the background will stay alive for 1 minute between requests.
+        If the given ``scroll_id`` is not available anymore, a HTTP 400 is raised.
+
+        The search will return aggregations on a predefined set of quantities. Aggregations
+        will tell you what quantity values exist and how many entries match those values.
+
+        Ordering is determined by ``order_by`` and ``order`` parameters. Default is
+        ``upload_time`` in decending order.
+        '''
+        try:
+            data_in = request.get_json()
+
+            Scroll = data_in.get('scroll', {})
+            scroll = Scroll.get('scroll', False)
+            scroll_id = Scroll.get('scroll_id', None)
+            pagination = data_in.get('pagination', {})
+            page = pagination.get('page', 1)
+            per_page = pagination.get('per_page', 10 if not scroll else 1000)
+            order = pagination.get('order', -1)
+            order_by = pagination.get('order_by', 'upload_time')
+
+            date_histogram = data_in.get('date_histogram', False)
+            interval = data_in.get('interval', '1M')
+            metrics: List[str] = data_in.get('metrics', [])
+            statistics = data_in.get('statistics_required', [])
+
+            query = data_in.get('query', {})
+            query_expression = {key: val for key, val in query.items() if '$' in key}
+        except Exception as e:
+            abort(400, message='bad parameters: %s' % str(e))
+
+        for metric in metrics:
+            if metric not in search_extension.metrics:
+                abort(400, message='there is no metric %s' % metric)
+
+        search_request = search.SearchRequest()
+        apply_search_parameters(search_request, query)
+        if date_histogram:
+            search_request.date_histogram(interval=interval, metrics_to_use=metrics)
+
+        if query_expression:
+            search_request.query_expression(query_expression)
+
+        try:
+            assert page >= 1
+            assert per_page >= 0
+        except AssertionError:
+            abort(400, message='invalid pagination')
+
+        if order not in [-1, 1]:
+            abort(400, message='invalid pagination')
+
+        if len(statistics) > 0:
+            search_request.statistics(statistics, metrics_to_use=metrics)
+
+        group_metrics = [
+            group_quantity.metric_name
+            for group_name, group_quantity in search_extension.groups.items()
+            if data_in.get(group_name, False)]
+        total_metrics = metrics + group_metrics
+        if len(total_metrics) > 0:
+            search_request.totals(metrics_to_use=total_metrics)
+
+        if 'exclude' in data_in:
+            excludes = data_in['exclude']
+            if excludes is not None:
+                search_request.exclude(*excludes)
+
+        try:
+            if scroll:
+                results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
+
+            else:
+                for group_name, group_quantity in search_extension.groups.items():
+                    if data_in.get(group_name, False):
+                        kwargs: Dict[str, Any] = {}
+                        if group_name == 'uploads_grouped':
+                            kwargs.update(order_by='upload_time', order='desc')
+                        search_request.quantity(
+                            group_quantity.qualified_name, size=per_page, examples=1,
+                            after=data_in.get('%s_after' % group_name, None),
+                            **kwargs)
+
+                results = search_request.execute_paginated(
+                    per_page=per_page, page=page, order=order, order_by=order_by)
+
+                # TODO just a work around to make things prettier
+                if 'statistics' in results:
+                    statistics = results['statistics']
+                    if 'code_name' in statistics and 'currupted mainfile' in statistics['code_name']:
+                        del(statistics['code_name']['currupted mainfile'])
+
+                if 'quantities' in results:
+                    quantities = results.pop('quantities')
+
+                for group_name, group_quantity in search_extension.groups.items():
+                    if data_in.get(group_name, False):
+                        results[group_name] = quantities[group_quantity.qualified_name]
+
+            # build python code/curl snippet
+            code_args = dict(data_in)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
             results['code'] = {
