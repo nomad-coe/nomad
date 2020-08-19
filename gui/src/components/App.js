@@ -17,6 +17,7 @@ import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import UnderstoodIcon from '@material-ui/icons/Check'
+import AnalyticsIcon from '@material-ui/icons/ShowChart'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -24,8 +25,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme, appBase, version } from '../config'
-import {help as metainfoHelp, default as MetaInfoBrowser} from './metaInfoBrowser/MetaInfoBrowser'
+import { guiBase, consent, nomadTheme, appBase, version, oasis } from '../config'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
@@ -38,6 +38,8 @@ import EntryQuery from './entry/EntryQuery'
 import {matomo} from '../index'
 import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
+import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
+import AnalyticsPage from './analytics/AnalyticsPage'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -77,7 +79,8 @@ function ReloadSnack() {
 
 const useMainMenuItemStyles = makeStyles(theme => ({
   button: {
-    margin: theme.spacing(1)
+    margin: theme.spacing(1),
+    whiteSpace: 'nowrap'
   }
 }))
 
@@ -119,7 +122,7 @@ function BetaSnack() {
   const [understood, setUnderstood] = useState(false)
 
   if (!version) {
-    console.log.warning('no version data available')
+    console.warn('no version data available')
     return ''
   }
 
@@ -275,8 +278,14 @@ function MainMenu() {
       tooltip="Manage your data"
       icon={<UserDataIcon/>}
     />
+    {!oasis && <MainMenuItem
+      title="Analytics"
+      path="/analytics"
+      tooltip="NOMAD's analytics (AI) toolkit tutorial jupyter notebooks"
+      icon={<AnalyticsIcon/>}
+    />}
     <MainMenuItem
-      title="Meta Info"
+      title="Metainfo"
       path="/metainfo"
       tooltip="Browse the archive schema"
       icon={<MetainfoIcon/>}
@@ -548,9 +557,11 @@ const routes = {
   },
   'metainfo': {
     path: '/metainfo',
-    keepState: true,
-    exists: false,
-    component: MetaInfoBrowser
+    component: MetainfoPage
+  },
+  'analytics': {
+    path: '/analytics',
+    component: AnalyticsPage
   }
 }
 
@@ -567,18 +578,7 @@ class App extends React.PureComponent {
                 const { path, exact } = route
                 return <Route key={routeKey} exact={exact} path={path}
                   // eslint-disable-next-line react/no-children-prop
-                  children={props => {
-                    if (route.keepState) {
-                      if (props.match || route.exists) {
-                        route.exists = true
-                        return <route.component visible={props.match && true} {...props} />
-                      } else {
-                        return ''
-                      }
-                    } else {
-                      return props.match && <route.component {...props} />
-                    }
-                  }}
+                  children={props => props.match && <route.component {...props} />}
                 />
               })}
             </Navigation>

@@ -8,10 +8,11 @@ window.nomadEnv = {
   'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
   'matomoSiteId': '2',
   'version': {
-    "label": "0.8.5",
-    "isBeta": false,
-    "usesBetaData": false,
-    "officialUrl": "https://nomad-lab.eu/prod/rae/gui"
+    'label': '0.8.6',
+    'isBeta': false,
+    'usesBetaData': false,
+    'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
-  'encyclopediaEnabled': true
+  'encyclopediaEnabled': true,
+  'oasis': false
 }

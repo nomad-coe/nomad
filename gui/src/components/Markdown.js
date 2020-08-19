@@ -1,8 +1,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import marked from 'marked'
-import { withStyles, Typography } from '@material-ui/core'
+// import remark from 'remark'
+import { withStyles, Link } from '@material-ui/core'
+import { Link as RouterLink } from 'react-router-dom'
 import extend from '@babel/runtime/helpers/extends'
+import ReactMarkdown from 'react-markdown'
+import MathJax from 'react-mathjax'
+import RemarkMathPlugin from 'remark-math'
+import { path as metainfoPath } from './archive/metainfo'
 
 /**
  * A simple markdown component.
@@ -32,14 +37,18 @@ var styles = theme => {
       },
       '& code': {
         display: 'inline-block',
-        lineHeight: 1.6,
+        lineHeight: 1,
         fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
-        padding: '3px 6px',
+        padding: '5px 4px 2px 4px',
         color: theme.palette.text.primary,
         backgroundColor: theme.palette.secondary.veryLight,
+        borderRadius: theme.shape.borderRadius,
         fontSize: 14
       },
-      '& p code, & ul code, & pre code': {
+      '& p code, & ul code': {
+        fontSize: 14
+      },
+      '& pre code': {
         fontSize: 14,
         lineHeight: 1.6
       },
@@ -206,19 +215,90 @@ var styles = theme => {
   }
 }
 
+function MarkdownLink({href, ...props}) {
+  if (href.match(/^https?:\/\//)) {
+    return <Link href={href} {...props} />
+  } else {
+    return <Link component={RouterLink} to={href} {...props} />
+  }
+}
+MarkdownLink.propTypes = {
+  href: PropTypes.string.isRequired
+}
+
 function Markdown(props) {
-  const { classes, text, children } = props
+  const { classes, text, children, ...moreProps } = props
 
   let content = text
   if (children) {
-    content = children.replace(/^ +/gm, '')
+    const state = []
+    // We modify the children for the following reasons:
+    // - remove unnecessary whitespaces that might break the markdown layout
+    // - escape _ (usually in metainfo names) with sensitivity to _ used in latex math
+    // - put metainfo names into code quotes
+    // - turn metainfo names into links into the metainfo
+    let word = ''
+    content = children.replace(/^ +/gm, '').split('').map((c, i) => {
+      if (c === '$') {
+        if (state[state.length - 1] === 'math') {
+          state.pop()
+        } else {
+          state.push('math')
+        }
+      } else if (c === '`') {
+        if (state[state.length - 1] === 'code') {
+          state.pop()
+        } else {
+          state.push('code')
+        }
+      } else {
+        if (state.peek === 'escape') {
+          state.pop()
+        }
+      }
+
+      if (!state[state.length - 1] && c.match(/[a-zA-Z0-9_]/)) {
+        word += c
+      } else {
+        if (word.match(/_/g)) {
+          const path = metainfoPath(word)
+          if (path) {
+            word = `[\`${word}\`](/metainfo/${metainfoPath(word)})`
+          } else {
+            word = `\`${word}\``
+          }
+        }
+        const result = word + c
+        word = ''
+        return result
+      }
+      return ''
+    }).join('')
   }
 
+  const math = ({value}) => <MathJax.Node formula={value} />
+  const inlineMath = ({value}) => <MathJax.Node inline formula={value} />
+  const newProps = {
+    ...moreProps,
+    children: content,
+    plugins: [
+      RemarkMathPlugin
+    ],
+    renderers: {
+      ...moreProps.renderer,
+      math: math,
+      inlineMath: inlineMath,
+      link: props => <MarkdownLink {...props} />
+    }
+  }
+  const md = (
+    <MathJax.Provider input="tex">
+      <ReactMarkdown {...newProps} />
+    </MathJax.Provider>
+  )
+
   return (
-    <Typography variant="body1"
-      className={classes.root}
-      dangerouslySetInnerHTML={{__html: marked(content || '')}}
-    />
+    <div className={classes.root}>{md}</div>
   )
 }
 

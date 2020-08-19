@@ -28,15 +28,35 @@ export const Dates = {
 searchQuantities['from_time'] = {name: 'from_time'}
 searchQuantities['until_time'] = {name: 'until_time'}
 searchQuantities['dft.optimade'] = {name: 'dft.optimade'}
+
+const filterPaginationParams = query => objectFilter(query, key => key !== 'page' && !key.endsWith('_after'))
 /**
- * A custom hook that reads and writes search parameters from the current URL.
+ * A custom hook to read, update, and set the query URL part.
  */
-const useSearchUrlQuery = () => {
+export const useUrlQuery = () => {
   const location = useLocation()
   const history = useHistory()
   const urlQuery = location.search ? {
     ...qs.parse(location.search.substring(1))
   } : {}
+
+  const setUrlQuery = urlQuery => {
+    history.push(location.pathname + '?' + qs.stringify(urlQuery, {indices: false}))
+  }
+
+  const updateUrlQuery = changes => {
+    const oldQuery = (changes.owner || changes.domain) ? filterPaginationParams(urlQuery) : urlQuery
+    setUrlQuery({...oldQuery, ...changes})
+  }
+
+  return [urlQuery, updateUrlQuery, setUrlQuery]
+}
+/**
+ * A custom hook that reads and writes search parameters from the current URL.
+ */
+const useSearchUrlQuery = () => {
+  // eslint-disable-next-line no-unused-vars
+  const [urlQuery, unused, setUrlQuery] = useUrlQuery()
   const searchQuery = objectFilter(urlQuery, key => searchQuantities[key] && key !== 'domain')
   const rest = objectFilter(urlQuery, key => !searchQuantities[key] || key === 'domain')
   if (searchQuery.atoms && !Array.isArray(searchQuery.atoms)) {
@@ -45,13 +65,11 @@ const useSearchUrlQuery = () => {
   if (searchQuery.only_atoms && !Array.isArray(searchQuery.only_atoms)) {
     searchQuery.only_atoms = [searchQuery.only_atoms]
   }
-  const setUrlQuery = query => {
-    history.push(location.pathname + '?' + qs.stringify({
-      ...rest,
-      ...objectFilter(query, key => query[key])
-    }, {indices: false}))
-  }
-  return [searchQuery, setUrlQuery]
+  const setSearchUrlQuery = query => setUrlQuery({
+    ...filterPaginationParams(rest),
+    ...objectFilter(query, key => query[key])
+  })
+  return [searchQuery, setSearchUrlQuery]
 }
 
 /**

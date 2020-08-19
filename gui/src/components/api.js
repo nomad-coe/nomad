@@ -7,7 +7,6 @@ import { apiBase } from '../config'
 import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { compose } from 'recompose'
-import MetaInfoRepository from './MetaInfoRepository'
 import { withKeycloak } from 'react-keycloak'
 import * as searchQuantities from '../searchQuantities.json'
 
@@ -474,6 +473,15 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async quantity_search(search) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.repo.quantity_search(search))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
   async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
     if (!noLoadingIndicator) {
       this.onStartLoading()
@@ -528,35 +536,6 @@ class Api {
       .catch(handleApiError)
       .then(response => response.body.signature_token)
       .finally(this.onFinishLoading)
-  }
-
-  _metaInfoRepositories = {}
-
-  async getMetaInfo(pkg) {
-    pkg = pkg || 'common.nomadmetainfo.json'
-
-    const metaInfoRepository = this._metaInfoRepositories[pkg]
-
-    if (metaInfoRepository) {
-      return metaInfoRepository
-    } else {
-      this.onStartLoading()
-      try {
-        const loadMetaInfo = async(path) => {
-          return this.swagger()
-            .then(client => client.apis.metainfo.get_legacy_metainfo({metainfo_package_name: path}))
-            .catch(handleApiError)
-            .then(response => response.body)
-        }
-        const metaInfo = await loadMetaInfo(pkg)
-        const metaInfoRepository = new MetaInfoRepository({[pkg]: metaInfo})
-        this._metaInfoRepositories[pkg] = metaInfoRepository
-
-        return metaInfoRepository
-      } finally {
-        this.onFinishLoading()
-      }
-    }
   }
 
   _cachedInfo = null

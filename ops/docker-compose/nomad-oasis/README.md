@@ -104,7 +104,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -114,14 +114,14 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
+            - nomad_oasis_files:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -131,11 +131,11 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
             - ./gunicorn.log.conf:/app/gunicorn.log.conf
             - ./gunicorn.conf:/app/gunicorn.conf
+            - nomad_oasis_files:/app/.volumes/fs
         command: ["./run.sh", "/nomad-oasis"]
 
     # nomad gui (a reverse proxy for nomad)
@@ -187,6 +187,12 @@ keycloak:
   username: '<your admin username>'
   password: '<your admin user password>'
   oasis: true
+
+mongo:
+    db_name: nomad_v0_8
+
+elastic:
+    index_name: nomad_v0_8
 ```
 
 You need to change:
@@ -207,6 +213,7 @@ window.nomadEnv = {
   'keycloakRealm': 'fairdi_nomad_prod',
   'keycloakClientId': 'nomad_public',
   'debug': false,
+  'oasis': true
 };
 ```
 
@@ -221,15 +228,29 @@ proxy is an nginx server and needs a configuration similar to this:
 ```
 server {
     listen        80;
-    server_name   www.example.com;
+    server_name   <your-host>;
+    proxy_set_header Host $host;
 
-    location /nomad-oasis {
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+    location / {
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/gui/service-worker.js {
+    location ~ /nomad-oasis\/?(gui)?$ {
+        rewrite ^ /nomad-oasis/gui/ permanent;
+    }
+
+    location /nomad-oasis/gui/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_index;
+        proxy_pass http://app:8000;
+    }
+
+    location @redirect_to_index {
+        rewrite ^ /nomad-oasis/gui/index.html break;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/gui\/(service-worker\.js|meta\.json)$ {
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
         if_modified_since off;
@@ -238,18 +259,20 @@ server {
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/api/uploads {
+    location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
         proxy_pass http://app:8000;
     }
 
-    location /nomad-oasis/api/raw {
+    location ~ \/api\/(raw|archive) {
         proxy_buffering off;
-        proxy_set_header Host $host;
-        proxy_pass_request_headers on;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/api\/mirror {
+        proxy_buffering off;
+        proxy_read_timeout 600;
         proxy_pass http://app:8000;
     }
 }
@@ -319,6 +342,50 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_app
 - nomad_oasis_worker
 - nomad_oasis_gui
+
+## Migrating from an older version (0.7.x to 0.8.x)
+
+Between versions 0.7.x and 0.8.x we needed to change how archive and metadata data is stored
+internally in files and databases. This means you cannot simply start a new version of
+NOMAD on top of the old data. But there is a strategy to adapt the data.
+
+First, shutdown the OASIS and remove all old container.
+```
+docker-compose stop
+docker-compose rm -f
+```
+
+Update you config files (`docker-compose.yaml`, `nomad.yaml`, `env.js`, `nginx.conf`) according
+to the latest documentation (see above). Especially make sure to select a new name for
+databases and search index in your `nomad.yaml` (e.g. `nomad_v0_8`). This will
+allow us to create new data while retaining the old, i.e. to copy the old data over.
+
+Make sure you get the latest images and start the OASIS with the new version of NOMAD:
+```
+docker-compose pull
+docker-compose up -d
+```
+
+If you go to the GUI of your OASIS, it should now show the new version and appear empty,
+because we are using a different database and search index now.
+
+To migrate the data, we created a command that you can run within your OASIS' NOMAD
+application container. This command takes the old database name as argument, it will copy
+all data over and then reprocess the data to create data in the new archive format and
+populate the search index. The default database name in version 0.7.x installations was `nomad_fairdi`.
+Be patient.
+
+```
+docker exec -ti nomad_oasis_app bash -c 'nomad admin migrate --mongo-db nomad_fairdi'
+```
+
+Now all your data should appear in your OASIS again. If you like, you can remove the
+old index and database:
+
+```
+docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
+docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
+```
 
 ## NOMAD Oasis FAQ
 

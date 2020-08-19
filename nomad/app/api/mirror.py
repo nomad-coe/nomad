@@ -76,6 +76,30 @@ class MirrorUploadsResource(Resource):
             abort(400, message='Could not query mongodb: %s' % str(e))
 
 
+def _upload_data(upload_id, upload_json, calcs_col, datasets_col, dois_col):
+    calcs = []
+    datasets = {}
+    dois = {}
+    for calc in calcs_col.find(dict(upload_id=upload_id)):
+        calcs.append(calc)
+        for dataset in calc['metadata'].get('datasets', []):
+            if dataset not in datasets:
+                datasets[dataset] = datasets_col.find_one(dict(_id=dataset))
+                doi = datasets[dataset].get('doi', None)
+                if doi is not None:
+                    doi_obj = dois_col.find_one(dict(_id=doi))
+                    if doi_obj is not None:
+                        dois[doi] = doi_obj
+
+    return {
+        'upload_id': upload_id,
+        'upload': upload_json,
+        'calcs': calcs,
+        'datasets': datasets,
+        'dois': dois
+    }
+
+
 @upload_route(ns)
 class MirrorUploadResource(Resource):
     @api.response(400, 'Not available for the given upload, e.g. upload not published.')
@@ -95,28 +119,14 @@ class MirrorUploadResource(Resource):
         if upload.tasks_running or upload.process_running:
             abort(400, message='Only non processing uploads can be exported')
 
-        calcs = []
-        datasets = {}
-        dois = {}
-        for calc in proc.Calc._get_collection().find(dict(upload_id=upload_id)):
-            calcs.append(calc)
-            for dataset in calc['metadata'].get('datasets', []):
-                if dataset not in datasets:
-                    datasets[dataset] = _Dataset._get_collection().find_one(dict(_id=dataset))
-                    doi = datasets[dataset].get('doi', None)
-                    if doi is not None:
-                        doi_obj = DOI._get_collection().find_one(dict(_id=doi))
-                        if doi_obj is not None:
-                            dois[doi] = doi_obj
-
-        return {
-            'upload_id': upload_id,
-            'upload': upload.to_json(),
-            'calcs': calcs,
-            'datasets': datasets,
-            'dois': dois,
-            'upload_files_path': upload.upload_files.os_path
-        }, 200
+        upload_data = _upload_data(
+            upload.upload_id,
+            upload.to_json(),
+            calcs_col=proc.Calc._get_collection(),
+            datasets_col=_Dataset._get_collection(),
+            dois_col=DOI._get_collection())
+        upload_data.update(upload_files_path=upload.upload_files.os_path)
+        return upload_data, 200
 
 
 _mirror_files_parser = api.parser()

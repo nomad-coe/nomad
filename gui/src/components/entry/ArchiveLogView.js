@@ -9,6 +9,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
 import { maxLogsToShow } from '../../config'
+import { EntryPageContent } from './EntryPage'
 
 class LogEntryUnstyled extends React.Component {
   static propTypes = {
@@ -138,7 +139,7 @@ class ArchiveLogView extends React.Component {
     }
 
     return (
-      <div className={classes.root}>
+      <EntryPageContent className={classes.root} fixed>
         {content}
 
         <Download
@@ -149,7 +150,7 @@ class ArchiveLogView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-      </div>
+      </EntryPageContent>
     )
   }
 }

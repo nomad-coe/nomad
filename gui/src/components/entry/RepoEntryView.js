@@ -8,6 +8,7 @@ import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
+import { EntryPageContent } from './EntryPage'
 
 class RepoEntryView extends React.Component {
   static styles = theme => ({
@@ -89,7 +90,7 @@ class RepoEntryView extends React.Component {
     }
 
     return (
-      <div className={classes.root}>
+      <EntryPageContent className={classes.root} fixed>
         <Grid container spacing={2}>
           <Grid item xs={7}>
             <Card>
@@ -165,7 +166,7 @@ class RepoEntryView extends React.Component {
         </Grid>
 
         {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} classes={{root: classes.entryCards}} />}
-      </div>
+      </EntryPageContent>
     )
   }
 }

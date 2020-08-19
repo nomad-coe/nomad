@@ -4,6 +4,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived
 )
+from nomad.metainfo.search_extension import Search
 from nomad.metainfo.legacy import LegacyDefinition
 
 
@@ -2016,9 +2017,9 @@ class section_gaussian_basis_group(MSection):
     '''
     Section that describes a group of Gaussian contractions. Groups allow one to calculate
     the primitive Gaussian integrals once for several different linear combinations of
-    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\\\sum_{j} c_{i
-    j} A(l_i, \\\\alpha_j) exp(-\\\\alpha_j r^2)$ where $A(l_i, \\\\alpha_j)$ is a the
-    normalization coefficient for primitive Gaussian basis functions. Here, $\\\\alpha_j$ is
+    them. This defines basis functions with radial part $f_i(r) = r^{l_i} \\sum_{j} c_{i
+    j} A(l_i, \\alpha_j) exp(-\\alpha_j r^2)$ where $A(l_i, \\alpha_j)$ is a the
+    normalization coefficient for primitive Gaussian basis functions. Here, $\\alpha_j$ is
     defined in gaussian_basis_group_exponents, $l_i$ is given in gaussian_basis_group_ls,
     and $c_{i j}$ is given in gaussian_basis_group_contractions, whereas the radial part
     is given by the spherical harmonics $Y_{l m}$.
@@ -2376,7 +2377,7 @@ class section_k_band(MSection):
     brillouin_zone = SubSection(
         sub_section=SectionProxy('section_brillouin_zone'),
         repeats=False,
-        a_legacy=LegacyDefinition(name='section_k_band_segment'))
+        a_legacy=LegacyDefinition(name='brillouin_zone'))
 
     section_band_gap = SubSection(
         sub_section=section_band_gap.m_def,
@@ -3438,11 +3439,6 @@ class section_run(MSection):
         sub_section=SectionProxy('section_system'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_system'))
-
-    section_workflow = SubSection(
-        sub_section=SectionProxy('section_workflow'),
-        repeats=True
-    )
 
 
 class section_sampling_method(MSection):
@@ -5580,7 +5576,70 @@ class section_XC_functionals(MSection):
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
 
 
-class section_workflow(MSection):
+class Relaxation(MSection):
+    '''
+    Section containing the results of a relaxation workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_relaxation'))
+
+    relaxation_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The type of relaxation ionic, cell_shape, cell_volume.
+        ''',
+        a_legacy=LegacyDefinition(name='relaxation_type')
+    )
+
+    input_energy_difference_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The input energy difference tolerance criterion.
+        ''',
+        a_legacy=LegacyDefinition(name='input_energy_difference_tolerance'))
+
+    input_force_maximum_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='newton',
+        description='''
+        The input maximum net force tolerance criterion.
+        ''',
+        a_legacy=LegacyDefinition(name='input_force_maximum_tolerance'))
+
+    final_energy_difference = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The difference in the energy between the last two steps during relaxation.
+        ''',
+        a_legacy=LegacyDefinition(name='final_energy_difference'),
+        a_search=Search())
+
+    final_force_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='newton',
+        description='''
+        The maximum net force in the last relaxation step.
+        ''',
+        a_legacy=LegacyDefinition(name='final_force_maximum')
+    )
+
+    final_calculation_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=[],
+        description='''
+        Reference to last calculation step.
+        ''',
+        a_legacy=LegacyDefinition(name='final_calculation_ref'))
+
+
+class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
     '''
@@ -5594,23 +5653,12 @@ class section_workflow(MSection):
         The type of calculation workflow. Can be one of relaxation, elastic, phonon,
         molecular dynamics.
         ''',
-        a_legacy=LegacyDefinition(name='workflow_type'))
+        a_legacy=LegacyDefinition(name='workflow_type'),
+        a_search=Search())
 
-    relaxation_energy_tolerance = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        The tolerance value in the energy between relaxation steps for convergence.
-        ''',
-        a_legacy=LegacyDefinition(name='relaxation_energy_tolerance'))
-
-    workflow_final_calculation_ref = Quantity(
-        type=Reference(SectionProxy('section_single_configuration_calculation')),
-        shape=[],
-        description='''
-        Reference to last calculation step.
-        ''')
+    section_relaxation = SubSection(
+        sub_section=SectionProxy('Relaxation'),
+        a_legacy=LegacyDefinition(name='section_relaxation'))
 
 
 m_package.__init_metainfo__()

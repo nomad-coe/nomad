@@ -49,6 +49,10 @@ from nomad.datamodel.encyclopedia import (
 import phonopyparser.metainfo
 
 
+section_metadata = datamodel.EntryArchive.section_metadata.name
+section_workflow = datamodel.EntryArchive.section_workflow.name
+
+
 def _pack_log_event(logger, method_name, event_dict):
     try:
         log_data = dict(event_dict)
@@ -176,8 +180,15 @@ class Calc(Proc):
         '''
         archive = upload_files.read_archive(self.calc_id)
         try:
-            entry_metadata = datamodel.EntryMetadata.m_from_dict(
-                archive[self.calc_id][datamodel.EntryArchive.section_metadata.name].to_dict())
+            # instead of loading the whole archive, it should be enough to load the
+            # parts that are referenced by section_metadata/EntryMetadata
+            # TODO somehow it should determine which root setions too load from the metainfo
+            # or configuration
+            calc_archive = archive[self.calc_id]
+            entry_archive_dict = {section_metadata: calc_archive[section_metadata].to_dict()}
+            if section_workflow in calc_archive:
+                entry_archive_dict[section_workflow] = calc_archive[section_workflow].to_dict()
+            entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
 
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not

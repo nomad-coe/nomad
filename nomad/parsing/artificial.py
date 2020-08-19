@@ -120,8 +120,9 @@ class TemplateParser(ArtificalParser):
             self.backend.pwarn('A test warning.')
 
         template_json = json.load(open(mainfile, 'r'))
-        section = template_json['section_run'][0]
-        self.add_section(section)
+        self.add_section(template_json['section_run'][0])
+        if 'section_workflow' in template_json:
+            self.add_section(template_json['section_workflow'])
         self.backend.finishedParsingSession('ParseSuccess', [])
         logger.debug('a test log entry')
         return self.backend

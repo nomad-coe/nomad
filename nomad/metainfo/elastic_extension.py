@@ -183,9 +183,12 @@ class ElasticDocument(SectionAnnotation):
                     elif quantity.type == Datetime:
                         annotation.mapping = Date(**kwargs)
                     elif isinstance(quantity.type, Reference):
+                        inner_prefix = annotation.field
+                        if prefix is not None:
+                            inner_prefix = '%s.%s' % (prefix, inner_prefix)
                         inner_document = ElasticDocument.create_document(
                             cast(Section, quantity.type.target_section_def), inner_doc=True,
-                            prefix=annotation.field)
+                            prefix=inner_prefix)
                         annotation.mapping = Object(inner_document)
                     elif isinstance(quantity.type, MEnum):
                         annotation.mapping = Keyword(**kwargs)

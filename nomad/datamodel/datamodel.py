@@ -32,7 +32,7 @@ from .ems import EMSMetadata
 m_package = metainfo.Package()
 
 from .encyclopedia import EncyclopediaMetadata  # noqa
-from .metainfo.public import section_run  # noqa
+from .metainfo.public import section_run, Workflow  # noqa
 from .metainfo.general_experimental import section_experiment  # noqa
 
 
@@ -480,6 +480,7 @@ class EntryArchive(metainfo.MSection):
 
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=section_experiment)
+    section_workflow = metainfo.SubSection(sub_section=Workflow)
     section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
 
     processing_logs = metainfo.Quantity(

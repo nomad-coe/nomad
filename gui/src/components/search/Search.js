@@ -17,7 +17,7 @@ import ApiDialogButton from '../ApiDialogButton'
 import SearchIcon from '@material-ui/icons/Search'
 import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
-import SearchContext, { searchContext } from './SearchContext'
+import SearchContext, { searchContext, useUrlQuery } from './SearchContext'
 import {objectFilter} from '../../utils'
 import MaterialsList from './MaterialsList'
 
@@ -433,18 +433,18 @@ function OwnerSelect(props) {
 
   const ownerTypesToRender = ownerTypes.length === 1 ? [] : ownerTypes.slice(1)
 
-  const [ownerParam, setOwnerParam] = useQueryParam('owner', StringParam)
-  const owner = ownerParam || initialOwner || 'all'
+  const [{owner}, setQueryParam] = useUrlQuery()
+  const ownerValue = owner || initialOwner || 'all'
 
   useEffect(() => {
-    setOwner(owner)
-  }, [owner, setOwner])
+    setOwner(ownerValue)
+  }, [ownerValue, setOwner])
 
   const handleChange = (event) => {
-    if (ownerParam !== event.target.value) {
-      setOwnerParam(event.target.value)
+    if (owner !== event.target.value) {
+      setQueryParam({owner: event.target.value})
     } else {
-      setOwnerParam(initialOwner)
+      setQueryParam({owner: initialOwner})
     }
   }
 
@@ -458,7 +458,7 @@ function OwnerSelect(props) {
         <Tooltip key={ownerToRender} title={ownerTooltips[ownerToRender]}>
           <FormControlLabel
             control={<Checkbox
-              checked={owner === ownerToRender}
+              checked={ownerValue === ownerToRender}
               onChange={handleChange} value={ownerToRender}
             />}
             label={ownerLabel[ownerToRender]}
@@ -535,6 +535,7 @@ const usePagination = () => {
     order: NumberParam, order_by: StringParam, per_page: NumberParam, page: NumberParam
   })
   requestQueryParameters = objectFilter(requestQueryParameters, key => requestQueryParameters[key])
+  requestQueryParameters.page = requestQueryParameters.page || 1
   useEffect(
     () => setRequestParameters(requestQueryParameters),
     [requestQueryParameters, setRequestParameters]
@@ -551,7 +552,7 @@ const useScroll = (apiGroupName, afterParameterName) => {
   useEffect(
     () => {
       const requestParameters = {}
-      requestParameters[apiAfterParameterName] = queryAfterParameter
+      requestParameters[apiAfterParameterName] = queryAfterParameter || null
       setRequestParameters(requestParameters)
     }, [queryAfterParameter, setRequestParameters, apiAfterParameterName]
   )

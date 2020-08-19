@@ -46,17 +46,62 @@ def qa(skip_tests: bool, exitfirst: bool):
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
     import json
+    from nomad.metainfo import Package, Environment
 
-    from nomad.metainfo import Package
+    # TODO the __init_metainfo__() should not be necessary and automatically performed
+    # Also load and initialize the datamodel definitions
+    import nomad.metainfo.metainfo
+    import nomad.datamodel.datamodel
+    import nomad.datamodel.dft
+    import nomad.datamodel.ems
+    import nomad.datamodel.optimade
+    import nomad.datamodel.encyclopedia
+    nomad.metainfo.metainfo.m_package.__init_metainfo__()
+    nomad.datamodel.datamodel.m_package.__init_metainfo__()
+    nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
+    nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
+
+    # Ensure all parser metainfo is loaded
     from nomad.parsing.parsers import parsers
-
-    # Ensure all metainfo is loaded
     for parser in parsers:
         _ = parser.metainfo_env
 
-    data = {key: value.m_to_dict() for key, value in Package.registry.items()}
+    export = Environment()
+    for package in Package.registry.values():
+        export.m_add_sub_section(Environment.packages, package)
 
-    print(json.dumps(data, indent=2))
+    print(json.dumps(export.m_to_dict(with_meta=True), indent=2))
+
+
+@dev.command(help='Generates a JSON with all search quantities.')
+def search_quantities():
+    from nomad import search
+    # Due to this import, the parsing module will register all code_names based on parser
+    # implementations.
+    from nomad import parsing  # pylint: disable=unused-import
+    import json
+
+    def to_dict(search_quantity):
+        result = {
+            'name': search_quantity.qualified_name,
+            'description': search_quantity.description,
+            'many': search_quantity.many,
+        }
+
+        if search_quantity.statistic_fixed_size is not None:
+            result['statistic_size'] = search_quantity.statistic_fixed_size
+        if search_quantity.statistic_values is not None:
+            result['statistic_values'] = search_quantity.statistic_values
+
+        return result
+
+    export = {
+        search_quantity.qualified_name: to_dict(search_quantity)
+        for search_quantity in search.search_quantities.values()
+    }
+    print(json.dumps(export, indent=2))
 
 
 @dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
