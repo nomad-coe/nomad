@@ -88,36 +88,28 @@ query_model_fields.update(**{
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
 
-query_model = api.model('Query0', query_model_fields)
-for n in range(1, 3):
-    query_model = api.model('Query%d' % n, {**query_model_fields, **{
-        '$and': fields.List(fields.Nested(query_model, allow_null=True, skip_none=True), description=(
-            'List of queries which must be present in search results.'
-        )),
-        '$or': fields.List(fields.Nested(query_model, allow_null=True, skip_none=True, description=(
-            'List of queries which should be present in search results.'
-        ))),
-        '$not': fields.List(fields.Nested(query_model, allow_null=True, skip_none=True, description=(
-            'List of queries which must not be present in search results.'
-        ))),
-        '$lt': fields.Nested(api.model('Querylt', query_model_fields), allow_null=True, skip_none=True, description=(
-            'Dict of quantiy name: value such that search results should have values '
-            'less than value.'
-        )),
-        '$lte': fields.Nested(api.model('Querylte', query_model_fields), allow_null=True, skip_none=True, description=(
-            'Dict of quantiy name: value such that search results should have values '
-            'less than or equal to value'
-        )),
-        '$gt': fields.Nested(api.model('Querygt', query_model_fields), allow_null=True, skip_none=True, description=(
-            'Dict of quantiy name: value such that search results should have values '
-            'greater than value'
-        )),
-        '$gte': fields.Nested(api.model('Querygte', query_model_fields), allow_null=True, skip_none=True, description=(
-            'Dict of quantiy name: value such that search results should have values '
-            'greater than or equal to value'
-        )),
+query_model_fields.update(**{
+    '$and': fields.List(fields.Raw, description=(
+        'List of queries which must be present in search results.')),
+    '$or': fields.List(fields.Raw, description=(
+        'List of queries which should be present in search results.')),
+    '$not': fields.List(fields.Raw, description=(
+        'List of queries which must not be present in search results.')),
+    '$lt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than value.')),
+    '$lte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than or equal to value')),
+    '$gt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than value')),
+    '$gte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than or equal to value')),
+})
 
-    }})
+query_model = api.model('Query', query_model_fields)
 
 search_model_fields = {
     'query': fields.Nested(query_model, allow_null=True, skip_none=True),
