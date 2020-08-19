@@ -89,6 +89,8 @@ gui:
   gzip: true
   ## enable links to the 'new' encyclopedia
   encyclopediaEnabled: true
+  ## enable aitoolkit references
+  aitoolkitEnabled: true
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
