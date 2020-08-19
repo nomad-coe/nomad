@@ -68,8 +68,8 @@ RUN pip install .[all]
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
+RUN python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
 WORKDIR /install/docs
-# COPY --from=gui_build /app/react-docgen.out /install/docs
 RUN make html
 RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
@@ -86,8 +86,8 @@ COPY gui/yarn.lock /app/yarn.lock
 RUN yarn
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
+COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
 RUN yarn run build
-# RUN yarn run --silent react-docgen src/components --pretty > react-docgen.out
 
 # Build the Encyclopedia GUI in the gui build image
 RUN mkdir -p /encyclopedia

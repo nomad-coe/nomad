@@ -51,4 +51,4 @@ lazy_import.lazy_module('nomad.config')
 lazy_import.lazy_module('nomad.files')
 lazy_import.lazy_module('nomad.archive')
 
-from . import admin, uploads, entries, run, clean, users  # noqa
+from . import admin, uploads, entries, run, clean, users, migrate  # noqa

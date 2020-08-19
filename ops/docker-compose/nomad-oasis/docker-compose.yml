@@ -56,7 +56,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: nomad/local:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:oasis-migration
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -66,14 +66,14 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
+            - nomad_oasis_files:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
     # nomad app (api + gui)
     app:
         restart: always
-        image: nomad/local:latest
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:oasis-migration
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -83,11 +83,11 @@ services:
             - elastic
             - mongo
         volumes:
-            - nomad_oasis_files:/app/.volumes/fs
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
             - ./gunicorn.log.conf:/app/gunicorn.log.conf
             - ./gunicorn.conf:/app/gunicorn.conf
+            - nomad_oasis_files:/app/.volumes/fs
         command: ["./run.sh", "/nomad-oasis"]
 
     # nomad gui (a reverse proxy for nomad)

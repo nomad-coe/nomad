@@ -15,6 +15,7 @@ import DownloadButton from '../DownloadButton'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import ConfirmDialog from '../uploads/ConfirmDialog'
+import { oasis } from '../../config'
 
 class DOIUnstyled extends React.Component {
   static propTypes = {
@@ -150,7 +151,7 @@ class DatasetActionsUnstyled extends React.Component {
         example={dataset.example} query={query}
         total={dataset.total} onEditComplete={this.handleEdit}
       />}
-      {editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
+      {!oasis && editable && canAssignDOI && <Tooltip title="Assign a DOI to this dataset.">
         <IconButton onClick={() => this.setState({confirmDoi: true})}>
           <DOIIcon />
         </IconButton>

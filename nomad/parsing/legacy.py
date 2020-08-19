@@ -260,6 +260,10 @@ class Backend(AbstractParserBackend):
         return self.__legacy_env
 
     def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
+        definition = self.env.from_legacy_name(name, section_cls)
+        if definition:
+            return definition
+
         return self.env.resolve_definition(
             normalize_name(name), section_cls, Backend.filter_legacy_defs)
 

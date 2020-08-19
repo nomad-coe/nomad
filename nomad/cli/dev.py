@@ -75,6 +75,35 @@ def metainfo():
     print(json.dumps(export.m_to_dict(with_meta=True), indent=2))
 
 
+@dev.command(help='Generates a JSON with all search quantities.')
+def search_quantities():
+    from nomad import search
+    # Due to this import, the parsing module will register all code_names based on parser
+    # implementations.
+    from nomad import parsing  # pylint: disable=unused-import
+    import json
+
+    def to_dict(search_quantity):
+        result = {
+            'name': search_quantity.qualified_name,
+            'description': search_quantity.description,
+            'many': search_quantity.many,
+        }
+
+        if search_quantity.statistic_fixed_size is not None:
+            result['statistic_size'] = search_quantity.statistic_fixed_size
+        if search_quantity.statistic_values is not None:
+            result['statistic_values'] = search_quantity.statistic_values
+
+        return result
+
+    export = {
+        search_quantity.qualified_name: to_dict(search_quantity)
+        for search_quantity in search.search_quantities.values()
+    }
+    print(json.dumps(export, indent=2))
+
+
 @dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
 @click.argument('path', nargs=-1)
 def legacy_metainfo(path):

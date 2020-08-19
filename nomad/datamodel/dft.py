@@ -22,7 +22,6 @@ from nomad import config, utils
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
-from .common import get_optional_backend_value
 from .optimade import OptimadeEntry
 from .metainfo.public import Workflow
 
@@ -301,46 +300,77 @@ class DFTMetadata(MSection):
             self.code_name = self.code_name_from_parser()
             return
 
+        entry_archive = backend.entry_archive
+        section_run = entry_archive.section_run
+        if not section_run:
+            logger.warn('no section_run found')
+            return
+        section_run = section_run[0]
+
+        section_system = []
+        for section in section_run.section_system:
+            if section.is_representative:
+                section_system = section
+                break
+
         # code and code specific ids
         try:
-            self.code_name = backend.get_value('program_name', 0)
+            code_name = section_run.program_name
+            if code_name:
+                self.code_name = code_name
+            else:
+                raise KeyError
         except KeyError as e:
             logger.warn('backend after parsing without program_name', exc_info=e)
             self.code_name = self.code_name_from_parser()
 
         try:
-            self.code_version = simplify_version(backend.get_value('program_version', 0))
+            version = section_run.program_version
+            if version:
+                self.code_version = simplify_version(version)
+            else:
+                raise KeyError
         except KeyError:
             self.code_version = config.services.unavailable_value
 
-        raw_id = get_optional_backend_value(backend, 'raw_id', 'section_run', None)
+        def get_value(value):
+            return value if value else config.services.unavailable_value
+
+        raw_id = section_run.raw_id
         if raw_id is not None:
             entry.raw_id = raw_id
 
         # metadata (system, method, chemistry)
-        atoms = get_optional_backend_value(backend, 'atom_labels', 'section_system', [], logger=logger)
-        if hasattr(atoms, 'tolist'):
-            atoms = atoms.tolist()
+        atom_labels = section_system.atom_labels if section_system else []
+        atoms = atom_labels if atom_labels else []
         entry.n_atoms = len(atoms)
         atoms = list(set(normalized_atom_labels(set(atoms))))
         atoms.sort()
         entry.atoms = atoms
         self.compound_type = compound_types[len(atoms) - 1] if len(atoms) <= 10 else '>decinary'
 
-        self.crystal_system = get_optional_backend_value(
-            backend, 'crystal_system', 'section_symmetry', logger=logger)
-        self.spacegroup = get_optional_backend_value(
-            backend, 'space_group_number', 'section_symmetry', 0, logger=logger)
-        self.spacegroup_symbol = get_optional_backend_value(
-            backend, 'international_short_symbol', 'section_symmetry', logger=logger)
-        self.basis_set = map_basis_set_to_basis_set_label(
-            get_optional_backend_value(backend, 'program_basis_set_type', 'section_run', logger=logger))
-        self.system = get_optional_backend_value(
-            backend, 'system_type', 'section_system', logger=logger)
-        entry.formula = get_optional_backend_value(
-            backend, 'chemical_composition_bulk_reduced', 'section_system', logger=logger)
-        self.xc_functional = map_functional_name_to_xc_treatment(
-            get_optional_backend_value(backend, 'XC_functional_name', 'section_method', logger=logger))
+        section_symmetry = section_system.section_symmetry if section_system else []
+        if section_symmetry:
+            section_symmetry = section_symmetry[0]
+            self.crystal_system = get_value(section_symmetry.crystal_system)
+            spacegroup = section_symmetry.space_group_number
+            self.spacegroup = 0 if not spacegroup else int(spacegroup)
+            self.spacegroup_symbol = get_value(section_symmetry.international_short_symbol)
+
+        program_basis_set_type = section_run.program_basis_set_type
+        if program_basis_set_type:
+            self.basis_set = map_basis_set_to_basis_set_label(program_basis_set_type)
+
+        if section_system:
+            self.system = get_value(section_system.system_type)
+            entry.formula = get_value(section_system.chemical_composition_bulk_reduced)
+
+        section_method = section_run.section_method
+        if section_method:
+            section_method = section_method[0]
+            section_XC_functionals = section_method.section_XC_functionals
+            if section_XC_functionals:
+                self.xc_functional = get_value(section_XC_functionals[0].XC_functional_name)
 
         # grouping
         self.update_group_hash()
@@ -355,7 +385,7 @@ class DFTMetadata(MSection):
         n_total_energies = 0
         n_geometries = 0
 
-        for section_run in backend.entry_archive.section_run:
+        for section_run in entry_archive.section_run:
             quantities.add(section_run.m_def.name)
             n_quantities += 1
 
@@ -390,9 +420,10 @@ class DFTMetadata(MSection):
         # labels
         compounds = set()
         classifications = set()
-        for index in backend.get_sections('section_springer_material'):
-            compounds.update(backend.get_value('springer_compound_class', index))
-            classifications.update(backend.get_value('springer_classification', index))
+        if section_system:
+            for section in section_system.section_springer_material:
+                compounds.update(section.springer_compound_class)
+                classifications.update(section.springer_classification)
 
         for compound in compounds:
             self.labels.append(Label(label=compound, type='compound_class', source='springer'))
@@ -401,12 +432,15 @@ class DFTMetadata(MSection):
         self.labels_springer_compound_class = list(compounds)
         self.labels_springer_classification = list(classifications)
 
-        aflow_id = get_optional_backend_value(backend, 'prototype_aflow_id', 'section_prototype')
-        aflow_label = get_optional_backend_value(backend, 'prototype_label', 'section_prototype')
+        aflow_id, aflow_label = None, None
+        section_prototype = section_system.section_prototype if section_system else []
+        if section_prototype:
+            aflow_id = get_value(section_prototype[0].prototype_aflow_id)
+            aflow_label = get_value(section_prototype[0].prototype_label)
 
         if aflow_id is not None and aflow_label is not None:
             self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
 
-        if backend.entry_archive.section_workflow:
-            self.workflow = backend.entry_archive.section_workflow
+        if entry_archive.section_workflow:
+            self.workflow = entry_archive.section_workflow
