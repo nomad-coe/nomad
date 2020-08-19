@@ -101,6 +101,7 @@ data:
         "officialUrl": "{{ .Values.version.officialUrl }}"
       },
       "encyclopediaEnabled": {{ .Values.gui.encyclopediaEnabled }}
+      "aitoolkitEnabled": {{ .Values.gui.aitoolkitEnabled }}
     };
 ---
 apiVersion: v1
