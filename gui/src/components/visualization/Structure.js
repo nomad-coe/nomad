@@ -1,24 +1,32 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
-
-import { StructureViewer } from '@lauri-codes/materia'
 import { makeStyles } from '@material-ui/core/styles'
-import IconButton from '@material-ui/core/IconButton'
-import Tooltip from '@material-ui/core/Tooltip'
-import Menu from '@material-ui/core/Menu'
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@material-ui/core'
-import MenuItem from '@material-ui/core/MenuItem'
-import MoreVertIcon from '@material-ui/icons/MoreVert'
-import FullscreenIcon from '@material-ui/icons/Fullscreen'
-import FullscreenExitIcon from '@material-ui/icons/FullscreenExit'
-import CameraAltIcon from '@material-ui/icons/CameraAlt'
-import ReplayIcon from '@material-ui/icons/Replay'
-import FormControlLabel from '@material-ui/core/FormControlLabel'
-import Checkbox from '@material-ui/core/Checkbox'
-import Box from '@material-ui/core/Box'
+import {
+  Box,
+  Checkbox,
+  Menu,
+  MenuItem,
+  Button,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel
+} from '@material-ui/core'
+import {
+  MoreVert,
+  Fullscreen,
+  FullscreenExit,
+  CameraAlt,
+  Replay
+} from '@material-ui/icons'
+import { StructureViewer } from '@lauri-codes/materia'
 import { convert } from '../../utils'
 
 export default function Structure(props) {
+  // States
   const [loaded, setLoaded] = React.useState(props.viewer === undefined ? false : props.viewer.structure !== undefined)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -26,11 +34,13 @@ export default function Structure(props) {
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
   const [error, setError] = useState(null)
-  const open = Boolean(anchorEl)
 
+  // Variables
+  const open = Boolean(anchorEl)
   const viewer = useRef(null)
   const refCanvas = useRef(null)
 
+  // Styles
   const useStyles = makeStyles((theme) => {
     return {
       root: {
@@ -150,12 +160,11 @@ export default function Structure(props) {
     if (refCanvas.current !== null) {
       viewer.current.changeHostElement(refCanvas.current, false, false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // For loading a structure
+  // Called only on first render to load the given structure.
   useEffect(() => {
-    // Check data validity. Display error message if data is invalid or too big
-    // to display.
     if (props.system === undefined) {
       return
     }
@@ -173,7 +182,7 @@ export default function Structure(props) {
       return
     }
 
-    // Systems with cell are centered on the cell center and oriented is defined
+    // Systems with cell are centered on the cell center and orientation is defined
     // by the cell vectors.
     let cell = props.system.lattice_vectors
     if (cell !== undefined) {
@@ -213,6 +222,7 @@ export default function Structure(props) {
     viewer.current.saveReset()
     viewer.current.reset()
     setLoaded(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Viewer settings
@@ -256,23 +266,23 @@ export default function Structure(props) {
       <div className={classes.spacer}></div>
       <Tooltip title="Reset view">
         <IconButton className={classes.iconButton} onClick={handleReset} disabled={error}>
-          <ReplayIcon />
+          <Replay />
         </IconButton>
       </Tooltip>
       <Tooltip
         title="Toggle fullscreen">
         <IconButton className={classes.iconButton} onClick={toggleFullscreen} disabled={error}>
-          {fullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
         </IconButton>
       </Tooltip>
       <Tooltip title="Capture image">
         <IconButton className={classes.iconButton} onClick={takeScreencapture} disabled={error}>
-          <CameraAltIcon />
+          <CameraAlt />
         </IconButton>
       </Tooltip>
       <Tooltip title="Options">
         <IconButton className={classes.iconButton} onClick={openMenu} disabled={error}>
-          <MoreVertIcon />
+          <MoreVert />
         </IconButton>
       </Tooltip>
       <Menu
@@ -325,7 +335,6 @@ export default function Structure(props) {
     </div>
     <div className={classes.viewerCanvas} ref={measuredRef}></div>
     <div className={classes.errorContainer}><div className={classes.errorMessage}>{error}</div></div>
-    }
   </Box>
 
   return (
@@ -353,12 +362,12 @@ export default function Structure(props) {
 }
 
 Structure.propTypes = {
-  system: PropTypes.object,
-  options: PropTypes.object,
-  captureName: PropTypes.string,
-  viewer: PropTypes.any,
-  aspectRatio: PropTypes.number,
-  sizeLimit: PropTypes.number
+  system: PropTypes.object, // The system to display as section_system
+  options: PropTypes.object, // Viewer options
+  captureName: PropTypes.string, // Name of the file that the user can download
+  viewer: PropTypes.any, // An optional shared instance of StructureViewer
+  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
+  sizeLimit: PropTypes.number // Maximum number of atoms to attempt to display
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
