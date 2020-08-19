@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useContext } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles } from '@material-ui/core'
@@ -9,6 +9,8 @@ import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
+import Structure from '../visualization/Structure'
+import { StructureViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
 
 export const configState = atom({
@@ -20,12 +22,22 @@ export const configState = atom({
   }
 })
 
+// Context for sharing data that is expensive to create
+const ArchiveContext = React.createContext()
+const viewer = new StructureViewer()
+
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
-  return <Browser
-    adaptor={archiveAdaptorFactory(data)}
-    form={<ArchiveConfigForm searchOptions={searchOptions} />}
-  />
+  return (
+    <ArchiveContext.Provider value={{
+      structure: viewer
+    }}>
+      <Browser
+        adaptor={archiveAdaptorFactory(data)}
+        form={<ArchiveConfigForm searchOptions={searchOptions} />}
+      />
+    </ArchiveContext.Provider>
+  )
 }
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
@@ -288,11 +300,25 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
+/**
+ * Used to retrieve an optional visualization for a section displayed in the
+ * browser.
+ */
+function getVisualization(section, def, archiveContext) {
+  // Structure visualization for section_system
+  if (def.name === 'section_system') {
+    return <Structure viewer={archiveContext.structure} system={section}></Structure>
+  }
+}
+
 function Section({section, def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  const archiveContext = useContext(ArchiveContext)
+
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
+    {getVisualization(section, def, archiveContext)}
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)

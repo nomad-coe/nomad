@@ -4,6 +4,7 @@
   "commit": "e98694e",
   "private": true,
   "dependencies": {
+    "@lauri-codes/materia": "0.0.3",
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",
     "@material-ui/lab": "^4.0.0-alpha.49",
@@ -23,6 +24,7 @@
     "lodash": "^4.17.15",
     "material-ui-chip-input": "^1.0.0-beta.14",
     "material-ui-flat-pagination": "^4.0.0",
+    "mathjs": "^7.1.0",
     "object-hash": "^2.0.3",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",
@@ -51,7 +53,6 @@
     "remark": "^12.0.1",
     "remark-math": "^2.0.1",
     "swagger-client": "^3.8.22",
-    "@lauri-codes/materia": "0.0.2",
     "url-parse": "^1.4.3",
     "use-query-params": "^0.6.0"
   },

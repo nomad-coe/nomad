@@ -100,7 +100,7 @@ class ArchiveEntryView extends React.Component {
     if (doesNotExist) {
       return (
         <Typography className={classes.error}>
-          No archive does exist for this entry. Either the archive was not generated due
+          No archive exists for this entry. Either the archive was not generated due
           to parsing or other processing errors (check the log tab), or the entry it
           self does not exist.
         </Typography>
