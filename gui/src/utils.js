@@ -38,12 +38,12 @@ export const capitalize = (s) => {
  * n-dimensional arrays and implemented as a relatively simple for loop for
  * performance. If conversion times become an issue, it might be worthwhile to
  * look at vectorization with SIMD.
- * 
+ *
  * @param {*} value The values to convert
  * @param {*} from Original unit.
  * @param {*} to Target unit.
- * 
- * @return {*} to A copy of the original data with units converted.
+ *
+ * @return {*} A copy of the original data with units converted.
  */
 export function convert(value, from, to) {
   // Determine the scaling factor
@@ -65,7 +65,7 @@ export function convert(value, from, to) {
     }
   }
   let isArray = Array.isArray(value)
-  let newValue;
+  let newValue
   if (!isArray) {
     newValue = value * factor
   } else {

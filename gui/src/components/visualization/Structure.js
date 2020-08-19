@@ -25,6 +25,7 @@ export default function Structure(props) {
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
+  const [error, setError] = useState(null)
   const open = Boolean(anchorEl)
 
   const viewer = useRef(null)
@@ -64,7 +65,22 @@ export default function Structure(props) {
         flex: 1,
         zIndex: 0,
         minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2)
+        marginBottom: theme.spacing(2),
+        display: error === null ? 'block' : 'none'
+      },
+      errorContainer: {
+        flex: 1,
+        zIndex: 0,
+        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+        marginBottom: theme.spacing(2),
+        alignItems: 'center',
+        justifyContent: 'center',
+        display: error === null ? 'none' : 'flex'
+      },
+      errorMessage: {
+        flex: '0 0 70%',
+        color: '#aaa',
+        textAlign: 'center'
       },
       iconButton: {
         backgroundColor: 'white'
@@ -141,6 +157,11 @@ export default function Structure(props) {
     // Check data validity. Display error message if data is invalid or too big
     // to display.
     if (props.system === undefined) {
+      return
+    }
+    let nAtoms = props.system.atom_species.length
+    if (nAtoms >= props.sizeLimit) {
+      setError('Visualization is disabled due to large system size.')
       return
     }
 
@@ -234,23 +255,23 @@ export default function Structure(props) {
     <div className={classes.header}>
       <div className={classes.spacer}></div>
       <Tooltip title="Reset view">
-        <IconButton className={classes.iconButton} onClick={handleReset}>
+        <IconButton className={classes.iconButton} onClick={handleReset} disabled={error}>
           <ReplayIcon />
         </IconButton>
       </Tooltip>
       <Tooltip
         title="Toggle fullscreen">
-        <IconButton className={classes.iconButton} onClick={toggleFullscreen}>
+        <IconButton className={classes.iconButton} onClick={toggleFullscreen} disabled={error}>
           {fullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
         </IconButton>
       </Tooltip>
       <Tooltip title="Capture image">
-        <IconButton className={classes.iconButton} onClick={takeScreencapture}>
+        <IconButton className={classes.iconButton} onClick={takeScreencapture} disabled={error}>
           <CameraAltIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Options">
-        <IconButton className={classes.iconButton} onClick={openMenu}>
+        <IconButton className={classes.iconButton} onClick={openMenu} disabled={error}>
           <MoreVertIcon />
         </IconButton>
       </Tooltip>
@@ -303,6 +324,8 @@ export default function Structure(props) {
       </Menu>
     </div>
     <div className={classes.viewerCanvas} ref={measuredRef}></div>
+    <div className={classes.errorContainer}><div className={classes.errorMessage}>{error}</div></div>
+    }
   </Box>
 
   return (
@@ -334,9 +357,11 @@ Structure.propTypes = {
   options: PropTypes.object,
   captureName: PropTypes.string,
   viewer: PropTypes.any,
-  aspectRatio: PropTypes.number
+  aspectRatio: PropTypes.number,
+  sizeLimit: PropTypes.number
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
-  captureName: 'structure'
+  captureName: 'structure',
+  sizeLimit: 300
 }
