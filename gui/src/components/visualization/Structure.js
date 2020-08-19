@@ -23,11 +23,9 @@ import {
   Replay
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
-import { convert } from '../../utils'
 
 export default function Structure(props) {
   // States
-  const [loaded, setLoaded] = React.useState(props.viewer === undefined ? false : props.viewer.structure !== undefined)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [showBonds, setShowBonds] = useState(true)
@@ -168,23 +166,21 @@ export default function Structure(props) {
     if (props.system === undefined) {
       return
     }
-    let nAtoms = props.system.atom_species.length
+
+    if (props.positionsOnly) {
+      viewer.current.setPositions(props.system.positions)
+      return
+    }
+
+    let nAtoms = props.system.atomicNumbers.length
     if (nAtoms >= props.sizeLimit) {
       setError('Visualization is disabled due to large system size.')
       return
     }
 
-    // If a structure has already been loaded and a viewer has been pre-created,
-    // it is assumed that only the positions need to be updated on data change.
-    if (props.viewer !== undefined && loaded) {
-      let positions = convert(props.system.atom_positions, 'm', 'angstrom')
-      viewer.current.setPositions(positions)
-      return
-    }
-
     // Systems with cell are centered on the cell center and orientation is defined
     // by the cell vectors.
-    let cell = props.system.lattice_vectors
+    let cell = props.system.cell
     if (cell !== undefined) {
       viewer.current.setOptions({layout: {
         viewCenter: 'COC',
@@ -211,17 +207,10 @@ export default function Structure(props) {
         }
       }})
     }
-    var system = {
-      'atomicNumbers': props.system.atom_species,
-      'cell': convert(props.system.lattice_vectors, 'm', 'angstrom'),
-      'positions': convert(props.system.atom_positions, 'm', 'angstrom'),
-      'pbc': props.system.configuration_periodic_dimensions
-    }
-    viewer.current.load(system)
+    viewer.current.load(props.system)
     viewer.current.fitToCanvas()
     viewer.current.saveReset()
     viewer.current.reset()
-    setLoaded(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -362,12 +351,14 @@ export default function Structure(props) {
 }
 
 Structure.propTypes = {
+  viewer: PropTypes.object, // Optional shared viewer instance.
+  id: PropTypes.string, // Id for the visualized structure.
   system: PropTypes.object, // The system to display as section_system
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
-  viewer: PropTypes.any, // An optional shared instance of StructureViewer
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
-  sizeLimit: PropTypes.number // Maximum number of atoms to attempt to display
+  sizeLimit: PropTypes.number, // Maximum number of atoms to attempt to display
+  positionsOnly: PropTypes.bool // Whether to update only positions. This is much faster than loading the entire structure.
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,

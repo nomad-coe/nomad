@@ -12,6 +12,7 @@ import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
 import { StructureViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
+import { convert } from '../../utils'
 
 export const configState = atom({
   key: 'config',
@@ -22,15 +23,21 @@ export const configState = atom({
   }
 })
 
-// Context for sharing data that is expensive to create
+// Context for sharing data across the browser sections
 const ArchiveContext = React.createContext()
+
+// Shared instance of the StructureViewer
 const viewer = new StructureViewer()
+
+// Contains details about the currently visualized system. Used to detect if a
+// reload is needed for the StructureViewer.
+const visualizedSystem = {}
 
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
   return (
     <ArchiveContext.Provider value={{
-      structure: viewer
+      id: data.section_metadata.calc_id
     }}>
       <Browser
         adaptor={archiveAdaptorFactory(data)}
@@ -307,7 +314,26 @@ QuantityValue.propTypes = ({
 function getVisualization(section, def, archiveContext) {
   // Structure visualization for section_system
   if (def.name === 'section_system') {
-    return <Structure viewer={archiveContext.structure} system={section}></Structure>
+    // If a structure with the same id is loaded, it is assumed that only the
+    // positions need to be updated on data change.
+    let system
+    let positionsOnly = false
+    if (archiveContext.id === visualizedSystem.id) {
+      positionsOnly = true
+      system = {
+        positions: convert(section.atom_positions, 'm', 'angstrom')
+      }
+    } else {
+      system = {
+        'atomicNumbers': section.atom_species,
+        'cell': convert(section.lattice_vectors, 'm', 'angstrom'),
+        'positions': convert(section.atom_positions, 'm', 'angstrom'),
+        'pbc': section.configuration_periodic_dimensions
+      }
+    }
+    visualizedSystem.id = archiveContext.id
+
+    return <Structure viewer={viewer} system={system} id={archiveContext.id} positionsOnly={positionsOnly}></Structure>
   }
 }
 
