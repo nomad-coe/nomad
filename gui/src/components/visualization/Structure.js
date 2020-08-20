@@ -172,7 +172,7 @@ export default function Structure(props) {
       return
     }
 
-    let nAtoms = props.system.atomicNumbers.length
+    let nAtoms = props.system.species.length
     if (nAtoms >= props.sizeLimit) {
       setError('Visualization is disabled due to large system size.')
       return

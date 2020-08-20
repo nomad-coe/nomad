@@ -23,9 +23,6 @@ export const configState = atom({
   }
 })
 
-// Context for sharing data across the browser sections
-const ArchiveContext = React.createContext()
-
 // Shared instance of the StructureViewer
 const viewer = new StructureViewer()
 
@@ -36,14 +33,10 @@ const visualizedSystem = {}
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
   return (
-    <ArchiveContext.Provider value={{
-      id: data.section_metadata.calc_id
-    }}>
-      <Browser
-        adaptor={archiveAdaptorFactory(data)}
-        form={<ArchiveConfigForm searchOptions={searchOptions} />}
-      />
-    </ArchiveContext.Provider>
+    <Browser
+      adaptor={archiveAdaptorFactory(data)}
+      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+    />
   )
 }
 ArchiveBrowser.propTypes = ({
@@ -308,49 +301,58 @@ QuantityValue.propTypes = ({
 })
 
 /**
- * Used to retrieve an optional visualization for a section displayed in the
- * browser.
+ * An optional overview for a section displayed directly underneath the section
+ * title.
  */
-function getVisualization(section, def, archiveContext) {
+function Overview({section, def}) {
   // Structure visualization for section_system
   if (def.name === 'section_system') {
-    // If a structure with the same id is loaded, it is assumed that only the
-    // positions need to be updated on data change.
+    let url = window.location.href
+    let name = 'section_system'
+    let rootIndex = url.indexOf(name) + name.length
+    let sectionPath = url.substring(0, rootIndex)
+    let tmp = url.substring(rootIndex)
+    let tmpIndex = tmp.indexOf('/')
+    let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
+
     let system
     let positionsOnly = false
-    if (archiveContext.id === visualizedSystem.id) {
-      console.log('Loading positions only, as IDS are same.')
-      console.log(archiveContext.id)
-      console.log(visualizedSystem.id)
+
+    // Loading exact same system, no need to reload visualizer
+    if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
+    // Loading same system with different positions
+    } else if (sectionPath === visualizedSystem.sectionPath) {
       positionsOnly = true
       system = {
         positions: convert(section.atom_positions, 'm', 'angstrom')
       }
+    // Completely new system
     } else {
-      console.log('Loading entire structure as IDS are different.')
-      console.log(archiveContext.id)
-      console.log(visualizedSystem.id)
       system = {
-        'atomicNumbers': section.atom_species,
+        'species': section.atom_species,
         'cell': convert(section.lattice_vectors, 'm', 'angstrom'),
         'positions': convert(section.atom_positions, 'm', 'angstrom'),
         'pbc': section.configuration_periodic_dimensions
       }
     }
-    visualizedSystem.id = archiveContext.id
+    visualizedSystem.sectionPath = sectionPath
+    visualizedSystem.index = index
 
-    return <Structure viewer={viewer} system={system} id={archiveContext.id} positionsOnly={positionsOnly}></Structure>
+    return <Structure viewer={viewer} system={system} positionsOnly={positionsOnly}></Structure>
   }
+  return null
 }
+Overview.propTypes = ({
+  def: PropTypes.object,
+  section: PropTypes.object
+})
 
 function Section({section, def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
-  const archiveContext = useContext(ArchiveContext)
-
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    {getVisualization(section, def, archiveContext)}
+    <Overview def={def} section={section}></Overview>
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)

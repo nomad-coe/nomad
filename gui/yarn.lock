@@ -1287,10 +1287,10 @@
   resolved "https://registry.yarnpkg.com/@kyleshockey/object-assign-deep/-/object-assign-deep-0.4.2.tgz#84900f0eefc372798f4751b5262830b8208922ec"
   integrity sha1-hJAPDu/DcnmPR1G1JigwuCCJIuw=
 
-"@lauri-codes/materia@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.4.tgz#7534e787d2e7503cdd4c262963e9f8f654f2daef"
-  integrity sha512-5FGGk+KQgoPbpWoRKOwqJWjqERZbhn+OB5/6FWANty69I4Eq3gxqSQb4NlGyWASJ5p6+I/g4Mj0dJE7rd9xQJQ==
+"@lauri-codes/materia@0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.5.tgz#7ea8d0e8f74f723c7ec64630854b3c121aaccf20"
+  integrity sha512-6kLzBU4hgaMuJGl5FkU8GCa84SeIZzY0YgVRplc0Uic2+amh6MiAi2V4orq4PeHcMAInLC+VsK62Azp8cDsT/Q==
   dependencies:
     three "^0.119.1"
 
