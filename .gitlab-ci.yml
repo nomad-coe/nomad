@@ -178,3 +178,22 @@ release_version:
     - docker push $STABLE_IMAGE
   only:
     - tags
+
+release_pypi:
+  stage: release
+  image: python:3.7
+  before_script:
+    - git submodule sync
+    - git submodule update --init --jobs=4
+  script:
+    - pip install --upgrade pip
+    - pip install fastentrypoints
+    - pip install pyyaml
+    - pip install numpy
+    - pip install twine
+    - python setup.py compile
+    - python setup.py sdist
+    - python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/*
+  when: manual
+  only:
+    - tags
