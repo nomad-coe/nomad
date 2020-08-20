@@ -1287,12 +1287,12 @@
   resolved "https://registry.yarnpkg.com/@kyleshockey/object-assign-deep/-/object-assign-deep-0.4.2.tgz#84900f0eefc372798f4751b5262830b8208922ec"
   integrity sha1-hJAPDu/DcnmPR1G1JigwuCCJIuw=
 
-"@lauri-codes/materia@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.2.tgz#3942ba14c2deadde3298786e31c16a88cf06aa6a"
-  integrity sha512-xZTkgx9BqnPOAPlD4bjCsJvuWMK0qLMHiqOIiwPIw7FHHaSKnXywbQTWOqwkQc52C1Of/4a9tyd9bGu2tX/mWw==
+"@lauri-codes/materia@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.4.tgz#7534e787d2e7503cdd4c262963e9f8f654f2daef"
+  integrity sha512-5FGGk+KQgoPbpWoRKOwqJWjqERZbhn+OB5/6FWANty69I4Eq3gxqSQb4NlGyWASJ5p6+I/g4Mj0dJE7rd9xQJQ==
   dependencies:
-    three "^0.105.0"
+    three "^0.119.1"
 
 "@material-ui/codemod@^4.5.0":
   version "4.5.0"
@@ -11934,10 +11934,10 @@ text-table@0.2.0, text-table@^0.2.0:
   resolved "https://registry.yarnpkg.com/text-table/-/text-table-0.2.0.tgz#7f5ee823ae805207c00af2df4a84ec3fcfa570b4"
   integrity sha1-f17oI66AUgfACvLfSoTsP8+lcLQ=
 
-three@^0.105.0:
-  version "0.105.2"
-  resolved "https://registry.yarnpkg.com/three/-/three-0.105.2.tgz#d135f1549bdcf5a9acd904ba3dbf9198a0268984"
-  integrity sha512-L3Al37k4g3hVbgFFS251UVtIc25chhyN0/RvXzR0C+uIBToV6EKDG+MZzEXm9L2miGUVMK27W46/VkP6WUZXMg==
+three@^0.119.1:
+  version "0.119.1"
+  resolved "https://registry.yarnpkg.com/three/-/three-0.119.1.tgz#9d979a082c4cd9622af8e3498a8dfa026a619332"
+  integrity sha512-GHyh/RiUfQ5VTiWIVRRTANYoXc1PFB1y+jDVRTb649nif1uX1F06PT1TKU3k2+F/MN4UJ3PWvQB53fY2OqKqKw==
 
 throat@^4.0.0:
   version "4.1.0"

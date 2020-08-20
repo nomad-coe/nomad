@@ -319,11 +319,17 @@ function getVisualization(section, def, archiveContext) {
     let system
     let positionsOnly = false
     if (archiveContext.id === visualizedSystem.id) {
+      console.log('Loading positions only, as IDS are same.')
+      console.log(archiveContext.id)
+      console.log(visualizedSystem.id)
       positionsOnly = true
       system = {
         positions: convert(section.atom_positions, 'm', 'angstrom')
       }
     } else {
+      console.log('Loading entire structure as IDS are different.')
+      console.log(archiveContext.id)
+      console.log(visualizedSystem.id)
       system = {
         'atomicNumbers': section.atom_species,
         'cell': convert(section.lattice_vectors, 'm', 'angstrom'),
