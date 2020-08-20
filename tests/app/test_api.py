@@ -740,6 +740,53 @@ class TestArchive(UploadFilesBasedTests):
 
         assert count > 0
 
+    @pytest.mark.timeout(config.tests.default_timeout)
+    @pytest.fixture(scope='function')
+    def example_upload(self, proc_infra, test_user):
+        path = 'tests/data/proc/example_vasp_with_binary.zip'
+        results = []
+        for uid in range(2):
+            upload_id = 'vasp_%d' % uid
+            processed = test_processing.run_processing((upload_id, path), test_user)
+
+            processed.publish_upload()
+            try:
+                processed.block_until_complete(interval=.01)
+            except Exception:
+                pass
+
+            results.append(processed)
+
+        return results
+
+    @pytest.mark.parametrize('query_expression, nresults', [
+        ({
+            '$and': [
+                {'dft.system': 'bulk'}, {'$not': [{'dft.compound_type': 'ternary'}]}
+            ]
+        }, 2),
+        ({
+            '$or': [
+                {'upload_id': ['vasp_0']}, {'$gte': {'n_atoms': 1}}
+            ]
+        }, 4),
+        ({
+            '$not': [{'dft.spacegroup': 221}, {'dft.spacegroup': 227}]
+        }, 0),
+    ])
+    def test_post_archive_query(self, api, example_upload, query_expression, nresults):
+        data = {'pagination': {'per_page': 5}, 'query': query_expression}
+
+        uri = '/archive/query'
+        rv = api.post(uri, content_type='application/json', data=json.dumps(data))
+
+        assert rv.status_code == 200
+        data = rv.get_json()
+
+        assert data
+        results = data.get('results', None)
+        assert len(results) == nresults
+
 
 class TestMetainfo():
     @pytest.mark.parametrize('package', ['common', 'vasp', 'general.experimental', 'eels'])
@@ -1084,6 +1131,17 @@ class TestRepo():
         assert data['pagination']['total'] == 2
         assert results is not None
         assert len(results) == n_results
+
+    def test_post_search_query(self, api, example_elastic_calcs, no_warn):
+        query_expression = {'$not': [{'dft.system': 'bulk'}]}
+        data = {
+            'pagination': {'page': 1, 'per_page': 5}, 'query': query_expression,
+            'statistics_required': ['dft.system']}
+        rv = api.post('/repo/', content_type='application/json', data=json.dumps(data))
+        assert rv.status_code == 200
+        data = json.loads(rv.data)
+        results = data.get('results', None)
+        assert(len(results) == 0)
 
     @pytest.mark.parametrize('first, order_by, order', [
         ('1', 'formula', -1), ('2', 'formula', 1),
@@ -1729,6 +1787,18 @@ class TestRaw(UploadFilesBasedTests):
         rv = api.get(url, headers=test_user_auth)
         assert rv.status_code == 200
         assert_zip_file(rv, files=(files + 1), basename=strip)
+
+    def test_post_raw_query(self, api, processeds, test_user_auth):
+        data = {
+            'query': {'$or': [{'atoms': ['Si']}, {'authors': ['Sheldon Cooper']}]},
+            'file_pattern': ['*.json', '*.aux'], 'strip': False
+        }
+        rv = api.post(
+            '/raw/query', content_type='application/json', data=json.dumps(data),
+            headers=test_user_auth)
+
+        assert rv.status_code == 200
+        assert_zip_file(rv, files=len(example_file_contents) * len(processeds) + 1)
 
     @UploadFilesBasedTests.ignore_authorization
     def test_raw_files_signed(self, api, upload, _, test_user_signature_token):

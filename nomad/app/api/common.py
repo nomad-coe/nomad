@@ -76,7 +76,43 @@ aggregation_model = api.model('Aggregation', {
     'per_page': fields.Integer(default=0, help='The size of the requested page.', allow_null=True)})
 ''' Model used in responses with id aggregation. '''
 
+query_model_fields = {
+    qualified_name: quantity.flask_field
+    for qualified_name, quantity in search.search_quantities.items()}
+
+query_model_fields.update(**{
+    'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
+    'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
+        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.meta.default_domain)),
+    'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
+    'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
+})
+
+query_model_fields.update(**{
+    '$and': fields.List(fields.Raw, description=(
+        'List of queries which must be present in search results.')),
+    '$or': fields.List(fields.Raw, description=(
+        'List of queries which should be present in search results.')),
+    '$not': fields.List(fields.Raw, description=(
+        'List of queries which must not be present in search results.')),
+    '$lt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than value.')),
+    '$lte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than or equal to value')),
+    '$gt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than value')),
+    '$gte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than or equal to value')),
+})
+
+query_model = api.model('Query', query_model_fields)
+
 search_model_fields = {
+    'query': fields.Nested(query_model, allow_null=True, skip_none=True),
     'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
     'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
     'aggregation': fields.Nested(aggregation_model, allow_null=True),
@@ -93,20 +129,6 @@ search_model_fields = {
     }), allow_null=True, skip_none=True)}
 
 search_model = api.model('Search', search_model_fields)
-
-query_model_fields = {
-    qualified_name: quantity.flask_field
-    for qualified_name, quantity in search.search_quantities.items()}
-
-query_model_fields.update(**{
-    'owner': fields.String(description='The group the calculations belong to.', allow_null=True, skip_none=True),
-    'domain': fields.String(description='Specify the domain to search in: %s, default is ``%s``' % (
-        ', '.join(['``%s``' % domain for domain in datamodel.domains]), config.meta.default_domain)),
-    'from_time': fields.Raw(description='The minimum entry time.', allow_null=True, skip_none=True),
-    'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
-})
-
-query_model = api.model('Query', query_model_fields)
 
 
 def add_pagination_parameters(request_parser):
