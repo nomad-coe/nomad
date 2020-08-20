@@ -1,12 +1,11 @@
-import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useState } from 'react'
+import React, { useMemo, useEffect, useRef, useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor } from './Browser'
 import { Typography, Box, makeStyles, Grid, FormGroup, TextField } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
 import * as d3 from 'd3'
-import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
 import lime from '@material-ui/core/colors/lime'
@@ -14,7 +13,6 @@ import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
 import { JsonCodeDialogButton } from '../CodeDialogButton'
-import Histogram from '../Histogram'
 import { appBase } from '../../config'
 import { useHistory, useRouteMatch } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
@@ -331,8 +329,16 @@ SectionDef.propTypes = ({
 })
 
 function QuantityDef({def}) {
+  console.log('###', def)
   return <Content>
     <Definition def={def} kindLabel="quantity definition"/>
+    <Compartment>
+      <Typography noWrap><b>shape:</b> <span>[{def.shape.join(', ')}]</span> </Typography>
+      <Typography noWrap><b>type:</b> <span>{def.type.type_data} ({def.type.type_kind})</span> </Typography>
+      { def.unit &&
+        <Typography><b>unit:</b> <span>{def.unit}</span> </Typography>
+      }
+    </Compartment>
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -340,31 +346,31 @@ QuantityDef.propTypes = ({
 })
 
 function Definition({def, ...props}) {
-  const {api} = useContext(apiContext)
-  const lane = useContext(laneContext)
-  const isLast = !lane.next
-  const [usage, setUsage] = useState(null)
+  // const {api} = useContext(apiContext)
+  // const lane = useContext(laneContext)
+  // const isLast = !lane.next
+  // const [usage, setUsage] = useState(null)
 
-  useEffect(() => {
-    api.quantity_search({
-      'dft.quantities': [def.name],
-      size: 100, // make sure we get all codes
-      quantity: 'dft.code_name'
-    }).then(result => {
-      setUsage(result.quantity.values)
-    })
-  }, [api, def.name, setUsage])
+  // useEffect(() => {
+  //   api.quantity_search({
+  //     'dft.quantities': [def.name],
+  //     size: 100, // make sure we get all codes
+  //     quantity: 'dft.code_name'
+  //   }).then(result => {
+  //     setUsage(result.quantity.values)
+  //   })
+  // }, [api, def.name, setUsage])
 
   return <React.Fragment>
     <Title def={def} isDefinition {...props} />
-    {isLast && def.description && !def.extends_base_section &&
+    {def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
           <Markdown>{def.description}</Markdown>
         </Box>
       </Compartment>
     }
-    {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
+    {/* {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
         <VicinityGraph def={def} />
       </Compartment>
@@ -387,7 +393,7 @@ function Definition({def, ...props}) {
           <Typography color="error"><i>This metadata is not used at all.</i></Typography>
         )}
       </Compartment>
-    }
+    } */}
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
       {def.categories.map(categoryRef => {
         const categoryDef = resolveRef(categoryRef)

@@ -55,6 +55,7 @@ export default function QuantityHistogram({
     numberOfValues={numberOfValues}
     title={title}
     onClick={handleItemClicked}
+    selected={query[quantity]}
     {...props}
   />
 }

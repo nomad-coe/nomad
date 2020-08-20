@@ -199,7 +199,7 @@ export default function Histogram({
 
       item
         .select('.name')
-        .text(d => getValueLabel(d.name))
+        .text(d => getValueLabel(d))
         .attr('y', d => y(d.key) + 4)
         .style('fill', textColor)
 

@@ -5,8 +5,9 @@ import { compose } from 'recompose'
 import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
-import ArchiveBrowser from '../archive/ArchiveBrowser'
+// import ArchiveBrowser from '../archive/ArchiveBrowser'
 import { EntryPageContent } from './EntryPage'
+import ReactJson from 'react-json-view'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -108,23 +109,31 @@ class ArchiveEntryView extends React.Component {
     }
 
     return (
-      <EntryPageContent className={classes.root}>
-        {
-          data && typeof data !== 'string'
-            ? <ArchiveBrowser data={data} />
-            : <div>{
-              data
-                ? <div>
-                  <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
-                  <Card>
-                    <CardContent>
-                      <pre>{data || ''}</pre>
-                    </CardContent>
-                  </Card>
-                </div>
-                : <Typography>loading ...</Typography>
-            }</div>
-        }
+      <EntryPageContent className={classes.root} fixed>
+        <Card>
+          <CardContent>
+            {
+              data && typeof data !== 'string'
+                ? <ReactJson
+                  src={this.state.data}
+                  enableClipboard={false}
+                  collapsed={2}
+                  displayObjectSize={false}
+                /> : <div>{
+                  data
+                    ? <div>
+                      <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
+                      <Card>
+                        <CardContent>
+                          <pre>{data || ''}</pre>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    : <Typography>loading ...</Typography>
+                }</div>
+            }
+          </CardContent>
+        </Card>
 
         <Download
           classes={{root: classes.downloadFab}} tooltip="download calculation archive"
