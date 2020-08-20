@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.8.7
+- a new variant of the Metainfo browser
+
 ### v0.8.1
 - switched to support Python 3.7
 - client library as pypi package `nomad-lab`

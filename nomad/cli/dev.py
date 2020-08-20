@@ -80,7 +80,7 @@ def search_quantities():
     from nomad import search
     # Due to this import, the parsing module will register all code_names based on parser
     # implementations.
-    from nomad import parsing  # pylint: disable=unused-import
+    from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import
     import json
 
     def to_dict(search_quantity):
