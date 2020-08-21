@@ -42,7 +42,7 @@ To parse code input/output from the command line, you can use NOMAD's command li
 interface (CLI) and print the processing results output to stdout:
 
 ```
-nomad parse --show-backend <path-to-file>
+nomad parse --show-archive <path-to-file>
 ```
 
 To parse a file in Python, you can program something like this:

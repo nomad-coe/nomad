@@ -23,7 +23,6 @@ import json
 
 from nomad import config, utils
 from nomad import files
-from nomad import datamodel
 from nomad.cli import parse as cli_parse
 
 from .client import client
@@ -131,31 +130,31 @@ class CalcProcReproduction:
             self.upload_files.raw_file_object(self.mainfile).os_path,
             parser_name=parser_name, logger=self.logger, **kwargs)
 
-    def normalize(self, normalizer: typing.Union[str, typing.Callable], parser_backend=None):
+    def normalize(self, normalizer: typing.Union[str, typing.Callable], entry_archive=None):
         '''
         Parse the downloaded calculation and run the given normalizer.
         '''
-        if parser_backend is None:
-            parser_backend = self.parse()
+        if entry_archive is None:
+            entry_archive = self.parse()
 
-        return cli_parse.normalize(parser_backend=parser_backend, normalizer=normalizer, logger=self.logger)
+        return cli_parse.normalize(entry_archive=entry_archive, normalizer=normalizer, logger=self.logger)
 
-    def normalize_all(self, parser_backend=None):
+    def normalize_all(self, entry_archive=None):
         '''
         Parse the downloaded calculation and run the whole normalizer chain.
         '''
-        return cli_parse.normalize_all(parser_backend=parser_backend, logger=self.logger)
+        return cli_parse.normalize_all(entry_archive=entry_archive, logger=self.logger)
 
 
 @client.command(help='Run processing locally.')
 @click.argument('CALC_ID', nargs=1, required=True, type=str)
 @click.option('--override', is_flag=True, help='Override existing local calculation data.')
-@click.option('--show-backend', is_flag=True, help='Print the backend data.')
+@click.option('--show-archive', is_flag=True, help='Print the archive data.')
 @click.option('--show-metadata', is_flag=True, help='Print the extracted repo metadata.')
 @click.option('--mainfile', default=None, type=str, help='Use this mainfile (in case mainfile cannot be retrived via API.')
 @click.option('--skip-normalizers', is_flag=True, help='Do not normalize.')
 @click.option('--not-strict', is_flag=True, help='Also match artificial parsers.')
-def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **kwargs):
+def local(calc_id, show_archive, show_metadata, skip_normalizers, not_strict, **kwargs):
     utils.get_logger(__name__).info('Using %s' % config.client.url)
 
     with CalcProcReproduction(calc_id, **kwargs) as local:
@@ -163,15 +162,15 @@ def local(calc_id, show_backend, show_metadata, skip_normalizers, not_strict, **
             print(
                 'Data being saved to .volumes/fs/tmp/repro_'
                 '%s if not already there' % local.upload_id)
-        backend = local.parse(strict=not not_strict)
+        entry_archive = local.parse(strict=not not_strict)
 
         if not skip_normalizers:
-            local.normalize_all(parser_backend=backend)
+            local.normalize_all(entry_archive=entry_archive)
 
-        if show_backend:
-            json.dump(backend.resource.m_to_dict(), sys.stdout, indent=2)
+        if show_archive:
+            json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
         if show_metadata:
-            metadata = datamodel.EntryMetadata(domain='dft')  # TODO take domain from matched parser
-            metadata.apply_domain_metadata(backend)
+            metadata = entry_archive.section_metadata
+            metadata.apply_domain_metadata(entry_archive)
             json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

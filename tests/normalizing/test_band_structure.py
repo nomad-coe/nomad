@@ -40,20 +40,20 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
         assert bs.reciprocal_cell.shape == (3, 3)
 
     # Unpolarized, no gaps
-    bs = bands_unpolarized_no_gap.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = bands_unpolarized_no_gap.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     test_generic(bs)
     assert len(bs.section_band_gap) == 1
     assert bs.section_band_gap[0].value == 0
 
     # Polarized, no gaps
-    bs = bands_polarized_no_gap.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = bands_polarized_no_gap.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     test_generic(bs)
     assert len(bs.section_band_gap) == 2
     assert bs.section_band_gap[0].value == 0
     assert bs.section_band_gap[1].value == 0
 
     # Unpolarized, finite gap, indirect
-    bs = bands_unpolarized_gap_indirect.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = bands_unpolarized_gap_indirect.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     test_generic(bs)
     assert len(bs.section_band_gap) == 1
     gap = bs.section_band_gap[0]
@@ -62,7 +62,7 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     assert gap.type == "indirect"
 
     # Polarized, finite gap, indirect
-    bs = bands_polarized_gap_indirect.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = bands_polarized_gap_indirect.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     test_generic(bs)
     assert len(bs.section_band_gap) == 2
     gap_up = bs.section_band_gap[0]
@@ -91,7 +91,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
         ["L", "K"],
         ["U", "X"],
     ])
-    bs = band_path_cF.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_cF.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for i, segment in enumerate(bs.section_k_band_segment):
         labels = segment.band_segm_labels
         assert np.array_equal(labels, assumed_labels[i, :])
@@ -108,7 +108,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
         ["X", "R"],
         ["M", "A"],
     ])
-    bs = band_path_tP.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_tP.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for i, segment in enumerate(bs.section_k_band_segment):
         labels = segment.band_segm_labels
         assert np.array_equal(labels, assumed_labels[i, :])
@@ -125,7 +125,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
         ["L", "M"],
         ["K", "H"],
     ])
-    bs = band_path_hP.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_hP.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for i, segment in enumerate(bs.section_k_band_segment):
         labels = segment.band_segm_labels
         assert np.array_equal(labels, assumed_labels[i, :])
@@ -135,7 +135,7 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
     """Tests for lattice that do not follow the Setyawan/Curtarolo standard.
     """
     # The ordering of the lattice does not follow the standard: a, b <= c. Not labels defined.
-    bs = band_path_mP_nonstandard.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_mP_nonstandard.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for segment in bs.section_k_band_segment:
         labels = segment.band_segm_labels
         assert labels is None
@@ -148,7 +148,7 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
         ["X", "W"],
         ["W", "K"],
     ])
-    bs = band_path_cF_nonstandard.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = band_path_cF_nonstandard.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for i, segment in enumerate(bs.section_k_band_segment):
         labels = segment.band_segm_labels
         assert np.array_equal(labels, assumed_labels[i, :])
@@ -157,6 +157,6 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
 def test_phonon_band(phonon):
     """Ensures that band gaps are not added to phonon bands.
     """
-    bs = phonon.entry_archive.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    bs = phonon.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     assert bs.is_standard_path is None
     assert len(bs.section_band_gap) == 0

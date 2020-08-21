@@ -106,7 +106,7 @@ class EncyclopediaNormalizer(Normalizer):
         except (AttributeError, KeyError):
             pass
         else:
-            # Try to find system type information from backend for the selected system.
+            # Try to find system type information from archive for the selected system.
             try:
                 system = self.section_run.section_system[system_idx]
                 stype = system.system_type
@@ -278,7 +278,7 @@ class EncyclopediaNormalizer(Normalizer):
                 representative_scc_idx=representative_scc_idx,
             )
 
-            # Put the encyclopedia section into backend
+            # Put the encyclopedia section into archive
             self.fill(context)
 
             # Check that the necessary information is in place

@@ -75,7 +75,8 @@ class Upload():
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
         test_vector = np.array([0, 0, 0])
 
-        backend = Backend('public', False, True)  # type: ignore
+        archive = EntryArchive()
+        backend = Backend('public', entry_archive=archive)
         backend.openSection('section_run')
         backend.addValue('program_name', 'test_code')
         backend.openSection('section_system')
@@ -92,14 +93,14 @@ class Upload():
         backend.closeSection('section_system', 0)
         backend.closeSection('section_run', 0)
 
-        backend = run_normalize(backend)
-        entry_metadata = backend.entry_archive.section_metadata
+        run_normalize(archive)
+        entry_metadata = archive.section_metadata
 
         entry_metadata.m_update(
             domain='dft', upload_id=self.upload_id, calc_id='test_calc_id_%d' % id,
             mainfile='test_mainfile', published=True, processed=True, with_embargo=False)
 
-        entry_metadata.apply_domain_metadata(backend)
+        entry_metadata.apply_domain_metadata(archive)
 
         if metadata is not None:
             entry_metadata.m_update(**metadata)

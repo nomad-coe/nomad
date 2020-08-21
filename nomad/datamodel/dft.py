@@ -289,18 +289,17 @@ class DFTMetadata(MSection):
             self.m_parent.with_embargo,
             user_id)
 
-    def apply_domain_metadata(self, backend):
+    def apply_domain_metadata(self, entry_archive):
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
 
         logger = utils.get_logger(__name__).bind(
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
-        if backend is None:
+        if entry_archive is None:
             self.code_name = self.code_name_from_parser()
             return
 
-        entry_archive = backend.entry_archive
         section_run = entry_archive.section_run
         if not section_run:
             logger.warn('no section_run found')
@@ -321,7 +320,7 @@ class DFTMetadata(MSection):
             else:
                 raise KeyError
         except KeyError as e:
-            logger.warn('backend after parsing without program_name', exc_info=e)
+            logger.warn('archive without program_name', exc_info=e)
             self.code_name = self.code_name_from_parser()
 
         try:

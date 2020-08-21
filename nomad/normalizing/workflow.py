@@ -23,9 +23,6 @@ class WorkflowNormalizer(Normalizer):
     This normalizer performs all produces a section all data necessary for the Optimade API.
     It assumes that the :class:`SystemNormalizer` was run before.
     '''
-    def __init__(self, backend):
-        super().__init__(backend)
-
     def _get_relaxation_type(self):
         sec_system = self.section_run.section_system
         if not sec_system:

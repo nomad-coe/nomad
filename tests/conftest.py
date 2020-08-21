@@ -31,7 +31,8 @@ import json
 import logging
 import warnings
 
-from nomad import config, infrastructure, parsing, processing, app, utils
+from nomad import config, infrastructure, processing, app, utils
+from nomad.datamodel import EntryArchive
 from nomad.utils import structlogging
 from nomad.datamodel import User
 
@@ -531,21 +532,21 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 
 
 @pytest.fixture(scope='session')
-def parsed(example_mainfile: Tuple[str, str]) -> parsing.Backend:
-    ''' Provides a parsed calculation in the form of a Backend. '''
+def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
+    ''' Provides a parsed calculation in the form of an EntryArchive. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
 
 @pytest.fixture(scope='session')
-def parsed_ems() -> parsing.Backend:
-    ''' Provides a parsed experiment in the form of a Backend. '''
+def parsed_ems() -> EntryArchive:
+    ''' Provides a parsed experiment in the form of a EntryArchive. '''
     return test_parsing.run_parser('parsers/skeleton', 'tests/data/parsers/skeleton/example.metadata.json')
 
 
 @pytest.fixture(scope='session')
-def normalized(parsed: parsing.Backend) -> parsing.Backend:
-    ''' Provides a normalized calculation in the form of a Backend. '''
+def normalized(parsed: EntryArchive) -> EntryArchive:
+    ''' Provides a normalized calculation in the form of a EntryArchive. '''
     return run_normalize(parsed)
 
 
