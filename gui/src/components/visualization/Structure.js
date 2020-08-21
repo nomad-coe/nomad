@@ -9,8 +9,8 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Typography,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   FormControlLabel
@@ -250,8 +250,9 @@ export default function Structure(props) {
     viewer.current.render()
   }, [])
 
-  let content = <Box className={classes.container}>
+  const content = <Box className={classes.container}>
     <div className={classes.header}>
+      {fullscreen && <Typography variant="h6">Structure</Typography>}
       <div className={classes.spacer}></div>
       <Tooltip title="Reset view">
         <IconButton className={classes.iconButton} onClick={handleReset} disabled={error}>
@@ -332,7 +333,6 @@ export default function Structure(props) {
         {fullscreen ? '' : content}
       </Box>
       <Dialog maxWidth="lg" fullWidth open={fullscreen}>
-        <DialogTitle>{'Structure'}</DialogTitle>
         <DialogContent>
           <Box className={classes.root}>
             <Box className={classes.rootInner}>
@@ -352,7 +352,6 @@ export default function Structure(props) {
 
 Structure.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
-  id: PropTypes.string, // Id for the visualized structure.
   system: PropTypes.object, // The system to display as section_system
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download

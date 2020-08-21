@@ -103,10 +103,6 @@ class RepoEntryView extends React.Component {
                 title={entryHeader}
                 action={<ApiDialogButton title="Repository JSON" data={calcData} />}
               />
-              {/* <CardContent classes={{root: classes.cardContent}}>
-                <Structure classes={{root: classes.structureViewer}} calcId={this.props.calcId}></Structure>
-              </CardContent> */}
-              <Divider />
               <CardContent classes={{root: classes.cardContent}}>
                 {domain && <domain.EntryOverview data={calcData} loading={loading} />}
               </CardContent>
