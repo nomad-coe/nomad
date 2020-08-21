@@ -35,7 +35,8 @@ from nomad.app import common
 
 from .api import api
 from .auth import authenticate, create_authorization_predicate
-from .common import streamed_zipfile, add_search_parameters, apply_search_parameters
+from .common import streamed_zipfile, add_search_parameters, apply_search_parameters,\
+    search_model
 
 
 ns = api.namespace('raw', description='Downloading raw data files.')
@@ -391,6 +392,15 @@ _raw_file_from_query_parser.add_argument(
     location='args', action='append')
 
 
+_raw_file_from_query_model = api.inherit('ArchiveSearch', search_model, {
+    'compress': fields.Boolean(description='Use compression on .zip files, default is not.', default=False),
+    'strip': fields.Boolean(description='Removes a potential common path prefix from all file paths.', default=False),
+    'file_pattern': fields.List(fields.String, description=(
+        'A wildcard pattern. Only filenames that match this pattern will be in the '
+        'download. Multiple patterns will be combined with logical or'), allow_null=True, skip_none=True)
+})
+
+
 @ns.route('/query')
 class RawFileQueryResource(Resource):
     manifest_quantities = ['upload_id', 'calc_id', 'external_id', 'raw_id', 'pid', 'calc_hash']
@@ -432,6 +442,143 @@ class RawFileQueryResource(Resource):
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, _raw_file_from_query_parser.parse_args())
         search_request.include('calc_id', 'upload_id', 'mainfile')
+
+        def path(entry):
+            return '%s/%s' % (entry['upload_id'], entry['mainfile'])
+
+        calcs = search_request.execute_scan(
+            order_by='upload_id',
+            size=config.services.download_scan_size,
+            scroll=config.services.download_scan_timeout)
+
+        if strip:
+            if search_request.execute()['total'] > config.raw_file_strip_cutoff:
+                abort(400, 'The requested download has to many files for using "strip".')
+            calcs = list(calcs)
+            paths = [path(entry) for entry in calcs]
+            common_prefix_len = len(utils.common_prefix(paths))
+        else:
+            common_prefix_len = 0
+
+        def generator():
+            try:
+                manifest = {}
+                directories = set()
+                upload_files = None
+                streamed, skipped = 0, 0
+
+                for entry in calcs:
+                    upload_id = entry['upload_id']
+                    mainfile = entry['mainfile']
+                    if upload_files is None or upload_files.upload_id != upload_id:
+                        logger.info('opening next upload for raw file streaming', upload_id=upload_id)
+                        if upload_files is not None:
+                            upload_files.close()
+
+                        upload_files = UploadFiles.get(upload_id)
+
+                        if upload_files is None:
+                            logger.error('upload files do not exist', upload_id=upload_id)
+                            continue
+
+                        def open_file(upload_filename):
+                            return upload_files.raw_file(upload_filename, 'rb')
+
+                    upload_files._is_authorized = create_authorization_predicate(
+                        upload_id=upload_id, calc_id=entry['calc_id'])
+                    directory = os.path.dirname(mainfile)
+                    directory_w_upload = os.path.join(upload_files.upload_id, directory)
+                    if directory_w_upload not in directories:
+                        streamed += 1
+                        directories.add(directory_w_upload)
+                        for filename, file_size in upload_files.raw_file_list(directory=directory):
+                            filename = os.path.join(directory, filename)
+                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                            if len(patterns) == 0 or any(
+                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                    for pattern in patterns):
+                                yield (
+                                    filename_wo_prefix, filename, open_file,
+                                    lambda *args, **kwargs: file_size)
+                    else:
+                        skipped += 1
+
+                    if (streamed + skipped) % 10000 == 0:
+                        logger.info('streaming raw files', streamed=streamed, skipped=skipped)
+
+                    manifest[path(entry)] = {
+                        key: entry[key]
+                        for key in RawFileQueryResource.manifest_quantities
+                        if entry.get(key) is not None
+                    }
+
+                if upload_files is not None:
+                    upload_files.close()
+
+                logger.info('streaming raw file manifest')
+                try:
+                    manifest_contents = json.dumps(manifest).encode('utf-8')
+                except Exception as e:
+                    manifest_contents = json.dumps(
+                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
+                    logger.error('could not create raw query manifest', exc_info=e)
+
+                yield (
+                    'manifest.json', 'manifest',
+                    lambda *args: BytesIO(manifest_contents),
+                    lambda *args: len(manifest_contents))
+
+            except Exception as e:
+                logger.warning(
+                    'unexpected error while streaming raw data from query', exc_info=e)
+
+        logger.info('start streaming raw files')
+        return streamed_zipfile(
+            generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
+
+    @api.doc('post_raw_files_from_query')
+    @api.expect(_raw_file_from_query_model)
+    @api.response(400, 'Invalid requests, e.g. wrong owner type or bad search parameters')
+    @api.response(200, 'File(s) send', headers={'Content-Type': 'application/zip'})
+    @authenticate(signature_token=True)
+    def post(self):
+        ''' Download a .zip file with all raw-files for all entries that match the given
+        search parameters.
+
+        See ``/repo`` endpoint for documentation on the search
+        parameters.
+
+        Zip files are streamed; instead of 401 errors, the zip file will just not contain
+        any files that the user is not authorized to access.
+
+        The zip file will contain a ``manifest.json`` with the repository meta data.
+        '''
+        patterns: List[str] = None
+        try:
+            data_in = request.get_json()
+            compress = data_in.get('compress', False)
+            strip = data_in.get('strip', False)
+            pattern = data_in.get('file_pattern', None)
+            if isinstance(pattern, str):
+                patterns = [pattern]
+            elif pattern is None:
+                patterns = []
+            else:
+                patterns = pattern
+            query = data_in.get('query', {})
+            query_expression = {key: val for key, val in query.items() if '$' in key}
+        except Exception:
+            abort(400, message='bad parameter types')
+
+        logger = common.logger.bind(query=urllib.parse.urlencode(query, doseq=True))
+
+        search_request = search.SearchRequest()
+        apply_search_parameters(search_request, query)
+        search_request.include('calc_id', 'upload_id', 'mainfile')
+
+        if query_expression:
+            search_request.query_expression(query_expression)
 
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])

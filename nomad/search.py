@@ -243,6 +243,73 @@ class SearchRequest:
 
         return self
 
+    def query_expression(self, expression):
+
+        bool_operators = ['$and', '$or', '$not']
+        comp_operators = ['$gt', '$lt', '$gte', '$lte']
+
+        def _gen_query(name, value, operator):
+            quantity = search_quantities[name]
+
+            if operator in bool_operators:
+                value = value if isinstance(value, list) else [value]
+                value = quantity.derived(value) if quantity.derived else value
+                q = [Q('match', **{quantity.search_field: item}) for item in value]
+                q = _add_queries(q, '$and')
+            elif operator in comp_operators:
+                q = Q('range', **{quantity.search_field: {operator.lstrip('$'): value}})
+            else:
+                raise ValueError('Invalid operator %s' % operator)
+
+            return q
+
+        def _add_queries(queries, operator):
+            if operator == '$and':
+                q = Q('bool', must=queries)
+            elif operator == '$or':
+                q = Q('bool', should=queries)
+            elif operator == '$not':
+                q = Q('bool', must_not=queries)
+            elif operator in comp_operators:
+                q = Q('bool', must=queries)
+            elif operator is None:
+                q = queries[0]
+            else:
+                raise ValueError('Invalid operator %s' % operator)
+
+            return q
+
+        def _query(exp_value, exp_op=None):
+            if isinstance(
+                exp_value, dict) and len(exp_value) == 1 and '$' not in list(
+                    exp_value.keys())[-1]:
+                key, val = list(exp_value.items())[0]
+                query = _gen_query(key, val, exp_op)
+
+            else:
+                q = []
+                if isinstance(exp_value, dict):
+                    for key, val in exp_value.items():
+                        q.append(_query(val, exp_op=key))
+
+                elif isinstance(exp_value, list):
+                    for val in exp_value:
+                        op = exp_op
+
+                        if isinstance(val, dict):
+                            k, v = list(val.items())[0]
+                            if k[0] == '$':
+                                val, op = v, k
+
+                        q.append(_query(val, exp_op=op))
+
+                query = _add_queries(q, exp_op)
+
+            return query
+
+        q = _query(expression)
+        self.q &= q
+
     def time_range(self, start: datetime, end: datetime):
         ''' Adds a time range to the query. '''
         if start is None and end is None:

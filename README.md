@@ -46,6 +46,20 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v1.0.0
+- The encyclopedia runs on top of the new infrastructure. The GUIs are integrated via
+  bi-lateral navigation between entries.
+- The parsers have new documentation and development instructions and can be easily developed
+  based on NOMAD's PyPi package nomad-lab
+- We introduce workflow metadata (starting with geometry optimizations). This includes search
+  for workflow parameter, and 3-tiered archive storage for quick access to results for analytics.
+- A new GUI to browse  the Archive and Metainfo
+- The Artificial Intelligence Toolkit (at least its tutorial page) is part of the GUI
+- The OASIS comprises Repository, Archive, Metainfo, Encyclopedia, and Artificial Intelligence Toolkit.
+
+### v0.8.7
+- a new variant of the Metainfo browser
+
 ### v0.8.1
 - switched to support Python 3.7
 - client library as pypi package `nomad-lab`
