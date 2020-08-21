@@ -68,7 +68,7 @@ representing the development on *minor/bugfix* versions and the next *major* ver
 Ideally these *version* branches are also not manually push to.
 
 Instead you develop
-on *feature* branches. This are branches that are dedicated to implement a single feature.
+on *feature* branches. These are branches that are dedicated to implement a single feature.
 They are short lived and only exist to implement a single feature.
 
 The lifecycle of a *feature* branch should look like this:
@@ -83,8 +83,46 @@ The lifecycle of a *feature* branch should look like this:
 
 - continue to work (with the open merge request) until all issues from the discussion are resolved
 
-- perform the merge and delete the *feature* branch
+- the maintainer performs the merge and the *feature* branch gets deleted
 
+While working on a feature, there are certain practices that will help us to create
+a clean history with coherent commits, where each commit stands on its own.
+
+.. code-block:: sh
+
+  git commit --amend
+
+If you committed something to your own feature branch and then realize by CI that you have
+some tiny error in it that you need to fix, try to amend this fix to the last commit.
+This will avoid unnecessary tiny commits and foster more coherent single commits. With `amend`
+you are basically adding changes to the last commit, i.e. editing the last commit. If
+you push, you need to force it ``git push origin feature-branch -f``. So be careful, and
+only use this on your own branches.
+
+.. code-block:: sh
+
+  git rebase <version-branch>
+
+Lets assume you work on a bigger feature that takes more time. You might want to merge
+the version branch into your feature branch from time to time to get the recent changes.
+In these cases, use rebase and not merge. Rebase puts your branch commits in front of the
+merged commits instead of creating a new commit with two ancestors. It basically moves the
+point where you initially branched away from the version branch to the current position in
+the version branch. This will avoid merges, merge commits, and generally leave us with a
+more consistent history.  You can also rebase before create a merge request, basically
+allowing for no-op merges. Ideally the only real merges that we ever have, are between
+version branches.
+
+.. code-block:: sh
+
+  git merge --squash <other-branch>
+
+When you need multiple branches to implement a feature and merge between them, try to
+use `squash`. Squashing basically puts all commits of the merged branch into a single commit.
+It basically allows you to have many commits and then squash them into one. This is useful
+if these commits where just made for synchronization between workstations or due to
+unexpected errors in CI/CD, you needed a save point, etc. Again the goal is to have
+coherent commits, where each commits makes sense on its own.
 
 Often a feature is also represented by an *issue* on GitLab. Please mention the respective
 issues in your commits by adding the issue id at the end of the commit message: `My message. #123`.
