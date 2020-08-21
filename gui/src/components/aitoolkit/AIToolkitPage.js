@@ -41,7 +41,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function AnalyticsPage() {
+export default function AIToolkitPage() {
   const classes = useStyles()
   const [expanded, setExpanded] = useQueryParam('expanded', StringParam)
   const [queryParameters, setQueryParameters] = useQueryParams({
@@ -96,12 +96,12 @@ export default function AnalyticsPage() {
   return <Grid container spacing={2} className={classes.root}>
     <Grid item xs={12}>
       <Markdown>{`
-        # NOMAD Analytics (AI) Toolkit
+        # NOMAD Artificial Intelligence Toolkit
 
         We develop and implement methods that identify correlations and structure in big data
         of materials. This will enable scientists and engineers to decide which materials are
         useful for specific applications or which new materials should be the focus of future studies.
-        The following tutorials are designed to get started with the Analytics Toolkit.
+        The following tutorials are designed to get started with the AI Toolkit.
 
         To log in directly, click [here](https://analytics-toolkit.nomad-coe.eu/hub).
       `}</Markdown>

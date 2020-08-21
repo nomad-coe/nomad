@@ -2,12 +2,13 @@ import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect } fr
 import {ReactComponent as AboutSvg} from './about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
-import { appBase, optimadeBase, apiBase, debug, consent } from '../config'
+import { appBase, optimadeBase, apiBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import { apiContext } from './api'
 import packageJson from '../../package.json'
 import { domains } from './domains'
 import { Grid, Card, CardContent, Typography, makeStyles, Link } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
+import tutorials from './aitoolkit/tutorials'
 
 export const CodeList = () => {
   const {info} = useContext(apiContext)
@@ -97,10 +98,18 @@ export default function About() {
       history.push('/upload')
     })
     makeClickable('encyclopedia', () => {
-      window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
+      if (encyclopediaEnabled) {
+        window.location.href = `${appBase}/encyclopedia`
+      } else {
+        window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
+      }
     })
-    makeClickable('analytics', () => {
-      window.location.href = 'https://nomad-lab.eu/AItutorials'
+    makeClickable('toolkit', () => {
+      if (aitoolkitEnabled) {
+        history.push('/aitoolkit')
+      } else {
+        window.location.href = 'https://nomad-lab.eu/tools/AItutorials'
+      }
     })
     makeClickable('search', () => {
       history.push('/search')
@@ -109,6 +118,7 @@ export default function About() {
 
   useEffect(() => {
     const statistics = (info && info.statistics) || {}
+    statistics.n_tutorials = tutorials.tutorials.length
     const value = (key, unit) => {
       const nominal = statistics[key]
       let stringValue = null
@@ -117,8 +127,10 @@ export default function About() {
           stringValue = Math.floor(nominal / 1.0e+9) + ' bln.'
         } else if (nominal >= 1.0e+6) {
           stringValue = Math.floor(nominal / 1.0e+6) + ' mln.'
-        } else {
+        } else if (nominal >= 1.0e+3) {
           stringValue = Math.floor(nominal / 1.0e+3) + ' tsd.'
+        } else {
+          stringValue = nominal.toString()
         }
         return `${stringValue || '...'} ${unit}`
       } else {
@@ -132,6 +144,12 @@ export default function About() {
     setText('archiveStats', [
       value('n_calculations', 'results'),
       value('n_quantities', 'quantities')
+    ])
+    setText('encStats', [
+      value('n_materials', 'materials')
+    ])
+    setText('toolkitStats', [
+      value('n_tutorials', 'notebooks')
     ])
   }, [svg, info, setText])
 

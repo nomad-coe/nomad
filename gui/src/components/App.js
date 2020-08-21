@@ -39,7 +39,7 @@ import {matomo} from '../index'
 import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
-import AnalyticsPage from './analytics/AnalyticsPage'
+import AIToolkitPage from './aitoolkit/AIToolkitPage'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -279,9 +279,9 @@ function MainMenu() {
       icon={<UserDataIcon/>}
     />
     {!oasis && aitoolkitEnabled && <MainMenuItem
-      title="Analytics"
-      path="/analytics"
-      tooltip="NOMAD's analytics (AI) toolkit tutorial jupyter notebooks"
+      title="AI Toolkit"
+      path="/aitoolkit"
+      tooltip="NOMAD's Artificial Intelligence Toolkit tutorial jupyter notebooks"
       icon={<AnalyticsIcon/>}
     />}
     <MainMenuItem
@@ -559,9 +559,9 @@ const routes = {
     path: '/metainfo',
     component: MetainfoPage
   },
-  'analytics': {
-    path: '/analytics',
-    component: AnalyticsPage
+  'aitoolkit': {
+    path: '/aitoolkit',
+    component: AIToolkitPage
   }
 }
 

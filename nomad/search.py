@@ -513,6 +513,8 @@ class SearchRequest:
             'global_statistics:n_calculations', A('sum', field='dft.n_calculations'))
         self._search.aggs.metric(
             'global_statistics:n_quantities', A('sum', field='dft.n_quantities'))
+        self._search.aggs.metric(
+            'global_statistics:n_materials', A('cardinality', field='encyclopedia.material.material_id'))
 
         return self
 
