@@ -1,12 +1,13 @@
-from typing import List
+from typing import List, Tuple
 import pytest
 
 from nomad.client import query_archive
 from nomad.metainfo import MSection, SubSection
-from nomad.datamodel import EntryArchive
+from nomad.datamodel import EntryArchive, User
 from nomad.datamodel.metainfo.public import section_run
 
 from tests.app.test_app import BlueprintClient
+from tests.processing import test_data as test_processing
 
 
 # TODO with the existing published_wo_user_metadata fixture there is only one entry
@@ -66,3 +67,52 @@ def test_query_authentication(api, published, other_test_user_auth, test_user_au
 
     assert_results(query_archive(authentication=other_test_user_auth), total=1)
     assert_results(query_archive(authentication=test_user_auth), total=0)
+
+
+@pytest.fixture(scope='function')
+def many_uploads(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra):
+    _, upload_file = non_empty_uploaded
+    for index in range(0, 4):
+        upload = test_processing.run_processing(('test_upload_%d' % index, upload_file), test_user)
+        upload.publish_upload()  # pylint: disable=no-member
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+
+@pytest.fixture(scope='function', autouse=True)
+def patch_multiprocessing_and_api(monkeypatch):
+    class TestPool:
+        ''' A fake multiprocessing pool, because multiprocessing does not work well in pytest. '''
+        def __init__(self, n):
+            pass
+
+        def map(self, f, args):
+            return [f(arg) for arg in args]
+
+        def __enter__(self, *args, **kwargs):
+            return self
+
+        def __exit__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setattr('multiprocessing.Pool', TestPool)
+    monkeypatch.setattr('nomad.client.get_json', lambda response: response.json)
+    monkeypatch.setattr('nomad.client.get_length', lambda response: int(response.headers['Content-Length']))
+
+
+def test_parallel_query(api, many_uploads, monkeypatch):
+    result = query_archive(required=dict(section_run='*'), parallel=2)
+    assert_results(result, total=4)
+    assert result._statistics.nentries == 4
+    assert result._statistics.loaded_nentries == 4
+    assert result._statistics.last_response_nentries == 4
+    assert result._statistics.napi_calls == 1
+
+    result = query_archive(required=dict(section_run='*'), parallel=2, per_page=1)
+    assert_results(result, total=4)
+    assert result._statistics.nentries == 4
+    assert result._statistics.loaded_nentries == 4
+    assert result._statistics.last_response_nentries == 2
+    assert result._statistics.napi_calls == 2

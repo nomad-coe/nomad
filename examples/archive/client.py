@@ -2,7 +2,6 @@
 A simple example that uses the NOMAD client library to access the archive.
 '''
 
-from nomad import config
 from nomad.client import ArchiveQuery
 from nomad.metainfo import units
 
@@ -22,12 +21,13 @@ query = ArchiveQuery(
             'section_system[-2]': '*'
         }
     },
-    per_page=10,
+    parallel=5,
+    per_page=20,
     max=1000)
 
 print(query)
 
-for result in query[0:10]:
+for result in query[0:100]:
     run = result.section_run[0]
     energy = run.section_single_configuration_calculation[0].energy_total
     formula = run.section_system[0].chemical_composition_reduced
