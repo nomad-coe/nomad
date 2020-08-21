@@ -4,6 +4,7 @@ import { withStyles, Divider, Card, CardContent, Grid, CardHeader, Typography, L
 import { withApi } from '../api'
 import { compose } from 'recompose'
 import ApiDialogButton from '../ApiDialogButton'
+// import Structure from '../visualization/Structure'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -23,6 +24,10 @@ class RepoEntryView extends React.Component {
     },
     entryCards: {
       marginTop: theme.spacing(2)
+    },
+    structureViewer: {
+      height: '25rem',
+      padding: '0'
     }
   })
 

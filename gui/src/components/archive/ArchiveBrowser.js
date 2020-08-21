@@ -9,7 +9,10 @@ import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
+import Structure from '../visualization/Structure'
+import { StructureViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
+import { convert } from '../../utils'
 
 export const configState = atom({
   key: 'config',
@@ -20,12 +23,21 @@ export const configState = atom({
   }
 })
 
+// Shared instance of the StructureViewer
+const viewer = new StructureViewer()
+
+// Contains details about the currently visualized system. Used to detect if a
+// reload is needed for the StructureViewer.
+const visualizedSystem = {}
+
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
-  return <Browser
-    adaptor={archiveAdaptorFactory(data)}
-    form={<ArchiveConfigForm searchOptions={searchOptions} />}
-  />
+  return (
+    <Browser
+      adaptor={archiveAdaptorFactory(data)}
+      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+    />
+  )
 }
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
@@ -288,11 +300,59 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
+/**
+ * An optional overview for a section displayed directly underneath the section
+ * title.
+ */
+function Overview({section, def}) {
+  // Structure visualization for section_system
+  if (def.name === 'section_system') {
+    let url = window.location.href
+    let name = 'section_system'
+    let rootIndex = url.indexOf(name) + name.length
+    let sectionPath = url.substring(0, rootIndex)
+    let tmp = url.substring(rootIndex)
+    let tmpIndex = tmp.indexOf('/')
+    let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
+
+    let system
+    let positionsOnly = false
+
+    // Loading exact same system, no need to reload visualizer
+    if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
+    // Loading same system with different positions
+    } else if (sectionPath === visualizedSystem.sectionPath) {
+      positionsOnly = true
+      system = {
+        positions: convert(section.atom_positions, 'm', 'angstrom')
+      }
+    // Completely new system
+    } else {
+      system = {
+        'species': section.atom_species,
+        'cell': convert(section.lattice_vectors, 'm', 'angstrom'),
+        'positions': convert(section.atom_positions, 'm', 'angstrom'),
+        'pbc': section.configuration_periodic_dimensions
+      }
+    }
+    visualizedSystem.sectionPath = sectionPath
+    visualizedSystem.index = index
+
+    return <Structure viewer={viewer} system={system} positionsOnly={positionsOnly}></Structure>
+  }
+  return null
+}
+Overview.propTypes = ({
+  def: PropTypes.object,
+  section: PropTypes.object
+})
+
 function Section({section, def}) {
   const config = useRecoilValue(configState)
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
+    <Overview def={def} section={section}></Overview>
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
