@@ -50,6 +50,7 @@ statistics_info_model = api.model('StatisticsInfo', {
     'n_uploads': fields.Integer(description='Number of uploads in NOMAD'),
     'n_quantities': fields.Integer(description='Accumulated number of quantities over all entries in the Archive'),
     'n_calculations': fields.Integer(description='Accumulated number of calculations, e.g. total energy calculations in the Archive'),
+    'n_materials': fields.Integer(description='Number of materials in NOMAD')
     # TODO
     # 'raw_file_size': fields.Integer(description='Total amount of raw files in TB'),
     # 'archive_file_size': fields.Integer(description='Total amount of binary archive data in TB')
