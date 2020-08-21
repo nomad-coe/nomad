@@ -48,15 +48,15 @@ class EMSMetadata(MSection):
     quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
     group_hash = Quantity(type=str, a_search=Search())
 
-    def apply_domain_metadata(self, backend):
+    def apply_domain_metadata(self, entry_archive):
         from nomad import utils
 
-        if backend is None:
+        if entry_archive is None:
             return
 
         entry = self.m_parent
 
-        root_section = backend.entry_archive.section_experiment
+        root_section = entry_archive.section_experiment
         entry.formula = root_section.section_sample[0].sample_chemical_formula
         atoms = root_section.section_sample[0].sample_atom_labels
         if hasattr(atoms, 'tolist'):

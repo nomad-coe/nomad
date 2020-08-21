@@ -32,7 +32,7 @@ pip install nomad-lab
 To **use the NOMAD parsers for example**, install the `parsing` extra:
 ```
 pip install nomad-lab[parsing]
-nomad parse --show-backend <your-file-to-parse>
+nomad parse --show-archive <your-file-to-parse>
 ```
 
 ### For NOMAD developer

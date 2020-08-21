@@ -284,10 +284,9 @@ like all others: add __usrMyCodeLength to the group name.
 
 ## Backend
 The backend is an object can stores parsed data according to its meta-info. The
-class :py:class:`nomad.parsing.AbstractParserBackend` provides the basic backend interface.
+class :py:class:`nomad.parsing.Backend` provides the basic backend interface.
 It allows to open and close sections, add values, arrays, and values to arrays.
-In nomad@FAIRDI, we practically only use the :py:class:`nomad.parsing.LocalBackend`. In
-NOMAD-coe multiple backend implementations existed to facilitate the communication of
+In NOMAD-coe multiple backend implementations existed to facilitate the communication of
 python parsers with the scala infrastructure, including caching and streaming.
 
 ## Triggers

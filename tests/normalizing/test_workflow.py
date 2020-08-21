@@ -14,7 +14,7 @@
 
 
 def test_vasp_wokflow(dos_si_vasp):
-    sec_workflow = dos_si_vasp.entry_archive.section_workflow
+    sec_workflow = dos_si_vasp.section_workflow
     assert sec_workflow.workflow_type == 'geometry_optimization'
     assert sec_workflow.section_relaxation.relaxation_type == 'cell_shape'
     assert sec_workflow.section_relaxation.final_calculation_ref.m_def.name == 'section_single_configuration_calculation'

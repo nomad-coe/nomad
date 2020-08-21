@@ -15,8 +15,9 @@
 import ase.build
 
 from nomad import datamodel, config
-from nomad.parsing import Backend
+from nomad.datamodel import EntryArchive
 from nomad.app import dump_json
+from nomad.datamodel.metainfo.public import section_springer_material as SpringerMaterial
 
 from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -75,21 +76,21 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
     run_normalize(parsed_template_example)
 
 
-def assert_normalized(backend: Backend):
+def assert_normalized(entry_archive: datamodel.EntryArchive):
 
-    metadata = datamodel.EntryMetadata(domain=backend.domain)
-    metadata.apply_domain_metadata(backend)
+    metadata = entry_archive.section_metadata
+    metadata.apply_domain_metadata(entry_archive)
     assert metadata.formula is not None
     assert len(metadata.atoms) is not None
 
-    if backend.domain == 'dft':
+    if metadata.domain == 'dft':
         assert metadata.dft.code_name is not None
         assert metadata.dft.code_version is not None
         assert metadata.dft.basis_set is not None
         assert metadata.dft.xc_functional is not None
         assert metadata.dft.system is not None
 
-    parser_name = backend.entry_archive.section_metadata.parser_name
+    parser_name = metadata.parser_name
     exceptions = parser_exceptions.get(parser_name, [])
 
     if metadata.formula != config.services.unavailable_value:
@@ -99,24 +100,24 @@ def assert_normalized(backend: Backend):
         if key in exceptions:
             continue
 
-        if '.' in key and not key.startswith(backend.domain):
+        if '.' in key and not key.startswith(metadata.domain):
             continue
 
         assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
 
     # check if the result can be dumped
-    dump_json(backend.entry_archive.m_to_dict())
+    dump_json(entry_archive.m_to_dict())
 
 
-def test_normalizer(normalized_example: Backend):
+def test_normalizer(normalized_example: EntryArchive):
     assert_normalized(normalized_example)
 
 
 def test_normalizer_faulty_matid(caplog):
     '''Runs normalizer on an example w/ bools for atom pos. Should force matid error.
     '''
-    backend = parse_file(boolean_positions)
-    run_normalize(backend)
+    archive = parse_file(boolean_positions)
+    run_normalize(archive)
     assert_log(caplog, 'ERROR', 'matid project system classification failed')
     assert_log(caplog, 'ERROR', 'no lattice vectors but periodicity')
 
@@ -126,8 +127,8 @@ def test_normalizer_single_string_atom_labels(caplog):
     Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
     the numbers of positions should not match the labels.
     '''
-    backend = parse_file(single_string_atom_labels)
-    run_normalize(backend)
+    archive = parse_file(single_string_atom_labels)
+    run_normalize(archive)
     assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
 
 
@@ -135,20 +136,20 @@ def test_normalizer_unknown_atom_label(caplog, no_warn):
     '''Runs normalizer on ['Br','Si','Si','Za'], for normalization Za will be replaced,
     but stays in the labels.
     '''
-    backend = parse_file(unknown_atom_label)
-    run_normalize(backend)
-    assert backend['atom_labels'][3] == 'Za'
+    archive = parse_file(unknown_atom_label)
+    run_normalize(archive)
+    assert archive.section_run[0].m_xpath('section_system[*].atom_labels')[0][3] == 'Za'
 
 
 def test_symmetry_classification_fcc():
     '''Runs normalizer where lattice vectors should give fcc symmetry.'''
-    backend = parse_file(fcc_symmetry)
-    backend = run_normalize(backend)
+    archive = parse_file(fcc_symmetry)
+    archive = run_normalize(archive)
     expected_crystal_system = 'cubic'
     expected_bravais_lattice = 'cF'
     expected_point_group = 'm-3m'
     expected_origin_shift = [0, 0, 0]
-    sec_symmetry = backend.entry_archive.section_run[0].section_system[0].section_symmetry[0]
+    sec_symmetry = archive.section_run[0].section_system[0].section_symmetry[0]
     crystal_system = sec_symmetry.crystal_system
     assert crystal_system == expected_crystal_system
     bravais_lattice = sec_symmetry.bravais_lattice
@@ -163,32 +164,32 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
     # Atom
-    assert atom.get_value("system_type") == "atom"
+    assert atom.section_run[0].section_system[0].system_type == "atom"
     # Molecule
-    assert molecule.get_value("system_type") == "molecule / cluster"
+    assert molecule.section_run[0].section_system[0].system_type == "molecule / cluster"
     # 1D system
-    assert one_d.get_value("system_type") == "1D"
+    assert one_d.section_run[0].section_system[0].system_type == "1D"
     # 2D system
-    assert two_d.get_value("system_type") == "2D"
+    assert two_d.section_run[0].section_system[0].system_type == "2D"
     # Surface
-    assert surface.get_value("system_type") == "surface"
+    assert surface.section_run[0].section_system[0].system_type == "surface"
     # Bulk system
-    assert bulk.get_value("system_type") == "bulk"
+    assert bulk.section_run[0].section_system[0].system_type == "bulk"
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
     '''Checks that the representative systems are correctly identified and
     processed by SystemNormalizer.
     '''
-    def check_representative_frames(backend):
+    def check_representative_frames(archive):
         # For systems with multiple frames the first and two last should be processed.
         try:
-            frames = backend.entry_archive.section_run[0].section_frame_sequence[0].frame_sequence_local_frames_ref
+            frames = archive.section_run[0].section_frame_sequence[0].frame_sequence_local_frames_ref
         except Exception:
-            scc = backend.entry_archive.section_run[0].section_single_configuration_calculation[-1]
+            scc = archive.section_run[0].section_single_configuration_calculation[-1]
             repr_system = scc.single_configuration_calculation_to_system_ref
         else:
-            sampling_method = backend.entry_archive.section_run[0].section_sampling_method[0].sampling_method
+            sampling_method = archive.section_run[0].section_sampling_method[0].sampling_method
             if sampling_method == "molecular_dynamics":
                 scc = frames[0]
             else:
@@ -206,7 +207,7 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
 
         # Check that only the representative system has been labels with
         # "is_representative"
-        for system in backend.entry_archive.section_run[0].section_system:
+        for system in archive.section_run[0].section_system:
             if system.m_parent_index == repr_system.m_parent_index:
                 assert system.is_representative is True
             else:
@@ -220,10 +221,10 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
 
 def test_reduced_chemical_formula():
     "Ensure we get the right reduced chemical formula for glucose atom labels"
-    backend = parse_file(glucose_atom_labels)
-    backend = run_normalize(backend)
+    archive = parse_file(glucose_atom_labels)
+    archive = run_normalize(archive)
     expected_red_chem_formula = 'C6H12O6'
-    sec_system = backend.entry_archive.section_run[0].section_system[0]
+    sec_system = archive.section_run[0].section_system[0]
     reduced_chemical_formula = sec_system.chemical_composition_bulk_reduced
     assert expected_red_chem_formula == reduced_chemical_formula
 
@@ -232,13 +233,11 @@ def test_vasp_incar_system():
     '''
     Ensure we can test an incar value in the VASP example
     '''
-    backend = parse_file(vasp_parser)
-    backend = run_normalize(backend)
+    archive = parse_file(vasp_parser)
+    archive = run_normalize(archive)
     expected_value = 'SrTiO3'  # material's formula in vasp.xml
 
-    # backend_value = backend.get_value('x_vasp_unknown_incars')  # OK
-    # backend_value = backend.get_value('x_vasp_atom_kind_refs')  # OK
-    backend_value = backend.get_value('x_vasp_incar_SYSTEM')  # OK
+    backend_value = archive.section_run[0].section_method[0].x_vasp_incar_SYSTEM
 
     assert expected_value == backend_value
 
@@ -247,9 +246,9 @@ def test_aflow_prototypes():
     '''Tests that some basis structures are matched with the correct AFLOW prototypes
     '''
     def get_proto(atoms):
-        backend = run_normalize_for_structure(atoms)
+        archive = run_normalize_for_structure(atoms)
         try:
-            sec_proto = backend.entry_archive.section_run[0].section_system[0].section_prototype[0]
+            sec_proto = archive.section_run[0].section_system[0].section_prototype[0]
             prototype_aflow_id = sec_proto.prototype_aflow_id
             prototype_label = sec_proto.prototype_label
         except Exception:
@@ -313,19 +312,12 @@ def test_springer_normalizer():
     '''
     Ensure the Springer normalizer works well with the VASP example.
     '''
-    backend = parse_file(vasp_parser)
-    backend = run_normalize(backend)
+    archive = parse_file(vasp_parser)
+    archive = run_normalize(archive)
 
-    gindex = 0
+    springer = SpringerMaterial.m_from_dict(
+        archive.section_run[0].m_xpath('section_system[*].section_springer_material')[0][0])
 
-    backend_value = backend.get_value('springer_id', gindex)
-    expected_value = 'sd_0305232'
-    assert expected_value == backend_value
-
-    backend_value = backend.get_value('springer_alphabetical_formula', gindex)
-    expected_value = 'O3SrTi'
-    assert expected_value == backend_value
-
-    backend_value = backend.get_value('springer_url', gindex)
-    expected_value = 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'
-    assert expected_value == backend_value
+    assert springer.springer_id == 'sd_0305232'
+    assert springer.springer_alphabetical_formula == 'O3SrTi'
+    assert springer.springer_url == 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'

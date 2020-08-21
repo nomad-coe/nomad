@@ -20,6 +20,7 @@ import os
 from shutil import copyfile
 
 from nomad import utils, files, datamodel
+from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.parsing import BrokenParser, Backend
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.app import dump_json
@@ -234,18 +235,12 @@ def create_reference(data, pretty):
 
 @pytest.fixture(scope='function')
 def assert_parser_result(caplog):
-    def _assert(backend, error=False):
-        status, errors = backend.status
-        assert status == 'ParseSuccess'
-        if error:
-            if not errors:
-                errors = []
-                for record in caplog.get_records(when='call'):
-                    if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-                        errors.append(record.msg)
-            assert len(errors) > 0
-        else:
-            assert errors is None or len(errors) == 0
+    def _assert(entry_archive: EntryArchive, has_errors: bool = False):
+        errors_exist = False
+        for record in caplog.get_records(when='call'):
+            if record.levelname in ['ERROR', 'CRITICAL']:
+                errors_exist = True
+        assert has_errors == errors_exist
 
     return _assert
 
@@ -257,50 +252,52 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
-    result = parser.run(mainfile, logger=utils.get_logger(__name__))
+    entry_archive = EntryArchive()
+    parser.parse(mainfile, entry_archive, logger=utils.get_logger(__name__))
+    metadata = entry_archive.m_create(EntryMetadata)
+    metadata.domain = parser.domain
 
-    result.domain = parser.domain
-    return add_calculation_info(result, parser_name=parser_name)
+    return add_calculation_info(entry_archive, parser_name=parser_name)
 
 
 @pytest.fixture
-def parsed_vasp_example() -> Backend:
+def parsed_vasp_example() -> EntryArchive:
     return run_parser(
         'parsers/vasp', 'dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
 @pytest.fixture
-def parsed_template_example() -> Backend:
+def parsed_template_example() -> EntryArchive:
     return run_parser(
         'parsers/template', 'tests/data/parsers/template.json')
 
 
 @pytest.fixture(scope="session")
-def parsed_template_no_system() -> Backend:
+def parsed_template_no_system() -> EntryArchive:
     return run_parser(
         'parsers/template', 'tests/data/parsers/template_no_system.json')
 
 
-def parse_file(parser_name_and_mainfile) -> Backend:
+def parse_file(parser_name_and_mainfile) -> EntryArchive:
     parser_name, mainfile = parser_name_and_mainfile
     return run_parser(parser_name, mainfile)
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
-def parsed_example(request) -> Backend:
+def parsed_example(request) -> EntryArchive:
     parser_name, mainfile = request.param
     result = run_parser(parser_name, mainfile)
     return result
 
 
-def add_calculation_info(backend: Backend, **kwargs) -> Backend:
-    entry_metadata = backend.entry_archive.m_create(datamodel.EntryMetadata)
+def add_calculation_info(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
+    entry_metadata = entry_archive.section_metadata
     entry_metadata.upload_id = 'test_upload_id'
     entry_metadata.calc_id = 'test_calc_id'
     entry_metadata.calc_hash = 'test_calc_hash'
     entry_metadata.mainfile = 'test/mainfile.txt'
     entry_metadata.m_update(**kwargs)
-    return backend
+    return entry_archive
 
 
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
@@ -316,7 +313,7 @@ def test_broken_xml_vasp(assert_parser_result):
     parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
-    assert_parser_result(parsed_example, error=True)
+    assert_parser_result(parsed_example, has_errors=True)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
@@ -356,10 +353,10 @@ def parser_in_dir(dir):
             if parser is not None:
 
                 try:
-                    backend = parser.run(file_path)
+                    archive = datamodel.EntryArchive()
+                    parser.parse(file_path, entry_archive=archive)
                     # check if the result can be dumped
-                    dump_json(backend.entry_archive.m_to_dict())
-                    backend.resource.unload()
+                    dump_json(archive.m_to_dict())
                 except Exception as e:
                     print(file_path, parser, 'FAILURE', e)
                     import traceback

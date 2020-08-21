@@ -460,7 +460,7 @@ class EntryMetadata(metainfo.MSection):
         ''' Applies a user provided metadata dict to this calc. '''
         self.m_update(**metadata)
 
-    def apply_domain_metadata(self, backend):
+    def apply_domain_metadata(self, archive):
         """Used to apply metadata that is related to the domain.
         """
         assert self.domain is not None, 'all entries must have a domain'
@@ -473,7 +473,7 @@ class EntryMetadata(metainfo.MSection):
         if domain_section is None:
             domain_section = self.m_create(domain_section_def.section_cls)
 
-        domain_section.apply_domain_metadata(backend)
+        domain_section.apply_domain_metadata(archive)
 
 
 class EntryArchive(metainfo.MSection):

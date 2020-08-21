@@ -842,7 +842,7 @@ class TestRepo():
             domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
         entry_metadata.files = ['test/mainfile.txt']
         entry_metadata.apply_domain_metadata(normalized)
-        entry_metadata.encyclopedia = normalized.entry_archive.section_metadata.encyclopedia
+        entry_metadata.encyclopedia = normalized.section_metadata.encyclopedia
 
         entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 

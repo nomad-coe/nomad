@@ -64,12 +64,10 @@ basends. In nomad@FAIRDI, we only currently only use a single backed. The follow
 classes provide a interface definition for *backends* as an ABC and a concrete implementation
 based on nomad@fairdi's metainfo:
 
-.. autoclass:: nomad.parsing.AbstractParserBackend
-    :members:
 .. autoclass:: nomad.parsing.Backend
     :members:
 '''
 
-from nomad.parsing.legacy import AbstractParserBackend, Backend, BackendError, LegacyParser
+from nomad.parsing.legacy import Backend, BackendError, LegacyParser
 from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser

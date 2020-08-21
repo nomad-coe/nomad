@@ -33,8 +33,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     This normalizer performs all produces a section all data necessary for the Optimade API.
     It assumes that the :class:`SystemNormalizer` was run before.
     '''
-    def __init__(self, backend):
-        super().__init__(backend, only_representatives=True)
+    def __init__(self, archive):
+        super().__init__(archive, only_representatives=True)
 
     def add_optimade_data(self, index) -> OptimadeEntry:
         '''

@@ -14,7 +14,7 @@
 
 '''
 This module contains functionality to use old 'legacy' NOMAD CoE parsers with the
-new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a unifying
+new nomad@fairdi infrastructure. This covers aspects like the old metainfo, a unifying
 wrapper for parsers, parser logging, and a parser backend.
 '''
 
@@ -41,136 +41,7 @@ class BackendError(Exception):
     pass
 
 
-class AbstractParserBackend(metaclass=ABCMeta):
-    '''
-    This ABS provides the parser backend interface used by the NOMAD-coe parsers.
-    '''
-
-    @abstractmethod
-    def metaInfoEnv(self):
-        ''' Returns the meta info used by this backend. '''
-        pass
-
-    @abstractmethod
-    def startedParsingSession(
-            self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
-        '''
-        Should be called when the parsing starts.
-        ParserInfo should be a valid json dictionary.
-        '''
-        pass
-
-    @abstractmethod
-    def finishedParsingSession(
-            self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
-            parsingStats=None):
-        ''' Called when the parsing finishes. '''
-        pass
-
-    @abstractmethod
-    def openSection(self, metaName, parent_index=-1):
-        ''' Opens a new section and returns its new unique gIndex. '''
-        pass
-
-    @abstractmethod
-    def closeSection(self, metaName, gIndex):
-        '''
-        Closes the section with the given meta name and index. After this, no more
-        value can be added to this section.
-        '''
-        pass
-
-    @abstractmethod
-    def openNonOverlappingSection(self, metaName):
-        ''' Opens a new non overlapping section. '''
-        pass
-
-    @abstractmethod
-    def setSectionInfo(self, metaName, gIndex, references):
-        '''
-        Sets info values of an open section references should be a dictionary with the
-        gIndexes of the root sections this section refers to.
-        '''
-        pass
-
-    @abstractmethod
-    def closeNonOverlappingSection(self, metaName):
-        '''
-        Closes the current non overlapping section for the given meta name. After
-        this, no more value can be added to this section.
-        '''
-        pass
-
-    @abstractmethod
-    def openSections(self):
-        ''' Returns the sections that are still open as metaName, gIndex tuples. '''
-        pass
-
-    @abstractmethod
-    def addValue(self, metaName, value, gIndex=-1):
-        '''
-        Adds a json value for the given metaName. The gIndex is used to identify
-        the right parent section.
-        '''
-        pass
-
-    @abstractmethod
-    def addRealValue(self, metaName, value, gIndex=-1):
-        '''
-        Adds a float value for the given metaName. The gIndex is used to identify
-        the right parent section.
-        '''
-        pass
-
-    @abstractmethod
-    def addArray(self, metaName, shape, gIndex=-1):
-        '''
-        Adds an unannitialized array of the given shape for the given metaName.
-        The gIndex is used to identify the right parent section.
-        This is neccessary before array values can be set with :func:`setArrayValues`.
-        '''
-
-    @abstractmethod
-    def setArrayValues(self, metaName, values, offset=None, gIndex=-1):
-        '''
-        Adds values of the given numpy array to the last array added for the given
-        metaName and parent gIndex.
-        '''
-        pass
-
-    @abstractmethod
-    def addArrayValues(self, metaName, values, gIndex=-1, override: bool = False):
-        '''
-        Adds an array with the given numpy array values for the given metaName and
-        parent section gIndex. Override determines whether to rewrite exisiting values
-        in the backend.
-        '''
-        pass
-
-    @abstractmethod
-    def pwarn(self, msg):
-        ''' Used to catch parser warnings. '''
-        pass
-
-    @abstractmethod
-    def get_sections(self, meta_name: str, g_index: int = -1) -> List[int]:
-        ''' Return all gIndices for existing sections of the given meta_name and parent section index. '''
-        pass
-
-    @abstractmethod
-    def get_value(self, metaName: str, g_index=-1) -> Any:
-        '''
-        Return the value set to the given meta_name in its parent section of the given index.
-        An index of -1 (default) is only allowed if there is exactly one parent section.
-        '''
-        pass
-
-    @abstractmethod
-    def __getitem__(self, key):
-        pass
-
-
-class Backend(AbstractParserBackend):
+class Backend():
     '''
     A backend that uses the new metainfo to store all data.
 
@@ -195,7 +66,7 @@ class Backend(AbstractParserBackend):
 
     def __init__(
             self, metainfo: Union[str, LegacyMetainfoEnvironment], domain: str = None,
-            logger=None):
+            entry_archive: datamodel.EntryArchive = None, logger=None):
         assert metainfo is not None
 
         if logger is None:
@@ -212,7 +83,7 @@ class Backend(AbstractParserBackend):
         self.env: LegacyMetainfoEnvironment = cast(LegacyMetainfoEnvironment, metainfo)
         self.__legacy_env = None
         self.resource = MResource(logger=logger)
-        self.entry_archive = datamodel.EntryArchive()
+        self.entry_archive = datamodel.EntryArchive() if entry_archive is None else entry_archive
         self.resource.add(self.entry_archive)
 
         self.strict = False  # TODO
@@ -255,12 +126,14 @@ class Backend(AbstractParserBackend):
             return section.m_get_sub_sections(property_def)
 
     def metaInfoEnv(self):
+        ''' Returns the meta info used by this backend. '''
         if self.__legacy_env is None:
             self.__legacy_env = self.env.legacy_info_env()
         return self.__legacy_env
 
     def resolve_definition(self, name, section_cls: Type[MSectionBound]) -> MSectionBound:
         definition = self.env.from_legacy_name(name, section_cls)
+
         if definition:
             return definition
 
@@ -269,6 +142,8 @@ class Backend(AbstractParserBackend):
 
     def openSection(self, name, parent_index: int = -1, return_section=False):
         '''
+        Opens a new section and returns its new unique gIndex.
+
         It will assume that there is a sub-section def with the given name.
         It will use the latest opened section of the sub-sections parent as the parent
         for the new section.
@@ -311,9 +186,14 @@ class Backend(AbstractParserBackend):
         return section, quantity_def
 
     def closeSection(self, name, g_index):
+        '''
+        Closes the section with the given meta name and index. After this, no more
+        value can be added to this section.
+        '''
         pass
 
     def openNonOverlappingSection(self, metaName):
+        ''' Opens a new non overlapping section. '''
         return self.openSection(metaName)
 
     def setSectionInfo(self, metaName, gIndex, references):
@@ -325,6 +205,10 @@ class Backend(AbstractParserBackend):
         pass
 
     def closeNonOverlappingSection(self, name):
+        '''
+        Closes the current non overlapping section for the given meta name. After
+        this, no more value can be added to this section.
+        '''
         return self.closeSection(name, -1)
 
     def openSections(self):
@@ -335,6 +219,10 @@ class Backend(AbstractParserBackend):
         #         yield section_def.name, sub_section.m_parent_index
 
     def addValue(self, name, value, g_index=-1):
+        '''
+        Adds a json value for the given metaName. The gIndex is used to identify
+        the right parent section.
+        '''
         section, quantity_def = self.get_open_section_for_quantity(name, g_index)
         if isinstance(quantity_def.type, Reference):
             # quantity is a reference
@@ -349,6 +237,10 @@ class Backend(AbstractParserBackend):
         setattr(section, name, value)
 
     def addRealValue(self, name, value, g_index=-1):
+        '''
+        Adds a float value for the given metaName. The gIndex is used to identify
+        the right parent section.
+        '''
         self.addValue(name, value, g_index)
 
     def addArray(self, name, shape, g_index=-1):
@@ -420,11 +312,16 @@ class Backend(AbstractParserBackend):
 
     def startedParsingSession(
             self, mainFileUri, parserInfo, parserStatus=None, parserErrors=None):
+        '''
+        Should be called when the parsing starts.
+        ParserInfo should be a valid json dictionary.
+        '''
         self.reset_status()
 
     def finishedParsingSession(
             self, parserStatus, parserErrors, mainFileUri=None, parserInfo=None,
             parsingStats=None):
+        ''' Called when the parsing finishes. '''
         self._status = parserStatus
         self._errors = parserErrors
 
@@ -433,6 +330,7 @@ class Backend(AbstractParserBackend):
         pass
 
     def pwarn(self, msg):
+        ''' Used to catch parser warnings. '''
         self.logger.warn(msg)
         if len(self._warnings) < 10:
             self._warnings.append(msg)
@@ -488,7 +386,7 @@ class LegacyParser(MatchingParser):
 
         return self.__parser_class
 
-    def run(self, mainfile: str, logger=None) -> Backend:
+    def parse(self, mainfile: str, archive: datamodel.EntryArchive, logger=None):
         # TODO we need a homogeneous interface to parsers, but we dont have it right now.
         # There are some hacks to distinguish between ParserInterface parser and simple_parser
         # using hasattr, kwargs, etc.
@@ -497,30 +395,34 @@ class LegacyParser(MatchingParser):
 
         if issubclass(self.parser_class, CoEParser):
             # TODO reuse parser
+            # TODO remove, this whole mechanism is only used by wien2k
             parser = self.parser_class()  # pylint: disable=not-callable
-            return parser.run(mainfile, logger)
+            backend = parser.run(mainfile, logger=logger, entry_archive=archive)
 
-        def create_backend(meta_info):
-            if self.backend_factory is not None:
-                return self.backend_factory(meta_info, logger=logger)
+        else:
+            def create_backend(meta_info):
+                if self.backend_factory is not None:
+                    return self.backend_factory(meta_info, logger=logger)
 
-            return Backend(meta_info, logger=logger, domain=self.domain)
+                return Backend(meta_info, logger=logger, domain=self.domain, entry_archive=archive)
 
-        init_signature = inspect.getargspec(self.parser_class.__init__)
-        kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
-        kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
+            init_signature = inspect.getargspec(self.parser_class.__init__)
+            kwargs = dict(backend=create_backend, log_level=logging.DEBUG, debug=True)
+            kwargs = {key: value for key, value in kwargs.items() if key in init_signature.args}
 
-        with utils.legacy_logger(logger):
-            self.parser = self.parser_class(**kwargs)  # pylint: disable=not-callable
+            with utils.legacy_logger(logger):
+                self.parser = self.parser_class(**kwargs)  # pylint: disable=not-callable
 
-            with patch.object(sys, 'argv', []):
-                backend = self.parser.parse(mainfile)
-                os.chdir(config.fs.working_directory)
+                with patch.object(sys, 'argv', []):
+                    backend = self.parser.parse(mainfile)
 
-            if backend is None or not hasattr(backend, 'status'):
-                backend = self.parser.parser_context.super_backend
+        os.chdir(config.fs.working_directory)
 
-        return backend
+        if backend is None or not hasattr(backend, 'status'):
+            backend = self.parser.parser_context.super_backend
+
+        if backend.status[0] != 'ParseSuccess':
+            raise Exception(backend.status[1])
 
 
 class CoEParser(metaclass=ABCMeta):
@@ -583,9 +485,9 @@ class CoESimpleMatcherParser(CoEParser):
     def create_super_context(self):
         pass
 
-    def simple_parser(self, mainfile, logger) -> Backend:
+    def simple_parser(self, mainfile, **kwargs) -> Backend:
         from nomadcore.simple_parser import mainFunction
-        backend = Backend(self._metainfo_env, logger=logger)
+        backend = Backend(self._metainfo_env, **kwargs)
         from unittest.mock import patch
         with patch.object(sys, 'argv', ['<exe>', '--uri', 'nmd://uri', mainfile]):
             mainFunction(
@@ -598,9 +500,9 @@ class CoESimpleMatcherParser(CoEParser):
 
         return backend
 
-    def run(self, mainfile, logger) -> Backend:
+    def run(self, mainfile, logger, **kwargs) -> Backend:
         with utils.legacy_logger(logger):
-            return self.simple_parser(mainfile, logger)
+            return self.simple_parser(mainfile, logger=logger, **kwargs)
 
 
 class VaspOutcarParser(LegacyParser):
