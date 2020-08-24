@@ -20,7 +20,7 @@ import datetime
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, MResource, Datetime, Annotation, SectionAnnotation,
-    DefinitionAnnotation, Reference, MProxy, derived, SectionProxy)
+    DefinitionAnnotation, Reference, MProxy, derived, SectionProxy, JSON)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
 from nomad.units import ureg
@@ -687,6 +687,22 @@ class TestDatatypes:
         obj.datetime = None
         assert obj.datetime is None
         assert obj.m_to_dict()['datetime'] is None
+
+    def test_json(self):
+        class TestSection(MSection):
+            json = Quantity(type=JSON)
+
+        obj = TestSection()
+        assert obj.json is None
+        assert 'json' not in obj.m_to_dict()
+
+        obj.json = dict(test_key='test_value')
+        assert obj.json is not None
+        assert isinstance(obj.m_to_dict()['json'], dict)
+
+        obj.json = None
+        assert obj.json is None
+        assert obj.m_to_dict()['json'] is None
 
 
 class TestEnvironment:

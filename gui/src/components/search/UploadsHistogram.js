@@ -93,7 +93,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
     const height = 250
     const marginRight = 32
     const marginTop = 16
-    const marginBottom = 16
+    const marginBottom = 17  // 16 misses a pixel in safari
 
     const y = scalePow().range([height - marginBottom, marginTop]).exponent(scale)
     const max = d3.max(data, d => d.value) || 0

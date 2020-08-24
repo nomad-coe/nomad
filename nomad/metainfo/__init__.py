@@ -286,6 +286,8 @@ from .metainfo import (
     MetainfoReferenceError,
     DataType,
     Reference,
+    Datetime,
+    JSON,
     MResource,
     m_package,
     Annotation,

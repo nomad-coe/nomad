@@ -22,6 +22,7 @@ from .legacy import LegacyParser, VaspOutcarParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
 from eelsparser import EelsParser
+from eelsdbconverter import EELSApiJsonConverter
 from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
@@ -351,6 +352,7 @@ parsers = [
     MPESParser(),
     APTFIMParser(),
     EelsParser(),
+    EELSApiJsonConverter(),
     LegacyParser(
         name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
         parser_class_name='qboxparser.QboxParser',

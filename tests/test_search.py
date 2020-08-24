@@ -64,6 +64,18 @@ def test_index_normalized_calc_with_metadata(
     assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
 
 
+def test_index_normalized_calc_with_author(
+        elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
+    entry_metadata = normalized.section_metadata
+    entry_metadata.m_update(
+        domain='dft', upload_id='test upload id', calc_id='test id',
+        coauthors=[dict(first_name='Howard', last_name='Wolowitz')])
+    entry_metadata.apply_domain_metadata(normalized)
+
+    search_entry = create_entry(entry_metadata)
+    search.flat(search_entry.to_dict())
+
+
 def test_index_upload(elastic, processed: processing.Upload):
     pass
 

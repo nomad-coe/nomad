@@ -14,7 +14,7 @@
 
 ''' All generic entry metadata and related classes. '''
 
-from typing import Dict, Any
+from typing import Any
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import Keyword, Text, analyzer, tokenizer
 import ase.data
@@ -47,7 +47,25 @@ path_analyzer = analyzer(
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
 
 
-class User(metainfo.MSection):
+class Author(metainfo.MSection):
+    ''' A person that is author of data in NOMAD or references by NOMAD. '''
+    name = metainfo.Quantity(
+        type=str,
+        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
+        a_search=Search(mapping=Text(fields={'keyword': Keyword()})))
+
+    first_name = metainfo.Quantity(type=str)
+    last_name = metainfo.Quantity(type=str)
+    email = metainfo.Quantity(
+        type=str,
+        a_elastic=dict(mapping=Keyword),  # TODO remove?
+        a_search=Search())
+
+    affiliation = metainfo.Quantity(type=str)
+    affiliation_address = metainfo.Quantity(type=str)
+
+
+class User(Author):
     ''' A NOMAD user.
 
     Typically a NOMAD user has a NOMAD account. The user related data is managed by
@@ -70,23 +88,14 @@ class User(metainfo.MSection):
         type=str,
         a_search=Search())
 
-    name = metainfo.Quantity(
-        type=str,
-        derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
-        a_search=Search(mapping=Text(fields={'keyword': Keyword()})))
-
-    first_name = metainfo.Quantity(type=str)
-    last_name = metainfo.Quantity(type=str)
-    email = metainfo.Quantity(
-        type=str,
-        a_elastic=dict(mapping=Keyword),  # TODO remove?
-        a_search=Search())
-
     username = metainfo.Quantity(type=str)
-    affiliation = metainfo.Quantity(type=str)
-    affiliation_address = metainfo.Quantity(type=str)
+
     created = metainfo.Quantity(type=metainfo.Datetime)
-    repo_user_id = metainfo.Quantity(type=str)
+
+    repo_user_id = metainfo.Quantity(
+        type=str,
+        description='Optional, legacy user id from the old NOMAD CoE repository.')
+
     is_admin = metainfo.Quantity(
         type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
 
@@ -95,16 +104,6 @@ class User(metainfo.MSection):
     def get(*args, **kwargs) -> 'User':
         from nomad import infrastructure
         return infrastructure.keycloak.get_user(*args, **kwargs)  # type: ignore
-
-    @staticmethod
-    @cached(cache=TTLCache(maxsize=1, ttl=24 * 3600))
-    def repo_users() -> Dict[str, 'User']:
-        from nomad import infrastructure
-        return {
-            str(user.repo_user_id): user
-            for user in infrastructure.keycloak.search_user()
-            if user.repo_user_id is not None
-        }
 
 
 class UserReference(metainfo.Reference):
@@ -117,13 +116,44 @@ class UserReference(metainfo.Reference):
         super().__init__(User.m_def)
 
     def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
-        return User.get(user_id=proxy.m_proxy_url)
+        return User.get(user_id=proxy.m_proxy_value)
 
     def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
         return value.user_id
 
 
 user_reference = UserReference()
+
+
+class AuthorReference(metainfo.Reference):
+    '''
+    Special metainfo reference type that allows to use either user_ids or direct author
+    information as values. It automatically resolves user_ids to User objects and author
+    data into Author objects.
+    '''
+
+    def __init__(self):
+        super().__init__(Author.m_def)
+
+    def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
+        proxy_value = proxy.m_proxy_value
+        if isinstance(proxy_value, str):
+            return User.get(user_id=proxy.m_proxy_value)
+        elif isinstance(proxy_value, dict):
+            return Author.m_from_dict(proxy_value)
+        else:
+            raise metainfo.MetainfoReferenceError()
+
+    def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
+        if isinstance(value, User):
+            return value.user_id
+        elif isinstance(value, Author):
+            return value.m_to_dict()
+        else:
+            raise metainfo.MetainfoReferenceError()
+
+
+author_reference = AuthorReference()
 
 
 class Dataset(metainfo.MSection):
@@ -181,11 +211,11 @@ class DatasetReference(metainfo.Reference):
         super().__init__(Dataset.m_def)
 
     def resolve(self, proxy: metainfo.MProxy) -> metainfo.MSection:
-        return Dataset.m_def.a_mongo.get(dataset_id=proxy.m_proxy_url)
+        return Dataset.m_def.a_mongo.get(dataset_id=proxy.m_proxy_value)
 
     def serialize(self, section: metainfo.MSection, quantity_def: metainfo.Quantity, value: Any) -> Any:
         if isinstance(value, metainfo.MProxy):
-            return value.m_proxy_url
+            return value.m_proxy_value
         else:
             return value.dataset_id
 
@@ -205,6 +235,23 @@ class MongoMetadata(metainfo.MCategory):
 class DomainMetadata(metainfo.MCategory):
     ''' NOMAD entry quantities that are determined by the uploaded data. '''
     pass
+
+
+def derive_origin(entry):
+    if entry.external_db is not None:
+        return str(entry.external_db)
+
+    if entry.uploader:
+        return entry.uploader.name
+
+    return None
+
+
+def derive_authors(entry):
+    uploaders = []
+    if entry.uploader is not None and entry.external_db is None:
+        uploaders = [entry.uploader]
+    return uploaders + entry.coauthors
 
 
 class EntryMetadata(metainfo.MSection):
@@ -347,6 +394,11 @@ class EntryMetadata(metainfo.MSection):
         description='User provided references (URLs).',
         a_search=Search())
 
+    external_db = metainfo.Quantity(
+        type=metainfo.MEnum('EELSDB'), categories=[MongoMetadata],
+        description='The repository or external database where the original entry resides.',
+        a_search=Search())
+
     uploader = metainfo.Quantity(
         type=user_reference, categories=[MongoMetadata],
         description='The uploader of the entry',
@@ -362,15 +414,24 @@ class EntryMetadata(metainfo.MSection):
                 name='uploader_id', search_field='uploader.user_id')
         ])
 
+    origin = metainfo.Quantity(
+        type=str,
+        description='''
+            A short human readable description of the entries origin. Usually it is the
+            handle of an external database/repository or the name of the uploader.
+        ''',
+        derived=derive_origin,
+        a_search=Search())
+
     coauthors = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
+        type=author_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
         description='A user provided list of co-authors.',
         a_flask=dict(verify=User))
 
     authors = metainfo.Quantity(
-        type=user_reference, shape=['0..*'],
+        type=author_reference, shape=['0..*'],
         description='All authors (uploader and co-authors).',
-        derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.coauthors,
+        derived=derive_authors,
         a_search=Search(
             description='Search authors with exact names.',
             metric='cardinality',

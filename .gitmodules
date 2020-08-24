@@ -189,3 +189,6 @@
 [submodule "dependencies/nomad-dos-fingerprints"]
 	path = dependencies/nomad-dos-fingerprints
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git
+[submodule "dependencies/parsers/eelsdb"]
+	path = dependencies/parsers/eelsdb
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/eelsdb.git

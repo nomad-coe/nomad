@@ -327,9 +327,10 @@ class Calc(Proc):
             # close loghandler that was not closed due to failures
             try:
                 if self._parser_results and self._parser_results.m_resource:
+                    self._parser_results.section_metadata = None
                     self._parser_results.m_resource.unload()
             except Exception as e:
-                logger.error('could unload processing results', exc_info=e)
+                logger.error('could not unload processing results', exc_info=e)
 
     def _setup_fallback_metadata(self):
         self._entry_metadata = self.create_metadata()
@@ -364,6 +365,7 @@ class Calc(Proc):
             # close loghandler that was not closed due to failures
             try:
                 if self._parser_results and self._parser_results.m_resource:
+                    self._parser_results.section_metadata = None
                     self._parser_results.m_resource.unload()
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
@@ -380,6 +382,7 @@ class Calc(Proc):
             self.apply_entry_metadata(self._entry_metadata)
             self._entry_metadata.apply_domain_metadata(self._parser_results)
             if self._parser_results and self._parser_results.m_resource:
+                self._parser_results.section_metadata = None
                 self._parser_results.m_resource.unload()
 
             self._entry_metadata.a_elastic.index()
@@ -411,7 +414,9 @@ class Calc(Proc):
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             try:
-                self._parser_results = datamodel.EntryArchive()
+                self._parser_results = EntryArchive()
+                # allow parsers to read/write metadata
+                self._parser_results.m_add_sub_section(EntryArchive.section_metadata, self._entry_metadata)
                 parser.parse(
                     self.upload_files.raw_file_object(self.mainfile).os_path,
                     self._parser_results, logger=logger)
@@ -505,8 +510,9 @@ class Calc(Proc):
         ''' The *task* that encapsulates all normalizing related actions. '''
 
         # allow normalizer to access and add data to the entry metadata
-        self._parser_results.m_add_sub_section(
-            datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if self._parser_results.section_metadata is None:
+            self._parser_results.m_add_sub_section(
+                datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
         for normalizer in normalizers:
             if normalizer.domain != parser_dict[self.parser].domain:

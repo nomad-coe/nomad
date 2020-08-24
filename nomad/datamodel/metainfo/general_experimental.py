@@ -2,7 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
+    Reference, Datetime, JSON
 )
 from nomad.metainfo.legacy import LegacyDefinition
 
@@ -53,6 +53,12 @@ class section_experiment(MSection):
         ''',
         a_legacy=LegacyDefinition(name='experiment_facility_name'))
 
+    experiment_publish_time = Quantity(
+        type=Datetime,
+        description='''
+        The datetime when this experiment was published.
+        ''')
+
     experiment_time = Quantity(
         type=np.dtype(np.int64),
         shape=[],
@@ -71,10 +77,26 @@ class section_experiment(MSection):
         ''',
         a_legacy=LegacyDefinition(name='experiment_end_time'))
 
+    raw_metadata = Quantity(
+        type=JSON,
+        description='''
+        The whole or partial metadata in its original source JSON format.
+        ''')
+
     section_data = SubSection(
         sub_section=SectionProxy('section_data'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_data'))
+
+    section_method = SubSection(
+        sub_section=SectionProxy('section_method'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_method'))
+
+    section_sample = SubSection(
+        sub_section=SectionProxy('section_sample'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_sample'))
 
 
 class section_data(MSection):
@@ -107,6 +129,154 @@ class section_data(MSection):
         An URL to an image file that contains a preview.
         ''',
         a_legacy=LegacyDefinition(name='data_preview_url'))
+
+    entry_repository_url = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        An URL to the entry on the repository, where the data is stored.
+        ''',
+        a_legacy=LegacyDefinition(name='entry_repository_url'))
+
+
+class section_method(MSection):
+    '''
+    This section contains information about the applied experimental method.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_method'))
+
+    experiment_method_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Full name of the experimental method in use
+        ''',
+        a_legacy=LegacyDefinition(name='experiment_method_name'))
+
+    experiment_method_abbreviation = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Abbreviated name (i.e. acronym) of the experimental method
+        ''',
+        a_legacy=LegacyDefinition(name='experiment_method_abbreviation'))
+
+    equipment_description = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name or model of the equipment (e.g. in full or an acronym).
+        ''',
+        a_legacy=LegacyDefinition(name='equipment_description'))
+
+    probing_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The probing method used
+        ''',
+        a_legacy=LegacyDefinition(name='probing_method'))
+
+
+class section_sample(MSection):
+    '''
+    The section for all sample related (meta)data that was used in the experiment.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_sample'))
+
+    sample_description = Quantity(
+        type=str,
+        shape=[],
+        unit='dimensionless',
+        description='''
+        Description of the sample used in the experiment.
+        ''',
+        a_legacy=LegacyDefinition(name='sample_description'))
+
+    sample_id = Quantity(
+        type=str,
+        shape=[],
+        unit='dimensionless',
+        description='''
+        Identification number or signatures of the sample used.
+        ''',
+        a_legacy=LegacyDefinition(name='sample_id'))
+
+    sample_state = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The physical state of the sample.
+        ''',
+        a_legacy=LegacyDefinition(name='sample_state'))
+
+    sample_chemical_formula = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The chemical formula that describes the sample
+        ''',
+        a_legacy=LegacyDefinition(name='sample_chemical_formula'))
+
+    sample_chemical_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The chemical name that describes the sample
+        ''',
+        a_legacy=LegacyDefinition(name='sample_chemical_name'))
+
+    sample_atom_labels = Quantity(
+        type=str,
+        shape=['n'],
+        description='''
+        The chemical name that describes the sample
+        ''',
+        a_legacy=LegacyDefinition(name='sample_atom_labels'))
+
+    number_of_elements = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of distinct chemical elements in the sample.
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_elements'))
+
+    sample_space_group = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        unit='dimensionless',
+        description='''
+        Space group of the sample compound (if crystalline).
+        ''',
+        a_legacy=LegacyDefinition(name='sample_space_group'))
+
+    sample_temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        The temperature of the sample during the experiment in K.
+        ''',
+        a_legacy=LegacyDefinition(name='sample_temperature'))
+
+    sample_microstructure = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The sample microstructure
+        ''',
+        a_legacy=LegacyDefinition(name='sample_microstructure'))
+
+    sample_constituents = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The constituents
+        ''',
+        a_legacy=LegacyDefinition(name='sample_constituents'))
 
 
 m_package.__init_metainfo__()

@@ -582,7 +582,7 @@ class Properties(MSection):
         description="""
         Reference to an electronic band structure.
         """,
-        a_search=Search(value=lambda section: section.electronic_band_structure.m_proxy_url if section.electronic_band_structure is not None else None, mapping=Keyword())
+        a_search=Search(value=lambda section: section.electronic_band_structure.m_proxy_value if section.electronic_band_structure is not None else None, mapping=Keyword())
     )
     electronic_dos = Quantity(
         type=Reference(section_dos.m_def),
@@ -590,7 +590,7 @@ class Properties(MSection):
         description="""
         Reference to an electronic density of states.
         """,
-        a_search=Search(value=lambda section: section.electronic_dos.m_proxy_url if section.electronic_dos is not None else None, mapping=Keyword())
+        a_search=Search(value=lambda section: section.electronic_dos.m_proxy_value if section.electronic_dos is not None else None, mapping=Keyword())
     )
     phonon_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
@@ -598,7 +598,7 @@ class Properties(MSection):
         description="""
         Reference to a phonon band structure.
         """,
-        a_search=Search(value=lambda section: section.phonon_band_structure.m_proxy_url if section.phonon_band_structure is not None else None, mapping=Keyword())
+        a_search=Search(value=lambda section: section.phonon_band_structure.m_proxy_value if section.phonon_band_structure is not None else None, mapping=Keyword())
     )
     phonon_dos = Quantity(
         type=Reference(section_dos.m_def),
@@ -606,7 +606,7 @@ class Properties(MSection):
         description="""
         Reference to a phonon density of states.
         """,
-        a_search=Search(value=lambda section: section.phonon_dos.m_proxy_url if section.phonon_dos is not None else None, mapping=Keyword())
+        a_search=Search(value=lambda section: section.phonon_dos.m_proxy_value if section.phonon_dos is not None else None, mapping=Keyword())
     )
     thermodynamical_properties = Quantity(
         type=Reference(section_thermodynamical_properties.m_def),
@@ -614,7 +614,7 @@ class Properties(MSection):
         description="""
         Reference to a section containing thermodynamical properties.
         """,
-        a_search=Search(value=lambda section: section.thermodynamical_properties.m_proxy_url if section.thermodynamical_properties is not None else None, mapping=Keyword())
+        a_search=Search(value=lambda section: section.thermodynamical_properties.m_proxy_value if section.thermodynamical_properties is not None else None, mapping=Keyword())
     )
 
 

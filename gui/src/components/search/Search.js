@@ -230,12 +230,12 @@ const originLabels = {
 function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
-    setStatistics(['uploader'])
+    setStatistics(['origin'])
     // eslint-disable-next-line
   }, [])
   return <div>
     <UploadsHistogram tooltips initialScale={0.5} />
-    <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
+    <QuantityHistogram quantity="origin" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
 
