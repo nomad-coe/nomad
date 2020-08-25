@@ -12,8 +12,8 @@ import EMSVisualizations from './ems/EMSVisualizations'
 
 export const domains = ({
   dft: {
-    name: 'CMS',
-    label: 'Computational material science data (CMS)',
+    name: 'computational',
+    label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
     entryLabel: 'entry',
@@ -160,9 +160,9 @@ export const domains = ({
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
-    name: 'EMS',
+    name: 'experimental',
     key: 'ems',
-    label: 'Material science experiment data (EMS)',
+    label: 'Material science experiment data',
     about: 'This is metadata from material science experiments',
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
