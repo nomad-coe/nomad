@@ -15,14 +15,13 @@
 import numpy as np
 
 from nomad.normalizing.normalizer import Normalizer
-from nomad.datamodel.metainfo.public import Workflow, Relaxation
+from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon
 
 
-class WorkflowNormalizer(Normalizer):
-    '''
-    This normalizer performs all produces a section all data necessary for the Optimade API.
-    It assumes that the :class:`SystemNormalizer` was run before.
-    '''
+class RelaxationNormalizer(Normalizer):
+    def __init__(self, entry_archive):
+        super().__init__(entry_archive)
+
     def _get_relaxation_type(self):
         sec_system = self.section_run.section_system
         if not sec_system:
@@ -59,20 +58,20 @@ class WorkflowNormalizer(Normalizer):
 
             return 'ionic'
 
-    def normalize_relaxation(self):
-        sec_relaxation = self.entry_archive.section_workflow.section_relaxation
-        if not sec_relaxation:
-            sec_relaxation = self.entry_archive.section_workflow.m_create(Relaxation)
+    def normalize(self):
+        self.section = self.entry_archive.section_workflow.section_relaxation
+        if not self.section:
+            self.section = self.entry_archive.section_workflow.m_create(Relaxation)
 
-        if not sec_relaxation.relaxation_type:
-            sec_relaxation.relaxation_type = self._get_relaxation_type()
+        if not self.section.relaxation_type:
+            self.section.relaxation_type = self._get_relaxation_type()
 
-        if not sec_relaxation.final_calculation_ref:
+        if not self.section.final_calculation_ref:
             scc = self.section_run.section_single_configuration_calculation
             if scc:
-                sec_relaxation.final_calculation_ref = scc[-1]
+                self.section.final_calculation_ref = scc[-1]
 
-        if not sec_relaxation.final_energy_difference:
+        if not self.section.final_energy_difference:
             energies = []
             for scc in self.section_run.section_single_configuration_calculation:
                 if scc.energy_total_T0:
@@ -89,9 +88,9 @@ class WorkflowNormalizer(Normalizer):
                     pass
 
             if delta_energy:
-                sec_relaxation.final_energy_difference = delta_energy
+                self.section.final_energy_difference = delta_energy
 
-        if not sec_relaxation.final_force_maximum:
+        if not self.section.final_force_maximum:
             scc = self.section_run.section_single_configuration_calculation
             max_force = None
             if scc:
@@ -99,7 +98,39 @@ class WorkflowNormalizer(Normalizer):
                     forces = np.array(scc[-1].atom_forces)
                     max_force = np.max(np.linalg.norm(forces, axis=1))
             if max_force is not None:
-                sec_relaxation.final_force_maximum = max_force
+                self.section.final_force_maximum = max_force
+
+
+class PhononNormalizer(Normalizer):
+    def __init__(self, entry_archive):
+        super().__init__(entry_archive)
+
+    def _get_n_imaginary_frequencies(self):
+        scc = self.entry_archive.section_run[0].section_single_configuration_calculation
+        sec_band = scc[0].section_k_band
+        result = 0
+        for band_segment in sec_band[0].section_k_band_segment:
+            freq = band_segment.band_energies
+            result += np.count_nonzero(np.array(freq) < 0)
+        return result
+
+    def normalize(self):
+        self.section = self.entry_archive.section_workflow.section_phonon
+        if not self.section:
+            self.entry_archive.section_workflow.m_create(Phonon)
+
+        if not self.section.n_imaginary_frequencies:
+            # get number from bands (not complete as this is not the whole mesh)
+            self.section.n_imaginary_frequencies = self._get_n_imaginary_frequencies()
+
+
+class WorkflowNormalizer(Normalizer):
+    '''
+    This normalizer performs all produces a section all data necessary for the Optimade API.
+    It assumes that the :class:`SystemNormalizer` was run before.
+    '''
+    def __init__(self, entry_archive):
+        super().__init__(entry_archive)
 
     def normalize(self, logger=None) -> None:
         # Setup logger
@@ -124,4 +155,7 @@ class WorkflowNormalizer(Normalizer):
                 sec_workflow.workflow_type = workflow_type
 
         if sec_workflow.workflow_type in ['geometry_optimization', 'relaxation']:
-            self.normalize_relaxation()
+            RelaxationNormalizer(self.entry_archive).normalize()
+
+        elif sec_workflow.workflow_type == 'phonon':
+            PhononNormalizer(self.entry_archive).normalize()

@@ -1221,7 +1221,7 @@ class section_dos_fingerprint(MSection):
 
     indices = Quantity(
         type=np.dtype(np.int16),
-        shape=[2],
+        shape=['first_index_of_DOS_grid', 'last_index_of_DOS_grid'],
         description='''
         Indices used to compare DOS fingerprints of different energy ranges.
         ''',
@@ -5639,6 +5639,67 @@ class Relaxation(MSection):
         a_legacy=LegacyDefinition(name='final_calculation_ref'))
 
 
+class Phonon(MSection):
+    '''
+    Section containing the results of a phonon workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_phonon'))
+
+    force_calculator = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the program used to calculate the forces.
+        ''',
+        a_legacy=LegacyDefinition(name='force_calculator'))
+
+    mesh_density = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='1 / m ** 3',
+        description='''
+        Density of the k-mesh for sampling.
+        ''',
+        a_legacy=LegacyDefinition(name='mesh_density'),
+        a_search=Search())
+
+    n_imaginary_frequencies = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of modes with imaginary frequencies.
+        ''',
+        a_legacy=LegacyDefinition(name='n_imaginary_frequencies'),
+        a_search=Search())
+
+    random_displacements = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if displacements are made randomly.
+        ''',
+        a_legacy=LegacyDefinition(name='random_displacements'))
+
+    with_non_analytic_correction = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if non-analytical term corrections are applied to dynamical matrix.
+        ''',
+        a_legacy=LegacyDefinition(name='with_non_analytic_correction'),
+        a_search=Search())
+
+    with_grueneisen_parameters = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if Grueneisen parameters are calculated.
+        ''',
+        a_legacy=LegacyDefinition(name='with_grueneisen_parameters'),
+        a_search=Search())
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -5659,6 +5720,10 @@ class Workflow(MSection):
     section_relaxation = SubSection(
         sub_section=SectionProxy('Relaxation'),
         a_legacy=LegacyDefinition(name='section_relaxation'))
+
+    section_phonon = SubSection(
+        sub_section=SectionProxy('Phonon'),
+        a_legacy=LegacyDefinition(name='section_phonon'))
 
 
 m_package.__init_metainfo__()
