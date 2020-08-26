@@ -17,21 +17,24 @@ version: '3.4'
 services:
     # keycloak for user management
     keycloak:
+        restart: unless-stopped
         volumes:
             - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
             - /nomad/backup/fairdi/keycloak:/export
 
+    # broker for celery
+    rabbitmq:
+        restart: unless-stopped
+
     # the search engine
     elastic:
-        ports:
-            - 9200:9200
+        restart: always
         volumes:
             - /scratch/fairdi/db/elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
-        ports:
-            - 27017:27017
+        restart: always
         volumes:
             - /scratch/fairdi/db/mongo:/data/db
 
