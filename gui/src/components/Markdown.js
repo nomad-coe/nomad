@@ -216,6 +216,7 @@ var styles = theme => {
 }
 
 function MarkdownLink({href, ...props}) {
+  console.log('###', href)
   if (href.match(/^https?:\/\//)) {
     return <Link href={href} {...props} />
   } else {
@@ -245,7 +246,7 @@ function Markdown(props) {
         } else {
           state.push('math')
         }
-      } else if (c === '`') {
+      } else if (c === '`' || c === '(' || c === ')') {
         if (state[state.length - 1] === 'code') {
           state.pop()
         } else {
