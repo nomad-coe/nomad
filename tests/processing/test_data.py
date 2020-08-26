@@ -451,3 +451,28 @@ def test_ems_data(proc_infra, test_user):
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
         assert_search_upload(entries, additional_keys, published=False)
+
+
+def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
+    upload = run_processing(
+        ('test_upload', 'tests/data/proc/examples_with_metadata_file.zip'), test_user)
+
+    calcs = Calc.objects(upload_id=upload.upload_id)
+
+    comment = [None, 'Calculation 1 of 2', 'Calculation 2 of 2']
+    with_embargo = [True, True, False]
+    references = [None, ['http://test'], ['http://ttest']]
+    coauthors = [[], [other_test_user], []]
+
+    for i in range(len(calcs)):
+        entry_metadata = calcs[i].entry_metadata(upload.upload_files)
+        assert entry_metadata.comment == comment[i]
+        assert entry_metadata.with_embargo == with_embargo[i]
+        assert entry_metadata.references == references[i]
+        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        for j in range(len(entry_coauthors)):
+            assert entry_coauthors[j].user_id == coauthors[i][j].user_id
+            assert entry_coauthors[j].username == coauthors[i][j].username
+            assert entry_coauthors[j].email == coauthors[i][j].email
+            assert entry_coauthors[j].first_name == coauthors[i][j].first_name
+            assert entry_coauthors[j].last_name == coauthors[i][j].last_name

@@ -285,6 +285,8 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
 reprocess_unmatched = True
+aux_metadata_file = 'nomad_metadata'
+aux_metadata_exts = ('json', 'yaml')
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
