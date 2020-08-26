@@ -20,16 +20,17 @@ import math
 import numpy as np
 
 from flask_restplus import Resource, abort, fields, marshal
-from flask import request
+from flask import request, g
 from elasticsearch_dsl import Search, Q, A
 from elasticsearch_dsl.utils import AttrDict
 
-from nomad import config, files, infrastructure
+from nomad import config, infrastructure, search
+from nomad.files import UploadFiles
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from .api import api
-from .auth import authenticate
+from .auth import authenticate, create_authorization_predicate
 
 ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
@@ -83,12 +84,17 @@ def get_es_doc_values(es_doc, mapping, keys=None):
 
 
 def get_enc_filter():
-    """Returns a shared term filter that will leave out unpublished, embargoed
-    or invalid entries.
+    """Returns a shared term filter that will leave out unpublished (of other
+    users), embargoed or invalid entries.
     """
+    # Handle authentication
+    s = search.SearchRequest()
+    if g.user is not None:
+        s.owner('visible', user_id=g.user.user_id)
+    else:
+        s.owner('public')
     return [
-        Q("term", published=True),
-        Q("term", with_embargo=False),
+        s.q,
         Q("term", encyclopedia__status="success"),
     ]
 
@@ -129,6 +135,7 @@ class EncMaterialResource(Resource):
     @api.doc("material/<material_id>")
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
+    @authenticate()
     def get(self, material_id):
         """Used to retrieve basic information related to the specified
         material.
@@ -231,6 +238,7 @@ class EncMaterialsResource(Resource):
     @api.expect(materials_query, validate=False)
     @api.marshal_with(materials_result, skip_none=True)
     @api.doc("materials")
+    @authenticate()
     def post(self):
         """Used to query a list of materials with the given search options.
         """
@@ -269,7 +277,8 @@ class EncMaterialsResource(Resource):
                 "bool",
                 filter=get_enc_filter(),
             )
-            s = Search(index=config.elastic.index_name)
+
+            # s = Search(index=config.elastic.index_name)
             s = s.query(bool_query)
             s.aggs.bucket("materials", agg_parent)
             buckets_path = {x: "{}._count".format(x) for x in requested_properties}
@@ -555,6 +564,7 @@ class EncGroupsResource(Resource):
     @api.response(200, "Metadata send", fields.Raw)
     @api.marshal_with(groups_result)
     @api.doc("enc_materials")
+    @authenticate()
     def get(self, material_id):
         """Returns a summary of the calculation groups that were identified for
         this material.
@@ -633,6 +643,7 @@ class EncGroupResource(Resource):
     @api.response(200, "Metadata send", fields.Raw)
     @api.marshal_with(group_result)
     @api.doc("enc_group")
+    @authenticate()
     def get(self, material_id, group_type, group_id):
         """Used to query detailed information for a specific calculation group.
         """
@@ -717,6 +728,7 @@ class EncSuggestionsResource(Resource):
     @api.expect(suggestions_query, validate=False)
     @api.marshal_with(suggestions_result, skip_none=True)
     @api.doc("enc_suggestions")
+    @authenticate()
     def get(self):
 
         # Parse request arguments
@@ -749,6 +761,7 @@ class EncSuggestionsResource(Resource):
 
 calc_prop_map = {
     "calc_id": "calc_id",
+    "upload_id": "upload_id",
     "code_name": "dft.code_name",
     "code_version": "dft.code_version",
     "functional_type": "encyclopedia.method.functional_type",
@@ -763,6 +776,7 @@ calc_prop_map = {
 }
 calculation_result = api.model("calculation_result", {
     "calc_id": fields.String,
+    "upload_id": fields.String,
     "code_name": fields.String,
     "code_version": fields.String,
     "functional_type": fields.String,
@@ -795,6 +809,7 @@ class EncCalculationsResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
     @api.doc("enc_calculations")
+    @authenticate()
     def get(self, material_id):
         """Used to return all calculations related to the given material. Also
         returns a representative calculation for each property shown in the
@@ -943,6 +958,7 @@ class EncStatisticsResource(Resource):
     @api.expect(statistics_query, validate=False)
     @api.marshal_with(statistics_result, skip_none=True)
     @api.doc("enc_statistics")
+    @authenticate()
     def post(self, material_id):
         """Used to return statistics related to the specified material and
         calculations.
@@ -1138,6 +1154,7 @@ class EncCalculationResource(Resource):
     @api.expect(calculation_property_query, validate=False)
     @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("enc_calculation")
+    @authenticate()
     def post(self, material_id, calc_id):
         """Used to return calculation details. Some properties are not
         available in the ES index and are instead read from the Archive
@@ -1334,7 +1351,6 @@ class ReportsResource(Resource):
                 name="webmaster", email="lauri.himanen@gmail.com", message=mail, subject='Encyclopedia error report')
         except Exception as e:
             abort(500, message="Error sending error report email.")
-        print(mail)
         return "", 204
 
 
@@ -1350,8 +1366,10 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
         For each path, a dictionary containing the path as key and the returned
         section as value.
     """
-    upload_files = files.PublicUploadFiles(upload_id)
-    with upload_files.read_archive(calc_id, access="public") as archive:
+    upload_files = UploadFiles.get(
+        upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+
+    with upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
         root = EntryArchive.m_from_dict(data.to_dict())
 
