@@ -156,7 +156,7 @@ def _download(path: str, max_n_query: int = 10, retry_time: int = 120) -> str:
     return response.text
 
 
-def update_springer_data(max_n_query: int = 10, retry_time: int = 120):
+def update_springer(max_n_query: int = 10, retry_time: int = 120):
     '''
     Downloads the springer quantities related to a structure from springer and updates
     database.
