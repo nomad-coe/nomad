@@ -34,6 +34,9 @@ from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
+import yaml
+import json
+from cachetools import cached, LRUCache
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import (
@@ -42,13 +45,32 @@ from nomad.files import (
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
-from nomad.datamodel import EntryArchive
+from nomad.datamodel import EntryArchive, EditableUserMetadata
 from nomad.archive import query_archive
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
 section_metadata = datamodel.EntryArchive.section_metadata.name
 section_workflow = datamodel.EntryArchive.section_workflow.name
+
+
+_editable_metadata = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
+
+
+@cached(cache=LRUCache(maxsize=100))
+def metadata_cached(path):
+    for ext in config.aux_metadata_exts:
+        full_path = '%s.%s' % (path, ext)
+        if os.path.isfile(full_path):
+            with open(full_path) as f:
+                if full_path.endswith('json'):
+                    return json.load(f)
+                elif full_path.endswith('yaml'):
+                    return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                else:
+                    return {}
+    return {}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -501,6 +523,33 @@ class Calc(Proc):
                 except Exception as e:
                     self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
+    def _read_metadata_from_file(self, logger):
+        # metadata file name defined in nomad.config nomad_metadata.yaml/json
+        # which can be placed in the directory containing the mainfile or somewhere up
+        # highest priority is directory with mainfile
+
+        metadata_file = config.aux_metadata_file
+        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
+
+        metadata = {}
+        metadata_path = None
+        while metadata_dir:
+            metadata_part = metadata_cached(os.path.join(metadata_dir, metadata_file))
+
+            for key, val in metadata_part.items():
+                metadata.setdefault(key, val)
+
+            metadata_dir = os.path.dirname(metadata_dir)
+            if metadata_path is not None:
+                break
+
+        for key, val in metadata.items():
+            definition = _editable_metadata.get(key, None)
+            if not definition:
+                logger.warn('Cannot set metadata %s' % key)
+                continue
+            self._entry_metadata.m_set(definition, val)
+
     @task
     def archiving(self):
         ''' The *task* that encapsulates all archival related actions. '''
@@ -508,6 +557,9 @@ class Calc(Proc):
 
         self._entry_metadata.apply_domain_metadata(self._parser_results)
         self._entry_metadata.processed = True
+
+        # read metadata from file
+        self._read_metadata_from_file(logger)
 
         # persist the calc metadata
         with utils.timer(logger, 'saved calc metadata', step='metadata'):
