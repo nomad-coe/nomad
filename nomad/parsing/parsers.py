@@ -25,6 +25,7 @@ from eelsparser import EelsParser
 from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
+from phonopyparser import PhonopyParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -116,12 +117,7 @@ parsers = [
     GenerateRandomParser(),
     TemplateParser(),
     ChaosParser(),
-    LegacyParser(
-        name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
-        parser_class_name='phonopyparser.PhonopyParserWrapper',
-        # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
-        mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
-    ),
+    PhonopyParser(),
     VASPParser(),
     VaspOutcarParser(
         name='parsers/vasp-outcar', code_name='VASP', code_homepage='https://www.vasp.at/',
