@@ -1,5 +1,5 @@
 # Copyright 2018 Markus Scheidgen
-#
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 
 '''
 Adds mongoengine supports to the metainfo. Allows to create, save, and get metainfo
-sections from mongoengine. Currently no sub-section support. The annotation key is 'mongo'.
+sections from mongoengine. The annotation key is 'mongo'.
 '''
 
 from typing import Any, Dict, List
@@ -55,6 +55,7 @@ class MongoDocument(SectionAnnotation):
         self._mongoengine_cls = None
 
         self.primary_key: Mongo = None
+        self.primary_key_name: str = None
 
     def new(self, section):
         return dict(mongo=MongoInstance(section))
@@ -90,30 +91,64 @@ class MongoDocument(SectionAnnotation):
             if len(quantity.shape) == 0:
                 return result
             elif len(quantity.shape) == 1:
-                return me.ListField(result)
+                return me.ListField(result, default=None)
             else:
                 raise NotImplementedError
 
-        indexes: List[str] = []
-        dct: Dict[str, Any] = {}
+        def create_model_recursive(section, level):
+            indexes: List[str] = []
+            dct: Dict[str, Any] = {}
 
-        for quantity in self.definition.all_quantities.values():
-            annotation = quantity.m_get_annotations(Mongo)
-            if annotation is None:
-                continue
+            # Add quantities to model
+            for quantity in section.all_quantities.values():
+                annotation = quantity.m_get_annotations(Mongo)
+                if annotation is None:
+                    continue
 
-            if annotation.index:
-                indexes.append(quantity.name)
+                if annotation.index:
+                    indexes.append(quantity.name)
 
-            dct[quantity.name] = generate_field(quantity, annotation)
+                # Primary key is only stored from the root document.
+                if level == 0:
+                    if annotation.primary_key:
+                        self.primary_key = annotation
+                        self.primary_key_name = quantity.name
 
-            if annotation.primary_key:
-                self.primary_key = annotation
+                dct[quantity.name] = generate_field(quantity, annotation)
 
-        if len(indexes) > 0:
-            dct['meta'] = dict(indexes=indexes)
+            # Add subsections to the model
+            for subsection in section.all_sub_sections.values():
 
-        self._mongoengine_cls = type(self.definition.name, (me.Document,), dct)
+                annotation = subsection.sub_section.m_get_annotations(MongoDocument)
+                if annotation is None:
+                    continue
+
+                embedded_doc_field = type(subsection.sub_section.name, (me.EmbeddedDocumentField,), {})
+                model = create_model_recursive(subsection.sub_section, level + 1)
+                if subsection.repeats:
+                    dct[subsection.name] = me.ListField(embedded_doc_field(model))
+                else:
+                    dct[subsection.name] = embedded_doc_field(model)
+
+            # Add meta dictionary. The strict mode is set to false in order to
+            # not raise an exception when reading data that is not specified in
+            # the model.
+            meta = {
+                "strict": False
+            }
+            if len(indexes) > 0:
+                meta["indexes"] = indexes
+            dct['meta'] = meta
+
+            # Return final model
+            if level == 0:
+                model = type(section.name, (me.Document,), dct)
+            else:
+                model = type(section.name, (me.EmbeddedDocument,), dct)
+
+            return model
+
+        self._mongoengine_cls = create_model_recursive(self.definition, 0)
         return self._mongoengine_cls
 
     def objects(self, *args, **kwargs):
@@ -138,13 +173,18 @@ class MongoDocument(SectionAnnotation):
         Turns the given mongoengine document instance into its metainfo section instance
         counterpart.
         '''
-        section = self.definition.section_cls()
+        section_cls = self.definition.section_cls
+
+        # Get the mongo instance data as dict. This is easy to de-serialize
+        # into a metainfo section. If a primary key has been declared, rename
+        # the _id field.
+        mongo_dict = mongo_instance.to_mongo().to_dict()
+        if self.primary_key_name is not None:
+            mongo_dict[self.primary_key_name] = mongo_dict["_id"]
+        del mongo_dict["_id"]
+
+        section = section_cls.m_from_dict(mongo_dict)
         section.a_mongo.mongo_instance = mongo_instance
-        for name, quantity in self.definition.all_quantities.items():
-            if quantity.m_get_annotations(Mongo) is not None:
-                value = getattr(mongo_instance, name)
-                if value is not None:
-                    section.m_set(quantity, value)
 
         return section
 
@@ -154,27 +194,30 @@ class MongoInstance(Annotation):
     The annotation that is automatically added to all instances of sections that
     feature the :class:`MongoDocument` annotation.
     '''
-
     def __init__(self, section: MSection):
         self.section = section
         self.mongo_instance = None
+        self._id = None
 
     def save(self):
         ''' Saves the section as mongo entry. Does an upsert. '''
-        if self.mongo_instance is None:
-            return self.create()
 
-        for quantity_name, quantity in self.section.m_def.all_quantities.items():
-            value = self.section.m_get(quantity)
+        # The best way to update a complex entry with mongoengine is to create
+        # a new Document instance and specify the target ID which should be
+        # updated. The targen ID is taken from an old previously saved
+        # instance. If no previous saves have been done, a new object will be
+        # created. See discussion at:
+        # https://stackoverflow.com/questions/19002469/update-a-mongoengine-document-using-a-python-dict
+        data = self.section.m_to_dict()
+        if self.mongo_instance is not None:
+            data["id"] = self.mongo_instance.id
+        mongo_instance = self.section.m_def.a_mongo.mongo_cls(**data, _created=False)
+        self.mongo_instance = mongo_instance.save()
 
-            setattr(self.mongo_instance, quantity_name, value)
-
-        self.mongo_instance.save()
         return self.section
 
     def create(self):
         ''' Creates a new mongo entry and saves it. '''
-        self.mongo_instance = self.section.m_def.a_mongo.mongo_cls()
         return self.save()
 
     def delete(self):
