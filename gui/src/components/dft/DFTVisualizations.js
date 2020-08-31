@@ -178,17 +178,17 @@ export function DFTPropertyVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={energy_quantities} valueLabels={labels} title="Energy" initialScale={0.5} tooltips />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} tooltips />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} tooltips />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={energy_quantities} valueLabels={labels} title="Energy" initialScale={0.5} />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} />
       </Grid>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={forces_quantities} valueLabels={labels} title="Forces" initialScale={0.5} tooltips />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={vibrational_quantities} valueLabels={labels} title="Vibrational" initialScale={0.5} tooltips />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} tooltips />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={forces_quantities} valueLabels={labels} title="Forces" initialScale={0.5} />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={vibrational_quantities} valueLabels={labels} title="Vibrational" initialScale={0.5} />
+        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} />
       </Grid>
       <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.labels_springer_classification" title="Property classification" initialScale={1} tooltips />
+        <QuantityHistogram quantity="dft.labels_springer_classification" title="Property classification" initialScale={1} />
       </Grid>
     </Grid>
   )

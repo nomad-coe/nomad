@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown'
 import MathJax from 'react-mathjax'
 import RemarkMathPlugin from 'remark-math'
 import { path as metainfoPath } from './archive/metainfo'
+import { appBase } from '../config'
 
 /**
  * A simple markdown component.
@@ -216,7 +217,7 @@ var styles = theme => {
 }
 
 function MarkdownLink({href, ...props}) {
-  if (href.match(/^https?:\/\//)) {
+  if (href.match(/^https?:\/\//) || href.startsWith(appBase)) {
     return <Link href={href} {...props} />
   } else {
     return <Link component={RouterLink} to={href} {...props} />
@@ -245,7 +246,7 @@ function Markdown(props) {
         } else {
           state.push('math')
         }
-      } else if (c === '`') {
+      } else if (c === '`' || c === '(' || c === ')') {
         if (state[state.length - 1] === 'code') {
           state.pop()
         } else {

@@ -175,7 +175,7 @@ export default function Histogram({
             tooltip
               .style('left', i * (width + 12) + 'px')
               .style('top', (y(d.key) + 32) + 'px')
-            tooltipContent.html(getValueLabel(d.name))
+            tooltipContent.html(getValueLabel(d))
           }
         })
         .on('mouseout', function(d) {
