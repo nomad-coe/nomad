@@ -251,6 +251,10 @@ normalize = NomadConfig(
     )
 )
 
+paths = NomadConfig(
+    similarity="",
+)
+
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',

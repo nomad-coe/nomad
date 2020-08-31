@@ -29,6 +29,7 @@ from nomad.files import UploadFiles
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
+from nomad.datamodel.material import Material
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 
@@ -99,6 +100,13 @@ def get_enc_filter():
     ]
 
 
+similarity = api.model("similarity", {
+    # General
+    "material_id": fields.String,
+    "value": fields.Float,
+    "formula": fields.String,
+    "space_group_number": fields.Integer,
+})
 material_query = api.parser()
 material_query.add_argument(
     "property",
@@ -125,6 +133,7 @@ material_result = api.model("material_result", {
     "space_group_international_short_symbol": fields.String,
     "structure_prototype": fields.String,
     "structure_type": fields.String,
+    "similarity": fields.List(fields.Nested(similarity, skip_none=True), skip_none=True),
 })
 
 
@@ -177,6 +186,49 @@ class EncMaterialResource(Resource):
         # Add values from ES entry
         entry = response[0]
         result = get_es_doc_values(entry, material_prop_map, keys)
+
+        # Add similarity data that is currently stored in MongoDB. In the
+        # future a lot of the data will be accessed here.
+        try:
+            material = Material.m_def.a_mongo.get(material_id=material_id)
+            dos_similarity = material.similarity.electronic_dos
+        except KeyError:
+            # No similarity data for this material
+            pass
+        else:
+            # Only include similarity for materials that exist on the current
+            # deployment to avoid dead links.
+            similar_ids = dos_similarity.material_ids
+            id_value_map = {key: value for key, value in zip(dos_similarity.material_ids, dos_similarity.values)}
+            bool_query = Q(
+                "bool",
+                filter=get_enc_filter() + [Q("terms", encyclopedia__material__material_id=similar_ids)],
+            )
+            s = Search(index=config.elastic.index_name)
+            s = s.query(bool_query)
+            s = s.extra(**{
+                "_source": {"includes": [
+                    "encyclopedia.material.material_id",
+                    "encyclopedia.material.formula_reduced",
+                    "encyclopedia.material.bulk.space_group_number",
+                ]},
+                "size": 5,
+                "collapse": {"field": "encyclopedia.material.material_id"},
+            })
+            response = s.execute()
+            similarity = []
+            for hit in response.hits:
+                try:
+                    similarity.append({
+                        "material_id": hit.encyclopedia.material.material_id,
+                        "value": id_value_map[hit.encyclopedia.material.material_id],
+                        "formula": hit.encyclopedia.material.formula_reduced,
+                        "space_group_number": hit.encyclopedia.material.bulk.space_group_number,
+                    })
+                except AttributeError:
+                    pass
+            if similarity:
+                result["similarity"] = similarity
 
         return result, 200
 
