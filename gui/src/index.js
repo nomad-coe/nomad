@@ -29,7 +29,7 @@ const keycloak = Keycloak({
 // matomo.push('requireConsent')
 
 ReactDOM.render(
-  <KeycloakProvider keycloak={keycloak} initConfig={{onLoad: 'check-sso'}} LoadingComponent={<div />}>
+  <KeycloakProvider keycloak={keycloak} initConfig={{onLoad: 'check-sso', 'checkLoginIframe': false}} LoadingComponent={<div />}>
     <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
       <QueryParamProvider ReactRouterRoute={Route}>
         <App />
