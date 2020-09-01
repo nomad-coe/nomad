@@ -1,0 +1,92 @@
+version: '2.2'
+services:
+  nomad_elk_1_node_1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.0
+    container_name: nomad_elk_1_node_1
+    environment:
+      - node.name=nomad_elk_1_node_1
+      - cluster.name=nomad_elk_1
+      - discovery.seed_hosts=nomad_elk_1_node_2,nomad_elk_1_node_3
+      - cluster.initial_master_nodes=nomad_elk_1_node_1,nomad_elk_1_node_2,nomad_elk_1_node_3
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - /scratch/fairdi/db/nomad_elk_1/node_1:/usr/share/elasticsearch/data
+    ports:
+      - 9201:9200
+    networks:
+      nomad_elk_1:
+        aliases:
+          - elasticsearch
+
+  nomad_elk_1_node_2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.0
+    container_name: nomad_elk_1_node_2
+    environment:
+      - node.name=nomad_elk_1_node_2
+      - cluster.name=nomad_elk_1
+      - discovery.seed_hosts=nomad_elk_1_node_1,nomad_elk_1_node_3
+      - cluster.initial_master_nodes=nomad_elk_1_node_1,nomad_elk_1_node_2,nomad_elk_1_node_3
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - /scratch/fairdi/db/nomad_elk_1/node_2:/usr/share/elasticsearch/data
+    networks:
+      - nomad_elk_1
+
+  nomad_elk_1_node_3:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.0
+    container_name: nomad_elk_1_node_3
+    environment:
+      - node.name=nomad_elk_1_node_3
+      - cluster.name=nomad_elk_1
+      - discovery.seed_hosts=nomad_elk_1_node_1,nomad_elk_1_node_2
+      - cluster.initial_master_nodes=nomad_elk_1_node_1,nomad_elk_1_node_2,nomad_elk_1_node_3
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - /scratch/fairdi/db/nomad_elk_1/node_3:/usr/share/elasticsearch/data
+    networks:
+      - nomad_elk_1
+
+  nomad_elk_1_kibana:
+    image: docker.elastic.co/kibana/kibana:7.9.0
+    container_name: nomad_elk_1_kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://nomad_elk_1_node_1:9200
+      ELASTICSEARCH_HOSTS: http://nomad_elk_1_node_1:9200
+    volumes:
+      - ./kibana.yaml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - nomad_elk_1
+
+  nomad_elk_1_logstash:
+    image: docker.elastic.co/logstash/logstash:7.9.0
+    container_name: nomad_elk_1_logstash
+    expose:
+      - 5000
+    ports: 
+      - 5000:5000
+    volumes:
+      - ./pipeline/:/usr/share/logstash/pipeline/
+      - ./logstash.yaml:/usr/share/logstash/config/logstash.yml
+    networks:
+      - nomad_elk_1
+
+networks:
+  nomad_elk_1:
+    driver: bridge
