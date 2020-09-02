@@ -458,11 +458,12 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
         ('test_upload', 'tests/data/proc/examples_with_metadata_file.zip'), test_user)
 
     calcs = Calc.objects(upload_id=upload.upload_id)
+    calcs = sorted(calcs, key=lambda calc: calc.mainfile)
 
-    comment = [None, 'Calculation 1 of 2', 'Calculation 2 of 2']
-    with_embargo = [True, True, False]
-    references = [None, ['http://test'], ['http://ttest']]
-    coauthors = [[], [other_test_user], []]
+    comment = ['Calculation 1 of 2', 'Calculation 2 of 2', None]
+    with_embargo = [True, False, True]
+    references = [['http://test'], ['http://ttest'], None]
+    coauthors = [[other_test_user], [], []]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].entry_metadata(upload.upload_files)
