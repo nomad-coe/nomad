@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import pint
 
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon
@@ -21,6 +22,12 @@ from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon
 class RelaxationNormalizer(Normalizer):
     def __init__(self, entry_archive):
         super().__init__(entry_archive)
+
+    def _to_numpy_array(self, quantity):
+        try:
+            return np.array(quantity)
+        except pint.UnitStrippedWarning as e:
+            self.logger.warn(e)
 
     def _get_relaxation_type(self):
         sec_system = self.section_run.section_system
@@ -42,16 +49,16 @@ class RelaxationNormalizer(Normalizer):
             return 'static'
 
         else:
-            cell_init = np.array(sec_system[0].lattice_vectors)
-            cell_final = np.array(sec_system[-1].lattice_vectors)
+            cell_init = self._to_numpy_array(sec_system[0].lattice_vectors)
+            cell_final = self._to_numpy_array(sec_system[-1].lattice_vectors)
 
             cell_relaxation = compare_cell(cell_init, cell_final)
 
             if cell_relaxation is not None:
                 return cell_relaxation
 
-            atom_pos_init = np.array(sec_system[0].atom_positions)
-            atom_pos_final = np.array(sec_system[-1].atom_positions)
+            atom_pos_init = self._to_numpy_array(sec_system[0].atom_positions)
+            atom_pos_final = self._to_numpy_array(sec_system[-1].atom_positions)
 
             if (atom_pos_init == atom_pos_final).all():
                 return 'static'
@@ -66,10 +73,16 @@ class RelaxationNormalizer(Normalizer):
         if not self.section.relaxation_type:
             self.section.relaxation_type = self._get_relaxation_type()
 
+        scc = self.section_run.section_single_configuration_calculation
         if not self.section.final_calculation_ref:
-            scc = self.section_run.section_single_configuration_calculation
             if scc:
                 self.section.final_calculation_ref = scc[-1]
+
+        if not self.section.n_relaxation_steps:
+            self.section.n_relaxation_steps = len(scc)
+
+        if not self.section.calculations_ref:
+            self.section.calculations_ref = scc
 
         if not self.section.final_energy_difference:
             energies = []
@@ -95,7 +108,7 @@ class RelaxationNormalizer(Normalizer):
             max_force = None
             if scc:
                 if scc[-1].atom_forces is not None:
-                    forces = np.array(scc[-1].atom_forces)
+                    forces = self._to_numpy_array(scc[-1].atom_forces)
                     max_force = np.max(np.linalg.norm(forces, axis=1))
             if max_force is not None:
                 self.section.final_force_maximum = max_force

@@ -5627,8 +5627,7 @@ class Relaxation(MSection):
         description='''
         The maximum net force in the last relaxation step.
         ''',
-        a_legacy=LegacyDefinition(name='final_force_maximum')
-    )
+        a_legacy=LegacyDefinition(name='final_force_maximum'))
 
     final_calculation_ref = Quantity(
         type=Reference(SectionProxy('section_single_configuration_calculation')),
@@ -5637,6 +5636,23 @@ class Relaxation(MSection):
         Reference to last calculation step.
         ''',
         a_legacy=LegacyDefinition(name='final_calculation_ref'))
+
+    n_relaxation_steps = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of relaxation steps.
+        ''',
+        a_legacy=LegacyDefinition(name='n_relaxation_steps'))
+
+    calculations_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=['n_relaxation_steps'],
+        description='''
+        List of references to each section_single_configuration_calculation corresponding
+        to each step in the relaxation.
+        ''',
+        a_legacy=LegacyDefinition(name='calculations_ref'))
 
 
 class Phonon(MSection):
