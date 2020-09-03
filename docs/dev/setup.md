@@ -296,7 +296,7 @@ line size ruler, etc.
     "git.enableSmartCommit": true,
     "eslint.autoFixOnSave": true,
     "python.linting.pylintArgs": [
-        "--load-plugins=pylint_mongoengine",
+        "--load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin",
     ],
     "python.linting.pep8Path": "pycodestyle",
     "python.linting.pep8Enabled": true,

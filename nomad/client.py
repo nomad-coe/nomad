@@ -151,6 +151,7 @@ from io import StringIO
 import math
 from urllib.parse import urlencode
 import multiprocessing
+import json
 
 from nomad import config
 from nomad import metainfo as mi
@@ -243,7 +244,7 @@ class ProcState:
     def __init__(self, archive_query: 'ArchiveQuery'):
         self.url = archive_query.url
         self.request: Dict[str, Any] = dict(
-            query=dict(**archive_query.query),
+            query={'$and': archive_query.query},
             required=archive_query.required,
             raise_errors=archive_query.raise_errors)
         self.per_page = archive_query.per_page
@@ -339,28 +340,27 @@ class ArchiveQuery(collections.abc.Sequence):
         self.per_page = per_page
         self.max = max
 
-        self.query = query if query is not None else dict()
+        self.query: List[dict] = []
+        if query is not None:
+            self.query.append(query)
+
         self.raise_errors = raise_errors
         self.required = required if required is not None else dict(section_run='*')
-        if required is not None:
+        if required is not None and isinstance(required, dict):
             # We try to add all required properties to the query to ensure that only
             # results with those properties are returned.
-            section_run_key = next(key for key in required if key.split('[')[0] == 'section_run')
-            if section_run_key is not None:
-                # add all quantities in required to the query part
-                quantities = {'section_run'}
-                stack = []
-                section_run = required[section_run_key]
-                if isinstance(section_run, dict):
-                    stack.append(section_run)
-                while len(stack) > 0:
-                    required_dict = stack.pop()
-                    for key, value in required_dict.items():
-                        if isinstance(value, dict):
-                            stack.append(value)
-                        quantities.add(key.split('[')[0])
-                self.query.setdefault('dft.quantities', []).extend(quantities)
-                self.query['domain'] = 'dft'
+            quantities = set()
+            required_specs = [required]
+            while len(required_specs) > 0:
+                for key, value in required_specs.pop().items():
+                    section_name = key.split('[')[0]
+                    quantities.add(section_name)
+                    if isinstance(value, dict):
+                        required_specs.append(value)
+
+            self.query.append({'dft.quantities': list(quantities)})
+            if 'domain' not in self.query:
+                self.query.append({'domain': 'dft' if 'section_experiment' not in quantities else 'ems'})
 
         self.password = password
         self.username = username
@@ -404,8 +404,8 @@ class ArchiveQuery(collections.abc.Sequence):
         nentries = 0
 
         # acquire all uploads and how many entries they contain
-        query_parameters = self.query
-        url = '%s/repo/quantity/upload_id?%s' % (self.url, urlencode(query_parameters, doseq=True))
+        url = '%s/repo/quantity/upload_id?%s' % (
+            self.url, urlencode(dict(query=json.dumps({'$and': self.query}))))
         after: str = None
 
         while True:
@@ -413,6 +413,13 @@ class ArchiveQuery(collections.abc.Sequence):
                 url if after is None else '%s&after=%s' % (url, after),
                 # TODO size=1000,
                 headers=self.authentication)
+
+            if response.status_code != 200:
+                if response.status_code == 400:
+                    raise Exception(response.json()['description'])
+
+                raise Exception(
+                    'Error requesting NOMAD API: HTTP %d' % response.status_code)
 
             response_data = get_json(response)
             after = response_data['quantity']['after']

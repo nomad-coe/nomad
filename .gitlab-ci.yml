@@ -2,9 +2,9 @@
 # using an image that can do git, docker, docker-compose
 image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
 
-# Uncomment the next lines, to run each pipline/job in its own docker environment.
+# Uncomment the next lines, to run each pipeline/job in its own docker environment.
 # Otherwise, it will use the docker of the gitlab runner host (e.g. enc-preprocessing...).
-# This will give it access to a persitent layer cache, which will not be available
+# This will give it access to a persistent layer cache, which will not be available
 # with the docker service.
 # services:
 #   - docker:dind

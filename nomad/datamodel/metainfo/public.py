@@ -14,6 +14,21 @@ m_package = Package(
     a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
 
+class fast_access(MCategory):
+    '''
+    Used to mark archive objects that need to be stored in a fast 2nd-tier storage
+    medium, because they are frequently accessed via archive API.
+
+    If applied to a sub_section, the section will be added to the fast storage. Currently
+    this only works for *root* sections that are sub_sections of `EntryArchive`.
+
+    If applied to a reference types quantity, the referenced section will also be added
+    to the fast storage, regardless if the referenced section has the category or not.
+    '''
+
+    m_def = Category()
+
+
 class accessory_info(MCategory):
     '''
     Information that *in theory* should not affect the results of the calculations (e.g.,
@@ -4330,11 +4345,13 @@ class section_single_configuration_calculation(MSection):
         Reference to the system (atomic configuration, cell, ...) that is calculated in
         section_single_configuration_calculation.
         ''',
+        categories=[fast_access],
         a_legacy=LegacyDefinition(name='single_configuration_calculation_to_system_ref'))
 
     single_configuration_to_calculation_method_ref = Quantity(
         type=Reference(SectionProxy('section_method')),
         shape=[],
+        categories=[fast_access],
         description='''
         Reference to the method used for the calculation in
         section_single_configuration_calculation.
@@ -5631,6 +5648,7 @@ class Relaxation(MSection):
 
     final_calculation_ref = Quantity(
         type=Reference(SectionProxy('section_single_configuration_calculation')),
+        categories=[fast_access],
         shape=[],
         description='''
         Reference to last calculation step.
@@ -5721,7 +5739,9 @@ class Workflow(MSection):
     Section containing the  results of a workflow.
     '''
 
-    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_workflow'))
+    m_def = Section(
+        validate=False,
+        a_legacy=LegacyDefinition(name='section_workflow'))
 
     workflow_type = Quantity(
         type=str,

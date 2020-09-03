@@ -23,6 +23,7 @@ from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
 import pprint
 import io
+import json
 
 import sys
 import os.path
@@ -176,6 +177,9 @@ def add_search_parameters(request_parser):
     request_parser.add_argument(
         'dft.optimade', type=str,
         help='A search query in the optimade filter language.')
+    request_parser.add_argument(
+        'query', type=str,
+        help='A json serialized structured search query (as used in POST reuquests).')
 
     # main search parameters
     for qualified_name, quantity in search.search_quantities.items():
@@ -227,7 +231,20 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
                 optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
-        abort(400, 'Could not parse optimade query: %s' % (str(e)))
+        abort(400, 'Could not parse optimade query: %s' % str(e))
+
+    # search expression
+    query_str = args.get('query', None)
+    if query_str is not None:
+        try:
+            query = json.loads(query_str)
+        except Exception as e:
+            abort(400, 'Could not JSON parse query expression: %s' % str(e))
+
+        try:
+            search_request.query_expression(query)
+        except Exception as e:
+            abort(400, 'Invalid query expression: %s' % str(e))
 
     # search parameter
     search_request.search_parameters(**{

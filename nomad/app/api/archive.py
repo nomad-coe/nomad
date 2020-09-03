@@ -26,7 +26,9 @@ import orjson
 import urllib.parse
 
 from nomad.files import UploadFiles, Restricted
-from nomad.archive import query_archive, ArchiveQueryError
+from nomad.archive import (
+    query_archive, ArchiveQueryError, filter_archive, read_partial_archives_from_mongo,
+    compute_required_with_referenced)
 from nomad import search, config
 from nomad.app import common
 
@@ -215,7 +217,8 @@ class ArchiveDownloadResource(Resource):
 _archive_query_model = api.inherit('ArchiveSearch', search_model, {
     'required': fields.Raw(description='A dictionary that defines what archive data to retrive.'),
     'query_schema': fields.Raw(description='Deprecated, use required instead.'),
-    'raise_errors': fields.Boolean(description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
+    'raise_errors': fields.Boolean(
+        description='Return 404 on missing archives or 500 on other errors instead of skipping the entry.')
 })
 
 
@@ -277,7 +280,8 @@ class ArchiveQueryResource(Resource):
 
         apply_search_parameters(search_request, query)
         if not aggregation:
-            search_request.include('calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
+            search_request.include(
+                'calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         if query_expression:
             search_request.query_expression(query_expression)
@@ -299,6 +303,9 @@ class ArchiveQueryResource(Resource):
         calcs = results['results']
         upload_files = None
         current_upload_id = None
+        required_with_references = compute_required_with_referenced(required)
+        archive_is_complete = required_with_references is not None
+
         for entry in calcs:
             with_embargo = entry['with_embargo']
 
@@ -309,12 +316,41 @@ class ArchiveQueryResource(Resource):
                 if upload_files is not None:
                     upload_files.close()
 
-                upload_files = UploadFiles.get(upload_id, create_authorization_predicate(upload_id))
+                upload_files = UploadFiles.get(
+                    upload_id, create_authorization_predicate(upload_id))
 
                 if upload_files is None:
                     return []
 
+                if archive_is_complete:
+                    upload_calc_ids = [
+                        calc['calc_id'] for calc in calcs if calc['upload_id'] == upload_id]
+                    upload_partial_archives = read_partial_archives_from_mongo(
+                        upload_calc_ids, as_dict=True)
+
                 current_upload_id = upload_id
+
+            # TODO we are either just use the partial from mongo or read the whole required
+            # from the mgs-pack archive on top.
+            # Ideally, we would only read whats left from the msg-pack archive and merge.
+            if archive_is_complete:
+                try:
+                    partial_archive = upload_partial_archives[calc_id]
+                    partial_archive = filter_archive(
+                        required_with_references, partial_archive, transform=lambda e: e)
+
+                    data.append({
+                        'calc_id': calc_id,
+                        'parser_name': entry['parser_name'],
+                        'archive': partial_archive})
+                    continue
+                except KeyError:
+                    pass
+                except ArchiveQueryError as e:
+                    abort(400, str(e))
+                except Exception as e:
+                    common.logger.error(
+                        str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
             if with_embargo:
                 access = 'restricted'
@@ -328,8 +364,7 @@ class ArchiveQueryResource(Resource):
                     data.append({
                         'calc_id': calc_id,
                         'parser_name': entry['parser_name'],
-                        'archive': query_archive(
-                            archive, {calc_id: required})[calc_id]
+                        'archive': query_archive(archive, {calc_id: required})[calc_id]
                     })
             except ArchiveQueryError as e:
                 abort(400, str(e))
@@ -340,11 +375,13 @@ class ArchiveQueryResource(Resource):
                 pass
             except Restricted:
                 # this should not happen
-                common.logger.error('supposedly unreachable code', upload_id=upload_id, calc_id=calc_id)
+                common.logger.error(
+                    'supposedly unreachable code', upload_id=upload_id, calc_id=calc_id)
             except Exception as e:
                 if raise_errors:
                     raise e
-                common.logger.error(str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
+                common.logger.error(
+                    str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
         if upload_files is not None:
             upload_files.close()

@@ -154,21 +154,28 @@ class WorkflowNormalizer(Normalizer):
         if self.section_run is None:
             return
 
-        sec_workflow = self.entry_archive.section_workflow
-        if not sec_workflow:
-            sec_workflow = self.entry_archive.m_create(Workflow)
+        workflow_type = None
+        if self.entry_archive.section_workflow:
+            workflow_type = self.entry_archive.section_workflow.workflow_type
 
-        if not sec_workflow.workflow_type:
+        if not workflow_type:
             sec_sampling_method = self.section_run.section_sampling_method
             if sec_sampling_method:
-                workflow_type = sec_sampling_method[-1].sampling_method
                 # TODO imho geometry_optimization is not an appropriate name
                 # if workflow_type == 'geometry_optimization':
                 #     workflow_type = 'relaxation'
-                sec_workflow.workflow_type = workflow_type
+                workflow_type = sec_sampling_method[-1].sampling_method
 
-        if sec_workflow.workflow_type in ['geometry_optimization', 'relaxation']:
+        if not workflow_type:
+            return
+
+        workflow = self.entry_archive.section_workflow
+        if not workflow:
+            workflow = self.entry_archive.m_create(Workflow)
+        workflow.workflow_type = workflow_type
+
+        if workflow.workflow_type in ['geometry_optimization', 'relaxation']:
             RelaxationNormalizer(self.entry_archive).normalize()
 
-        elif sec_workflow.workflow_type == 'phonon':
+        elif workflow.workflow_type == 'phonon':
             PhononNormalizer(self.entry_archive).normalize()

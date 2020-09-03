@@ -359,7 +359,7 @@ class RepoCalcsResource(Resource):
         group_metrics = [
             group_quantity.metric_name
             for group_name, group_quantity in search_extension.groups.items()
-            if data_in.get(group_name, False)]
+            if group_name in data_in]
         total_metrics = metrics + group_metrics
         if len(total_metrics) > 0:
             search_request.totals(metrics_to_use=total_metrics)
@@ -375,13 +375,13 @@ class RepoCalcsResource(Resource):
 
             else:
                 for group_name, group_quantity in search_extension.groups.items():
-                    if data_in.get(group_name, False):
+                    if group_name in data_in:
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'uploads_grouped':
                             kwargs.update(order_by='upload_time', order='desc')
                         search_request.quantity(
                             group_quantity.qualified_name, size=per_page, examples=1,
-                            after=data_in.get('%s_after' % group_name, None),
+                            after=data_in[group_name].get('after', None),
                             **kwargs)
 
                 results = search_request.execute_paginated(
@@ -397,7 +397,7 @@ class RepoCalcsResource(Resource):
                     quantities = results.pop('quantities')
 
                 for group_name, group_quantity in search_extension.groups.items():
-                    if data_in.get(group_name, False):
+                    if group_name in data_in:
                         results[group_name] = quantities[group_quantity.qualified_name]
 
             # build python code/curl snippet

@@ -20,6 +20,7 @@ import re
 import shutil
 
 from nomad import utils, infrastructure, config
+from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -96,6 +97,11 @@ def assert_processing(upload: Upload, published: bool = False):
 
             assert has_test_event
         assert len(calc.errors) == 0
+
+        archive = read_partial_archive_from_mongo(calc.calc_id)
+        assert archive.section_metadata is not None
+        assert archive.section_workflow.section_relaxation.final_calculation_ref \
+            .single_configuration_calculation_to_system_ref.atom_labels is not None
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
