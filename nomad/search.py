@@ -41,6 +41,9 @@ class ElasticSearchError(Exception): pass
 class ScrollIdNotFound(Exception): pass
 
 
+class InvalidQuery(Exception): pass
+
+
 entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
 
 for domain in datamodel.domains:
@@ -249,7 +252,9 @@ class SearchRequest:
         comp_operators = ['$gt', '$lt', '$gte', '$lte']
 
         def _gen_query(name, value, operator):
-            quantity = search_quantities[name]
+            quantity = search_quantities.get(name)
+            if quantity is None:
+                raise InvalidQuery('Search quantity %s does not exist' % name)
 
             if operator in bool_operators:
                 value = value if isinstance(value, list) else [value]

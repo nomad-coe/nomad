@@ -23,6 +23,7 @@ from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
+from nomad.datamodel.metainfo.public import fast_access
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -240,8 +241,8 @@ class EntryMetadata(metainfo.MSection):
         upload_time: The time that this entry was uploaded
         datasets: Ids of all datasets that this entry appears in
     '''
-    m_def = metainfo.Section(a_elastic=ElasticDocument(
-        index_name=config.elastic.index_name, id=lambda x: x.calc_id))
+    m_def = metainfo.Section(
+        a_elastic=ElasticDocument(index_name=config.elastic.index_name, id=lambda x: x.calc_id))
 
     upload_id = metainfo.Quantity(
         type=str,
@@ -480,8 +481,8 @@ class EntryArchive(metainfo.MSection):
 
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=section_experiment)
-    section_workflow = metainfo.SubSection(sub_section=Workflow)
-    section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
+    section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[fast_access])
+    section_metadata = metainfo.SubSection(sub_section=EntryMetadata, categories=[fast_access])
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],

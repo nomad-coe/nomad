@@ -8,7 +8,7 @@ from nomad.metainfo.search_extension import Search
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = Package()
 
-from .metainfo.public import section_k_band, section_dos, section_thermodynamical_properties  # noqa
+from .metainfo.public import section_k_band, section_dos, section_thermodynamical_properties, fast_access  # noqa
 
 
 class WyckoffVariables(MSection):
@@ -579,6 +579,7 @@ class Properties(MSection):
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
+        categories=[fast_access],
         description="""
         Reference to an electronic band structure.
         """,
@@ -587,6 +588,7 @@ class Properties(MSection):
     electronic_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
+        categories=[fast_access],
         description="""
         Reference to an electronic density of states.
         """,
@@ -595,6 +597,7 @@ class Properties(MSection):
     phonon_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
+        categories=[fast_access],
         description="""
         Reference to a phonon band structure.
         """,
@@ -603,6 +606,7 @@ class Properties(MSection):
     phonon_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
+        categories=[fast_access],
         description="""
         Reference to a phonon density of states.
         """,
@@ -611,6 +615,7 @@ class Properties(MSection):
     thermodynamical_properties = Quantity(
         type=Reference(section_thermodynamical_properties.m_def),
         shape=[],
+        categories=[fast_access],
         description="""
         Reference to a section containing thermodynamical properties.
         """,

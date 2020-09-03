@@ -17,9 +17,14 @@ import pytest
 import msgpack
 from io import BytesIO
 import os.path
+import json
 
 from nomad import utils, config
-from nomad.archive import TOCPacker, write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive
+from nomad.datamodel import EntryArchive
+from nomad.archive import (
+    TOCPacker, write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive,
+    write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
+    create_partial_archive, compute_required_with_referenced)
 
 
 def create_example_uuid(index: int = 0):
@@ -273,9 +278,117 @@ def test_read_springer():
         springer['doesnotexist']
 
 
-if __name__ == '__main__':
-    import sys
-    import pprint
-    with open(sys.argv[1], 'rb') as f:
-        data = msgpack.unpack(f)
-        pprint.pprint(data)
+@pytest.fixture(scope='session')
+def archive():
+    return EntryArchive.m_from_dict(json.loads('''
+        {
+            "section_metadata": {
+                "calc_id": "test_id",
+                "encyclopedia": {
+                    "properties": {
+                        "electronic_dos": "/section_run/0/section_single_configuration_calculation/1/section_dos/0"
+                    }
+                }
+            },
+            "section_run": [
+                {
+                    "section_single_configuration_calculation": [
+                        {
+                            "energy_total": 0.1
+                        },
+                        {
+                            "energy_total": 0.2,
+                            "section_dos": [
+                                {
+                                    "dos_kind": "test"
+                                }
+                            ],
+                            "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/1"
+                        },
+                        {
+                            "energy_total": 0.1
+                        }
+                    ],
+                    "section_system": [
+                        {
+                            "atom_labels": ["He"]
+                        },
+                        {
+                            "atom_labels": ["H"]
+                        }
+                    ]
+                }
+            ],
+            "section_workflow": {
+                "section_relaxation": {
+                    "final_calculation_ref": "/section_run/0/section_single_configuration_calculation/1"
+                }
+            }
+        }
+        '''))
+
+
+def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
+    # test contents
+    assert archive.section_workflow.section_relaxation.final_calculation_ref is not None
+    assert archive.section_metadata.encyclopedia.properties is not None
+    # test refs
+    assert archive.section_workflow.section_relaxation.final_calculation_ref.section_dos[0].dos_kind == 'test'
+    assert archive.section_workflow.section_relaxation.final_calculation_ref.energy_total is not None
+    # test refs of refs
+    assert archive.section_workflow.section_relaxation.final_calculation_ref.single_configuration_calculation_to_system_ref.atom_labels == ['H']
+    assert archive.section_metadata.encyclopedia.properties.electronic_dos.dos_kind == 'test'
+
+    return archive
+
+
+def test_partial_archive(archive):
+    partial_archive_dict = create_partial_archive(archive)
+    partial_archive = EntryArchive.m_from_dict(partial_archive_dict)
+    assert_partial_archive(partial_archive)
+
+
+def test_parital_archive_read_write(archive, mongo):
+    write_partial_archive_to_mongo(archive)
+    assert_partial_archive(read_partial_archive_from_mongo('test_id'))
+
+
+def test_partial_archive_re_write(archive, mongo):
+    write_partial_archive_to_mongo(archive)
+    archive.section_metadata.comment = 'changed'
+    write_partial_archive_to_mongo(archive)
+    archive = assert_partial_archive(read_partial_archive_from_mongo('test_id'))
+    assert archive.section_metadata.comment == 'changed'
+
+
+def test_read_partial_archives(archive, mongo):
+    write_partial_archive_to_mongo(archive)
+    assert_partial_archive(read_partial_archives_from_mongo(['test_id'])['test_id'])
+
+
+def test_compute_required_with_referenced(archive):
+    required = compute_required_with_referenced({
+        'section_workflow': {
+            'section_relaxation': {
+                'final_calculation_ref': {
+                    'energy_total': '*',
+                    'single_configuration_calculation_to_system_ref': '*'
+                }
+            }
+        }
+    })
+
+    assert required == {
+        'section_workflow': {
+            'section_relaxation': {
+                'final_calculation_ref': '*'
+            }
+        },
+        'section_run': {
+            'section_single_configuration_calculation': {
+                'energy_total': '*',
+                'single_configuration_calculation_to_system_ref': '*'
+            },
+            'section_system': '*'
+        }
+    }

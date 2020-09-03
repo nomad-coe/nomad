@@ -384,29 +384,25 @@ class DFTMetadata(MSection):
         n_total_energies = 0
         n_geometries = 0
 
-        for section_run in entry_archive.section_run:
-            quantities.add(section_run.m_def.name)
+        for section, property_def, _ in entry_archive.m_traverse():
+            property_name = property_def.name
+            quantities.add(property_name)
             n_quantities += 1
 
-            for section, property_def, _ in section_run.m_traverse():
-                property_name = property_def.name
-                quantities.add(property_name)
-                n_quantities += 1
+            if property_name in _searchable_quantities:
+                searchable_quantities.add(property_name)
 
-                if property_name in _searchable_quantities:
-                    searchable_quantities.add(property_name)
+            if property_name == 'energy_total':
+                n_total_energies += 1
 
-                if property_name == 'energy_total':
-                    n_total_energies += 1
+            if property_name == 'configuration_raw_gid':
+                geometries.add(section.m_get(property_def))
 
-                if property_name == 'configuration_raw_gid':
-                    geometries.add(section.m_get(property_def))
+            if property_name == 'section_single_configuration_calculation':
+                n_calculations += 1
 
-                if property_name == 'section_single_configuration_calculation':
-                    n_calculations += 1
-
-                if property_name == 'section_system':
-                    n_geometries += 1
+            if property_name == 'section_system':
+                n_geometries += 1
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)

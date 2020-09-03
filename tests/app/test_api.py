@@ -682,12 +682,9 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    def test_archive_query_paginated(self, api, published_wo_user_metadata):
-        schema = {
-            'section_run': {
-                'section_single_configuration_calculation': {
-                    'energy_total': '*'}}}
-        data = {'results': [schema], 'pagination': {'per_page': 5}}
+    @pytest.mark.parametrize('required', [{'section_workflow': '*'}, {'section_run': '*'}])
+    def test_archive_query_paginated(self, api, published_wo_user_metadata, required):
+        data = {'required': required, 'pagination': {'per_page': 5}}
         uri = '/archive/query'
         rv = api.post(uri, content_type='application/json', data=json.dumps(data))
 
@@ -704,11 +701,15 @@ class TestArchive(UploadFilesBasedTests):
 
         # TODO assert archive contents
 
-        # test not exists
+    def test_archive_not_exists(self, api, published_wo_user_metadata):
         entry_metadata = EntryMetadata(
             domain='dft', upload_id=published_wo_user_metadata.upload_id,
             calc_id='test_id', published=True, with_embargo=False)
         entry_metadata.a_elastic.index(refresh=True)
+
+        data = {}
+        uri = '/archive/query'
+        rv = api.post(uri, content_type='application/json', data=json.dumps(data))
 
         rv = api.post(uri, content_type='application/json', data=json.dumps(dict(per_page=5, raise_errors=True)))
         assert rv.status_code == 404
@@ -723,7 +724,7 @@ class TestArchive(UploadFilesBasedTests):
                 'section_single_configuration_calculation': {
                     'energy_total': '*'}}}
 
-        query = {'results': [schema], 'aggregation': {'per_page': 1}}
+        query = {'required': schema, 'aggregation': {'per_page': 1}}
 
         count = 0
         while True:
@@ -1133,15 +1134,22 @@ class TestRepo():
         assert len(results) == n_results
 
     def test_post_search_query(self, api, example_elastic_calcs, no_warn):
-        query_expression = {'$not': [{'dft.system': 'bulk'}]}
+        query_expression = {
+            '$and': [
+                {'dft.system': 'bulk'},
+                {'$not': [{'$lt': {'upload_time': '2020-01-01'}}]}
+            ]
+        }
         data = {
             'pagination': {'page': 1, 'per_page': 5}, 'query': query_expression,
-            'statistics_required': ['dft.system']}
+            'statistics_required': ['dft.system'],
+            'uploads_grouped': {}}
         rv = api.post('/repo/', content_type='application/json', data=json.dumps(data))
         assert rv.status_code == 200
         data = json.loads(rv.data)
         results = data.get('results', None)
-        assert(len(results) == 0)
+        assert len(results) > 0
+        assert len(data['uploads_grouped']['values']) > 0
 
     @pytest.mark.parametrize('first, order_by, order', [
         ('1', 'formula', -1), ('2', 'formula', 1),

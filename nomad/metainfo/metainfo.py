@@ -924,13 +924,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if self.m_resource is not None:
                     self.m_resource.remove(sub_section)
 
-        sub_section.m_parent = self
-        sub_section.m_parent_sub_section = sub_section_def
-        sub_section.m_parent_index = parent_index
-        if sub_section.m_resource is not None:
-            sub_section.m_resource.remove(sub_section)
-        if self.m_resource is not None:
-            self.m_resource.add(sub_section)
+        if sub_section is not None:
+            sub_section.m_parent = self
+            sub_section.m_parent_sub_section = sub_section_def
+            sub_section.m_parent_index = parent_index
+            if sub_section.m_resource is not None:
+                sub_section.m_resource.remove(sub_section)
+            if self.m_resource is not None:
+                self.m_resource.add(sub_section)
 
         sub_section_name = sub_section_def.name
         if sub_section_def.repeats:
@@ -1058,7 +1059,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_to_dict(
             self, with_meta: bool = False, include_defaults: bool = False,
-            categories: List[Union['Category', Type['MCategory']]] = None) -> Dict[str, Any]:
+            categories: List[Union['Category', Type['MCategory']]] = None,
+            partial: TypingCallable[['Definition', 'MSection'], bool] = None) -> Dict[str, Any]:
         '''
         Returns the data of this section as a json serializeable dictionary.
 
@@ -1067,18 +1069,38 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 position in its parent.
             include_defaults: Include default values of unset quantities.
             categories: A list of category classes or category definitions that is used
-                to filter the included quantities and sub sections.
+                to filter the included quantities and sub sections. Only applied to
+                properties of this section, not on sub-sections. Is overwritten
+                by partial.
+            partial: A function that determines if a definition should be included in
+                the output dictionary. Takes a definition and the containing section
+                as arguments. Partial is applied recursively on sub-sections.
+                Overrides categories.
         '''
-        category_defs: List[Category] = None
-        if categories is not None:
-            category_defs = []
-            for category in categories:
-                if issubclass(category, MCategory):  # type: ignore
-                    category_defs.append(category.m_def)  # type: ignore
-                elif isinstance(category, Category):
-                    category_defs.append(category)
-                else:
-                    raise TypeError('%s is not a category' % category)
+        # determine partial for sub-sections and partial based on categories
+        if partial is not None:
+            child_partial = partial
+        else:
+            if categories is None:
+                partial = lambda *args, **kwargs: True
+                child_partial = lambda *args, **kwargs: True
+
+            else:
+                category_defs: List[Category] = None
+                if categories is not None:
+                    category_defs = []
+                    for category in categories:
+                        if issubclass(category, MCategory):  # type: ignore
+                            category_defs.append(category.m_def)  # type: ignore
+                        elif isinstance(category, Category):
+                            category_defs.append(category)
+                        else:
+                            raise TypeError('%s is not a category' % category)
+
+                partial = lambda definition, *args, **kwargs: any(
+                    definition in category.get_all_definitions()
+                    for category in category_defs)
+                child_partial = lambda *args, **kwargs: True
 
         def serialize_quantity(quantity, is_set):
             quantity_type = quantity.type
@@ -1169,11 +1191,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # quantities
             for name, quantity in self.m_def.all_quantities.items():
-                if categories is not None:
-                    if not any(
-                            quantity in category.get_all_definitions()
-                            for category in category_defs):
-                        continue
+                if not partial(quantity, self):
+                    continue
 
                 if quantity.virtual:
                     continue
@@ -1193,21 +1212,22 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
-                if categories is not None:
-                    if not any(
-                            sub_section_def in category.get_all_definitions()
-                            for category in category_defs):
-                        continue
+                if not partial(sub_section_def, self):
+                    continue
 
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
-                            item.m_to_dict(with_meta=with_meta, include_defaults=include_defaults)
+                            None if item is None else item.m_to_dict(
+                                with_meta=with_meta, include_defaults=include_defaults,
+                                partial=child_partial)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
-                        yield name, sub_section.m_to_dict(with_meta=with_meta, include_defaults=include_defaults)
+                        yield name, sub_section.m_to_dict(
+                            with_meta=with_meta, include_defaults=include_defaults,
+                            partial=child_partial)
 
         return {key: value for key, value in items()}
 
@@ -1230,7 +1250,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 sub_section_value = dct.pop(name)
                 if sub_section_def.repeats:
                     for sub_section_dct in sub_section_value:
-                        sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)
+                        if sub_section_dct is None:
+                            sub_section = None
+                        else:
+                            sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)
                         section.m_add_sub_section(sub_section_def, sub_section)
 
                 else:
@@ -1263,7 +1286,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_from_dict(cls: Type[MSectionBound], dct: Dict[str, Any]) -> MSectionBound:
         ''' Creates a section from the given serializable data dictionary.
 
-        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialised dict, e.g
+        This is the 'opposite' of :func:`m_to_dict`. It takes a deserialized dict, e.g
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         '''
@@ -1455,7 +1478,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''
-        Convinience method to get annotations
+        Convenience method to get annotations
 
         Arguments:
             key: Either the optional annotation name or an annotation class. In the first
@@ -1538,7 +1561,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     errors.append(error_str)
 
         for quantity in self.m_def.all_quantities.values():
-            if self.m_is_set(quantity):
+            if self.m_is_set(quantity) and not quantity.derived:
                 if not self.__validate_shape(quantity, self.m_get(quantity)):
                     errors.append(
                         'The shape of quantity %s does not match its value.' % quantity)
@@ -1830,7 +1853,7 @@ class Quantity(Property):
             The default value for this quantity. The value must match type and shape.
 
             Be careful with a default value like ``[]`` as it will be the default value for
-            all occurences of this quantity.
+            all occurrences of this quantity.
 
         synonym_for:
             The name of a quantity defined in the same section as string. This will make
