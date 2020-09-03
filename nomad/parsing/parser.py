@@ -16,8 +16,9 @@ from typing import List
 from abc import ABCMeta, abstractmethod
 import re
 
+from nomad import config
 from nomad.metainfo import Environment
-from nomad.datamodel import EntryArchive
+from nomad.datamodel import EntryArchive, UserProvidableMetadata, EntryMetadata
 
 
 class Parser(metaclass=ABCMeta):
@@ -164,6 +165,35 @@ class FairdiParser(MatchingParser):
         archive = EntryArchive()
         cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
         return archive
+
+
+class ArchiveParser(FairdiParser):
+    def __init__(self):
+        super().__init__(
+            name='parsers/archive',
+            code_name=config.services.unavailable_value,
+            domain=None,
+            mainfile_mime_re=r'application/json',
+            mainfile_name_re=r'.*archive\.json',
+            mainfile_contents_re=r'section_')
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+        import json
+        with open(mainfile, 'rt') as f:
+            archive_data = json.load(f)
+
+        metadata_data = archive_data.get(EntryArchive.section_metadata.name, None)
+
+        if metadata_data is not None:
+            metadata = archive.section_metadata
+            for key, value in metadata_data.items():
+                if UserProvidableMetadata.m_def not in getattr(EntryMetadata, key).categories:
+                    continue
+
+                metadata.m_update_from_dict({key: value})
+            del(archive_data[EntryArchive.section_metadata.name])
+
+        archive.m_update_from_dict(archive_data)
 
 
 class MissingParser(MatchingParser):

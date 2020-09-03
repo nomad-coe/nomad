@@ -43,11 +43,13 @@ def parse(
 
     entry_archive = datamodel.EntryArchive()
     metadata = entry_archive.m_create(datamodel.EntryMetadata)
-    metadata.domain = parser.domain
     try:
         parser.parse(mainfile_path, entry_archive, logger=logger)
     except Exception as e:
         logger.error('parsing was not successful', exc_info=e)
+
+    if metadata.domain is None:
+        metadata.domain = parser.domain
 
     logger.info('ran parser')
     return entry_archive

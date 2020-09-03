@@ -96,12 +96,17 @@ export const rootSections = sortDefs(defs.filter(def => (
 ))
 
 export function resolveRef(ref, data) {
-  data = data || metainfo
-  const segments = ref.split('/').filter(segment => segment !== '')
-  const reducer = (current, segment) => {
-    return isNaN(segment) ? current[segment] : current[parseInt(segment)]
+  try {
+    data = data || metainfo
+    const segments = ref.split('/').filter(segment => segment !== '')
+    const reducer = (current, segment) => {
+      return isNaN(segment) ? current[segment] : current[parseInt(segment)]
+    }
+    return segments.reduce(reducer, data)
+  } catch (e) {
+    console.log('could not resolve: ' + ref)
+    throw e
   }
-  return segments.reduce(reducer, data)
 }
 
 export function metainfoDef(name) {

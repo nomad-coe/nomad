@@ -26,6 +26,7 @@ from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
+from .qcms import QCMSMetadata
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
@@ -34,6 +35,7 @@ m_package = metainfo.Package()
 from .encyclopedia import EncyclopediaMetadata  # noqa
 from .metainfo.public import section_run, Workflow  # noqa
 from .metainfo.general_experimental import section_experiment  # noqa
+from .metainfo.general_qcms import QuantumCMS  # noqa
 
 
 def _only_atoms(atoms):
@@ -223,8 +225,13 @@ class DatasetReference(metainfo.Reference):
 dataset_reference = DatasetReference()
 
 
+class UserProvidableMetadata(metainfo.MCategory):
+    ''' NOMAD entry metadata quantities that can be determined by the user, e.g. via nomad.yaml. '''
+
+
 class EditableUserMetadata(metainfo.MCategory):
-    ''' NOMAD entry quantities that can be edited by the user after publish. '''
+    ''' NOMAD entry metadata quantities that can be edited by the user after publish. '''
+    m_def = metainfo.Category(categories=[UserProvidableMetadata])
 
 
 class MongoMetadata(metainfo.MCategory):
@@ -342,13 +349,13 @@ class EntryMetadata(metainfo.MSection):
     raw_id = metainfo.Quantity(
         type=str,
         description='A raw format specific id that was acquired from the files of this entry',
-        categories=[MongoMetadata],
+        categories=[MongoMetadata, UserProvidableMetadata],
         a_search=Search(many_or='append'))
 
     domain = metainfo.Quantity(
-        type=metainfo.MEnum('dft', 'ems'),
+        type=metainfo.MEnum('dft', 'ems', 'qcms'),
         description='The material science domain',
-        categories=[MongoMetadata],
+        categories=[MongoMetadata, UserProvidableMetadata],
         a_search=Search())
 
     published = metainfo.Quantity(
@@ -395,7 +402,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELSDB'), categories=[MongoMetadata],
+        type=metainfo.MEnum('EELSDB'), categories=[MongoMetadata, UserProvidableMetadata],
         description='The repository or external database where the original entry resides.',
         a_search=Search())
 
@@ -482,7 +489,7 @@ class EntryMetadata(metainfo.MSection):
                 description='Search for a particular dataset by its id.')])
 
     external_id = metainfo.Quantity(
-        type=str, categories=[MongoMetadata],
+        type=str, categories=[MongoMetadata, UserProvidableMetadata],
         description='A user provided external id.',
         a_search=Search(many_or='split'))
 
@@ -515,6 +522,7 @@ class EntryMetadata(metainfo.MSection):
 
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
     dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft')
+    qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search='qcms')
     encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, a_search='encyclopedia')
 
     def apply_user_metadata(self, metadata: dict):
@@ -522,8 +530,7 @@ class EntryMetadata(metainfo.MSection):
         self.m_update(**metadata)
 
     def apply_domain_metadata(self, archive):
-        """Used to apply metadata that is related to the domain.
-        """
+        ''' Used to apply metadata that is related to the domain. '''
         assert self.domain is not None, 'all entries must have a domain'
         domain_sub_section_def = self.m_def.all_sub_sections.get(self.domain)
         domain_section_def = domain_sub_section_def.sub_section
@@ -541,6 +548,7 @@ class EntryArchive(metainfo.MSection):
 
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=section_experiment)
+    section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
     section_workflow = metainfo.SubSection(sub_section=Workflow)
     section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
 

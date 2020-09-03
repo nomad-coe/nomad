@@ -411,7 +411,7 @@ DomainSelect.propTypes = {
 
 const ownerLabel = {
   all: 'All entries',
-  visible: 'Include your private entries',
+  visible: 'with private entries',
   public: 'Only public entries',
   user: 'Only your entries',
   shared: 'Incl. shared data',

@@ -17,7 +17,7 @@ import os.path
 
 from nomad import config, datamodel
 
-from .parser import MissingParser, BrokenParser, Parser
+from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .legacy import LegacyParser, VaspOutcarParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
@@ -445,7 +445,8 @@ parsers = [
         parser_class_name='mopacparser.MopacParser',
         mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
         mainfile_mime_re=r'text/.*',
-    )
+    ),
+    ArchiveParser()
 ]
 
 empty_parsers = [

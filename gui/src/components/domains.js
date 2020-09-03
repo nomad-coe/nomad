@@ -7,12 +7,14 @@ import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
+import QCMSEntryOverview from './qcms/QCMSEntryOverview'
+import QCMSEntryCards from './qcms/QCMSEntryCards'
 
 /* eslint-disable react/display-name */
 
 export const domains = ({
   dft: {
-    name: 'computational',
+    name: 'computational data',
     label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
@@ -160,9 +162,9 @@ export const domains = ({
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
-    name: 'experimental',
+    name: 'experimental data',
     key: 'ems',
-    label: 'Material science experiment data',
+    label: 'Experimental material science data',
     about: 'This is metadata from material science experiments',
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
@@ -225,6 +227,65 @@ export const domains = ({
      * loading (a bool with api loading status).
      */
     EntryCards: EMSEntryCards,
+    /**
+     * Names of the possible search tabs for this domain
+     */
+    searchTabs: ['entries', 'datasets', 'uploads']
+  },
+  qcms: {
+    name: 'quantum computational data',
+    key: 'qcms',
+    label: 'Quantum computational material science data',
+    about: 'This is computational material science data calculated by quantum computers',
+    entryLabel: 'calculation',
+    entryLabelPlural: 'calculations',
+    entryTitle: () => 'Quantum computer calculation',
+    searchPlaceholder: 'enter atoms',
+    searchVisualizations: {
+    },
+    /**
+     * Metrics are used to show values for aggregations. Each metric has a key (used
+     * for API calls), a label (used in the select form), and result string (to show
+     * the overall amount in search results).
+     */
+    searchMetrics: {
+      code_runs: {
+        label: 'Calculations',
+        tooltip: 'Statistics will show the number of entires; usually each entry represents a single calculation.',
+        renderResultString: count => (<span><b>{count}</b> entries</span>)
+      },
+      datasets: {
+        label: 'Datasets',
+        tooltip: 'Shows statistics in terms of datasets that entries belong to.',
+        renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
+      }
+    },
+    defaultSearchMetric: 'code_runs',
+    /**
+     * An dict where each object represents a column. Possible keys are label, render.
+     * Default render
+     */
+    searchResultColumns: {
+      'formula': {
+        label: 'Formula'
+      },
+      'qcms.chemical': {
+        label: 'Chemical name'
+      }
+    },
+    defaultSearchResultColumns: ['formula', 'qcms.chemical'],
+    /**
+     * A component to render the domain specific quantities in the metadata card of
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryOverview: QCMSEntryOverview,
+    /**
+     * A component to render additional domain specific cards in the
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryCards: QCMSEntryCards,
     /**
      * Names of the possible search tabs for this domain
      */

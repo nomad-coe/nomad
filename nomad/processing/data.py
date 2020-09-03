@@ -174,7 +174,9 @@ class Calc(Proc):
         '''
         entry_metadata = datamodel.EntryMetadata()
         if self.parser is not None:
-            entry_metadata.domain = parser_dict[self.parser].domain
+            parser = parser_dict[self.parser]
+            if parser.domain:
+                entry_metadata.domain = parser_dict[self.parser].domain
         entry_metadata.upload_id = self.upload_id
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
