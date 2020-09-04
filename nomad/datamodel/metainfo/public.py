@@ -5734,6 +5734,57 @@ class Phonon(MSection):
         a_search=Search())
 
 
+class Elastic(MSection):
+    '''
+    Section containing the results of an elastic workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_elastic'))
+
+    elastic_calculation_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Method used to calculate elastic constants, can either be energy or stress.
+        ''',
+        a_legacy=LegacyDefinition(name='elastic_calculation_method'))
+
+    elastic_constants_order = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Order of the calculated elastic constants.
+        ''',
+        a_legacy=LegacyDefinition(name='elastic_constants_order'),
+        a_search=Search())
+
+    is_mechanically_stable = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if structure is mechanically stable from the calculated values
+        of the elastic constants.
+        ''',
+        a_legacy=LegacyDefinition(name='is_mechanically_stable'),
+        a_search=Search())
+
+    fitting_error_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Maximum error in polynomial fit.
+        ''',
+        a_legacy=LegacyDefinition(name='fitting_error_maximum'))
+
+    strain_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Maximum strain applied to crystal.
+        ''',
+        a_legacy=LegacyDefinition(name='strain_maximum'))
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -5760,6 +5811,10 @@ class Workflow(MSection):
     section_phonon = SubSection(
         sub_section=SectionProxy('Phonon'),
         a_legacy=LegacyDefinition(name='section_phonon'))
+
+    section_elastic = SubSection(
+        sub_section=SectionProxy('Elastic'),
+        a_legacy=LegacyDefinition(name='section_elastic'))
 
 
 m_package.__init_metainfo__()

@@ -16,7 +16,7 @@ import numpy as np
 import pint
 
 from nomad.normalizing.normalizer import Normalizer
-from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon
+from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon, Elastic
 
 
 class RelaxationNormalizer(Normalizer):
@@ -130,11 +130,87 @@ class PhononNormalizer(Normalizer):
     def normalize(self):
         self.section = self.entry_archive.section_workflow.section_phonon
         if not self.section:
-            self.entry_archive.section_workflow.m_create(Phonon)
+            self.section = self.entry_archive.section_workflow.m_create(Phonon)
 
         if not self.section.n_imaginary_frequencies:
             # get number from bands (not complete as this is not the whole mesh)
             self.section.n_imaginary_frequencies = self._get_n_imaginary_frequencies()
+
+
+class ElasticNormalizer(Normalizer):
+    def __init__(self, entry_archive):
+        super().__init__(entry_archive)
+
+    def _resolve_mechanical_stability(self):
+        spacegroup = self.entry_archive.section_run[-1].section_system[-1].x_elastic_space_group_number
+        order = self.entry_archive.section_run[-1].section_method[-1].x_elastic_elastic_constant_order
+
+        if spacegroup is None or order != 2:
+            return
+
+        scc = self.entry_archive.section_run[-1].section_single_configuration_calculation[-1]
+        c = scc.x_elastic_2nd_order_constants_matrix
+
+        # see Phys. Rev B 90, 224104 (2014)
+        res = False
+        if spacegroup <= 2:  # Triclinic
+            res = np.count_nonzero(c < 0)
+        elif spacegroup <= 15:  # Monoclinic
+            res = np.count_nonzero(c < 0)
+        elif spacegroup <= 74:  # Orthorhombic
+            res =\
+                c[0][0] > 0 and c[0][0] * c[1][1] > c[0][1] ** 2 and\
+                c[0][0] * c[1][1] * c[2][2] + 2 * c[0][1] * c[0][2] * c[1][2] -\
+                c[0][0] * c[1][2] ** 2 - c[1][1] * c[0][2] ** 2 - c[2][2] * c[0][1] ** 2 > 0 and\
+                c[3][3] > 0 and c[4][4] > 0 and c[5][5] > 0
+        elif spacegroup <= 88:  # Tetragonal II
+            res =\
+                c[0][0] > abs(c[0][1]) and\
+                2 * c[0][2] ** 2 < c[2][2] * (c[0][0] + c[0][1])
+        elif spacegroup <= 142:  # Tetragonal I
+            res =\
+                c[0][0] > abs(c[0][1]) and\
+                2 * c[0][2] ** 2 < c[2][2] * (c[0][0] + c[0][1]) and\
+                c[3][3] > 0 and c[5][5] > 0
+        elif spacegroup <= 148:  # rhombohedral II
+            res =\
+                c[0][0] > abs(c[0][1]) and c[3][3] > 0 and\
+                c[0][2] ** 2 < (0.5 * c[2][2] * (c[0][0] + c[0][1])) and\
+                c[0][3] ** 2 + c[0][4] ** 2 < 0.5 * c[3][3] * (c[0][0] - c[0][1])
+        elif spacegroup <= 167:  # rhombohedral I
+            res =\
+                c[0][0] > abs(c[0][1]) and c[3][3] > 0 and\
+                c[0][2] ** 2 < 0.5 * c[2][2] * (c[0][0] + c[0][1]) and\
+                c[0][3] ** 2 < 0.5 * c[3][3] * (c[0][0] - c[0][1])
+        elif spacegroup <= 194:  # hexagonal I
+            res =\
+                c[0][0] > abs(c[0][1]) and\
+                2 * c[0][2] ** 2 < c[2][2] * (c[0][0] + c[0][1]) and\
+                c[3][3] > 0 and c[5][5] > 0
+        else:  # cubic
+            res = c[0][0] - c[0][1] > 0 and c[0][0] + 2 * c[0][1] > 0 and c[3][3] > 0
+
+        return res
+
+    def _get_maximum_fit_error(self):
+        scc = self.entry_archive.section_run[-1].section_single_configuration_calculation[-1]
+
+        max_error = 0.0
+        for diagram in scc.x_elastic_section_strain_diagrams:
+            if diagram.x_elastic_strain_diagram_type == 'cross-validation':
+                error = np.amax(diagram.x_elastic_strain_diagram_values)
+                max_error = error if error > max_error else max_error
+
+        return max_error
+
+    def normalize(self):
+        self.section = self.entry_archive.section_workflow.section_elastic
+        if not self.section:
+            self.section = self.entry_archive.section_workflow.m_create(Elastic)
+
+        self.section.is_mechanically_stable = bool(self._resolve_mechanical_stability())
+
+        self.section.fitting_error_maximum = self._get_maximum_fit_error()
 
 
 class WorkflowNormalizer(Normalizer):
@@ -179,3 +255,6 @@ class WorkflowNormalizer(Normalizer):
 
         elif workflow.workflow_type == 'phonon':
             PhononNormalizer(self.entry_archive).normalize()
+
+        elif workflow.workflow_type == 'elastic':
+            ElasticNormalizer(self.entry_archive).normalize()
