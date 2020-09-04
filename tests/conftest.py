@@ -541,7 +541,7 @@ def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
 @pytest.fixture(scope='session')
 def parsed_ems() -> EntryArchive:
     ''' Provides a parsed experiment in the form of a EntryArchive. '''
-    return test_parsing.run_parser('parsers/skeleton', 'tests/data/parsers/skeleton/example.metadata.json')
+    return test_parsing.run_parser('parsers/eels', 'tests/data/parsers/eels.json')
 
 
 @pytest.fixture(scope='session')

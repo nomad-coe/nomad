@@ -7,7 +7,7 @@
   "experiment_date": "04.2018 05.2018",
   "experiment_summary": "Characterization of excited-state circular dichroism of WSe2",
   "facility_institution": "DESY",
-  "facility_name": "FLASH",
+  "facility": "FLASH",
   "beamline": "PG-2",
   "source_pump": "Free electron laser",
   "source_probe": "Femtosecond laser",

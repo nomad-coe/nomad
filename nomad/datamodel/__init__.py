@@ -87,7 +87,7 @@ from .dft import DFTMetadata
 from .ems import EMSMetadata
 from .qcms import QCMSMetadata
 from .datamodel import (
-    Dataset, User, EditableUserMetadata, UserProvidableMetadata, MongoMetadata,
+    Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, MongoMetadata,
     EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
@@ -107,7 +107,7 @@ domains = {
     },
     'ems': {
         'metadata': EMSMetadata,
-        'metainfo_all_package': 'general_experimental',
+        'metainfo_all_package': 'common_experimental',
         'root_section': 'section_experiment'
     },
     'qcms': {

@@ -280,6 +280,7 @@ from .metainfo import (
     Environment,
     MEnum,
     Datetime,
+    Capitalized,
     MProxy,
     MetainfoError,
     DeriveError,

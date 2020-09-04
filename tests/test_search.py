@@ -170,12 +170,12 @@ def test_domain(elastic, example_ems_search_data):
     results = SearchRequest(domain='ems').statistic('ems.method', size=10).execute()
     statistics = results['statistics']
     assert 'ems.method' in statistics
-    assert 'Bare eyes' in statistics['ems.method']
+    assert 'electron energy loss spectroscopy' in statistics['ems.method']
 
     results = SearchRequest(domain='ems').statistics(['ems.method']).execute()
     statistics = results['statistics']
     assert 'ems.method' in statistics
-    assert 'Bare eyes' in statistics['ems.method']
+    assert 'electron energy loss spectroscopy' in statistics['ems.method']
 
 
 def assert_metrics(container, metrics_names):

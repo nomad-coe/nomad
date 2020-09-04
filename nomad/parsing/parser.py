@@ -163,6 +163,7 @@ class FairdiParser(MatchingParser):
     @classmethod
     def main(cls, mainfile):
         archive = EntryArchive()
+        archive.m_create(EntryMetadata)
         cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
         return archive
 

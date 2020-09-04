@@ -1,0 +1,69 @@
+{
+  "id": 21601,
+  "title": "Yttria stabilized Zirconia",
+  "permalink": "https://eelsdb.eu/spectra/yttria-stabilized-zirconia/",
+  "author": {
+    "name": "(Dr) Marie Cheynet",
+    "profile_url": "https://eelsdb.eu/author/mcheynet/",
+    "profile_api_url": "https://api.eelsdb.eu/author/mcheynet/"
+  },
+  "published": "2005-05-26 00:00:00",
+  "description": "the cubic structure is stabilized by addition of 8.5mol% of Y2O3 Analyst: M. Cheynet. Temperature: Room. ",
+  "comment_count": 0,
+  "api_permalink": "https://api.eelsdb.eu/spectra/yttria-stabilized-zirconia/",
+  "keywords": [
+    "imported from old site"
+  ],
+  "download_link": "https://eelsdb.eu/wp-content/uploads/2015/09/DspectVJrUq.msa",
+  "type": "Low Loss",
+  "formula": "ZrO2-8.5mol%Y2O3",
+  "elements": [
+    "Zr",
+    "O",
+    "Y"
+  ],
+  "microscope": "Tecnai F20",
+  "max_energy": "91.6 eV",
+  "min_energy": "-6.1 eV",
+  "source_purity": "Spray-pyrolysis nanocrystallized powders",
+  "edges": [
+    "Zr_L1",
+    "Zr_L2,3"
+  ],
+  "guntype": "feg Schottky",
+  "beamenergy": "200 kV",
+  "stepSize": "0.1 eV/pixel",
+  "acquisition_mode": "STEM",
+  "convergence": "13.5 mrad",
+  "collection": "1.2 mrad",
+  "probesize": "1 nm^2",
+  "integratetime": "1 secs",
+  "readouts": "2",
+  "detector": "Parallel: GIF",
+  "darkcurrent": "Yes",
+  "gainvariation": "Yes",
+  "reference": {
+    "freetext": "Electronic structure and electron energy-loss spectroscopy of ZrO2 zirconia\r\nL.K. Dash, N. Vast, P. Baranek, M.C. Cheynet, L. Reining\r\nPhys. Rev. B 70, 245116 (2004)"
+  },
+  "other_links": [
+    {
+      "url": "http://pc-web.cemes.fr/eelsdb/index.php?page=displayspec.php&id=84",
+      "title": "Old EELS DB"
+    }
+  ],
+  "monochromated": "No",
+  "resolution": "0.8 eV",
+  "calibration": "Low loss + drift tube",
+  "deconvolutions": [
+    "Fourier-ratio"
+  ],
+  "thickness": "0.76 t/&lambda;",
+  "beamcurrent": "200",
+  "associated_spectra": [
+    {
+      "name": "Zr",
+      "link": "https://eelsdb.eu/spectra/zr/",
+      "type": "Core Loss"
+    }
+  ]
+}

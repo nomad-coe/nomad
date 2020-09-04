@@ -37,6 +37,7 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
 import json
 from cachetools import cached, LRUCache
+from cachetools.keys import hashkey
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import (
@@ -58,18 +59,23 @@ _editable_metadata = {
     quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
 
 
-@cached(cache=LRUCache(maxsize=100))
-def metadata_cached(path):
-    for ext in config.aux_metadata_exts:
+@cached(cache=LRUCache(maxsize=100), key=lambda path, *args, **kwargs: hashkey(path))
+def metadata_file_cached(path, logger):
+    for ext in config.metadata_file_extensions:
         full_path = '%s.%s' % (path, ext)
         if os.path.isfile(full_path):
-            with open(full_path) as f:
-                if full_path.endswith('json'):
-                    return json.load(f)
-                elif full_path.endswith('yaml'):
-                    return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
-                else:
-                    return {}
+            try:
+                with open(full_path) as f:
+                    if full_path.endswith('.json'):
+                        return json.load(f)
+                    elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
+                        return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                    else:
+                        return {}
+            except Exception as e:
+                logger.warn('could not parse nomad.yaml/json', path=path, exc_info=e)
+                # ignore the file contents if the file is not parsable
+                pass
     return {}
 
 
@@ -381,8 +387,18 @@ class Calc(Proc):
 
             self._entry_metadata.processed = False
 
-            self.apply_entry_metadata(self._entry_metadata)
-            self._entry_metadata.apply_domain_metadata(self._parser_results)
+            try:
+                self.apply_entry_metadata(self._entry_metadata)
+            except Exception as e:
+                self.get_logger().error(
+                    'could not apply entry metadata to entry', exc_info=e)
+
+            try:
+                self._entry_metadata.apply_domain_metadata(self._parser_results)
+            except Exception as e:
+                self.get_logger().error(
+                    'could not apply domain metadata to entry', exc_info=e)
+
             if self._parser_results and self._parser_results.m_resource:
                 self._parser_results.section_metadata = None
                 self._parser_results.m_resource.unload()
@@ -536,13 +552,14 @@ class Calc(Proc):
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
 
-        metadata_file = config.aux_metadata_file
+        metadata_file = config.metadata_file_name
         metadata_dir = os.path.dirname(self.mainfile_file.os_path)
 
         metadata = {}
         metadata_path = None
         while metadata_dir:
-            metadata_part = metadata_cached(os.path.join(metadata_dir, metadata_file))
+            metadata_part = metadata_file_cached(
+                os.path.join(metadata_dir, metadata_file), logger)
 
             for key, val in metadata_part.items():
                 metadata.setdefault(key, val)
@@ -550,6 +567,9 @@ class Calc(Proc):
             metadata_dir = os.path.dirname(metadata_dir)
             if metadata_path is not None:
                 break
+
+        if len(metadata_dir) > 0:
+            logger.info('Apply user metadata from nomad.yaml/json file')
 
         for key, val in metadata.items():
             definition = _editable_metadata.get(key, None)

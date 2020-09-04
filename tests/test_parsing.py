@@ -28,7 +28,7 @@ from nomad.app import dump_json
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
-    ('parsers/eels', 'tests/data/parsers/eels.txt'),
+    ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
@@ -81,7 +81,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 115
+correct_num_output_files = 114
 
 
 class TestBackend(object):

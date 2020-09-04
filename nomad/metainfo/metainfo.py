@@ -441,12 +441,21 @@ class _JSON(DataType):
     pass
 
 
+class _Capitalized(DataType):
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if value is not None and len(value) >= 1:
+            return value[0].capitalize() + value[1:]
+
+        return value
+
+
 Dimension = _Dimension()
 Unit = _Unit()
 QuantityType = _QuantityType()
 Callable = _Callable()
 Datetime = _Datetime()
 JSON = _JSON()
+Capitalized = _Capitalized()
 
 
 # Metainfo data storage and reflection interface
@@ -1230,15 +1239,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         section_def = self.m_def
         section = self
 
-        # remove m_def, m_parent_index, m_parent_sub_section metadata,
-        # they set themselves automatically
-        dct.pop('m_def', None)
-        dct.pop('m_parent_index', None)
-        dct.pop('m_parent_sub_section', None)
-
         for name, sub_section_def in section_def.all_sub_sections.items():
             if name in dct:
-                sub_section_value = dct.pop(name)
+                sub_section_value = dct.get(name)
                 if sub_section_def.repeats:
                     for sub_section_dct in sub_section_value:
                         sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_dct)

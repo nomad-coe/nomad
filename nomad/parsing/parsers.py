@@ -21,7 +21,6 @@ from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .legacy import LegacyParser, VaspOutcarParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from eelsparser import EelsParser
 from eelsdbconverter import EELSApiJsonConverter
 from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
@@ -342,16 +341,8 @@ parsers = [
         mainfile_contents_re=(
             r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
-    LegacyParser(
-        name='parsers/skeleton', code_name='skeleton', code_homepage=None,
-        domain='ems',
-        parser_class_name='skeletonparser.SkeletonParserInterface',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_contents_re=(r'skeleton experimental metadata format')
-    ),
     MPESParser(),
     APTFIMParser(),
-    EelsParser(),
     EELSApiJsonConverter(),
     LegacyParser(
         name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',

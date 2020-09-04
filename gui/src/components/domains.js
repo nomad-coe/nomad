@@ -9,6 +9,7 @@ import {
 import EMSVisualizations from './ems/EMSVisualizations'
 import QCMSEntryOverview from './qcms/QCMSEntryOverview'
 import QCMSEntryCards from './qcms/QCMSEntryCards'
+import { Link } from '@material-ui/core'
 
 /* eslint-disable react/display-name */
 
@@ -201,20 +202,32 @@ export const domains = ({
      */
     searchResultColumns: {
       'formula': {
-        label: 'Formula'
+        label: 'Formula',
+        supportsSort: true
+      },
+      'ems.chemical': {
+        label: 'Chemical',
+        supportsSort: true
       },
       'ems.method': {
-        label: 'Method'
+        label: 'Method',
+        supportsSort: true
       },
-      'ems.experiment_location': {
-        label: 'Location'
+      'ems.data_type': {
+        label: 'Data',
+        supportsSort: true
       },
-      'ems.experiment_time': {
-        label: 'Date/Time',
-        render: entry => (entry.ems && entry.ems.experiment_time !== 'unavailable') ? new Date(entry.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
+      'ems.origin_time': {
+        label: 'Date',
+        supportsSort: true,
+        render: entry => (entry.ems && entry.ems.origin_time && new Date(entry.ems.origin_time).toLocaleDateString()) || 'unavailable'
+      },
+      'ems.repository_url': {
+        label: 'Source',
+        render: entry => <Link target="external" href={entry.ems.entry_repository_url}>{entry.ems.repository_url}</Link>
       }
     },
-    defaultSearchResultColumns: ['formula', 'ems.method', 'ems.experiment_location', 'ems.experiment_time'],
+    defaultSearchResultColumns: ['formula', 'ems.chemical', 'ems.method', 'ems.data_type', 'ems.origin_time', 'ems.repository_url'],
     /**
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),

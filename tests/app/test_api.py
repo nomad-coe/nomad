@@ -789,7 +789,7 @@ class TestArchive(UploadFilesBasedTests):
 
 
 class TestMetainfo():
-    @pytest.mark.parametrize('package', ['common', 'vasp', 'general.experimental', 'eels'])
+    @pytest.mark.parametrize('package', ['common', 'vasp'])
     def test_regular(self, api, package):
         rv = api.get('/metainfo/%s' % package)
         assert rv.status_code == 200

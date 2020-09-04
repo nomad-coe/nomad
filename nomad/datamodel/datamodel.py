@@ -34,7 +34,7 @@ m_package = metainfo.Package()
 
 from .encyclopedia import EncyclopediaMetadata  # noqa
 from .metainfo.public import section_run, Workflow  # noqa
-from .metainfo.general_experimental import section_experiment  # noqa
+from .metainfo.common_experimental import Experiment  # noqa
 from .metainfo.general_qcms import QuantumCMS  # noqa
 
 
@@ -56,8 +56,8 @@ class Author(metainfo.MSection):
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
         a_search=Search(mapping=Text(fields={'keyword': Keyword()})))
 
-    first_name = metainfo.Quantity(type=str)
-    last_name = metainfo.Quantity(type=str)
+    first_name = metainfo.Quantity(type=metainfo.Capitalized)
+    last_name = metainfo.Quantity(type=metainfo.Capitalized)
     email = metainfo.Quantity(
         type=str,
         a_elastic=dict(mapping=Keyword),  # TODO remove?
@@ -547,7 +547,7 @@ class EntryMetadata(metainfo.MSection):
 class EntryArchive(metainfo.MSection):
 
     section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
-    section_experiment = metainfo.SubSection(sub_section=section_experiment)
+    section_experiment = metainfo.SubSection(sub_section=Experiment)
     section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
     section_workflow = metainfo.SubSection(sub_section=Workflow)
     section_metadata = metainfo.SubSection(sub_section=EntryMetadata)
