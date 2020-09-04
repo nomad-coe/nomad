@@ -26,6 +26,7 @@ from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
+from elasticparser import ElasticParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -322,11 +323,7 @@ parsers = [
         parser_class_name='elkparser.ElkParser',
         mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
     ),
-    LegacyParser(
-        name='parsers/elastic', code_name='elastic', code_homepage='http://exciting-code.org/elastic',
-        parser_class_name='elasticparser.ElasticParser',
-        mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
-    ),
+    ElasticParser(),
     LegacyParser(
         name='parsers/gamess', code_name='GAMESS', code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',
         parser_class_name='gamessparser.GamessParser',
