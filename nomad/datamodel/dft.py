@@ -24,6 +24,7 @@ from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
 from .metainfo.public import Workflow
+from .metainfo.public import section_XC_functionals
 
 
 xc_treatments = {
@@ -149,7 +150,7 @@ class DFTMetadata(MSection):
         type=str, default='not processed',
         description='The used basis set functions.',
         a_search=Search(statistic_values=[
-            '(L)APW+lo', 'FLAPW', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
+            '(L)APW+lo', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
             'real-space grid', 'unavailable', 'not processed'
         ]))
 
@@ -157,6 +158,11 @@ class DFTMetadata(MSection):
         type=str, default='not processed',
         description='The libXC based xc functional classification used in the simulation.',
         a_search=Search(statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed']))
+
+    xc_functional_names = Quantity(
+        type=str, default=[], shape=['*'],
+        description='The list of libXC functional names that where used in this entry.',
+        a_search=Search())
 
     system = Quantity(
         type=str, default='not processed',
@@ -364,20 +370,12 @@ class DFTMetadata(MSection):
             self.system = get_value(section_system.system_type)
             entry.formula = get_value(section_system.chemical_composition_bulk_reduced)
 
-        section_method = section_run.section_method
-        if section_method:
-            section_method = section_method[0]
-            section_XC_functionals = section_method.section_XC_functionals
-            if section_XC_functionals:
-                self.xc_functional = get_value(section_XC_functionals[0].XC_functional_name)
-
-        # grouping
-        self.update_group_hash()
-
         # metrics and quantities
         quantities = set()
         searchable_quantities = set()
         geometries = set()
+        xc_functionals = set()
+        xc_functional = None
 
         n_quantities = 0
         n_calculations = 0
@@ -392,6 +390,11 @@ class DFTMetadata(MSection):
             if property_name in _searchable_quantities:
                 searchable_quantities.add(property_name)
 
+            if property_def == section_XC_functionals.XC_functional_name:
+                xc_functional = getattr(section, property_name)
+                if xc_functional:
+                    xc_functionals.add(xc_functional)
+
             if property_name == 'energy_total':
                 n_total_energies += 1
 
@@ -404,6 +407,10 @@ class DFTMetadata(MSection):
             if property_name == 'section_system':
                 n_geometries += 1
 
+        self.xc_functional_names = sorted(xc_functionals)
+        if len(self.xc_functional_names) > 0:
+            self.xc_functional = get_value(self.xc_functional_names[0])
+
         self.quantities = list(quantities)
         self.geometries = list(geometries)
         self.searchable_quantities = list(searchable_quantities)
@@ -411,6 +418,9 @@ class DFTMetadata(MSection):
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
+
+        # grouping
+        self.update_group_hash()
 
         # labels
         compounds = set()

@@ -181,7 +181,7 @@ class GenerateRandomParser(TemplateParser):
     name = 'parsers/random'
 
     basis_set_types = [
-        'Numeric AOs', 'Gaussians', '(L)APW+lo', 'FLAPW', 'Plane waves',
+        'Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves',
         'Real-space grid', 'Local-orbital minimum-basis']
 
     electronic_structure_methods = [

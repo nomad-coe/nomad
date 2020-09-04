@@ -3267,23 +3267,9 @@ class section_run(MSection):
         type=str,
         shape=[],
         description='''
-        The type of basis set used by the program to represent wave functions.
-
-        Valid values are:
-
-        * Numeric AOs
-
-        * Gaussians
-
-        * (L)APW+lo
-
-        * FLAPW (full-potential linearized augmented planewave)
-
-        * Plane waves
-
-        * Real-space grid
-
-        * Local-orbital minimum-basis
+        The type of basis set used by the program to represent wave functions. Valid values
+        are: [`Numeric AOs`, `Gaussians`, `(L)APW+lo`, `plane waves`, `psinc functions`,
+        `real-space grid`].
         ''',
         a_legacy=LegacyDefinition(name='program_basis_set_type'))
 
