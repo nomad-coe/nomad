@@ -714,6 +714,9 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
                 if referenced is not None and referenced not in contents:
                     referenceds.append(referenced)
 
+        if isinstance(definition, SubSection):
+            return fast_access.m_def in definition.categories
+
         return True
 
     # add the main content
@@ -837,6 +840,9 @@ def _all_parent_sections():
     return __all_parent_sections
 
 
+class _Incomplete(Exception): pass
+
+
 def compute_required_with_referenced(required):
     '''
     Updates the given required dictionary to ensure that references to non required
@@ -881,6 +887,9 @@ def compute_required_with_referenced(required):
             prop = key.split('[')[0]
             prop_definition = parent.all_properties[prop]
             if isinstance(prop_definition, SubSection):
+                if fast_access.m_def not in prop_definition.categories:
+                    raise _Incomplete()
+
                 traverse(value, prop_definition.sub_section)
             if isinstance(prop_definition, Quantity) and isinstance(prop_definition.type, Reference):
                 current[prop] = '*'
@@ -891,7 +900,12 @@ def compute_required_with_referenced(required):
                 add_parent_section(target_section_def, value)
                 traverse(value, target_section_def)
 
-    traverse(dict(**required))
+    try:
+        traverse(dict(**required))
+    except _Incomplete:
+        # We realized that something is required that is not in the partial archive
+        return None
+
     return required
 
 

@@ -303,6 +303,11 @@ def archive():
                                     "dos_kind": "test"
                                 }
                             ],
+                            "section_eigenvalues": [
+                                {
+                                    "eigenvalues_kind": "test"
+                                }
+                            ],
                             "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/1"
                         },
                         {
@@ -314,7 +319,12 @@ def archive():
                             "atom_labels": ["He"]
                         },
                         {
-                            "atom_labels": ["H"]
+                            "atom_labels": ["H"],
+                            "section_symmetry": [
+                                {
+                                    "space_group_number": 221
+                                }
+                            ]
                         }
                     ]
                 }
@@ -331,13 +341,13 @@ def archive():
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
     assert archive.section_workflow.section_relaxation.final_calculation_ref is not None
-    assert archive.section_metadata.encyclopedia.properties is not None
+    assert archive.section_metadata.encyclopedia is None
     # test refs
-    assert archive.section_workflow.section_relaxation.final_calculation_ref.section_dos[0].dos_kind == 'test'
     assert archive.section_workflow.section_relaxation.final_calculation_ref.energy_total is not None
+    assert len(archive.section_workflow.section_relaxation.final_calculation_ref.section_eigenvalues) == 0
     # test refs of refs
     assert archive.section_workflow.section_relaxation.final_calculation_ref.single_configuration_calculation_to_system_ref.atom_labels == ['H']
-    assert archive.section_metadata.encyclopedia.properties.electronic_dos.dos_kind == 'test'
+    assert archive.section_workflow.section_relaxation.final_calculation_ref.single_configuration_calculation_to_system_ref.section_symmetry[0].space_group_number == 221
 
     return archive
 
@@ -392,3 +402,33 @@ def test_compute_required_with_referenced(archive):
             'section_system': '*'
         }
     }
+
+
+def test_compute_required_incomplete(archive):
+    required = compute_required_with_referenced({
+        'section_workflow': {
+            'section_relaxation': {
+                'final_calculation_ref': {
+                    'energy_total': '*',
+                    'section_dos': '*'
+                }
+            }
+        }
+    })
+
+    assert required is None
+
+    required = compute_required_with_referenced({
+        'section_workflow': {
+            'section_relaxation': {
+                'final_calculation_ref': {
+                    'energy_total': '*',
+                    'single_configuration_calculation_to_system_ref': {
+                        'section_symmetry': '*'
+                    }
+                }
+            }
+        }
+    })
+
+    assert required is not None

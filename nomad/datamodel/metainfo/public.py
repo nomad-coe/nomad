@@ -5263,17 +5263,17 @@ class section_system(MSection):
 
     section_prototype = SubSection(
         sub_section=SectionProxy('section_prototype'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_prototype'))
 
     section_springer_material = SubSection(
         sub_section=SectionProxy('section_springer_material'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_springer_material'))
 
     section_symmetry = SubSection(
         sub_section=SectionProxy('section_symmetry'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_symmetry'))
 
     section_system_to_system_refs = SubSection(
@@ -5791,11 +5791,11 @@ class Workflow(MSection):
         a_search=Search())
 
     section_relaxation = SubSection(
-        sub_section=SectionProxy('Relaxation'),
+        sub_section=SectionProxy('Relaxation'), categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_relaxation'))
 
     section_phonon = SubSection(
-        sub_section=SectionProxy('Phonon'),
+        sub_section=SectionProxy('Phonon'), categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_phonon'))
 
     section_elastic = SubSection(

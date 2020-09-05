@@ -453,8 +453,8 @@ class EntryMetadata(metainfo.MSection):
         description='The number of atoms in the entry\'s material',
         a_search=Search())
 
-    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
-    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft')
+    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems', categories=[fast_access])
+    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[fast_access])
     encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, a_search='encyclopedia')
 
     def apply_user_metadata(self, metadata: dict):
