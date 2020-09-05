@@ -1,29 +1,29 @@
 {
     "data_repository_name": "zenodo.org",
-    "data_repository_url": "http://zenodo.org/record/1249280",
-    "data_preview_url": "http://zenodo.org/record/1249280/preview.png",
-
+    "data_repository_url": "http://zenodo.org/record/2669454",
+    "data_preview_url": "http://zenodo.org/record/2669454/preview.png",
+    
     "experiment_method": "atom probe tomography or field ion microscopy",
     "experiment_location": "Düsseldorf, Germany",
     "experiment_facility_institution": "Max-Planck-Institut für Eisenforschung GmbH",
-    "instrument_info": "LEAP5000",
+    "instrument_info": "LEAP R76-31053-v01",
     
-    "experiment_date_global_start": "01.01.2000 11:11:11",
-    "experiment_date_global_end": "01.01.2000 22:22:22",
-    "experiment_data_local_start": "01.01.2000 11:11:11",
+    "experiment_date_global_start": "00.00.0000 00:00:00",
+    "experiment_date_global_end": "00.00.0000 00:00:00",
+    "experiment_data_local_start": "00.00.0000 00:00:00",
     "experiment_operation_method": "apt",
-    "experiment_imaging_method": "laser",
+    "experiment_imaging_method": "voltage",
     
-    "specimen_description": "Pure W wire samples bulk polycrystal",
-    "specimen_chemistry": ["Fe", "Mn"],
-    "specimen_microstructure": "single crystal",
+    "specimen_description": "Commercial pure >99.99% bulk Al bicrystal with site-specifically lift out section region of interest containing section of a near planar Sigma3(70.53°)[110](1-1-1) grain boundary facet",
+    "specimen_chemistry": ["Al"],
+    "specimen_microstructure": "poly crystal",
     "specimen_constitution": "single phase",
     
-    "measured_nions_evaporated": 129000,
+    "measured_nions_evaporated": 48736385,
     "measured_detector_hit_pos": "yes",
-    "measured_detector_hit_mult": "no",
-    "measured_detector_dead_pulses": "no",
+    "measured_detector_hit_mult": "yes",
+    "measured_detector_dead_pulses": "yes",
     "measured_time_of_flight": "yes",
     "measured_standing_voltage": "yes",
-    "measured_pulse_voltage": "no"
+    "measured_pulse_voltage": "yes"
 }

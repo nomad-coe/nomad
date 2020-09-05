@@ -1,0 +1,10 @@
+{
+    "section_quantum_cms": {
+        "atom_labels": [ "He"],
+        "chemical_formula": "He2",
+        "chemical_name": "Helium"
+    },
+    "section_metadata": {
+        "domain": "qcms"
+    }
+}

@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
-import { Typography } from '@material-ui/core'
+import { Typography, Link } from '@material-ui/core'
 import { apiBase } from '../../config'
 
 export default class EMSEntryOverview extends React.Component {
@@ -46,6 +46,15 @@ export default class EMSEntryOverview extends React.Component {
     return (
       <Quantity column>
         <Quantity quantity="ems.experiment_summary" label="summary" {...this.props} />
+        {this.state.previewBroken
+          ? data.ems.entry_repository_url && <Quantity label="preview" {...this.props}>
+            <Typography noWrap>
+              <a target="external" href={ems.entry_repository_url}>visit this entry on the external database</a>
+            </Typography>
+          </Quantity>
+          : <Quantity label="preview" {...this.props}>
+            <img alt="preview" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={this.handleBrokenPreview}></img>
+          </Quantity>}
         <Quantity row>
           <Quantity column>
             <Quantity row>
@@ -56,26 +65,17 @@ export default class EMSEntryOverview extends React.Component {
             </Quantity>
             <Quantity quantity="ems.method" label="experimental method" noWrap {...this.props} />
             <Quantity quantity="ems.experiment_location" label="experiment location" noWrap {...this.props} />
-            <Quantity label="experiment time" {...this.props}>
+            <Quantity label="experiment or experiment publish date" {...this.props}>
               <Typography noWrap>{
-                data.ems.experiment_time && data.ems.experiment_time !== 'unavailable' ? new Date(data.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
+                (ems && ems.origin_time && new Date(ems.origin_time).toLocaleDateString()) || 'unavailable'
               }</Typography>
             </Quantity>
             <Quantity label="data" {...this.props}>
               <Typography noWrap>
-                <a target="external" href={data.ems.repository_url}>{data.ems.repository_name}</a>
+                <Link target="external" href={ems.entry_repository_url}>{ems.repository_url}</Link>
               </Typography>
             </Quantity>
           </Quantity>
-          {this.state.previewBroken
-            ? data.ems.entry_repository_url && <Quantity label="preview" {...this.props}>
-              <Typography noWrap>
-                <a target="external" href={data.ems.entry_repository_url}>visit this entry on the external database</a>
-              </Typography>
-            </Quantity>
-            : <Quantity label="preview" {...this.props}>
-              <img alt="preview" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={this.handleBrokenPreview}></img>
-            </Quantity>}
         </Quantity>
       </Quantity>
     )

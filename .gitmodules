@@ -144,9 +144,6 @@
 [submodule "dependencies/optimade-python-tools"]
 	path = dependencies/optimade-python-tools
 	url = https://github.com/markus1978/optimade-python-tools.git
-[submodule "dependencies/parsers/eels"]
-	path = dependencies/parsers/eels
-	url = https://github.com/markus1978/eels.git
 [submodule "dependencies/parsers/namd"]
     path = dependencies/parsers/namd
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-namd.git
@@ -189,3 +186,6 @@
 [submodule "dependencies/nomad-dos-fingerprints"]
 	path = dependencies/nomad-dos-fingerprints
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git
+[submodule "dependencies/parsers/eelsdb"]
+	path = dependencies/parsers/eelsdb
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/eelsdb.git

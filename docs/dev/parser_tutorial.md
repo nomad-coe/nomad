@@ -360,8 +360,8 @@ import json
 
 from .metainfo import m_env
 from nomad.parsing.parser import MatchingParser
-from nomad.datamodel.metainfo.general_experimental import section_experiment as msection_experiment
-from nomad.datamodel.metainfo.general_experimental import section_data as msection_data
+from nomad.datamodel.metainfo.common_experimental import section_experiment as msection_experiment
+from nomad.datamodel.metainfo.common_experimental import section_data as msection_data
 from nomad.datamodel.metainfo.general_experimental_method import section_method as msection_method
 from nomad.datamodel.metainfo.general_experimental_sample import section_sample as msection_sample
 

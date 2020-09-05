@@ -27,7 +27,7 @@ class EMSEntryCards extends React.Component {
         <CardContent classes={{root: classes.cardContent}}>
           <Markdown classes={{root: classes.description}}>{`
             The data for this experiment is externally stored and managed. Download the raw experiment data:
-            [${data.ems.repository_url}](${data.ems.repository_url}).
+            [${data.ems && data.ems.repository_url}](${data.ems && data.ems.entry_repository_url}).
 
             The meta data describing this experiment in its original format, can be
             downloaded here directly:

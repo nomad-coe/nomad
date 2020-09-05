@@ -16,7 +16,7 @@ from flask_restplus import fields
 
 from nomad.app.common import RFC3339DateTime
 
-from .metainfo import Section, Quantity, Datetime
+from .metainfo import Section, Quantity, Datetime, Capitalized
 
 
 def field(quantity: Quantity):
@@ -26,7 +26,7 @@ def field(quantity: Quantity):
         field = fields.Integer
     elif quantity.type == float:
         field = fields.Float
-    elif quantity.type == str:
+    elif quantity.type == str or quantity.type == Capitalized:
         field = fields.String
     elif quantity.type == bool:
         field = fields.Boolean

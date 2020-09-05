@@ -85,13 +85,17 @@ from nomad.metainfo import Environment
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
-from .datamodel import Dataset, User, EditableUserMetadata, MongoMetadata, EntryMetadata, EntryArchive
+from .qcms import QCMSMetadata
+from .datamodel import (
+    Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, MongoMetadata,
+    EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.dft'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.ems'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.qcms'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.encyclopedia'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore
 
@@ -103,8 +107,13 @@ domains = {
     },
     'ems': {
         'metadata': EMSMetadata,
-        'metainfo_all_package': 'all.experimental.nomadmetainfo.json',
+        'metainfo_all_package': 'common_experimental',
         'root_section': 'section_experiment'
+    },
+    'qcms': {
+        'metadata': QCMSMetadata,
+        'metainfo_all_package': 'general_qcms',
+        'root_section': 'section_quantum_cms'
     }
 }
 

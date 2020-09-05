@@ -45,15 +45,6 @@ def fix_time(data, keys):
             data[key] = datetime.datetime.utcfromtimestamp(time)
 
 
-def tarnsform_user_id(source_user_id):
-    target_user = datamodel.User.repo_users().get(str(source_user_id))
-    if target_user is None:
-        __logger.error('user does not exist in target', source_user_id=source_user_id)
-        raise KeyError
-
-    return target_user.user_id
-
-
 def transform_dataset(source_dataset):
     pid = str(source_dataset['id'])
     target_dataset = _Dataset.objects(pid=pid).first()
@@ -100,31 +91,6 @@ def v0Dot7(upload_data):
             include_defaults=True,
             categories=[datamodel.MongoMetadata])
 
-    return upload_data
-
-
-def v0Dot6(upload_data):
-    ''' Inplace transforms v0.6.x upload data into v0.7.x upload data. '''
-    upload = json.loads(upload_data.upload)
-    upload['user_id'] = tarnsform_user_id(upload['user_id'])
-    upload_data.upload = json.dumps(upload)
-
-    for i, calc_data_json in enumerate(upload_data.calcs):
-        calc_data = json.loads(calc_data_json)
-        metadata = calc_data['metadata']
-
-        # transform users
-        metadata['uploader'] = tarnsform_user_id(metadata['uploader']['id'])
-        metadata['coauthors'] = [tarnsform_user_id(user['id']) for user in metadata['coauthors']]
-        metadata['shared_with'] = [tarnsform_user_id(user['id']) for user in metadata['shared_with']]
-
-        # transform datasets
-        metadata['datasets'] = [transform_dataset(dataset) for dataset in metadata['datasets']]
-
-        # transform references
-        metadata['references'] = [transform_reference(reference) for reference in metadata['references']]
-
-        upload_data.calcs[i] = json.dumps(calc_data)
     return upload_data
 
 
@@ -210,8 +176,6 @@ def mirror(
 
     migration_func = None
     if migration is not None:
-        if migration == 'v0.6.x':
-            migration_func = v0Dot6
         if migration == 'v0.7.x':
             migration_func = v0Dot7
         else:

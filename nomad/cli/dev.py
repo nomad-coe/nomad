@@ -24,7 +24,7 @@ def dev():
     pass
 
 
-@dev.command(help='Runs tests and linting of the nomad source code. Useful before committing code.')
+@dev.command(help='Runs tests and linting of the nomad python source code. Useful before committing code.')
 @click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
 @click.option('-x', '--exitfirst', help='Stop testing after first failed test case.', is_flag=True)
 def qa(skip_tests: bool, exitfirst: bool):
@@ -40,6 +40,15 @@ def qa(skip_tests: bool, exitfirst: bool):
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
 
+    sys.exit(ret_code)
+
+
+@dev.command(help='Runs tests and linting of the nomad gui source code. Useful before committing code.')
+def gui_qa():
+    click.echo('Run gui code linting ...')
+    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../gui')))
+    ret_code = 0
+    ret_code += os.system('yarn run eslint \'src/**/*.js\'')
     sys.exit(ret_code)
 
 
@@ -144,7 +153,6 @@ def legacy_metainfo(path):
             'qbox.nomadmetainfo.json',
             'quantum_espresso.nomadmetainfo.json',
             'siesta.nomadmetainfo.json',
-            'skeleton.nomadmetainfo.json',
             'turbomole.nomadmetainfo.json',
             'vasp.nomadmetainfo.json',
             'wien2k.nomadmetainfo.json',

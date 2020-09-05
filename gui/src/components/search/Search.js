@@ -230,12 +230,12 @@ const originLabels = {
 function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
-    setStatistics(['uploader'])
+    setStatistics(['origin'])
     // eslint-disable-next-line
   }, [])
   return <div>
     <UploadsHistogram tooltips initialScale={0.5} />
-    <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
+    <QuantityHistogram quantity="origin" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
 
@@ -411,7 +411,7 @@ DomainSelect.propTypes = {
 
 const ownerLabel = {
   all: 'All entries',
-  visible: 'Include your private entries',
+  visible: 'with private entries',
   public: 'Only public entries',
   user: 'Only your entries',
   shared: 'Incl. shared data',

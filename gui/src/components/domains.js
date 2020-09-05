@@ -7,13 +7,16 @@ import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
+import QCMSEntryOverview from './qcms/QCMSEntryOverview'
+import QCMSEntryCards from './qcms/QCMSEntryCards'
+import { Link } from '@material-ui/core'
 
 /* eslint-disable react/display-name */
 
 export const domains = ({
   dft: {
-    name: 'CMS',
-    label: 'Computational material science data (CMS)',
+    name: 'computational data',
+    label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
     entryLabel: 'entry',
@@ -160,9 +163,9 @@ export const domains = ({
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
-    name: 'EMS',
+    name: 'experimental data',
     key: 'ems',
-    label: 'Material science experiment data (EMS)',
+    label: 'Experimental material science data',
     about: 'This is metadata from material science experiments',
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
@@ -199,20 +202,32 @@ export const domains = ({
      */
     searchResultColumns: {
       'formula': {
-        label: 'Formula'
+        label: 'Formula',
+        supportsSort: true
+      },
+      'ems.chemical': {
+        label: 'Chemical',
+        supportsSort: true
       },
       'ems.method': {
-        label: 'Method'
+        label: 'Method',
+        supportsSort: true
       },
-      'ems.experiment_location': {
-        label: 'Location'
+      'ems.data_type': {
+        label: 'Data',
+        supportsSort: true
       },
-      'ems.experiment_time': {
-        label: 'Date/Time',
-        render: entry => (entry.ems && entry.ems.experiment_time !== 'unavailable') ? new Date(entry.ems.experiment_time * 1000).toLocaleString() : 'unavailable'
+      'ems.origin_time': {
+        label: 'Date',
+        supportsSort: true,
+        render: entry => (entry.ems && entry.ems.origin_time && new Date(entry.ems.origin_time).toLocaleDateString()) || 'unavailable'
+      },
+      'ems.repository_url': {
+        label: 'Source',
+        render: entry => <Link target="external" href={entry.ems.entry_repository_url}>{entry.ems.repository_url}</Link>
       }
     },
-    defaultSearchResultColumns: ['formula', 'ems.method', 'ems.experiment_location', 'ems.experiment_time'],
+    defaultSearchResultColumns: ['formula', 'ems.chemical', 'ems.method', 'ems.data_type', 'ems.origin_time', 'ems.repository_url'],
     /**
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),
@@ -225,6 +240,65 @@ export const domains = ({
      * loading (a bool with api loading status).
      */
     EntryCards: EMSEntryCards,
+    /**
+     * Names of the possible search tabs for this domain
+     */
+    searchTabs: ['entries', 'datasets', 'uploads']
+  },
+  qcms: {
+    name: 'quantum computational data',
+    key: 'qcms',
+    label: 'Quantum computational material science data',
+    about: 'This is computational material science data calculated by quantum computers',
+    entryLabel: 'calculation',
+    entryLabelPlural: 'calculations',
+    entryTitle: () => 'Quantum computer calculation',
+    searchPlaceholder: 'enter atoms',
+    searchVisualizations: {
+    },
+    /**
+     * Metrics are used to show values for aggregations. Each metric has a key (used
+     * for API calls), a label (used in the select form), and result string (to show
+     * the overall amount in search results).
+     */
+    searchMetrics: {
+      code_runs: {
+        label: 'Calculations',
+        tooltip: 'Statistics will show the number of entires; usually each entry represents a single calculation.',
+        renderResultString: count => (<span><b>{count}</b> entries</span>)
+      },
+      datasets: {
+        label: 'Datasets',
+        tooltip: 'Shows statistics in terms of datasets that entries belong to.',
+        renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
+      }
+    },
+    defaultSearchMetric: 'code_runs',
+    /**
+     * An dict where each object represents a column. Possible keys are label, render.
+     * Default render
+     */
+    searchResultColumns: {
+      'formula': {
+        label: 'Formula'
+      },
+      'qcms.chemical': {
+        label: 'Chemical name'
+      }
+    },
+    defaultSearchResultColumns: ['formula', 'qcms.chemical'],
+    /**
+     * A component to render the domain specific quantities in the metadata card of
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryOverview: QCMSEntryOverview,
+    /**
+     * A component to render additional domain specific cards in the
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryCards: QCMSEntryCards,
     /**
      * Names of the possible search tabs for this domain
      */

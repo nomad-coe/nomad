@@ -20,17 +20,12 @@ class UploadersList extends React.Component {
 
   static contextType = searchContext
 
-  componentDidMount() {
-    const {setStatisticsToRefresh} = this.context
-    setStatisticsToRefresh('uploader')
-  }
-
   render() {
     const {state: {usedMetric}} = this.context
 
     return (
       <Grid>
-        <Quantity quantity="uploader" title="Uploaders" scale={1} metric={usedMetric} />
+        <Quantity quantity="origin" title="Uploaders/origin" scale={1} metric={usedMetric} />
       </Grid>
     )
   }

@@ -28,7 +28,7 @@ from nomad.app import dump_json
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/parsers/template.json'),
-    ('parsers/eels', 'tests/data/parsers/eels.txt'),
+    ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
@@ -68,7 +68,8 @@ parser_examples = [
     ('parser/fleur', 'tests/data/parsers/fleur/out'),
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
-    ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out')
+    ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
+    ('parsers/archive', 'tests/data/parsers/archive.json')
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -253,9 +254,10 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
 def run_parser(parser_name, mainfile):
     parser = parser_dict[parser_name]
     entry_archive = EntryArchive()
-    parser.parse(mainfile, entry_archive, logger=utils.get_logger(__name__))
     metadata = entry_archive.m_create(EntryMetadata)
-    metadata.domain = parser.domain
+    parser.parse(mainfile, entry_archive, logger=utils.get_logger(__name__))
+    if metadata.domain is None:
+        metadata.domain = parser.domain
 
     return add_calculation_info(entry_archive, parser_name=parser_name)
 
