@@ -190,5 +190,6 @@ class Search(Elastic):
     def statistic_values(self, values):
         self._statistic_values = values
         if self._statistic_values is not None:
-            self.statistic_size = len(self._statistic_values)
+            if self.statistic_fixed_size is None:
+                self.statistic_size = len(self._statistic_values)
             self.statistic_fixed_size = len(self._statistic_values)
