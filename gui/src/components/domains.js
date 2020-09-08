@@ -15,7 +15,7 @@ import { Link } from '@material-ui/core'
 
 export const domains = ({
   dft: {
-    name: 'computational data',
+    name: 'Computational data',
     label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
@@ -51,7 +51,7 @@ export const domains = ({
         renderResultString: count => (<span><b>{count.toLocaleString()}</b> entr{count === 1 ? 'y' : 'ies'}</span>)
       },
       unique_entries: {
-        label: 'Unique entries',
+        label: 'Unique',
         tooltip: 'Counts duplicates only once.',
         renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entr{count === 1 ? 'y' : 'ies'}</span>)
       },
@@ -163,7 +163,7 @@ export const domains = ({
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
-    name: 'experimental data',
+    name: 'Experimental data',
     key: 'ems',
     label: 'Experimental material science data',
     about: 'This is metadata from material science experiments',
@@ -246,7 +246,7 @@ export const domains = ({
     searchTabs: ['entries', 'datasets', 'uploads']
   },
   qcms: {
-    name: 'quantum computational data',
+    name: 'Quantum computational data',
     key: 'qcms',
     label: 'Quantum computational material science data',
     about: 'This is computational material science data calculated by quantum computers',

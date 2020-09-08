@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Card, Button, Tooltip, Tabs, Tab, Paper, FormControl,
-  FormGroup, Checkbox, FormControlLabel, CardContent, IconButton, FormLabel, Select, MenuItem } from '@material-ui/core'
+  FormGroup, Checkbox, FormControlLabel, CardContent, IconButton, Select, MenuItem, Box } from '@material-ui/core'
 import { useQueryParam, useQueryParams, StringParam, NumberParam } from 'use-query-params'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
@@ -14,7 +14,6 @@ import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
-import SearchIcon from '@material-ui/icons/Search'
 import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext, useUrlQuery } from './SearchContext'
@@ -124,10 +123,7 @@ const useSearchEntryStyles = makeStyles(theme => ({
     margin: 'auto',
     width: '100%'
   },
-  searchIcon: {
-    margin: `${theme.spacing(1)}px 0`,
-    padding: `6px 0 2px 0`
-  },
+
   domainButton: {
     margin: theme.spacing(1)
   },
@@ -184,12 +180,10 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
   return <div>
     <div className={classes.search}>
       <FormGroup row style={{alignItems: 'center'}}>
-        <FormControl className={classes.searchIcon}>
-          <FormLabel>
-            <SearchIcon/>
-          </FormLabel>
-        </FormControl>
-        <DomainSelect classes={{root: classes.domainButton}} initialDomain={initialDomain} />
+        <Box marginRight={2}>
+          <DomainSelect classes={{root: classes.domainButton}} initialDomain={initialDomain} />
+        </Box>
+        <div style={{flexGrow: 1}} />
         <OwnerSelect ownerTypes={ownerTypes} initialOwner={initialOwner}/>
         <div style={{flexGrow: 1}} />
         <VisualizationSelect
@@ -198,7 +192,9 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
           onChange={handleVisualizationChange}
           visualizations={visualizations}
         />
-        <MetricSelect classes={{root: classes.metricButton}} initialMetric={initialMetric}/>
+        <Box marginLeft={2}>
+          <MetricSelect classes={{root: classes.metricButton}} initialMetric={initialMetric}/>
+        </Box>
       </FormGroup>
 
       {/* <SearchBar classes={{autosuggestRoot: classes.searchBar}} /> */}
@@ -278,8 +274,7 @@ function ElementsVisualization(props) {
 
 const useMetricSelectStyles = makeStyles(theme => ({
   root: {
-    minWidth: 130,
-    paddingLeft: theme.spacing(2)
+    minWidth: 100
   }
 }))
 function MetricSelect({initialMetric}) {
@@ -356,9 +351,7 @@ VisualizationSelect.propTypes = {
 
 const useDomainSelectStyles = makeStyles(theme => ({
   root: {
-    minWidth: 60,
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2)
+    minWidth: 60
   }
 }))
 function DomainSelect({initialDomain}) {
@@ -410,12 +403,12 @@ DomainSelect.propTypes = {
 }
 
 const ownerLabel = {
-  all: 'All entries',
-  visible: 'with private entries',
-  public: 'Only public entries',
-  user: 'Only your entries',
-  shared: 'Incl. shared data',
-  staging: 'Staging area only'
+  all: 'All',
+  visible: 'Include private',
+  public: 'Only public',
+  user: 'Only yours',
+  shared: 'Shared',
+  staging: 'Unpublished'
 }
 
 const ownerTooltips = {
