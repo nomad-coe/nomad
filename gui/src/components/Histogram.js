@@ -13,6 +13,26 @@ function split(array, cols) {
   return [array.slice(0, size), ...split(array.slice(size), cols - 1)]
 }
 
+function isSelected(d, selected, multiple) {
+  // Determine if the value has been selected
+  let isSelected
+  if (multiple) {
+    if (selected === undefined) {
+      isSelected = false
+    } else {
+      if (Array.isArray(selected)) {
+        let selections = new Set(selected)
+        isSelected = selections.has(d.key)
+      } else {
+        isSelected = selected === d.key
+      }
+    }
+  } else {
+    isSelected = selected === d.key
+  }
+  return isSelected
+}
+
 const useStyles = makeStyles(theme => ({
   root: {
     marginTop: theme.spacing(2)
@@ -40,7 +60,7 @@ const useStyles = makeStyles(theme => ({
 }))
 export default function Histogram({
   initialScale = 1, getValueLabel, numberOfValues, title, data, columns = 1, tooltips,
-  onClick, selected, card
+  onClick, selected, card, multiple
 }) {
   onClick = onClick || (() => null)
   data = data || []
@@ -53,6 +73,7 @@ export default function Histogram({
   const [scale, setScale] = useState(initialScale)
 
   const handleItemClicked = item => onClick(item)
+
 
   useEffect(() => {
     for (let i = data.length; i < numberOfValues; i++) {
@@ -75,8 +96,8 @@ export default function Histogram({
     const max = d3.max(data, d => d.value) || 1
     x.domain([0, max])
 
-    const rectColor = d => selected === d.key ? nomadPrimaryColor.dark : nomadSecondaryColor.light
-    const textColor = d => selected === d.key ? '#FFF' : '#000'
+    const rectColor = d => isSelected(d, selected, multiple) ? nomadPrimaryColor.dark : nomadSecondaryColor.light
+    const textColor = d => isSelected(d, selected, multiple) ? '#FFF' : '#000'
 
     const container = d3.select(containerRef.current)
     const tooltip = container.select('.' + classes.tooltip)
@@ -289,5 +310,13 @@ Histogram.propTypes = {
   /**
    * If true the chart is wrapped in a MUI paper card with title and form.
    */
-  card: PropTypes.bool
+  card: PropTypes.bool,
+  /**
+   * If true, multiple values may be selected.
+   */
+  multiple: PropTypes.bool
+}
+
+Histogram.defaultProps = {
+  multiple: false
 }
