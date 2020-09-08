@@ -74,7 +74,6 @@ export default function Histogram({
 
   const handleItemClicked = item => onClick(item)
 
-
   useEffect(() => {
     for (let i = data.length; i < numberOfValues; i++) {
       data.push({key: `empty${i}`, name: '', value: 0})

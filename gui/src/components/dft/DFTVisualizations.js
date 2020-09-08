@@ -2,7 +2,6 @@ import React, { useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import QuantityHistogram from '../search/QuantityHistogram'
-import TooltipQuantityHistogram from '../search/TooltipQuantityHistogram'
 import { searchContext } from '../search/SearchContext'
 
 export function DFTMethodVisualizations(props) {
@@ -89,7 +88,7 @@ DFTSystemVisualizations.propTypes = {
 const electronic_quantities = [
   'electronic_band_structure',
   'electronic_dos',
-  'eigenvalues_values',
+  'eigenvalues_values'
 ]
 const mechanical_quantities = [
   'stress_tensor'
