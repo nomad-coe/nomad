@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import numpy as np
-import pint
 
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.metainfo.public import Workflow, Relaxation, Phonon, Elastic
@@ -24,10 +23,7 @@ class RelaxationNormalizer(Normalizer):
         super().__init__(entry_archive)
 
     def _to_numpy_array(self, quantity):
-        try:
-            return np.array(quantity)
-        except pint.UnitStrippedWarning as e:
-            self.logger.warn(e)
+        return np.array(quantity.m if quantity is not None else quantity)
 
     def _get_relaxation_type(self):
         sec_system = self.section_run.section_system
