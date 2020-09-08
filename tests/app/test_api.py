@@ -761,25 +761,32 @@ class TestArchive(UploadFilesBasedTests):
         return results
 
     @pytest.mark.parametrize('query_expression, nresults', [
-        ({
+        pytest.param({}, 4, id='empty'),
+        pytest.param({'dft.system': 'bulk'}, 4, id='match'),
+        pytest.param({'$gte': {'n_atoms': 1}}, 4, id='comparison'),
+        pytest.param({
             '$and': [
                 {'dft.system': 'bulk'}, {'$not': [{'dft.compound_type': 'ternary'}]}
             ]
-        }, 2),
-        ({
+        }, 2, id="and-with-not"),
+        pytest.param({
             '$or': [
                 {'upload_id': ['vasp_0']}, {'$gte': {'n_atoms': 1}}
             ]
-        }, 4),
-        ({
+        }, 4, id="or-with-gte"),
+        pytest.param({
             '$not': [{'dft.spacegroup': 221}, {'dft.spacegroup': 227}]
-        }, 0),
+        }, 0, id="not"),
+        pytest.param({
+            '$and': [
+                {'dft.code_name': 'VASP'},
+                {'$gte': {'n_atoms': 3}},
+                {'$lte': {'dft.workflow.section_relaxation.final_energy_difference': 1e-24}}
+            ]}, 0, id='client-example')
     ])
     def test_post_archive_query(self, api, example_upload, query_expression, nresults):
         data = {'pagination': {'per_page': 5}, 'query': query_expression}
-
-        uri = '/archive/query'
-        rv = api.post(uri, content_type='application/json', data=json.dumps(data))
+        rv = api.post('/archive/query', content_type='application/json', data=json.dumps(data))
 
         assert rv.status_code == 200
         data = rv.get_json()
@@ -787,6 +794,16 @@ class TestArchive(UploadFilesBasedTests):
         assert data
         results = data.get('results', None)
         assert len(results) == nresults
+
+    @pytest.mark.parametrize('query', [
+        pytest.param({'$bad_op': {'n_atoms': 1}}, id='bad-op')
+    ])
+    def test_post_archive_bad_query(self, api, query):
+        rv = api.post(
+            '/archive/query', content_type='application/json',
+            data=json.dumps(dict(query=query)))
+
+        assert rv.status_code == 400
 
 
 class TestMetainfo():

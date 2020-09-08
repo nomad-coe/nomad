@@ -68,8 +68,8 @@ class RepoCalcResource(Resource):
 
         result = calc.to_dict()
         result['code'] = {
-            'python': query_api_python('archive', upload_id, calc_id),
-            'curl': query_api_curl('archive', upload_id, calc_id),
+            'python': query_api_python(dict(upload_id=upload_id, calc_id=calc_id)),
+            'curl': query_api_curl(dict(upload_id=upload_id, calc_id=calc_id)),
             'clientlib': query_api_clientlib(upload_id=[upload_id], calc_id=[calc_id])
         }
 
@@ -256,12 +256,12 @@ class RepoCalcsResource(Resource):
                         results[group_name] = quantities[group_quantity.qualified_name]
 
             # build python code/curl snippet
-            code_args = dict(request.args)
+            code_args = request.args.to_dict(flat=False)
             if 'statistics' in code_args:
                 del(code_args['statistics'])
             results['code'] = {
-                'curl': query_api_curl('archive', 'query', query_string=code_args),
-                'python': query_api_python('archive', 'query', query_string=code_args),
+                'curl': query_api_curl(code_args),
+                'python': query_api_python(code_args),
                 'clientlib': query_api_clientlib(**code_args)
             }
 
@@ -342,7 +342,10 @@ class RepoCalcsResource(Resource):
             search_request.date_histogram(interval=interval, metrics_to_use=metrics)
 
         if query_expression:
-            search_request.query_expression(query_expression)
+            try:
+                search_request.query_expression(query_expression)
+            except AssertionError as e:
+                abort(400, str(e))
 
         try:
             assert page >= 1
@@ -405,8 +408,8 @@ class RepoCalcsResource(Resource):
             if 'statistics' in code_args:
                 del(code_args['statistics'])
             results['code'] = {
-                'curl': query_api_curl('archive', 'query', query_string=code_args),
-                'python': query_api_python('archive', 'query', query_string=code_args),
+                'curl': query_api_curl(code_args),
+                'python': query_api_python(code_args),
                 'clientlib': query_api_clientlib(**code_args)
             }
 

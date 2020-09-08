@@ -215,15 +215,14 @@ class SearchRequest:
 
         return self
 
-    def search_parameter(self, name, value):
+    def _search_parameter_to_es(self, name, value):
         quantity = search_quantities[name]
 
         if quantity.many and not isinstance(value, list):
             value = [value]
 
         if quantity.many_or and isinstance(value, List):
-            self.q &= Q('terms', **{quantity.search_field: value})
-            return self
+            return Q('terms', **{quantity.search_field: value})
 
         if quantity.derived:
             if quantity.many and not isinstance(value, list):
@@ -235,9 +234,12 @@ class SearchRequest:
         else:
             values = [value]
 
-        for item in values:
-            self.q &= Q('match', **{quantity.search_field: item})
+        return Q('bool', must=[
+            Q('match', **{quantity.search_field: item})
+            for item in values])
 
+    def search_parameter(self, name, value):
+        self.q &= self._search_parameter_to_es(name, value)
         return self
 
     def query(self, query):
@@ -246,74 +248,41 @@ class SearchRequest:
 
         return self
 
-    def query_expression(self, expression):
+    def query_expression(self, expression) -> 'SearchRequest':
 
-        bool_operators = ['$and', '$or', '$not']
-        comp_operators = ['$gt', '$lt', '$gte', '$lte']
+        bool_operators = {'$and': 'must', '$or': 'should', '$not': 'must_not'}
+        comp_operators = {'$%s' % op: op for op in ['gt', 'gte', 'lt', 'lte']}
 
-        def _gen_query(name, value, operator):
-            quantity = search_quantities.get(name)
-            if quantity is None:
-                raise InvalidQuery('Search quantity %s does not exist' % name)
+        def _to_es(key, values):
+            if key in bool_operators:
+                if isinstance(values, dict):
+                    values = [values]
+                assert isinstance(values, list), 'bool operator requires a list of dicts or dict'
+                child_es_queries = [
+                    _to_es(child_key, child_value)
+                    for child_query in values
+                    for child_key, child_value in child_query.items()]
+                return Q('bool', **{bool_operators[key]: child_es_queries})
 
-            if operator in bool_operators:
-                value = value if isinstance(value, list) else [value]
-                value = quantity.derived(value) if quantity.derived else value
-                q = [Q('match', **{quantity.search_field: item}) for item in value]
-                q = _add_queries(q, '$and')
-            elif operator in comp_operators:
-                q = Q('range', **{quantity.search_field: {operator.lstrip('$'): value}})
-            else:
-                raise ValueError('Invalid operator %s' % operator)
+            if key in comp_operators:
+                assert isinstance(values, dict), 'comparison operator requires a dict'
+                assert len(values) == 1, 'comparison operator requires exactly one quantity'
+                quantity_name, value = next(iter(values.items()))
+                quantity = search_quantities.get(quantity_name)
+                assert quantity is not None, 'quantity %s does not exist' % quantity_name
+                return Q('range', **{quantity.search_field: {comp_operators[key]: value}})
 
-            return q
+            try:
+                return self._search_parameter_to_es(key, values)
+            except KeyError:
+                assert False, 'quantity %s does not exist' % key
 
-        def _add_queries(queries, operator):
-            if operator == '$and':
-                q = Q('bool', must=queries)
-            elif operator == '$or':
-                q = Q('bool', should=queries)
-            elif operator == '$not':
-                q = Q('bool', must_not=queries)
-            elif operator in comp_operators:
-                q = Q('bool', must=queries)
-            elif operator is None:
-                q = queries[0]
-            else:
-                raise ValueError('Invalid operator %s' % operator)
+        if len(expression) == 0:
+            self.q &= Q()
+        else:
+            self.q &= Q('bool', must=[_to_es(key, value) for key, value in expression.items()])
 
-            return q
-
-        def _query(exp_value, exp_op=None):
-            if isinstance(
-                exp_value, dict) and len(exp_value) == 1 and '$' not in list(
-                    exp_value.keys())[-1]:
-                key, val = list(exp_value.items())[0]
-                query = _gen_query(key, val, exp_op)
-
-            else:
-                q = []
-                if isinstance(exp_value, dict):
-                    for key, val in exp_value.items():
-                        q.append(_query(val, exp_op=key))
-
-                elif isinstance(exp_value, list):
-                    for val in exp_value:
-                        op = exp_op
-
-                        if isinstance(val, dict):
-                            k, v = list(val.items())[0]
-                            if k[0] == '$':
-                                val, op = v, k
-
-                        q.append(_query(val, exp_op=op))
-
-                query = _add_queries(q, exp_op)
-
-            return query
-
-        q = _query(expression)
-        self.q &= q
+        return self
 
     def time_range(self, start: datetime, end: datetime):
         ''' Adds a time range to the query. '''

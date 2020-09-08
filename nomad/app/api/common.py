@@ -342,7 +342,7 @@ def streamed_zipfile(
     return response
 
 
-def query_api_url(*args, query_string: Dict[str, Any] = None):
+def _query_api_url(*args, query: Dict[str, Any] = None):
     '''
     Creates a API URL.
     Arguments:
@@ -350,21 +350,53 @@ def query_api_url(*args, query_string: Dict[str, Any] = None):
         query_string: A dict with query string parameters
     '''
     url = os.path.join(config.api_url(False), *args)
-    if query_string is not None:
-        url = '%s?%s' % (url, urlencode(query_string, doseq=True))
+    if query is not None:
+        url = '%s?%s' % (url, urlencode(query, doseq=True))
 
     return url
 
 
-def query_api_python(*args, **kwargs):
+def query_api_python(query):
     '''
     Creates a string of python code to execute a search query to the repository using
     the requests library.
     '''
-    url = query_api_url(*args, **kwargs)
+    query = _filter_api_query(query)
+    url = _query_api_url('archive', 'query')
     return '''import requests
-response = requests.post("{}")
-data = response.json()'''.format(url)
+response = requests.post('{}', json={{
+    'query': {{
+{}
+    }}
+}})
+data = response.json()'''.format(
+        url,
+        ',\n'.join([
+            '        \'%s\': %s' % (key, pprint.pformat(value, compact=True))
+            for key, value in query.items()])
+    )
+
+
+def _filter_api_query(query):
+    def normalize_value(key, value):
+        quantity = search.search_quantities.get(key)
+        if quantity.many and not isinstance(value, list):
+            return [value]
+        elif isinstance(value, list) and len(value) == 1:
+            return value[0]
+
+        return value
+
+    result = {
+        key: normalize_value(key, value) for key, value in query.items()
+        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
+    }
+
+    for key in ['dft.optimade']:
+        if key in query:
+            result[key] = query[key]
+
+    return result
 
 
 def query_api_clientlib(**kwargs):
@@ -372,21 +404,7 @@ def query_api_clientlib(**kwargs):
     Creates a string of python code to execute a search query on the archive using
     the client library.
     '''
-    def normalize_value(key, value):
-        quantity = search.search_quantities.get(key)
-        if quantity.many and not isinstance(value, list):
-            return [value]
-
-        return value
-
-    query = {
-        key: normalize_value(key, value) for key, value in kwargs.items()
-        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
-    }
-
-    for key in ['dft.optimade']:
-        if key in kwargs:
-            query[key] = kwargs[key]
+    query = _filter_api_query(kwargs)
 
     out = io.StringIO()
     out.write('from nomad import client, config\n')
@@ -401,12 +419,13 @@ def query_api_clientlib(**kwargs):
     return out.getvalue()
 
 
-def query_api_curl(*args, **kwargs):
+def query_api_curl(query):
     '''
-    Creates a string of curl command to execute a search query to the repository.
+    Creates a string of curl command to execute a search query and download the respective
+    archives in a .zip file.
     '''
-    url = query_api_url(*args, **kwargs)
-    return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
+    url = _query_api_url('archive', 'download', query=query)
+    return 'curl "%s" --output nomad.zip' % url
 
 
 def enable_gzip(level: int = 1, min_size: int = 1024):

@@ -578,7 +578,10 @@ class RawFileQueryResource(Resource):
         search_request.include('calc_id', 'upload_id', 'mainfile')
 
         if query_expression:
-            search_request.query_expression(query_expression)
+            try:
+                search_request.query_expression(query_expression)
+            except AssertionError as e:
+                abort(400, str(e))
 
         def path(entry):
             return '%s/%s' % (entry['upload_id'], entry['mainfile'])

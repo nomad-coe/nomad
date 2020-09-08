@@ -284,7 +284,10 @@ class ArchiveQueryResource(Resource):
                 'calc_id', 'upload_id', 'with_embargo', 'published', 'parser_name')
 
         if query_expression:
-            search_request.query_expression(query_expression)
+            try:
+                search_request.query_expression(query_expression)
+            except AssertionError as e:
+                abort(400, str(e))
 
         try:
             if aggregation:
