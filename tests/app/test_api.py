@@ -1237,7 +1237,6 @@ class TestRepo():
         (1, 'authors', 'Leonard Hofstadter'),
         (2, 'files', 'test/mainfile.txt'),
         (0, 'dft.quantities', 'dos'),
-        (2, 'dft.searchable_quantities', 'energy_total'),
         (2, 'dft.compound_type', 'ternary'),
         (0, 'dft.labels_springer_compound_class', 'intermetallic')
     ])
