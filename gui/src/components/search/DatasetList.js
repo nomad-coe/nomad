@@ -128,7 +128,7 @@ class DatasetActionsUnstyled extends React.Component {
     const {dataset, search, user, classes} = this.props
     const {doi} = dataset
     const editable = user && dataset.example &&
-      dataset.example.authors.find(author => author.user_id === user.sub)
+      dataset.example.owners.find(author => author.user_id === user.sub)
 
     const canAssignDOI = !doi
     const canDelete = !doi
