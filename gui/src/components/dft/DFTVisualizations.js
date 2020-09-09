@@ -138,9 +138,9 @@ const metainfoPaths = {
 
 function MetaInfoTooltip({def, path}) {
   const theme = useTheme()
-  return <div style={{display: 'flex', flexDirection: 'column', padding: 5}}>
-    <h2 style={{fontSize: 14, margin: 0, padding: 0}}>Metainfo definition:</h2>
-    <a style={{fontSize: 14, color: theme.palette.secondary.main}} href={`/fairdi/nomad/latest/gui/metainfo/${path}`}>{def.name}</a>
+  return <div style={{display: 'flex', flexDirection: 'column', padding: 2}}>
+    <p style={{fontSize: 14, margin: 0, padding: 0}}>Metainfo definition:</p>
+    <a style={{fontSize: 14, color: theme.palette.secondary.light}} href={`/fairdi/nomad/latest/gui/metainfo/${path}`}>{def.name}</a>
   </div>
 }
 
