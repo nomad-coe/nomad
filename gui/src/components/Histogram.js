@@ -66,7 +66,7 @@ export default function Histogram({
   getValueLabel = getValueLabel || (value => value.name)
   title = title || 'Histogram'
 
-  const [tooltipHTML, setTooltipHTML] = useState()
+  const [tooltipHTML, setTooltipHTML] = useState('')
   const [item, setItem] = useState()
   const [scale, setScale] = useState(initialScale)
   const classes = useStyles()

@@ -1,8 +1,10 @@
 import React, { useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
+import { useTheme } from '@material-ui/core/styles'
 import QuantityHistogram from '../search/QuantityHistogram'
 import { searchContext } from '../search/SearchContext'
+import { path, defsByName } from '../archive/metainfo'
 
 export function DFTMethodVisualizations(props) {
   const {info} = props
@@ -108,22 +110,7 @@ const optical_quantities = [
 ]
 
 const labels = {
-  'energy_total': 'Total energy',
-  'energy_total_T0': 'Total energy (0K)',
-  'energy_free': 'Free energy',
-  'energy_electrostatic': 'Electrostatic',
-  'energy_X': 'Exchange',
-  'energy_XC': 'Exchange-correlation',
-  'energy_sum_eigenvalues': 'Band energy',
-  'dos_values': 'DOS',
   'eigenvalues_values': 'Eigenvalues',
-  'volumetric_data_values': 'Volumetric data',
-  'electronic_kinetic_energy': 'Kinetic energy',
-  'total_charge': 'Charge',
-  'atom_forces_free': 'Free atomic forces',
-  'atom_forces_raw': 'Raw atomic forces',
-  'atom_forces_T0': 'Atomic forces (0K)',
-  'atom_forces': 'Atomic forces',
   'stress_tensor': 'Stress tensor',
   'electronic_band_structure': 'Electronic band structure',
   'electronic_dos': 'Electronic density of states',
@@ -131,12 +118,44 @@ const labels = {
   'phonon_dos': 'Phonon density of states',
   'thermodynamical_property_heat_capacity_C_v': 'Heat capacity',
   'vibrational_free_energy_at_constant_volume': 'Helmholtz free energy',
-  'band_energies': 'Band energies',
   'spin_S2': 'Angular spin momentum squared',
-  'excitation_energies': 'Excitation energies',
   'oscillator_strengths': 'Oscillator strengths',
-  'transition_dipole_moments': 'Transition dipole moments',
-  'atomic_multipole_values': 'Atomic multipole values'}
+  'transition_dipole_moments': 'Transition dipole moments'
+}
+const metainfoPaths = {
+  'eigenvalues_values': path('eigenvalues_values'),
+  'stress_tensor': path('stress_tensor'),
+  'electronic_band_structure': 'section_run/section_single_configuration_calculation/section_k_band',
+  'electronic_dos': 'section_run/section_single_configuration_calculation/section_dos',
+  'phonon_band_structure': 'section_run/section_single_configuration_calculation/section_k_band',
+  'phonon_dos': 'section_run/section_single_configuration_calculation/section_dos',
+  'thermodynamical_property_heat_capacity_C_v': path('thermodynamical_property_heat_capacity_C_v'),
+  'vibrational_free_energy_at_constant_volume': path('vibrational_free_energy_at_constant_volume'),
+  'spin_S2': path('spin_S2'),
+  'oscillator_strengths': path('oscillator_strengths'),
+  'transition_dipole_moments': path('transition_dipole_moments')
+}
+
+function MetaInfoTooltip({def, path}) {
+  const theme = useTheme()
+  return <div style={{display: 'flex', flexDirection: 'column', padding: 5}}>
+    <h2 style={{fontSize: 14, margin: 0, padding: 0}}>Metainfo definition:</h2>
+    <a style={{fontSize: 14, color: theme.palette.secondary.main}} href={`/fairdi/nomad/latest/gui/metainfo/${path}`}>{def.name}</a>
+  </div>
+}
+
+MetaInfoTooltip.propTypes = {
+  def: PropTypes.object,
+  path: PropTypes.string
+}
+
+const tooltips = {}
+for (const label in labels) {
+  const path = metainfoPaths[label]
+  const realName = path.split('/').slice(-1)[0]
+  const metainfoDef = defsByName[realName][0]
+  tooltips[label] = <MetaInfoTooltip def={metainfoDef} path={path}></MetaInfoTooltip>
+}
 
 const workflowTypeLabels = {
   'geometry_optimization': 'Geometry optimization',
@@ -173,11 +192,11 @@ export function DFTPropertyVisualizations(props) {
   return (
     <Grid container spacing={2}>
       <Grid item xs={7}>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} tooltips={labels} multiple/>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={mechanical_quantities} valueLabels={labels} title="Mechanical" initialScale={0.5} multiple/>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={thermal_quantities} valueLabels={labels} title="Thermal" initialScale={0.5} multiple/>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} multiple/>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={mechanical_quantities} valueLabels={labels} title="Mechanical" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={thermal_quantities} valueLabels={labels} title="Thermal" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} tooltips={tooltips} multiple/>
       </Grid>
       <Grid item xs={5}>
         <QuantityHistogram quantity="dft.labels_springer_classification" title="Functional classification" initialScale={1} multiple/>
