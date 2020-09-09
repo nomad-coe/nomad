@@ -18,9 +18,12 @@ export default function QuantityHistogram({
   const statisticsData = statistics[quantity]
 
   const handleItemClicked = useCallback(item => {
+    console.log(quantity)
+    console.log(query)
     if (multiple) {
       // Add or remove item from query
       let newQuery = query[quantity]
+      console.log("Old query: " + newQuery)
       if (newQuery === undefined) {
         newQuery = [item.key]
       } else {
@@ -35,6 +38,7 @@ export default function QuantityHistogram({
         }
         newQuery = Array.from(newQuery.values())
       }
+      console.log("New query: " + newQuery)
       setQuery({[quantity]: newQuery})
     } else {
       setQuery({[quantity]: (query[quantity] === item.key) ? null : item.key})
@@ -50,7 +54,7 @@ export default function QuantityHistogram({
         key: value,
         name: valueLabels[value] || value,
         value: statisticsData[value] ? statisticsData[value][metric] : 0,
-        tooltip: tooltips[value] || valueLabels[value] || value
+        tooltip: tooltips[value]
       }))
     } else {
       data = Object.keys(statisticsData)
@@ -79,6 +83,7 @@ export default function QuantityHistogram({
     onClick={handleItemClicked}
     selected={query[quantity]}
     multiple={multiple}
+    tooltips={!!tooltips}
     {...props}
   />
 }

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Select, MenuItem, Card, CardContent, CardHeader, makeStyles } from '@material-ui/core'
+import { Select, MenuItem, Card, CardContent, CardHeader, makeStyles, Tooltip } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
 import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor, nomadFontFamily } from '../config.js'
@@ -42,20 +42,18 @@ const useStyles = makeStyles(theme => ({
     position: 'relative'
   },
   tooltip: {
-    textAlign: 'center',
-    position: 'absolute',
-    pointerEvents: 'none',
-    opacity: 0
+    width: '100%',
+    height: '100%'
   },
   tooltipContent: {
-    // copy of the material ui popper style
-    display: 'inline-block',
-    color: '#fff',
-    padding: '4px 8px',
-    fontSize: '0.625rem',
-    lineHeight: '1.4em',
-    borderRadius: '4px',
-    backgroundColor: '#616161'
+    position: 'absolute',
+    // backgroundColor: '#ffbb00' // Uncomment for debugging tooltips
+    display: 'none',
+    zIndex: 1,
+    cursor: 'pointer'
+  },
+  canvas: {
+    zIndex: 2
   }
 }))
 export default function Histogram({
@@ -68,11 +66,17 @@ export default function Histogram({
   getValueLabel = getValueLabel || (value => value.name)
   title = title || 'Histogram'
 
+  const [tooltipHTML, setTooltipHTML] = useState()
+  const [item, setItem] = useState()
+  const [scale, setScale] = useState(initialScale)
   const classes = useStyles()
   const containerRef = useRef()
-  const [scale, setScale] = useState(initialScale)
 
-  const handleItemClicked = item => onClick(item)
+  const handleItemClicked = item => {
+    if (item.value !== 0) {
+      onClick(item)
+    }
+  }
 
   useEffect(() => {
     for (let i = data.length; i < numberOfValues; i++) {
@@ -88,6 +92,7 @@ export default function Histogram({
     const containerWidth = containerRef.current.offsetWidth
     const width = containerWidth / columns - (12 * (columns - 1))
     const height = columnSize * 32
+    const padding = 16
 
     const x = scalePow().range([0, width]).exponent(scale)
 
@@ -96,16 +101,21 @@ export default function Histogram({
     x.domain([0, max])
 
     const rectColor = d => isSelected(d, selected, multiple) ? nomadPrimaryColor.dark : nomadSecondaryColor.light
-    const textColor = d => isSelected(d, selected, multiple) ? '#FFF' : '#000'
+    const textColor = d => {
+      if (d.value === 0) {
+        return '#999'
+      }
+      return isSelected(d, selected, multiple) ? '#FFF' : '#000'
+    }
 
     const container = d3.select(containerRef.current)
-    const tooltip = container.select('.' + classes.tooltip)
-      .style('width', width + 'px')
-      .style('opacity', 0)
     const tooltipContent = container.select('.' + classes.tooltipContent)
     const svg = container.select('svg')
       .attr('width', containerWidth)
       .attr('height', height)
+    tooltipContent
+      .style('width', width + 'px')
+      .style('height', 27 + 'px')
 
     const columnsG = svg
       .selectAll('.column')
@@ -130,12 +140,14 @@ export default function Histogram({
       items.exit().remove()
 
       items
-        .on('click', d => handleItemClicked(d))
+        .on('click', handleItemClicked)
 
       let item = items.enter()
         .append('g')
         .attr('class', 'item')
         .attr('display', d => getValueLabel(d) === '' ? 'none' : 'show')
+        .style('cursor', 'pointer')
+        .on('click', handleItemClicked)
 
       item
         .append('rect')
@@ -181,31 +193,19 @@ export default function Histogram({
         .text(d => formatQuantity(d.value))
 
       item
-        .style('cursor', 'pointer')
-        .on('click', d => handleItemClicked(d))
-
-      item
-        .on('mouseover', function(d) {
-          d3.select(this).select('.background')
-            .style('opacity', 0.08)
+        .on('mouseenter', function(d) {
+          setItem(d)
           if (tooltips) {
-            tooltip.transition()
-              .duration(200)
-              .style('opacity', 1)
-            tooltip
-              .style('left', i * (width + 12) + 'px')
-              .style('top', (y(d.key) + 32) + 'px')
-            tooltipContent.html(getValueLabel(d))
+            if (d.tooltip) {
+              tooltipContent
+                .style('left', i * (width) + padding + 'px')
+                .style('top', (y(d.key)) + 'px')
+                .style('display', 'block')
+              setTooltipHTML(d.tooltip)
+            }
           }
         })
-        .on('mouseout', function(d) {
-          d3.select(this).select('.background')
-            .style('opacity', 0)
-          if (tooltips) {
-            tooltip.transition()
-              .duration(200)
-              .style('opacity', 0)
-          }
+        .on('mouseleave', function(d) {
         })
 
       item = items.transition(d3.transition().duration(500))
@@ -234,9 +234,16 @@ export default function Histogram({
 
   const chart = <div ref={containerRef}>
     <div className={classes.tooltip}>
-      <div className={classes.tooltipContent}></div>
+      <Tooltip
+        interactive
+        placement='right'
+        title={tooltipHTML}
+      >
+        <div className={classes.tooltipContent} onClick={() => { handleItemClicked(item) }}>
+        </div>
+      </Tooltip>
+      <svg className={classes.canvas}></svg>
     </div>
-    <svg />
   </div>
 
   if (card) {
