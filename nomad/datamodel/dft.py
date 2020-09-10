@@ -219,7 +219,7 @@ class DFTMetadata(MSection):
     searchable_quantities = Quantity(
         type=str, shape=['0..*'],
         description='All quantities with existence filters in the search GUI.',
-        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities)))
+        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities) + 15))  # Temporarily increased the statistics size while migrating from old set to new one.
 
     geometries = Quantity(
         type=str, shape=['0..*'],

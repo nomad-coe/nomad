@@ -13,7 +13,6 @@ export default function QuantityHistogram({
 }) {
   title = title || quantity
   values = values || (searchQuantities[quantity] && searchQuantities[quantity].statistic_values)
-  console.log(values)
   numberOfValues = numberOfValues || (values && values.length) || (searchQuantities[quantity] && searchQuantities[quantity].statistic_size)
   const {response: {statistics, metric}, query, setQuery} = useContext(searchContext)
   const statisticsData = statistics[quantity]
