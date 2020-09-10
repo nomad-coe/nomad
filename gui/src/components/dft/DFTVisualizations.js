@@ -150,13 +150,20 @@ const labels = {
   'transition_dipole_moments': 'Transition dipole moments',
   'atomic_multipole_values': 'Atomic multipole values'}
 
+const workflowTypeLabels = {
+  'geometry_optimization': 'Geometry optimization',
+  'phonon': 'Phonons',
+  'elastic': 'Elastic constants'
+}
+
 export function DFTPropertyVisualizations(props) {
   const {info} = props
   const {response: {statistics, metric}, setStatistics} = useContext(searchContext)
   useEffect(() => {
     setStatistics([
       'dft.searchable_quantities',
-      'dft.labels_springer_classification'
+      'dft.labels_springer_classification',
+      'dft.workflow.workflow_type'
     ])
     // eslint-disable-next-line
   }, [])
@@ -189,6 +196,9 @@ export function DFTPropertyVisualizations(props) {
       </Grid>
       <Grid item xs={4}>
         <QuantityHistogram quantity="dft.labels_springer_classification" title="Property classification" initialScale={1} />
+      </Grid>
+      <Grid item xs={12}>
+        <QuantityHistogram quantity="dft.workflow.workflow_type" title="Workflows" valueLabels={workflowTypeLabels} initialScale={0.25} />
       </Grid>
     </Grid>
   )
