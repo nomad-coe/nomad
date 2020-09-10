@@ -57,47 +57,33 @@ compound_types = [
     'decinary'
 ]
 
-_energy_quantities = [
-    'energy_total',
-    'energy_total_T0',
-    'energy_free',
-    'energy_electrostatic',
-    'energy_X',
-    'energy_XC',
-    'energy_sum_eigenvalues']
-
 _electronic_quantities = [
-    'dos_values',
+    'electronic_band_structure',
+    'electronic_dos',
     'eigenvalues_values',
-    'volumetric_data_values',
-    'electronic_kinetic_energy',
-    'total_charge',
-    # 'atomic_multipole_values'
 ]
 
-_forces_quantities = [
-    'atom_forces_free',
-    'atom_forces_raw',
-    # 'atom_forces_T0',
-    'atom_forces',
-    'stress_tensor']
+_mechanical_quantities = [
+    'stress_tensor'
+]
 
-_vibrational_quantities = [
+_thermal_quantities = [
     'thermodynamical_property_heat_capacity_C_v',
     'vibrational_free_energy_at_constant_volume',
-    'band_energies']
+    'phonon_band_structure',
+    'phonon_dos',
+]
 
 _magnetic_quantities = [
     'spin_S2'
 ]
 
 _optical_quantities = [
-    'excitation_energies',
     'oscillator_strengths',
     'transition_dipole_moments'
 ]
 
-_searchable_quantities = set(_energy_quantities + _electronic_quantities + _forces_quantities + _vibrational_quantities + _magnetic_quantities + _optical_quantities)
+_searchable_quantities = set(_electronic_quantities + _mechanical_quantities + _thermal_quantities + _magnetic_quantities + _optical_quantities)
 
 version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
@@ -233,7 +219,7 @@ class DFTMetadata(MSection):
     searchable_quantities = Quantity(
         type=str, shape=['0..*'],
         description='All quantities with existence filters in the search GUI.',
-        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities)))
+        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities) + 15))  # Temporarily increased the statistics size while migrating from old set to new one.
 
     geometries = Quantity(
         type=str, shape=['0..*'],

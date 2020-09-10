@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react'
+import React, { useContext, useMemo, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { searchContext } from './SearchContext.js'
 import searchQuantities from '../../searchQuantities'
@@ -8,7 +8,7 @@ const unprocessedLabel = 'not processed'
 const unavailableLabel = 'unavailable'
 
 export default function QuantityHistogram({
-  quantity, valueLabels = {}, title, values, numberOfValues,
+  quantity, valueLabels = {}, title, values, numberOfValues, multiple, tooltips = {},
   ...props
 }) {
   title = title || quantity
@@ -16,9 +16,30 @@ export default function QuantityHistogram({
   numberOfValues = numberOfValues || (values && values.length) || (searchQuantities[quantity] && searchQuantities[quantity].statistic_size)
   const {response: {statistics, metric}, query, setQuery} = useContext(searchContext)
   const statisticsData = statistics[quantity]
-  const handleItemClicked = item => {
-    setQuery({[quantity]: (query[quantity] === item.key) ? null : item.key})
-  }
+
+  const handleItemClicked = useCallback(item => {
+    if (multiple) {
+      // Add or remove item from query
+      let newQuery = query[quantity]
+      if (newQuery === undefined) {
+        newQuery = [item.key]
+      } else {
+        if (!Array.isArray(newQuery)) {
+          newQuery = [newQuery]
+        }
+        newQuery = new Set(newQuery)
+        if (newQuery.has(item.key)) {
+          newQuery.delete(item.key)
+        } else {
+          newQuery.add([item.key])
+        }
+        newQuery = Array.from(newQuery.values())
+      }
+      setQuery({[quantity]: newQuery})
+    } else {
+      setQuery({[quantity]: (query[quantity] === item.key) ? null : item.key})
+    }
+  }, [query, setQuery, multiple, quantity])
 
   const data = useMemo(() => {
     let data
@@ -28,7 +49,8 @@ export default function QuantityHistogram({
       data = values.map(value => ({
         key: value,
         name: valueLabels[value] || value,
-        value: statisticsData[value] ? statisticsData[value][metric] : 0
+        value: statisticsData[value] ? statisticsData[value][metric] : 0,
+        tooltip: tooltips[value]
       }))
     } else {
       data = Object.keys(statisticsData)
@@ -48,7 +70,7 @@ export default function QuantityHistogram({
       }
     }
     return data
-  }, [metric, quantity, statistics, statisticsData, valueLabels, values])
+  }, [metric, quantity, statistics, statisticsData, valueLabels, values, tooltips])
 
   return <Histogram
     card data={data}
@@ -56,6 +78,8 @@ export default function QuantityHistogram({
     title={title}
     onClick={handleItemClicked}
     selected={query[quantity]}
+    multiple={multiple}
+    tooltips={!!tooltips}
     {...props}
   />
 }
@@ -88,5 +112,17 @@ QuantityHistogram.propTypes = {
    * An optional mapping between values and labels that should be used to render the
    * values.
    */
-  valueLabels: PropTypes.object
+  valueLabels: PropTypes.object,
+  /**
+   * An optional mapping between values and their tooltip content.
+   */
+  tooltips: PropTypes.object,
+  /**
+   * Whether multiple values can be appended to the same query key.
+   */
+  multiple: PropTypes.bool
+}
+
+QuantityHistogram.defaultProps = {
+  multiple: false
 }
