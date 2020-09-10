@@ -429,7 +429,7 @@ class EntryMetadata(metainfo.MSection):
             handle of an external database/repository or the name of the uploader.
         ''',
         derived=derive_origin,
-        a_search=Search())
+        a_search=Search(statistic_size=10, statistic_order='_count'))
 
     coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
