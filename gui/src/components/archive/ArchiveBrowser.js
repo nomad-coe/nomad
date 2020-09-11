@@ -10,6 +10,8 @@ import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
+import BandStructure from '../visualization/BandStructure'
+import DOS from '../visualization/DOS'
 import { StructureViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
 import { convert } from '../../utils'
@@ -305,6 +307,25 @@ QuantityValue.propTypes = ({
  * title.
  */
 function Overview({section, def}) {
+  // Styles
+  const useStyles = makeStyles(
+    {
+      bands: {
+        width: '30rem',
+        height: '30rem'
+      },
+      dos: {
+        width: '20',
+        height: '20'
+      },
+      bz: {
+        width: '20',
+        height: '20'
+      }
+    }
+  )
+  const style = useStyles()
+
   // Structure visualization for section_system
   if (def.name === 'section_system') {
     let url = window.location.href
@@ -338,7 +359,25 @@ function Overview({section, def}) {
     visualizedSystem.sectionPath = sectionPath
     visualizedSystem.index = index
 
-    return <Structure viewer={viewer} system={system} positionsOnly={positionsOnly}></Structure>
+    return <Structure
+      viewer={viewer}
+      system={system}
+      positionsOnly={positionsOnly}
+    ></Structure>
+  // Band structure plot for section_k_band or section_k_band_normalized
+  } else if (def.name === 'section_k_band' || def.name === 'section_k_band_normalized') {
+    return <BandStructure
+      className={style.bands}
+      data={section}
+      aspectRatio={1}
+    ></BandStructure>
+  // DOS plot for section_dos
+  } else if (def.name === 'section_dos') {
+    return <DOS
+      className={style.dos}
+      data={section}
+      aspectRatio={1 / 2}
+    ></DOS>
   }
   return null
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -18,10 +19,10 @@ import {
   CameraAlt,
   Replay
 } from '@material-ui/icons'
-import { StructureViewer } from '@lauri-codes/materia'
+import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 
-export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) {
+export default function BrillouinZone({className, classes, options, viewer, system, positionsOnly, sizeLimit, captureName, aspectRatio}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -38,6 +39,8 @@ export default function Structure({className, classes, system, options, viewer, 
   // Styles
   const useStyles = makeStyles((theme) => {
     return {
+      root: {
+      },
       container: {
         display: 'flex',
         width: '100%',
@@ -79,7 +82,7 @@ export default function Structure({className, classes, system, options, viewer, 
       }
     }
   })
-  const style = useStyles(classes)
+  let style = useStyles(classes)
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -133,11 +136,12 @@ export default function Structure({className, classes, system, options, viewer, 
     } else {
       viewerOptions = options
     }
+
     if (viewer === undefined) {
-      refViewer.current = new StructureViewer(undefined, viewerOptions)
+      refViewer.current = new BrillouinZoneViewer(undefined, viewerOptions)
     } else {
       refViewer.current = viewer
-      refViewer.current.setOptions(options, false, false)
+      refViewer.current.setOptions(viewerOptions, false, false)
     }
     if (refCanvas.current !== null) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
@@ -312,24 +316,26 @@ export default function Structure({className, classes, system, options, viewer, 
   </Box>
 
   return (
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
+    <Box className={clsx(style.root, className)} >
+      <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
+        {content}
+      </Floatable>
+    </Box>
   )
 }
 
-Structure.propTypes = {
-  className: PropTypes.string,
-  classes: PropTypes.object,
+BrillouinZone.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
   system: PropTypes.object, // The system to display as section_system
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   sizeLimit: PropTypes.number, // Maximum number of atoms to attempt to display
-  positionsOnly: PropTypes.bool // Whether to update only positions. This is much faster than loading the entire structure.
+  positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
+  classes: PropTypes.object,
+  className: PropTypes.string
 }
-Structure.defaultProps = {
+BrillouinZone.defaultProps = {
   aspectRatio: 4 / 3,
   captureName: 'structure',
   sizeLimit: 300

@@ -1,4 +1,5 @@
 import { unit } from 'mathjs'
+import { cloneDeep, merge } from 'lodash'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -37,7 +38,7 @@ export const capitalize = (s) => {
  * Used to convert numeric values from one unit to another. Works on
  * n-dimensional arrays and implemented as a relatively simple for loop for
  * performance. If conversion times become an issue, it might be worthwhile to
- * look at vectorization with SIMD.
+ * look at vectorization with WebAssembly.
  *
  * @param {*} value The values to convert
  * @param {*} from Original unit.
@@ -73,6 +74,38 @@ export function convert(value, from, to) {
     scaleRecursive(value, newValue)
   }
   return newValue
+}
+
+/**
+ * Used to calculate the distance between two n-dimensional points,
+ *
+ * @param {*} a First point
+ * @param {*} b Second point
+ *
+ * @return {*} Euclidean distance between the given two points.
+ */
+export function distance(a, b) {
+  return a
+    .map((x, i) => Math.abs(x - b[i]) ** 2) // square the difference
+    .reduce((sum, now) => sum + now) ** // sum
+    (1 / 2)
+}
+
+/**
+ * Used to merge two Javascript objects into a new third object by recursively
+ * overwriting and extending the target object with properties from the source
+ * object.
+ *
+ * @param {*} target The values to convert
+ * @param {*} source Original unit.
+ *
+ * @return {*} A copy of the original data with units converted.
+ */
+export function mergeObjects(source, target, copy = false) {
+  // First create a deep clone that will be used as the returned object
+  let cloned = cloneDeep(target)
+  let val = merge(cloned, source)
+  return val
 }
 
 export function arraysEqual(_arr1, _arr2) {
