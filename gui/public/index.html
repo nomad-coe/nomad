@@ -5,6 +5,9 @@
       window.paceOptions = {
         restartOnPushState: true
       }
+      // This needs to be defined for Plotly.js graphs, see
+      // https://github.com/plotly/plotly.js/blob/master/dist/README.md#partial-bundles
+      window.PlotlyConfig = {MathJaxConfig: 'local'}
     </script>
     <script src="https://unpkg.com/pace-js@1.0.2/pace.min.js"></script>
     <link href="%PUBLIC_URL%/pace.css" rel="stylesheet" />
@@ -38,7 +41,6 @@
 
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
     <title>NOMAD</title>
   </head>
   <body>

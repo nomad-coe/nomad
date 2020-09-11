@@ -141,7 +141,7 @@ material_result = api.model("material_result", {
 class EncMaterialResource(Resource):
     @api.response(404, "The material does not exist")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.doc("material/<material_id>")
+    @api.doc("get_material")
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
     @authenticate()
@@ -860,7 +860,7 @@ class EncCalculationsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.doc("enc_calculations")
+    @api.doc("get_calculations")
     @authenticate()
     def get(self, material_id):
         """Used to return all calculations related to the given material. Also
@@ -1205,7 +1205,7 @@ class EncCalculationResource(Resource):
     @api.response(200, "Metadata send", fields.Raw)
     @api.expect(calculation_property_query, validate=False)
     @api.marshal_with(calculation_property_result, skip_none=True)
-    @api.doc("enc_calculation")
+    @api.doc("get_calculation")
     @authenticate()
     def post(self, material_id, calc_id):
         """Used to return calculation details. Some properties are not

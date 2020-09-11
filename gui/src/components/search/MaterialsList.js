@@ -75,6 +75,11 @@ export default function MaterialsList(props) {
     paginationText = `1-${results.length.toLocaleString()} of ${(total || 0).toLocaleString()}`
   }
 
+  /*   const handleViewMaterial = useCallback((event, materialId) => {
+    event.stopPropagation()
+    history.push(`/material/${materialId}/overview`)
+  }, [history]) */
+
   const pagination = <TableCell colSpan={1000} classes={{root: classes.scrollCell}}>
     <Toolbar className={classes.scrollBar}>
       <span className={classes.scrollSpacer}>&nbsp;</span>
@@ -92,6 +97,9 @@ export default function MaterialsList(props) {
     <IconButton href={`${appBase}/encyclopedia/#/material/${entry.encyclopedia.material.material_id}`}>
       <DetailsIcon />
     </IconButton>
+    {/*     <IconButton onClick={event => handleViewMaterial(event, entry.encyclopedia.material.material_id)}>
+      <DetailsIcon />
+    </IconButton> */}
   </Tooltip>
 
   return <DataTable

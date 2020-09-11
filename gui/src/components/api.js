@@ -299,6 +299,86 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async encyclopediaBasic(materialId) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.encyclopedia.get_material({
+        material_id: materialId
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        const result = response.body || response.text || response.data
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result)
+          } catch (e) {
+            try {
+              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+            } catch (e) {
+              return result
+            }
+          }
+        } else {
+          return result
+        }
+      })
+      .finally(this.onFinishLoading)
+  }
+
+  async encyclopediaCalculations(materialId) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.encyclopedia.get_calculations({
+        material_id: materialId
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        const result = response.body || response.text || response.data
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result)
+          } catch (e) {
+            try {
+              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+            } catch (e) {
+              return result
+            }
+          }
+        } else {
+          return result
+        }
+      })
+      .finally(this.onFinishLoading)
+  }
+
+  async encyclopediaCalculation(materialId, calcId, payload) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.encyclopedia.get_calculation({
+        material_id: materialId,
+        calc_id: calcId,
+        payload: payload
+      }))
+      .catch(handleApiError)
+      .then(response => {
+        const result = response.body || response.text || response.data
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result)
+          } catch (e) {
+            try {
+              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+            } catch (e) {
+              return result
+            }
+          }
+        } else {
+          return result
+        }
+      })
+      .finally(this.onFinishLoading)
+  }
+
   async calcProcLog(uploadId, calcId) {
     this.onStartLoading()
     return this.swagger()
