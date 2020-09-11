@@ -12,6 +12,7 @@ import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import FAQIcon from '@material-ui/icons/QuestionAnswer'
+import EncyclopediaIcon from '@material-ui/icons/Language'
 import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
@@ -25,7 +26,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme, appBase, version, oasis, aitoolkitEnabled } from '../config'
+import { guiBase, consent, nomadTheme, appBase, version, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
@@ -278,6 +279,12 @@ function MainMenu() {
       tooltip="Manage your data"
       icon={<UserDataIcon/>}
     />
+    {encyclopediaEnabled && <MainMenuItem
+      title="Encyclopedia"
+      href={`${appBase}/encyclopedia/#/search`}
+      tooltip="Visit the NOMAD Materials Encyclopedia"
+      icon={<EncyclopediaIcon/>}
+    />}
     {!oasis && aitoolkitEnabled && <MainMenuItem
       title="AI Toolkit"
       path="/aitoolkit"
