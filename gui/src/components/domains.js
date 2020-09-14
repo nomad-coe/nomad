@@ -204,14 +204,14 @@ export const domains = ({
         supportsSort: true
       },
       'ems.chemical': {
-        label: 'Material name',
+        label: 'Material name'
       },
       'ems.method': {
         label: 'Method',
         supportsSort: true
       },
       'ems.data_type': {
-        label: 'Data',
+        label: 'Data'
       },
       'ems.origin_time': {
         label: 'Date',
