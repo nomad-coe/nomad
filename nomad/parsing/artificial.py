@@ -67,6 +67,7 @@ class TemplateParser(ArtificalParser):
         super().__init__(*args, **kwargs)
         from nomad.datamodel.metainfo import m_env as metainfo_env
         self._metainfo_env = metainfo_env
+        self.code_name = 'Template'
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,

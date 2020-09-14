@@ -345,6 +345,7 @@ class Calc(Proc):
         self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         self._entry_metadata.last_processing = datetime.utcnow()
         self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+        self._entry_metadata.parser_name = self.parser
 
     @process
     def process_calc(self):
@@ -399,17 +400,13 @@ class Calc(Proc):
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
 
-            if self._parser_results and self._parser_results.m_resource:
-                self._parser_results.section_metadata = None
-                self._parser_results.m_resource.unload()
-
             self._entry_metadata.a_elastic.index()
         except Exception as e:
             self.get_logger().error(
                 'could not index after processing failure', exc_info=e)
 
         try:
-            self.write_archive(None)
+            self.write_archive(self._parser_results)
         except Exception as e:
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
@@ -608,7 +605,8 @@ class Calc(Proc):
     def write_archive(self, archive: EntryArchive):
         # save the archive mongo entry
         try:
-            write_partial_archive_to_mongo(archive)
+            if self._entry_metadata.processed:
+                write_partial_archive_to_mongo(archive)
         except Exception as e:
             self.get_logger().error('could not write mongodb archive entry', exc_info=e)
 

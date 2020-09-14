@@ -418,6 +418,8 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
         with upload.upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
             assert 'section_metadata' in calc_archive
+            assert calc_archive['section_metadata']['dft']['code_name'] not in [
+                config.services.unavailable_value, config.services.not_processed_value]
             assert 'processing_logs' in calc_archive
             if task != 'parsing':
                 assert 'section_run' in calc_archive

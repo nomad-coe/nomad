@@ -102,6 +102,7 @@ def _parse(
 
     if not skip_normalizers:
         normalize_all(entry_archive)
+        entry_archive.section_metadata.apply_domain_metadata(entry_archive)
 
     if show_archive:
         json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)

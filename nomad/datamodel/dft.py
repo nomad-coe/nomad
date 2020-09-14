@@ -288,8 +288,9 @@ class DFTMetadata(MSection):
         logger = utils.get_logger(__name__).bind(
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
+        self.code_name = self.code_name_from_parser()
+
         if entry_archive is None:
-            self.code_name = self.code_name_from_parser()
             return
 
         section_run = entry_archive.section_run
@@ -298,7 +299,14 @@ class DFTMetadata(MSection):
             return
         section_run = section_run[0]
 
-        section_system = []
+        # default values
+        self.system = config.services.unavailable_value
+        self.crystal_system = config.services.unavailable_value
+        self.spacegroup_symbol = config.services.unavailable_value
+        self.basis_set = config.services.unavailable_value
+        self.xc_functional = config.services.unavailable_value
+
+        section_system = None
         for section in section_run.section_system:
             if section.is_representative:
                 section_system = section
@@ -313,7 +321,6 @@ class DFTMetadata(MSection):
                 raise KeyError
         except KeyError as e:
             logger.warn('archive without program_name', exc_info=e)
-            self.code_name = self.code_name_from_parser()
 
         try:
             version = section_run.program_version
@@ -340,9 +347,13 @@ class DFTMetadata(MSection):
         entry.atoms = atoms
         self.compound_type = compound_types[len(atoms) - 1] if len(atoms) <= 10 else '>decinary'
 
-        section_symmetry = section_system.section_symmetry if section_system else []
-        if section_symmetry:
-            section_symmetry = section_symmetry[0]
+        self.system = config.services.unavailable_value
+        self.crystal_system = config.services.unavailable_value
+        self.spacegroup_symbol = config.services.unavailable_value
+
+        section_symmetry = None
+        if section_system and len(section_system.section_symmetry) > 0:
+            section_symmetry = section_system.section_symmetry[0]
             self.crystal_system = get_value(section_symmetry.crystal_system)
             spacegroup = section_symmetry.space_group_number
             self.spacegroup = 0 if not spacegroup else int(spacegroup)
