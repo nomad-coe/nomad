@@ -410,12 +410,12 @@ DomainSelect.propTypes = {
 }
 
 const ownerLabel = {
-  all: 'All entries',
-  visible: 'Include your private entries',
-  public: 'Only public entries',
-  user: 'Only your entries',
-  shared: 'Incl. shared data',
-  staging: 'Staging area only'
+  all: 'All',
+  visible: 'Include private',
+  public: 'Only public',
+  user: 'Only yours',
+  shared: 'Shared',
+  staging: 'Unpublished'
 }
 
 const ownerTooltips = {
