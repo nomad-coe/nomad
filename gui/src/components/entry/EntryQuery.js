@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Typography } from '@material-ui/core'
+import { withStyles, Typography, Link } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi, DoesNotExist } from '../api'
 import { withRouter } from 'react-router'
@@ -22,7 +22,8 @@ class EntryQuery extends React.Component {
   }
 
   static defaultState = {
-    doesNotExist: false
+    doesNotExist: false,
+    queryParams: null
   }
 
   state = {...EntryQuery.defaultState}
@@ -43,7 +44,7 @@ class EntryQuery extends React.Component {
       }
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
-        this.setState({doesNotExist: true})
+        this.setState({doesNotExist: true, queryParams: queryParams})
       } else {
         this.props.raiseError(error)
       }
@@ -63,12 +64,19 @@ class EntryQuery extends React.Component {
 
   render() {
     const { classes, api } = this.props
-    const { doesNotExist } = this.state
+    const { doesNotExist, queryParams } = this.state
 
     let message = 'loading ...'
 
     if (doesNotExist) {
-      if (api.isLoggedIn) {
+      console.log(queryParams)
+      if (queryParams && queryParams['external_id'] && queryParams['external_id'].startsWith('mp-')) {
+        message = <React.Fragment>
+          This particular calculation <Link href={`https://materialsproject.org/tasks/${queryParams['external_id']}#`}>
+            {queryParams['external_id']}
+          </Link> has not yet been provided to NOMAD by the Materials Project.
+        </React.Fragment>
+      } else if (api.isLoggedIn) {
         message = `
             This URL points to an entry that either does not exist, or that you are not
             authorized to see.`

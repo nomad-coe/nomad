@@ -75,8 +75,8 @@ export const formatQuantity = (x) => {
 }
 
 export function normalizeDisplayValue(value) {
-  if (value === 'not processed') {
-    return 'unavailable'
-  }
+  // if (value === 'not processed') {
+  //   return 'unavailable'
+  // }
   return value
 }

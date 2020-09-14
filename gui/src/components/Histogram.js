@@ -62,7 +62,7 @@ export default function Histogram({
 }) {
   onClick = onClick || (() => null)
   data = data || []
-  numberOfValues = numberOfValues || data.length
+  numberOfValues = (numberOfValues && Math.min(data.length, numberOfValues)) || data.length
   getValueLabel = getValueLabel || (value => value.name)
   title = title || 'Histogram'
 
@@ -80,16 +80,16 @@ export default function Histogram({
 
   useEffect(() => {
     // TODO add proper treatment of not processed on server side and processing
-    console.log('###', data)
-    if (data[data.length - 1] && data[data.length - 1].key === 'not processed') {
-      if (data[data.length -2].key === 'unavailable') {
-        data[data.length - 2].value = data[data.length - 1].value
-        data = data.slice(0, data.length - 1)
-        numberOfValues -= 1
-      }
-    }
+    let numberOfValuesToRender = numberOfValues
+    // if (data[data.length - 1] && data[data.length - 1].key === 'not processed') {
+    //   if (data[data.length - 2].key === 'unavailable') {
+    //     data[data.length - 2].value += data[data.length - 1].value
+    //     data.pop()
+    //     numberOfValuesToRender -= 1
+    //   }
+    // }
 
-    for (let i = data.length; i < numberOfValues; i++) {
+    for (let i = data.length; i < numberOfValuesToRender; i++) {
       data.push({key: `empty${i}`, name: '', value: 0})
     }
 

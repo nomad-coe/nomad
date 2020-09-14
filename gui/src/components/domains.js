@@ -206,8 +206,7 @@ export const domains = ({
         supportsSort: true
       },
       'ems.chemical': {
-        label: 'Chemical',
-        supportsSort: true
+        label: 'Material name'
       },
       'ems.method': {
         label: 'Method',

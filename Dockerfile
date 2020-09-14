@@ -79,7 +79,7 @@ RUN \
     find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
 # Built the GUI in the gui build image
-FROM node:latest as gui_build
+FROM node:14.8 as gui_build
 RUN mkdir -p /app
 WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH

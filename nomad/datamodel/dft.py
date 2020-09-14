@@ -143,7 +143,9 @@ class DFTMetadata(MSection):
     xc_functional = Quantity(
         type=str, default='not processed',
         description='The libXC based xc functional classification used in the simulation.',
-        a_search=Search(statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed']))
+        a_search=Search(
+            statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed'],
+            statistic_size=100))
 
     xc_functional_names = Quantity(
         type=str, default=[], shape=['*'],

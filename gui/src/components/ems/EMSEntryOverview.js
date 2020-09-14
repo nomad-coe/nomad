@@ -45,7 +45,7 @@ export default class EMSEntryOverview extends React.Component {
 
     return (
       <Quantity column>
-        <Quantity quantity="ems.experiment_summary" label="summary" {...this.props} />
+        {data.ems.experiment_summary && <Quantity quantity="ems.experiment_summary" label="summary" {...this.props} />}
         {this.state.previewBroken
           ? data.ems.entry_repository_url && <Quantity label="preview" {...this.props}>
             <Typography noWrap>
@@ -64,13 +64,13 @@ export default class EMSEntryOverview extends React.Component {
                 : ''}
             </Quantity>
             <Quantity quantity="ems.method" label="experimental method" noWrap {...this.props} />
-            <Quantity quantity="ems.experiment_location" label="experiment location" noWrap {...this.props} />
+            {data.ems.experiment_location && <Quantity quantity="ems.experiment_location" label="experiment location" noWrap {...this.props} />}
             <Quantity label="experiment or experiment publish date" {...this.props}>
               <Typography noWrap>{
                 (ems && ems.origin_time && new Date(ems.origin_time).toLocaleDateString()) || 'unavailable'
               }</Typography>
             </Quantity>
-            <Quantity label="data" {...this.props}>
+            <Quantity label="data source" {...this.props}>
               <Typography noWrap>
                 <Link target="external" href={ems.entry_repository_url}>{ems.repository_url}</Link>
               </Typography>
