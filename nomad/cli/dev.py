@@ -162,3 +162,64 @@ def legacy_metainfo(path):
     for element in path:
         env = convert(element)
         generate_metainfo_code(env)
+
+
+@dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
+def parser_metadata():
+    import inspect
+    import re
+    import json
+    import yaml
+
+    from nomad.parsing import LegacyParser, FairdiParser
+    from nomad.parsing.parsers import parser_dict
+
+    parsers_metadata = {}
+    for parser in parser_dict.values():
+        if isinstance(parser, LegacyParser):
+            parser_class = parser.parser_class
+        elif isinstance(parser, FairdiParser):
+            parser_class = parser.__class__
+        else:
+            continue
+        parser_code_file = inspect.getfile(parser_class)
+
+        path_match = re.match(r'(.*/dependencies/parsers/[^/]+)/.*', parser_code_file)
+        if path_match:
+            parser_metadata_file = os.path.join(path_match.group(1), 'metadata.yaml')
+            if os.path.exists(parser_metadata_file):
+                with open(parser_metadata_file) as f:
+                    parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+                parsers_metadata[parser.code_name] = parser_metadata
+
+    parsers_metadata = {
+        key: parsers_metadata[key]
+        for _, key in sorted([(key.lower(), key) for key in parsers_metadata], key=lambda x: x[0])}
+
+    print(json.dumps(parsers_metadata, indent=2))
+
+
+@dev.command(help='Generate toolkit tutorial metadata from anaytics submodules.')
+def toolkit_metadata():
+    import requests
+    import re
+    import json
+    modules = requests.get(
+        'https://gitlab.mpcdf.mpg.de/api/v4/projects/3161/repository/files/.gitmodules/raw?ref=master').text
+
+    tutorials = []
+    lines = modules.split('\n')
+    for line in lines:
+        match = re.match(r'\s*url = (.*)$', line)
+        if match:
+            url = match.group(1).replace('.git', '') + '/-/raw/master/metainfo.json'
+            response = requests.get(url)
+            if response.status_code != 200:
+                print('Could not get metadata for %s' % match.group(1), file=sys.stderr)
+                continue
+            try:
+                tutorials.append(response.json())
+            except Exception:
+                print('Could not get metadata for %s. Project is probably not public.' % match.group(1), file=sys.stderr)
+
+    print(json.dumps(dict(tutorials=tutorials), indent=2))

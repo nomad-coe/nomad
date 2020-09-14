@@ -1,4 +1,4 @@
-import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect } from 'react'
+import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
 import {ReactComponent as AboutSvg} from './about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
@@ -6,28 +6,102 @@ import { appBase, optimadeBase, apiBase, debug, consent, aitoolkitEnabled, encyc
 import { apiContext } from './api'
 import packageJson from '../../package.json'
 import { domains } from './domains'
-import { Grid, Card, CardContent, Typography, makeStyles, Link } from '@material-ui/core'
+import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
-import tutorials from './aitoolkit/tutorials'
+import tutorials from '../toolkitMetadata'
+import parserMetadata from '../parserMetadata'
 
-export const CodeList = () => {
-  const {info} = useContext(apiContext)
-
-  if (!info) {
-    return '...'
+function CodeInfo({code, ...props}) {
+  if (!code) {
+    return ''
   }
 
-  return info.codes.reduce((result, code, index) => {
+  const metadata = parserMetadata[code]
+
+  let introduction = `
+    For [${metadata.codeLabel || code}](${metadata.codeUrl}) please provide
+    all files that were used as input, were output by the code, or were produced you.
+  `
+  if (metadata.tableOfFiles && metadata.tableOfFiles !== '') {
+    introduction = `
+      For [${metadata.codeLabel || code}](${metadata.codeUrl}) please provide at least
+      the files from the following table (if applicable). Ideally, you upload
+      all files that were used as input, were output by the code, or were produced you.
+    `
+  }
+
+  return <Dialog open={true} {...props}>
+    <DialogTitle>{metadata.codeLabel || code}</DialogTitle>
+    <DialogContent>
+      <Markdown>{`
+        ${introduction} NOMAD will present all files in the same directory for each
+        recognized calculation. This works best, if you put all files that belong to
+        individual code runs into individual directories or only combine files from a few
+        runs in the same directory.
+
+        ${metadata.tableOfFiles}
+
+        ${(metadata.parserSpecific && metadata.parserSpecific !== '' &&
+        `Please note specifically for ${metadata.codeLabel || code}: ${metadata.parserSpecific}`) || ''}
+
+        To create an upload with all calculations in a directory structure:
+
+        \`\`\`
+        zip -r <upload-file>.zip <directory>/*
+        \`\`\`
+
+        You can find further information on [the project page for NOMAD's ${metadata.codeLabel || code} parser](${metadata.parserGitUrl}).
+      `}</Markdown>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => props.onClose && props.onClose()} color="primary">
+        close
+      </Button>
+    </DialogActions>
+  </Dialog>
+}
+CodeInfo.propTypes = {
+  code: PropTypes.string,
+  onClose: PropTypes.func
+}
+
+export const CodeList = ({withUploadInstructions}) => {
+  const [selected, setSelected] = useState(null)
+
+  const codes = Object.keys(parserMetadata).map(code => {
+    const metadata = parserMetadata[code]
+    if (!metadata) {
+      return code
+    }
+
+    if (withUploadInstructions) {
+      return <Link
+        href="#" key={code} onClick={() => setSelected(code)}
+      >{code.codeLabel || code}</Link>
+    }
+
+    if (metadata.codeUrl) {
+      return <Link href={metadata.codeUrl} key={code} target="code">{code.codeLabel || code}</Link>
+    }
+
+    return code
+  })
+
+  const toRender = codes.reduce((list, value, index) => {
     if (index !== 0) {
-      result.push(', ')
+      list.push(', ')
     }
-    if (code.code_homepage) {
-      result.push(<Link target="external" key={code.code_name} href={code.code_homepage}>{code.code_name}</Link>)
-    } else {
-      result.push(code.code_name)
-    }
-    return result
+    list.push(value)
+    return list
   }, [])
+
+  return <React.Fragment>
+    {toRender}
+    <CodeInfo code={selected} onClose={() => setSelected(null)} />
+  </React.Fragment>
+}
+CodeList.propTypes = {
+  withUploadInstructions: PropTypes.bool
 }
 
 const useCardStyles = makeStyles(theme => ({

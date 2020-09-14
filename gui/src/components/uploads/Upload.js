@@ -162,8 +162,7 @@ class Upload extends React.Component {
       textAlign: 'right'
     },
     icon: {
-      marginLeft: -theme.spacing(1) * 0.5,
-      width: theme.spacing(13) - 2,
+      marginRight: theme.spacing(2),
       alignItems: 'center',
       display: 'flex'
     },
