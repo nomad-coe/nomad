@@ -92,7 +92,7 @@ def map_functional_name_to_xc_treatment(name):
     if name == config.services.unavailable_value:
         return name
 
-    return xc_treatments.get(name[:3].lower(), name)
+    return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
 
 
 def map_basis_set_to_basis_set_label(name):
@@ -397,6 +397,8 @@ class DFTMetadata(MSection):
         if len(self.xc_functional_names) > 0:
             self.xc_functional = map_functional_name_to_xc_treatment(
                 get_value(self.xc_functional_names[0]))
+        else:
+            self.xc_functional = config.services.unavailable_value
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
