@@ -266,7 +266,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.8.8',
+    version='0.8.9',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',
