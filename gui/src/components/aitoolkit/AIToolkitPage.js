@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails, makeStyles, Link, ExpansionPanelActions, Button, Grid, TextField } from '@material-ui/core'
-import tutorials from './tutorials'
+import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
 import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
