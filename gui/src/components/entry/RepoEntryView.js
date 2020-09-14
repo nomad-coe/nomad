@@ -10,6 +10,7 @@ import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
+import { titleCase } from '../../utils'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -99,7 +100,7 @@ export default function RepoEntryView({uploadId, calcId}) {
                 </Quantity>
                 <Quantity quantity='authors' {...quantityProps}>
                   <Typography>
-                    {(authors || []).map(author => author.name).join('; ')}
+                    {(authors || []).map(author => titleCase(author.name)).join('; ')}
                   </Typography>
                 </Quantity>
                 <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>

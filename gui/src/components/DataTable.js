@@ -17,6 +17,7 @@ import ViewColumnIcon from '@material-ui/icons/ViewColumn'
 import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/core'
 import { compose } from 'recompose'
 import _ from 'lodash'
+import { normalizeDisplayValue } from '../config'
 
 const globalSelectedColumns = {}
 
@@ -509,7 +510,7 @@ class DataTableUnStyled extends React.Component {
                             key={key}
                             align={column.align || 'left'}
                           >
-                            {column.render ? column.render(row) : _.get(row, key)}
+                            {normalizeDisplayValue(column.render ? column.render(row) : _.get(row, key))}
                           </TableCell>
                         )
                       })}

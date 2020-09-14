@@ -73,3 +73,10 @@ export const formatQuantity = (x) => {
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return parts.join('.')
 }
+
+export function normalizeDisplayValue(value) {
+  if (value === 'not processed') {
+    return 'unavailable'
+  }
+  return value
+}

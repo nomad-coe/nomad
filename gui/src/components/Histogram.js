@@ -79,6 +79,16 @@ export default function Histogram({
   }
 
   useEffect(() => {
+    // TODO add proper treatment of not processed on server side and processing
+    console.log('###', data)
+    if (data[data.length - 1] && data[data.length - 1].key === 'not processed') {
+      if (data[data.length -2].key === 'unavailable') {
+        data[data.length - 2].value = data[data.length - 1].value
+        data = data.slice(0, data.length - 1)
+        numberOfValues -= 1
+      }
+    }
+
     for (let i = data.length; i < numberOfValues; i++) {
       data.push({key: `empty${i}`, name: '', value: 0})
     }

@@ -94,6 +94,10 @@ class Quantity extends React.Component {
         }
       }
 
+      if (value === 'not processed') {
+        value = 'unavailable'
+      }
+
       if (children && children.length !== 0) {
         content = children
       } else if (value) {
