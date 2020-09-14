@@ -1,6 +1,7 @@
 ## Default values for nomad@FAIRDI
 version:
   label: "1.0.0"
+  isTest: false
   isBeta: false
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"

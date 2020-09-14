@@ -11,7 +11,8 @@ window.nomadEnv = {
   'version': {
     'label': '1.0.0',
     'isBeta': false,
-    'usesBetaData': false,
+    'isTest': true,
+    'usesBetaData': true,
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
   'encyclopediaEnabled': true,

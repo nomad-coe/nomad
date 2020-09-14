@@ -127,7 +127,7 @@ function BetaSnack() {
     return ''
   }
 
-  if (!version.isBeta) {
+  if (!version.isBeta && !version.isTest) {
     return ''
   }
 
@@ -141,7 +141,7 @@ function BetaSnack() {
     <SnackbarContent
       className={classes.snack}
       message={<span style={{color: 'white'}}>
-        You are using a beta version of NOMAD ({version.label}). {
+        You are using a {version.isBeta ? 'beta' : 'test'} version of NOMAD ({version.label}). {
           version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.' : ''
         } Click <a style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</a>.
       </span>}
