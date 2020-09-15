@@ -160,7 +160,8 @@ for (const label in labels) {
 const workflowTypeLabels = {
   'geometry_optimization': 'Geometry optimization',
   'phonon': 'Phonons',
-  'elastic': 'Elastic constants'
+  'elastic': 'Elastic constants',
+  'molecular_dynamics': 'Molecular dynamics'
 }
 
 export function DFTPropertyVisualizations(props) {

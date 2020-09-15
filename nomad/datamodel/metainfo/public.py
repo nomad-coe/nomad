@@ -5788,7 +5788,7 @@ class Workflow(MSection):
         molecular dynamics.
         ''',
         a_legacy=LegacyDefinition(name='workflow_type'),
-        a_search=Search(statistic_size=3, statistic_order='_count'))
+        a_search=Search(statistic_size=4, statistic_order='_count'))
 
     section_relaxation = SubSection(
         sub_section=SectionProxy('Relaxation'), categories=[fast_access],
