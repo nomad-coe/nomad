@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nomad.metainfo import MSection, Quantity, Package
+from nomad.metainfo import MSection, Quantity, Package, Datetime, SubSection
 
 m_package = Package()
+
+
+class QuantumCircuit(MSection):
+    processors = Quantity(type=str, shape=['0..*'])
+    number_of_registers = Quantity(type=int)
+    simulated = Quantity(type=bool)
 
 
 class QuantumCMS(MSection):
@@ -32,6 +38,16 @@ class QuantumCMS(MSection):
     atom_labels = Quantity(
         type=str, shape=['1..*'],
         description=''' Labels for the atoms/elements that comprise the simulated material ''')
+
+    transformation = Quantity(type=str)
+    quantum_computer_system = Quantity(type=str)
+    quantum_computing_libraries = Quantity(type=str, shape=['0..*'])
+    computation_datetime = Quantity(type=Datetime)
+
+    number_of_shots = Quantity(type=int)
+    quantum_volume = Quantity(type=int)
+
+    section_quantum_circuit = SubSection(sub_section=QuantumCircuit)
 
 
 m_package.__init_metainfo__()

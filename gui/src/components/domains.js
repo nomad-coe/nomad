@@ -282,10 +282,23 @@ export const domains = ({
         label: 'Formula'
       },
       'qcms.chemical': {
-        label: 'Chemical name'
+        label: 'Material name'
+      },
+      'qcms.quantum_computer_system': {
+        label: 'System'
+      },
+      'qcms.quantum_computing_libraries': {
+        label: 'Libraries'
+      },
+      'qcms.computation_datetime': {
+        label: 'Compute date',
+        supportsSort: true,
+        render: entry => new Date(entry.qcms.computation_datetime).toLocaleDateString()
       }
     },
-    defaultSearchResultColumns: ['formula', 'qcms.chemical'],
+    defaultSearchResultColumns: [
+      'formula', 'qcms.chemical', 'qcms.quantum_computer_system', 'qcms.quantum_computing_libraries',
+      'qcms.computation_datetime'],
     /**
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),

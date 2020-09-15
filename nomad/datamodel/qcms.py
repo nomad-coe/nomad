@@ -17,7 +17,7 @@ Quantum computational materials science metadata
 '''
 
 from nomad import config
-from nomad.metainfo import Quantity, MSection, Section
+from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
 
 
@@ -26,6 +26,9 @@ class QCMSMetadata(MSection):
 
     # sample quantities
     chemical = Quantity(type=str, default='not processed', a_search=Search())
+    quantum_computer_system = Quantity(type=str, a_search=Search())
+    quantum_computing_libraries = Quantity(type=str, shape=['0..*'], a_search=Search())
+    computation_datetime = Quantity(type=Datetime, a_search=Search())
 
     # TODO move
     quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
@@ -52,6 +55,11 @@ class QCMSMetadata(MSection):
         self.chemical = root_section.chemical_name
         if not self.chemical:
             self.chemical = config.services.unavailable_value
+
+        self.quantum_computer_system = root_section.quantum_computer_system
+        if root_section.quantum_computing_libraries is not None:
+            self.quantum_computing_libraries = root_section.quantum_computing_libraries
+        self.computation_datetime = root_section.computation_datetime
 
         quantities = set()
 
