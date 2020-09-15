@@ -411,7 +411,7 @@ parsers = [
         mainfile_mime_re=r'text/.*',
     ),
     LegacyParser(
-        name='parsers/dftbplus', code_name='DFTb plus', domain='dft',
+        name='parsers/dftbplus', code_name='DFTB+', domain='dft',
         parser_class_name='dftbplusparser.DFTBPlusParser',
         mainfile_contents_re=r'^ Fermi distribution function\s*',
         mainfile_mime_re=r'text/.*',
