@@ -1607,6 +1607,32 @@ class section_energy_van_der_Waals(MSection):
         a_legacy=LegacyDefinition(name='energy_van_der_Waals'))
 
 
+class section_energy_contribution(MSection):
+    '''
+    Section describing the contributions to the total energy.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_energy_contribution'))
+
+    energy_contibution_kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The kind of the energy contribution. Can be one of bond, pair, coulomb, etc.
+        ''',
+        a_legacy=LegacyDefinition(name='energy_contibution_kind'))
+
+    energy_contribution_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the energy contribution.
+        ''',
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_contribution_value'))
+
+
 class section_frame_sequence_user_quantity(MSection):
     '''
     Section collecting some user-defined quantities evaluated along a sequence of frame.
@@ -4460,6 +4486,42 @@ class section_single_configuration_calculation(MSection):
         ''',
         a_legacy=LegacyDefinition(name='zero_point_method'))
 
+    enthalpy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the calculated enthalpy i.e. energy_total + pressure * volume.
+        ''',
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_enthalpy'))
+
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        Value of the pressure of the system.
+        ''',
+        a_legacy=LegacyDefinition(name='pressure'))
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        Value of the temperature of the system.
+        ''',
+        a_legacy=LegacyDefinition(name='temperature'))
+
+    time_step = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The number of time steps with respect to the start of the calculation.
+        ''',
+        a_legacy=LegacyDefinition(name='time_step'))
+
     section_atom_projected_dos = SubSection(
         sub_section=SectionProxy('section_atom_projected_dos'),
         repeats=True,
@@ -4504,6 +4566,11 @@ class section_single_configuration_calculation(MSection):
         sub_section=SectionProxy('section_energy_van_der_Waals'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_energy_van_der_Waals'))
+
+    section_energy_contribution = SubSection(
+        sub_section=SectionProxy('section_energy_contribution'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_energy_contribution'))
 
     section_k_band_normalized = SubSection(
         sub_section=SectionProxy('section_k_band_normalized'),
@@ -5771,6 +5838,41 @@ class Elastic(MSection):
         a_legacy=LegacyDefinition(name='strain_maximum'))
 
 
+class MolecularDynamics(MSection):
+    '''
+    Section containing results of molecular dynamics workflow.
+    '''
+
+    m_def = Section(
+        validate=False, a_legacy=LegacyDefinition(name='section_molecular_dynamics'))
+
+    finished_normally = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation terminated normally.
+        ''',
+        a_legacy=LegacyDefinition(name='finished_normally'))
+
+    with_trajectory = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation includes trajectory data.
+        ''',
+        a_legacy=LegacyDefinition(name='with_trajectory'),
+        a_search=Search())
+
+    with_thermodynamics = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation contains thermodynamic data.
+        ''',
+        a_legacy=LegacyDefinition(name='with_thermodynamics'),
+        a_search=Search())
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -5801,6 +5903,10 @@ class Workflow(MSection):
     section_elastic = SubSection(
         sub_section=SectionProxy('Elastic'),
         a_legacy=LegacyDefinition(name='section_elastic'))
+
+    section_molecular_dynamics = SubSection(
+        sub_section=SectionProxy('MolecularDynamics'),
+        a_legacy=LegacyDefinition(name='section_molecular_dynamics'))
 
 
 m_package.__init_metainfo__()
