@@ -69,7 +69,6 @@ RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 RUN python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-RUN python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
 RUN python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
 WORKDIR /install/docs
 RUN make html
