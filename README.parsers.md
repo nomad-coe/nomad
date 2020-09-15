@@ -1,6 +1,6 @@
 ***Note:** This is a general README file for NOMAD parsers, consult the README of specific parser projects for more detailed information!*
 
-This is a NOMAD parser for [$code-name$]($code-url$). It will read $code-name$ input and
+This is a NOMAD parser for [$codeLabel$]($codeUrl$). It will read $codeLabel$ input and
 output files and provide all information in NOMAD's unified Metainfo based Archive format.
 
 ## Preparing code input and output file for uploading to NOMAD
@@ -15,10 +15,10 @@ in the same directory as files that also belong to that entry. Parsers
 might also read information from these auxillary files. This way you can add more files
 to an entry, even if the respective parser/code might not directly support it.
 
-For $code-name$ please provide at least the files from this table if applicable to your
+For $codeLabel$ please provide at least the files from this table if applicable to your
 calculations (remember that you can provide more files if you want):
 
-$table-of-files$
+$tableOfFiles$
 
 To create an upload with all calculations in a directory structure:
 
@@ -73,8 +73,10 @@ pip install nomad-lab
 Clone the parser project and install it in development mode:
 
 ```
-git clone $parser-git-url$ $parser-dir-name$
-pip install -e $parser-dir-name$
+git clone $parserGitUrl$ parser-$codeName$
+pip install -e parser-$codeName$
 ```
 
 Running the parser now, will use the parser's Python code from the clone project.
+
+$parserSpecific$

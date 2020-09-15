@@ -223,3 +223,125 @@ def toolkit_metadata():
                 print('Could not get metadata for %s. Project is probably not public.' % match.group(1), file=sys.stderr)
 
     print(json.dumps(dict(tutorials=tutorials), indent=2))
+
+
+@dev.command(help=(
+    'Updates parser`s README files by combining a general template with  '
+    'a parser`s metadata YAML file.'))
+def update_parsers_readmes():
+    from glob import glob
+    import re
+    import yaml
+    print('\nPWD: ', os.getcwd())
+    print('WARNING: to be run from project`s root dir\n')
+
+    # based on
+    # https://www.kite.com/python/answers/how-to-update-and-replace-text-in-a-file-in-python
+
+    # filenames
+    local_fn = 'README.md'
+    generic_fn = './README.parsers.md'
+    parser_path = './dependencies/parsers/'
+
+    for num, ddir in enumerate(sorted(glob(parser_path + '*/')), start=1):
+        parser_dirname = ddir.split('/')[-2]
+        print('{} Working on {}' .format(num, parser_dirname))
+
+        # Open general template
+        with open(generic_fn, 'r') as generic:  # read only
+            body = generic.read()
+
+        # Open local YAML metadata file
+        local_mdata = ddir + 'metadata.yaml'
+        with open(local_mdata, 'r') as mdata_f:
+            mdata = yaml.load(mdata_f, Loader=yaml.FullLoader)
+
+        # Find & Replace Parser`s metadata on its README file
+        local_readme = ddir + local_fn
+        with open(local_readme, 'w') as local:
+            for key in mdata.keys():
+                ignore = ['codeLabelStyle', 'parserDirName']
+                if key in ignore:
+                    continue
+
+                print('\tReplacing', key)
+                find = r'\$' + key + r'\$'
+                replace = mdata[key]
+
+                if key == 'parserSpecific':
+                    if mdata[key] != '':
+                        replace = r'---\n## Parser Specific\n' + replace
+                # print('\t', find, ' -> ', replace)
+                body = re.sub(find, replace, body)
+
+            # Extra: to replace the codeName (there's no YAML key for this)
+            key = 'codeName'
+            print('\tReplacing', key)
+            find = r'\$' + key + r'\$'
+            replace = parser_dirname
+            body = re.sub(find, replace, body)
+
+            # Extra: to replace the comment at the top of the gereral template
+            find = (
+                r'\*\*\*Note:\*\* This is a general README file for NOMAD parsers, '
+                r'consult the README of specific parser projects for more detailed '
+                r'information!\*\n\n')
+            replace = ''
+            print('\tReplacing the top comment')
+            # print('\t', find, ' -> ', replace)
+            body = re.sub(find, replace, body)
+
+            # save file
+            local.seek(0)  # go to the top
+            local.write(body)
+            local.truncate()
+
+
+@dev.command(help='Updates parser`s metadata YAML')
+def update_parsers_metadata():
+    import re
+    from glob import glob
+    print('\nPWD: ', os.getcwd())
+    print('WARNING: to be run from project`s root dir\n')
+
+    # Based on
+    # https://www.kite.com/python/answers/how-to-update-and-replace-text-in-a-file-in-python
+
+    # dictionary to change YAML keys to camelCase
+    new_keys = {
+        'code-label': 'codeLabel',
+        'code-label-style': 'codeLabelStyle',
+        'code-url': 'codeUrl',
+        'parser-dir-name': 'parserDirName',
+        'parser-git-url': 'parserGitUrl',
+        'parser-specific': 'parserSpecific',
+        'table-of-files': 'tableOfFiles'}
+
+    num = 0
+    parser_path = './dependencies/parsers/'
+    for ddir in sorted(glob(parser_path + '*/')):
+        num += 1
+        parser_dirname = ddir.split('/')[-2]
+        print('{} Working on {}' .format(num, parser_dirname))
+
+        local_mdata = ddir + 'metadata.yaml'
+        if os.path.isfile(local_mdata) is False:
+            print('\tWARNING: old readme file absent: {}'.format(local_mdata))
+            continue
+
+        # Replace key names in metadata.yaml
+        # we open it as plain text: YAML module is unnecesary
+        with open(local_mdata, 'r+') as local:
+            body = local.read()
+
+            for key in new_keys.keys():
+                # Add  ':' to ensure complete sentence
+                find, replace = key + ':', new_keys[key] + ':'
+
+                # print('\t {:15} \t -> {} ' .format(find, replace))
+                body = re.sub(find, replace, body)
+
+            # save file
+            local.seek(0)  # go to the top
+            local.write(body)
+            local.truncate()
