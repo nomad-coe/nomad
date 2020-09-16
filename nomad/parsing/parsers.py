@@ -27,6 +27,7 @@ from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
+from lammpsparser import LammpsParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -378,11 +379,7 @@ parsers = [
         parser_class_name='tinkerparser.TinkerParser',
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
     ),
-    LegacyParser(
-        name='parsers/lammps', code_name='lammps', domain='dft',
-        parser_class_name='lammpsparser.LammpsParser',
-        mainfile_contents_re=r'^LAMMPS'
-    ),
+    LammpsParser(),
     LegacyParser(
         name='parsers/amber', code_name='Amber', domain='dft',
         parser_class_name='amberparser.AMBERParser',

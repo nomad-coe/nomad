@@ -20,7 +20,7 @@ import logging
 
 
 class Quantity:
-    def __init__(self, name, re_pattern, str_operation=None, unit=None, dtype=None):
+    def __init__(self, name, re_pattern, str_operation=None, unit=None, dtype=None, comment=None):
         self.name = name
         self.re_pattern = re.compile(re_pattern.encode())
         self.unit = unit
@@ -28,6 +28,7 @@ class Quantity:
         self.dtype = dtype
         self._value = None
         self._str_operation = str_operation
+        self._comment = comment
 
     @property
     def value(self):
@@ -37,6 +38,10 @@ class Quantity:
     def value(self, val_in):
 
         def convert_value(val):
+            if self._comment is not None:
+                if val.strip()[0] == self._comment:
+                    return
+
             if self._str_operation is not None:
                 val = self._str_operation(val)
 
@@ -44,36 +49,44 @@ class Quantity:
                 val = val.strip().split() if isinstance(val, str) else val
                 val = val[0] if len(val) == 1 else val
 
-            def _get_dtype(val):
-                dtype = type(val)
-
+            def _convert(val):
                 if isinstance(val, str):
                     if self.dtype is None:
                         if val.isdecimal():
-                            self.dtype = int
+                            val = int(val)
                         else:
                             try:
-                                float(val)
-                                self.dtype = float
+                                val = float(val)
                             except Exception:
-                                self.dtype = str
+                                pass
 
                     self.shape = []
-                    return self.dtype
+                    return val
 
-                elif dtype in (np.ndarray, list, tuple):
-                    if len(val) > 0:
-                        _get_dtype(val[-1])
-                    self.shape = list(np.shape(val))
-                    return lambda x: np.array(x, dtype=self.dtype)
+                elif type(val) in [np.ndarray, list]:
+                    try:
+                        dtype = float if self.dtype is None else self.dtype
+                        val = np.array(val, dtype=dtype)
+                        self.dtype = dtype
+                        if np.all(np.mod(val, 1) == 0):
+                            val = np.array(val, dtype=int)
+                            self.dtype = int
+                        self.shape = list(np.shape(val))
+
+                    except Exception:
+                        val = [_convert(v) for v in val]
+                        self.dtype = None
+
+                    return val
 
                 else:
                     self.dtype = type(val)
                     self.shape = []
-                    return self.dtype
+                    return val
 
-            dtype = _get_dtype(val)
-            return dtype(val)
+            val = _convert(val)
+
+            return val
 
         self._value = None if val_in is None else [convert_value(val) for val in val_in]
 
@@ -149,7 +162,7 @@ class UnstructuredTextFileParser:
             if key is None or quantity.name in key:
                 value = []
                 for res in quantity.re_pattern.finditer(self.file_mmap):
-                    value.append(''.join([group.decode() for group in res.groups()]))
+                    value.append(''.join([group.decode() for group in res.groups() if group]))
                 if not value:
                     continue
 
