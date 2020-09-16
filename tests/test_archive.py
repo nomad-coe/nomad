@@ -330,9 +330,7 @@ def archive():
                 }
             ],
             "section_workflow": {
-                "section_relaxation": {
-                    "final_calculation_ref": "/section_run/0/section_single_configuration_calculation/1"
-                }
+                "calculation_result_ref": "/section_run/0/section_single_configuration_calculation/1"
             }
         }
         '''))
@@ -340,14 +338,14 @@ def archive():
 
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
-    assert archive.section_workflow.section_relaxation.final_calculation_ref is not None
+    assert archive.section_workflow.calculation_result_ref is not None
     assert archive.section_metadata.encyclopedia is None
     # test refs
-    assert archive.section_workflow.section_relaxation.final_calculation_ref.energy_total is not None
-    assert len(archive.section_workflow.section_relaxation.final_calculation_ref.section_eigenvalues) == 0
+    assert archive.section_workflow.calculation_result_ref.energy_total is not None
+    assert len(archive.section_workflow.calculation_result_ref.section_eigenvalues) == 0
     # test refs of refs
-    assert archive.section_workflow.section_relaxation.final_calculation_ref.single_configuration_calculation_to_system_ref.atom_labels == ['H']
-    assert archive.section_workflow.section_relaxation.final_calculation_ref.single_configuration_calculation_to_system_ref.section_symmetry[0].space_group_number == 221
+    assert archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref.atom_labels == ['H']
+    assert archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref.section_symmetry[0].space_group_number == 221
 
     return archive
 
@@ -379,20 +377,16 @@ def test_read_partial_archives(archive, mongo):
 def test_compute_required_with_referenced(archive):
     required = compute_required_with_referenced({
         'section_workflow': {
-            'section_relaxation': {
-                'final_calculation_ref': {
-                    'energy_total': '*',
-                    'single_configuration_calculation_to_system_ref': '*'
-                }
+            'calculation_result_ref': {
+                'energy_total': '*',
+                'single_configuration_calculation_to_system_ref': '*'
             }
         }
     })
 
     assert required == {
         'section_workflow': {
-            'section_relaxation': {
-                'final_calculation_ref': '*'
-            }
+            'calculation_result_ref': '*'
         },
         'section_run': {
             'section_single_configuration_calculation': {
@@ -407,11 +401,9 @@ def test_compute_required_with_referenced(archive):
 def test_compute_required_incomplete(archive):
     required = compute_required_with_referenced({
         'section_workflow': {
-            'section_relaxation': {
-                'final_calculation_ref': {
-                    'energy_total': '*',
-                    'section_dos': '*'
-                }
+            'calculation_result_ref': {
+                'energy_total': '*',
+                'section_dos': '*'
             }
         }
     })
@@ -420,12 +412,10 @@ def test_compute_required_incomplete(archive):
 
     required = compute_required_with_referenced({
         'section_workflow': {
-            'section_relaxation': {
-                'final_calculation_ref': {
-                    'energy_total': '*',
-                    'single_configuration_calculation_to_system_ref': {
-                        'section_symmetry': '*'
-                    }
+            'calculation_result_ref': {
+                'energy_total': '*',
+                'single_configuration_calculation_to_system_ref': {
+                    'section_symmetry': '*'
                 }
             }
         }
