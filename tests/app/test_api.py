@@ -28,7 +28,7 @@ from hashlib import md5
 
 from nomad.app.common import rfc3339DateTime
 from nomad.app.api.auth import generate_upload_token
-from nomad import search, parsing, files, config, utils, infrastructure
+from nomad import search, files, config, utils, infrastructure
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -781,7 +781,7 @@ class TestArchive(UploadFilesBasedTests):
             '$and': [
                 {'dft.code_name': 'VASP'},
                 {'$gte': {'n_atoms': 3}},
-                {'$lte': {'dft.workflow.section_relaxation.final_energy_difference': 1e-24}}
+                {'$lte': {'dft.workflow.section_geometry_optimization.final_energy_difference': 1e-24}}
             ]}, 0, id='client-example')
     ])
     def test_post_archive_query(self, api, example_upload, query_expression, nresults):
@@ -848,7 +848,7 @@ class TestMetainfo():
 class TestRepo():
     @pytest.fixture(scope='class')
     def example_elastic_calcs(
-            self, elastic_infra, raw_files_infra, normalized: parsing.Backend,
+            self, elastic_infra, raw_files_infra, normalized,
             test_user: User, other_test_user: User):
         clear_elastic(elastic_infra)
 

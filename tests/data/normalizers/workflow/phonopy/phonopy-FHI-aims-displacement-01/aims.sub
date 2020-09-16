@@ -1,0 +1,25 @@
+### run in /bin/bash
+#$ -S /bin/bash
+### join stdout and stderr
+#$ -j y
+### change to current working dir
+#$ -cwd
+### send no mail
+#$ -m n
+### my email address
+#$ -M my
+### Parallel Environment
+#$ -pe impi 16
+### wallclock, e.g. 3600 seconds
+#$ -l h_rt=80000
+### virtual memory (45G is max. on AIMS)
+#$ -l h_vmem=22G
+
+module load impi
+module load mkl
+export LD_LIBRARY_PATH="/afs/@cell/common/soft/intel/Compiler/11.0/c/mkl/lib/em64t/"
+
+
+binary='/u/abha/fhi-aims-13/bin/aims.012513.scalapack.mpi.x'
+
+mpiexec -n $NSLOTS $binary  > tmp.out
