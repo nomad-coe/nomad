@@ -65,6 +65,14 @@ export const nomadTheme = createMuiTheme({
   palette: {
     primary: nomadPrimaryColor,
     secondary: nomadSecondaryColor
+  },
+  overrides: {
+    MuiTooltip: {
+      tooltip: {
+        fontWeight: 'normal',
+        fontSize: '0.75rem'
+      }
+    }
   }
 })
 
@@ -75,8 +83,8 @@ export const formatQuantity = (x) => {
 }
 
 export function normalizeDisplayValue(value) {
-  // if (value === 'not processed') {
-  //   return 'unavailable'
-  // }
+  if (value === 'not processed' || value === 'unavailbale') {
+    return '-'
+  }
   return value
 }

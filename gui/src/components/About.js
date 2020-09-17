@@ -198,11 +198,11 @@ export default function About() {
       let stringValue = null
       if (nominal) {
         if (nominal >= 1.0e+9) {
-          stringValue = Math.floor(nominal / 1.0e+9) + ' bln.'
+          stringValue = (nominal / 1.0e+9).toFixed(1) + ' billion'
         } else if (nominal >= 1.0e+6) {
-          stringValue = Math.floor(nominal / 1.0e+6) + ' mln.'
+          stringValue = (nominal / 1.0e+6).toFixed(1) + ' million'
         } else if (nominal >= 1.0e+3) {
-          stringValue = Math.floor(nominal / 1.0e+3) + ' tsd.'
+          stringValue = (nominal / 1.0e+3).toFixed(1) + ' thousand'
         } else {
           stringValue = nominal.toString()
         }

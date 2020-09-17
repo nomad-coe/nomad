@@ -49,7 +49,7 @@ export default class EMSEntryOverview extends React.Component {
         {this.state.previewBroken
           ? data.ems.entry_repository_url && <Quantity label="preview" {...this.props}>
             <Typography noWrap>
-              <a target="external" href={ems.entry_repository_url}>visit this entry on the external database</a>
+              <Link target="external" href={ems.entry_repository_url}>visit this entry on the external database</Link>
             </Typography>
           </Quantity>
           : <Quantity label="preview" {...this.props}>

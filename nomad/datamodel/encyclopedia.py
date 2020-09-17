@@ -323,7 +323,7 @@ class Material(MSection):
     material_name = Quantity(
         type=str,
         description="""
-        Most meaningful name for a material.
+        Most meaningful name for a material if one could be assigned
         """,
         a_search=Search()
     )

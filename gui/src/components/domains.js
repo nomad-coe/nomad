@@ -9,7 +9,8 @@ import {
 import EMSVisualizations from './ems/EMSVisualizations'
 import QCMSEntryOverview from './qcms/QCMSEntryOverview'
 import QCMSEntryCards from './qcms/QCMSEntryCards'
-import { Link } from '@material-ui/core'
+import { Link, Typography } from '@material-ui/core'
+import { amber } from '@material-ui/core/colors'
 
 /* eslint-disable react/display-name */
 
@@ -19,9 +20,15 @@ export const domains = ({
     label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
+    disclaimer: <Typography>
+      First time users can find an introduction to NOMAD, tutorials, and videos <Link href="https://nomad-lab.eu/services/repo-arch" target="nomad-lab">here</Link>.
+    </Typography>,
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
-    entryTitle: data => data.dft && data.dft.code_name ? data.dft.code_name + ' run' : 'Code run',
+    entryTitle: data =>
+      data.dft && data.dft.code_name
+        ? data.dft.code_name.charAt(0).toUpperCase() + data.dft.code_name.slice(1) + ' run'
+        : 'Code run',
     searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
     /**
      * A set of components and metadata that is used to present tabs of search visualizations
@@ -165,8 +172,13 @@ export const domains = ({
   ems: {
     name: 'Experimental data',
     key: 'ems',
-    label: 'Experimental material science data',
-    about: 'This is metadata from material science experiments',
+    label: 'Experimental data (beta)',
+    about: 'This includes first metadata from material science experiments. This aspect of NOMAD is still in development and mnight change frequently.',
+    disclaimer: <Typography style={{color: amber[700]}}>
+      This aspect of NOMAD is still under development. The offered functionality and displayed data
+      might change frequently, is not necessarely reviewed by NOMAD, and might contain
+      errors. Some of the information is taken verbatim from external sources.
+    </Typography>,
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
     entryTitle: () => 'Experiment',
@@ -247,11 +259,16 @@ export const domains = ({
   qcms: {
     name: 'Quantum-computer data',
     key: 'qcms',
-    label: 'Quantum-computer material science data',
-    about: 'This is computational material science data calculated by quantum computers',
+    label: 'Quantum-computer material science data (beta)',
+    about: 'This includes first data material science data calculated by quantum-computers. This aspect of NOMAD is still in development and mnight change frequently.',
+    disclaimer: <Typography style={{color: amber[700]}}>
+      This aspect of NOMAD is still under development. The offered functionality and displayed data
+      might change frequently, is not necessarely reviewed by NOMAD, and might contain
+      errors. Some of the information is taken verbatim from external sources.
+    </Typography>,
     entryLabel: 'calculation',
     entryLabelPlural: 'calculations',
-    entryTitle: () => 'Quantum computer calculation',
+    entryTitle: () => 'Quantum-computer calculation',
     searchPlaceholder: 'enter atoms',
     searchVisualizations: {
     },

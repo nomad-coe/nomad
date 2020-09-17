@@ -300,25 +300,25 @@ class EntryMetadata(metainfo.MSection):
 
     upload_id = metainfo.Quantity(
         type=str,
-        description='A random UUID that uniquely identifies the upload of the entry.',
+        description='The persistent and globally unique identifier for the upload of the entry',
         a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
 
     calc_id = metainfo.Quantity(
         type=str,
-        description='A unique ID based on the upload id and entry\'s mainfile.',
+        description='A persistent and globally unique identifier for the entry',
         a_search=Search(many_or='append'))
 
     calc_hash = metainfo.Quantity(
         type=str,
-        description='A raw file content based checksum/hash.',
+        description='A raw file content based checksum/hash',
         categories=[MongoMetadata],
         a_search=Search(
             many_or='append', metric_name='unique_entries', metric='cardinality'))
 
     mainfile = metainfo.Quantity(
         type=str,
-        description='The upload relative mainfile path.',
+        description='The path to the mainfile from the root directory of the uploaded files',
         a_search=[
             Search(
                 description='Search within the mainfile path.',
@@ -330,7 +330,11 @@ class EntryMetadata(metainfo.MSection):
 
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
-        description='The entries raw file paths relative to its upload.',
+        description='''
+        The paths to the files within the upload that belong to this entry.
+        All files within the same directory as the entry's mainfile are considered the
+        auxiliary files that belong to the entry.
+        ''',
         a_search=[
             Search(
                 description='Search within the paths.', name='path',
@@ -343,13 +347,18 @@ class EntryMetadata(metainfo.MSection):
 
     pid = metainfo.Quantity(
         type=str,
-        description='The unique, sequentially enumerated, integer persistent identifier',
+        description='''
+        The unique, sequentially enumerated, integer PID that was used in the legacy
+        NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.''',
         categories=[MongoMetadata],
         a_search=Search(many_or='append'))
 
     raw_id = metainfo.Quantity(
         type=str,
-        description='A raw format specific id that was acquired from the files of this entry',
+        description='''
+        The code specific identifier extracted from the entrie's raw files if such an
+        identifier is supported by the underlying code
+        ''',
         categories=[MongoMetadata, UserProvidableMetadata],
         a_search=Search(many_or='append'))
 
@@ -373,38 +382,38 @@ class EntryMetadata(metainfo.MSection):
 
     last_processing = metainfo.Quantity(
         type=metainfo.Datetime,
-        description='The datetime of the last attempted processing.',
+        description='The datetime of the last processing',
         categories=[MongoMetadata],
         a_search=Search())
 
     nomad_version = metainfo.Quantity(
         type=str,
-        description='The NOMAD version used for the last processing attempt.',
+        description='The NOMAD version used for the last processing',
         categories=[MongoMetadata],
         a_search=Search(many_or='append'))
     nomad_commit = metainfo.Quantity(
         type=str,
-        description='The NOMAD commit used for the last processing attempt.',
+        description='The NOMAD commit used for the last processing',
         categories=[MongoMetadata],
         a_search=Search(many_or='append'))
     parser_name = metainfo.Quantity(
         type=str,
-        description='The NOMAD parser used for the last processing attempt.',
+        description='The NOMAD parser used for the last processing',
         a_search=Search(many_or='append'))
 
     comment = metainfo.Quantity(
         type=str, categories=[MongoMetadata, EditableUserMetadata],
-        description='A user provided comment.',
+        description='A user provided comment for this entry',
         a_search=Search(mapping=Text()))
 
     references = metainfo.Quantity(
         type=str, shape=['0..*'], categories=[MongoMetadata, EditableUserMetadata],
-        description='User provided references (URLs).',
+        description='User provided references (URLs) for this entry',
         a_search=Search())
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB'), categories=[MongoMetadata, UserProvidableMetadata],
-        description='The repository or external database where the original entry resides.',
+        description='The repository or external database where the original data resides',
         a_search=Search())
 
     uploader = metainfo.Quantity(
@@ -413,13 +422,14 @@ class EntryMetadata(metainfo.MSection):
         a_flask=dict(admin_only=True, verify=User),
         a_search=[
             Search(
-                description='Search uploader with exact names.',
+                description='The full name of the authors for exact searches',
                 metric_name='uploaders', metric='cardinality',
                 many_or='append', search_field='uploader.name.keyword',
                 statistic_size=10,
                 statistic_order='_count'),
             Search(
-                name='uploader_id', search_field='uploader.user_id')
+                name='uploader_id', search_field='uploader.user_id',
+                description='The full name of the authors',)
         ])
 
     origin = metainfo.Quantity(
@@ -433,29 +443,29 @@ class EntryMetadata(metainfo.MSection):
 
     coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
-        description='A user provided list of co-authors.',
+        description='A user provided list of co-authors',
         a_flask=dict(verify=User))
 
     authors = metainfo.Quantity(
         type=author_reference, shape=['0..*'],
-        description='All authors (uploader and co-authors).',
+        description='All authors (uploader and co-authors)',
         derived=derive_authors,
         a_search=Search(
-            description='Search authors with exact names.',
+            description='The full name of the authors for exact searches',
             metric='cardinality',
             many_or='append', search_field='authors.name.keyword'))
 
     shared_with = metainfo.Quantity(
         type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
-        description='A user provided list of userts to share the entry with.',
+        description='A user provided list of userts to share the entry with',
         a_flask=dict(verify=User))
 
     owners = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
-        description='All owner (uploader and shared with users).',
+        description='All owner (uploader and shared with users)',
         derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.shared_with,
         a_search=Search(
-            description='Search owner with exact names.',
+            description='The full name of the owners for exact searches',
             many_or='append', search_field='owners.name.keyword'))
 
     with_embargo = metainfo.Quantity(
@@ -465,7 +475,7 @@ class EntryMetadata(metainfo.MSection):
 
     upload_time = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata],
-        description='The datetime this entry was uploaded to nomad',
+        description='The date and time this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
         a_search=Search(order_default=True))
 
@@ -482,37 +492,39 @@ class EntryMetadata(metainfo.MSection):
         a_search=[
             Search(
                 search_field='datasets.name', many_or='append',
-                description='Search for a particular dataset by exact name.'),
+                description='A list of user curated datasets this entry belongs to for exact name search'),
             Search(
                 name='dataset_id', search_field='datasets.dataset_id', many_or='append',
                 group='datasets_grouped',
                 metric='cardinality', metric_name='datasets',
-                description='Search for a particular dataset by its id.')])
+                description='A list of user curated datasets this entry belongs to for exact name search')])
 
     external_id = metainfo.Quantity(
         type=str, categories=[MongoMetadata, UserProvidableMetadata],
-        description='A user provided external id.',
+        description='''
+        A user provided external id. Usually the id for an entry in an external database
+        where the data was imported from.''',
         a_search=Search(many_or='split'))
 
     last_edit = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata],
-        description='The datetime the user metadata was edited last.',
+        description='The date and time the user metadata was edited last',
         a_search=Search())
 
     formula = metainfo.Quantity(
         type=str, categories=[DomainMetadata],
-        description='A (reduced) chemical formula.',
+        description='A (reduced) chemical formula',
         a_search=Search())
 
     atoms = metainfo.Quantity(
         type=str, shape=['n_atoms'], default=[], categories=[DomainMetadata],
-        description='The atom labels of all atoms of the entry\'s material.',
+        description='The atom labels of all atoms of the entry\'s material',
         a_search=Search(
             many_and='append', statistic_size=len(ase.data.chemical_symbols)))
 
     only_atoms = metainfo.Quantity(
         type=str, categories=[DomainMetadata],
-        description='The atom labels concatenated in order-number order.',
+        description='The atom labels concatenated in order-number order',
         derived=lambda entry: _only_atoms(entry.atoms),
         a_search=Search(many_and='append', derived=_only_atoms))
 

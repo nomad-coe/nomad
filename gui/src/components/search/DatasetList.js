@@ -16,6 +16,7 @@ import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import ConfirmDialog from '../uploads/ConfirmDialog'
 import { oasis } from '../../config'
+import { authorList } from '../../utils'
 
 class DOIUnstyled extends React.Component {
   static propTypes = {
@@ -217,28 +218,33 @@ class DatasetListUnstyled extends React.Component {
   columns = {
     name: {
       label: 'Dataset name',
+      description: 'The name given to this dataset by its creator',
       render: (dataset) => dataset.name
     },
     created: {
       label: 'Created',
+      description: 'The data when this dataset was created',
       render: (dataset) => dataset.created && new Date(dataset.created).toLocaleString()
     },
     DOI: {
       label: 'Dataset DOI',
+      description: 'The DOI of the dataset, if a DOI was assigned',
       render: (dataset) => dataset.doi && <DOI doi={dataset.doi} />
     },
     entries: {
       label: 'Entries',
+      description: 'Number of entries that comprise the group',
       render: (dataset) => dataset.total
     },
     authors: {
       label: 'Authors',
+      description: 'Authors including the uploader and the co-authors',
       render: (dataset) => {
         const authors = dataset.example.authors
         if (authors.length > 3) {
-          return authors.filter((_, index) => index < 2).map(author => author.name).join('; ') + ' et al'
+          return authorList(authors.filter((_, index) => index < 2)) + ' et al'
         } else {
-          return authors.map(author => author.name).join('; ')
+          return authorList(authors)
         }
       }
     }

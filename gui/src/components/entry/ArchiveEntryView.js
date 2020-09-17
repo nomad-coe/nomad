@@ -33,6 +33,9 @@ class ArchiveEntryView extends React.Component {
       paddingTop: theme.spacing(2),
       paddingBottom: theme.spacing(2)
     },
+    archiveBrowser: {
+      marginTop: theme.spacing(2)
+    },
     error: {
       marginTop: theme.spacing(2)
     },
@@ -113,8 +116,9 @@ class ArchiveEntryView extends React.Component {
       <EntryPageContent className={classes.root}>
         {
           data && typeof data !== 'string'
-            ? <ArchiveBrowser data={data} />
-            : <div>{
+            ? <div className={classes.archiveBrowser}>
+              <ArchiveBrowser data={data} />
+            </div> : <div>{
               data
                 ? <div>
                   <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>

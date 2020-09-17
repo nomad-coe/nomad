@@ -5,7 +5,7 @@ import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton } from '@material-ui/core'
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -143,7 +143,7 @@ function BetaSnack() {
       message={<span style={{color: 'white'}}>
         You are using a {version.isBeta ? 'beta' : 'test'} version of NOMAD ({version.label}). {
           version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.' : ''
-        } Click <a style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</a>.
+        } Click <MuiLink style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</MuiLink>.
       </span>}
       action={[
         <IconButton key={0} color="inherit" onClick={() => setUnderstood(true)}>
@@ -419,7 +419,8 @@ class NavigationUnstyled extends React.Component {
     '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
     '/entry': 'Entry',
-    '/dataset': 'Dataset'
+    '/dataset': 'Dataset',
+    '/aitoolkit': 'Artificial Intelligence Toolkit'
   }
 
   toolbarHelp = {
@@ -484,9 +485,9 @@ class NavigationUnstyled extends React.Component {
                 disableGutters
               >
                 <div className={classes.title}>
-                  <a href="https://nomad-lab.eu">
+                  <MuiLink href="https://nomad-lab.eu">
                     <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
-                  </a>
+                  </MuiLink>
                   <Typography variant="h6" color="inherit" noWrap>
                     {selected(toolbarTitles)}
                   </Typography>
