@@ -56,5 +56,6 @@ export default function SearchPage() {
     availableResultTabs={['entries', ...(encyclopediaEnabled ? ['materials'] : []), 'groups', 'datasets']}
     initialOwner="public"
     ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
+    showDisclaimer
   />
 }

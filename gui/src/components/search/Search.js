@@ -70,6 +70,7 @@ export default function Search(props) {
     initialQuery,
     resultListProps,
     initialRequest,
+    showDisclaimer,
     ...rest} = props
   const classes = useSearchStyles()
   return <DisableOnLoading>
@@ -82,6 +83,7 @@ export default function Search(props) {
           initialDomain={initialDomain}
           initialMetric={initialMetric}
           initialRequest={initialRequest}
+          showDisclaimer={showDisclaimer}
         />
         <SearchResults
           initialTab={initialResultTab}
@@ -112,7 +114,8 @@ Search.propTypes = {
    * Similar to query, but these parameters can be changes by the user interacting with
    * the component.
    */
-  initialQuery: PropTypes.object
+  initialQuery: PropTypes.object,
+  showDisclaimer: PropTypes.bool
 }
 
 const useSearchEntryStyles = makeStyles(theme => ({
@@ -146,7 +149,7 @@ const useSearchEntryStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(2)
   }
 }))
-function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initialMetric}) {
+function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initialMetric, showDisclaimer}) {
   const classes = useSearchEntryStyles()
   const [openVisualizationParam, setOpenVisualizationParam] = useQueryParam('visualization', StringParam)
   const {domain} = useContext(searchContext)
@@ -179,6 +182,9 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
 
   return <div>
     <div className={classes.search}>
+      {domain.disclaimer && showDisclaimer && <Box marginBottom={2} fontStyle="italic">
+        {domain.disclaimer}
+      </Box>}
       <FormGroup row style={{alignItems: 'center'}}>
         <Box marginRight={2}>
           <DomainSelect classes={{root: classes.domainButton}} initialDomain={initialDomain} />
@@ -213,7 +219,8 @@ SearchEntry.propTypes = {
   initialOwner: PropTypes.string,
   initialDomain: PropTypes.string,
   initialMetric: PropTypes.string,
-  ownerTypes: PropTypes.arrayOf(PropTypes.string)
+  ownerTypes: PropTypes.arrayOf(PropTypes.string),
+  showDisclaimer: PropTypes.bool
 }
 
 const originLabels = {
@@ -332,6 +339,7 @@ function VisualizationSelect({classes, value, onChange, visualizations}) {
       const visualization = visualizations[key]
       return <Tooltip key={key} title={visualization.description}>
         <Button
+          variant="outlined"
           size="small" className={classes.button}
           color={value === key ? 'primary' : 'default'}
           onClick={() => onChange(key)}

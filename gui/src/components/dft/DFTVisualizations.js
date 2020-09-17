@@ -1,10 +1,12 @@
 import React, { useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
-import { useTheme } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import QuantityHistogram from '../search/QuantityHistogram'
 import { searchContext } from '../search/SearchContext'
 import { path, defsByName } from '../archive/metainfo'
+import { nomadTheme } from '../../config'
+import Markdown from '../Markdown'
 
 export function DFTMethodVisualizations(props) {
   const {info} = props
@@ -110,25 +112,25 @@ const optical_quantities = [
 ]
 
 const labels = {
-  'eigenvalues_values': 'Eigenvalues',
-  'stress_tensor': 'Stress tensor',
-  'electronic_band_structure': 'Electronic band structure',
-  'electronic_dos': 'Electronic density of states',
-  'phonon_band_structure': 'Phonon dispersion',
-  'phonon_dos': 'Phonon density of states',
-  'thermodynamical_property_heat_capacity_C_v': 'Heat capacity',
-  'vibrational_free_energy_at_constant_volume': 'Helmholtz free energy',
-  'spin_S2': 'Angular spin momentum squared',
-  'oscillator_strengths': 'Oscillator strengths',
-  'transition_dipole_moments': 'Transition dipole moments'
+  'eigenvalues_values': 'eigenvalues',
+  'stress_tensor': 'stress tensor',
+  'electronic_band_structure': 'electronic band structure',
+  'electronic_dos': 'electronic density of states',
+  'phonon_band_structure': 'phonon dispersion',
+  'phonon_dos': 'phonon density of states',
+  'thermodynamical_property_heat_capacity_C_v': 'heat capacity',
+  'vibrational_free_energy_at_constant_volume': 'helmholtz free energy',
+  'spin_S2': 'angular spin momentum squared',
+  'oscillator_strengths': 'oscillator strengths',
+  'transition_dipole_moments': 'transition dipole moments'
 }
 const metainfoPaths = {
   'eigenvalues_values': path('eigenvalues_values'),
   'stress_tensor': path('stress_tensor'),
-  'electronic_band_structure': 'section_run/section_single_configuration_calculation/section_k_band',
-  'electronic_dos': 'section_run/section_single_configuration_calculation/section_dos',
-  'phonon_band_structure': 'section_run/section_single_configuration_calculation/section_k_band',
-  'phonon_dos': 'section_run/section_single_configuration_calculation/section_dos',
+  'electronic_band_structure': 'EntryArchive/section_run/section_single_configuration_calculation/section_k_band',
+  'electronic_dos': 'EntryArchive/section_run/section_single_configuration_calculation/section_dos',
+  'phonon_band_structure': 'EntryArchive/section_run/section_single_configuration_calculation/section_k_band',
+  'phonon_dos': 'EntryArchive/section_run/section_single_configuration_calculation/section_dos',
   'thermodynamical_property_heat_capacity_C_v': path('thermodynamical_property_heat_capacity_C_v'),
   'vibrational_free_energy_at_constant_volume': path('vibrational_free_energy_at_constant_volume'),
   'spin_S2': path('spin_S2'),
@@ -136,11 +138,27 @@ const metainfoPaths = {
   'transition_dipole_moments': path('transition_dipole_moments')
 }
 
+const useMetainfoTooltipStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: 2
+  },
+  tooltipMarkdown: {
+    fontSize: nomadTheme.overrides.MuiTooltip.tooltip.fontSize,
+    color: 'white',
+    '& a': {
+      color: theme.palette.primary.light
+    }
+  }
+}))
+
 function MetaInfoTooltip({def, path}) {
-  const theme = useTheme()
-  return <div style={{display: 'flex', flexDirection: 'column', padding: 2}}>
-    <p style={{fontSize: 14, margin: 0, padding: 0}}>Metainfo definition:</p>
-    <a style={{fontSize: 14, color: theme.palette.secondary.light}} href={`/fairdi/nomad/latest/gui/metainfo/${path}`}>{def.name}</a>
+  const classes = useMetainfoTooltipStyles()
+  return <div className={classes.root} >
+    <Markdown
+      classes={{root: classes.tooltipMarkdown}}
+    >{`${def.description.slice(0, def.description.indexOf('.') || undefined)}. Click [here](/metainfo/${path}) for full the definition.`}</Markdown>
   </div>
 }
 
@@ -158,10 +176,10 @@ for (const label in labels) {
 }
 
 const workflowTypeLabels = {
-  'geometry_optimization': 'Geometry optimization',
-  'phonon': 'Phonons',
-  'elastic': 'Elastic constants',
-  'molecular_dynamics': 'Molecular dynamics'
+  'geometry_optimization': 'geometry optimization',
+  'phonon': 'phonons',
+  'elastic': 'elastic constants',
+  'molecular_dynamics': 'molecular dynamics'
 }
 
 export function DFTPropertyVisualizations(props) {

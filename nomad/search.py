@@ -479,6 +479,7 @@ class SearchRequest:
         Adds general statistics to the request. The results will have a key called
         global_statistics.
         '''
+        self.owner('public')
         self._search.aggs.metric(
             'global_statistics:n_entries', A('value_count', field='calc_id'))
         self._search.aggs.metric(

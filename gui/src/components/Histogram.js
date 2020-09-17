@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Select, MenuItem, Card, CardContent, CardHeader, makeStyles, Tooltip } from '@material-ui/core'
 import * as d3 from 'd3'
 import { scaleBand, scalePow } from 'd3-scale'
-import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor, nomadFontFamily } from '../config.js'
+import { formatQuantity, nomadPrimaryColor, nomadSecondaryColor, nomadFontFamily, nomadTheme } from '../config.js'
 
 function split(array, cols) {
   if (cols === 1) {
@@ -47,6 +47,8 @@ const useStyles = makeStyles(theme => ({
   },
   tooltipContent: {
     position: 'absolute',
+    fontSize: nomadTheme.overrides.MuiTooltip.tooltip.fontSize,
+    fontWeight: nomadTheme.overrides.MuiTooltip.tooltip.fontWeight,
     // backgroundColor: '#ffbb00' // Uncomment for debugging tooltips
     display: 'none',
     zIndex: 1,
@@ -262,17 +264,19 @@ export default function Histogram({
         title={title}
         titleTypographyProps={{variant: 'body1'}}
         action={(
-          <Select
-            value={scale}
-            onChange={(event) => setScale(event.target.value)}
-            displayEmpty
-            name="scale power"
-          >
-            <MenuItem value={1}>linear</MenuItem>
-            <MenuItem value={0.5}>1/2</MenuItem>
-            <MenuItem value={0.25}>1/4</MenuItem>
-            <MenuItem value={0.125}>1/8</MenuItem>
-          </Select>
+          <Tooltip title="Select the power of the scale">
+            <Select
+              value={scale}
+              onChange={(event) => setScale(event.target.value)}
+              displayEmpty
+              name="scale power"
+            >
+              <MenuItem value={1}>linear</MenuItem>
+              <MenuItem value={0.5}>1/2</MenuItem>
+              <MenuItem value={0.25}>1/4</MenuItem>
+              <MenuItem value={0.125}>1/8</MenuItem>
+            </Select>
+          </Tooltip>
         )}
       />
       <CardContent classes={{root: classes.content}}>

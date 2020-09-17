@@ -29,19 +29,16 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const columns = {
-  formula: {
-    label: 'Formula',
-    render: entry => entry.encyclopedia.material.formula
+  'encyclopedia.material.formula': {
+    label: 'Formula'
   },
-  material_name: {
-    label: 'Name',
-    render: entry => entry.encyclopedia.material.material_name
+  'encyclopedia.material.material_name': {
+    label: 'Name'
   },
-  material_type: {
-    label: 'Type',
-    render: entry => entry.encyclopedia.material.material_type
+  'encyclopedia.material.material_type': {
+    label: 'Type'
   },
-  spacegroup: {
+  'encyclopedia.material.bulk': {
     label: 'Spacegroup',
     render: entry => {
       const bulk = entry.encyclopedia.material.bulk
@@ -50,6 +47,7 @@ const columns = {
   },
   calculations: {
     label: 'No calculations',
+    description: 'The number of entries with data for this material',
     render: entry => entry.total
   }
 }
@@ -107,7 +105,7 @@ export default function MaterialsList(props) {
     id={row => row.id}
     total={total}
     columns={columns}
-    selectedColumns={['formula', 'material_name', 'material_type', 'spacegroup', 'calculations']}
+    selectedColumns={['encyclopedia.material.formula', 'encyclopedia.material.material_name', 'encyclopedia.material.material_type', 'encyclopedia.material.bulk.spacegroup', 'calculations']}
     selectedColumnsKey="materials"
     data={results}
     rows={perPage}

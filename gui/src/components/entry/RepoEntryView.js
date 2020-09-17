@@ -10,7 +10,7 @@ import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
-import { titleCase } from '../../utils'
+import { authorList } from '../../utils'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -94,13 +94,13 @@ export default function RepoEntryView({uploadId, calcId}) {
                   {calcData.references &&
                     <div style={{display: 'inline-grid'}}>
                       {calcData.references.map(ref => <Typography key={ref} noWrap>
-                        <a href={ref}>{ref}</a>
+                        <Link href={ref}>{ref}</Link>
                       </Typography>)}
                     </div>}
                 </Quantity>
                 <Quantity quantity='authors' {...quantityProps}>
                   <Typography>
-                    {(authors || []).map(author => titleCase(author.name)).join('; ')}
+                    {authorList(authors || [])}
                   </Typography>
                 </Quantity>
                 <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
@@ -124,9 +124,7 @@ export default function RepoEntryView({uploadId, calcId}) {
             <CardContent classes={{root: classes.cardContent}}>
               <Quantity column style={{maxWidth: 350}}>
                 <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps} />
-                <Quantity quantity={entry => entry.encyclopedia.material.material_id} label='material id' loading={loading} noWrap {...quantityProps} withClipboard />
-                <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap {...quantityProps} withClipboard />
-                <Quantity quantity="external_id" label='external id' loading={loading} noWrap {...quantityProps} withClipboard />
+                <Quantity quantity="encyclopedia.material.material_id" label='material id' loading={loading} noWrap {...quantityProps} withClipboard />
                 <Quantity quantity="mainfile" loading={loading} noWrap ellipsisFront {...quantityProps} withClipboard />
                 <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
                 <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
@@ -134,6 +132,8 @@ export default function RepoEntryView({uploadId, calcId}) {
                     {new Date(calcData.upload_time).toLocaleString()}
                   </Typography>
                 </Quantity>
+                <Quantity quantity="raw_id" label='raw id' loading={loading} noWrap hideIfUnavailable {...quantityProps} withClipboard />
+                <Quantity quantity="external_id" label='external id' loading={loading} hideIfUnavailable noWrap {...quantityProps} withClipboard />
                 <Quantity quantity="last_processing" label='last processing' loading={loading} placeholder="not processed" noWrap {...quantityProps}>
                   <Typography noWrap>
                     {new Date(calcData.last_processing).toLocaleString()}

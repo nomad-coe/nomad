@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
@@ -75,35 +75,41 @@ function ArchiveConfigForm({searchOptions}) {
           renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
         />
         <Box flexGrow={1} />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showCodeSpecific}
-              onChange={handleConfigChange}
-              name="showCodeSpecific"
-            />
-          }
-          label="code specific"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showAllDefined}
-              onChange={handleConfigChange}
-              name="showAllDefined"
-            />
-          }
-          label="all defined"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showMeta}
-              onChange={handleConfigChange}
-              name="showMeta" />
-          }
-          label="definitions"
-        />
+        <Tooltip title="Enable to also show all code specfic data">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showCodeSpecific}
+                onChange={handleConfigChange}
+                name="showCodeSpecific"
+              />
+            }
+            label="code specific"
+          />
+        </Tooltip>
+        <Tooltip title="Enable to also show metadata that is in principle available, but not within this entry">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showAllDefined}
+                onChange={handleConfigChange}
+                name="showAllDefined"
+              />
+            }
+            label="all defined"
+          />
+        </Tooltip>
+        <Tooltip title="Show the Metainfo definition on the bottom of each lane">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showMeta}
+                onChange={handleConfigChange}
+                name="showMeta" />
+            }
+            label="definitions"
+          />
+        </Tooltip>
       </FormGroup>
     </Box>
   )
