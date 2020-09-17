@@ -245,9 +245,9 @@ export const domains = ({
     searchTabs: ['entries', 'datasets', 'uploads']
   },
   qcms: {
-    name: 'Quantum computational data',
+    name: 'Quantum-computer data',
     key: 'qcms',
-    label: 'Quantum computational material science data',
+    label: 'Quantum-computer material science data',
     about: 'This is computational material science data calculated by quantum computers',
     entryLabel: 'calculation',
     entryLabelPlural: 'calculations',

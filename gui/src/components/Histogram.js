@@ -62,7 +62,7 @@ export default function Histogram({
 }) {
   onClick = onClick || (() => null)
   data = data || []
-  numberOfValues = (numberOfValues && Math.min(data.length, numberOfValues)) || data.length
+  numberOfValues = numberOfValues || data.length
   getValueLabel = getValueLabel || (value => value.name)
   title = title || 'Histogram'
 

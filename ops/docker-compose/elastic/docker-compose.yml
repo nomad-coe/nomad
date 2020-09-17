@@ -1,6 +1,7 @@
 version: '2.2'
 services:
   elasticsearch:
+    restart: always
     image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
     container_name: nomad_elastic_cluster_1_node_1
     environment:
@@ -19,6 +20,7 @@ services:
     networks:
       - nomad_elastic_cluster_1
   elasticsearch2:
+    restart: always
     image: docker.elastic.co/elasticsearch/elasticsearch:6.7.2
     container_name: nomad_elastic_cluster_2_node_2
     environment:

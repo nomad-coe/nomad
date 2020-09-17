@@ -3,11 +3,11 @@
       "_name": "Workflow",
       "_gIndex": 0,
       "workflow_type": "geometry_optimization",
-      "section_relaxation": {
-        "_name": "section_relaxation",
+      "calculation_result_ref": 0,
+      "section_geometry_optimization": {
+        "_name": "section_geometry_optimization",
         "_gIndex": 0,
-        "final_energy_difference": 0.413754846285984e-24,
-        "final_calculation_ref": 0
+        "final_energy_difference": 0.413754846285984e-24
       }
     },
     "section_run": [

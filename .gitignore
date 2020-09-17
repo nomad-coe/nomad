@@ -31,5 +31,5 @@ setup.json
 parser.osio.log
 gui/src/metainfo.json
 gui/src/searchQuantities.json
-gui/src/parserMetadata.json
 examples/workdir/
+
