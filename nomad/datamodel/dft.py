@@ -150,7 +150,7 @@ class DFTMetadata(MSection):
     xc_functional_names = Quantity(
         type=str, default=[], shape=['*'],
         description='The list of libXC functional names that where used in this entry.',
-        a_search=Search())
+        a_search=Search(many_and='append'))
 
     system = Quantity(
         type=str, default='not processed',
