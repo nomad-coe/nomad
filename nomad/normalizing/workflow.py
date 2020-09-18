@@ -311,6 +311,9 @@ class WorkflowNormalizer(Normalizer):
         sec_sampling_method = self.section_run.section_sampling_method
         if sec_sampling_method:
             workflow_type = sec_sampling_method[-1].sampling_method
+            # some parsers e.g. turbomole outputs geometry optimization
+            if workflow_type in ['geometry optimization', 'relaxation']:
+                workflow_type = 'geometry_optimization'
 
         # resolve it from parser
         if not workflow_type:
