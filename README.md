@@ -46,7 +46,7 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
-### v1.0.0
+### v0.9.0
 - The encyclopedia runs on top of the new infrastructure. The GUIs are integrated via
   bi-lateral navigation between entries.
 - The parsers have new documentation and development instructions and can be easily developed
