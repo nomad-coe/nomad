@@ -478,10 +478,13 @@ parser_dict['parser/octopus'] = parser_dict['parsers/octopus']
 parser_dict['parser/onetep'] = parser_dict['parsers/onetep']
 
 # register code names as possible statistic value to the dft datamodel
-code_names = sorted(
-    set([
-        getattr(parser, 'code_name')
-        for parser in parsers
-        if parser.domain == 'dft' and getattr(parser, 'code_name', None) is not None and getattr(parser, 'code_name') != 'currupted mainfile']),
-    key=lambda code_name: code_name.lower())
-datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [config.services.unavailable_value, config.services.not_processed_value]
+code_names = []
+for parser in parsers:
+    if parser.domain == 'dft' and \
+            getattr(parser, 'code_name', None) is not None and \
+            getattr(parser, 'code_name') != 'currupted mainfile' and \
+            getattr(parser, 'code_name') != 'Template':
+        code_names.append(getattr(parser, 'code_name'))
+code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
+datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
+    config.services.unavailable_value, config.services.not_processed_value]
