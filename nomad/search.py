@@ -619,7 +619,7 @@ class SearchRequest:
             es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
             scroll_id = None
 
-        scroll_info = dict(total=total, size=size)
+        scroll_info = dict(total=total, size=size, scroll=True)
         if scroll_id is not None:
             scroll_info.update(scroll_id=scroll_id)
 
