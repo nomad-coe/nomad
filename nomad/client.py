@@ -316,7 +316,8 @@ class ArchiveQuery(collections.abc.Sequence):
         per_page: Determine how many results are downloaded per page (or scroll window).
             Default is 10.
         max: Optionally determine the maximum amount of downloaded archives. The iteration
-            will stop if max is surpassed even if more results are available. Default is unlimited.
+            will stop if max is surpassed even if more results are available. Default is 10.000.
+            None value will set it to unlimited.
         raise_errors: There situations where archives for certain entries are unavailable.
             If set to True, this cases will raise an Exception. Otherwise, the entries
             with missing archives are simply skipped (default).
@@ -331,7 +332,7 @@ class ArchiveQuery(collections.abc.Sequence):
             self,
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
-            parallel: int = 1, per_page: int = 10, max: int = None,
+            parallel: int = 1, per_page: int = 10, max: int = 10000,
             raise_errors: bool = False,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
@@ -410,8 +411,7 @@ class ArchiveQuery(collections.abc.Sequence):
 
         while True:
             response = requests.get(
-                url if after is None else '%s&after=%s' % (url, after),
-                # TODO size=1000,
+                url if after is None else '%s&after=%s&size=1000' % (url, after),
                 headers=self.authentication)
 
             if response.status_code != 200:
@@ -431,6 +431,9 @@ class ArchiveQuery(collections.abc.Sequence):
             uploads.update(values)
             for upload in values.values():
                 nentries += upload['total']
+
+            if self.max is not None and nentries >= self.max:
+                break
 
         # distribute uploads to processes
         if self.parallel is None:
