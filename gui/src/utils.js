@@ -51,6 +51,21 @@ export function convert(value, from, to) {
   let factor = unit(1, from).toNumber(to)
 
   // Convert arrays
+  return scale(value, factor)
+}
+
+/**
+ * Used to scale numeric values. Works on n-dimensional arrays and implemented
+ * as a relatively simple for loop for performance. If conversion times become
+ * an issue, it might be worthwhile to look at vectorization with WebAssembly.
+ *
+ * @param {*} value The values to convert
+ * @param {number} factor Scaling factor to apply.
+ *
+ * @return {*} A copy of the original data with numbers scaled.
+ */
+export function scale(value, factor) {
+  // Convert arrays
   function scaleRecursive(list, newList) {
     let isScalarArray = !Array.isArray(list[0])
     if (isScalarArray) {

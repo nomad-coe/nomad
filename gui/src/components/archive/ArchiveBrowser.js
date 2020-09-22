@@ -1,8 +1,8 @@
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, FormControl, RadioGroup, Radio } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
@@ -10,9 +10,11 @@ import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
+import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
+import { ErrorHandler, ErrorCard } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
-import { StructureViewer } from '@lauri-codes/materia'
+import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
 import { convert } from '../../utils'
 
@@ -27,6 +29,7 @@ export const configState = atom({
 
 // Shared instance of the StructureViewer
 const viewer = new StructureViewer()
+const bzViewer = new BrillouinZoneViewer()
 
 // Contains details about the currently visualized system. Used to detect if a
 // reload is needed for the StructureViewer.
@@ -313,6 +316,8 @@ QuantityValue.propTypes = ({
  * title.
  */
 function Overview({section, def}) {
+  // States
+  const [mode, setMode] = useState('bs')
   // Styles
   const useStyles = makeStyles(
     {
@@ -321,16 +326,22 @@ function Overview({section, def}) {
         height: '30rem'
       },
       dos: {
-        width: '20',
-        height: '20'
+        width: '20rem',
+        height: '40rem'
       },
-      bz: {
-        width: '20',
-        height: '20'
+      error: {
+      },
+      radio: {
+        display: 'flex',
+        justifyContent: 'center'
       }
     }
   )
   const style = useStyles()
+
+  const toggleMode = useCallback((event) => {
+    setMode(event.target.value)
+  }, [setMode])
 
   // Structure visualization for section_system
   if (def.name === 'section_system') {
@@ -345,10 +356,19 @@ function Overview({section, def}) {
     let system
     let positionsOnly = false
 
+    // Do not attempt to perform visualization if size is too big
+    const nAtoms = section.atom_species.length
+    if (nAtoms >= 300) {
+      return <ErrorCard
+        message='Visualization is disabled due to large system size.'
+        className={style.error}
+      >
+      </ErrorCard>
+    }
     // Loading exact same system, no need to reload visualizer
     if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
     // Loading same system with different positions
-    } else if (sectionPath === visualizedSystem.sectionPath) {
+    } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
       positionsOnly = true
       system = {
         positions: convert(section.atom_positions, 'm', 'angstrom')
@@ -364,26 +384,77 @@ function Overview({section, def}) {
     }
     visualizedSystem.sectionPath = sectionPath
     visualizedSystem.index = index
+    visualizedSystem.nAtoms = nAtoms
 
-    return <Structure
-      viewer={viewer}
-      system={system}
-      positionsOnly={positionsOnly}
-    ></Structure>
+    return <ErrorHandler
+      message='Could not load structure viewer.'
+      className={style.error}
+    >
+      <Structure
+        viewer={viewer}
+        system={system}
+        positionsOnly={positionsOnly}
+      ></Structure>
+    </ErrorHandler>
   // Band structure plot for section_k_band or section_k_band_normalized
-  } else if (def.name === 'section_k_band' || def.name === 'section_k_band_normalized') {
-    return <BandStructure
-      className={style.bands}
-      data={section}
-      aspectRatio={1}
-    ></BandStructure>
+  } else if (def.name === 'section_k_band') {
+    return <>
+      {mode === 'bs'
+        ? <Box>
+          <ErrorHandler
+            message="Could not load the band structure."
+            className={style.error}
+          >
+            <BandStructure
+              className={style.bands}
+              data={section}
+              aspectRatio={1}
+            ></BandStructure>
+          </ErrorHandler>
+        </Box>
+        : <>
+          <ErrorHandler
+            message="Could not load the Brillouin zone."
+            className={style.error}
+          >
+            <BrillouinZone
+              viewer={bzViewer}
+              className={style.bands}
+              data={section}
+              aspectRatio={1}
+            ></BrillouinZone>
+          </ErrorHandler>
+        </>
+      }
+      <FormControl component="fieldset" className={style.radio}>
+        <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
+          <FormControlLabel
+            value="bs"
+            control={<Radio color="primary" />}
+            label="Band structure"
+            labelPlacement="end"
+          />
+          <FormControlLabel
+            value="bz"
+            control={<Radio color="primary" />}
+            label="Brillouin zone"
+            labelPlacement="end"
+          />
+        </RadioGroup>
+      </FormControl>
+    </>
   // DOS plot for section_dos
   } else if (def.name === 'section_dos') {
-    return <DOS
-      className={style.dos}
-      data={section}
-      aspectRatio={1 / 2}
-    ></DOS>
+    return <ErrorHandler
+      message="Could not load the density of states"
+      className={style.error}
+    >
+      <DOS
+        className={style.dos}
+        data={section}
+        aspectRatio={1 / 2}
+      ></DOS>
+    </ErrorHandler>
   }
   return null
 }
