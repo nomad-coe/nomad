@@ -30,8 +30,8 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
 
   React.useEffect(() => {
     let defaultCapture = {
-      format: 'svg',
-      width: 1280,
+      format: 'png',
+      width: 1024,
       height: 960 / aspectRatio,
       filename: 'plot'
     }
@@ -43,7 +43,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
   const useStyles = makeStyles((theme) => {
     return {
       header: {
-        paddingRight: 20,
+        paddingRight: theme.spacing(1),
         display: 'flex',
         flexDirection: 'row',
         zIndex: 1
@@ -119,6 +119,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         }
       },
       yaxis: {
+        automargin: true,
         linecolor: '#333',
         linewidth: 1,
         mirror: true,

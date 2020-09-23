@@ -28,7 +28,6 @@ export default function Structure({className, classes, system, options, viewer, 
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
-  const [error, setError] = useState(null)
 
   // Variables
   const open = Boolean(anchorEl)
@@ -46,6 +45,7 @@ export default function Structure({className, classes, system, options, viewer, 
         backgroundColor: 'white'
       },
       header: {
+        paddingRight: theme.spacing(1),
         display: 'flex',
         flexDirection: 'row',
         zIndex: 1
@@ -57,22 +57,7 @@ export default function Structure({className, classes, system, options, viewer, 
         flex: 1,
         zIndex: 0,
         minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2),
-        display: error === null ? 'block' : 'none'
-      },
-      errorContainer: {
-        flex: 1,
-        zIndex: 0,
-        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2),
-        alignItems: 'center',
-        justifyContent: 'center',
-        display: error === null ? 'none' : 'flex'
-      },
-      errorMessage: {
-        flex: '0 0 70%',
-        color: '#aaa',
-        textAlign: 'center'
+        marginBottom: theme.spacing(2)
       },
       iconButton: {
         backgroundColor: 'white'
@@ -156,12 +141,6 @@ export default function Structure({className, classes, system, options, viewer, 
       return
     }
 
-    let nAtoms = system.species.length
-    if (nAtoms >= sizeLimit) {
-      setError('Visualization is disabled due to large system size.')
-      return
-    }
-
     // Systems with cell are centered on the cell center and orientation is defined
     // by the cell vectors.
     let cell = system.cell
@@ -239,23 +218,23 @@ export default function Structure({className, classes, system, options, viewer, 
       {fullscreen && <Typography variant="h6">Structure</Typography>}
       <div className={style.spacer}></div>
       <Tooltip title="Reset view">
-        <IconButton className={style.iconButton} onClick={handleReset} disabled={error}>
+        <IconButton className={style.iconButton} onClick={handleReset}>
           <Replay />
         </IconButton>
       </Tooltip>
       <Tooltip
         title="Toggle fullscreen">
-        <IconButton className={style.iconButton} onClick={toggleFullscreen} disabled={error}>
+        <IconButton className={style.iconButton} onClick={toggleFullscreen}>
           {fullscreen ? <FullscreenExit /> : <Fullscreen />}
         </IconButton>
       </Tooltip>
       <Tooltip title="Capture image">
-        <IconButton className={style.iconButton} onClick={takeScreencapture} disabled={error}>
+        <IconButton className={style.iconButton} onClick={takeScreencapture}>
           <CameraAlt />
         </IconButton>
       </Tooltip>
       <Tooltip title="Options">
-        <IconButton className={style.iconButton} onClick={openMenu} disabled={error}>
+        <IconButton className={style.iconButton} onClick={openMenu}>
           <MoreVert />
         </IconButton>
       </Tooltip>
@@ -308,7 +287,6 @@ export default function Structure({className, classes, system, options, viewer, 
       </Menu>
     </div>
     <div className={style.viewerCanvas} ref={measuredRef}></div>
-    <div className={style.errorContainer}><div className={style.errorMessage}>{error}</div></div>
   </Box>
 
   return (

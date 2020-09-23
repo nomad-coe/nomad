@@ -144,6 +144,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
   const tmpLayout = useMemo(() => {
     let defaultLayout = {
       xaxis: {
+        tickangle: 0,
         tickfont: {
           size: 14
         }
