@@ -1202,7 +1202,9 @@ class TestRepo():
         while scroll_id is not None:
             rv = api.get('/repo/?scroll=1m&scroll_id=%s' % scroll_id)
             data = json.loads(rv.data)
-            scroll_id = data.get('scroll', {}).get('scroll_id', None)
+            scroll_info = data.get('scroll', {})
+            assert scroll_info['scroll']
+            scroll_id = scroll_info.get('scroll_id', None)
             has_another_page |= len(data.get('results')) > 0
 
         if n_results < 2:
