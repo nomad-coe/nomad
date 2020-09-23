@@ -330,7 +330,7 @@ class EncMaterialsResource(Resource):
                 filter=get_enc_filter(),
             )
 
-            # s = Search(index=config.elastic.index_name)
+            s = Search(index=config.elastic.index_name)
             s = s.query(bool_query)
             s.aggs.bucket("materials", agg_parent)
             buckets_path = {x: "{}._count".format(x) for x in requested_properties}
