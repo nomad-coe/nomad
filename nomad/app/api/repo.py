@@ -35,7 +35,8 @@ from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\
     add_scroll_parameters, add_search_parameters, apply_search_parameters,\
-    query_api_python, query_api_curl, query_api_clientlib, _search_quantities
+    query_api_python, query_api_curl, query_api_clientlib, query_api_repo_url, \
+    _search_quantities
 
 ns = api.namespace('repo', description='Access repository metadata.')
 
@@ -260,6 +261,7 @@ class RepoCalcsResource(Resource):
             if 'statistics' in code_args:
                 del(code_args['statistics'])
             results['code'] = {
+                'repo_url': query_api_repo_url(code_args),
                 'curl': query_api_curl(code_args),
                 'python': query_api_python(code_args),
                 'clientlib': query_api_clientlib(**code_args)
