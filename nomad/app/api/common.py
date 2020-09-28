@@ -410,7 +410,7 @@ def query_api_repo_url(query):
         if to_delete in query:
             del(query[to_delete])
     for key, value in dict(order_by=['upload_time'], order=['-1'], domain=['dft'], owner=['public']).items():
-        if key in query and query[key] == value or query[key] == value:
+        if key in query and query[key] == value:
             del(query[key])
     return _query_api_url('repo', query=query)
 
