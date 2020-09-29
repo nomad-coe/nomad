@@ -254,6 +254,7 @@ def setup_kwargs():
         install_requires=install_requires,
         extras_require=extras_require,
         include_package_data=True,
+        package_data={'nomad': ['units/*.txt']},
         python_requires='>=3.6',
         entry_points='''
             [console_scripts]
