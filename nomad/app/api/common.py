@@ -121,6 +121,8 @@ search_model_fields = {
         'A list of search results. Each result is a dict with quantitie names as key and '
         'values as values'), allow_null=True, skip_none=True),
     'code': fields.Nested(api.model('Code', {
+        'repo_url': fields.String(description=(
+            'An encoded URL for the search query on the repo api.')),
         'python': fields.String(description=(
             'A piece of python code snippet which can be executed to reproduce the api result.')),
         'curl': fields.String(description=(
@@ -350,7 +352,7 @@ def _query_api_url(*args, query: Dict[str, Any] = None):
         query_string: A dict with query string parameters
     '''
     url = os.path.join(config.api_url(False), *args)
-    if query is not None:
+    if query is not None and len(query) > 0:
         url = '%s?%s' % (url, urlencode(query, doseq=True))
 
     return url
@@ -397,6 +399,20 @@ def _filter_api_query(query):
             result[key] = query[key]
 
     return result
+
+
+def query_api_repo_url(query):
+    '''
+    Creates an encoded URL string access a search query on the repo api.
+    '''
+    query = dict(query)
+    for to_delete in ['per_page', 'page', 'exclude']:
+        if to_delete in query:
+            del(query[to_delete])
+    for key, value in dict(order_by=['upload_time'], order=['-1'], domain=['dft'], owner=['public']).items():
+        if key in query and query[key] == value:
+            del(query[key])
+    return _query_api_url('repo', query=query)
 
 
 def query_api_clientlib(**kwargs):
