@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
@@ -16,15 +15,34 @@ import { ErrorHandler, ErrorCard } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
 import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
-import { convert } from '../../utils'
+import { UnitSelector } from './UnitSelector'
+import { convertSI } from '../../utils'
+import { conversionMap } from '../../units'
 
 export const configState = atom({
   key: 'config',
   default: {
     'showMeta': false,
     'showCodeSpecific': false,
-    'showAllDefined': false
+    'showAllDefined': false,
+    'energyUnit': 'joule'
   }
+})
+
+let defaults = {}
+for (const dimension in conversionMap) {
+  const info = conversionMap[dimension]
+  defaults[dimension] = info.units[0]
+}
+const override = {
+  'length': 'angstrom',
+  'energy': 'electron_volt',
+  'system': 'custom'
+}
+defaults = {...defaults, ...override}
+export const unitsState = atom({
+  key: 'units',
+  default: defaults
 })
 
 // Shared instance of the StructureViewer
@@ -50,6 +68,7 @@ ArchiveBrowser.propTypes = ({
 
 function ArchiveConfigForm({searchOptions}) {
   const [config, setConfig] = useRecoilState(configState)
+
   const handleConfigChange = event => {
     const changes = {[event.target.name]: event.target.checked}
     if (changes.showCodeSpecific) {
@@ -64,21 +83,23 @@ function ArchiveConfigForm({searchOptions}) {
   const { url } = useRouteMatch()
 
   return (
-    <Box marginTop={-6}>
-      <FormGroup row style={{alignItems: 'flex-end'}}>
-        <Autocomplete
-          options={searchOptions}
-          getOptionLabel={(option) => option.name}
-          style={{ width: 350 }}
-          onChange={(_, value) => {
-            if (value) {
-              history.push(url + value.path)
-            }
-          }}
-          renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
-        />
+    <Box marginTop={-3} padding={0}>
+      <FormGroup row style={{alignItems: 'center'}}>
+        <Box style={{width: 350, height: 60}}>
+          <Autocomplete
+            options={searchOptions}
+            getOptionLabel={(option) => option.name}
+            style={{ width: 350, marginTop: -20 }}
+            onChange={(_, value) => {
+              if (value) {
+                history.push(url + value.path)
+              }
+            }}
+            renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+          />
+        </Box>
         <Box flexGrow={1} />
-        <Tooltip title="Enable to also show all code specfic data">
+        <Tooltip title="Enable to also show all code specific data">
           <FormControlLabel
             control={
               <Checkbox
@@ -113,6 +134,7 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
+        <UnitSelector unitsState={unitsState}></UnitSelector>
       </FormGroup>
     </Box>
   )
@@ -246,6 +268,7 @@ class QuantityAdaptor extends ArchiveAdaptor {
 }
 
 function QuantityItemPreview({value, def}) {
+  const units = useRecoilState(unitsState)[0]
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -280,9 +303,14 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
+    let finalValue = value
+    let finalUnit = def.unit
+    if (def.unit) {
+      [finalValue, finalUnit] = convertSI(value, def.unit, units)
+    }
     return <Box component="span" whiteSpace="nowarp">
-      <Number component="span" variant="body1" value={value} exp={8} />
-      {def.unit && <Typography component="span">&nbsp;{def.unit}</Typography>}
+      <Number component="span" variant="body1" value={finalValue} exp={8} />
+      {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
     </Box>
   }
 }
@@ -292,10 +320,18 @@ QuantityItemPreview.propTypes = ({
 })
 
 function QuantityValue({value, def}) {
+  // Figure out the units
+  const units = useRecoilState(unitsState)[0]
+  let finalValue = value
+  let finalUnit = def.unit
+  if (def.unit) {
+    [finalValue, finalUnit] = convertSI(value, def.unit, units)
+  }
+
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
-    {def.shape.length > 0 ? <Matrix values={value} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={value} exp={16} variant="body2" />}
+    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={finalValue} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
       <Typography noWrap variant="caption">
         ({def.shape.map((dimension, index) => <span key={index}>
@@ -303,7 +339,7 @@ function QuantityValue({value, def}) {
         </span>)}&nbsp;)
       </Typography>
     }
-    {def.unit && <Typography noWrap>{def.unit}</Typography>}
+    {def.unit && <Typography noWrap>{finalUnit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({
@@ -371,14 +407,14 @@ function Overview({section, def}) {
     } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
       positionsOnly = true
       system = {
-        positions: convert(section.atom_positions, 'm', 'angstrom')
+        positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
       }
     // Completely new system
     } else {
       system = {
         'species': section.atom_species,
-        'cell': convert(section.lattice_vectors, 'm', 'angstrom'),
-        'positions': convert(section.atom_positions, 'm', 'angstrom'),
+        'cell': convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false),
+        'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
         'pbc': section.configuration_periodic_dimensions
       }
     }
@@ -409,6 +445,7 @@ function Overview({section, def}) {
               className={style.bands}
               data={section}
               aspectRatio={1}
+              unitsState={unitsState}
             ></BandStructure>
           </ErrorHandler>
         </Box>
@@ -453,6 +490,7 @@ function Overview({section, def}) {
         className={style.dos}
         data={section}
         aspectRatio={1 / 2}
+        unitsState={unitsState}
       ></DOS>
     </ErrorHandler>
   }

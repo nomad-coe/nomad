@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useMemo} from 'react'
+import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import clsx from 'clsx'
@@ -6,11 +7,12 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convert, distance, mergeObjects } from '../../utils'
+import { convertSI, distance, mergeObjects } from '../../utils'
 
-export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
+export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
+  const units = useRecoilValue(unitsState)
 
   // Styles
   const useStyles = makeStyles(
@@ -89,7 +91,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
 
       // Create plot data entry for each band
       for (let band of bands) {
-        band = convert(band, 'joule', 'eV')
+        band = convertSI(band, 'joule', units, false)
         plotData.push(
           {
             x: path,
@@ -122,7 +124,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
 
     // Create plot data entry for each band
     for (let band of bands) {
-      band = convert(band, 'joule', 'eV')
+      band = convertSI(band, 'joule', units, false)
       plotData.push(
         {
           x: path,
@@ -138,7 +140,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
     }
 
     setFinalData(plotData)
-  }, [data, theme.palette.primary.main, theme.palette.secondary.main])
+  }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -241,5 +243,6 @@ BandStructure.propTypes = {
   onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func
+  onRelayouting: PropTypes.func,
+  unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
