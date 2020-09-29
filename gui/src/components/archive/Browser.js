@@ -42,7 +42,7 @@ const useBrowserStyles = makeStyles(theme => ({
     scrollBehavior: 'smooth'
   },
   lanes: {
-    display: 'table',
+    display: 'flex',
     overflow: 'scroll',
     height: '100%',
     overflowY: 'hidden',
@@ -56,10 +56,15 @@ export default function Browser({adaptor, form}) {
   const innerRef = useRef()
 
   useLayoutEffect(() => {
-    const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
-    rootRef.current.style.height = `${height}px`
-    const scrollAmmount = innerRef.current.clientWidth - outerRef.current.clientWidth
-    outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
+    function update() {
+      const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
+      rootRef.current.style.height = `${height}px`
+      const scrollAmmount = innerRef.current.clientWidth - outerRef.current.clientWidth
+      outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
   })
 
   const { pathname } = useLocation()
@@ -113,7 +118,7 @@ const useLaneStyles = makeStyles(theme => ({
     minWidth: 200,
     maxWidth: 512,
     borderRight: `solid 1px ${grey[500]}`,
-    display: 'table-cell'
+    display: 'block'
   },
   container: {
     display: 'block',
