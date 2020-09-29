@@ -121,6 +121,7 @@ The NOMAD GUI requires static artifacts that are generated from the NOMAD Python
 ```
 nomad dev metainfo > gui/src/metainfo.json
 nomad dev searchQuantities > gui/src/searchQuantities.json
+nomad dev units > gui/src/units.js
 ./gitinfo.sh
 ```
 
