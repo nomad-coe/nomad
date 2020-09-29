@@ -1,4 +1,4 @@
-# Copyright 2018 Markus Scheidgen, empty_task
+# Copyright 2018 Markus Scheidgen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-This module contains a global unit registry used thoughout the nomad-FAIR
-package.
-"""
+import os
 from pint import UnitRegistry
 
-ureg = UnitRegistry()
+ureg = UnitRegistry(os.path.join(os.path.dirname(__file__), "default_en.txt"))

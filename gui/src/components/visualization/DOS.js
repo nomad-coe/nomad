@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useMemo} from 'react'
+import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import clsx from 'clsx'
@@ -6,22 +7,23 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convert, mergeObjects } from '../../utils'
+import { convertSI, convertSILabel, mergeObjects } from '../../utils'
 
-export default function DOS({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
+export default function DOS({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
+  const units = useRecoilValue(unitsState)
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
     let defaultLayout = {
       yaxis: {
         title: {
-          text: 'Energy (eV)'
+          text: `Energy (${convertSILabel('joule', units)})`
         }
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout])
+  }, [layout, units])
 
   // Styles
   const useStyles = makeStyles(
@@ -45,7 +47,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
     const plotData = []
     if (data !== undefined) {
       let nChannels = data[valueName].length
-      let energies = convert(data[energyName], 'joule', 'eV')
+      let energies = convertSI(data[energyName], 'joule', units, false)
       if (nChannels === 2) {
         plotData.push(
           {
@@ -74,7 +76,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
       )
     }
     setFinalData(plotData)
-  }, [data, theme.palette.primary.main, theme.palette.secondary.main])
+  }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
@@ -85,12 +87,12 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
     let defaultLayout = {
       xaxis: {
         title: {
-          text: norm ? 'states/eV/m<sup>3</sup>/atom' : 'states/eV/cell'
+          text: norm ? convertSILabel('states/joule/m^3/atom', units) : convertSILabel('states/joule/cell', units)
         }
       }
     }
     return defaultLayout
-  }, [data])
+  }, [data, units])
 
   // Merge the given layout and layout computed from data
   const finalLayout = useMemo(() => {
@@ -123,5 +125,6 @@ DOS.propTypes = {
   onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func
+  onRelayouting: PropTypes.func,
+  unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
