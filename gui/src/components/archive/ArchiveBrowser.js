@@ -249,7 +249,14 @@ class SectionAdaptor extends ArchiveAdaptor {
       }
     } else if (property.m_def === 'Quantity') {
       if (property.type.type_kind === 'reference' && property.shape.length === 0) {
-        return this.adaptorFactory(resolveRef(value, this.context.archive), resolveRef(property.type.type_data))
+        // some sections cannot be resolved, because they are not part of the archive
+        // user_id->user is one example
+        const resolved = resolveRef(value, this.context.archive) || {}
+        const resolvedDef = resolveRef(property.type.type_data)
+        if (resolvedDef.name === 'User' && !resolved.user_id) {
+          resolved.user_id = value
+        }
+        return this.adaptorFactory(resolved, resolveRef(property.type.type_data))
       }
       return this.adaptorFactory(value, property)
     } else {
@@ -503,6 +510,12 @@ Overview.propTypes = ({
 
 function Section({section, def}) {
   const config = useRecoilValue(configState)
+
+  if (!section) {
+    console.error('section is not available')
+    return ''
+  }
+
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
