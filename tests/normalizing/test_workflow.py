@@ -27,6 +27,12 @@ def workflow_archive():
     return _archive
 
 
+def test_no_workflow(workflow_archive):
+    vasp_archive = workflow_archive(
+        'parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR')
+    assert vasp_archive.section_workflow is None
+
+
 def test_geometry_optimization_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml')

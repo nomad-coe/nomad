@@ -15,6 +15,7 @@
 import numpy as np
 
 from nomad.normalizing.normalizer import Normalizer
+from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import Workflow, GeometryOptimization, Phonon, Elastic,\
     MolecularDynamics
 
@@ -344,10 +345,6 @@ class WorkflowNormalizer(Normalizer):
         if self.section_run is None:
             return
 
-        workflow = self.entry_archive.section_workflow
-        if not workflow:
-            workflow = self.entry_archive.m_create(Workflow)
-
         workflow_type = None
         if self.entry_archive.section_workflow:
             workflow_type = self.entry_archive.section_workflow.workflow_type
@@ -357,6 +354,10 @@ class WorkflowNormalizer(Normalizer):
 
         if not workflow_type:
             return
+
+        workflow = self.entry_archive.section_workflow
+        if not workflow:
+            workflow = self.entry_archive.m_create(Workflow)
 
         workflow.workflow_type = workflow_type
 
@@ -371,3 +372,7 @@ class WorkflowNormalizer(Normalizer):
 
         elif workflow.workflow_type == 'molecular_dynamics':
             MolecularDynamicsNormalizer(self.entry_archive).normalize()
+
+        # remove the section workflow again, if the parser/normalizer could not produce a result
+        if workflow.calculation_result_ref is None:
+            self.entry_archive.m_remove_sub_section(EntryArchive.section_workflow, -1)
