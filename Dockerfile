@@ -69,6 +69,8 @@ RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 RUN python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+RUN python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+RUN python -m nomad.cli dev units > gui/src/units.js
 WORKDIR /install/docs
 RUN make html
 RUN \
@@ -87,6 +89,9 @@ RUN yarn
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
+COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
+COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
+COPY --from=build /install/gui/src/units.js /app/src/units.js
 RUN yarn run build
 
 # Build the Encyclopedia GUI in the gui build image

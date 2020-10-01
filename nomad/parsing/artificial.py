@@ -28,7 +28,8 @@ import os
 import signal
 
 from nomad import metainfo
-from nomad.datamodel.metainfo import m_env as general_nomad_metainfo_env
+from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo.common import section_run as Run
 
 from .legacy import Backend
 from .parser import Parser, MatchingParser
@@ -40,8 +41,8 @@ class ArtificalParser(Parser):
         super().__init__()
         self.backend = None
 
-    def init_backend(self):
-        self.backend = Backend(metainfo='vasp')
+    def init_backend(self, **kwargs):
+        self.backend = Backend(metainfo='vasp', **kwargs)
 
 
 class EmptyParser(MatchingParser):
@@ -50,12 +51,9 @@ class EmptyParser(MatchingParser):
     '''
     name = "parsers/empty"
 
-    def run(self, mainfile: str, logger=None) -> Backend:
-        backend = Backend(metainfo=general_nomad_metainfo_env, domain=self.domain, logger=logger)
-        backend.openSection('section_run')
-        backend.addValue('program_name', self.code_name)
-        backend.closeSection('section_run', 0)
-        return backend
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        run = archive.m_create(Run)
+        run.program_name = self.code_name
 
 
 class TemplateParser(ArtificalParser):
@@ -69,6 +67,7 @@ class TemplateParser(ArtificalParser):
         super().__init__(*args, **kwargs)
         from nomad.datamodel.metainfo import m_env as metainfo_env
         self._metainfo_env = metainfo_env
+        self.code_name = 'Template'
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
@@ -109,12 +108,12 @@ class TemplateParser(ArtificalParser):
 
         self.backend.closeSection(name, index)
 
-    def run(self, mainfile: str, logger=None) -> Backend:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
 
-        self.init_backend()
+        self.init_backend(entry_archive=archive)
 
         if 'warning' in mainfile:
             self.backend.pwarn('A test warning.')
@@ -125,7 +124,6 @@ class TemplateParser(ArtificalParser):
             self.add_section(template_json['section_workflow'])
         self.backend.finishedParsingSession('ParseSuccess', [])
         logger.debug('a test log entry')
-        return self.backend
 
 
 class ChaosParser(ArtificalParser):
@@ -146,8 +144,8 @@ class ChaosParser(ArtificalParser):
             compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
-    def run(self, mainfile: str, logger=None) -> Backend:
-        self.init_backend()
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        self.init_backend(entry_archive=archive)
 
         chaos_json = json.load(open(mainfile, 'r'))
         if isinstance(chaos_json, str):
@@ -184,7 +182,7 @@ class GenerateRandomParser(TemplateParser):
     name = 'parsers/random'
 
     basis_set_types = [
-        'Numeric AOs', 'Gaussians', '(L)APW+lo', 'FLAPW', 'Plane waves',
+        'Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves',
         'Real-space grid', 'Local-orbital minimum-basis']
 
     electronic_structure_methods = [
@@ -242,16 +240,15 @@ class GenerateRandomParser(TemplateParser):
         else:
             return value
 
-    def run(self, mainfile: str, logger=None) -> Backend:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
 
-        self.init_backend()
+        self.init_backend(entry_archive=archive)
         seed = int(os.path.basename(mainfile).split('_')[1])
         random.seed(seed)
         numpy.random.seed(seed)
         section = self.template['section_run'][0]
         self.add_section(section)
         self.backend.finishedParsingSession('ParseSuccess', [])
-        return self.backend

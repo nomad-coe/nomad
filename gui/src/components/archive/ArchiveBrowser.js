@@ -1,31 +1,66 @@
-
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, FormControl, RadioGroup, Radio } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
+import Structure from '../visualization/Structure'
+import BrillouinZone from '../visualization/BrillouinZone'
+import BandStructure from '../visualization/BandStructure'
+import { ErrorHandler, ErrorCard } from '../ErrorHandler'
+import DOS from '../visualization/DOS'
+import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
+import { UnitSelector } from './UnitSelector'
+import { convertSI } from '../../utils'
+import { conversionMap } from '../../units'
 
 export const configState = atom({
   key: 'config',
   default: {
     'showMeta': false,
     'showCodeSpecific': false,
-    'showAllDefined': false
+    'showAllDefined': false,
+    'energyUnit': 'joule'
   }
 })
 
+let defaults = {}
+for (const dimension in conversionMap) {
+  const info = conversionMap[dimension]
+  defaults[dimension] = info.units[0]
+}
+const override = {
+  'length': 'angstrom',
+  'energy': 'electron_volt',
+  'system': 'custom'
+}
+defaults = {...defaults, ...override}
+export const unitsState = atom({
+  key: 'units',
+  default: defaults
+})
+
+// Shared instance of the StructureViewer
+const viewer = new StructureViewer()
+const bzViewer = new BrillouinZoneViewer()
+
+// Contains details about the currently visualized system. Used to detect if a
+// reload is needed for the StructureViewer.
+const visualizedSystem = {}
+
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
-  return <Browser
-    adaptor={archiveAdaptorFactory(data)}
-    form={<ArchiveConfigForm searchOptions={searchOptions} />}
-  />
+  return (
+    <Browser
+      adaptor={archiveAdaptorFactory(data)}
+      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+    />
+  )
 }
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
@@ -33,6 +68,7 @@ ArchiveBrowser.propTypes = ({
 
 function ArchiveConfigForm({searchOptions}) {
   const [config, setConfig] = useRecoilState(configState)
+
   const handleConfigChange = event => {
     const changes = {[event.target.name]: event.target.checked}
     if (changes.showCodeSpecific) {
@@ -47,49 +83,58 @@ function ArchiveConfigForm({searchOptions}) {
   const { url } = useRouteMatch()
 
   return (
-    <Box marginTop={-6}>
-      <FormGroup row style={{alignItems: 'flex-end'}}>
-        <Autocomplete
-          options={searchOptions}
-          getOptionLabel={(option) => option.name}
-          style={{ width: 350 }}
-          onChange={(_, value) => {
-            if (value) {
-              history.push(url + value.path)
-            }
-          }}
-          renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
-        />
+    <Box marginTop={-3} padding={0}>
+      <FormGroup row style={{alignItems: 'center'}}>
+        <Box style={{width: 350, height: 60}}>
+          <Autocomplete
+            options={searchOptions}
+            getOptionLabel={(option) => option.name}
+            style={{ width: 350, marginTop: -20 }}
+            onChange={(_, value) => {
+              if (value) {
+                history.push(url + value.path)
+              }
+            }}
+            renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+          />
+        </Box>
         <Box flexGrow={1} />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showCodeSpecific}
-              onChange={handleConfigChange}
-              name="showCodeSpecific"
-            />
-          }
-          label="code specific"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showAllDefined}
-              onChange={handleConfigChange}
-              name="showAllDefined"
-            />
-          }
-          label="all defined"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={config.showMeta}
-              onChange={handleConfigChange}
-              name="showMeta" />
-          }
-          label="definitions"
-        />
+        <Tooltip title="Enable to also show all code specific data">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showCodeSpecific}
+                onChange={handleConfigChange}
+                name="showCodeSpecific"
+              />
+            }
+            label="code specific"
+          />
+        </Tooltip>
+        <Tooltip title="Enable to also show metadata that is in principle available, but not within this entry">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showAllDefined}
+                onChange={handleConfigChange}
+                name="showAllDefined"
+              />
+            }
+            label="all defined"
+          />
+        </Tooltip>
+        <Tooltip title="Show the Metainfo definition on the bottom of each lane">
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={config.showMeta}
+                onChange={handleConfigChange}
+                name="showMeta" />
+            }
+            label="definitions"
+          />
+        </Tooltip>
+        <UnitSelector unitsState={unitsState}></UnitSelector>
       </FormGroup>
     </Box>
   )
@@ -204,7 +249,14 @@ class SectionAdaptor extends ArchiveAdaptor {
       }
     } else if (property.m_def === 'Quantity') {
       if (property.type.type_kind === 'reference' && property.shape.length === 0) {
-        return this.adaptorFactory(resolveRef(value, this.context.archive), resolveRef(property.type.type_data))
+        // some sections cannot be resolved, because they are not part of the archive
+        // user_id->user is one example
+        const resolved = resolveRef(value, this.context.archive) || {}
+        const resolvedDef = resolveRef(property.type.type_data)
+        if (resolvedDef.name === 'User' && !resolved.user_id) {
+          resolved.user_id = value
+        }
+        return this.adaptorFactory(resolved, resolveRef(property.type.type_data))
       }
       return this.adaptorFactory(value, property)
     } else {
@@ -223,6 +275,7 @@ class QuantityAdaptor extends ArchiveAdaptor {
 }
 
 function QuantityItemPreview({value, def}) {
+  const units = useRecoilState(unitsState)[0]
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -257,9 +310,14 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
+    let finalValue = value
+    let finalUnit = def.unit
+    if (def.unit) {
+      [finalValue, finalUnit] = convertSI(value, def.unit, units)
+    }
     return <Box component="span" whiteSpace="nowarp">
-      <Number component="span" variant="body1" value={value} exp={8} />
-      {def.unit && <Typography component="span">&nbsp;{def.unit}</Typography>}
+      <Number component="span" variant="body1" value={finalValue} exp={8} />
+      {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
     </Box>
   }
 }
@@ -269,10 +327,18 @@ QuantityItemPreview.propTypes = ({
 })
 
 function QuantityValue({value, def}) {
+  // Figure out the units
+  const units = useRecoilState(unitsState)[0]
+  let finalValue = value
+  let finalUnit = def.unit
+  if (def.unit) {
+    [finalValue, finalUnit] = convertSI(value, def.unit, units)
+  }
+
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
-    {def.shape.length > 0 ? <Matrix values={value} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={value} exp={16} variant="body2" />}
+    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={finalValue} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
       <Typography noWrap variant="caption">
         ({def.shape.map((dimension, index) => <span key={index}>
@@ -280,7 +346,7 @@ function QuantityValue({value, def}) {
         </span>)}&nbsp;)
       </Typography>
     }
-    {def.unit && <Typography noWrap>{def.unit}</Typography>}
+    {def.unit && <Typography noWrap>{finalUnit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({
@@ -288,11 +354,172 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
+/**
+ * An optional overview for a section displayed directly underneath the section
+ * title.
+ */
+function Overview({section, def}) {
+  // States
+  const [mode, setMode] = useState('bs')
+  // Styles
+  const useStyles = makeStyles(
+    {
+      bands: {
+        width: '30rem',
+        height: '30rem'
+      },
+      dos: {
+        width: '20rem',
+        height: '40rem'
+      },
+      error: {
+      },
+      radio: {
+        display: 'flex',
+        justifyContent: 'center'
+      }
+    }
+  )
+  const style = useStyles()
+
+  const toggleMode = useCallback((event) => {
+    setMode(event.target.value)
+  }, [setMode])
+
+  // Structure visualization for section_system
+  if (def.name === 'section_system') {
+    let url = window.location.href
+    let name = 'section_system'
+    let rootIndex = url.indexOf(name) + name.length
+    let sectionPath = url.substring(0, rootIndex)
+    let tmp = url.substring(rootIndex)
+    let tmpIndex = tmp.indexOf('/')
+    let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
+
+    let system
+    let positionsOnly = false
+
+    // Do not attempt to perform visualization if size is too big
+    const nAtoms = section.atom_species.length
+    if (nAtoms >= 300) {
+      return <ErrorCard
+        message='Visualization is disabled due to large system size.'
+        className={style.error}
+      >
+      </ErrorCard>
+    }
+    // Loading exact same system, no need to reload visualizer
+    if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
+    // Loading same system with different positions
+    } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
+      positionsOnly = true
+      system = {
+        positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
+      }
+    // Completely new system
+    } else {
+      system = {
+        'species': section.atom_species,
+        'cell': convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false),
+        'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+        'pbc': section.configuration_periodic_dimensions
+      }
+    }
+    visualizedSystem.sectionPath = sectionPath
+    visualizedSystem.index = index
+    visualizedSystem.nAtoms = nAtoms
+
+    return <ErrorHandler
+      message='Could not load structure viewer.'
+      className={style.error}
+    >
+      <Structure
+        viewer={viewer}
+        system={system}
+        positionsOnly={positionsOnly}
+      ></Structure>
+    </ErrorHandler>
+  // Band structure plot for section_k_band or section_k_band_normalized
+  } else if (def.name === 'section_k_band') {
+    return <>
+      {mode === 'bs'
+        ? <Box>
+          <ErrorHandler
+            message="Could not load the band structure."
+            className={style.error}
+          >
+            <BandStructure
+              className={style.bands}
+              data={section}
+              aspectRatio={1}
+              unitsState={unitsState}
+            ></BandStructure>
+          </ErrorHandler>
+        </Box>
+        : <>
+          <ErrorHandler
+            message="Could not load the Brillouin zone."
+            className={style.error}
+          >
+            <BrillouinZone
+              viewer={bzViewer}
+              className={style.bands}
+              data={section}
+              aspectRatio={1}
+            ></BrillouinZone>
+          </ErrorHandler>
+        </>
+      }
+      <FormControl component="fieldset" className={style.radio}>
+        <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
+          <FormControlLabel
+            value="bs"
+            control={<Radio color="primary" />}
+            label="Band structure"
+            labelPlacement="end"
+          />
+          <FormControlLabel
+            value="bz"
+            control={<Radio color="primary" />}
+            label="Brillouin zone"
+            labelPlacement="end"
+          />
+        </RadioGroup>
+      </FormControl>
+    </>
+  // DOS plot for section_dos
+  } else if (def.name === 'section_dos') {
+    return <ErrorHandler
+      message="Could not load the density of states"
+      className={style.error}
+    >
+      <DOS
+        className={style.dos}
+        data={section}
+        aspectRatio={1 / 2}
+        unitsState={unitsState}
+      ></DOS>
+    </ErrorHandler>
+  }
+  return null
+}
+Overview.propTypes = ({
+  def: PropTypes.object,
+  section: PropTypes.object
+})
+
 function Section({section, def}) {
   const config = useRecoilValue(configState)
+
+  if (!section) {
+    console.error('section is not available')
+    return ''
+  }
+
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
+    <Overview def={def} section={section}></Overview>
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)

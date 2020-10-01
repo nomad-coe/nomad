@@ -14,9 +14,12 @@ import Checkbox from '@material-ui/core/Checkbox'
 import IconButton from '@material-ui/core/IconButton'
 import Tooltip from '@material-ui/core/Tooltip'
 import ViewColumnIcon from '@material-ui/icons/ViewColumn'
-import { Popover, List, ListItemText, ListItem, Collapse } from '@material-ui/core'
+import { Popover, List, ListItemText, ListItem, Collapse, Icon, Box } from '@material-ui/core'
 import { compose } from 'recompose'
 import _ from 'lodash'
+import { normalizeDisplayValue } from '../config'
+import SortIcon from '@material-ui/icons/Sort'
+import searchQuantities from '../searchQuantities'
 
 const globalSelectedColumns = {}
 
@@ -447,6 +450,7 @@ class DataTableUnStyled extends React.Component {
                 </TableCell> : <React.Fragment/>}
                 {Object.keys(columns).filter(key => selectedColumns.indexOf(key) !== -1).map(key => {
                   const column = columns[key]
+                  const description = column.description || (searchQuantities[key] && searchQuantities[key].description)
                   return (
                     <TableCell
                       key={key}
@@ -454,7 +458,7 @@ class DataTableUnStyled extends React.Component {
                       align={column.align || 'left'}
                       sortDirection={orderBy === key ? order : false}
                     >
-                      <Tooltip title={column.description || ''}>
+                      <Tooltip title={description || ''}>
                         {column.supportsSort ? <TableSortLabel
                           active={orderBy === key}
                           hideSortIcon
@@ -462,6 +466,9 @@ class DataTableUnStyled extends React.Component {
                           onClick={event => this.handleRequestSort(event, key)}
                         >
                           {column.label}
+                          <Box paddingLeft={1} fontSize="1rem">
+                            {orderBy !== key && <Icon fontSize="small"><SortIcon style={{fontSize: '1rem'}}/></Icon>}
+                          </Box>
                           {orderBy === key ? (
                             <span className={classes.visuallyHidden}>
                               {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
@@ -509,7 +516,7 @@ class DataTableUnStyled extends React.Component {
                             key={key}
                             align={column.align || 'left'}
                           >
-                            {column.render ? column.render(row) : _.get(row, key)}
+                            {normalizeDisplayValue(column.render ? column.render(row) : _.get(row, key))}
                           </TableCell>
                         )
                       })}

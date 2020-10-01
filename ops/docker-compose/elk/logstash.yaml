@@ -1,0 +1,2 @@
+monitoring.elasticsearch.hosts: 'http://elasticsearch:9200'
+monitoring.enabled: true

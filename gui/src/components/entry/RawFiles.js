@@ -107,6 +107,7 @@ class RawFiles extends React.Component {
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
       }
+      console.log('###', files)
       this.setState({files: files, loading: false})
     }).catch(error => {
       this.setState({files: null, loading: false})
@@ -182,7 +183,7 @@ class RawFiles extends React.Component {
   }
 
   filterPotcar(file) {
-    if (file.includes('POTCAR') && !file.endsWith('.stripped')) {
+    if (file.substring(file.lastIndexOf('/')).includes('POTCAR') && !file.endsWith('.stripped')) {
       return this.props.user && this.props.data.uploader.user_id === this.props.user.sub
     } else {
       return true

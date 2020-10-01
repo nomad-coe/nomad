@@ -17,7 +17,7 @@ from elasticsearch_dsl import Q
 import pytest
 from datetime import datetime
 
-from nomad import datamodel, search, processing, parsing, infrastructure, config
+from nomad import datamodel, search, processing, infrastructure, config
 from nomad.search import entry_document, SearchRequest
 from nomad.metainfo import search_extension
 
@@ -34,8 +34,8 @@ def test_index_skeleton_calc(elastic):
     create_entry(entry_metadata)
 
 
-def test_index_normalized_calc(elastic, normalized: parsing.Backend):
-    entry_metadata = normalized.entry_archive.section_metadata
+def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
+    entry_metadata = normalized.section_metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -50,8 +50,8 @@ def test_index_normalized_calc(elastic, normalized: parsing.Backend):
 
 
 def test_index_normalized_calc_with_metadata(
-        elastic, normalized: parsing.Backend, internal_example_user_metadata: dict):
-    entry_metadata = normalized.entry_archive.section_metadata
+        elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
+    entry_metadata = normalized.section_metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -64,13 +64,25 @@ def test_index_normalized_calc_with_metadata(
     assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
 
 
+def test_index_normalized_calc_with_author(
+        elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
+    entry_metadata = normalized.section_metadata
+    entry_metadata.m_update(
+        domain='dft', upload_id='test upload id', calc_id='test id',
+        coauthors=[dict(first_name='Howard', last_name='Wolowitz')])
+    entry_metadata.apply_domain_metadata(normalized)
+
+    search_entry = create_entry(entry_metadata)
+    search.flat(search_entry.to_dict())
+
+
 def test_index_upload(elastic, processed: processing.Upload):
     pass
 
 
 @pytest.fixture()
-def example_search_data(elastic, normalized: parsing.Backend):
-    entry_metadata = normalized.entry_archive.section_metadata
+def example_search_data(elastic, normalized: datamodel.EntryArchive):
+    entry_metadata = normalized.section_metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id',
         upload_time=datetime.now())
@@ -82,8 +94,8 @@ def example_search_data(elastic, normalized: parsing.Backend):
 
 
 @pytest.fixture()
-def example_ems_search_data(elastic, parsed_ems: parsing.Backend):
-    entry_metadata = parsed_ems.entry_archive.section_metadata
+def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
+    entry_metadata = parsed_ems.section_metadata
     entry_metadata.m_update(
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)
@@ -158,12 +170,12 @@ def test_domain(elastic, example_ems_search_data):
     results = SearchRequest(domain='ems').statistic('ems.method', size=10).execute()
     statistics = results['statistics']
     assert 'ems.method' in statistics
-    assert 'Bare eyes' in statistics['ems.method']
+    assert 'electron energy loss spectroscopy' in statistics['ems.method']
 
     results = SearchRequest(domain='ems').statistics(['ems.method']).execute()
     statistics = results['statistics']
     assert 'ems.method' in statistics
-    assert 'Bare eyes' in statistics['ems.method']
+    assert 'electron energy loss spectroscopy' in statistics['ems.method']
 
 
 def assert_metrics(container, metrics_names):
@@ -249,7 +261,7 @@ def test_search_include(elastic, example_search_data):
 
 @pytest.mark.parametrize("order_by", [None, 'upload_id'])
 def test_search_quantity(
-        elastic, normalized: parsing.Backend, test_user: datamodel.User,
+        elastic, normalized: datamodel.EntryArchive, test_user: datamodel.User,
         other_test_user: datamodel.User, order_by: str):
 
     entry_metadata = datamodel.EntryMetadata(

@@ -5,9 +5,8 @@ import { compose } from 'recompose'
 import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
-// import ArchiveBrowser from '../archive/ArchiveBrowser'
+import ArchiveBrowser from '../archive/ArchiveBrowser'
 import { EntryPageContent } from './EntryPage'
-import ReactJson from 'react-json-view'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -33,6 +32,9 @@ class ArchiveEntryView extends React.Component {
     root: {
       paddingTop: theme.spacing(2),
       paddingBottom: theme.spacing(2)
+    },
+    archiveBrowser: {
+      marginTop: theme.spacing(2)
     },
     error: {
       marginTop: theme.spacing(2)
@@ -100,40 +102,35 @@ class ArchiveEntryView extends React.Component {
 
     if (doesNotExist) {
       return (
-        <Typography className={classes.error}>
-          No archive does exist for this entry. Either the archive was not generated due
-          to parsing or other processing errors (check the log tab), or the entry it
-          self does not exist.
-        </Typography>
+        <EntryPageContent>
+          <Typography className={classes.error}>
+            No archive exists for this entry. Either the archive was not generated due
+            to parsing or other processing errors (check the log tab), or the entry it
+            self does not exist.
+          </Typography>
+        </EntryPageContent>
       )
     }
 
     return (
-      <EntryPageContent className={classes.root} fixed>
-        <Card>
-          <CardContent>
-            {
-              data && typeof data !== 'string'
-                ? <ReactJson
-                  src={this.state.data}
-                  enableClipboard={false}
-                  collapsed={2}
-                  displayObjectSize={false}
-                /> : <div>{
-                  data
-                    ? <div>
-                      <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
-                      <Card>
-                        <CardContent>
-                          <pre>{data || ''}</pre>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    : <Typography>loading ...</Typography>
-                }</div>
-            }
-          </CardContent>
-        </Card>
+      <EntryPageContent className={classes.root}>
+        {
+          data && typeof data !== 'string'
+            ? <div className={classes.archiveBrowser}>
+              <ArchiveBrowser data={data} />
+            </div> : <div>{
+              data
+                ? <div>
+                  <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
+                  <Card>
+                    <CardContent>
+                      <pre>{data || ''}</pre>
+                    </CardContent>
+                  </Card>
+                </div>
+                : <Typography>loading ...</Typography>
+            }</div>
+        }
 
         <Download
           classes={{root: classes.downloadFab}} tooltip="download calculation archive"

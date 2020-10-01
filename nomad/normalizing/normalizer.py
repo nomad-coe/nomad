@@ -130,10 +130,6 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
             if system is None:
                 self.logger.error('no "representative" section system found')
-            else:
-                self.logger.info(
-                    'chose "representative" system for normalization',
-                )
 
         # If the found system is referencing a subsystem, then we choose it as
         # the representative one. These smaller subsystems are much easier to

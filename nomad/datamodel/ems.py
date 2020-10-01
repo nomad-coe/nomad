@@ -15,75 +15,97 @@
 '''
 Experimental material science specific metadata
 '''
-
 from nomad import config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
 from nomad.metainfo.search_extension import Search
+
+
+def _unavailable(value):
+    if value is None:
+        return config.services.unavailable_value
+
+    return value
 
 
 class EMSMetadata(MSection):
     m_def = Section(a_domain='ems')
 
     # sample quantities
-    chemical = Quantity(type=str, default='not processed', a_search=Search())
-    sample_constituents = Quantity(type=str, default='not processed', a_search=Search())
-    sample_microstructure = Quantity(type=str, default='not processed', a_search=Search())
+    chemical = Quantity(type=str, a_search=Search())
+    sample_constituents = Quantity(type=str, a_search=Search())
+    sample_microstructure = Quantity(type=str, a_search=Search())
 
     # general metadata
-    experiment_summary = Quantity(type=str, default='not processed', a_search=Search())
-    experiment_location = Quantity(type=str, default='not processed', a_search=Search())
-    experiment_time = Quantity(type=Datetime, a_search=Search())
+    experiment_summary = Quantity(type=str, a_search=Search())
+    origin_time = Quantity(type=Datetime, a_search=Search())
+    experiment_location = Quantity(type=str, a_search=Search())
 
     # method
-    method = Quantity(type=str, default='not processed', a_search=Search())
-    probing_method = Quantity(type=str, default='not processed', a_search=Search())
+    method = Quantity(type=str, a_search=Search())
+    data_type = Quantity(type=str, a_search=Search())
+    probing_method = Quantity(type=str, a_search=Search())
 
     # data metadata
-    repository_name = Quantity(type=str, default='not processed', a_search=Search())
-    repository_url = Quantity(type=str, default='not processed', a_search=Search())
-    entry_repository_url = Quantity(type=str, default='not processed', a_search=Search())
-    preview_url = Quantity(type=str, default='not processed', a_search=Search())
+    repository_name = Quantity(type=str, a_search=Search())
+    repository_url = Quantity(type=str, a_search=Search())
+    entry_repository_url = Quantity(type=str, a_search=Search())
+    preview_url = Quantity(type=str, a_search=Search())
 
     # TODO move
     quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
     group_hash = Quantity(type=str, a_search=Search())
 
-    def apply_domain_metadata(self, backend):
+    def apply_domain_metadata(self, entry_archive):
         from nomad import utils
 
-        if backend is None:
+        if entry_archive is None:
             return
 
         entry = self.m_parent
 
-        root_section = backend.entry_archive.section_experiment
-        entry.formula = root_section.section_sample[0].sample_chemical_formula
-        atoms = root_section.section_sample[0].sample_atom_labels
-        if hasattr(atoms, 'tolist'):
-            atoms = atoms.tolist()
-        entry.n_atoms = len(atoms)
+        root_section = entry_archive.section_experiment
+        entry.formula = root_section.section_sample.section_material.chemical_formula
+        atoms = root_section.section_sample.section_material.atom_labels
 
-        atoms = list(set(atoms))
-        atoms.sort()
-        entry.atoms = atoms
+        if atoms is None:
+            entry.atoms = []
+        else:
+            if hasattr(atoms, 'tolist'):
+                atoms = atoms.tolist()
+            entry.n_atoms = len(atoms)
 
-        self.chemical = root_section.section_sample[0].sample_chemical_name
-        self.sample_microstructure = root_section.section_sample[0].sample_microstructure
-        self.sample_constituents = root_section.section_sample[0].sample_constituents
+            atoms = list(set(atoms))
+            atoms.sort()
+            entry.atoms = atoms
+
+        self.chemical = _unavailable(root_section.section_sample.section_material.chemical_name)
+        self.sample_microstructure = _unavailable(root_section.section_sample.sample_microstructure)
+        self.sample_constituents = _unavailable(root_section.section_sample.sample_constituents)
 
         self.experiment_summary = root_section.experiment_summary
-        self.experiment_location = root_section.experiment_location
-        experiment_time = root_section.experiment_time
-        if experiment_time != config.services.unavailable_value:
-            self.experiment_time = experiment_time
+        location = root_section.experiment_location
+        if location is not None:
+            location_str = ', '.join([
+                getattr(location, prop)
+                for prop in ['facility', 'institution', 'address']
+                if getattr(location, prop) is not None])
+            self.experiment_location = location_str
 
-        self.method = root_section.section_method[0].experiment_method_name
-        self.probing_method = root_section.section_method[0].probing_method
+        if root_section.experiment_time:
+            self.origin_time = root_section.experiment_time
+        elif root_section.experiment_publish_time:
+            self.origin_time = root_section.experiment_publish_time
+        else:
+            self.origin_time = self.m_parent.upload_time
 
-        self.repository_name = root_section.section_data[0].data_repository_name
-        self.repository_url = root_section.section_data[0].data_repository_url
-        self.preview_url = root_section.section_data[0].data_preview_url
-        self.entry_repository_url = root_section.section_data[0].entry_repository_url
+        self.data_type = _unavailable(root_section.section_method.data_type)
+        self.method = _unavailable(root_section.section_method.method_name)
+        self.probing_method = _unavailable(root_section.section_method.probing_method)
+
+        self.repository_name = _unavailable(root_section.section_data.repository_name)
+        self.repository_url = root_section.section_data.repository_url
+        self.preview_url = root_section.section_data.preview_url
+        self.entry_repository_url = root_section.section_data.entry_repository_url
 
         self.group_hash = utils.hash(
             entry.formula,
@@ -99,3 +121,6 @@ class EMSMetadata(MSection):
             quantities.add(property_def.name)
 
         self.quantities = list(quantities)
+
+        if self.m_parent.references is None:
+            self.m_parent.references = [self.entry_repository_url]

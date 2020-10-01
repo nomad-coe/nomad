@@ -34,23 +34,49 @@ from datetime import datetime
 from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
+import yaml
+import json
+from cachetools import cached, LRUCache
+from cachetools.keys import hashkey
 
 from nomad import utils, config, infrastructure, search, datamodel
-from nomad.files import PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles, PublicUploadFiles, StagingUploadFiles
+from nomad.files import (
+    PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
+    PublicUploadFiles, StagingUploadFiles)
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
-from nomad.parsing import Backend
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
-from nomad.datamodel import EntryArchive
-from nomad.archive import query_archive
-from nomad.datamodel.encyclopedia import (
-    EncyclopediaMetadata,
-)
-import phonopyparser.metainfo
+from nomad.datamodel import EntryArchive, EditableUserMetadata
+from nomad.archive import query_archive, write_partial_archive_to_mongo
+from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
 section_metadata = datamodel.EntryArchive.section_metadata.name
 section_workflow = datamodel.EntryArchive.section_workflow.name
+
+
+_editable_metadata = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
+
+
+@cached(cache=LRUCache(maxsize=100), key=lambda path, *args, **kwargs: hashkey(path))
+def metadata_file_cached(path, logger):
+    for ext in config.metadata_file_extensions:
+        full_path = '%s.%s' % (path, ext)
+        if os.path.isfile(full_path):
+            try:
+                with open(full_path) as f:
+                    if full_path.endswith('.json'):
+                        return json.load(f)
+                    elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
+                        return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                    else:
+                        return {}
+            except Exception as e:
+                logger.warn('could not parse nomad.yaml/json', path=path, exc_info=e)
+                # ignore the file contents if the file is not parsable
+                pass
+    return {}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -119,7 +145,7 @@ class Calc(Proc):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._parser_backend: Backend = None
+        self._parser_results: EntryArchive = None
         self._upload: Upload = None
         self._upload_files: ArchiveBasedStagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
@@ -149,12 +175,14 @@ class Calc(Proc):
     def create_metadata(self) -> datamodel.EntryMetadata:
         '''
         Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object, not necessarely the user metadata nor the metadata from
+        processing object, not necessarily the user metadata nor the metadata from
         the archive.
         '''
         entry_metadata = datamodel.EntryMetadata()
         if self.parser is not None:
-            entry_metadata.domain = parser_dict[self.parser].domain
+            parser = parser_dict[self.parser]
+            if parser.domain:
+                entry_metadata.domain = parser_dict[self.parser].domain
         entry_metadata.upload_id = self.upload_id
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
@@ -206,7 +234,7 @@ class Calc(Proc):
     def user_metadata(self) -> datamodel.EntryMetadata:
         '''
         Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object and the user metadata, not necessarely the metadata from
+        processing object and the user metadata, not necessarily the metadata from
         the archive.
         '''
         entry_metadata = self.create_metadata()
@@ -306,16 +334,18 @@ class Calc(Proc):
         finally:
             # close loghandler that was not closed due to failures
             try:
-                if self._parser_backend and self._parser_backend.resource:
-                    self._parser_backend.resource.unload()
+                if self._parser_results and self._parser_results.m_resource:
+                    self._parser_results.section_metadata = None
+                    self._parser_results.m_resource.unload()
             except Exception as e:
-                logger.error('could unload processing results', exc_info=e)
+                logger.error('could not unload processing results', exc_info=e)
 
     def _setup_fallback_metadata(self):
         self._entry_metadata = self.create_metadata()
         self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         self._entry_metadata.last_processing = datetime.utcnow()
         self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+        self._entry_metadata.parser_name = self.parser
 
     @process
     def process_calc(self):
@@ -343,8 +373,9 @@ class Calc(Proc):
         finally:
             # close loghandler that was not closed due to failures
             try:
-                if self._parser_backend and self._parser_backend.resource:
-                    self._parser_backend.resource.unload()
+                if self._parser_results and self._parser_results.m_resource:
+                    self._parser_results.section_metadata = None
+                    self._parser_results.m_resource.unload()
             except Exception as e:
                 logger.error('could unload processing results', exc_info=e)
 
@@ -357,12 +388,17 @@ class Calc(Proc):
 
             self._entry_metadata.processed = False
 
-            self.apply_entry_metadata(self._entry_metadata)
-            if self._parser_backend and self._parser_backend.resource:
-                backend = self._parser_backend
-            else:
-                backend = None
-            self._entry_metadata.apply_domain_metadata(backend)
+            try:
+                self.apply_entry_metadata(self._entry_metadata)
+            except Exception as e:
+                self.get_logger().error(
+                    'could not apply entry metadata to entry', exc_info=e)
+
+            try:
+                self._entry_metadata.apply_domain_metadata(self._parser_results)
+            except Exception as e:
+                self.get_logger().error(
+                    'could not apply domain metadata to entry', exc_info=e)
 
             self._entry_metadata.a_elastic.index()
         except Exception as e:
@@ -370,7 +406,7 @@ class Calc(Proc):
                 'could not index after processing failure', exc_info=e)
 
         try:
-            self.write_archive(None)
+            self.write_archive(self._parser_results)
         except Exception as e:
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
@@ -393,8 +429,12 @@ class Calc(Proc):
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             try:
-                self._parser_backend = parser.run(
-                    self.upload_files.raw_file_object(self.mainfile).os_path, logger=logger)
+                self._parser_results = EntryArchive()
+                # allow parsers to read/write metadata
+                self._parser_results.m_add_sub_section(EntryArchive.section_metadata, self._entry_metadata)
+                parser.parse(
+                    self.upload_files.raw_file_object(self.mainfile).os_path,
+                    self._parser_results, logger=logger)
 
             except Exception as e:
                 self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
@@ -402,10 +442,6 @@ class Calc(Proc):
             except SystemExit:
                 self.fail('parser raised system exit', error='system exit', **context)
                 return
-
-        if self._parser_backend.status[0] != 'ParseSuccess':
-            error = self._parser_backend.status[1]
-            self.fail('parser failed', error=error, **context)
 
     def process_phonon(self):
         """Function that is run for phonon calculation before cleanup.
@@ -427,15 +463,13 @@ class Calc(Proc):
             self._entry_metadata = phonon_archive.section_metadata
             self._calc_proc_logs = phonon_archive.processing_logs
 
-            # Re-create a backend
-            metainfo = phonopyparser.metainfo.m_env
-            self._parser_backend = Backend(metainfo, logger=logger, domain="dft")
-            self._parser_backend.entry_archive = phonon_archive
+            # Re-create the parse results
+            self._parser_results = phonon_archive
 
             # Read in the first referenced calculation. The reference is given as
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
-            scc = self._parser_backend.entry_archive.section_run[0].section_single_configuration_calculation[0]
+            scc = self._parser_results.section_run[0].section_single_configuration_calculation[0]
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
@@ -446,7 +480,7 @@ class Calc(Proc):
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
             if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
                 raise ValueError("No method information available in referenced calculation.")
-            self._parser_backend.entry_archive.section_metadata.encyclopedia.method = ref_enc_method
+            self._parser_results.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
@@ -483,40 +517,17 @@ class Calc(Proc):
                     logger, 'archived', step='archive',
                     input_size=self.mainfile_file.size) as log_data:
 
-                archive_size = self.write_archive(self._parser_backend)
+                archive_size = self.write_archive(self._parser_results)
                 log_data.update(archive_size=archive_size)
-
-    @contextmanager
-    def use_parser_backend(self, processor_name):
-        self._parser_backend.reset_status()
-        yield self._parser_backend
-
-        if self._parser_backend.status[0] == 'ParseSuccess':
-            warnings = getattr(self._parser_backend, '_warnings', [])
-
-            if len(warnings) > 0:
-                self.get_logger().warn(
-                    'processor completed successful with warnings',
-                    processor=processor_name, warnings=[str(warning) for warning in warnings])
-
-            else:
-                self.get_logger().info(
-                    'processor completed successful',
-                    processor=processor_name)
-
-        else:
-            errors = self._parser_backend.status[1]
-            self.get_logger().error(
-                'processor completed with failure',
-                processor=processor_name, errors=str(errors))
 
     @task
     def normalizing(self):
         ''' The *task* that encapsulates all normalizing related actions. '''
 
         # allow normalizer to access and add data to the entry metadata
-        self._parser_backend.entry_archive.m_add_sub_section(
-            datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if self._parser_results.section_metadata is None:
+            self._parser_results.m_add_sub_section(
+                datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
         for normalizer in normalizers:
             if normalizer.domain != parser_dict[self.parser].domain:
@@ -526,35 +537,56 @@ class Calc(Proc):
             context = dict(normalizer=normalizer_name, step=normalizer_name)
             logger = self.get_logger(**context)
 
-            with utils.timer(
-                    logger, 'normalizer executed', input_size=self.mainfile_file.size):
-                with self.use_parser_backend(normalizer_name) as backend:
-                    try:
-                        normalizer(backend.entry_archive).normalize(logger=logger)
-                    except Exception as e:
-                        self._parser_backend.finishedParsingSession('ParseFailure', [str(e)])
-                        logger.error(
-                            'normalizer failed with exception', exc_info=e,
-                            error=str(e), **context)
-                        break
-                    else:
-                        if self._parser_backend.status[0] != 'ParseSuccess':
-                            error = self._parser_backend.status[1]
-                            self.fail('normalizer failed', error=error, **context)
-                            break
-                        else:
-                            logger.debug(
-                                'completed normalizer successfully', normalizer=normalizer_name)
+            with utils.timer(logger, 'normalizer executed', input_size=self.mainfile_file.size):
+                try:
+                    normalizer(self._parser_results).normalize(logger=logger)
+                    logger.info('processor completed successfull', **context)
+                except Exception as e:
+                    self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
+
+    def _read_metadata_from_file(self, logger):
+        # metadata file name defined in nomad.config nomad_metadata.yaml/json
+        # which can be placed in the directory containing the mainfile or somewhere up
+        # highest priority is directory with mainfile
+
+        metadata_file = config.metadata_file_name
+        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
+
+        metadata = {}
+        metadata_path = None
+        while metadata_dir:
+            metadata_part = metadata_file_cached(
+                os.path.join(metadata_dir, metadata_file), logger)
+
+            for key, val in metadata_part.items():
+                metadata.setdefault(key, val)
+
+            metadata_dir = os.path.dirname(metadata_dir)
+            if metadata_path is not None:
+                break
+
+        if len(metadata_dir) > 0:
+            logger.info('Apply user metadata from nomad.yaml/json file')
+
+        for key, val in metadata.items():
+            definition = _editable_metadata.get(key, None)
+            if not definition:
+                logger.warn('Cannot set metadata %s' % key)
+                continue
+            self._entry_metadata.m_set(definition, val)
 
     @task
     def archiving(self):
         ''' The *task* that encapsulates all archival related actions. '''
         logger = self.get_logger()
 
-        self._entry_metadata.apply_domain_metadata(self._parser_backend)
+        self._entry_metadata.apply_domain_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
+        self._read_metadata_from_file(logger)
+
         # persist the calc metadata
+        # add the calc metadata
         with utils.timer(logger, 'saved calc metadata', step='metadata'):
             self.apply_entry_metadata(self._entry_metadata)
 
@@ -567,10 +599,18 @@ class Calc(Proc):
                 logger, 'archived', step='archive',
                 input_size=self.mainfile_file.size) as log_data:
 
-            archive_size = self.write_archive(self._parser_backend)
+            archive_size = self.write_archive(self._parser_results)
             log_data.update(archive_size=archive_size)
 
-    def write_archive(self, backend: Backend):
+    def write_archive(self, archive: EntryArchive):
+        # save the archive mongo entry
+        try:
+            if self._entry_metadata.processed:
+                write_partial_archive_to_mongo(archive)
+        except Exception as e:
+            self.get_logger().error('could not write mongodb archive entry', exc_info=e)
+
+        # add the processing logs to the archive
         def filter_processing_logs(logs):
             if len(logs) > 100:
                 return [
@@ -581,27 +621,25 @@ class Calc(Proc):
         if self._calc_proc_logs is None:
             self._calc_proc_logs = []
 
-        if backend is not None:
-            entry_archive = backend.entry_archive.m_copy()
+        if archive is not None:
+            archive = archive.m_copy()
         else:
-            entry_archive = datamodel.EntryArchive()
+            archive = datamodel.EntryArchive()
 
-        if entry_archive.section_metadata is None:
-            entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if archive.section_metadata is None:
+            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
-        entry_archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
+        archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
 
+        # save the archive msg-pack
         try:
-            return self.upload_files.write_archive(self.calc_id, entry_archive.m_to_dict())
+            return self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
         except Exception as e:
-            if backend is None:
-                raise e
-
             # most likely failed due to domain data, try to write metadata and processing logs
-            entry_archive = datamodel.EntryArchive()
-            entry_archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
-            entry_archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
-            self.upload_files.write_archive(self.calc_id, entry_archive.m_to_dict())
+            archive = datamodel.EntryArchive()
+            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+            archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
+            self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
             raise e
 
     def __str__(self):
@@ -618,7 +656,7 @@ class Upload(Proc):
         upload_path: the path were the uploaded files was stored
         temporary: True if the uploaded file should be removed after extraction
         upload_id: the upload id generated by the database
-        upload_time: the timestamp when the system realised the upload
+        upload_time: the timestamp when the system realized the upload
         user_id: the id of the user that created this upload
         published: Boolean that indicates the publish status
         publish_time: Date when the upload was initially published
@@ -810,7 +848,7 @@ class Upload(Proc):
         A *process* that performs the re-processing of a earlier processed
         upload.
 
-        Runs the distributed process of fully reparsing/renormalizing an existing and
+        Runs the distributed process of fully reparsing/re-normalizing an existing and
         already published upload. Will renew the archive part of the upload and update
         mongo and elastic search entries.
 
@@ -1033,7 +1071,7 @@ class Upload(Proc):
         Performs an evaluation of the join condition and triggers the :func:`cleanup`
         task if necessary. The join condition allows to run the ``cleanup`` after
         all calculations have been processed. The upload processing stops after all
-        calculation processings have been triggered (:func:`parse_all` or
+        calculation processing have been triggered (:func:`parse_all` or
         :func:`re_process_upload`). The cleanup task is then run within the last
         calculation process (the one that triggered the join by calling this method).
         '''
@@ -1053,7 +1091,7 @@ class Upload(Proc):
 
                 # Before cleaning up, run an additional normalizer on phonon
                 # calculations. TODO: This should be replaced by a more
-                # extensive mechamism that supports more complex dependencies
+                # extensive mechanism that supports more complex dependencies
                 # between calculations.
                 phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
                 for calc in phonon_calculations:

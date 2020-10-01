@@ -50,7 +50,7 @@ class BasisSet(ABC):
 
     @abstractmethod
     def to_dict(self) -> RestrictedDict:
-        """Used to extract basis set settings from the backend and returning
+        """Used to extract basis set settings from the archive and returning
         them as a RestrictedDict.
         """
         pass

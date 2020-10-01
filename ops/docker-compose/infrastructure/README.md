@@ -1,6 +1,6 @@
 ## Run (dev) infrastructure components with docker compose
 
-You can all necessary databases and other infrastructure with [docker-compose](https://docs.docker.com/compose/)
+You can run all necessary databases and other infrastructure with [docker-compose](https://docs.docker.com/compose/)
 on a single node/computer that supports docker and docker-compse.
 
 ### How we use docker-compose
@@ -8,11 +8,18 @@ on a single node/computer that supports docker and docker-compse.
 You can use docker-compose to run all necessary databases with one single docker-compose configuration.
  The `docker-compose.yml` defines all the different container.
 
-We use docker-compose overrides to extend a base configuration for different scenarios.
-Example docker-compose usage:
+To run the infrastructure for a typical development environment (where you need mongodb,
+elastic, and rabbitmq), simply run:
 
 ```
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d mongo rabbitmq elastic
+docker-compose up -d mongo elastic rabbitmq
+```
+
+We use docker-compose overrides to extend a base configuration for different scenarios.
+Example docker-compose usage for starting the production infrastructure:
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d mongo rabbitmq elastic keycloak elk
 ```
 
 The different overrides are:

@@ -277,9 +277,8 @@ class UploadPage extends React.Component {
           uploads</b> simultaneously. Your uploaded data is not published right away.
           Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
           our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
-        </Typography>
-        <Typography>
-          The following codes are supported: <CodeList/>.
+          The following codes are supported: <CodeList withUploadInstructions />. Click
+          the code to get more specific information about how to prepare your files.
         </Typography>
         <Paper className={classes.dropzoneContainer}>
           <Dropzone

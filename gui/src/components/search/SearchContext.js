@@ -276,7 +276,6 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     setGroups: setGroups,
     setDomain: setDomain,
     setOwner: setOwner,
-    setStatisticsToRefresh: () => null, // TODO remove
     setStatistics: setStatistics,
     setDateHistogram: setDateHistogram,
     update: runRequest

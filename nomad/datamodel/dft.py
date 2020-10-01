@@ -23,7 +23,8 @@ from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
-from .metainfo.public import Workflow
+from .metainfo.public import Workflow, fast_access
+from .metainfo.public import section_XC_functionals
 
 
 xc_treatments = {
@@ -56,47 +57,33 @@ compound_types = [
     'decinary'
 ]
 
-_energy_quantities = [
-    'energy_total',
-    'energy_total_T0',
-    'energy_free',
-    'energy_electrostatic',
-    'energy_X',
-    'energy_XC',
-    'energy_sum_eigenvalues']
-
 _electronic_quantities = [
-    'dos_values',
+    'electronic_band_structure',
+    'electronic_dos',
     'eigenvalues_values',
-    'volumetric_data_values',
-    'electronic_kinetic_energy',
-    'total_charge',
-    # 'atomic_multipole_values'
 ]
 
-_forces_quantities = [
-    'atom_forces_free',
-    'atom_forces_raw',
-    # 'atom_forces_T0',
-    'atom_forces',
-    'stress_tensor']
+_mechanical_quantities = [
+    'stress_tensor'
+]
 
-_vibrational_quantities = [
+_thermal_quantities = [
     'thermodynamical_property_heat_capacity_C_v',
     'vibrational_free_energy_at_constant_volume',
-    'band_energies']
+    'phonon_band_structure',
+    'phonon_dos',
+]
 
 _magnetic_quantities = [
     'spin_S2'
 ]
 
 _optical_quantities = [
-    'excitation_energies',
     'oscillator_strengths',
     'transition_dipole_moments'
 ]
 
-_searchable_quantities = set(_energy_quantities + _electronic_quantities + _forces_quantities + _vibrational_quantities + _magnetic_quantities + _optical_quantities)
+_searchable_quantities = set(_electronic_quantities + _mechanical_quantities + _thermal_quantities + _magnetic_quantities + _optical_quantities)
 
 version_re = re.compile(r'(\d+(\.\d+(\.\d+)?)?)')
 
@@ -105,7 +92,7 @@ def map_functional_name_to_xc_treatment(name):
     if name == config.services.unavailable_value:
         return name
 
-    return xc_treatments.get(name[:3].lower(), name)
+    return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
 
 
 def map_basis_set_to_basis_set_label(name):
@@ -149,7 +136,7 @@ class DFTMetadata(MSection):
         type=str, default='not processed',
         description='The used basis set functions.',
         a_search=Search(statistic_values=[
-            '(L)APW+lo', 'FLAPW', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
+            '(L)APW+lo', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
             'real-space grid', 'unavailable', 'not processed'
         ]))
 
@@ -159,6 +146,11 @@ class DFTMetadata(MSection):
         a_search=Search(
             statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed'],
             statistic_size=100))
+
+    xc_functional_names = Quantity(
+        type=str, default=[], shape=['*'],
+        description='The list of libXC functional names that where used in this entry.',
+        a_search=Search(many_and='append'))
 
     system = Quantity(
         type=str, default='not processed',
@@ -229,7 +221,7 @@ class DFTMetadata(MSection):
     searchable_quantities = Quantity(
         type=str, shape=['0..*'],
         description='All quantities with existence filters in the search GUI.',
-        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities)))
+        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities) + 15))  # Temporarily increased the statistics size while migrating from old set to new one.
 
     geometries = Quantity(
         type=str, shape=['0..*'],
@@ -242,7 +234,7 @@ class DFTMetadata(MSection):
         a_search=Search(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
 
     labels = SubSection(
-        sub_section=Label, repeats=True,
+        sub_section=Label, repeats=True, categories=[fast_access],
         description='The labels taken from AFLOW prototypes and springer.',
         a_search='labels')
 
@@ -291,25 +283,32 @@ class DFTMetadata(MSection):
             self.m_parent.with_embargo,
             user_id)
 
-    def apply_domain_metadata(self, backend):
+    def apply_domain_metadata(self, entry_archive):
         from nomad.normalizing.system import normalized_atom_labels
         entry = self.m_parent
 
         logger = utils.get_logger(__name__).bind(
             upload_id=entry.upload_id, calc_id=entry.calc_id, mainfile=entry.mainfile)
 
-        if backend is None:
-            self.code_name = self.code_name_from_parser()
+        self.code_name = self.code_name_from_parser()
+
+        if entry_archive is None:
             return
 
-        entry_archive = backend.entry_archive
         section_run = entry_archive.section_run
         if not section_run:
             logger.warn('no section_run found')
             return
         section_run = section_run[0]
 
-        section_system = []
+        # default values
+        self.system = config.services.unavailable_value
+        self.crystal_system = config.services.unavailable_value
+        self.spacegroup_symbol = config.services.unavailable_value
+        self.basis_set = config.services.unavailable_value
+        self.xc_functional = config.services.unavailable_value
+
+        section_system = None
         for section in section_run.section_system:
             if section.is_representative:
                 section_system = section
@@ -323,8 +322,7 @@ class DFTMetadata(MSection):
             else:
                 raise KeyError
         except KeyError as e:
-            logger.warn('backend after parsing without program_name', exc_info=e)
-            self.code_name = self.code_name_from_parser()
+            logger.warn('archive without program_name', exc_info=e)
 
         try:
             version = section_run.program_version
@@ -351,9 +349,13 @@ class DFTMetadata(MSection):
         entry.atoms = atoms
         self.compound_type = compound_types[len(atoms) - 1] if len(atoms) <= 10 else '>decinary'
 
-        section_symmetry = section_system.section_symmetry if section_system else []
-        if section_symmetry:
-            section_symmetry = section_symmetry[0]
+        self.system = config.services.unavailable_value
+        self.crystal_system = config.services.unavailable_value
+        self.spacegroup_symbol = config.services.unavailable_value
+
+        section_symmetry = None
+        if section_system and len(section_system.section_symmetry) > 0:
+            section_symmetry = section_system.section_symmetry[0]
             self.crystal_system = get_value(section_symmetry.crystal_system)
             spacegroup = section_symmetry.space_group_number
             self.spacegroup = 0 if not spacegroup else int(spacegroup)
@@ -367,49 +369,49 @@ class DFTMetadata(MSection):
             self.system = get_value(section_system.system_type)
             entry.formula = get_value(section_system.chemical_composition_bulk_reduced)
 
-        section_method = section_run.section_method
-        if section_method:
-            section_method = section_method[0]
-            section_XC_functionals = section_method.section_XC_functionals
-            if section_XC_functionals:
-                self.xc_functional = get_value(section_XC_functionals[0].XC_functional_name)
-
-        # grouping
-        self.update_group_hash()
-
         # metrics and quantities
         quantities = set()
         searchable_quantities = set()
         geometries = set()
+        xc_functionals = set()
+        xc_functional = None
 
         n_quantities = 0
         n_calculations = 0
         n_total_energies = 0
         n_geometries = 0
 
-        for section_run in entry_archive.section_run:
-            quantities.add(section_run.m_def.name)
+        for section, property_def, _ in entry_archive.m_traverse():
+            property_name = property_def.name
+            quantities.add(property_name)
             n_quantities += 1
 
-            for section, property_def, _ in section_run.m_traverse():
-                property_name = property_def.name
-                quantities.add(property_name)
-                n_quantities += 1
+            if property_name in _searchable_quantities:
+                searchable_quantities.add(property_name)
 
-                if property_name in _searchable_quantities:
-                    searchable_quantities.add(property_name)
+            if property_def == section_XC_functionals.XC_functional_name:
+                xc_functional = getattr(section, property_name)
+                if xc_functional:
+                    xc_functionals.add(xc_functional)
 
-                if property_name == 'energy_total':
-                    n_total_energies += 1
+            if property_name == 'energy_total':
+                n_total_energies += 1
 
-                if property_name == 'configuration_raw_gid':
-                    geometries.add(section.m_get(property_def))
+            if property_name == 'configuration_raw_gid':
+                geometries.add(section.m_get(property_def))
 
-                if property_name == 'section_single_configuration_calculation':
-                    n_calculations += 1
+            if property_name == 'section_single_configuration_calculation':
+                n_calculations += 1
 
-                if property_name == 'section_system':
-                    n_geometries += 1
+            if property_name == 'section_system':
+                n_geometries += 1
+
+        self.xc_functional_names = sorted(xc_functionals)
+        if len(self.xc_functional_names) > 0:
+            self.xc_functional = map_functional_name_to_xc_treatment(
+                get_value(self.xc_functional_names[0]))
+        else:
+            self.xc_functional = config.services.unavailable_value
 
         self.quantities = list(quantities)
         self.geometries = list(geometries)
@@ -418,6 +420,9 @@ class DFTMetadata(MSection):
         self.n_calculations = n_calculations
         self.n_total_energies = n_total_energies
         self.n_geometries = n_geometries
+
+        # grouping
+        self.update_group_hash()
 
         # labels
         compounds = set()

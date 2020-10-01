@@ -15,21 +15,6 @@
 version: '3.4'
 
 services:
-    # broker for celery
-    rabbitmq:
-        ports:
-            - 5672:5672
-
-    # the search engine
-    elastic:
-        ports:
-            - 9200:9200
-
-    # the user data db
-    mongo:
-        ports:
-            - 27017:27017
-
     # used for centralized logging
     elk:
         restart: always

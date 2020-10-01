@@ -50,8 +50,8 @@ except ImportError:
     from nomad import gitinfo
 
 
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+warnings.filterwarnings('ignore', message='numpy.dtype size changed')
+warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
 
 
 class NomadConfig(dict):
@@ -154,7 +154,7 @@ services = NomadConfig(
     upload_limit=10,
     force_raw_file_decoding=False,
     download_scan_size=500,
-    download_scan_timeout=u'30m',
+    download_scan_timeout=u'30m'
 )
 
 tests = NomadConfig(
@@ -251,6 +251,10 @@ normalize = NomadConfig(
     )
 )
 
+paths = NomadConfig(
+    similarity="",
+)
+
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
@@ -266,7 +270,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.8.9',
+    version='0.9.0',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',
@@ -285,6 +289,8 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 use_empty_parsers = False
 reprocess_unmatched = True
+metadata_file_name = 'nomad'
+metadata_file_extensions = ('json', 'yaml', 'yml')
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

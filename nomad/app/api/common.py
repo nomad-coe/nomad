@@ -23,6 +23,7 @@ from flask import stream_with_context, Response, g, abort
 from urllib.parse import urlencode
 import pprint
 import io
+import json
 
 import sys
 import os.path
@@ -76,24 +77,6 @@ aggregation_model = api.model('Aggregation', {
     'per_page': fields.Integer(default=0, help='The size of the requested page.', allow_null=True)})
 ''' Model used in responses with id aggregation. '''
 
-search_model_fields = {
-    'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
-    'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
-    'aggregation': fields.Nested(aggregation_model, allow_null=True),
-    'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
-        'A list of search results. Each result is a dict with quantitie names as key and '
-        'values as values'), allow_null=True, skip_none=True),
-    'code': fields.Nested(api.model('Code', {
-        'python': fields.String(description=(
-            'A piece of python code snippet which can be executed to reproduce the api result.')),
-        'curl': fields.String(description=(
-            'A curl command which can be executed to reproduce the api result.')),
-        'clientlib': fields.String(description=(
-            'A piece of python code which uses NOMAD\'s client library to access the archive.'))
-    }), allow_null=True, skip_none=True)}
-
-search_model = api.model('Search', search_model_fields)
-
 query_model_fields = {
     qualified_name: quantity.flask_field
     for qualified_name, quantity in search.search_quantities.items()}
@@ -106,7 +89,49 @@ query_model_fields.update(**{
     'until_time': fields.Raw(description='The maximum entry time.', allow_null=True, skip_none=True)
 })
 
+query_model_fields.update(**{
+    '$and': fields.List(fields.Raw, description=(
+        'List of queries which must be present in search results.')),
+    '$or': fields.List(fields.Raw, description=(
+        'List of queries which should be present in search results.')),
+    '$not': fields.List(fields.Raw, description=(
+        'List of queries which must not be present in search results.')),
+    '$lt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than value.')),
+    '$lte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'less than or equal to value')),
+    '$gt': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than value')),
+    '$gte': fields.Raw(description=(
+        'Dict of quantiy name: value such that search results should have values '
+        'greater than or equal to value')),
+})
+
 query_model = api.model('Query', query_model_fields)
+
+search_model_fields = {
+    'query': fields.Nested(query_model, allow_null=True, skip_none=True),
+    'pagination': fields.Nested(pagination_model, allow_null=True, skip_none=True),
+    'scroll': fields.Nested(scroll_model, allow_null=True, skip_none=True),
+    'aggregation': fields.Nested(aggregation_model, allow_null=True),
+    'results': fields.List(fields.Raw(allow_null=True, skip_none=True), description=(
+        'A list of search results. Each result is a dict with quantitie names as key and '
+        'values as values'), allow_null=True, skip_none=True),
+    'code': fields.Nested(api.model('Code', {
+        'repo_url': fields.String(description=(
+            'An encoded URL for the search query on the repo api.')),
+        'python': fields.String(description=(
+            'A piece of python code snippet which can be executed to reproduce the api result.')),
+        'curl': fields.String(description=(
+            'A curl command which can be executed to reproduce the api result.')),
+        'clientlib': fields.String(description=(
+            'A piece of python code which uses NOMAD\'s client library to access the archive.'))
+    }), allow_null=True, skip_none=True)}
+
+search_model = api.model('Search', search_model_fields)
 
 
 def add_pagination_parameters(request_parser):
@@ -154,6 +179,9 @@ def add_search_parameters(request_parser):
     request_parser.add_argument(
         'dft.optimade', type=str,
         help='A search query in the optimade filter language.')
+    request_parser.add_argument(
+        'query', type=str,
+        help='A json serialized structured search query (as used in POST reuquests).')
 
     # main search parameters
     for qualified_name, quantity in search.search_quantities.items():
@@ -205,7 +233,20 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
                 optimade, nomad_properties=domain, without_prefix=True)
             search_request.query(q)
     except filterparser.FilterException as e:
-        abort(400, 'Could not parse optimade query: %s' % (str(e)))
+        abort(400, 'Could not parse optimade query: %s' % str(e))
+
+    # search expression
+    query_str = args.get('query', None)
+    if query_str is not None:
+        try:
+            query = json.loads(query_str)
+        except Exception as e:
+            abort(400, 'Could not JSON parse query expression: %s' % str(e))
+
+        try:
+            search_request.query_expression(query)
+        except Exception as e:
+            abort(400, 'Invalid query expression: %s' % str(e))
 
     # search parameter
     search_request.search_parameters(**{
@@ -303,7 +344,7 @@ def streamed_zipfile(
     return response
 
 
-def query_api_url(*args, query_string: Dict[str, Any] = None):
+def _query_api_url(*args, query: Dict[str, Any] = None):
     '''
     Creates a API URL.
     Arguments:
@@ -311,21 +352,67 @@ def query_api_url(*args, query_string: Dict[str, Any] = None):
         query_string: A dict with query string parameters
     '''
     url = os.path.join(config.api_url(False), *args)
-    if query_string is not None:
-        url = '%s?%s' % (url, urlencode(query_string, doseq=True))
+    if query is not None and len(query) > 0:
+        url = '%s?%s' % (url, urlencode(query, doseq=True))
 
     return url
 
 
-def query_api_python(*args, **kwargs):
+def query_api_python(query):
     '''
     Creates a string of python code to execute a search query to the repository using
     the requests library.
     '''
-    url = query_api_url(*args, **kwargs)
+    query = _filter_api_query(query)
+    url = _query_api_url('archive', 'query')
     return '''import requests
-response = requests.post("{}")
-data = response.json()'''.format(url)
+response = requests.post('{}', json={{
+    'query': {{
+{}
+    }}
+}})
+data = response.json()'''.format(
+        url,
+        ',\n'.join([
+            '        \'%s\': %s' % (key, pprint.pformat(value, compact=True))
+            for key, value in query.items()])
+    )
+
+
+def _filter_api_query(query):
+    def normalize_value(key, value):
+        quantity = search.search_quantities.get(key)
+        if quantity.many and not isinstance(value, list):
+            return [value]
+        elif isinstance(value, list) and len(value) == 1:
+            return value[0]
+
+        return value
+
+    result = {
+        key: normalize_value(key, value) for key, value in query.items()
+        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
+    }
+
+    for key in ['dft.optimade']:
+        if key in query:
+            result[key] = query[key]
+
+    return result
+
+
+def query_api_repo_url(query):
+    '''
+    Creates an encoded URL string access a search query on the repo api.
+    '''
+    query = dict(query)
+    for to_delete in ['per_page', 'page', 'exclude']:
+        if to_delete in query:
+            del(query[to_delete])
+    for key, value in dict(order_by=['upload_time'], order=['-1'], domain=['dft'], owner=['public']).items():
+        if key in query and query[key] == value:
+            del(query[key])
+    return _query_api_url('repo', query=query)
 
 
 def query_api_clientlib(**kwargs):
@@ -333,21 +420,7 @@ def query_api_clientlib(**kwargs):
     Creates a string of python code to execute a search query on the archive using
     the client library.
     '''
-    def normalize_value(key, value):
-        quantity = search.search_quantities.get(key)
-        if quantity.many and not isinstance(value, list):
-            return [value]
-
-        return value
-
-    query = {
-        key: normalize_value(key, value) for key, value in kwargs.items()
-        if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
-    }
-
-    for key in ['dft.optimade']:
-        if key in kwargs:
-            query[key] = kwargs[key]
+    query = _filter_api_query(kwargs)
 
     out = io.StringIO()
     out.write('from nomad import client, config\n')
@@ -362,12 +435,13 @@ def query_api_clientlib(**kwargs):
     return out.getvalue()
 
 
-def query_api_curl(*args, **kwargs):
+def query_api_curl(query):
     '''
-    Creates a string of curl command to execute a search query to the repository.
+    Creates a string of curl command to execute a search query and download the respective
+    archives in a .zip file.
     '''
-    url = query_api_url(*args, **kwargs)
-    return 'curl -X POST %s -H  "accept: application/json" --output "nomad.json"' % url
+    url = _query_api_url('archive', 'download', query=query)
+    return 'curl "%s" --output nomad.zip' % url
 
 
 def enable_gzip(level: int = 1, min_size: int = 1024):

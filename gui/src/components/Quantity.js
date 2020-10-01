@@ -4,6 +4,7 @@ import { withStyles, Typography, Tooltip, IconButton } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import _ from 'lodash'
+import searchQuanitites from '../searchQuantities'
 
 class Quantity extends React.Component {
   static propTypes = {
@@ -22,7 +23,8 @@ class Quantity extends React.Component {
       PropTypes.func
     ]),
     withClipboard: PropTypes.bool,
-    ellipsisFront: PropTypes.bool
+    ellipsisFront: PropTypes.bool,
+    hideIfUnavailable: PropTypes.bool
   }
 
   static styles = theme => ({
@@ -73,7 +75,10 @@ class Quantity extends React.Component {
   })
 
   render() {
-    const {classes, children, label, typography, loading, placeholder, noWrap, row, column, quantity, data, withClipboard, ellipsisFront} = this.props
+    const {
+      classes, children, label, typography, loading, placeholder, noWrap, row, column,
+      quantity, data, withClipboard, ellipsisFront, hideIfUnavailable
+    } = this.props
     let content = null
     let clipboardContent = null
 
@@ -92,6 +97,14 @@ class Quantity extends React.Component {
         } catch {
           value = undefined
         }
+      }
+
+      if (value === 'not processed') {
+        value = 'unavailable'
+      }
+
+      if ((!value || value === 'unavailable') && hideIfUnavailable) {
+        return ''
       }
 
       if (children && children.length !== 0) {
@@ -114,25 +127,27 @@ class Quantity extends React.Component {
       return <div className={row ? classes.row : classes.column}>{children}</div>
     } else {
       return (
-        <div className={classes.root}>
-          <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
-          <div className={classes.valueContainer}>
-            {loading
-              ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-                <i>loading ...</i>
-              </Typography> : content}
-            {withClipboard
-              ? <CopyToClipboard className={classes.valueAction} text={clipboardContent} onCopy={() => null}>
-                <Tooltip title={`Copy ${useLabel} to clipboard`}>
-                  <div>
-                    <IconButton disabled={!clipboardContent} classes={{root: classes.valueActionButton}} >
-                      <ClipboardIcon classes={{root: classes.valueActionIcon}}/>
-                    </IconButton>
-                  </div>
-                </Tooltip>
-              </CopyToClipboard> : ''}
+        <Tooltip title={(searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
+          <div className={classes.root}>
+            <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
+            <div className={classes.valueContainer}>
+              {loading
+                ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+                  <i>loading ...</i>
+                </Typography> : content}
+              {withClipboard
+                ? <CopyToClipboard className={classes.valueAction} text={clipboardContent} onCopy={() => null}>
+                  <Tooltip title={`Copy ${useLabel} to clipboard`}>
+                    <div>
+                      <IconButton disabled={!clipboardContent} classes={{root: classes.valueActionButton}} >
+                        <ClipboardIcon classes={{root: classes.valueActionIcon}}/>
+                      </IconButton>
+                    </div>
+                  </Tooltip>
+                </CopyToClipboard> : ''}
+            </div>
           </div>
-        </div>
+        </Tooltip>
       )
     }
   }

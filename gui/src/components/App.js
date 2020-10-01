@@ -5,13 +5,14 @@ import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton } from '@material-ui/core'
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import FAQIcon from '@material-ui/icons/QuestionAnswer'
+import EncyclopediaIcon from '@material-ui/icons/Language'
 import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
@@ -25,7 +26,7 @@ import { ErrorSnacks, withErrors } from './errors'
 import { help as entryHelp, default as EntryPage } from './entry/EntryPage'
 import About from './About'
 import LoginLogout from './LoginLogout'
-import { guiBase, consent, nomadTheme, appBase, version, oasis, aitoolkitEnabled } from '../config'
+import { guiBase, consent, nomadTheme, appBase, version, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import packageJson from '../../package.json'
 import {help as uploadHelp, default as UploadPage} from './uploads/UploadPage'
 import ResolvePID from './entry/ResolvePID'
@@ -39,7 +40,7 @@ import {matomo} from '../index'
 import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
-import AnalyticsPage from './analytics/AnalyticsPage'
+import AIToolkitPage from './aitoolkit/AIToolkitPage'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -126,7 +127,7 @@ function BetaSnack() {
     return ''
   }
 
-  if (!version.isBeta) {
+  if (!version.isBeta && !version.isTest) {
     return ''
   }
 
@@ -140,9 +141,9 @@ function BetaSnack() {
     <SnackbarContent
       className={classes.snack}
       message={<span style={{color: 'white'}}>
-        You are using a beta version of NOMAD ({version.label}). {
+        You are using a {version.isBeta ? 'beta' : 'test'} version of NOMAD ({version.label}). {
           version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.' : ''
-        } Click <a style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</a>.
+        } Click <MuiLink style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</MuiLink>.
       </span>}
       action={[
         <IconButton key={0} color="inherit" onClick={() => setUnderstood(true)}>
@@ -278,10 +279,16 @@ function MainMenu() {
       tooltip="Manage your data"
       icon={<UserDataIcon/>}
     />
+    {encyclopediaEnabled && <MainMenuItem
+      title="Encyclopedia"
+      href={`${appBase}/encyclopedia/#/search`}
+      tooltip="Visit the NOMAD Materials Encyclopedia"
+      icon={<EncyclopediaIcon/>}
+    />}
     {!oasis && aitoolkitEnabled && <MainMenuItem
-      title="Analytics"
-      path="/analytics"
-      tooltip="NOMAD's analytics (AI) toolkit tutorial jupyter notebooks"
+      title="AI Toolkit"
+      path="/aitoolkit"
+      tooltip="NOMAD's Artificial Intelligence Toolkit tutorial jupyter notebooks"
       icon={<AnalyticsIcon/>}
     />}
     <MainMenuItem
@@ -412,7 +419,8 @@ class NavigationUnstyled extends React.Component {
     '/userdata': 'Manage Your Data',
     '/metainfo': 'The NOMAD Meta Info',
     '/entry': 'Entry',
-    '/dataset': 'Dataset'
+    '/dataset': 'Dataset',
+    '/aitoolkit': 'Artificial Intelligence Toolkit'
   }
 
   toolbarHelp = {
@@ -477,9 +485,9 @@ class NavigationUnstyled extends React.Component {
                 disableGutters
               >
                 <div className={classes.title}>
-                  <a href="https://nomad-lab.eu">
+                  <MuiLink href="https://nomad-lab.eu">
                     <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
-                  </a>
+                  </MuiLink>
                   <Typography variant="h6" color="inherit" noWrap>
                     {selected(toolbarTitles)}
                   </Typography>
@@ -559,9 +567,9 @@ const routes = {
     path: '/metainfo',
     component: MetainfoPage
   },
-  'analytics': {
-    path: '/analytics',
-    component: AnalyticsPage
+  'aitoolkit': {
+    path: '/aitoolkit',
+    component: AIToolkitPage
   }
 }
 

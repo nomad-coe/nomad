@@ -1,5 +1,0 @@
-elastic:
-    index_name: fairdi_nomad_ems
-mongo:
-    db_name: fairdi_nomad_ems
-domain: EMS

@@ -7,7 +7,10 @@ import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
-import { Link } from '@material-ui/core'
+import QCMSEntryOverview from './qcms/QCMSEntryOverview'
+import QCMSEntryCards from './qcms/QCMSEntryCards'
+import { Link, Typography } from '@material-ui/core'
+import { amber } from '@material-ui/core/colors'
 
 /* eslint-disable react/display-name */
 
@@ -17,9 +20,15 @@ export const domains = ({
     label: 'Computational material science data',
     key: 'dft',
     about: 'This include data from many computational material science codes',
+    disclaimer: <Typography>
+      First time users can find an introduction to NOMAD, tutorials, and videos <Link href="https://nomad-lab.eu/services/repo-arch" target="nomad-lab">here</Link>.
+    </Typography>,
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
-    entryTitle: data => data.dft && data.dft.code_name ? data.dft.code_name + ' run' : 'Code run',
+    entryTitle: data =>
+      data.dft && data.dft.code_name
+        ? data.dft.code_name.charAt(0).toUpperCase() + data.dft.code_name.slice(1) + ' run'
+        : 'Code run',
     searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
     /**
      * A set of components and metadata that is used to present tabs of search visualizations
@@ -49,7 +58,7 @@ export const domains = ({
         renderResultString: count => (<span><b>{count.toLocaleString()}</b> entr{count === 1 ? 'y' : 'ies'}</span>)
       },
       unique_entries: {
-        label: 'Unique entries',
+        label: 'Unique',
         tooltip: 'Counts duplicates only once.',
         renderResultString: count => (<span> and <b>{count.toLocaleString()}</b> unique entr{count === 1 ? 'y' : 'ies'}</span>)
       },
@@ -163,8 +172,13 @@ export const domains = ({
   ems: {
     name: 'Experimental data',
     key: 'ems',
-    label: 'Experimental material science data',
-    about: 'This is metadata from material science experiments',
+    label: 'Experimental data (beta)',
+    about: 'This includes first metadata from material science experiments. This aspect of NOMAD is still in development and mnight change frequently.',
+    disclaimer: <Typography style={{color: amber[700]}}>
+      This aspect of NOMAD is still under development. The offered functionality and displayed data
+      might change frequently, is not necessarely reviewed by NOMAD, and might contain
+      errors. Some of the information is taken verbatim from external sources.
+    </Typography>,
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
     entryTitle: () => 'Experiment',
@@ -211,10 +225,12 @@ export const domains = ({
         supportsSort: true
       },
       'ems.data_type': {
-        label: 'Data'
+        label: 'Data',
+        supportsSort: true
       },
       'ems.origin_time': {
         label: 'Date',
+        supportsSort: true,
         render: entry => (entry.ems && entry.ems.origin_time && new Date(entry.ems.origin_time).toLocaleDateString()) || 'unavailable'
       },
       'ems.repository_url': {
@@ -235,6 +251,83 @@ export const domains = ({
      * loading (a bool with api loading status).
      */
     EntryCards: EMSEntryCards,
+    /**
+     * Names of the possible search tabs for this domain
+     */
+    searchTabs: ['entries', 'datasets', 'uploads']
+  },
+  qcms: {
+    name: 'Quantum-computer data',
+    key: 'qcms',
+    label: 'Quantum-computer material science data (beta)',
+    about: 'This includes first data material science data calculated by quantum-computers. This aspect of NOMAD is still in development and mnight change frequently.',
+    disclaimer: <Typography style={{color: amber[700]}}>
+      This aspect of NOMAD is still under development. The offered functionality and displayed data
+      might change frequently, is not necessarely reviewed by NOMAD, and might contain
+      errors. Some of the information is taken verbatim from external sources.
+    </Typography>,
+    entryLabel: 'calculation',
+    entryLabelPlural: 'calculations',
+    entryTitle: () => 'Quantum-computer calculation',
+    searchPlaceholder: 'enter atoms',
+    searchVisualizations: {
+    },
+    /**
+     * Metrics are used to show values for aggregations. Each metric has a key (used
+     * for API calls), a label (used in the select form), and result string (to show
+     * the overall amount in search results).
+     */
+    searchMetrics: {
+      code_runs: {
+        label: 'Calculations',
+        tooltip: 'Statistics will show the number of entires; usually each entry represents a single calculation.',
+        renderResultString: count => (<span><b>{count}</b> entries</span>)
+      },
+      datasets: {
+        label: 'Datasets',
+        tooltip: 'Shows statistics in terms of datasets that entries belong to.',
+        renderResultString: count => (<span> curated in <b>{count}</b> datasets</span>)
+      }
+    },
+    defaultSearchMetric: 'code_runs',
+    /**
+     * An dict where each object represents a column. Possible keys are label, render.
+     * Default render
+     */
+    searchResultColumns: {
+      'formula': {
+        label: 'Formula'
+      },
+      'qcms.chemical': {
+        label: 'Material name'
+      },
+      'qcms.quantum_computer_system': {
+        label: 'System'
+      },
+      'qcms.quantum_computing_libraries': {
+        label: 'Libraries'
+      },
+      'qcms.computation_datetime': {
+        label: 'Compute date',
+        supportsSort: true,
+        render: entry => new Date(entry.qcms.computation_datetime).toLocaleDateString()
+      }
+    },
+    defaultSearchResultColumns: [
+      'formula', 'qcms.chemical', 'qcms.quantum_computer_system', 'qcms.quantum_computing_libraries',
+      'qcms.computation_datetime'],
+    /**
+     * A component to render the domain specific quantities in the metadata card of
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryOverview: QCMSEntryOverview,
+    /**
+     * A component to render additional domain specific cards in the
+     * the entry view. Needs to work with props: data (the entry data from the API),
+     * loading (a bool with api loading status).
+     */
+    EntryCards: QCMSEntryCards,
     /**
      * Names of the possible search tabs for this domain
      */

@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Card, Button, Tooltip, Tabs, Tab, Paper, FormControl,
-  FormGroup, Checkbox, FormControlLabel, CardContent, IconButton, FormLabel, Select, MenuItem } from '@material-ui/core'
+  FormGroup, Checkbox, FormControlLabel, CardContent, IconButton, Select, MenuItem, Box } from '@material-ui/core'
 import { useQueryParam, useQueryParams, StringParam, NumberParam } from 'use-query-params'
 import SearchBar from './SearchBar'
 import EntryList from './EntryList'
@@ -14,7 +14,6 @@ import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
 import GroupList from './GroupList'
 import ApiDialogButton from '../ApiDialogButton'
-import SearchIcon from '@material-ui/icons/Search'
 import UploadsHistogram from './UploadsHistogram'
 import QuantityHistogram from './QuantityHistogram'
 import SearchContext, { searchContext, useUrlQuery } from './SearchContext'
@@ -71,6 +70,7 @@ export default function Search(props) {
     initialQuery,
     resultListProps,
     initialRequest,
+    showDisclaimer,
     ...rest} = props
   const classes = useSearchStyles()
   return <DisableOnLoading>
@@ -83,6 +83,7 @@ export default function Search(props) {
           initialDomain={initialDomain}
           initialMetric={initialMetric}
           initialRequest={initialRequest}
+          showDisclaimer={showDisclaimer}
         />
         <SearchResults
           initialTab={initialResultTab}
@@ -113,7 +114,8 @@ Search.propTypes = {
    * Similar to query, but these parameters can be changes by the user interacting with
    * the component.
    */
-  initialQuery: PropTypes.object
+  initialQuery: PropTypes.object,
+  showDisclaimer: PropTypes.bool
 }
 
 const useSearchEntryStyles = makeStyles(theme => ({
@@ -124,10 +126,7 @@ const useSearchEntryStyles = makeStyles(theme => ({
     margin: 'auto',
     width: '100%'
   },
-  searchIcon: {
-    margin: `${theme.spacing(1)}px 0`,
-    padding: `6px 0 2px 0`
-  },
+
   domainButton: {
     margin: theme.spacing(1)
   },
@@ -150,7 +149,7 @@ const useSearchEntryStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(2)
   }
 }))
-function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initialMetric}) {
+function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initialMetric, showDisclaimer}) {
   const classes = useSearchEntryStyles()
   const [openVisualizationParam, setOpenVisualizationParam] = useQueryParam('visualization', StringParam)
   const {domain} = useContext(searchContext)
@@ -183,13 +182,14 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
 
   return <div>
     <div className={classes.search}>
+      {domain.disclaimer && showDisclaimer && <Box marginBottom={2} fontStyle="italic">
+        {domain.disclaimer}
+      </Box>}
       <FormGroup row style={{alignItems: 'center'}}>
-        <FormControl className={classes.searchIcon}>
-          <FormLabel>
-            <SearchIcon/>
-          </FormLabel>
-        </FormControl>
-        <DomainSelect classes={{root: classes.domainButton}} initialDomain={initialDomain} />
+        <Box marginRight={2}>
+          <DomainSelect classes={{root: classes.domainButton}} initialDomain={initialDomain} />
+        </Box>
+        <div style={{flexGrow: 1}} />
         <OwnerSelect ownerTypes={ownerTypes} initialOwner={initialOwner}/>
         <div style={{flexGrow: 1}} />
         <VisualizationSelect
@@ -198,7 +198,9 @@ function SearchEntry({initialTab, initialOwner, ownerTypes, initialDomain, initi
           onChange={handleVisualizationChange}
           visualizations={visualizations}
         />
-        <MetricSelect classes={{root: classes.metricButton}} initialMetric={initialMetric}/>
+        <Box marginLeft={2}>
+          <MetricSelect classes={{root: classes.metricButton}} initialMetric={initialMetric}/>
+        </Box>
       </FormGroup>
 
       {/* <SearchBar classes={{autosuggestRoot: classes.searchBar}} /> */}
@@ -217,7 +219,8 @@ SearchEntry.propTypes = {
   initialOwner: PropTypes.string,
   initialDomain: PropTypes.string,
   initialMetric: PropTypes.string,
-  ownerTypes: PropTypes.arrayOf(PropTypes.string)
+  ownerTypes: PropTypes.arrayOf(PropTypes.string),
+  showDisclaimer: PropTypes.bool
 }
 
 const originLabels = {
@@ -230,12 +233,12 @@ const originLabels = {
 function UsersVisualization() {
   const {setStatistics} = useContext(searchContext)
   useEffect(() => {
-    setStatistics(['uploader'])
+    setStatistics(['origin'])
     // eslint-disable-next-line
   }, [])
   return <div>
     <UploadsHistogram tooltips initialScale={0.5} />
-    <QuantityHistogram quantity="uploader" title="Uploader/origin" valueLabels={originLabels}/>
+    <QuantityHistogram quantity="origin" title="Uploader/origin" valueLabels={originLabels}/>
   </div>
 }
 
@@ -278,8 +281,7 @@ function ElementsVisualization(props) {
 
 const useMetricSelectStyles = makeStyles(theme => ({
   root: {
-    minWidth: 130,
-    paddingLeft: theme.spacing(2)
+    minWidth: 100
   }
 }))
 function MetricSelect({initialMetric}) {
@@ -337,6 +339,7 @@ function VisualizationSelect({classes, value, onChange, visualizations}) {
       const visualization = visualizations[key]
       return <Tooltip key={key} title={visualization.description}>
         <Button
+          variant="outlined"
           size="small" className={classes.button}
           color={value === key ? 'primary' : 'default'}
           onClick={() => onChange(key)}
@@ -356,9 +359,7 @@ VisualizationSelect.propTypes = {
 
 const useDomainSelectStyles = makeStyles(theme => ({
   root: {
-    minWidth: 60,
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2)
+    minWidth: 60
   }
 }))
 function DomainSelect({initialDomain}) {

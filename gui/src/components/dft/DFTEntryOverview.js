@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { Typography, Tooltip, Link } from '@material-ui/core'
 import Quantity from '../Quantity'
 import _ from 'lodash'
-import {appBase, encyclopediaEnabled} from '../../config'
+import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
 export default function DFTEntryOverview(props) {
   const {data} = props
@@ -49,7 +49,7 @@ export default function DFTEntryOverview(props) {
         <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...props} />
         <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...props}>
           <Typography noWrap>
-            {_.get(data, 'dft.spacegroup_symbol')} ({_.get(data, 'dft.spacegroup')})
+            {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
           </Typography>
         </Quantity>
       </Quantity>

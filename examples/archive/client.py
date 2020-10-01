@@ -2,33 +2,40 @@
 A simple example that uses the NOMAD client library to access the archive.
 '''
 
-from nomad import config
 from nomad.client import ArchiveQuery
 from nomad.metainfo import units
 
 
 query = ArchiveQuery(
+    # url='http://nomad-lab.eu/prod/rae/beta/api',
     query={
-        'dft.compound_type': 'binary',
-        'dft.crystal_system': 'cubic',
-        'dft.code_name': 'FHI-aims',
-        'atoms': ['O']
+        '$and': [
+            {'dft.code_name': 'VASP'},
+            {'$gte': {'n_atoms': 3}},
+            {'$lte': {'dft.workflow.section_relaxation.final_energy_difference': 1e-24}}
+        ]
     },
     required={
-        'section_run[0]': {
-            'section_single_configuration_calculation[-2]': {
-                'energy_total': '*'
-            },
-            'section_system[-2]': '*'
+        'section_workflow': {
+            'section_relaxation': {
+                'final_calculation_ref': {
+                    'energy_total': '*',
+                    'single_configuration_calculation_to_system_ref': {
+                        'chemical_composition_reduced': '*'
+                    }
+                }
+            }
         }
     },
-    per_page=10,
-    max=1000)
+    parallel=10,
+    per_page=1000,
+    max=10000)
+
+for i, result in enumerate(query):
+    if i < 10:
+        calc = result.section_workflow.section_relaxation.final_calculation_ref
+        energy = calc.energy_total
+        formula = calc.single_configuration_calculation_to_system_ref.chemical_composition_reduced
+        print('%s: energy %s' % (formula, energy.to(units.hartree)))
 
 print(query)
-
-for result in query[0:10]:
-    run = result.section_run[0]
-    energy = run.section_single_configuration_calculation[0].energy_total
-    formula = run.section_system[0].chemical_composition_reduced
-    print('%s: energy %s' % (formula, energy.to(units.hartree)))

@@ -121,10 +121,12 @@ class ArchiveLogView extends React.Component {
 
     if (doesNotExist) {
       return (
-        <Typography>
-          No archive log does exist for this entry. Most likely the entry itself does not
-          exist.
-        </Typography>
+        <EntryPageContent>
+          <Typography>
+            No archive log does exist for this entry. Most likely the entry itself does not
+            exist.
+          </Typography>
+        </EntryPageContent>
       )
     }
 

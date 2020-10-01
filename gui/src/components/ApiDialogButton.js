@@ -58,6 +58,8 @@ export function ApiDialog({title, data, onClose, ...dialogProps}) {
       <DialogTitle>{title || 'API Code'}</DialogTitle>
 
       <DialogContent classes={{root: classes.content}}>
+        { data.code && data.code.repo_url &&
+          renderCode(<span>URL to this query on the repository API:</span>, data.code.repo_url)}
         { data.code && data.code.curl &&
           renderCode(<span>Access the archive as JSON via <i>curl</i>:</span>, data.code.curl)}
         { data.code && data.code.python &&

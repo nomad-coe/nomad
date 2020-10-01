@@ -20,6 +20,7 @@ import re
 import shutil
 
 from nomad import utils, infrastructure, config
+from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
@@ -96,6 +97,11 @@ def assert_processing(upload: Upload, published: bool = False):
 
             assert has_test_event
         assert len(calc.errors) == 0
+
+        archive = read_partial_archive_from_mongo(calc.calc_id)
+        assert archive.section_metadata is not None
+        assert archive.section_workflow.calculation_result_ref \
+            .single_configuration_calculation_to_system_ref.atom_labels is not None
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
@@ -412,6 +418,8 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
         with upload.upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
             assert 'section_metadata' in calc_archive
+            assert calc_archive['section_metadata']['dft']['code_name'] not in [
+                config.services.unavailable_value, config.services.not_processed_value]
             assert 'processing_logs' in calc_archive
             if task != 'parsing':
                 assert 'section_run' in calc_archive
@@ -440,14 +448,51 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user):
 
 
 def test_ems_data(proc_infra, test_user):
-    upload = run_processing(('test_ems_upload', 'tests/data/proc/example_ems.zip'), test_user)
+    upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
     additional_keys = [
-        'ems.method', 'ems.experiment_location', 'ems.experiment_time', 'formula',
-        'ems.chemical']
+        'ems.method', 'ems.data_type', 'formula', 'n_atoms', 'atoms', 'ems.chemical', 'ems.origin_time']
+    assert upload.total_calcs == 3
+    assert len(upload.calcs) == 3
+
+    with upload.entries_metadata() as entries:
+        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_search_upload(entries, additional_keys, published=False)
+
+
+def test_qcms_data(proc_infra, test_user):
+    upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
+
+    additional_keys = ['qcms.chemical', 'formula']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
         assert_search_upload(entries, additional_keys, published=False)
+
+
+def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
+    upload = run_processing(
+        ('test_upload', 'tests/data/proc/examples_with_metadata_file.zip'), test_user)
+
+    calcs = Calc.objects(upload_id=upload.upload_id)
+    calcs = sorted(calcs, key=lambda calc: calc.mainfile)
+
+    comment = ['Calculation 1 of 2', 'Calculation 2 of 2', None]
+    with_embargo = [True, False, True]
+    references = [['http://test'], ['http://ttest'], None]
+    coauthors = [[other_test_user], [], []]
+
+    for i in range(len(calcs)):
+        entry_metadata = calcs[i].entry_metadata(upload.upload_files)
+        assert entry_metadata.comment == comment[i]
+        assert entry_metadata.with_embargo == with_embargo[i]
+        assert entry_metadata.references == references[i]
+        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        for j in range(len(entry_coauthors)):
+            assert entry_coauthors[j].user_id == coauthors[i][j].user_id
+            assert entry_coauthors[j].username == coauthors[i][j].username
+            assert entry_coauthors[j].email == coauthors[i][j].email
+            assert entry_coauthors[j].first_name == coauthors[i][j].first_name
+            assert entry_coauthors[j].last_name == coauthors[i][j].last_name

@@ -148,6 +148,10 @@ from bravado import requests_client as bravado_requests_client
 import time
 from keycloak import KeycloakOpenID
 from io import StringIO
+import math
+from urllib.parse import urlencode
+import multiprocessing
+import json
 
 from nomad import config
 from nomad import metainfo as mi
@@ -155,6 +159,16 @@ from nomad.datamodel import EntryArchive
 
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
 from nomad import parsing  # pylint: disable=unused-import
+
+
+# This is only necessary to path it during test, because the HTTP client interface differs in test
+def get_json(response):
+    return response.json()
+
+
+# This is only necessary to path it during test, because the HTTP client interface differs in test
+def get_length(response):
+    return len(response.content)
 
 
 class QueryError(Exception):
@@ -192,7 +206,7 @@ class ApiStatistics(mi.MSection):
 
     nentries = mi.Quantity(
         type=int, default=0,
-        description='Number queries entries')
+        description='Number queried entries')
 
     last_response_nentries = mi.Quantity(
         type=int, default=0,
@@ -222,6 +236,67 @@ class ApiStatistics(mi.MSection):
         return out.getvalue()
 
 
+class ProcState:
+    '''
+    A basic pickable data-class that holds the state of one parallel running
+    processes that loads archive API data.
+    '''
+    def __init__(self, archive_query: 'ArchiveQuery'):
+        self.url = archive_query.url
+        self.request: Dict[str, Any] = dict(
+            query={'$and': archive_query.query},
+            required=archive_query.required,
+            raise_errors=archive_query.raise_errors)
+        self.per_page = archive_query.per_page
+        self.authentication = archive_query.authentication
+
+        self.upload_ids: List[str] = []
+        self.nentries = 0
+        self.total = None
+        self.after = None
+        self.results = None
+        self.error: Exception = None
+        self.data_size = 0
+
+
+def _run_proc(proc_state: ProcState) -> ProcState:
+    '''
+    The main function for a process that retrieves data from the archive API based
+    on its state. Will create a new state. Otherwise it is completely stateless.
+    '''
+    try:
+        url = '%s/%s/%s' % (proc_state.url, 'archive', 'query')
+
+        # create the query
+        proc_state.request['query']['upload_id'] = proc_state.upload_ids
+        aggregation = proc_state.request.setdefault('aggregation', {'per_page': proc_state.per_page})
+        if proc_state.after is not None:
+            aggregation['after'] = proc_state.after
+
+        # run the query
+        response = requests.post(url, headers=proc_state.authentication, json=proc_state.request)
+        if response.status_code != 200:
+            if response.status_code == 400:
+                message = get_json(response).get('message')
+                errors = get_json(response).get('errors')
+                if message:
+                    raise QueryError('%s: %s' % (message, errors))
+                raise QueryError('The query is invalid for unknown reasons (400).')
+            raise QueryError(
+                'The query is invalid for unknown reasons (%d).' % response.status_code)
+
+        # update the state
+        proc_state.data_size += get_length(response)
+        data = get_json(response)
+        proc_state.results = data.get('results', [])
+        proc_state.after = data['aggregation'].get('after', None)
+        proc_state.total = data['aggregation'].get('total', 0)
+    except Exception as e:
+        proc_state.error = e
+
+    return proc_state
+
+
 class ArchiveQuery(collections.abc.Sequence):
     '''
     Object of this class represent a query on the NOMAD Archive. It is solely configured
@@ -241,52 +316,52 @@ class ArchiveQuery(collections.abc.Sequence):
         per_page: Determine how many results are downloaded per page (or scroll window).
             Default is 10.
         max: Optionally determine the maximum amount of downloaded archives. The iteration
-            will stop even if more results are available. Default is unlimited.
+            will stop if max is surpassed even if more results are available. Default is 10.000.
+            None value will set it to unlimited.
         raise_errors: There situations where archives for certain entries are unavailable.
             If set to True, this cases will raise an Exception. Otherwise, the entries
             with missing archives are simply skipped (default).
         authentication: Optionally provide detailed authentication information. Usually,
             providing ``username`` and ``password`` should suffice.
+        parallel: Number of processes to use to retrieve data in parallel. Only data
+            from different uploads can be retrieved in parallel. Default is 1. The
+            argument ``per_page`` will refer to archived retrieved in one process per
+            call.
     '''
     def __init__(
             self,
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
-            per_page: int = 10, max: int = None,
+            parallel: int = 1, per_page: int = 10, max: int = 10000,
             raise_errors: bool = False,
             authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
 
-        self._after = None
         self.page = 1
+        self.parallel = parallel
         self.per_page = per_page
         self.max = max
 
-        self.query: Dict[str, Any] = {
-            'query': {},
-            'raise_errors': raise_errors
-        }
+        self.query: List[dict] = []
         if query is not None:
-            self.query['query'].update(query)
-        if required is not None:
-            self.query['query_schema'] = required
+            self.query.append(query)
+
+        self.raise_errors = raise_errors
+        self.required = required if required is not None else dict(section_run='*')
+        if required is not None and isinstance(required, dict):
             # We try to add all required properties to the query to ensure that only
             # results with those properties are returned.
-            section_run_key = next(key for key in required if key.split('[')[0] == 'section_run')
-            if section_run_key is not None:
-                # add all quantities in required to the query part
-                quantities = {'section_run'}
-                stack = []
-                section_run = required[section_run_key]
-                if isinstance(section_run, dict):
-                    stack.append(section_run)
-                while len(stack) > 0:
-                    required_dict = stack.pop()
-                    for key, value in required_dict.items():
-                        if isinstance(value, dict):
-                            stack.append(value)
-                        quantities.add(key.split('[')[0])
-                self.query['query'].setdefault('dft.quantities', []).extend(quantities)
-                self.query['query']['domain'] = 'dft'
+            quantities = set()
+            required_specs = [required]
+            while len(required_specs) > 0:
+                for key, value in required_specs.pop().items():
+                    section_name = key.split('[')[0]
+                    quantities.add(section_name)
+                    if isinstance(value, dict):
+                        required_specs.append(value)
+
+            self.query.append({'dft.quantities': list(quantities)})
+            if 'domain' not in self.query:
+                self.query.append({'domain': 'dft' if 'section_experiment' not in quantities else 'ems'})
 
         self.password = password
         self.username = username
@@ -294,9 +369,9 @@ class ArchiveQuery(collections.abc.Sequence):
         self._authentication = authentication
 
         self._total = -1
-        self._capped_total = -1
         self._results: List[dict] = []
         self._statistics = ApiStatistics()
+        self._proc_states: List[ProcState] = None
 
     @property
     def authentication(self):
@@ -320,64 +395,118 @@ class ArchiveQuery(collections.abc.Sequence):
         else:
             return self._authentication
 
+    def _create_initial_proc_state(self):
+        '''
+        Does preliminary queries to the repo API to determine the distribution of queried
+        entries over uploads and creates initial state for the processes that collect
+        data from the archive API in parallel.
+        '''
+        uploads: Dict[str, Any] = dict()
+        nentries = 0
+
+        # acquire all uploads and how many entries they contain
+        url = '%s/repo/quantity/upload_id?%s' % (
+            self.url, urlencode(dict(query=json.dumps({'$and': self.query}))))
+        after: str = None
+
+        while True:
+            response = requests.get(
+                url if after is None else '%s&after=%s&size=1000' % (url, after),
+                headers=self.authentication)
+
+            if response.status_code != 200:
+                if response.status_code == 400:
+                    raise Exception(response.json()['description'])
+
+                raise Exception(
+                    'Error requesting NOMAD API: HTTP %d' % response.status_code)
+
+            response_data = get_json(response)
+            after = response_data['quantity']['after']
+            values = response_data['quantity']['values']
+
+            if len(values) == 0:
+                break
+
+            uploads.update(values)
+            for upload in values.values():
+                nentries += upload['total']
+
+            if self.max is not None and nentries >= self.max:
+                break
+
+        # distribute uploads to processes
+        if self.parallel is None:
+            self.parallel = 1
+
+        # TODO This implements a simplified distribution, where an upload is fully
+        # handled by an individual process. This works because of the high likely hood
+        # that popular analysis queries (e.g. AFLOW) have results spread over
+        # many uploads. In other use-cases, e.g. analysing data from an individual user,
+        # this might not work well, because all entries might be contained in one
+        # upload.
+        self._proc_states = []
+        nentries_per_proc = math.ceil(nentries / self.parallel)
+        proc_state = ProcState(self)
+        for upload_id, upload_data in uploads.items():
+            if proc_state.nentries >= nentries_per_proc:
+                self._proc_states.append(proc_state)
+                proc_state = ProcState(self)
+
+            proc_state.upload_ids.append(upload_id)
+            proc_state.nentries += upload_data['total']
+
+        self._proc_states.append(proc_state)
+        self._total = nentries
+        self._statistics.nentries = nentries
+
     def call_api(self):
         '''
         Calls the API to retrieve the next set of results. Is automatically called, if
         not yet downloaded entries are accessed.
         '''
-        url = '%s/%s/%s' % (self.url, 'archive', 'query')
+        if self._proc_states is None:
+            self._create_initial_proc_state()
 
-        aggregation = self.query.setdefault('aggregation', {'per_page': self.per_page})
-        if self._after is not None:
-            aggregation['after'] = self._after
-
-        response = requests.post(url, headers=self.authentication, json=self.query)
-        if response.status_code != 200:
-            if response.status_code == 400:
-                message = response.json().get('message')
-                errors = response.json().get('errors')
-                if message:
-                    raise QueryError('%s: %s' % (message, errors))
-
-                raise QueryError('The query is invalid for unknown reasons.')
-
-            raise response.raise_for_status()
-
-        data = response.json
-        if not isinstance(data, dict):
-            data = data()
-
-        aggregation = data['aggregation']
-        self._after = aggregation.get('after')
-        self._total = aggregation['total']
-
-        if self.max is not None:
-            self._capped_total = min(self.max, self._total)
+        # run the necessary processes
+        nproc_states = len(self._proc_states)
+        if nproc_states == 1:
+            self._proc_states[0] = _run_proc(self._proc_states[0])
+        elif nproc_states > 1:
+            with multiprocessing.Pool(nproc_states) as pool:
+                self._proc_states = pool.map(_run_proc, self._proc_states)
         else:
-            self._capped_total = self._total
+            assert False, 'archive query was not stopped before running out of things to query'
 
-        results = data.get('results', [])
+        # grab the results from the processes
+        new_states: List[ProcState] = []
+        self._statistics.last_response_nentries = 0
+        self._statistics.last_response_data_size = 0
+        for proc_state in self._proc_states:
+            if proc_state.error:
+                raise proc_state.error
 
-        for result in results:
-            archive = EntryArchive.m_from_dict(result['archive'])
+            self._statistics.last_response_data_size += proc_state.data_size
+            self._statistics.loaded_data_size += proc_state.data_size
+            self._statistics.last_response_nentries += len(proc_state.results)
 
-            self._results.append(archive)
+            self._results.extend([
+                EntryArchive.m_from_dict(result['archive'])
+                for result in proc_state.results])
 
-        try:
-            data_size = len(response.content)
-            self._statistics.last_response_data_size = data_size
-            self._statistics.loaded_data_size += data_size
-            self._statistics.nentries = self._total
-            self._statistics.last_response_nentries = len(results)
-            self._statistics.loaded_nentries = len(self._results)
-            self._statistics.napi_calls += 1
-        except Exception:
-            # fails in test due to mocked requests library
-            pass
+            proc_state.results = None
+            if proc_state.after is not None:
+                new_states.append(proc_state)
 
-        if self._after is None:
-            # there are no more search results, we need to avoid further calls
-            self._capped_total = len(self._results)
+        self._proc_states = new_states
+        self._statistics.loaded_nentries = len(self._results)
+        self._statistics.napi_calls += 1
+
+        if self.max is not None and len(self._results) >= self.max:
+            # artificially end the query
+            self._proc_states = []
+
+        if len(self._proc_states) == 0:
             self._total = len(self._results)
 
     def __repr__(self):
@@ -399,10 +528,10 @@ class ArchiveQuery(collections.abc.Sequence):
         return self._results[key]
 
     def __len__(self):  # pylint: disable=invalid-length-returned
-        if self._capped_total == -1:
+        if self._total == -1:
             self.call_api()
 
-        return self._capped_total
+        return self._total
 
     @property
     def total(self):

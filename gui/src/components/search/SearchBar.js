@@ -6,6 +6,7 @@ import { CircularProgress, InputAdornment, Button, Tooltip } from '@material-ui/
 import searchQuantities from '../../searchQuantities'
 import { apiContext } from '../api'
 import { defsByName as metainfoDefs } from '../archive/metainfo'
+import { domains } from '../domains'
 
 const metainfoOptions = []
 
@@ -27,6 +28,30 @@ const quantitiesWithAlternativeOptions = {
   }
 }
 
+// We need to treat dft. and encyclopedia. special. Usually all dft domain pieces
+// are prefixed dft., but the encycloepdia is top-level and also a dft. specific
+// quantity. These to functions remove and add the dft./encyclopedia. prefixes accordingly.
+function getDomainOfQuantity(quantity) {
+  if (!quantity.includes('.')) {
+    return null
+  }
+  const firstSegment = quantity.split('.')[0]
+  if (firstSegment === 'encyclopedia') {
+    return 'dft'
+  }
+  return firstSegment
+}
+
+function addDomainToQuantity(shortenedQuantityName, domainKey) {
+  if (!searchQuantities[shortenedQuantityName]) {
+    shortenedQuantityName = domainKey + '.' + shortenedQuantityName
+    if (!searchQuantities[shortenedQuantityName]) {
+      shortenedQuantityName = 'encyclopedia.' + shortenedQuantityName.slice(4)
+    }
+  }
+  return shortenedQuantityName
+}
+
 /**
  * This searchbar component shows a searchbar with autocomplete functionality. The
  * searchbar also includes a status line about the current results. It uses the
@@ -44,7 +69,7 @@ export default function SearchBar() {
     return Object.keys(searchQuantities)
       .map(quantity => ({
         quantity: quantity,
-        domain: quantity.includes('.') ? quantity.split('.')[0] : null
+        domain: getDomainOfQuantity(quantity)
       }))
       .filter(option => !option.domain || option.domain === domain.key)
   }, [domain.key])
@@ -157,11 +182,8 @@ export default function SearchBar() {
   const parseOption = useCallback(input => {
     const [inputQuantity, inputValue] = input.split('=')
 
-    let quantity = inputQuantity
+    const quantity = addDomainToQuantity(inputQuantity, domain.key)
     let value = inputValue
-    if (!searchQuantities[quantity]) {
-      quantity = domain.key + '.' + quantity
-    }
     if (value && searchQuantities[quantity] && searchQuantities[quantity].many) {
       value = value.split(',').map(item => item.trim())
     }
@@ -283,11 +305,12 @@ export default function SearchBar() {
     ...params,
     startAdornment: (
       <React.Fragment>
+        {domain === domains.dft &&
         <InputAdornment position="start">
           <Tooltip title="Switch between NOMAD's quantity=value search and the Optimade filter language.">
             <Button onClick={handleSearchTypeClicked}size="small">{searchType}</Button>
           </Tooltip>
-        </InputAdornment>
+        </InputAdornment>}
         {params.startAdornment}
       </React.Fragment>
     )

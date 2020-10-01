@@ -14,6 +14,21 @@ m_package = Package(
     a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
 
+class fast_access(MCategory):
+    '''
+    Used to mark archive objects that need to be stored in a fast 2nd-tier storage
+    medium, because they are frequently accessed via archive API.
+
+    If applied to a sub_section, the section will be added to the fast storage. Currently
+    this only works for *root* sections that are sub_sections of `EntryArchive`.
+
+    If applied to a reference types quantity, the referenced section will also be added
+    to the fast storage, regardless if the referenced section has the category or not.
+    '''
+
+    m_def = Category()
+
+
 class accessory_info(MCategory):
     '''
     Information that *in theory* should not affect the results of the calculations (e.g.,
@@ -1590,6 +1605,32 @@ class section_energy_van_der_Waals(MSection):
         ''',
         categories=[energy_type_van_der_Waals, energy_component, energy_value],
         a_legacy=LegacyDefinition(name='energy_van_der_Waals'))
+
+
+class section_energy_contribution(MSection):
+    '''
+    Section describing the contributions to the total energy.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_energy_contribution'))
+
+    energy_contibution_kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The kind of the energy contribution. Can be one of bond, pair, coulomb, etc.
+        ''',
+        a_legacy=LegacyDefinition(name='energy_contibution_kind'))
+
+    energy_contribution_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the energy contribution.
+        ''',
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_contribution_value'))
 
 
 class section_frame_sequence_user_quantity(MSection):
@@ -3252,23 +3293,9 @@ class section_run(MSection):
         type=str,
         shape=[],
         description='''
-        The type of basis set used by the program to represent wave functions.
-
-        Valid values are:
-
-        * Numeric AOs
-
-        * Gaussians
-
-        * (L)APW+lo
-
-        * FLAPW (full-potential linearized augmented planewave)
-
-        * Plane waves
-
-        * Real-space grid
-
-        * Local-orbital minimum-basis
+        The type of basis set used by the program to represent wave functions. Valid values
+        are: [`Numeric AOs`, `Gaussians`, `(L)APW+lo`, `plane waves`, `psinc functions`,
+        `real-space grid`].
         ''',
         a_legacy=LegacyDefinition(name='program_basis_set_type'))
 
@@ -4330,11 +4357,13 @@ class section_single_configuration_calculation(MSection):
         Reference to the system (atomic configuration, cell, ...) that is calculated in
         section_single_configuration_calculation.
         ''',
+        categories=[fast_access],
         a_legacy=LegacyDefinition(name='single_configuration_calculation_to_system_ref'))
 
     single_configuration_to_calculation_method_ref = Quantity(
         type=Reference(SectionProxy('section_method')),
         shape=[],
+        categories=[fast_access],
         description='''
         Reference to the method used for the calculation in
         section_single_configuration_calculation.
@@ -4457,6 +4486,42 @@ class section_single_configuration_calculation(MSection):
         ''',
         a_legacy=LegacyDefinition(name='zero_point_method'))
 
+    enthalpy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the calculated enthalpy i.e. energy_total + pressure * volume.
+        ''',
+        categories=[energy_component, energy_value],
+        a_legacy=LegacyDefinition(name='energy_enthalpy'))
+
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        Value of the pressure of the system.
+        ''',
+        a_legacy=LegacyDefinition(name='pressure'))
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        Value of the temperature of the system.
+        ''',
+        a_legacy=LegacyDefinition(name='temperature'))
+
+    time_step = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The number of time steps with respect to the start of the calculation.
+        ''',
+        a_legacy=LegacyDefinition(name='time_step'))
+
     section_atom_projected_dos = SubSection(
         sub_section=SectionProxy('section_atom_projected_dos'),
         repeats=True,
@@ -4501,6 +4566,11 @@ class section_single_configuration_calculation(MSection):
         sub_section=SectionProxy('section_energy_van_der_Waals'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_energy_van_der_Waals'))
+
+    section_energy_contribution = SubSection(
+        sub_section=SectionProxy('section_energy_contribution'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_energy_contribution'))
 
     section_k_band_normalized = SubSection(
         sub_section=SectionProxy('section_k_band_normalized'),
@@ -5260,17 +5330,17 @@ class section_system(MSection):
 
     section_prototype = SubSection(
         sub_section=SectionProxy('section_prototype'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_prototype'))
 
     section_springer_material = SubSection(
         sub_section=SectionProxy('section_springer_material'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_springer_material'))
 
     section_symmetry = SubSection(
         sub_section=SectionProxy('section_symmetry'),
-        repeats=True,
+        repeats=True, categories=[fast_access],
         a_legacy=LegacyDefinition(name='section_symmetry'))
 
     section_system_to_system_refs = SubSection(
@@ -5576,20 +5646,20 @@ class section_XC_functionals(MSection):
         a_legacy=LegacyDefinition(name='XC_functional_weight'))
 
 
-class Relaxation(MSection):
+class GeometryOptimization(MSection):
     '''
-    Section containing the results of a relaxation workflow.
+    Section containing the results of a geometry_optimization workflow.
     '''
 
-    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_relaxation'))
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_geometry_optimization'))
 
-    relaxation_type = Quantity(
+    geometry_optimization_type = Quantity(
         type=str,
         shape=[],
         description='''
-        The type of relaxation ionic, cell_shape, cell_volume.
+        The type of geometry optimization can either be ionic, cell_shape, cell_volume.
         ''',
-        a_legacy=LegacyDefinition(name='relaxation_type')
+        a_legacy=LegacyDefinition(name='geometry_optimization_type')
     )
 
     input_energy_difference_tolerance = Quantity(
@@ -5615,7 +5685,7 @@ class Relaxation(MSection):
         shape=[],
         unit='joule',
         description='''
-        The difference in the energy between the last two steps during relaxation.
+        The difference in the energy between the last two steps during optimization.
         ''',
         a_legacy=LegacyDefinition(name='final_energy_difference'),
         a_search=Search())
@@ -5625,18 +5695,172 @@ class Relaxation(MSection):
         shape=[],
         unit='newton',
         description='''
-        The maximum net force in the last relaxation step.
+        The maximum net force in the last optimization step.
         ''',
-        a_legacy=LegacyDefinition(name='final_force_maximum')
-    )
+        a_legacy=LegacyDefinition(name='final_force_maximum'))
 
-    final_calculation_ref = Quantity(
-        type=Reference(SectionProxy('section_single_configuration_calculation')),
+    optimization_steps = Quantity(
+        type=int,
         shape=[],
         description='''
-        Reference to last calculation step.
+        Number of optimization steps.
         ''',
-        a_legacy=LegacyDefinition(name='final_calculation_ref'))
+        a_legacy=LegacyDefinition(name='optimization_steps'))
+
+
+class Phonon(MSection):
+    '''
+    Section containing the results of a phonon workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_phonon'))
+
+    force_calculator = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the program used to calculate the forces.
+        ''',
+        a_legacy=LegacyDefinition(name='force_calculator'))
+
+    mesh_density = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='1 / m ** 3',
+        description='''
+        Density of the k-mesh for sampling.
+        ''',
+        a_legacy=LegacyDefinition(name='mesh_density'),
+        a_search=Search())
+
+    n_imaginary_frequencies = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of modes with imaginary frequencies.
+        ''',
+        a_legacy=LegacyDefinition(name='n_imaginary_frequencies'),
+        a_search=Search())
+
+    random_displacements = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if displacements are made randomly.
+        ''',
+        a_legacy=LegacyDefinition(name='random_displacements'))
+
+    with_non_analytic_correction = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if non-analytical term corrections are applied to dynamical matrix.
+        ''',
+        a_legacy=LegacyDefinition(name='with_non_analytic_correction'),
+        a_search=Search())
+
+    with_grueneisen_parameters = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Identifies if Grueneisen parameters are calculated.
+        ''',
+        a_legacy=LegacyDefinition(name='with_grueneisen_parameters'),
+        a_search=Search())
+
+
+class Elastic(MSection):
+    '''
+    Section containing the results of an elastic workflow.
+    '''
+
+    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_elastic'))
+
+    energy_stress_calculator = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of program used to calculate energy or stress.
+        ''',
+        a_legacy=LegacyDefinition(name='energy_stress_calculator'))
+
+    elastic_calculation_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Method used to calculate elastic constants, can either be energy or stress.
+        ''',
+        a_legacy=LegacyDefinition(name='elastic_calculation_method'))
+
+    elastic_constants_order = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Order of the calculated elastic constants.
+        ''',
+        a_legacy=LegacyDefinition(name='elastic_constants_order'),
+        a_search=Search())
+
+    is_mechanically_stable = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if structure is mechanically stable from the calculated values
+        of the elastic constants.
+        ''',
+        a_legacy=LegacyDefinition(name='is_mechanically_stable'),
+        a_search=Search())
+
+    fitting_error_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Maximum error in polynomial fit.
+        ''',
+        a_legacy=LegacyDefinition(name='fitting_error_maximum'))
+
+    strain_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Maximum strain applied to crystal.
+        ''',
+        a_legacy=LegacyDefinition(name='strain_maximum'))
+
+
+class MolecularDynamics(MSection):
+    '''
+    Section containing results of molecular dynamics workflow.
+    '''
+
+    m_def = Section(
+        validate=False, a_legacy=LegacyDefinition(name='section_molecular_dynamics'))
+
+    finished_normally = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation terminated normally.
+        ''',
+        a_legacy=LegacyDefinition(name='finished_normally'))
+
+    with_trajectory = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation includes trajectory data.
+        ''',
+        a_legacy=LegacyDefinition(name='with_trajectory'),
+        a_search=Search())
+
+    with_thermodynamics = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if calculation contains thermodynamic data.
+        ''',
+        a_legacy=LegacyDefinition(name='with_thermodynamics'),
+        a_search=Search())
 
 
 class Workflow(MSection):
@@ -5644,21 +5868,55 @@ class Workflow(MSection):
     Section containing the  results of a workflow.
     '''
 
-    m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_workflow'))
+    m_def = Section(
+        validate=False,
+        a_legacy=LegacyDefinition(name='section_workflow'))
 
     workflow_type = Quantity(
         type=str,
         shape=[],
         description='''
-        The type of calculation workflow. Can be one of relaxation, elastic, phonon,
-        molecular dynamics.
+        The type of calculation workflow. Can be one of geometry_optimization, elastic,
+        phonon, molecular_dynamics.
         ''',
         a_legacy=LegacyDefinition(name='workflow_type'),
-        a_search=Search())
+        a_search=Search(statistic_size=4, statistic_order='_count'))
 
-    section_relaxation = SubSection(
-        sub_section=SectionProxy('Relaxation'),
-        a_legacy=LegacyDefinition(name='section_relaxation'))
+    calculation_result_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        categories=[fast_access],
+        shape=[],
+        description='''
+        Reference to calculation result. In the case of geometry_optimization and
+        molecular dynamics, this corresponds to the final step in the simulation. For the
+        rest of the workflow types, it refers to the original system.
+        ''',
+        a_legacy=LegacyDefinition(name='calculation_result_ref'))
+
+    calculations_ref = Quantity(
+        type=Reference(SectionProxy('section_single_configuration_calculation')),
+        shape=['optimization_steps'],
+        description='''
+        List of references to each section_single_configuration_calculation in the
+        simulation.
+        ''',
+        a_legacy=LegacyDefinition(name='calculations_ref'))
+
+    section_geometry_optimization = SubSection(
+        sub_section=SectionProxy('GeometryOptimization'), categories=[fast_access],
+        a_legacy=LegacyDefinition(name='section_geometry_optimization'))
+
+    section_phonon = SubSection(
+        sub_section=SectionProxy('Phonon'), categories=[fast_access],
+        a_legacy=LegacyDefinition(name='section_phonon'))
+
+    section_elastic = SubSection(
+        sub_section=SectionProxy('Elastic'),
+        a_legacy=LegacyDefinition(name='section_elastic'))
+
+    section_molecular_dynamics = SubSection(
+        sub_section=SectionProxy('MolecularDynamics'),
+        a_legacy=LegacyDefinition(name='section_molecular_dynamics'))
 
 
 m_package.__init_metainfo__()

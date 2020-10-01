@@ -5,7 +5,7 @@ import Grid from '@material-ui/core/Grid'
 import TextField from '@material-ui/core/TextField'
 import * as d3 from 'd3'
 import { scaleTime, scalePow } from 'd3-scale'
-import { nomadSecondaryColor } from '../../config.js'
+import { nomadSecondaryColor, nomadTheme } from '../../config.js'
 import { searchContext, Dates } from './SearchContext'
 
 const useStyles = makeStyles(theme => ({
@@ -31,7 +31,8 @@ const useStyles = makeStyles(theme => ({
     display: 'inline-block',
     color: '#fff',
     padding: '4px 8px',
-    fontSize: '0.625rem',
+    fontSize: nomadTheme.overrides.MuiTooltip.tooltip.fontSize,
+    fontWeight: nomadTheme.overrides.MuiTooltip.tooltip.fontWeight,
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     lineHeight: '1.4em',
     borderRadius: '4px',
@@ -93,7 +94,7 @@ export default function UploadsHistogram({title = 'Uploads over time', initialSc
     const height = 250
     const marginRight = 32
     const marginTop = 16
-    const marginBottom = 16
+    const marginBottom = 17 // 16 misses a pixel in safari
 
     const y = scalePow().range([height - marginBottom, marginTop]).exponent(scale)
     const max = d3.max(data, d => d.value) || 0

@@ -17,14 +17,17 @@ import os.path
 
 from nomad import config, datamodel
 
-from .parser import MissingParser, BrokenParser, Parser
+from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .legacy import LegacyParser, VaspOutcarParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from eelsparser import EelsParser
+from eelsdbconverter import EELSApiJsonConverter
 from mpesparser import MPESParser
 from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
+from phonopyparser import PhonopyParser
+from elasticparser import ElasticParser
+from lammpsparser import LammpsParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -116,12 +119,7 @@ parsers = [
     GenerateRandomParser(),
     TemplateParser(),
     ChaosParser(),
-    LegacyParser(
-        name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
-        parser_class_name='phonopyparser.PhonopyParserWrapper',
-        # mainfile_contents_re=r'',  # Empty regex since this code calls other DFT codes.
-        mainfile_name_re=(r'.*/phonopy-FHI-aims-displacement-0*1/control.in$')
-    ),
+    PhonopyParser(),
     VASPParser(),
     VaspOutcarParser(
         name='parsers/vasp-outcar', code_name='VASP', code_homepage='https://www.vasp.at/',
@@ -326,11 +324,7 @@ parsers = [
         parser_class_name='elkparser.ElkParser',
         mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
     ),
-    LegacyParser(
-        name='parsers/elastic', code_name='elastic', code_homepage='http://exciting-code.org/elastic',
-        parser_class_name='elasticparser.ElasticParser',
-        mainfile_contents_re=r'\s*Order of elastic constants\s*=\s*[0-9]+\s*'
-    ),
+    ElasticParser(),
     LegacyParser(
         name='parsers/gamess', code_name='GAMESS', code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',
         parser_class_name='gamessparser.GamessParser',
@@ -345,16 +339,9 @@ parsers = [
         mainfile_contents_re=(
             r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
     ),
-    LegacyParser(
-        name='parsers/skeleton', code_name='skeleton', code_homepage=None,
-        domain='ems',
-        parser_class_name='skeletonparser.SkeletonParserInterface',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_contents_re=(r'skeleton experimental metadata format')
-    ),
     MPESParser(),
     APTFIMParser(),
-    EelsParser(),
+    EELSApiJsonConverter(),
     LegacyParser(
         name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
         parser_class_name='qboxparser.QboxParser',
@@ -392,11 +379,7 @@ parsers = [
         parser_class_name='tinkerparser.TinkerParser',
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
     ),
-    LegacyParser(
-        name='parsers/lammps', code_name='lammps', domain='dft',
-        parser_class_name='lammpsparser.LammpsParser',
-        mainfile_contents_re=r'^LAMMPS'
-    ),
+    LammpsParser(),
     LegacyParser(
         name='parsers/amber', code_name='Amber', domain='dft',
         parser_class_name='amberparser.AMBERParser',
@@ -425,7 +408,7 @@ parsers = [
         mainfile_mime_re=r'text/.*',
     ),
     LegacyParser(
-        name='parsers/dftbplus', code_name='DFTb plus', domain='dft',
+        name='parsers/dftbplus', code_name='DFTB+', domain='dft',
         parser_class_name='dftbplusparser.DFTBPlusParser',
         mainfile_contents_re=r'^ Fermi distribution function\s*',
         mainfile_mime_re=r'text/.*',
@@ -447,7 +430,8 @@ parsers = [
         parser_class_name='mopacparser.MopacParser',
         mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
         mainfile_mime_re=r'text/.*',
-    )
+    ),
+    ArchiveParser()
 ]
 
 empty_parsers = [
@@ -494,10 +478,13 @@ parser_dict['parser/octopus'] = parser_dict['parsers/octopus']
 parser_dict['parser/onetep'] = parser_dict['parsers/onetep']
 
 # register code names as possible statistic value to the dft datamodel
-code_names = sorted(
-    set([
-        getattr(parser, 'code_name')
-        for parser in parsers
-        if parser.domain == 'dft' and getattr(parser, 'code_name', None) is not None and getattr(parser, 'code_name') != 'currupted mainfile']),
-    key=lambda code_name: code_name.lower())
-datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [config.services.unavailable_value, config.services.not_processed_value]
+code_names = []
+for parser in parsers:
+    if parser.domain == 'dft' and \
+            getattr(parser, 'code_name', None) is not None and \
+            getattr(parser, 'code_name') != 'currupted mainfile' and \
+            getattr(parser, 'code_name') != 'Template':
+        code_names.append(getattr(parser, 'code_name'))
+code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
+datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
+    config.services.unavailable_value, config.services.not_processed_value]

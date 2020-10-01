@@ -1,8 +1,12 @@
 import React, { useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
 import QuantityHistogram from '../search/QuantityHistogram'
 import { searchContext } from '../search/SearchContext'
+import { path, defsByName } from '../archive/metainfo'
+import { nomadTheme } from '../../config'
+import Markdown from '../Markdown'
 
 export function DFTMethodVisualizations(props) {
   const {info} = props
@@ -85,70 +89,98 @@ DFTSystemVisualizations.propTypes = {
   info: PropTypes.object
 }
 
-const energy_quantities = [
-  'energy_total',
-  'energy_total_T0',
-  'energy_free',
-  'energy_electrostatic',
-  'energy_X',
-  'energy_XC',
-  'energy_sum_eigenvalues'
-]
 const electronic_quantities = [
-  'dos_values',
-  'eigenvalues_values',
-  'volumetric_data_values',
-  'electronic_kinetic_energy',
-  'total_charge'
-  // 'atomic_multipole_values'
+  'electronic_band_structure',
+  'electronic_dos',
+  'eigenvalues_values'
 ]
-const forces_quantities = [
-  'atom_forces_free',
-  'atom_forces_raw',
-  // 'atom_forces_T0',
-  'atom_forces',
+const mechanical_quantities = [
   'stress_tensor'
 ]
-const vibrational_quantities = [
+const thermal_quantities = [
   'thermodynamical_property_heat_capacity_C_v',
   'vibrational_free_energy_at_constant_volume',
-  'band_energies'
+  'phonon_band_structure',
+  'phonon_dos'
 ]
 const magnetic_quantities = [
   'spin_S2'
 ]
 const optical_quantities = [
-  'excitation_energies',
   'oscillator_strengths',
   'transition_dipole_moments'
 ]
 
 const labels = {
-  'energy_total': 'Total energy',
-  'energy_total_T0': 'Total energy (0K)',
-  'energy_free': 'Free energy',
-  'energy_electrostatic': 'Electrostatic',
-  'energy_X': 'Exchange',
-  'energy_XC': 'Exchange-correlation',
-  'energy_sum_eigenvalues': 'Band energy',
-  'dos_values': 'DOS',
-  'eigenvalues_values': 'Eigenvalues',
-  'volumetric_data_values': 'Volumetric data',
-  'electronic_kinetic_energy': 'Kinetic energy',
-  'total_charge': 'Charge',
-  'atom_forces_free': 'Free atomic forces',
-  'atom_forces_raw': 'Raw atomic forces',
-  'atom_forces_T0': 'Atomic forces (0K)',
-  'atom_forces': 'Atomic forces',
-  'stress_tensor': 'Stress tensor',
-  'thermodynamical_property_heat_capacity_C_v': 'Heat capacity',
-  'vibrational_free_energy_at_constant_volume': 'Free energy (const=V)',
-  'band_energies': 'Band energies',
-  'spin_S2': 'Spin momentum operator',
-  'excitation_energies': 'Excitation energies',
-  'oscillator_strengths': 'Oscillator strengths',
-  'transition_dipole_moments': 'Transition dipole moments',
-  'atomic_multipole_values': 'Atomic multipole values'}
+  'eigenvalues_values': 'eigenvalues',
+  'stress_tensor': 'stress tensor',
+  'electronic_band_structure': 'electronic band structure',
+  'electronic_dos': 'electronic density of states',
+  'phonon_band_structure': 'phonon dispersion',
+  'phonon_dos': 'phonon density of states',
+  'thermodynamical_property_heat_capacity_C_v': 'heat capacity',
+  'vibrational_free_energy_at_constant_volume': 'helmholtz free energy',
+  'spin_S2': 'angular spin momentum squared',
+  'oscillator_strengths': 'oscillator strengths',
+  'transition_dipole_moments': 'transition dipole moments'
+}
+const metainfoPaths = {
+  'eigenvalues_values': path('eigenvalues_values'),
+  'stress_tensor': path('stress_tensor'),
+  'electronic_band_structure': 'EntryArchive/section_run/section_single_configuration_calculation/section_k_band',
+  'electronic_dos': 'EntryArchive/section_run/section_single_configuration_calculation/section_dos',
+  'phonon_band_structure': 'EntryArchive/section_run/section_single_configuration_calculation/section_k_band',
+  'phonon_dos': 'EntryArchive/section_run/section_single_configuration_calculation/section_dos',
+  'thermodynamical_property_heat_capacity_C_v': path('thermodynamical_property_heat_capacity_C_v'),
+  'vibrational_free_energy_at_constant_volume': path('vibrational_free_energy_at_constant_volume'),
+  'spin_S2': path('spin_S2'),
+  'oscillator_strengths': path('oscillator_strengths'),
+  'transition_dipole_moments': path('transition_dipole_moments')
+}
+
+const useMetainfoTooltipStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: 2
+  },
+  tooltipMarkdown: {
+    fontSize: nomadTheme.overrides.MuiTooltip.tooltip.fontSize,
+    color: 'white',
+    '& a': {
+      color: theme.palette.primary.light
+    }
+  }
+}))
+
+function MetaInfoTooltip({def, path}) {
+  const classes = useMetainfoTooltipStyles()
+  return <div className={classes.root} >
+    <Markdown
+      classes={{root: classes.tooltipMarkdown}}
+    >{`${def.description.slice(0, def.description.indexOf('.') || undefined)}. Click [here](/metainfo/${path}) for full the definition.`}</Markdown>
+  </div>
+}
+
+MetaInfoTooltip.propTypes = {
+  def: PropTypes.object,
+  path: PropTypes.string
+}
+
+const tooltips = {}
+for (const label in labels) {
+  const path = metainfoPaths[label]
+  const realName = path.split('/').slice(-1)[0]
+  const metainfoDef = defsByName[realName][0]
+  tooltips[label] = <MetaInfoTooltip def={metainfoDef} path={path}></MetaInfoTooltip>
+}
+
+const workflowTypeLabels = {
+  'geometry_optimization': 'geometry optimization',
+  'phonon': 'phonons',
+  'elastic': 'elastic constants',
+  'molecular_dynamics': 'molecular dynamics'
+}
 
 export function DFTPropertyVisualizations(props) {
   const {info} = props
@@ -156,7 +188,8 @@ export function DFTPropertyVisualizations(props) {
   useEffect(() => {
     setStatistics([
       'dft.searchable_quantities',
-      'dft.labels_springer_classification'
+      'dft.labels_springer_classification',
+      'dft.workflow.workflow_type'
     ])
     // eslint-disable-next-line
   }, [])
@@ -177,18 +210,18 @@ export function DFTPropertyVisualizations(props) {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={energy_quantities} valueLabels={labels} title="Energy" initialScale={0.5} />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} />
+      <Grid item xs={7}>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={electronic_quantities} valueLabels={labels} title="Electronic" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={mechanical_quantities} valueLabels={labels} title="Mechanical" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={thermal_quantities} valueLabels={labels} title="Thermal" initialScale={0.5} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} tooltips={tooltips} multiple/>
+        <QuantityHistogram quantity="dft.searchable_quantities" values={magnetic_quantities} valueLabels={labels} title="Magnetic" initialScale={1} tooltips={tooltips} multiple/>
       </Grid>
-      <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.searchable_quantities" values={forces_quantities} valueLabels={labels} title="Forces" initialScale={0.5} />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={vibrational_quantities} valueLabels={labels} title="Vibrational" initialScale={0.5} />
-        <QuantityHistogram quantity="dft.searchable_quantities" values={optical_quantities} valueLabels={labels} title="Optical" initialScale={1} />
+      <Grid item xs={5}>
+        <QuantityHistogram quantity="dft.labels_springer_classification" title="Functional classification" initialScale={1} multiple/>
       </Grid>
-      <Grid item xs={4}>
-        <QuantityHistogram quantity="dft.labels_springer_classification" title="Property classification" initialScale={1} />
+      <Grid item xs={12}>
+        <QuantityHistogram quantity="dft.workflow.workflow_type" title="Workflows" valueLabels={workflowTypeLabels} initialScale={0.25} />
       </Grid>
     </Grid>
   )

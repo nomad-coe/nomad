@@ -41,18 +41,26 @@ def parse(
     if hasattr(parser, 'backend_factory'):
         setattr(parser, 'backend_factory', backend_factory)
 
-    parser_backend = parser.run(mainfile_path, logger=logger)
+    entry_archive = datamodel.EntryArchive()
+    metadata = entry_archive.m_create(datamodel.EntryMetadata)
+    try:
+        cwd = os.getcwd()
+        mainfile_path = os.path.abspath(mainfile_path)
+        os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
+        parser.parse(mainfile_path, entry_archive, logger=logger)
+        os.chdir(cwd)
+    except Exception as e:
+        logger.error('parsing was not successful', exc_info=e)
 
-    if not parser_backend.status[0] == 'ParseSuccess':
-        logger.error('parsing was not successful', status=parser_backend.status)
+    if metadata.domain is None:
+        metadata.domain = parser.domain
 
     logger.info('ran parser')
-    return parser_backend
+    return entry_archive
 
 
 def normalize(
-        normalizer: typing.Union[str, typing.Callable], parser_backend=None,
-        logger=None):
+        normalizer: typing.Union[str, typing.Callable], entry_archive, logger=None):
 
     if logger is None:
         logger = utils.get_logger(__name__)
@@ -63,50 +71,47 @@ def normalize(
             if normalizer_instance.__class__.__name__ == normalizer)
 
     assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
-    normalizer_instance = typing.cast(typing.Callable, normalizer)(parser_backend.entry_archive)
+    normalizer_instance = typing.cast(typing.Callable, normalizer)(entry_archive)
     logger = logger.bind(normalizer=normalizer_instance.__class__.__name__)
     logger.info('identified normalizer')
 
     normalizer_instance.normalize(logger=logger)
     logger.info('ran normalizer')
-    return parser_backend
 
 
-def normalize_all(parser_backend=None, logger=None):
+def normalize_all(entry_archive, logger=None):
     '''
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
     for normalizer in normalizing.normalizers:
-        if normalizer.domain == parser_backend.domain:
-            parser_backend = normalize(
-                normalizer, parser_backend=parser_backend, logger=logger)
-
-    return parser_backend
+        if normalizer.domain == entry_archive.section_metadata.domain:
+            normalize(normalizer, entry_archive, logger=logger)
 
 
 @cli.command(help='Run parsing and normalizing locally.', name='parse')
 @click.argument('MAINFILE', nargs=1, required=True, type=str)
-@click.option('--show-backend', is_flag=True, default=False, help='Print the backend data.')
+@click.option('--show-archive', is_flag=True, default=False, help='Print the archive data.')
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
 @click.option('--annotate', is_flag=True, help='Sub-matcher based parsers will create a .annotate file.')
 def _parse(
-        mainfile, show_backend, show_metadata, skip_normalizers, not_strict, parser,
+        mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser,
         annotate):
     nomadcore.simple_parser.annotate = annotate
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
-    backend = parse(mainfile, **kwargs)
+    entry_archive = parse(mainfile, **kwargs)
 
     if not skip_normalizers:
-        normalize_all(backend)
+        normalize_all(entry_archive)
+        entry_archive.section_metadata.apply_domain_metadata(entry_archive)
 
-    if show_backend:
-        json.dump(backend.resource.m_to_dict(), sys.stdout, indent=2)
+    if show_archive:
+        json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
     if show_metadata:
-        metadata = datamodel.EntryMetadata(domain='dft')  # TODO take domain from matched parser
-        metadata.apply_domain_metadata(backend)
+        metadata = entry_archive.section_metadata
+        metadata.apply_domain_metadata(entry_archive)
         json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

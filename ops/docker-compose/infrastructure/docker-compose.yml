@@ -24,7 +24,7 @@ x-common-variables: &nomad_backend_env
 services:
     # keycload for user management
     keycloak:
-        restart: unless-stopped
+        restart: 'no'
         build: ../../containers/keycloak/
         image: nomad/keycloak
         container_name: nomad_keycloak
@@ -35,7 +35,7 @@ services:
 
     # broker for celery
     rabbitmq:
-        restart: unless-stopped
+        restart: 'no'
         image: rabbitmq:3.7.17
         container_name: nomad_rabbitmq
         environment:
@@ -43,25 +43,31 @@ services:
             - RABBITMQ_DEFAULT_USER=rabbitmq
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
+        ports:
+            - 5672:5672
         volumes:
             - nomad_rabbitmq:/var/lib/rabbitmq
 
     # the search engine
     elastic:
-        restart: always
+        restart: 'no'
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
         container_name: nomad_elastic
+        ports:
+            - 9200:9200
         volumes:
             - nomad_elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
-        restart: always
+        restart: 'no'
         image: mongo:4
         container_name: nomad_mongo
         environment:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
+        ports:
+            - 27017:27017
         volumes:
             - nomad_mongo:/data/db
         command: mongod --logpath=/dev/null # --quiet

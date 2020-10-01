@@ -15,6 +15,7 @@ import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { domains } from '../domains'
 import { apiContext, withApi } from '../api'
+import { authorList } from '../../utils'
 
 export function Published(props) {
   const api = useContext(apiContext)
@@ -129,19 +130,19 @@ export class EntryListUnstyled extends React.Component {
     },
     authors: {
       label: 'Authors',
-      render: entry => entry.authors.map(author => author.name).join('; '),
+      render: entry => authorList(entry.authors),
       supportsSort: true,
       description: 'The authors of this entry. This includes the uploader and its co-authors.'
     },
     co_authors: {
       label: 'co-Authors',
-      render: entry => entry.authors.filter(user => user.user_id !== entry.uploader.user_id).map(author => author.name).join('; '),
+      render: entry => authorList(entry.authors),
       supportsSort: false,
       description: 'The people that this entry was co authored with'
     },
     shared_with: {
       label: 'Shared with',
-      render: entry => entry.owners.filter(user => user.user_id !== entry.uploader.user_id).map(author => author.name).join('; '),
+      render: entry => authorList(entry.authors),
       supportsSort: false,
       description: 'The people that this entry was shared with'
     },
@@ -165,7 +166,7 @@ export class EntryListUnstyled extends React.Component {
           return (
             <div style={{display: 'inline'}}>
               {refs.map((ref, i) => <span key={ref}>
-                <a href={ref}>{ref}</a>{(i + 1) < refs.length ? ', ' : <React.Fragment/>}
+                <Link href={ref}>{ref}</Link>{(i + 1) < refs.length ? ', ' : <React.Fragment/>}
               </span>)}
             </div>
           )
@@ -262,7 +263,7 @@ export class EntryListUnstyled extends React.Component {
             </Quantity>
             <Quantity quantity='authors' data={row}>
               <Typography>
-                {(row.authors || []).map(author => author.name).join('; ')}
+                {authorList(row.authors || [])}
               </Typography>
             </Quantity>
             <Quantity quantity='datasets' placeholder='no datasets' data={row}>

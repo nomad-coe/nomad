@@ -121,8 +121,12 @@ The NOMAD GUI requires static artifacts that are generated from the NOMAD Python
 ```
 nomad dev metainfo > gui/src/metainfo.json
 nomad dev searchQuantities > gui/src/searchQuantities.json
+nomad dev units > gui/src/units.js
 ./gitinfo.sh
 ```
+
+In additional, you have to do some more steps to prepare your working copy to run all
+the tests. See below.
 
 ## Build and run the infrastructure with docker
 
@@ -218,6 +222,33 @@ yarn start
 ```
 
 ## Run the tests
+
+### additional settings and artifacts
+To run the tests some additional settings and files are necessary that are not part
+of the code base.
+
+First you need to create a `nomad.yaml` with the admin password for the user management
+system:
+```
+keycloak:
+  password: <the-password>
+```
+
+Secondly, you need to provide the `springer.msg` Springer materials database. It can
+be copied from `/nomad/fairdi/db/data/springer.msg` on our servers and should
+be placed at `nomad/normalizing/data/springer.msg`.
+
+Thirdly, you have to provide static files to serve the docs and NOMAD distribution:
+```
+cd docs
+make html
+cd ..
+python setup.py compile
+python setup.py sdist
+cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
+```
+
+### run the necessary infrastructure
 You need to have the infrastructure partially running: elastic, rabbitmq.
 The rest should be mocked or provided by the tests. Make sure that you do no run any
 worker, as they will fight for tasks in the queue.
@@ -266,7 +297,7 @@ line size ruler, etc.
     "git.enableSmartCommit": true,
     "eslint.autoFixOnSave": true,
     "python.linting.pylintArgs": [
-        "--load-plugins=pylint_mongoengine",
+        "--load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin",
     ],
     "python.linting.pep8Path": "pycodestyle",
     "python.linting.pep8Enabled": true,

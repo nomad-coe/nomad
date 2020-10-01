@@ -41,6 +41,9 @@ class ElasticSearchError(Exception): pass
 class ScrollIdNotFound(Exception): pass
 
 
+class InvalidQuery(Exception): pass
+
+
 entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
 
 for domain in datamodel.domains:
@@ -212,15 +215,14 @@ class SearchRequest:
 
         return self
 
-    def search_parameter(self, name, value):
+    def _search_parameter_to_es(self, name, value):
         quantity = search_quantities[name]
 
         if quantity.many and not isinstance(value, list):
             value = [value]
 
         if quantity.many_or and isinstance(value, List):
-            self.q &= Q('terms', **{quantity.search_field: value})
-            return self
+            return Q('terms', **{quantity.search_field: value})
 
         if quantity.derived:
             if quantity.many and not isinstance(value, list):
@@ -232,14 +234,53 @@ class SearchRequest:
         else:
             values = [value]
 
-        for item in values:
-            self.q &= Q('match', **{quantity.search_field: item})
+        return Q('bool', must=[
+            Q('match', **{quantity.search_field: item})
+            for item in values])
 
+    def search_parameter(self, name, value):
+        self.q &= self._search_parameter_to_es(name, value)
         return self
 
     def query(self, query):
         ''' Adds the given query as a 'and' (i.e. 'must') clause to the request. '''
         self._query &= query
+
+        return self
+
+    def query_expression(self, expression) -> 'SearchRequest':
+
+        bool_operators = {'$and': 'must', '$or': 'should', '$not': 'must_not'}
+        comp_operators = {'$%s' % op: op for op in ['gt', 'gte', 'lt', 'lte']}
+
+        def _to_es(key, values):
+            if key in bool_operators:
+                if isinstance(values, dict):
+                    values = [values]
+                assert isinstance(values, list), 'bool operator requires a list of dicts or dict'
+                child_es_queries = [
+                    _to_es(child_key, child_value)
+                    for child_query in values
+                    for child_key, child_value in child_query.items()]
+                return Q('bool', **{bool_operators[key]: child_es_queries})
+
+            if key in comp_operators:
+                assert isinstance(values, dict), 'comparison operator requires a dict'
+                assert len(values) == 1, 'comparison operator requires exactly one quantity'
+                quantity_name, value = next(iter(values.items()))
+                quantity = search_quantities.get(quantity_name)
+                assert quantity is not None, 'quantity %s does not exist' % quantity_name
+                return Q('range', **{quantity.search_field: {comp_operators[key]: value}})
+
+            try:
+                return self._search_parameter_to_es(key, values)
+            except KeyError:
+                assert False, 'quantity %s does not exist' % key
+
+        if len(expression) == 0:
+            self.q &= Q()
+        else:
+            self.q &= Q('bool', must=[_to_es(key, value) for key, value in expression.items()])
 
         return self
 
@@ -438,6 +479,7 @@ class SearchRequest:
         Adds general statistics to the request. The results will have a key called
         global_statistics.
         '''
+        self.owner('public')
         self._search.aggs.metric(
             'global_statistics:n_entries', A('value_count', field='calc_id'))
         self._search.aggs.metric(
@@ -446,6 +488,8 @@ class SearchRequest:
             'global_statistics:n_calculations', A('sum', field='dft.n_calculations'))
         self._search.aggs.metric(
             'global_statistics:n_quantities', A('sum', field='dft.n_quantities'))
+        self._search.aggs.metric(
+            'global_statistics:n_materials', A('cardinality', field='encyclopedia.material.material_id'))
 
         return self
 
@@ -575,7 +619,7 @@ class SearchRequest:
             es.clear_scroll(body={'scroll_id': [scroll_id]}, ignore=(404, ))  # pylint: disable=E1123
             scroll_id = None
 
-        scroll_info = dict(total=total, size=size)
+        scroll_info = dict(total=total, size=size, scroll=True)
         if scroll_id is not None:
             scroll_info.update(scroll_id=scroll_id)
 

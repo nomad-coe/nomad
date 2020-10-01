@@ -19,21 +19,3 @@ services:
     keycloak:
         environment:
             - DB_VENDOR=h2
-
-    # broker for celery
-    rabbitmq:
-        restart: 'no'
-        ports:
-            - 5672:5672
-
-    # the search engine
-    elastic:
-        restart: 'no'
-        ports:
-            - 9200:9200
-
-    # the user data db
-    mongo:
-        restart: 'no'
-        ports:
-            - 27017:27017

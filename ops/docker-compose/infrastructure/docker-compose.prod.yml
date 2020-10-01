@@ -17,35 +17,25 @@ version: '3.4'
 services:
     # keycloak for user management
     keycloak:
+        restart: unless-stopped
         volumes:
             - /nomad/fairdi/db/keycloak:/opt/jboss/keycloak/standalone/data
             - /nomad/backup/fairdi/keycloak:/export
 
+    # broker for celery
+    rabbitmq:
+        restart: unless-stopped
+
     # the search engine
     elastic:
-        ports:
-            - 9200:9200
+        restart: always
         volumes:
             - /scratch/fairdi/db/elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
-        ports:
-            - 27017:27017
+        restart: always
+        image: a0e2e64ac939
         volumes:
             - /scratch/fairdi/db/mongo:/data/db
-
-    # used for centralized logging
-    elk:
-        restart: always
-        build: ../../containers/elk/
-        image: nomad/elk
-        container_name: nomad_elk
-        expose:
-            - 5000 # logstash beats
-        volumes:
-            - /nomad/fairdi/db/elk:/var/lib/elasticsearch
-        ports:
-            - 5601:5601  # kibana web
-            - 5000:5000
-            - 9201:9200  # allows metricbeat config to access es
+        command: mongod --wiredTigerCacheSizeGB=128 --logpath=/dev/null # --quiet
