@@ -8,6 +8,7 @@ import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
+import { ErrorHandler } from '../ErrorHandler'
 
 export class Adaptor {
   constructor(e) {
@@ -124,6 +125,9 @@ const useLaneStyles = makeStyles(theme => ({
     display: 'block',
     height: '100%',
     overflowY: 'scroll'
+  },
+  error: {
+    margin: theme.spacing(1)
   }
 }))
 function Lane({lane}) {
@@ -133,7 +137,9 @@ function Lane({lane}) {
   return <div className={classes.root}>
     <div className={classes.container}>
       <laneContext.Provider value={lane}>
-        {adaptor.render()}
+        <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
+          {adaptor.render()}
+        </ErrorHandler>
       </laneContext.Provider>
     </div>
   </div>
