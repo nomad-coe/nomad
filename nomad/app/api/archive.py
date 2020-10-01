@@ -307,7 +307,10 @@ class ArchiveQueryResource(Resource):
         upload_files = None
         current_upload_id = None
         required_with_references = compute_required_with_referenced(required)
-        archive_is_complete = required_with_references is not None
+        archive_is_complete = False
+        if required_with_references is not None:
+            archive_is_complete = True
+            required = required_with_references
 
         for entry in calcs:
             with_embargo = entry['with_embargo']
@@ -340,7 +343,7 @@ class ArchiveQueryResource(Resource):
                 try:
                     partial_archive = upload_partial_archives[calc_id]
                     partial_archive = filter_archive(
-                        required_with_references, partial_archive, transform=lambda e: e)
+                        required, partial_archive, transform=lambda e: e)
 
                     data.append({
                         'calc_id': calc_id,
