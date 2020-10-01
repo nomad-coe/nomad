@@ -40,11 +40,19 @@ export class ErrorHandler extends React.Component {
     return this.props.children
   }
 }
+ErrorHandler.propTypes = ({
+  children: PropTypes.object,
+  message: PropTypes.string, // Fixed error message. Provide either this or errorHandler
+  errorHandler: PropTypes.func, // Function that is called once an error is caught. It recveives the error object as argument and should return an error message as string.
+  classes: PropTypes.object,
+  className: PropTypes.string
+})
 
 export function ErrorCard({message, className, classes}) {
   const useStyles = makeStyles((theme) => {
     return {
       root: {
+        color: theme.palette.error.main
       },
       content: {
         paddingBottom: '16px'
@@ -73,7 +81,7 @@ export function ErrorCard({message, className, classes}) {
     <CardContent className={[style.content, style['content:last-child']].join(' ')}>
       <Box className={style.container}>
         <Error className={style.errorIcon}/>
-        <Typography className={style.title} color="textSecondary" gutterBottom>
+        <Typography className={style.title} color="error" gutterBottom>
           {message}
         </Typography>
       </Box>
@@ -83,14 +91,6 @@ export function ErrorCard({message, className, classes}) {
 
 ErrorCard.propTypes = ({
   message: PropTypes.string,
-  classes: PropTypes.object,
-  className: PropTypes.string
-})
-
-ErrorHandler.propTypes = ({
-  children: PropTypes.object,
-  message: PropTypes.string, // Fixed error message. Provide either this or errorHandler
-  errorHandler: PropTypes.func, // Function that is called once an error is caught. It recveives the error object as argument and should return an error message as string.
   classes: PropTypes.object,
   className: PropTypes.string
 })

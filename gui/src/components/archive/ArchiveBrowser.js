@@ -400,6 +400,10 @@ function Overview({section, def}) {
     let positionsOnly = false
 
     // Do not attempt to perform visualization if size is too big
+    if (!section.atom_species) {
+      // the section is incomplete, we leave the overview empty
+      return ''
+    }
     const nAtoms = section.atom_species.length
     if (nAtoms >= 300) {
       return <ErrorCard
@@ -519,7 +523,9 @@ function Section({section, def}) {
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    <Overview def={def} section={section}></Overview>
+    <ErrorHandler message="The section overview could not be rendered, due to an unexpected error.">
+      <Overview def={def} section={section}></Overview>
+    </ErrorHandler>
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
