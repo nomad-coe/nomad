@@ -35,7 +35,7 @@ source distribution
 First example
 _____________
 
-.. literalinclude:: ../examples/client.py
+.. literalinclude:: ../examples/archive/client.py
     :language: python
 
 This script should yield a result like this:

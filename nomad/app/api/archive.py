@@ -300,13 +300,19 @@ class ArchiveQueryResource(Resource):
                     per_page=per_page, page=page, order_by='upload_id')
 
         except KeyError as e:
-            abort(400, str(e))
+            abort(400, 'The query part contained an unknown quantity or section: %s' % str(e))
+
+        try:
+            required_with_references = compute_required_with_referenced(required)
+        except KeyError as e:
+            abort(
+                400,
+                message='The required part contained an unknown quantity or section: %s' % str(e))
 
         data = []
         calcs = results['results']
         upload_files = None
         current_upload_id = None
-        required_with_references = compute_required_with_referenced(required)
         archive_is_complete = False
         if required_with_references is not None:
             archive_is_complete = True
