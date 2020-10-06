@@ -9,33 +9,22 @@ from nomad.metainfo import units
 query = ArchiveQuery(
     # url='http://nomad-lab.eu/prod/rae/beta/api',
     query={
-        '$and': [
-            {'dft.code_name': 'VASP'},
-            {'$gte': {'n_atoms': 3}},
-            {'$lte': {'dft.workflow.section_relaxation.final_energy_difference': 1e-24}}
-        ]
+        'dft.code_name': 'VASP'
     },
     required={
-        'section_workflow': {
-            'section_relaxation': {
-                'final_calculation_ref': {
-                    'energy_total': '*',
-                    'single_configuration_calculation_to_system_ref': {
-                        'chemical_composition_reduced': '*'
-                    }
-                }
-            }
+        'section_run': {
+            'section_single_configuration_calculation': '*',
+            'section_system': '*'
         }
     },
-    parallel=10,
-    per_page=1000,
-    max=10000)
+    per_page=10,
+    max=100)
+
+print(query)
 
 for i, result in enumerate(query):
     if i < 10:
-        calc = result.section_workflow.section_relaxation.final_calculation_ref
+        calc = result.section_run[0].section_single_configuration_calculation[-1]
         energy = calc.energy_total
         formula = calc.single_configuration_calculation_to_system_ref.chemical_composition_reduced
         print('%s: energy %s' % (formula, energy.to(units.hartree)))
-
-print(query)
