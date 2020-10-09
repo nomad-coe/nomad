@@ -29,7 +29,7 @@ RUN mkdir /install
 # Install linux package dependencies
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends libgomp1
-RUN apt-get install -y libmagic-dev curl vim make cmake swig libnetcdf-dev
+RUN apt-get install -y libmagic-dev curl make cmake swig libnetcdf-dev
 
 # Install some specific dependencies necessary for the build process
 RUN pip install --upgrade pip
@@ -104,8 +104,7 @@ RUN npx webpack --mode=production
 
 # Third, create a slim final image
 FROM final
-
-RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl vim
 
 # copy the sources for tests, coverage, qa, etc.
 COPY . /app
