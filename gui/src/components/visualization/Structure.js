@@ -21,7 +21,7 @@ import {
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 
-export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) {
+export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -122,7 +122,7 @@ export default function Structure({className, classes, system, options, viewer, 
       refViewer.current = new StructureViewer(undefined, viewerOptions)
     } else {
       refViewer.current = viewer
-      refViewer.current.setOptions(options, false, false)
+      refViewer.current.setOptions(viewerOptions, false, false)
     }
     if (refCanvas.current !== null) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
@@ -304,11 +304,9 @@ Structure.propTypes = {
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
-  sizeLimit: PropTypes.number, // Maximum number of atoms to attempt to display
   positionsOnly: PropTypes.bool // Whether to update only positions. This is much faster than loading the entire structure.
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
-  captureName: 'structure',
-  sizeLimit: 300
+  captureName: 'structure'
 }

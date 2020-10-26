@@ -4,6 +4,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Typography
@@ -48,7 +49,7 @@ ErrorHandler.propTypes = ({
   className: PropTypes.string
 })
 
-export function ErrorCard({message, className, classes}) {
+export function ErrorCard({message, className, classes, actions}) {
   const useStyles = makeStyles((theme) => {
     return {
       root: {
@@ -66,8 +67,16 @@ export function ErrorCard({message, className, classes}) {
       pos: {
         marginBottom: 12
       },
-      container: {
+      row: {
         display: 'flex'
+      },
+      actions: {
+        display: 'flex',
+        justifyContent: 'flex-end'
+      },
+      column: {
+        display: 'flex',
+        flexDirection: 'column'
       },
       errorIcon: {
         marginRight: theme.spacing(1)
@@ -76,14 +85,26 @@ export function ErrorCard({message, className, classes}) {
   })
 
   const style = useStyles(classes)
+  console.log(actions)
 
   return <Card className={clsx(style.root, className)}>
     <CardContent className={[style.content, style['content:last-child']].join(' ')}>
-      <Box className={style.container}>
+      <Box className={style.row}>
         <Error className={style.errorIcon}/>
-        <Typography className={style.title} color="error" gutterBottom>
-          {message}
-        </Typography>
+        <Box className={style.column}>
+          <Typography className={style.title} color="error" gutterBottom>
+            {message}
+          </Typography>
+          {actions
+            ? <Box className={style.actions}>
+              {actions.map((action) => <Button key={action.label} onClick={action.onClick}>
+                {action.label}
+              </Button>
+              )}
+            </Box>
+            : ''
+          }
+        </Box>
       </Box>
     </CardContent>
   </Card>
@@ -92,5 +113,6 @@ export function ErrorCard({message, className, classes}) {
 ErrorCard.propTypes = ({
   message: PropTypes.string,
   classes: PropTypes.object,
-  className: PropTypes.string
+  className: PropTypes.string,
+  actions: PropTypes.array
 })

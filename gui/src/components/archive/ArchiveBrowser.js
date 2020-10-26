@@ -361,6 +361,8 @@ QuantityValue.propTypes = ({
 function Overview({section, def}) {
   // States
   const [mode, setMode] = useState('bs')
+  const [warningIgnored, setWarningIgnored] = useState(false)
+
   // Styles
   const useStyles = makeStyles(
     {
@@ -405,13 +407,6 @@ function Overview({section, def}) {
       return ''
     }
     const nAtoms = section.atom_species.length
-    if (nAtoms >= 300) {
-      return <ErrorCard
-        message='Visualization is disabled due to large system size.'
-        className={style.error}
-      >
-      </ErrorCard>
-    }
     // Loading exact same system, no need to reload visualizer
     if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
     // Loading same system with different positions
@@ -420,8 +415,19 @@ function Overview({section, def}) {
       system = {
         positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
       }
-    // Completely new system
+    // Loading a completely new system. When trying to visualize the system for
+    // the first time, check the system size and for large systems ask the user
+    // for permission.
     } else {
+      const sizeLimit = 300
+      if (nAtoms >= sizeLimit && !warningIgnored) {
+        return <ErrorCard
+          message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+          className={style.error}
+          actions={[{label: 'Yes', onClick: e => setWarningIgnored(true)}]}
+        >
+        </ErrorCard>
+      }
       system = {
         'species': section.atom_species,
         'cell': convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false),
@@ -443,7 +449,7 @@ function Overview({section, def}) {
         positionsOnly={positionsOnly}
       ></Structure>
     </ErrorHandler>
-  // Band structure plot for section_k_band or section_k_band_normalized
+  // Band structure plot for section_k_band
   } else if (def.name === 'section_k_band') {
     return <>
       {mode === 'bs'

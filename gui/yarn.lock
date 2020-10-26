@@ -1287,10 +1287,10 @@
   resolved "https://registry.yarnpkg.com/@kyleshockey/object-assign-deep/-/object-assign-deep-0.4.2.tgz#84900f0eefc372798f4751b5262830b8208922ec"
   integrity sha1-hJAPDu/DcnmPR1G1JigwuCCJIuw=
 
-"@lauri-codes/materia@0.0.6":
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.6.tgz#b1a64ef174fc0f4107940f9ca19ec8a2305d7376"
-  integrity sha512-RAC8iRS430f6pNum6zlK/PuFgENO1mOM1C1VSE6v+Hv1u8J9FDOyULvhyVuKdqOB6Gh6bmQikPBWX0+XGeFynw==
+"@lauri-codes/materia@0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@lauri-codes/materia/-/materia-0.0.7.tgz#7580526874420641e26ab00bf0412d2a803d2cda"
+  integrity sha512-G3d4kRBNG4rYsLKceiW7Uhqy/uX0PFo70tsOIDZnOiNAICSIFF62LbYLDVHKgJf35xtyQM0kvM1WQGKgL9tmIw==
   dependencies:
     three "^0.119.1"
     threejs-meshline "^2.0.11"
