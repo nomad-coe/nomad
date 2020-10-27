@@ -17,8 +17,8 @@
 #
 
 '''
-This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official api, and
-we will soon at the optimade api. The app module also servers documentation, gui, and
+This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official api, optimade api,
+and dcat api. The app module also servers documentation, gui, and
 alive.
 '''
 from flask import Flask, Blueprint, jsonify, url_for, abort, request, make_response
@@ -37,6 +37,7 @@ from nomad import config, utils as nomad_utils
 
 from .api import blueprint as api_blueprint, api
 from .optimade import blueprint as optimade_blueprint, api as optimade
+from .dcat import blueprint as dcat_blueprint
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
@@ -112,6 +113,7 @@ CORS(app)
 
 app.register_blueprint(api_blueprint, url_prefix='/api')
 app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
+app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
