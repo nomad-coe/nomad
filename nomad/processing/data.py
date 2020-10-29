@@ -586,7 +586,6 @@ class Calc(Proc):
         self._read_metadata_from_file(logger)
 
         # persist the calc metadata
-        # add the calc metadata
         with utils.timer(logger, 'saved calc metadata', step='metadata'):
             self.apply_entry_metadata(self._entry_metadata)
 

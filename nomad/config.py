@@ -116,7 +116,8 @@ fs = NomadConfig(
 elastic = NomadConfig(
     host='localhost',
     port=9200,
-    index_name='nomad_fairdi_calcs'
+    index_name='nomad_fairdi_calcs',
+    materials_index_name='nomad_fairdi_materials'
 )
 
 keycloak = NomadConfig(

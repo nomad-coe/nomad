@@ -26,7 +26,6 @@ import elasticsearch.helpers
 from datetime import datetime
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure, files
-from nomad.metainfo import search_extension
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
 from nomad.app.common import RFC3339DateTime, DotKeyNested
@@ -88,13 +87,13 @@ _search_request_parser.add_argument(
 _search_request_parser.add_argument(
     'metrics', type=str, action='append', help=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(search_extension.metrics.keys())))
+        'Possible values are %s.' % ', '.join(search.metrics.keys())))
 _search_request_parser.add_argument(
     'statistics', type=str, action='append', help=(
         'Quantities for which to aggregate values and their metrics.'))
 _search_request_parser.add_argument(
     'exclude', type=str, action='split', help='Excludes the given keys in the returned data.')
-for group_name in search_extension.groups:
+for group_name in search.groups:
     _search_request_parser.add_argument(
         group_name, type=bool, help=('Return %s group data.' % group_name))
     _search_request_parser.add_argument(
@@ -106,15 +105,15 @@ _repo_calcs_model_fields = {
         'A dict with all statistics. Each statistic is dictionary with a metrics dict as '
         'value and quantity value as key. The possible metrics are code runs(calcs), %s. '
         'There is a pseudo quantity "total" with a single value "all" that contains the '
-        ' metrics over all results. ' % ', '.join(search_extension.metrics.keys())))}
+        ' metrics over all results. ' % ', '.join(search.metrics.keys())))}
 
-for group_name in search_extension.groups:
+for group_name in search.groups:
     _repo_calcs_model_fields[group_name] = (DotKeyNested if '.' in group_name else fields.Nested)(api.model('RepoGroup', {
         'after': fields.String(description='The after value that can be used to retrieve the next %s.' % group_name),
         'values': fields.Raw(description='A dict with %s as key. The values are dicts with "total" and "examples" keys.' % group_name)
     }), skip_none=True)
 
-for qualified_name, quantity in search_extension.search_quantities.items():
+for qualified_name, quantity in search.search_quantities.items():
     _repo_calcs_model_fields[qualified_name] = fields.Raw(
         description=quantity.description, allow_null=True, skip_none=True)
 
@@ -123,7 +122,7 @@ _repo_calcs_model_fields.update(**{
     'interval': fields.String(description='Interval to use for upload time aggregation.', allow_null=True, skip_none=True),
     'metrics': fields.List(fields.String, description=(
         'Metrics to aggregate over all quantities and their values as comma separated list. '
-        'Possible values are %s.' % ', '.join(search_extension.metrics.keys())), allow_null=True, skip_none=True),
+        'Possible values are %s.' % ', '.join(search.metrics.keys())), allow_null=True, skip_none=True),
     'statistics_required': fields.List(fields.String, description='Quantities for which to aggregate values and their metrics.', allow_null=True, skip_none=True),
     'exclude': fields.List(fields.String, description='Excludes the given keys in the returned data.', allow_null=True, skip_none=True)
 })
@@ -192,7 +191,7 @@ class RepoCalcsResource(Resource):
             abort(400, message='bad parameters: %s' % str(e))
 
         for metric in metrics:
-            if metric not in search_extension.metrics:
+            if metric not in search.metrics:
                 abort(400, message='there is no metric %s' % metric)
 
         search_request = search.SearchRequest()
@@ -214,7 +213,7 @@ class RepoCalcsResource(Resource):
 
         group_metrics = [
             group_quantity.metric_name
-            for group_name, group_quantity in search_extension.groups.items()
+            for group_name, group_quantity in search.groups.items()
             if args.get(group_name, False)]
         total_metrics = metrics + group_metrics
         if len(total_metrics) > 0:
@@ -230,7 +229,7 @@ class RepoCalcsResource(Resource):
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                for group_name, group_quantity in search_extension.groups.items():
+                for group_name, group_quantity in search.groups.items():
                     if args.get(group_name, False):
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'uploads_grouped':
@@ -252,7 +251,7 @@ class RepoCalcsResource(Resource):
                 if 'quantities' in results:
                     quantities = results.pop('quantities')
 
-                for group_name, group_quantity in search_extension.groups.items():
+                for group_name, group_quantity in search.groups.items():
                     if args.get(group_name, False):
                         results[group_name] = quantities[group_quantity.qualified_name]
 
@@ -335,7 +334,7 @@ class RepoCalcsResource(Resource):
             abort(400, message='bad parameters: %s' % str(e))
 
         for metric in metrics:
-            if metric not in search_extension.metrics:
+            if metric not in search.metrics:
                 abort(400, message='there is no metric %s' % metric)
 
         search_request = search.SearchRequest()
@@ -363,7 +362,7 @@ class RepoCalcsResource(Resource):
 
         group_metrics = [
             group_quantity.metric_name
-            for group_name, group_quantity in search_extension.groups.items()
+            for group_name, group_quantity in search.groups.items()
             if group_name in data_in]
         total_metrics = metrics + group_metrics
         if len(total_metrics) > 0:
@@ -379,7 +378,7 @@ class RepoCalcsResource(Resource):
                 results = search_request.execute_scrolled(scroll_id=scroll_id, size=per_page)
 
             else:
-                for group_name, group_quantity in search_extension.groups.items():
+                for group_name, group_quantity in search.groups.items():
                     if group_name in data_in:
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'uploads_grouped':
@@ -401,7 +400,7 @@ class RepoCalcsResource(Resource):
                 if 'quantities' in results:
                     quantities = results.pop('quantities')
 
-                for group_name, group_quantity in search_extension.groups.items():
+                for group_name, group_quantity in search.groups.items():
                     if group_name in data_in:
                         results[group_name] = quantities[group_quantity.qualified_name]
 
@@ -865,7 +864,7 @@ _repo_quantities_search_request_parser.add_argument(
 _repo_quantities_model = api.model('RepoQuantitiesResponse', {
     'quantities': fields.Nested(api.model('RepoQuantities', {
         quantity: fields.List(fields.Nested(_repo_quantity_model))
-        for quantity in search_extension.search_quantities
+        for quantity in search.search_quantities
     }))
 })
 

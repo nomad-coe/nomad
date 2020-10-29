@@ -19,12 +19,14 @@ import ase.build
 from matid.symmetry.wyckoffset import WyckoffSet
 
 from nomad.utils import hash
+from nomad.files import UploadFiles
 from nomad import atomutils
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.encyclopedia import (
     Calculation,
     EncyclopediaMetadata,
 )
+from tests.processing.test_data import run_processing
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     run_normalize_for_structure,
     geometry_optimization,
@@ -509,20 +511,45 @@ def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band
     generaltests(band_path_cF_nonstandard.section_metadata.encyclopedia.properties.electronic_band_structure)
 
 
-def test_phonon(phonon: EntryArchive):
+def test_phonon(test_user, proc_infra):
     """Tests that phonon calculations are correctly processed.
     """
+    # Process a phonon calculation
+    upload = run_processing(("phonon_id", "tests/data/normalizers/phonons.zip"), test_user)
+
+    # Read the resulting archive
+    upload_id = upload.upload_id
+    calcs = upload.calcs()
+    phonon_id = None
+    for calc in calcs:
+        if calc.parser == "parsers/phonopy":
+            phonon_id = calc.calc_id
+            break
+    upload_file = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    archive_reader = upload_file.read_archive(phonon_id)
+    phonon_archive = archive_reader[phonon_id].to_dict()
+    phonon = EntryArchive.m_from_dict(phonon_archive)
+
     enc = phonon.section_metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
     status = enc.status
     prop = enc.properties
+    method = enc.method
     band = prop.phonon_band_structure
     dos = prop.phonon_dos
     thermo_props = prop.thermodynamical_properties
     assert calc_type == Calculation.calculation_type.type.phonon_calculation
+    assert status == EncyclopediaMetadata.status.type.success
 
-    # The method information is filled after the whole upload has been processed.
-    assert status == EncyclopediaMetadata.status.type.unsupported_method_type
+    # There should be a reference to the external calculation
+    assert phonon.section_run[0].section_single_configuration_calculation[0].section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url is not None
+
+    # The method information should have been read from the referenced
+    # calculation
+    assert method.method_type == "DFT"
+    assert method.core_electron_treatment == "full all electron"
+    assert method.functional_type == "LDA"
+    assert method.functional_long_name == "LDA_C_PW+LDA_X"
 
     # Check dos
     assert dos is not None

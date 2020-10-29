@@ -133,12 +133,12 @@ class ElasticDocument(SectionAnnotation):
 
     @property
     def document(self):
-        return ElasticDocument.create_document(self.definition)
+        return ElasticDocument.create_document(self.definition, index_name=self.index_name)
 
     @classmethod
     def create_document(
-            cls, section: Section, inner_doc: bool = False, attrs: Dict[str, Any] = None,
-            prefix: str = None):
+            cls, section: Section, attrs: Dict[str, Any] = None,
+            prefix: str = None, index_name: str = None, root=True):
         '''
         Create all elasticsearch_dsl mapping classes for the section and its sub sections.
         '''
@@ -146,19 +146,27 @@ class ElasticDocument(SectionAnnotation):
         if document is not None:
             return document
 
-        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object, Double, Float, Long
+        from elasticsearch_dsl import Document, InnerDoc, Keyword, Date, Integer, Boolean, Object, Double, Float, Long, Nested
 
         if attrs is None:
             attrs = {}
 
         # create an field for each sub section
         for sub_section in section.all_sub_sections.values():
-            sub_sectoin_prefix = '%s.%s' % (prefix, sub_section.name) if prefix else sub_section.name
+            sub_section_prefix = '%s.%s' % (prefix, sub_section.name) if prefix else sub_section.name
+
             inner_document = ElasticDocument.create_document(
-                sub_section.sub_section, inner_doc=True, prefix=sub_sectoin_prefix)
+                sub_section.sub_section, prefix=sub_section_prefix, index_name=index_name, root=False)
             if inner_document is not None:
-                # sub sections with no elastic quantities get a None document
-                attrs[sub_section.name] = Object(inner_document)
+                try:
+                    if sub_section.a_search.nested:
+                        assert sub_section.repeats, (
+                            "Nested fields should be repeatable. If the subsection cannot be repeated, "
+                            "define it as unnested instead."
+                        )
+                        attrs[sub_section.name] = Nested(inner_document)
+                except AttributeError:
+                    attrs[sub_section.name] = Object(inner_document)
 
         # create an field for each quantity
         for quantity in section.all_quantities.values():
@@ -187,8 +195,7 @@ class ElasticDocument(SectionAnnotation):
                         if prefix is not None:
                             inner_prefix = '%s.%s' % (prefix, inner_prefix)
                         inner_document = ElasticDocument.create_document(
-                            cast(Section, quantity.type.target_section_def), inner_doc=True,
-                            prefix=inner_prefix)
+                            cast(Section, quantity.type.target_section_def), prefix=inner_prefix, index_name=index_name, root=False)
                         annotation.mapping = Object(inner_document)
                     elif isinstance(quantity.type, MEnum):
                         annotation.mapping = Keyword(**kwargs)
@@ -201,7 +208,7 @@ class ElasticDocument(SectionAnnotation):
                 if first:
                     assert annotation.field not in attrs, 'Elastic fields must be unique'
                     attrs[annotation.field] = annotation.mapping
-                annotation.register(prefix, annotation.field)
+                annotation.register(prefix, annotation.field, index_name)
 
                 first = False
 
@@ -209,7 +216,10 @@ class ElasticDocument(SectionAnnotation):
             # do not create a document/inner document class, if no elastic quantities are defined
             return None
 
-        document = type(section.name, (InnerDoc if inner_doc else Document,), attrs)
+        doc_cls_obj = InnerDoc
+        if root:
+            doc_cls_obj = Document
+        document = type(section.name, (doc_cls_obj,), attrs)
         cls._all_documents[section.qualified_name()] = document
         return document
 
@@ -261,14 +271,14 @@ class Elastic(DefinitionAnnotation):
     def init_annotation(self, definition):
         super().init_annotation(definition)
 
-        assert isinstance(definition, Quantity), 'The Elastic annotation is only usable with Quantities.'
         if self.field is None:
             self.field = definition.name
 
         if self.value is None:
             self.value = lambda section: section.m_get(definition)
 
-    def register(self, prefix: str, field: str):
+    def register(self, prefix: str, field: str, index: str):
+
         if prefix is None:
             self.qualified_field = field
         else:

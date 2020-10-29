@@ -23,8 +23,13 @@ from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
+from nomad.datamodel.material import Material
 from nomad import config, datamodel, infrastructure, utils
-from nomad.metainfo.search_extension import search_quantities, metrics, order_default_quantities
+from nomad.metainfo.search_extension import search_quantities_by_index, metrics_by_index, order_default_quantities_by_index, groups_by_index
+search_quantities = search_quantities_by_index[config.elastic.index_name]
+groups = groups_by_index[config.elastic.index_name]
+metrics = metrics_by_index[config.elastic.index_name]
+order_default_quantities = order_default_quantities_by_index[config.elastic.index_name]
 
 
 path_analyzer = analyzer(
@@ -45,6 +50,7 @@ class InvalidQuery(Exception): pass
 
 
 entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
+material_document = Material.m_def.a_elastic.document
 
 for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
