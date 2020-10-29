@@ -1061,7 +1061,7 @@ class TestRepo():
         assert 'only_atoms' not in result
         assert 'dft.basis_set' in result
 
-    metrics_permutations = [[], search_extension.metrics] + [[metric] for metric in search_extension.metrics]
+    metrics_permutations = [[], search_extension.metrics_by_index[config.elastic.index_name]] + [[metric] for metric in search_extension.metrics_by_index[config.elastic.index_name]]
 
     def test_search_admin(self, api, example_elastic_calcs, no_warn, admin_user_auth):
         rv = api.get('/repo/?owner=admin', headers=admin_user_auth)

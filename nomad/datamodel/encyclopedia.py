@@ -64,7 +64,7 @@ class WyckoffSet(MSection):
         Chemical element at this Wyckoff position.
         """
     )
-    variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False)
+    variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False, categories=[fast_access])
 
 
 class LatticeParameters(MSection):
@@ -190,8 +190,8 @@ class IdealizedStructure(MSection):
         """,
         a_search=Search()
     )
-    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
-    lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True, categories=[fast_access])
+    lattice_parameters = SubSection(sub_section=LatticeParameters.m_def, categories=[fast_access])
 
 
 class Bulk(MSection):
@@ -370,10 +370,10 @@ class Material(MSection):
     )
 
     # Bulk-specific properties
-    bulk = SubSection(sub_section=Bulk.m_def, repeats=False)
+    bulk = SubSection(sub_section=Bulk.m_def, repeats=False, categories=[fast_access])
 
     # The idealized structure for this material
-    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False)
+    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False, categories=[fast_access])
 
 
 class Method(MSection):
@@ -575,11 +575,10 @@ class Properties(MSection):
         """,
         a_search=Search()
     )
-    energies = SubSection(sub_section=Energies.m_def, repeats=False, a_search='energies')
+    energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[fast_access], a_search='energies')
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
-        categories=[fast_access],
         description="""
         Reference to an electronic band structure.
         """,
@@ -588,7 +587,6 @@ class Properties(MSection):
     electronic_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
-        categories=[fast_access],
         description="""
         Reference to an electronic density of states.
         """,
@@ -597,7 +595,6 @@ class Properties(MSection):
     phonon_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
-        categories=[fast_access],
         description="""
         Reference to a phonon band structure.
         """,
@@ -606,7 +603,6 @@ class Properties(MSection):
     phonon_dos = Quantity(
         type=Reference(section_dos.m_def),
         shape=[],
-        categories=[fast_access],
         description="""
         Reference to a phonon density of states.
         """,
@@ -615,7 +611,6 @@ class Properties(MSection):
     thermodynamical_properties = Quantity(
         type=Reference(section_thermodynamical_properties.m_def),
         shape=[],
-        categories=[fast_access],
         description="""
         Reference to a section containing thermodynamical properties.
         """,
@@ -631,10 +626,10 @@ class EncyclopediaMetadata(MSection):
         Section which stores information for the NOMAD Encyclopedia.
         """
     )
-    material = SubSection(sub_section=Material.m_def, repeats=False, a_search='material')
-    method = SubSection(sub_section=Method.m_def, repeats=False, a_search='method')
-    properties = SubSection(sub_section=Properties.m_def, repeats=False, a_search='properties')
-    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, a_search='calculation')
+    material = SubSection(sub_section=Material.m_def, repeats=False, categories=[fast_access], a_search='material')
+    method = SubSection(sub_section=Method.m_def, repeats=False, categories=[fast_access], a_search='method')
+    properties = SubSection(sub_section=Properties.m_def, repeats=False, categories=[fast_access], a_search='properties')
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, categories=[fast_access], a_search='calculation')
     status = Quantity(
         type=MEnum("success", "unsupported_material_type", "unsupported_method_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
         description="""

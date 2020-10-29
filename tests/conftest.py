@@ -180,21 +180,25 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_test')
+    monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_calcs_test')
+    monkeysession.setattr('nomad.config.elastic.materials_index_name', 'nomad_fairdi_materials_test')
     try:
         return infrastructure.setup_elastic()
     except Exception:
         # try to delete index, error might be caused by changed mapping
         from elasticsearch_dsl import connections
         connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
-            .indices.delete(index='nomad_fairdi_test')
+            .indices.delete(index='nomad_fairdi_calcs_test')
         return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic):
     try:
         elastic.delete_by_query(
-            index='nomad_fairdi_test', body=dict(query=dict(match_all={})),
+            index='nomad_fairdi_calcs_test', body=dict(query=dict(match_all={})),
+            wait_for_completion=True, refresh=True)
+        elastic.delete_by_query(
+            index='nomad_fairdi_materials_test', body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests

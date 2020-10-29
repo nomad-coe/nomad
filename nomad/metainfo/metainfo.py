@@ -1094,11 +1094,23 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 by partial.
             partial: A function that determines if a definition should be included in
                 the output dictionary. Takes a definition and the containing section
-                as arguments. Partial is applied recursively on sub-sections.
-                Overrides categories.
+                as arguments. Two default functions can be used by providing a
+                string instead:
+
+                - 'mongo': Only include quantities that have an a_mongo
+                  annotation.
+                - 'es': Only include quantities that have an a_elastic or
+                  an an a_search annotation.
+
+                Partial is applied recursively on sub-sections. Overrides
+                categories.
         '''
         # determine partial for sub-sections and partial based on categories
         if partial is not None:
+            if partial == "es":
+                partial = lambda d, s: hasattr(d, "a_search") or hasattr(d, "a_search")
+            if partial == "mongo":
+                partial = lambda d, s: hasattr(d, "a_mongo")
             child_partial = partial
         else:
             if categories is None:

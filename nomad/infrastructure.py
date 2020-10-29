@@ -80,26 +80,52 @@ def setup_mongo(client=False):
     return mongo_client
 
 
-def setup_elastic():
+def setup_elastic(create_mappings=True):
     ''' Creates connection to elastic search. '''
+    from nomad.search import entry_document, material_document
+    from elasticsearch_dsl import Index
+
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
         timeout=60, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
 
-    try:
-        from nomad.search import entry_document
-        entry_document.init(index=config.elastic.index_name)
-    except RequestError as e:
-        if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-            # happens if two services try this at the same time
-            pass
-        else:
-            raise e
+    # Setup materials index mapping. An alias is used to be able to reindex the
+    # materials with zero downtime. First see to which index the alias points
+    # to. If alias is not set, create it. Update the mapping in the index
+    # pointed to by the alias.
+    if create_mappings:
+        try:
+            if elastic_client.indices.exists_alias(config.elastic.materials_index_name):
+                index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
+                material_document.init(index_name)
+            else:
+                index_name = config.elastic.materials_index_name + "_a"
+                material_document.init(index_name)
+                index = Index(index_name)
+                index.put_alias(name=config.elastic.materials_index_name)
+        except RequestError as e:
+            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
+                # happens if two services try this at the same time
+                pass
+            else:
+                raise e
 
-    entry_document._index._name = config.elastic.index_name
-    logger.info('initialized elastic index', index_name=config.elastic.index_name)
+        # Initialize calculation index mapping
+        try:
+            entry_document.init(index=config.elastic.index_name)
+        except RequestError as e:
+            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
+                # happens if two services try this at the same time
+                pass
+            else:
+                raise e
+
+        entry_document._index._name = config.elastic.index_name
+        material_document._index._name = config.elastic.materials_index_name
+        logger.info('initialized elastic index for calculations', index_name=config.elastic.index_name)
+        logger.info('initialized elastic index for materials', index_name=config.elastic.materials_index_name)
 
     return elastic_client
 
@@ -405,9 +431,12 @@ def reset(remove: bool):
         if not elastic_client:
             setup_elastic()
         elastic_client.indices.delete(index=config.elastic.index_name)
-        from nomad.search import entry_document
+        material_index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
+        elastic_client.indices.delete(index=material_index_name)
+        from nomad.search import entry_document, material_document
         if not remove:
             entry_document.init(index=config.elastic.index_name)
+            material_document.init(index=material_index_name)
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)

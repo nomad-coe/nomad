@@ -19,7 +19,6 @@ from datetime import datetime
 
 from nomad import datamodel, search, processing, infrastructure, config
 from nomad.search import entry_document, SearchRequest
-from nomad.metainfo import search_extension
 
 
 def test_init_mapping(elastic):
@@ -185,11 +184,11 @@ def assert_metrics(container, metrics_names):
 
 
 def test_search_statistics(elastic, example_search_data):
-    assert 'authors' in search_extension.metrics.keys()
-    assert 'datasets' in search_extension.metrics.keys()
-    assert 'unique_entries' in search_extension.metrics.keys()
+    assert 'authors' in search.metrics.keys()
+    assert 'datasets' in search.metrics.keys()
+    assert 'unique_entries' in search.metrics.keys()
 
-    use_metrics = search_extension.metrics.keys()
+    use_metrics = search.metrics.keys()
 
     request = SearchRequest(domain='dft').statistic(
         'dft.system', size=10, metrics_to_use=use_metrics).date_histogram(metrics_to_use=use_metrics)
@@ -227,7 +226,7 @@ def test_global_statistics(elastic, example_search_data):
 
 
 def test_search_totals(elastic, example_search_data):
-    use_metrics = search_extension.metrics.keys()
+    use_metrics = search.metrics.keys()
 
     request = SearchRequest(domain='dft').totals(metrics_to_use=use_metrics)
     results = request.execute()

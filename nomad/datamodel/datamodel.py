@@ -536,7 +536,7 @@ class EntryMetadata(metainfo.MSection):
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
     dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[fast_access])
     qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search='qcms')
-    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, a_search='encyclopedia')
+    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[fast_access], a_search='encyclopedia')
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''
