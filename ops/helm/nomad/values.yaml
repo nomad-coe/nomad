@@ -44,10 +44,6 @@ app:
   replicas: 1
   ## Number of gunicorn worker.
   worker: 10
-  ## Number of threads per gunicorn worker (for async workerClass)
-  threads: 4
-  ## Gunircon worker class (http://docs.gunicorn.org/en/stable/settings.html#worker-class)
-  workerClass: 'gthread'
   console_loglevel: INFO
   logstash_loglevel: INFO
   nomadNodeType: "public"

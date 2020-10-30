@@ -90,24 +90,12 @@ if config.services.https:
 app = Flask(__name__)
 ''' The Flask app that serves all APIs. '''
 
-app.config.APPLICATION_ROOT = common.base_path  # type: ignore
 app.config.RESTPLUS_MASK_HEADER = False  # type: ignore
 app.config.RESTPLUS_MASK_SWAGGER = False  # type: ignore
 app.config.SWAGGER_UI_OPERATION_ID = True  # type: ignore
 app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
 
 app.config['SECRET_KEY'] = config.services.api_secret
-
-
-def api_base_path_response(env, resp):
-    resp('200 OK', [('Content-Type', 'text/plain')])
-    return [
-        ('Development nomad api server. Api is served under %s/.' %
-            config.services.api_base_path).encode('utf-8')]
-
-
-app.wsgi_app = DispatcherMiddleware(  # type: ignore
-    api_base_path_response, {config.services.api_base_path: app.wsgi_app})
 
 CORS(app)
 
@@ -182,18 +170,3 @@ def before_request():
     if config.services.api_chaos > 0:
         if random.randint(0, 100) <= config.services.api_chaos:
             abort(random.choice([400, 404, 500]), 'With best wishes from the chaos monkey.')
-
-
-@app.before_first_request
-def setup():
-    from nomad import infrastructure
-
-    if not app.config['TESTING']:
-        # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
-        try:
-            from mongoengine import disconnect
-            disconnect()
-        except Exception:
-            pass
-
-        infrastructure.setup()

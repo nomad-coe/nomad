@@ -36,43 +36,49 @@ data:
       {{ end }}
 
       location / {
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location ~ {{ .Values.proxy.external.path }}\/?(gui)?$ {
-        rewrite ^ {{ .Values.proxy.external.path }}/gui/ permanent;
+        rewrite ^ /gui/ permanent;
       }
 
       location {{ .Values.proxy.external.path }}/gui/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index {
-        rewrite ^ {{ .Values.proxy.external.path }}/gui/index.html break;
+        rewrite ^ /gui/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location {{ .Values.proxy.external.path }}/docs/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index_docs;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index_docs {
         rewrite ^ {{ .Values.proxy.external.path }}/docs/index.html break;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location {{ .Values.proxy.external.path }}/encyclopedia/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_encyclopedia_index;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_encyclopedia_index {
         rewrite ^ {{ .Values.proxy.external.path }}/encyclopedia/index.html break;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
@@ -82,29 +88,34 @@ data:
         if_modified_since off;
         expires off;
         etag off;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/(raw|archive) {
+      location ~ \/api.*\/(raw|archive) {
         proxy_buffering off;
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location ~ \/api\/mirror {
         proxy_buffering off;
         proxy_read_timeout {{ .Values.proxy.mirrorTimeout }};
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location ~ \/api\/repo\/edit {
         proxy_buffering off;
         proxy_read_timeout {{ .Values.proxy.editTimeout }};
+        rewrite ^{{ .Values.proxy.external.path }}/(.*) /$1  break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
     }

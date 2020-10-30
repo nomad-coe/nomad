@@ -580,3 +580,8 @@ class EntryArchive(metainfo.MSection):
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],
         description='The processing logs for this entry as a list of structlog entries.')
+
+
+# preemptively create the elasticsearch document definition, which populates metrics and
+# search quantities in the search_extension
+EntryMetadata.m_def.a_elastic.document

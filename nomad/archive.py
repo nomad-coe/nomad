@@ -812,7 +812,7 @@ def delete_partial_archives_from_mongo(entry_ids: List[str]):
 
 def read_partial_archives_from_mongo(entry_ids: List[str], as_dict=False) -> Dict[str, Union[EntryArchive, Dict]]:
     '''
-    Reads the partial archives for a set of entries of the same upload.
+    Reads the partial archives for a set of entries.
 
     Arguments:
         entry_ids: A list of entry ids.
@@ -866,7 +866,7 @@ def compute_required_with_referenced(required):
     # TODO this function should be based on the metainfo
 
     if not isinstance(required, dict):
-        return required
+        return None
 
     if any(key.startswith('section_run') for key in required):
         return None

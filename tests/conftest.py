@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 import pytest
 import logging
 from collections import namedtuple
@@ -78,6 +78,7 @@ def raw_files_infra():
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
     config.fs.prefix_size = 2
+    clear_raw_files()
 
 
 @pytest.fixture(scope='function')
@@ -193,10 +194,25 @@ def elastic_infra(monkeysession):
         return infrastructure.setup_elastic()
     except Exception:
         # try to delete index, error might be caused by changed mapping
-        from elasticsearch_dsl import connections
-        connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
-            .indices.delete(index='nomad_fairdi_calcs_test')
-        return infrastructure.setup_elastic()
+        return clear_elastic_infra()
+
+
+def clear_elastic_infra():
+    from elasticsearch_dsl import connections
+    connection = connections.create_connection(
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
+
+    try:
+        connection.indices.delete(index='nomad_fairdi_test')
+    except Exception:
+        pass
+
+    try:
+        connection.indices.delete(index='nomad_fairdi_materials_test')
+    except Exception:
+        pass
+
+    return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic):
@@ -210,7 +226,7 @@ def clear_elastic(elastic):
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests
         # are executed
-        infrastructure.setup_elastic()
+        clear_elastic_infra()
 
 
 @pytest.fixture(scope='function')
@@ -237,6 +253,12 @@ class KeycloakMock:
     def __init__(self):
         self.id_counter = 2
         self.users = dict(**test_users)
+
+    def tokenauth(self, access_token: str) -> Dict[str, Any]:
+        if access_token in self.users:
+            return self.users[access_token]
+        else:
+            raise infrastructure.KeycloakError('user does not exist')
 
     def authorize_flask(self, *args, **kwargs):
         if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
@@ -268,6 +290,13 @@ class KeycloakMock:
         return [
             User(**test_user) for test_user in self.users.values()
             if query in ' '.join([str(value) for value in test_user.values()])]
+
+    def basicauth(self, username: str, password: str) -> str:
+        for user in self.users.values():
+            if user['username'] == username:
+                return user['user_id']
+
+        raise infrastructure.KeycloakError()
 
     @property
     def access_token(self):

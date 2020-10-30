@@ -183,7 +183,7 @@ client:
   url: 'http://<your-host>/nomad-oasis/api'
 
 services:
-  api_base_path: '/nomad-oasis'
+  api_prefix: '/nomad-oasis'
   admin_user_id: '<your admin user id>'
 
 keycloak:
@@ -214,25 +214,27 @@ proxy is an nginx server and needs a configuration similar to this:
 ```none
 server {
     listen        80;
-    server_name   <your-host>;
+    server_name   www.example.com;
     proxy_set_header Host $host;
 
-    location / {
+    location /nomad-oasis/ {
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ /nomad-oasis\/?(gui)?$ {
-        rewrite ^ /nomad-oasis/gui/ permanent;
+        rewrite ^ /gui/ permanent;
     }
 
     location /nomad-oasis/gui/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location @redirect_to_index {
-        rewrite ^ /nomad-oasis/gui/index.html break;
+        rewrite ^ /gui/index.html break;
         proxy_pass http://app:8000;
     }
 
@@ -242,23 +244,27 @@ server {
         if_modified_since off;
         expires off;
         etag off;
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/(raw|archive) {
         proxy_buffering off;
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/mirror {
         proxy_buffering off;
         proxy_read_timeout 600;
+        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 }

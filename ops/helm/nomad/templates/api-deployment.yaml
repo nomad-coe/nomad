@@ -67,10 +67,6 @@ metadata:
 data:
   gunicorn.conf: |
     secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
-    {{ if ne .Values.app.workerClass "sync" }}
-    worker_class = '{{ .Values.app.workerClass }}'
-    threads = {{ .Values.app.threads }}
-    {{ end }}
     worker_connections = 1000
     workers = {{ .Values.app.worker }}
 ---
@@ -226,14 +222,14 @@ spec:
         command: ["./run.sh"]
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
+            path: "/alive"
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
+            path: "/alive"
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 15

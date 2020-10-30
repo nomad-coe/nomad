@@ -39,6 +39,6 @@ while True:
             atoms))
         end = time.time()
         print('PING – %s – %f - %s' % (response.status_code, end - start, datetime.now()))
-        time.sleep(1)
+        time.sleep(5)
     except Exception as e:
         print('ERROR – %s' % e)

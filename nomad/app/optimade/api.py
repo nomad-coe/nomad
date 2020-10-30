@@ -26,7 +26,7 @@ blueprint = Blueprint('optimade', __name__)
 
 base_url = 'https://%s/%s/optimade' % (
     config.services.api_host.strip('/'),
-    config.services.api_base_path.strip('/'))
+    config.services.api_prefix.strip('/'))
 
 
 def url(endpoint: str = None, version='v1', prefix=None, **kwargs):

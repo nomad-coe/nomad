@@ -35,6 +35,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.create_uuid
 .. autofunc::nomad.utils.timer
 .. autofunc::nomad.utils.lnr
+.. autofunc::nomad.utils.strip
 '''
 
 from typing import List, Iterable
@@ -50,6 +51,7 @@ import sys
 from datetime import timedelta
 import collections
 import logging
+import inspect
 
 from nomad import config
 
@@ -427,3 +429,8 @@ class RestrictedDict(OrderedDict):
         hash_str = json.dumps(self, sort_keys=True)
 
         return hash(hash_str)
+
+
+def strip(docstring):
+    ''' Removes any unnecessary whitespaces from a multiline doc string or description. '''
+    return inspect.cleandoc(docstring)

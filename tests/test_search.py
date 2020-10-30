@@ -20,9 +20,12 @@ from typing import List, Iterable
 from elasticsearch_dsl import Q
 import pytest
 from datetime import datetime
+import json
 
-from nomad import datamodel, search, processing, infrastructure, config
-from nomad.search import entry_document, SearchRequest
+from nomad import datamodel, processing, infrastructure, config
+from nomad.metainfo import search_extension
+from nomad.search import entry_document, SearchRequest, search, flat
+from nomad.app_fastapi.models import WithQuery
 
 
 def test_init_mapping(elastic):
@@ -43,7 +46,7 @@ def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
     search_entry = create_entry(entry_metadata)
-    entry = search.flat(search_entry.to_dict())
+    entry = flat(search_entry.to_dict())
 
     assert 'calc_id' in entry
     assert 'atoms' in entry
@@ -75,7 +78,7 @@ def test_index_normalized_calc_with_author(
     entry_metadata.apply_domain_metadata(normalized)
 
     search_entry = create_entry(entry_metadata)
-    search.flat(search_entry.to_dict())
+    flat(search_entry.to_dict())
 
 
 def test_index_upload(elastic, processed: processing.Upload):
@@ -86,7 +89,7 @@ def test_index_upload(elastic, processed: processing.Upload):
 def example_search_data(elastic, normalized: datamodel.EntryArchive):
     entry_metadata = normalized.section_metadata
     entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id',
+        domain='dft', upload_id='test upload id', calc_id='test id', published=True,
         upload_time=datetime.now())
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
@@ -187,11 +190,11 @@ def assert_metrics(container, metrics_names):
 
 
 def test_search_statistics(elastic, example_search_data):
-    assert 'authors' in search.metrics.keys()
-    assert 'datasets' in search.metrics.keys()
-    assert 'unique_entries' in search.metrics.keys()
+    assert 'authors' in search_extension.metrics.keys()
+    assert 'datasets' in search_extension.metrics.keys()
+    assert 'unique_entries' in search_extension.metrics.keys()
 
-    use_metrics = search.metrics.keys()
+    use_metrics = search_extension.metrics.keys()
 
     request = SearchRequest(domain='dft').statistic(
         'dft.system', size=10, metrics_to_use=use_metrics).date_histogram(metrics_to_use=use_metrics)
@@ -229,7 +232,7 @@ def test_global_statistics(elastic, example_search_data):
 
 
 def test_search_totals(elastic, example_search_data):
-    use_metrics = search.metrics.keys()
+    use_metrics = search_extension.metrics.keys()
 
     request = SearchRequest(domain='dft').totals(metrics_to_use=use_metrics)
     results = request.execute()
@@ -245,18 +248,18 @@ def test_search_totals(elastic, example_search_data):
 
 def test_search_exclude(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in search.flat(item)
+        assert 'atoms' in flat(item)
 
     for item in SearchRequest().exclude('atoms').execute_paginated()['results']:
-        assert 'atoms' not in search.flat(item)
+        assert 'atoms' not in flat(item)
 
 
 def test_search_include(elastic, example_search_data):
     for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in search.flat(item)
+        assert 'atoms' in flat(item)
 
     for item in SearchRequest().include('calc_id').execute_paginated()['results']:
-        item = search.flat(item)
+        item = flat(item)
         assert 'atoms' not in item
         assert 'calc_id' in item
 
@@ -320,7 +323,7 @@ def assert_search_upload(
     assert search_results.count() == len(list(upload_entries))
     if search_results.count() > 0:
         for hit in search_results:
-            hit = search.flat(hit.to_dict())
+            hit = flat(hit.to_dict())
 
             for key, value in kwargs.items():
                 assert hit.get(key, None) == value
@@ -357,3 +360,24 @@ if __name__ == '__main__':
             yield calc.to_dict(include_meta=True)
 
     bulk(infrastructure.elastic_client, gen_data())
+
+
+@pytest.mark.parametrize('api_query, total', [
+    pytest.param('{}', 1, id='empty'),
+    pytest.param('{"dft.code_name": "VASP"}', 1, id="match"),
+    pytest.param('{"dft.code_name": "VASP", "dft.xc_functional": "dne"}', 0, id="match_all"),
+    pytest.param('{"and": [{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 0, id="and"),
+    pytest.param('{"or":[{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 1, id="or"),
+    pytest.param('{"not":{"dft.code_name": "VASP"}}', 0, id="not"),
+    pytest.param('{"dft.code_name": {"all": ["VASP", "dne"]}}', 0, id="all"),
+    pytest.param('{"dft.code_name": {"any": ["VASP", "dne"]}}', 1, id="any"),
+    pytest.param('{"dft.code_name": {"none": ["VASP", "dne"]}}', 0, id="none"),
+    pytest.param('{"dft.code_name": {"gte": "VASP"}}', 1, id="gte"),
+    pytest.param('{"dft.code_name": {"gt": "A"}}', 1, id="gt"),
+    pytest.param('{"dft.code_name": {"lte": "VASP"}}', 1, id="lte"),
+    pytest.param('{"dft.code_name": {"lt": "A"}}', 0, id="lt"),
+])
+def test_search_query(elastic, example_search_data, api_query, total):
+    api_query = json.loads(api_query)
+    results = search(owner='all', query=WithQuery(query=api_query).query)
+    assert results.pagination.total == total  # pylint: disable=no-member

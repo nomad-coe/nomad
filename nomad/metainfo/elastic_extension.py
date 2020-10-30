@@ -256,6 +256,8 @@ class Elastic(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
+        aggregateable:
+            A boolean that determines, if this quantity can be used in aggregations
     '''
     def __init__(
             self,
@@ -287,3 +289,7 @@ class Elastic(DefinitionAnnotation):
             self.qualified_field = field
         else:
             self.qualified_field = '%s.%s' % (prefix, field)
+
+    @property
+    def aggregateable(self):
+        return self.mapping is None or self.mapping.__class__.__name__ == 'Keyword'

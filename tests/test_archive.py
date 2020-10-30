@@ -427,3 +427,7 @@ def test_compute_required_incomplete(archive):
     })
 
     assert required is not None
+
+
+def test_compute_required_full():
+    assert compute_required_with_referenced('*') is None

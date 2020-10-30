@@ -213,8 +213,8 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
         search_request.owner(
             owner,
             g.user.user_id if g.user is not None else None)
-    except ValueError as e:
-        abort(401, getattr(e, 'message', 'Invalid owner parameter: %s' % owner))
+    except search.AuthenticationRequiredError as e:
+        abort(401, str(e))
     except Exception as e:
         abort(400, getattr(e, 'message', 'Invalid owner parameter'))
 

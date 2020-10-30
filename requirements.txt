@@ -76,6 +76,9 @@ python-json-logger
 recommonmark
 jinja2
 rdflib
+fastapi
+uvicorn[standard]
+python-multipart
 
 # [dev]
 setuptools
@@ -98,3 +101,4 @@ names
 essential_generators
 twine
 python-gitlab
+devtools

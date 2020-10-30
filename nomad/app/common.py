@@ -22,14 +22,9 @@ from datetime import datetime
 import pytz
 from contextlib import contextmanager
 
-from nomad import config
-
 
 logger: BoundLogger = None
 ''' A logger pre configured with information about the current request. '''
-
-base_path = config.services.api_base_path
-''' Provides the root path of the nomad APIs. '''
 
 
 class RFC3339DateTime(fields.DateTime):

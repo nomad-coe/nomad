@@ -19,6 +19,7 @@
 from typing import Callable, Any, Dict, List, DefaultDict
 from collections import defaultdict
 
+from nomad import config
 from nomad.metainfo.elastic_extension import Elastic
 
 
@@ -39,6 +40,12 @@ is the metric name. '''
 
 order_default_quantities_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 ''' The quantity for each domain (key) that is the default quantity to order search results by. '''
+
+
+search_quantities = search_quantities_by_index[config.elastic.index_name]
+groups = groups_by_index[config.elastic.index_name]
+metrics = metrics_by_index[config.elastic.index_name]
+order_default_quantities = order_default_quantities_by_index[config.elastic.index_name]
 
 
 # TODO multi, split are more flask related

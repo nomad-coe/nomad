@@ -27,7 +27,7 @@ data:
     services:
       api_host: "{{ .Values.proxy.external.host }}"
       api_port: {{ .Values.proxy.external.port }}
-      api_base_path: "{{ .Values.proxy.external.path }}"
+      api_prefix: "{{ .Values.proxy.external.path }}"
       api_secret: "{{ .Values.api.secret }}"
       https: {{ .Values.proxy.external.https }}
       upload_limit: {{ .Values.api.uploadLimit }}

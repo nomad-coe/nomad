@@ -149,7 +149,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_base_path='/fairdi/nomad/latest',
+    api_prefix='/',
     api_secret='defaultApiSecret',
     api_chaos=0,
     admin_user_id='00000000-0000-0000-0000-000000000000',
@@ -177,7 +177,7 @@ def api_url(ssl: bool = True, api: str = 'api'):
     base_url = '%s://%s/%s' % (
         'https' if services.https and ssl else 'http',
         services.api_host.strip('/'),
-        services.api_base_path.strip('/'))
+        services.api_prefix.strip('/'))
 
     return '%s/%s' % (base_url.strip('/'), api)
 
@@ -305,6 +305,7 @@ parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
+max_entry_download = 500000
 use_empty_parsers = False
 reprocess_unmatched = True
 metadata_file_name = 'nomad'

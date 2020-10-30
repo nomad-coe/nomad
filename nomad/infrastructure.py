@@ -23,6 +23,7 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 '''
 
+from typing import Dict, Any
 import os.path
 import os
 import shutil
@@ -134,6 +135,9 @@ def setup_elastic(create_mappings=True):
     return elastic_client
 
 
+class KeycloakError(Exception): pass
+
+
 class Keycloak():
     '''
     A class that encapsulates all keycloak related functions for easier mocking and
@@ -170,6 +174,63 @@ class Keycloak():
                 raise e
 
         return self.__public_keys
+
+    def basicauth(self, username: str, password: str) -> str:
+        '''
+        Performs basic authentication and returns an access token.
+
+        Raises:
+            KeycloakError
+        '''
+        try:
+            token_info = self._oidc_client.token(username=username, password=password)
+        except KeycloakAuthenticationError as e:
+            raise KeycloakError(e)
+        except Exception as e:
+            logger.error('cannot perform basicauth', exc_info=e)
+            raise e
+
+        return token_info['access_token']
+
+    def tokenauth(self, access_token: str) -> Dict[str, Any]:
+        '''
+        Authenticates the given token and returns the user record.
+
+        Raises:
+            KeycloakError
+        '''
+        try:
+            kid = jwt.get_unverified_header(access_token)['kid']
+            key = keycloak._public_keys.get(kid)
+            if key is None:
+                logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
+                raise KeycloakError(utils.strip('''
+                    Could not validate credentials.
+                    The user provided keycloak public key does not exist.
+                    Does the UI use the right realm?'''))
+
+            options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
+            payload = jwt.decode(
+                access_token, key=key, algorithms=['RS256'], options=options,
+                issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+
+            user_id: str = payload.get('sub')
+            if user_id is None:
+                raise KeycloakError(utils.strip('''
+                    Could not validate credentials.
+                    The given token does not contain a user_id.'''))
+
+            return dict(
+                user_id=user_id,
+                email=payload.get('email', None),
+                first_name=payload.get('given_name', None),
+                last_name=payload.get('family_name', None))
+
+        except jwt.InvalidTokenError:
+            raise KeycloakError('Could not validate credentials. The given token is invalid.')
+        except Exception as e:
+            logger.error('cannot perform tokenauth', exc_info=e)
+            raise e
 
     def authorize_flask(self, basic: bool = True) -> str:
         '''

@@ -1694,7 +1694,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     sub_section.m_copy(deep=True, parent=copy)
                     for sub_section in self.m_get_sub_sections(sub_section_def)]
 
-                copy.__dict__[sub_section_def.name] = sub_sections_copy
+                if sub_section_def.repeats:
+                    copy.__dict__[sub_section_def.name] = sub_sections_copy
+                else:
+                    if len(sub_sections_copy) == 1:
+                        copy.__dict__[sub_section_def.name] = sub_sections_copy[0]
+                    else:
+                        copy.__dict__[sub_section_def.name] = None
 
         return cast(MSectionBound, copy)
 
