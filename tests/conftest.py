@@ -61,8 +61,10 @@ def monkeysession(request):
 
 
 @pytest.fixture(scope='session', autouse=True)
-def nomad_logging():
+def nomad_logging(monkeysession):
     utils.set_console_log_level(test_log_level)
+    monkeysession.setattr('logging.Logger.setLevel', lambda *args, **kwargs: None)
+    monkeysession.setattr('logging.Handler.setLevel', lambda *args, **kwargs: None)
 
 
 @pytest.fixture(scope='session', autouse=True)
