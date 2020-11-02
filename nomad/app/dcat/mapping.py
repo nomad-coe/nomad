@@ -80,22 +80,22 @@ class Mapping():
             # DataService: API
             service = BNode()
             self.g.add((service, RDF.type, DCAT.DataService))
-            self.g.add((service, DCT.title, Literal('NOMAD API'))) # How to include terms from swagger document here?
-            self.g.add((service, DCT.description, Literal('Official NOMAD API'))) # same question
-            self.g.add((service, DCAT.endpointURL, URIRef('https://nomad-lab.eu/prod/rae/api/'))) # config.api_url() ?
+            self.g.add((service, DCT.title, Literal('NOMAD API')))  # How to include terms from swagger document here?
+            self.g.add((service, DCT.description, Literal('Official NOMAD API')))  # same question
+            self.g.add((service, DCAT.endpointURL, URIRef('https://nomad-lab.eu/prod/rae/api/')))  # config.api_url() ?
             # not sure if the following needs to be dataset specific:
             self.g.add((service, DCAT.endpointDescription, URIRef('https://nomad-lab.eu/prod/rae/api/swagger.json')))
 
             # Distribution over API
             dist = BNode()
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula+'api')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'api')))
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCAT.accessService, service))
         elif dist_kind == 'json':
             # Distribution as JSON
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula+'json')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'json')))
             self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
             self.g.add((dist, DCAT.downloadURL, URIRef(
@@ -106,7 +106,7 @@ class Mapping():
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula+'raw')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'raw')))
             self.g.add((dist, DCAT.accessURL, URIRef('https://nomad-lab.eu/prod/rae/api/raw/calc/%s/%s' % (
                 entry.upload_id, entry.calc_id))))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
