@@ -44,8 +44,8 @@ class Mapping():
         self.g.add((dataset, DCT.modified, Literal(entry.last_processing)))
         self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
             config.gui_url(), entry.upload_id, entry.calc_id))))
-        self.g.add((dataset, DCT.title, Literal('unavailbale' if entry.formula is None else entry.formula)))
-        self.g.add((dataset, DCT.description, Literal('unavailbale' if entry.comment is None else entry.comment)))
+        self.g.add((dataset, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula)))
+        self.g.add((dataset, DCT.description, Literal('unavailable' if entry.comment is None else entry.comment)))
 
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
         for author in entry.authors:
