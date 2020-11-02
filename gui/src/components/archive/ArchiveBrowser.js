@@ -46,8 +46,8 @@ export const unitsState = atom({
 })
 
 // Shared instance of the StructureViewer
-const viewer = new StructureViewer()
-const bzViewer = new BrillouinZoneViewer()
+const viewer = new StructureViewer(undefined, {view: {autoResize: false}})
+const bzViewer = new BrillouinZoneViewer(undefined, {view: {autoResize: false}})
 
 // Contains details about the currently visualized system. Used to detect if a
 // reload is needed for the StructureViewer.
@@ -430,7 +430,7 @@ function Overview({section, def}) {
       }
       system = {
         'species': section.atom_species,
-        'cell': convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false),
+        'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
         'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
         'pbc': section.configuration_periodic_dimensions
       }
