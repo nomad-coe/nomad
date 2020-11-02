@@ -10,5 +10,5 @@ git submodule update --init --jobs=4
 pip install -e .[all]
 
 nomad dev metainfo > gui/src/metainfo.json
-nomad dev search-quantities > gui/src/search-quantities.json
+nomad dev search-quantities > gui/src/searchQuantities.json
 nomad dev units > gui/src/units.js

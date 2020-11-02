@@ -157,7 +157,7 @@ export default function Structure({className, classes, system, options, viewer, 
             [1, 0, 0, 30]
           ]
         }
-      }})
+      }}, false, false)
     // Systems without cell are centered on the center of positions
     } else {
       refViewer.current.setOptions({layout: {
@@ -168,7 +168,7 @@ export default function Structure({className, classes, system, options, viewer, 
             [1, 0, 0, 30]
           ]
         }
-      }})
+      }}, false, false)
     }
     refViewer.current.load(system)
     refViewer.current.fitToCanvas()
