@@ -17,9 +17,9 @@ import { amber } from '@material-ui/core/colors'
 export const domains = ({
   dft: {
     name: 'Computational data',
-    label: 'Computational material science data',
+    label: 'Computational materials science data',
     key: 'dft',
-    about: 'This include data from many computational material science codes',
+    about: 'This include data from many computational materials science codes',
     disclaimer: <Typography>
       First time users can find an introduction to NOMAD, tutorials, and videos <Link href="https://nomad-lab.eu/services/repo-arch" target="nomad-lab">here</Link>.
     </Typography>,
@@ -173,7 +173,7 @@ export const domains = ({
     name: 'Experimental data',
     key: 'ems',
     label: 'Experimental data (beta)',
-    about: 'This includes first metadata from material science experiments. This aspect of NOMAD is still in development and mnight change frequently.',
+    about: 'This includes first metadata from materials science experiments. This aspect of NOMAD is still in development and mnight change frequently.',
     disclaimer: <Typography style={{color: amber[700]}}>
       This aspect of NOMAD is still under development. The offered functionality and displayed data
       might change frequently, is not necessarely reviewed by NOMAD, and might contain
@@ -259,8 +259,8 @@ export const domains = ({
   qcms: {
     name: 'Quantum-computer data',
     key: 'qcms',
-    label: 'Quantum-computer material science data (beta)',
-    about: 'This includes first data material science data calculated by quantum-computers. This aspect of NOMAD is still in development and mnight change frequently.',
+    label: 'Quantum-computer data (beta)',
+    about: 'This includes first data materials science data calculated by quantum-computers. This aspect of NOMAD is still in development and mnight change frequently.',
     disclaimer: <Typography style={{color: amber[700]}}>
       This aspect of NOMAD is still under development. The offered functionality and displayed data
       might change frequently, is not necessarely reviewed by NOMAD, and might contain

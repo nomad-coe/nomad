@@ -1,10 +1,13 @@
 import requests
+import sys
 import time
 from ase.data import chemical_symbols
 import random
 from datetime import datetime
 
 base_url = 'https://nomad-lab.eu/prod/rae/api'
+if len(sys.argv) > 1:
+    base_url = sys.argv[1]
 
 while True:
     try:

@@ -339,7 +339,7 @@ def archive():
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
     assert archive.section_workflow.calculation_result_ref is not None
-    assert archive.section_metadata.encyclopedia is None
+    assert archive.section_metadata.encyclopedia is not None
     # test refs
     assert archive.section_workflow.calculation_result_ref.energy_total is not None
     assert len(archive.section_workflow.calculation_result_ref.section_eigenvalues) == 0

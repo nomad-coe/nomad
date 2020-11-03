@@ -116,7 +116,8 @@ fs = NomadConfig(
 elastic = NomadConfig(
     host='localhost',
     port=9200,
-    index_name='nomad_fairdi_calcs'
+    index_name='nomad_fairdi_calcs',
+    materials_index_name='nomad_fairdi_materials'
 )
 
 keycloak = NomadConfig(
@@ -270,7 +271,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.9.2',
+    version='0.9.3',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',

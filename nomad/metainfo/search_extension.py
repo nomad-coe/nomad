@@ -12,25 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Any, Dict, List
+from typing import Callable, Any, Dict, List, DefaultDict
+from collections import defaultdict
 
 from nomad.metainfo.elastic_extension import Elastic
 
 
-search_quantities: Dict[str, 'Search'] = {}
+search_quantities_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 ''' All available search quantities by their full qualified name. '''
 
-metrics: Dict[str, 'Search'] = {}
+metrics_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 '''
 The available search metrics. Metrics are integer values given for each entry that can
 be used in statistics (aggregations), e.g. the sum of all total energy calculations or
-cardinality of all unique geometries. The key is the metric name.
+cardinality of all unique geometries. First key is the index name, second key
+is the metric name.
 '''
 
-groups: Dict[str, 'Search'] = {}
-''' The available groupable quantities. The key is the group name. '''
+groups_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
+''' The available groupable quantities. First key is the index name, second key
+is the metric name. '''
 
-order_default_quantities: Dict[str, 'Search'] = {}
+order_default_quantities_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 ''' The quantity for each domain (key) that is the default quantity to order search results by. '''
 
 
@@ -74,6 +77,9 @@ class Search(Elastic):
             This might be different from the field that is used to store the value in
             elastic search. This is especially useful if the field represents a inner
             document and a subfield of this inner object should be used for search.
+        nested: Indicates if a subsection should be treated as a Nested field.
+            Defaults to False meaning that the subsection is treated as an inner
+            object.
     '''
 
     def __init__(
@@ -87,6 +93,7 @@ class Search(Elastic):
             statistic_values: List[str] = None,
             derived: Callable[[Any], Any] = None,
             search_field: str = None,
+            nested: bool = False,
             **kwargs):
 
         super().__init__(field=None, **kwargs)
@@ -105,6 +112,7 @@ class Search(Elastic):
         self.statistic_order = statistic_order
         self.statistic_values = statistic_values
         self.search_field = search_field
+        self.nested = nested
 
         self.derived = derived
 
@@ -124,7 +132,7 @@ class Search(Elastic):
 
         super().init_annotation(definition)
 
-    def register(self, prefix, field):
+    def register(self, prefix, field, index):
         domain_or_all = self.definition.m_parent.m_get_annotations('domain', '__all__')
 
         prefix_and_dot = prefix + '.' if prefix is not None else ''
@@ -135,8 +143,8 @@ class Search(Elastic):
         else:
             self.search_field = self.qualified_name
 
-        assert self.qualified_name not in search_quantities, 'Search quantities must have a unique name: %s' % self.name
-        search_quantities[self.qualified_name] = self
+        assert self.qualified_name not in search_quantities_by_index[index], 'Search quantities must have a unique name: %s' % self.name
+        search_quantities_by_index[index][self.qualified_name] = self
 
         if self.metric is not None:
             if self.metric_name is None:
@@ -144,17 +152,17 @@ class Search(Elastic):
             else:
                 self.metric_name = prefix_and_dot + self.metric_name
 
-            assert self.metric_name not in metrics, 'Metric names must be unique: %s' % self.metric_name
-            metrics[self.metric_name] = self
+            assert self.metric_name not in metrics_by_index[index], 'Metric names must be unique: %s' % self.metric_name
+            metrics_by_index[index][self.metric_name] = self
 
         if self.group is not None:
             self.group = prefix_and_dot + self.group
-            assert self.group not in groups, 'Groups must be unique'
-            groups[self.group] = self
+            assert self.group not in groups_by_index[index], 'Groups must be unique'
+            groups_by_index[index][self.group] = self
 
         if self.order_default:
-            assert order_default_quantities.get(domain_or_all) is None, 'Only one quantity can be the order default'
-            order_default_quantities[domain_or_all] = self
+            assert order_default_quantities_by_index[index].get(domain_or_all) is None, 'Only one quantity can be the order default'
+            order_default_quantities_by_index[index][domain_or_all] = self
 
     @property
     def argparse_action(self):

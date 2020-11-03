@@ -13,11 +13,12 @@
 # limitations under the License.
 
 """
-The encyclopedia API of the nomad@FAIRDI APIs.
+API for retrieving material information.
 """
 import re
 import math
 import numpy as np
+from collections import defaultdict
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request, g
@@ -29,31 +30,187 @@ from nomad.files import UploadFiles
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
-from nomad.datamodel.material import Material
+from nomad.datamodel.material import Material, Bulk, Method
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 
-ns = api.namespace("encyclopedia", description="Access encyclopedia metadata.")
-re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
+ns = api.namespace("encyclopedia", description="Access materials data.")
+missing_material_msg = "The specified material {} could not be retrieved. It either does not exists or requires authentication."
 
-material_prop_map = {
-    # General
-    "material_id": "encyclopedia.material.material_id",
-    "formula": "encyclopedia.material.formula",
-    "formula_reduced": "encyclopedia.material.formula_reduced",
-    "system_type": "encyclopedia.material.material_type",
-    # Bulk only
-    "has_free_wyckoff_parameters": "encyclopedia.material.bulk.has_free_wyckoff_parameters",
-    "strukturbericht_designation": "encyclopedia.material.bulk.strukturbericht_designation",
-    "material_name": "encyclopedia.material.material_name",
-    "bravais_lattice": "encyclopedia.material.bulk.bravais_lattice",
-    "crystal_system": "encyclopedia.material.bulk.crystal_system",
-    "point_group": "encyclopedia.material.bulk.point_group",
-    "space_group_number": "encyclopedia.material.bulk.space_group_number",
-    "space_group_international_short_symbol": "encyclopedia.material.bulk.space_group_international_short_symbol",
-    "structure_prototype": "encyclopedia.material.bulk.structure_prototype",
-    "structure_type": "encyclopedia.material.bulk.structure_type",
-}
+
+class MaterialAccessError(Exception):
+    pass
+
+
+class MaterialSearch():
+    """Convenience class for material searches. Automatically ensures the
+    correct visibility of materials when the search is constructed through the
+    methods of his class.
+    """
+    def __init__(self):
+        self._s = Search(index=config.elastic.materials_index_name)
+        self._filters = []
+        self._musts = []
+        self._extra = {}
+        self._authenticated = False
+
+    def add_material_filter(self, query):
+        """Adds material based filters.
+        """
+        self._filters.append(query)
+
+    def add_material_aggregation(self, name, aggregation):
+        """Adds material based aggregation.
+        """
+        self._s.aggs.bucket(name, aggregation)
+
+    def add_material_must(self, query):
+        """Adds material based must query.
+        """
+        self._musts.append(query)
+
+    def add_calculation_filter(self, queries):
+        """Adds calculation based filters. The visibility of calculations is
+        automatically checked.
+        """
+        if not isinstance(queries, (list, tuple)):
+            queries = [queries]
+        filters = self.get_authentication_filters_nested() + queries
+        nested_bool = Q(
+            "bool",
+            filter=filters,
+        )
+        nested_query = Q("nested", path="calculations", query=nested_bool)
+        self._musts.append(nested_query)
+        self._authenticated = True
+
+    def includes(self, includes):
+        self._extra["_source"] = {"includes": includes}
+
+    def size(self, size):
+        self._extra["size"] = size
+
+    def extra(self, extra):
+        self._extra = extra
+
+    def s(self):
+        # If no authentication filters have been added already, add them now.
+        if not self._authenticated:
+            self._musts.append(Q(
+                "nested",
+                path="calculations",
+                query=Q("bool", filter=self.get_authentication_filters_nested()),
+            ))
+            self._authenticated = True
+        query = Q(
+            "bool",
+            filter=self._filters,
+            must=self._musts,
+        )
+        s = self._s.query(query)
+        extra = self._extra
+        s = s.extra(**extra)
+        return s
+
+    def execute(self):
+        s = self.s()
+        return s.execute()
+
+    def get_authentication_filters_nested(self):
+        """Returns a shared term filter that will leave out unpublished (of
+        other users) or embargoed materials.
+        """
+        # Handle authentication
+        filters = []
+        if g.user is not None:
+            q = Q('term', calculations__published=True) & Q('term', calculations__with_embargo=False)
+            if g.user.user_id is not None:
+                q = q | Q('term', calculations__owners=g.user.user_id)
+            filters.append(q)
+        else:
+            q = Q('term', calculations__published=True) & Q('term', calculations__with_embargo=False)
+            filters.append(q)
+
+        return filters
+
+    def calculations(self):
+        """Executes the query and returns a list of visible calculations
+        associated with the first found material. Currently fetches all
+        calculations associated with a material. If the number of calculations
+        per material increases significantly then the inner_hits available for
+        nested queries should be used instead.
+
+        Returns:
+            List of visible calculations for the first material matching the
+            constructed query.
+
+        Raises:
+            MaterialAccessError if the queried material could not be found.
+        """
+        source = self._extra.get("_source")
+        if source is None:
+            source = {}
+            self._extra["_source"] = source
+        includes = source.get("includes")
+        if includes is None:
+            includes = []
+            source["includes"] = includes
+
+        self._extra["_source"]["includes"].extend([
+            "calculations.published",
+            "calculations.with_embargo",
+            "calculations.owners",
+        ])
+        response = self.execute()
+        if response.hits.total == 0:
+            raise MaterialAccessError
+
+        material = response.hits[0]
+
+        # Filter out calculations based on their visibility
+        visible_calcs = []
+        for calc in material.calculations:
+            if calc.published and not calc.with_embargo:
+                visible_calcs.append(calc)
+            elif g.user is not None and g.user.user_id in calc.owners:
+                visible_calcs.append(calc)
+        return visible_calcs
+
+
+def get_authentication_filters():
+    """Returns a shared term filter that will leave out unpublished (of other
+    users), embargoed or invalid entries in the calculations index.
+    """
+    # Handle authentication
+    s = search.SearchRequest()
+    if g.user is not None:
+        s.owner('visible', user_id=g.user.user_id)
+    else:
+        s.owner('public')
+    return [
+        s.q,
+        Q("term", encyclopedia__status="success"),
+    ]
+
+
+def get_range_filter(field, minimum=None, maximum=None, source_unit=None, target_unit=None):
+    """For adding range filters
+    """
+    query_dict = {}
+    if minimum is not None:
+        if source_unit is None and target_unit is None:
+            gte = minimum
+        else:
+            gte = (minimum * source_unit).to(target_unit).magnitude
+        query_dict["gte"] = gte
+    if maximum is not None:
+        if source_unit is None and target_unit is None:
+            lte = maximum
+        else:
+            lte = (maximum * source_unit).to(target_unit).magnitude
+        query_dict["lte"] = lte
+    query = Q("range", **{field: query_dict})
+    return query
 
 
 def rgetattr(obj, attr_name):
@@ -84,22 +241,46 @@ def get_es_doc_values(es_doc, mapping, keys=None):
     return result
 
 
-def get_enc_filter():
-    """Returns a shared term filter that will leave out unpublished (of other
-    users), embargoed or invalid entries.
+def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
+    """Used to read data from the archive.
+
+    Args:
+        upload_id: Upload id.
+        calc_id: Calculation id.
+
+    Returns:
+        MSection: The section_run as MSection
+        For each path, a dictionary containing the path as key and the returned
+        section as value.
     """
-    # Handle authentication
-    s = search.SearchRequest()
-    if g.user is not None:
-        s.owner('visible', user_id=g.user.user_id)
-    else:
-        s.owner('public')
-    return [
-        s.q,
-        Q("term", encyclopedia__status="success"),
-    ]
+    upload_files = UploadFiles.get(
+        upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+
+    with upload_files.read_archive(calc_id) as archive:
+        data = archive[calc_id]
+        root = EntryArchive.m_from_dict(data.to_dict())
+
+    return root
 
 
+material_prop_map = {
+    # General
+    "material_id": "material_id",
+    "formula": "formula",
+    "formula_reduced": "formula_reduced",
+    "material_type": "material_type",
+    "material_name": "material_name",
+    # Bulk
+    "has_free_wyckoff_parameters": "bulk.has_free_wyckoff_parameters",
+    "strukturbericht_designation": "bulk.strukturbericht_designation",
+    "bravais_lattice": "bulk.bravais_lattice",
+    "crystal_system": "bulk.crystal_system",
+    "point_group": "bulk.point_group",
+    "space_group_number": "bulk.space_group_number",
+    "space_group_international_short_symbol": "bulk.space_group_international_short_symbol",
+    "structure_type": "bulk.structure_type",
+    "structure_prototype": "bulk.structure_prototype",
+}
 similarity = api.model("similarity", {
     # General
     "material_id": fields.String,
@@ -120,7 +301,7 @@ material_result = api.model("material_result", {
     "material_id": fields.String,
     "formula": fields.String,
     "formula_reduced": fields.String,
-    "system_type": fields.String,
+    "material_type": fields.String,
     "n_matches": fields.Integer,
     # Bulk only
     "has_free_wyckoff_parameters": fields.Boolean,
@@ -144,10 +325,10 @@ class EncMaterialResource(Resource):
     @api.doc("get_material")
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
+    @api.param("material_id", "28 character identifier for the material.")
     @authenticate()
     def get(self, material_id):
-        """Used to retrieve basic information related to the specified
-        material.
+        """Used to retrieve basic information related to a material.
         """
         # Parse request arguments
         args = material_query.parse_args()
@@ -159,36 +340,21 @@ class EncMaterialResource(Resource):
             keys = list(material_prop_map.keys())
             es_keys = list(material_prop_map.values())
 
-        # Find the first public entry with this material id and take
-        # information from there. In principle all other entries should have
-        # the same information.
-        s = Search(index=config.elastic.index_name)
-        query = Q(
-            "bool",
-            filter=get_enc_filter() + [
-                Q("term", encyclopedia__material__material_id=material_id),
-            ]
-        )
-        s = s.query(query)
-
-        # Only one representative entry is returned by collapsing the results.
-        s = s.extra(**{
-            "_source": {"includes": es_keys},
-            "size": 1,
-            "collapse": {"field": "encyclopedia.material.material_id"},
-        })
+        # Get the material info, check that at least one calculation is visible
+        s = MaterialSearch()
+        s.add_material_filter(Q("term", material_id=material_id))
+        s.includes(es_keys)
         response = s.execute()
 
         # No such material
-        if len(response) == 0:
-            abort(404, message="There is no material {}".format(material_id))
+        if response.hits.total == 0:
+            abort(404, message=missing_material_msg.format(material_id))
 
         # Add values from ES entry
         entry = response[0]
         result = get_es_doc_values(entry, material_prop_map, keys)
 
-        # Add similarity data that is currently stored in MongoDB. In the
-        # future a lot of the data will be accessed here.
+        # Add similarity data that is stored in MongoDB.
         try:
             material = Material.m_def.a_mongo.get(material_id=material_id)
             dos_similarity = material.similarity.electronic_dos
@@ -199,31 +365,21 @@ class EncMaterialResource(Resource):
             # Only include similarity for materials that exist on the current
             # deployment to avoid dead links.
             similar_ids = dos_similarity.material_ids
-            id_value_map = {key: value for key, value in zip(dos_similarity.material_ids, dos_similarity.values)}
-            bool_query = Q(
-                "bool",
-                filter=get_enc_filter() + [Q("terms", encyclopedia__material__material_id=similar_ids)],
-            )
-            s = Search(index=config.elastic.index_name)
-            s = s.query(bool_query)
-            s = s.extra(**{
-                "_source": {"includes": [
-                    "encyclopedia.material.material_id",
-                    "encyclopedia.material.formula_reduced",
-                    "encyclopedia.material.bulk.space_group_number",
-                ]},
-                "size": 5,
-                "collapse": {"field": "encyclopedia.material.material_id"},
-            })
+            id_value_map = {key: value for key, value in zip(similar_ids, dos_similarity.values)}
+            s = MaterialSearch()
+            s.add_material_filter(Q("terms", material_id=similar_ids))
+            s.includes(["material_id", "formula_reduced", "bulk.space_group_number"])
+            s.size(5)
             response = s.execute()
+
             similarity = []
             for hit in response.hits:
                 try:
                     similarity.append({
-                        "material_id": hit.encyclopedia.material.material_id,
-                        "value": id_value_map[hit.encyclopedia.material.material_id],
-                        "formula": hit.encyclopedia.material.formula_reduced,
-                        "space_group_number": hit.encyclopedia.material.bulk.space_group_number,
+                        "material_id": hit.material_id,
+                        "value": id_value_map[hit.material_id],
+                        "formula": hit.formula_reduced,
+                        "space_group_number": hit.bulk.space_group_number,
                     })
                 except AttributeError:
                     pass
@@ -233,66 +389,58 @@ class EncMaterialResource(Resource):
         return result, 200
 
 
+re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 range_query = api.model("range_query", {
     "max": fields.Float,
     "min": fields.Float,
-})
-materials_after = api.model("materials_after", {
-    "materials": fields.String,
 })
 materials_query = api.model("materials_input", {
     "search_by": fields.Nested(api.model("search_query", {
         "exclusive": fields.Boolean(default=False),
         "formula": fields.String,
         "element": fields.String,
-        "page": fields.Integer(default=1),
-        "after": fields.Nested(materials_after, allow_null=True),
-        "per_page": fields.Integer(default=25),
-        "pagination": fields.Boolean,
+        "page": fields.Integer(default=1, description="Requested page number, indexing starts from 1."),
+        "per_page": fields.Integer(default=25, description="Number of results per page."),
+        "restricted": fields.Boolean(default=False, description="Select to restrict the query to individual calculations. If not selected, the query will combine results from several different calculations."),
     })),
-    "material_name": fields.List(fields.String),
-    "structure_type": fields.List(fields.String),
-    "space_group_number": fields.List(fields.Integer),
-    "system_type": fields.List(fields.String),
-    "crystal_system": fields.List(fields.String),
-    "band_gap": fields.Nested(range_query, description="Band gap range in eV."),
-    "band_gap_direct": fields.Boolean,
-    "has_band_structure": fields.Boolean,
-    "has_dos": fields.Boolean,
-    "has_fermi_surface": fields.Boolean,
-    "has_thermal_properties": fields.Boolean,
-    "functional_type": fields.List(fields.String),
-    "basis_set_type": fields.List(fields.String),
-    "code_name": fields.List(fields.String),
-    "mass_density": fields.Nested(range_query, description="Mass density range in kg / m ** 3."),
+    "material_type": fields.List(fields.String(enum=list(Material.material_type.type)), description=Material.material_type.description),
+    "material_name": fields.List(fields.String, description=Material.material_name.description),
+    "structure_type": fields.List(fields.String, description=Bulk.structure_type.description),
+    "space_group_number": fields.List(fields.Integer, description=Bulk.space_group_number.description),
+    "crystal_system": fields.List(fields.String(enum=list(Bulk.crystal_system.type)), description=Bulk.crystal_system.description),
+    "band_gap": fields.Nested(range_query, description="Band gap range in eV.", allow_null=True),
+    "has_band_structure": fields.Boolean(description="Set to True if electronic band structure needs to be available for this material."),
+    "has_dos": fields.Boolean(description="Set to True if electronic density of states needs to be available for this material."),
+    "has_thermal_properties": fields.Boolean(description="Set to True if thermodynamical properties need to be available for this material."),
+    "functional_type": fields.List(fields.String(enum=list(Method.functional_type.type)), description=Method.functional_type.description),
+    "basis_set": fields.List(fields.String(enum=list(Method.basis_set.type)), description=Method.basis_set.description),
+    "code_name": fields.List(fields.String(enum=list(Method.program_name.type)), description=Method.program_name.description),
 })
 pages_result = api.model("page_info", {
     "per_page": fields.Integer,
     "total": fields.Integer,
     "page": fields.Integer,
     "pages": fields.Integer,
-    "after": fields.Nested(materials_after),
 })
 
 materials_result = api.model("materials_result", {
     "total_results": fields.Integer(allow_null=False),
     "results": fields.List(fields.Nested(material_result, skip_none=True)),
     "pages": fields.Nested(pages_result, skip_none=True),
-    "es_query": fields.String(allow_null=False),
 })
 
 
-@ns.route("/materials")
+@ns.route("/materials/")
 class EncMaterialsResource(Resource):
     @api.response(404, "No materials found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
+    @api.response(200, "OK", materials_result)
     @api.expect(materials_query, validate=False)
     @api.marshal_with(materials_result, skip_none=True)
-    @api.doc("materials")
+    @api.doc("search_materials")
     @authenticate()
     def post(self):
-        """Used to query a list of materials with the given search options.
+        """Search materials based on their properties.
         """
         # Get query parameters as json
         try:
@@ -300,77 +448,65 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        def add_terms_filter(filters, source, target, query_type="terms"):
-            """For adding terms filters
-            """
-            if data[source] is not None:
-                filters.append(Q(query_type, **{target: data[source]}))
+        # Create filters from user query
+        s = MaterialSearch()
 
-        def add_exists_filter(filters, must_nots, source, target):
-            """For adding exists filters
-            """
-            param = data[source]
-            if param is not None:
-                query = Q("exists", field=target)
-                if param is True:
-                    filters.append(query)
-                elif param is False:
-                    must_nots.append(query)
+        # Material level filters
+        if data["material_type"] is not None: s.add_material_filter(Q("terms", material_type=data["material_type"]))
+        if data["material_name"] is not None: s.add_material_filter(Q("terms", material_name=data["material_name"]))
+        if data["structure_type"] is not None: s.add_material_filter(Q("terms", bulk__structure_type=data["structure_type"]))
+        if data["space_group_number"] is not None: s.add_material_filter(Q("terms", bulk__space_group_number=data["space_group_number"]))
+        if data["crystal_system"] is not None: s.add_material_filter(Q("terms", bulk__crystal_system=data["crystal_system"]))
 
-        def add_range_filter(filters, source, target, source_unit=None, target_unit=None):
-            """For adding range filters
-            """
-            param = data[source]
-            query_dict = {}
-            if param["min"] is not None:
-                if source_unit is None and target_unit is None:
-                    gte = param["min"]
-                else:
-                    gte = (param["min"] * source_unit).to(target_unit).magnitude
-                query_dict["gte"] = gte
-            if param["max"] is not None:
-                if source_unit is None and target_unit is None:
-                    lte = param["max"]
-                else:
-                    lte = (param["max"] * source_unit).to(target_unit).magnitude
-                query_dict["lte"] = lte
-            if len(query_dict) != 0:
-                query = Q("range", **{target: query_dict})
-                filters.append(query)
-
-        property_map = {
-            "has_thermal_properties": "encyclopedia.properties.thermodynamical_properties",
-            "has_band_structure": "encyclopedia.properties.electronic_band_structure",
-            "has_dos": "encyclopedia.properties.electronic_dos",
-            "has_fermi_surface": "encyclopedia.properties.fermi_surface",
-        }
-        requested_properties = []
-        filters = get_enc_filter()
-        must_nots = []
-        musts = []
-        add_terms_filter(filters, "material_name", "encyclopedia.material.material_name")
-        add_terms_filter(filters, "structure_type", "encyclopedia.material.bulk.structure_type")
-        add_terms_filter(filters, "space_group_number", "encyclopedia.material.bulk.space_group_number")
-        add_terms_filter(filters, "system_type", "encyclopedia.material.material_type")
-        add_terms_filter(filters, "crystal_system", "encyclopedia.material.bulk.crystal_system")
-        add_terms_filter(filters, "band_gap_direct", "encyclopedia.properties.band_gap_direct", query_type="term")
-        add_terms_filter(filters, "functional_type", "encyclopedia.method.functional_type")
-        add_terms_filter(filters, "basis_set_type", "dft.basis_set")
-        add_terms_filter(filters, "code_name", "dft.code_name")
-        add_range_filter(filters, "band_gap", "encyclopedia.properties.band_gap", ureg.eV, ureg.J)
-        add_range_filter(filters, "mass_density", "encyclopedia.properties.mass_density")
-
-        # Create query for elements or formula
+        # Calculation filters
+        calc_filters = []
+        if data["functional_type"] is not None: calc_filters.append(Q("terms", calculations__method__functional_type=data["functional_type"]))
+        if data["basis_set"] is not None: calc_filters.append(Q("terms", calculations__method__basis_set=data["basis_set"]))
+        if data["code_name"] is not None: calc_filters.append(Q("terms", calculations__method__program_name=data["code_name"]))
+        if data["has_band_structure"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_band_structure=data["has_band_structure"]))
+        if data["has_dos"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_dos=data["has_dos"]))
+        if data["has_thermal_properties"] is not None: calc_filters.append(Q("term", calculations__properties__has_thermodynamical_properties=data["has_thermal_properties"]))
+        if data["band_gap"] is not None: calc_filters.append(get_range_filter(
+            "calculations.properties.band_gap",
+            minimum=data["band_gap"].get("min"),
+            maximum=data["band_gap"].get("max"),
+            source_unit=ureg.eV,
+            target_unit=ureg.J,
+        ))
         search_by = data["search_by"]
+        restricted = search_by["restricted"]
+        if restricted:
+            s.add_calculation_filter(calc_filters)
+        else:
+            for f in calc_filters:
+                s.add_calculation_filter(f)
+
+        # if data["functional_type"] is not None: s.add_calculation_filter(Q("terms", calculations__method__functional_type=data["functional_type"]))
+        # if data["basis_set"] is not None: s.add_calculation_filter(Q("terms", calculations__method__basis_set=data["basis_set"]))
+        # if data["code_name"] is not None: s.add_calculation_filter(Q("terms", calculations__method__program_name=data["code_name"]))
+        # if data["has_band_structure"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_electronic_band_structure=data["has_band_structure"]))
+        # if data["has_dos"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_electronic_dos=data["has_dos"]))
+        # if data["has_thermal_properties"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_thermodynamical_properties=data["has_thermal_properties"]))
+        # if data["band_gap"] is not None: s.add_calculation_filter(get_range_filter(
+            # "calculations.properties.band_gap",
+            # minimum=data["band_gap"].get("min"),
+            # maximum=data["band_gap"].get("max"),
+            # source_unit=ureg.eV,
+            # target_unit=ureg.J,
+        # ))
+
         formula = search_by["formula"]
         elements = search_by["element"]
         exclusive = search_by["exclusive"]
 
+        # The given list of species/formula is reformatted with the Hill system into a
+        # query string. With exclusive search we look for exact match, with
+        # non-exclusive search we look for match that includes at least all
+        # species, possibly even more.
         if formula is not None:
-            # Here we determine a list of atom types. The types may occur
-            # multiple times and at multiple places.
             element_list = []
             matches = re_formula.finditer(formula)
+
             for match in matches:
                 groups = match.groups()
                 symbol = groups[0]
@@ -381,11 +517,9 @@ class EncMaterialsResource(Resource):
                     else:
                         element_list += [symbol] * int(count)
 
-            # The given list of species is reformatted with the Hill system
-            # into a query string. The counts are reduced by the greatest
-            # common divisor.
             names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
             query_string = []
+
             for name, count in zip(names, reduced_counts):
                 if count == 1:
                     query_string.append(name)
@@ -393,228 +527,71 @@ class EncMaterialsResource(Resource):
                     query_string.append("{}{}".format(name, int(count)))
             query_string = " ".join(query_string)
 
-            # With exclusive search we look for exact match
             if exclusive:
-                filters.append(Q("term", **{"encyclopedia.material.species_and_counts.keyword": query_string}))
-            # With non-exclusive search we look for match that includes at
-            # least all parts of the formula, possibly even more.
+                s.add_material_filter(Q("term", **{"species_and_counts.keyword": query_string}))
             else:
-                musts.append(Q(
+                s.add_material_must(Q(
                     "match",
-                    encyclopedia__material__species_and_counts={"query": query_string, "operator": "and"}
+                    species_and_counts={"query": query_string, "operator": "and"}
                 ))
         elif elements is not None:
-            # The given list of species is reformatted with the Hill system into a query string
             species, _ = get_hill_decomposition(elements.split(","))
             query_string = " ".join(species)
 
-            # With exclusive search we look for exact match
             if exclusive:
-                filters.append(Q("term", **{"encyclopedia.material.species.keyword": query_string}))
-            # With non-exclusive search we look for match that includes at
-            # least all species, possibly even more.
+                s.add_material_filter(Q("term", **{"species.keyword": query_string}))
             else:
-                musts.append(Q(
+                s.add_material_must(Q(
                     "match",
-                    encyclopedia__material__species={"query": query_string, "operator": "and"}
+                    species={"query": query_string, "operator": "and"}
                 ))
 
-        # The queries that correspond to AND queries typically need to access
-        # multiple calculations at once to find the material ids that
-        # correspond to the query. To implement this behaviour we need to run
-        # an initial aggregation that checks that the requested properties are
-        # present for a material. This is a a very crude solution that does not
-        # scale to complex queries, but I'm not sure we can do much better
-        # until we have a separate index for materials. The size is set very
-        # large because all the results need to be returned. We cannot get the
-        # results in a paginated way with composite aggregation, because
-        # pipeline aggregations are not compatible with them.
-        agg_parent = A("terms", field="encyclopedia.material.material_id", size=500000)
-        for key, value in property_map.items():
-            if data[key] is True:
-                agg = A("filter", exists={"field": value})
-                agg_parent.bucket(key, agg)
-                requested_properties.append(key)
-        if len(requested_properties) > 1:
-            # First we setup a boolean filter query that filters for of the
-            # requested properties. This will reduce the size of the initial
-            # set on top of which the more expensive aggregation stack is run
-            # on.
-            bool_query = Q(
-                "bool",
-                filter=filters,
-                must_not=must_nots,
-                must=musts,
-                should=[Q("exists", field=property_map[x]) for x in requested_properties],
-                minimum_should_match=1,  # At least one of the should query must match
-            )
-            s = Search(index=config.elastic.index_name)
-            s = s.query(bool_query)
-
-            # The remaining requested properties have to be queried as a nested
-            # aggregation.
-            s.aggs.bucket("materials", agg_parent)
-            buckets_path = {x: "{}._count".format(x) for x in requested_properties}
-            script = " && ".join(["params.{} > 0".format(x) for x in requested_properties])
-            agg_parent.pipeline("selector", A(
-                "bucket_selector",
-                buckets_path=buckets_path,
-                script=script,
-            ))
-            s = s.extra(**{
-                "size": 0,
-            })
-            response = s.execute()
-            material_ids = [x["key"] for x in response.aggs.materials.buckets]
-            if len(material_ids) == 0:
-                abort(404, message="No materials found for the given search criteria or pagination.")
-
-        # Add pre-selected material ids if multiple exists filters were
-        # requested. These IDs are already filtered based on the user query so
-        # none of the other search terms need be used.
-        if len(requested_properties) > 1:
-            must_nots = []
-            musts = []
-            filters = []
-            filters.append(Q("terms", encyclopedia__material__material_id=material_ids))
-        if len(requested_properties) == 1:
-            prop_name = requested_properties[0]
-            add_exists_filter(filters, must_nots, prop_name, property_map[prop_name])
-
-        # The top query filters out entries based on the user query
+        # Execute query
         page = search_by["page"]
         per_page = search_by["per_page"]
-        after = search_by["after"]
-        bool_query = Q(
-            "bool",
-            filter=filters,
-            must_not=must_nots,
-            must=musts,
-        )
-        s = Search(index=config.elastic.index_name)
-        s = s.query(bool_query)
+        s.extra({
+            "size": per_page,
+            "from": (page - 1) * per_page,
+            "sort": [{"formula_reduced": {"order": "asc"}}],
+            "_source": {"includes": list(material_prop_map.values())},
+        })
+        response = s.execute()
 
-        # 1: The paginated approach: No way to know the amount of materials,
-        # but can return aggregation results in a quick fashion including
-        # the number of calculation entries per material.
-        mode = "collapse"
-        if mode == "aggregation":
-            # The materials are grouped by using three aggregations:
-            # "Composite" to enable scrolling, "Terms" to enable selecting
-            # by material_id and "Top Hits" to fetch a single
-            # representative material document. Unnecessary fields are
-            # filtered to reduce data transfer.
-            terms_agg = A("terms", field="encyclopedia.material.material_id")
-            composite_kwargs = {"sources": {"materials": terms_agg}, "size": per_page}
-
-            # The number of matched materials is only requested on the first
-            # search, not for each page.
-            if after is not None:
-                composite_kwargs["after"] = after
-            else:
-                cardinality_agg = A("cardinality", field="encyclopedia.material.material_id", precision_threshold=1000)
-                s.aggs.metric("n_materials", cardinality_agg)
-
-            composite_agg = A("composite", **composite_kwargs)
-            composite_agg.metric("representative", A(
-                "top_hits",
-                size=1,
-                _source={"includes": list(material_prop_map.values())},
-            ))
-            s.aggs.bucket("materials", composite_agg)
-
-            # We ignore the top level hits and sort by reduced material formula.
-            s = s.extra(**{
-                "size": 0,
-            })
-
-            response = s.execute()
-            materials = response.aggs.materials.buckets
-            if len(materials) == 0:
-                abort(404, message="No materials found for the given search criteria or pagination.")
-            after_new = response.aggs.materials["after_key"]
-
-            # Gather results from aggregations
-            result_list = []
-            materials = response.aggs.materials.buckets
-            keys = list(material_prop_map.keys())
-            for material in materials:
-                representative = material["representative"][0]
-                mat_dict = get_es_doc_values(representative, material_prop_map, keys)
-                mat_dict["n_matches"] = material.doc_count
-                result_list.append(mat_dict)
-
-            # Page information is incomplete for aggregations
-            pages = {
-                "page": page,
-                "per_page": per_page,
-                "after": after_new,
-            }
-            if after is None:
-                n_materials = response.aggs.n_materials.value
-                pages["total"] = n_materials
-
-        # 2. Collapse approach. Quickly provides a list of materials
-        # corresponding to the query, offers full pagination, the number of
-        # matches per material needs to be requested with a separate query.
-        elif mode == "collapse":
-            s = Search(index=config.elastic.index_name)
-            s = s.query(bool_query)
-
-            # Add cardinality aggregation that gives out the total number of materials
-            cardinality_agg = A("cardinality", field="encyclopedia.material.material_id", precision_threshold=1000)
-            s.aggs.metric("n_materials", cardinality_agg)
-
-            s = s.extra(**{
-                "collapse": {"field": "encyclopedia.material.material_id"},
-                "size": per_page,
-                "from": (page - 1) * per_page,
-                "sort": [{"encyclopedia.material.formula_reduced": {"order": "asc"}}],
-                "explain": True,
-            })
-
-            # Execute query
-            response = s.execute()
-
-            # No matches
-            if len(response) == 0:
-                abort(404, message="No materials found for the given search criteria or pagination.")
-
-            # Gather number of entries per material with a separate query
-            material_ids = [x.encyclopedia.material.material_id for x in response]
-            s = Search(index=config.elastic.index_name)
-            bool_query = Q(
-                "bool",
-                filter=Q("terms", encyclopedia__material__material_id=material_ids),
-            )
-            s2 = s.query(bool_query)
-            s2.aggs.bucket("n_matches", A("terms", field="encyclopedia.material.material_id"))
-            response2 = s2.execute()
-            matmap = {x.key: x.doc_count for x in response2.aggs.n_matches}
-
-            # Loop over materials
-            result_list = []
-            keys = list(material_prop_map.keys())
-            for material in response:
-                # Get values from the collapsed doc
-                mat_result = get_es_doc_values(material, material_prop_map, keys)
-                mat_id = material.encyclopedia.material.material_id
-                mat_result["n_matches"] = matmap[mat_id]
-                result_list.append(mat_result)
-
-            # Full page information available for collapse
-            pages = {
-                "page": page,
-                "per_page": per_page,
-                "pages": math.ceil(response.hits.total / per_page),
-                "total": response.aggs.n_materials.value,
-            }
-
-        result = {
-            "results": result_list,
-            "pages": pages,
+        # Form final response
+        pages = {
+            "page": page,
+            "per_page": per_page,
+            "pages": math.ceil(response.hits.total / per_page),
+            "total": response.hits.total,
         }
-        return result, 200
+
+        # Gather the number of visible calculation for each returned material
+        # with an aggregation
+        if len(response) != 0:
+            material_ids = [x.material_id for x in response]
+            s2 = MaterialSearch()
+            s2.size(0)
+            matched = s2._s.aggs.bucket("matched", A("filter", filter=Q("terms", material_id=material_ids)))
+            materials = matched.bucket("materials", A("terms", field="material_id", size=len(material_ids)))
+            nested = materials.bucket("nested", A("nested", path="calculations"))
+            nested.bucket(
+                "visible",
+                A("filter", filter=Q("bool", filter=s2.get_authentication_filters_nested()))
+            )
+            response2 = s2.execute()
+            agg_dict = {}
+            for agg in response2.aggs.matched.materials:
+                agg_dict[agg.key] = agg.nested.visible.doc_count
+
+        # Form the final list of results
+        result_list = []
+        for x in response:
+            res = get_es_doc_values(x, material_prop_map, list(material_prop_map.keys()))
+            material_id = x.material_id
+            res["n_matches"] = agg_dict[material_id]
+            result_list.append(res)
+
+        return {"results": result_list, "pages": pages}, 200
 
 
 groups_result = api.model("groups_result", {
@@ -627,57 +604,70 @@ groups_result = api.model("groups_result", {
 class EncGroupsResource(Resource):
     @api.response(404, "Material not found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
+    @api.response(200, "OK", groups_result)
     @api.marshal_with(groups_result)
-    @api.doc("enc_materials")
+    @api.doc("get_material_groups")
+    @api.param("material_id", "28 character identifier for the material.")
     @authenticate()
     def get(self, material_id):
-        """Returns a summary of the calculation groups that were identified for
-        this material.
+        """Returns a summary of the calculation groups that were identified for this material.
+
+        Two types of groups are reported: equation of state groups and
+        parameter variation groups. Equation of state groups contain
+        calculations with identical method and material, but different volume.
+        Parameter variation groups contain identical structure but different
+        methods. The response contains dictionaries for both groups
+        ('groups_eos' and 'groups_par'). These dictionaries map a group id with
+        a list of calculation ids.
         """
-        # Find entries for the given material, which have EOS or parameter
-        # variation hashes set.
-        bool_query = Q(
-            "bool",
-            filter=get_enc_filter() + [Q("term", encyclopedia__material__material_id=material_id)],
-            must=[
-                Q("exists", field="encyclopedia.properties.energies.energy_total"),
-                Q("exists", field="encyclopedia.material.idealized_structure.cell_volume"),
-            ],
-            should=[
-                Q("exists", field="encyclopedia.method.group_eos_id"),
-                Q("exists", field="encyclopedia.method.group_parametervariation_id"),
-            ],
-            minimum_should_match=1,  # At least one of the should query must match
-        )
-
-        s = Search(index=config.elastic.index_name)
-        s = s.query(bool_query)
-
-        # Bucket the calculations by the group hashes. Only create a bucket if an
-        # above-minimum number of documents are found.
-        group_eos_bucket = A("terms", field="encyclopedia.method.group_eos_id", min_doc_count=4)
-        group_param_bucket = A("terms", field="encyclopedia.method.group_parametervariation_id", min_doc_count=2)
-        calc_aggregation = A(
-            "top_hits",
-            _source={"includes": ["calc_id"]},
-            sort=[{"encyclopedia.properties.energies.energy_total": {"order": "asc"}}],
-            size=100,
-        )
-        group_eos_bucket.bucket("calculations", calc_aggregation)
-        group_param_bucket.bucket("calculations", calc_aggregation)
-        s.aggs.bucket("groups_eos", group_eos_bucket)
-        s.aggs.bucket("groups_param", group_param_bucket)
-
-        # We ignore the top level hits
-        s = s.extra(**{
-            "size": 0,
+        # Get full entry for this material
+        s = MaterialSearch()
+        s.add_material_filter(Q("term", material_id=material_id))
+        s.extra({
+            "_source": {"includes": [
+                "calculations.calc_id",
+                "calculations.method.group_eos_id",
+                "calculations.method.group_parametervariation_id",
+                "calculations.properties.energies.energy_total",
+                "calculations.idealized_structure.cell_volume",
+            ]},
+            "size": 1,
         })
 
-        # Collect information for each group from the aggregations
-        response = s.execute()
-        groups_eos = {group.key: [calc.calc_id for calc in group.calculations.hits] for group in response.aggs.groups_eos.buckets}
-        groups_param = {group.key: [calc.calc_id for calc in group.calculations.hits] for group in response.aggs.groups_param.buckets}
+        # Raise error if material not found
+        try:
+            calculations = s.calculations()
+        except MaterialAccessError:
+            abort(404, message=missing_material_msg.format(material_id))
+
+        groups_eos = defaultdict(list)
+        groups_param = defaultdict(list)
+        for calc in calculations:
+            try:
+                calc.properties.energies.energy_total
+                calc.idealized_structure.cell_volume
+            except AttributeError:
+                continue
+            try:
+                group_eos_id = calc.method.group_eos_id
+                if group_eos_id:
+                    groups_eos[group_eos_id].append(calc.calc_id)
+            except AttributeError:
+                pass
+            try:
+                group_param_id = calc.method.group_parametervariation_id
+                if group_param_id:
+                    groups_param[group_param_id].append(calc.calc_id)
+            except AttributeError:
+                pass
+
+        # Filter out groups with too few entries
+        for key, items in list(groups_eos.items()):
+            if len(items) < 4:
+                del groups_eos[key]
+        for key, items in list(groups_param.items()):
+            if len(items) < 2:
+                del groups_param[key]
 
         # Return results
         result = {
@@ -689,156 +679,98 @@ class EncGroupsResource(Resource):
 
 
 group_result = api.model("group_result", {
-    "calculations": fields.List(fields.String),
-    "energies": fields.List(fields.Float),
-    "volumes": fields.List(fields.Float),
+    "calculations": fields.List(fields.String, description="List of calculation ids."),
+    "energies": fields.List(fields.Float, description="List of total energies."),
+    "volumes": fields.List(fields.Float, description="List of cell volumes."),
 })
-group_source = {
-    "includes": [
-        "calc_id",
-        "encyclopedia.properties.energies.energy_total",
-        "encyclopedia.material.idealized_structure.cell_volume",
-    ]
-}
 
 
 @ns.route("/materials/<string:material_id>/groups/<string:group_type>/<string:group_id>")
 class EncGroupResource(Resource):
     @api.response(404, "Group not found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
+    @api.response(200, "OK", group_result)
     @api.marshal_with(group_result)
-    @api.doc("enc_group")
+    @api.doc("get_material_group")
+    @api.param("group_type", "Type of group. Valid options are: 'eos' and 'par'.")
+    @api.param("group_id", "28 character identifier for the group.")
+    @api.param("material_id", "28 character identifier for the material.")
     @authenticate()
     def get(self, material_id, group_type, group_id):
-        """Used to query detailed information for a specific calculation group.
+        """Used to query detailed information about a specific calculation group.
         """
         # Find entries for the given material, which have EOS or parameter
         # variation hashes set.
         if group_type == "eos":
-            group_id_source = "encyclopedia.method.group_eos_id"
+            group_id_source = "group_eos_id"
         elif group_type == "par":
-            group_id_source = "encyclopedia.method.group_parametervariation_id"
+            group_id_source = "group_parametervariation_id"
         else:
             abort(400, message="Unsupported group type.")
 
-        bool_query = Q(
-            "bool",
-            filter=get_enc_filter() + [
-                Q("term", encyclopedia__material__material_id=material_id),
-                Q("term", **{group_id_source: group_id}),
-            ],
-        )
-
-        s = Search(index=config.elastic.index_name)
-        s = s.query(bool_query)
-
-        # calc_id and energy should be extracted for each matched document. The
-        # documents are sorted by energy so that the minimum energy one can be
-        # easily extracted. A maximum request size is set in order to limit the
-        # result size. ES also has an index-level property
-        # "index.max_inner_result_window" that limits the number of results
-        # that an inner result can contain.
-        energy_aggregation = A(
-            "top_hits",
-            _source=group_source,
-            sort=[{"encyclopedia.properties.energies.energy_total": {"order": "asc"}}],
-            size=100,
-        )
-        s.aggs.bucket("groups_eos", energy_aggregation)
-
-        # We ignore the top level hits
-        s = s.extra(**{
-            "size": 0,
+        s = MaterialSearch()
+        s.add_material_filter(Q("term", material_id=material_id))
+        s.extra({
+            "_source": {"includes": [
+                "calculations.calc_id",
+                "calculations.properties.energies.energy_total",
+                "calculations.idealized_structure.cell_volume",
+                "calculations.method." + group_id_source,
+            ]},
+            "size": 1,
         })
 
-        # Collect information for each group from the aggregations
-        response = s.execute()
+        # Raise error if material not found
+        try:
+            calculations = s.calculations()
+        except MaterialAccessError:
+            abort(404, message=missing_material_msg.format(material_id))
 
-        hits = response.aggs.groups_eos.hits
-        calculations = [doc.calc_id for doc in hits]
-        energies = [doc.encyclopedia.properties.energies.energy_total for doc in hits]
-        volumes = [doc.encyclopedia.material.idealized_structure.cell_volume for doc in hits]
+        # Gather groups from the calculations
+        calcs = []
+        energies = []
+        volumes = []
+        for calc in calculations:
+            try:
+                i_group_id = getattr(calc.method, group_id_source)
+                if i_group_id == group_id:
+                    calcs.append(calc.calc_id)
+                    volumes.append(calc.idealized_structure.cell_volume)
+                    energies.append(calc.properties.energies.energy_total)
+            except Exception:
+                pass
+
+        # Sort results by energy
+        energies = np.array(energies)
+        volumes = np.array(volumes)
+        calcs = np.array(calcs)
+        order = energies.argsort()
+        energies = energies[order]
+        volumes = volumes[order]
+        calcs = calcs[order]
+
+        # Return results
         group_dict = {
-            "calculations": calculations,
-            "energies": energies,
-            "volumes": volumes,
+            "calculations": calcs.tolist(),
+            "energies": energies.tolist(),
+            "volumes": volumes.tolist(),
         }
 
         return group_dict, 200
 
 
-suggestions_map = {
-    "code_name": "dft.code_name",
-    "structure_type": "encyclopedia.material.bulk.structure_type",
-}
-suggestions_query = api.parser()
-suggestions_query.add_argument(
-    "property",
-    type=str,
-    choices=("code_name", "structure_type"),
-    help="The property name for which suggestions are returned.",
-    location="args"
-)
-suggestions_result = api.model("suggestions_result", {
-    "code_name": fields.List(fields.String),
-    "structure_type": fields.List(fields.String),
-})
-
-
-@ns.route("/suggestions")
-class EncSuggestionsResource(Resource):
-    @api.response(404, "Suggestion not found")
-    @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
-    @api.expect(suggestions_query, validate=False)
-    @api.marshal_with(suggestions_result, skip_none=True)
-    @api.doc("enc_suggestions")
-    @authenticate()
-    def get(self):
-
-        # Parse request arguments
-        args = suggestions_query.parse_args()
-        prop = args.get("property", None)
-
-        # Use aggregation to return all unique terms for the requested field.
-        # Without using composite aggregations there is a size limit for the
-        # number of aggregation buckets. This should, however, not be a problem
-        # since the number of unique values is low for all supported properties.
-        s = Search(index=config.elastic.index_name)
-        query = Q(
-            "bool",
-            filter=get_enc_filter()
-        )
-        s = s.query(query)
-        s = s.extra(**{
-            "size": 0,
-        })
-
-        terms_agg = A("terms", field=suggestions_map[prop])
-        s.aggs.bucket("suggestions", terms_agg)
-
-        # Gather unique values into a list
-        response = s.execute()
-        suggestions = [x.key for x in response.aggs.suggestions.buckets]
-
-        return {prop: suggestions}, 200
-
-
 calc_prop_map = {
     "calc_id": "calc_id",
     "upload_id": "upload_id",
-    "code_name": "dft.code_name",
-    "code_version": "dft.code_version",
-    "functional_type": "encyclopedia.method.functional_type",
-    "basis_set_type": "dft.basis_set",
-    "core_electron_treatment": "encyclopedia.method.core_electron_treatment",
-    "run_type": "encyclopedia.calculation.calculation_type",
-    "has_dos": "encyclopedia.properties.electronic_dos",
-    "has_band_structure": "encyclopedia.properties.electronic_band_structure",
-    "has_thermal_properties": "encyclopedia.properties.thermodynamical_properties",
-    "has_phonon_dos": "encyclopedia.properties.phonon_dos",
-    "has_phonon_band_structure": "encyclopedia.properties.phonon_band_structure",
+    "code_name": "method.program_name",
+    "code_version": "method.program_version",
+    "functional_type": "method.functional_type",
+    "basis_set_type": "method.basis_set",
+    "core_electron_treatment": "method.core_electron_treatment",
+    "run_type": "workflow.workflow_type",
+    "has_dos": "properties.has_electronic_dos",
+    "has_band_structure": "properties.has_electronic_band_structure",
+    "has_thermal_properties": "properties.has_thermodynamical_properties",
 }
 calculation_result = api.model("calculation_result", {
     "calc_id": fields.String,
@@ -852,8 +784,6 @@ calculation_result = api.model("calculation_result", {
     "has_dos": fields.Boolean,
     "has_band_structure": fields.Boolean,
     "has_thermal_properties": fields.Boolean,
-    "has_phonon_dos": fields.Boolean,
-    "has_phonon_band_structure": fields.Boolean,
 })
 representatives_result = api.model("representatives_result", {
     "idealized_structure": fields.String,
@@ -871,41 +801,20 @@ calculations_result = api.model("calculations_result", {
 
 @ns.route("/materials/<string:material_id>/calculations")
 class EncCalculationsResource(Resource):
-    @api.response(404, "Suggestion not found")
+    @api.response(404, "Material not found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
-    @api.doc("get_calculations")
+    @api.response(200, "OK", calculations_result)
+    @api.doc("get_material_calculations")
     @authenticate()
     def get(self, material_id):
-        """Used to return all calculations related to the given material. Also
-        returns a representative calculation for each property shown in the
-        overview page.
+        """Used to return information about all calculations related to the given material.
+
+        Returns a list of all calculations and a representative calculation for
+        few select quantities that are shown in the material overview page.
         """
-        s = Search(index=config.elastic.index_name)
-        query = Q(
-            "bool",
-            filter=get_enc_filter() + [
-                Q("term", encyclopedia__material__material_id=material_id),
-            ]
-        )
-        s = s.query(query)
-
-        # The query is filtered already on the ES side so we don"t need to
-        # transfer so much data.
-        s = s.extra(**{
-            "_source": {"includes": list(calc_prop_map.values()) + ["dft.xc_functional"]},
-            "size": 10000,
-            "from": 0,
-        })
-        response = s.execute()
-
-        # No such material
-        if len(response) == 0:
-            abort(404, message="There is no material {}".format(material_id))
-
-        # Add representative properties. It might be possible to write a custom
-        # ES scoring mechanism or aggregation to also perform the selection.
-        representatives = {}
+        s = MaterialSearch()
+        s.add_material_filter(Q("term", material_id=material_id))
+        s.extra({"_source": {"includes": ["calculations"]}})
 
         def calc_score(entry):
             """Custom scoring function used to sort results by their
@@ -919,37 +828,53 @@ class EncCalculationsResource(Resource):
                 "GGA": 100
             }
             code_score = {
-                "FHI-aims": 3,
-                "VASP": 2,
+                "VASP": 3,  # Prefer VASP data as it is the "cleanest" on average
+                "FHI-aims": 2,
                 "Quantum Espresso": 1,
             }
-            code_name = entry.dft.code_name
-            functional = entry.dft.xc_functional
-            has_dos = rgetattr(entry, "encyclopedia.properties.electronic_band_structure") is not None
-            has_bs = rgetattr(entry, "encyclopedia.properties.electronic_dos") is not None
+            code_name = entry.method.program_name
+            functional = entry.method.functional_type
+            try:
+                has_bs = entry.properties.has_electronic_band_structure
+            except AttributeError:
+                has_bs = False
+            try:
+                has_dos = entry.properties.has_electronic_dos
+            except AttributeError:
+                has_dos = False
             score += functional_score.get(functional, 0)
             score += code_score.get(code_name, 0)
             if has_dos and has_bs:
                 score += 10
 
-            return (score, entry["calc_id"])
+            return (score, entry.calc_id)
 
-        # The calculations are first sorted by "quality"
-        sorted_calc = sorted(response, key=lambda x: calc_score(x), reverse=True)
+        # Raise error if material not found
+        try:
+            calculations = s.calculations()
+        except MaterialAccessError:
+            abort(404, message=missing_material_msg.format(material_id))
+
+        # Sort calculations by "quality"
+        sorted_calc = sorted(calculations, key=lambda x: calc_score(x), reverse=True)
 
         # Get the requested representative properties
+        representatives = {}
         representatives["idealized_structure"] = sorted_calc[0].calc_id
         thermo_found = False
         bs_found = False
         dos_found = False
         for calc in sorted_calc:
-            if rgetattr(calc, "encyclopedia.properties.thermodynamical_properties") is not None:
+            if not hasattr(calc, "properties"):
+                continue
+
+            if not thermo_found and calc.properties.has_thermodynamical_properties:
                 representatives["thermodynamical_properties"] = calc.calc_id
                 thermo_found = True
-            if rgetattr(calc, "encyclopedia.properties.electronic_band_structure") is not None:
+            if not bs_found and calc.properties.has_electronic_band_structure:
                 representatives["electronic_band_structure"] = calc.calc_id
                 bs_found = True
-            if rgetattr(calc, "encyclopedia.properties.electronic_dos") is not None:
+            if not dos_found and calc.properties.has_electronic_dos:
                 representatives["electronic_dos"] = calc.calc_id
                 dos_found = True
             if thermo_found and bs_found and dos_found:
@@ -957,13 +882,8 @@ class EncCalculationsResource(Resource):
 
         # Create result JSON
         results = []
-        for entry in response:
+        for entry in sorted_calc:
             calc_dict = get_es_doc_values(entry, calc_prop_map)
-            calc_dict["has_dos"] = calc_dict["has_dos"] is not None
-            calc_dict["has_band_structure"] = calc_dict["has_band_structure"] is not None
-            calc_dict["has_thermal_properties"] = calc_dict["has_thermal_properties"] is not None
-            calc_dict["has_phonon_dos"] = calc_dict["has_phonon_dos"] is not None
-            calc_dict["has_phonon_band_structure"] = calc_dict["has_phonon_band_structure"] is not None
             results.append(calc_dict)
 
         result = {
@@ -1020,10 +940,11 @@ property_map = {
 class EncStatisticsResource(Resource):
     @api.response(404, "Suggestion not found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
+    @api.response(200, "OK", statistics_result)
     @api.expect(statistics_query, validate=False)
     @api.marshal_with(statistics_result, skip_none=True)
-    @api.doc("enc_statistics")
+    @api.doc("get_material_statistics")
+    @api.param("material_id", "28 character identifier for the material.")
     @authenticate()
     def post(self, material_id):
         """Used to return statistics related to the specified material and
@@ -1038,7 +959,7 @@ class EncStatisticsResource(Resource):
         # Find entries for the given material.
         bool_query = Q(
             "bool",
-            filter=get_enc_filter() + [
+            filter=get_authentication_filters() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("terms", calc_id=data["calculations"]),
             ]
@@ -1059,7 +980,7 @@ class EncStatisticsResource(Resource):
         # No hits on the top query level
         response = s.execute()
         if response.hits.total == 0:
-            abort(404, message="Could not find matching calculations.")
+            abort(404, message="The given calculations could not be found for material {}".format(material_id))
 
         # Run a second query that creates histograms with fixed size buckets
         # based on the min and max from previous query. Might make more sense
@@ -1137,48 +1058,61 @@ idealized_structure_result = api.model("idealized_structure_result", {
 
 calculation_property_map = {
     "lattice_parameters": {
-        "es_source": "encyclopedia.material.idealized_structure.lattice_parameters"
+        "source": "es",
+        "path": "encyclopedia.material.idealized_structure.lattice_parameters"
     },
     "energies": {
-        "es_source": "encyclopedia.properties.energies",
+        "source": "es",
+        "path": "encyclopedia.properties.energies",
     },
     "mass_density": {
-        "es_source": "encyclopedia.properties.mass_density",
+        "source": "es",
+        "path": "encyclopedia.properties.mass_density",
     },
     "atomic_density": {
-        "es_source": "encyclopedia.properties.atomic_density",
+        "source": "es",
+        "path": "encyclopedia.properties.atomic_density",
     },
     "cell_volume": {
-        "es_source": "encyclopedia.material.idealized_structure.cell_volume"
+        "source": "es",
+        "path": "encyclopedia.material.idealized_structure.cell_volume"
     },
     "band_gap": {
-        "es_source": "encyclopedia.properties.band_gap"
+        "source": "es",
+        "path": "encyclopedia.properties.band_gap"
     },
     "electronic_band_structure": {
-        "es_source": "encyclopedia.properties.electronic_band_structure"
+        "source": "es",
+        "path": "encyclopedia.properties.electronic_band_structure"
     },
     "electronic_dos": {
-        "es_source": "encyclopedia.properties.electronic_dos"
+        "source": "es",
+        "path": "encyclopedia.properties.electronic_dos"
     },
     "phonon_band_structure": {
-        "es_source": "encyclopedia.properties.phonon_band_structure"
+        "source": "es",
+        "path": "encyclopedia.properties.phonon_band_structure"
     },
     "phonon_dos": {
-        "es_source": "encyclopedia.properties.phonon_dos"
+        "source": "es",
+        "path": "encyclopedia.properties.phonon_dos"
     },
     "thermodynamical_properties": {
-        "es_source": "encyclopedia.properties.thermodynamical_properties"
+        "source": "es",
+        "path": "encyclopedia.properties.thermodynamical_properties"
     },
     "wyckoff_sets": {
-        "arch_source": "section_metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
+        "source": "archive",
+        "path": "section_metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
     },
     "idealized_structure": {
-        "arch_source": "section_metadata/encyclopedia/material/idealized_structure"
+        "source": "archive",
+        "path": "section_metadata/encyclopedia/material/idealized_structure"
     },
 }
 
 calculation_property_query = api.model("calculation_query", {
-    "properties": fields.List(fields.String),
+    "properties": fields.List(fields.String(enum=list(calculation_property_map.keys())), description="List of calculation properties to return."),
 })
 energies = api.model("energies", {
     "energy_total": fields.Float,
@@ -1216,15 +1150,13 @@ calculation_property_result = api.model("calculation_property_result", {
 class EncCalculationResource(Resource):
     @api.response(404, "Material or calculation not found")
     @api.response(400, "Bad request")
-    @api.response(200, "Metadata send", fields.Raw)
+    @api.response(200, "OK", calculation_property_result)
     @api.expect(calculation_property_query, validate=False)
     @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("get_calculation")
     @authenticate()
     def post(self, material_id, calc_id):
-        """Used to return calculation details. Some properties are not
-        available in the ES index and are instead read from the Archive
-        directly.
+        """Get properties from a specific calculation related to a material.
         """
         # Get query parameters as json
         try:
@@ -1235,7 +1167,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=get_enc_filter() + [
+            filter=get_authentication_filters() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
@@ -1245,8 +1177,9 @@ class EncCalculationResource(Resource):
         # Create dictionaries for requested properties
         references = []
         properties = data["properties"]
-        arch_properties = {}
         es_properties = {}
+        mongo_properties = {}
+        arch_properties = {}
         ref_properties = set((
             "electronic_dos",
             "electronic_band_structure",
@@ -1255,14 +1188,16 @@ class EncCalculationResource(Resource):
             "phonon_band_structure",
         ))
         for prop in properties:
-            es_source = calculation_property_map[prop].get("es_source")
-            if es_source is not None:
-                es_properties[prop] = es_source
+            source = calculation_property_map[prop]["source"]
+            path = calculation_property_map[prop]["path"]
+            if source == "es":
+                es_properties[prop] = path
                 if prop in ref_properties:
                     references.append(prop)
-            arch_source = calculation_property_map[prop].get("arch_source")
-            if arch_source is not None:
-                arch_properties[prop] = arch_source
+            elif source == "mongo":
+                mongo_properties[prop] = path
+            elif source == "archive":
+                arch_properties[prop] = path
 
         # The query is filtered already on the ES side so we don't need to
         # transfer so much data.
@@ -1282,7 +1217,11 @@ class EncCalculationResource(Resource):
 
         # No such material
         if len(response) == 0:
-            abort(404, message="There is no material {} with calculation {}".format(material_id, calc_id))
+            abort(404, message=(
+                "Could not retrieve calculation {} for material {}. The "
+                "entry either does not exist or requires authentication."
+                .format(calc_id, material_id))
+            )
 
         # Add references that are to be read from the archive
         for ref in references:
@@ -1361,7 +1300,84 @@ class EncCalculationResource(Resource):
                     value = value.to_dict()
                 result[prop] = value
 
+        # Add results from Mongo
+        if len(mongo_properties) != 0:
+            mongo_db = infrastructure.mongo_client[config.mongo.db_name]
+            archives = mongo_db['archive']
+            archive = archives.find_one({"_id": calc_id})
+            for prop, mongo_source in mongo_properties.items():
+                value = rgetattr(archive, mongo_source)
+                if value is not None:
+                    result[prop] = value
+
         return result, 200
+
+
+suggestions_map = {
+    "code_name": "dft.code_name",
+    "structure_type": "bulk.structure_type",
+}
+suggestions_query = api.parser()
+suggestions_query.add_argument(
+    "property",
+    type=str,
+    choices=("code_name", "structure_type"),
+    help="The property name for which suggestions are returned.",
+    location="args"
+)
+suggestions_result = api.model("suggestions_result", {
+    "code_name": fields.List(fields.String),
+    "structure_type": fields.List(fields.String),
+})
+
+
+@ns.route("/suggestions")
+class EncSuggestionsResource(Resource):
+    @api.response(404, "Suggestion not found")
+    @api.response(400, "Bad request")
+    @api.response(200, "OK", suggestions_result)
+    @api.expect(suggestions_query, validate=False)
+    @api.marshal_with(suggestions_result, skip_none=True)
+    @api.doc("get_material_suggestions")
+    @authenticate()
+    def get(self):
+        """Dynamically retrieves a list of unique values for the given property.
+        """
+        # Uses terms aggregation to return all unique terms for the requested
+        # field. Without using composite aggregations there is a size limit for
+        # the number of aggregation buckets. This should, however, not be a
+        # problem since the number of unique values is low for all supported
+        # properties.
+
+        # Parse request arguments
+        args = suggestions_query.parse_args()
+        prop = args.get("property", None)
+
+        # Material level suggestions
+        if prop == "structure_type":
+            s = MaterialSearch()
+            s.size(0)
+            s.add_material_aggregation("suggestions", A("terms", field=suggestions_map[prop], size=999))
+        # Calculation level suggestions
+        elif prop == "code_name":
+            s = Search(index=config.elastic.index_name)
+            query = Q(
+                "bool",
+                filter=get_authentication_filters()
+            )
+            s = s.query(query)
+            s = s.extra(**{
+                "size": 0,
+            })
+
+            terms_agg = A("terms", field=suggestions_map[prop], size=999)
+            s.aggs.bucket("suggestions", terms_agg)
+
+        # Gather unique values into a list
+        response = s.execute()
+        suggestions = [x.key for x in response.aggs.suggestions.buckets]
+
+        return {prop: suggestions}, 200
 
 
 report_query = api.model("report_query", {
@@ -1381,13 +1397,14 @@ report_query = api.model("report_query", {
 class ReportsResource(Resource):
     @api.response(500, "Error sending report")
     @api.response(400, "Bad request")
-    @api.response(204, "Report succesfully sent", fields.Raw)
-    @api.expect(calculation_property_query, validate=False)
-    @api.marshal_with(calculation_property_result, skip_none=True)
-    @api.doc("enc_report")
+    @api.response(204, "Report succesfully sent")
+    @api.expect(report_query)
+    @api.doc("post_material_report")
+    @api.param("material_id", "28 character identifier for the material.")
     @authenticate(required=True)
     def post(self, material_id):
-
+        """Post an error report on a material. Requires authentication.
+        """
         # Get query parameters as json
         try:
             query = marshal(request.get_json(), report_query)
@@ -1414,29 +1431,7 @@ class ReportsResource(Resource):
         ).format(**query)
         try:
             infrastructure.send_mail(
-                name="webmaster", email="lauri.himanen@gmail.com", message=mail, subject='Encyclopedia error report')
+                name="webmaster", email="support@nomad-lab.eu", message=mail, subject='Encyclopedia error report')
         except Exception as e:
             abort(500, message="Error sending error report email.")
         return "", 204
-
-
-def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
-    """Used to read data from the archive.
-
-    Args:
-        upload_id: Upload id.
-        calc_id: Calculation id.
-
-    Returns:
-        MSection: The section_run as MSection
-        For each path, a dictionary containing the path as key and the returned
-        section as value.
-    """
-    upload_files = UploadFiles.get(
-        upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
-
-    with upload_files.read_archive(calc_id) as archive:
-        data = archive[calc_id]
-        root = EntryArchive.m_from_dict(data.to_dict())
-
-    return root
