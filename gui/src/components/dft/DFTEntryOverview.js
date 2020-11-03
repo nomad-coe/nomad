@@ -18,7 +18,7 @@ export default function DFTEntryOverview(props) {
     } catch {}
     name = name || 'unnamed'
 
-    if (encyclopediaEnabled && data.encyclopedia && data.encyclopedia.material && data.published && !data.with_embargo) {
+    if (encyclopediaEnabled && data?.encyclopedia?.material?.material_id && data.published && !data.with_embargo) {
       const url = `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
       return (
         <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
