@@ -21,10 +21,6 @@ import threading
 
 from nomad import processing as proc, search, datamodel, infrastructure, utils, config
 from nomad.cli.cli import cli
-from nomad.datamodel.material import Material, Calculation
-from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-from nomad.search import material_document
-from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
 
 
 def __run_parallel(
@@ -244,6 +240,11 @@ def index_materials(threads, code, dry, in_place, n, source):
     built from the material metainfo stored in MongoDB. The materials index can
     be used normally during the reindexing.
     """
+    from nomad.datamodel.material import Material, Calculation
+    from nomad.datamodel.encyclopedia import EncyclopediaMetadata
+    from nomad.search import material_document
+    from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
+
     chunk_size = 500
     infrastructure.setup_mongo()
     client = infrastructure.setup_elastic()
