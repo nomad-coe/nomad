@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.9.3
+- Encyclopedia with dedicated materials search index.
+
 ### v0.9.0
 - The encyclopedia runs on top of the new infrastructure. The GUIs are integrated via
   bi-lateral navigation between entries.
