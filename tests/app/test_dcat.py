@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import pytest
 from datetime import datetime
 
 from nomad.datamodel import EntryMetadata
+from nomad.app.dcat.mapping import Mapping
 
 from tests.conftest import clear_elastic
 from tests.app.test_app import BlueprintClient
@@ -43,8 +43,15 @@ def example_entry(elastic_infra, test_user, other_test_user):
         published=True)
 
     entry.a_elastic.index()
-    yield
+    yield entry
     clear_elastic(elastic_infra)
+
+
+def test_mapping(example_entry):
+    mapping = Mapping()
+    mapping.map_entry(example_entry)
+    assert mapping.g is not None
+    # print(mapping.g.serialize(format='xml').decode('utf-8'))
 
 
 def test_get_dataset(api, example_entry):
