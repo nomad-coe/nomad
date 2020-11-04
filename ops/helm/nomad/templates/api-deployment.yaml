@@ -118,7 +118,7 @@ data:
   conf.js: |
     window.nomadEnv = {
       apiRoot: "{{ .Values.proxy.external.path }}/api/encyclopedia/",
-      guiRoot: "{{ .Values.proxy.external.path }}/encyclopedia/",
+      guiRoot: "https://{{ .Values.proxy.external.host}}{{ .Values.proxy.external.path }}/encyclopedia/",
       keycloakBase: "{{ .Values.keycloak.serverExternalUrl }}",
       keycloakRealm: "{{ .Values.keycloak.realmName }}",
       keycloakClientId: "{{ .Values.keycloak.guiClientId }}"
