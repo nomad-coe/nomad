@@ -22,17 +22,6 @@ x-common-variables: &nomad_backend_env
     NOMAD_KEYCLOAK_HOST: keycloak
 
 services:
-    # keycload for user management
-    keycloak:
-        restart: 'no'
-        build: ../../containers/keycloak/
-        image: nomad/keycloak
-        container_name: nomad_keycloak
-        volumes:
-            - nomad_keycloak:/opt/jboss/keycloak/standalone/data
-        ports:
-            - 8002:8080
-
     # broker for celery
     rabbitmq:
         restart: 'no'
@@ -70,10 +59,10 @@ services:
             - 27017:27017
         volumes:
             - nomad_mongo:/data/db
-        command: mongod --logpath=/dev/null # --quiet
+        command: mongod
+        # --logpath=/dev/null # --quiet
 
 volumes:
-    nomad_keycloak:
     nomad_mongo:
     nomad_elastic:
     nomad_rabbitmq:

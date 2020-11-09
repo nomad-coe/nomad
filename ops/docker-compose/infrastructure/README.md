@@ -15,18 +15,6 @@ elastic, and rabbitmq), simply run:
 docker-compose up -d mongo elastic rabbitmq
 ```
 
-We use docker-compose overrides to extend a base configuration for different scenarios.
-Example docker-compose usage for starting the production infrastructure:
-
-```
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d mongo rabbitmq elastic keycloak elk
-```
-
-The different overrides are:
-- .prod.yml, production (to run the necessary databases for kubenetes deployments)
-- .override.yml, development (development configuration, will be automatically used by docker-compose)
-- .develk.yml, like development but also runs ELK
-
 To run nomad on top use the nomad command:
 
 ```

@@ -1,6 +1,32 @@
 from locust import HttpUser, task, between
-from ase.data import chemical_symbols
 import random
+import os.path
+
+chemical_symbols = [
+    # 0
+    'X',
+    # 1
+    'H', 'He',
+    # 2
+    'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+    # 3
+    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
+    # 4
+    'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
+    # 5
+    'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd',
+    'In', 'Sn', 'Sb', 'Te', 'I', 'Xe',
+    # 6
+    'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy',
+    'Ho', 'Er', 'Tm', 'Yb', 'Lu',
+    'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi',
+    'Po', 'At', 'Rn',
+    # 7
+    'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk',
+    'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr',
+    'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn', 'Nh', 'Fl', 'Mc',
+    'Lv', 'Ts', 'Og']
 
 
 # These are the API requests from the search UI with various tabs and statistics
@@ -21,11 +47,42 @@ class QuickstartUser(HttpUser):
     def empty_search(self):
         self.client.get('/prod/rae/beta/api/repo/?%s' % query_params[0])
 
-    @task(3)
-    def elements_search(self):
-        self.client.get("/prod/rae/beta/api/repo/?%s&atoms=%s" % (
+    def run_random_query(self):
+        return self.client.get("/prod/rae/beta/api/repo/?%s&atoms=%s" % (
             random.choice(query_params),
             random.choice(chemical_symbols[1:])))
+
+    @task(3)
+    def elements_search(self):
+        self.run_random_query()
+
+    @task(1)
+    def rawfile_access(self):
+        data = self.run_random_query().json()
+
+        if len(data['results']) == 0:
+            return
+
+        entry = data['results'][0]
+        calc_id = entry['calc_id']
+        upload_id = entry['upload_id']
+        mainfile = entry['mainfile']
+
+        self.client.get("/prod/rae/beta/api/raw/calc/%s/%s/%s?length=16384&decompress=true" % (
+            upload_id, calc_id, os.path.basename(mainfile)))
+
+    @task(1)
+    def archive_access(self):
+        data = self.run_random_query().json()
+
+        if len(data['results']) == 0:
+            return
+
+        entry = data['results'][0]
+        calc_id = entry['calc_id']
+        upload_id = entry['upload_id']
+
+        self.client.get("/prod/rae/beta/api/archive/%s/%s" % (upload_id, calc_id))
 
     def on_start(self):
         pass
