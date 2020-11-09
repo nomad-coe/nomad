@@ -48,18 +48,18 @@ Starting example
         pbc = Quantity(type=bool, shape=[3])
 
     class Run(MSection):
-        systems = SubSection(sub_section=System, repeats=True)
+        section_system = SubSection(sub_section=System, repeats=True)
 
 
 We define simple metainfo schema with two `sections` called ``System`` and ``Run``. Sections
-allow to organize related data into,  well, `sections`. Each section can have two types of
+allow to organize related data into, well, `sections`. Each section can have two types of
 properties: `quantities` and `sub-sections`. Sections and their properties are defined with
 Python classes and their attributes.
 
 Each `quantity` defines a piece of data. Basic quantity attributes are its `type`, `shape`,
 `unit`, and `description`.
 
-`Sub-sections` allow to place section into each other and there allow to form containment
+`Sub-sections` allow to place section into each other and therefore allow to form containment
 hierarchies or sections and the respective data in them. Basic sub-section attributes are
 `sub_section`(i.e. a reference to the section definition of the sub-section) and `repeats`
 (determines if a sub-section can be contained once or multiple times).
@@ -107,8 +107,45 @@ This will serialize the data into JSON:
         ]
     }
 
-Definitions
------------
+Definitions and Instances
+-------------------------
+
+As you already saw in the example, we first need to define what data can look like (schema),
+before we can actually program with data. Because schema and data are often discussed in the
+same context, it is paramount to clearly distingish between both. For example, if we
+just say "system", it is unclear what we refer to. We could mean the idea of a system, i.e. all
+possible systems, a data structure that comprises a lattice, atoms with their elements and
+positions in the lattice. Or we mean a specific system of a specific calculation, with
+a concrete set of atoms, real numbers for lattice vectors and atoms positions as concrete data.
+
+The NOMAD Metainfo is just a collection of definition that describe what materials science
+data could be (a schema). The NOMAD Archive is all the data that we extract from all data
+provided to NOMAD. The data in the NOMAD Archive follows the definitions of the NOMAD metainfo.
+
+Similarely, we need to distingish between the NOMAD Metainfo as a collection of definitions
+and the Metainfo system that defines how to define a section or a quantity. In this sense,
+we have a three layout model, were the Archive (data) is an instance of the Metainfo (schema)
+and the Metainfo is an instance of the Metainfo system (schema of the schema).
+
+This documentation describes the Metainfo by explaining the means of how to write down definitions
+in Python. Conceptually we map the Metainfo system to Python language constructs, e.g.
+a section definition is a Python class, a quantity a Python property, etc. If you are
+familiar with databases, this is similar to what an object relational mapping (ORM) would do.
+
+
+Common attributes of Metainfo Definitions
+-----------------------------------------
+
+In the example, you already saw the basic Python interface to the Metainfo. *Sections* are
+represented in Python as objects. To define a section, you write a Python classes that inherits
+from ``MSection``. To define sub-sections and quantities you use Python properties. The
+definitions themselves are also objects derived from classes. For sub-sections and
+quantities, you directly instantiate :class:`SubSection` and :class`Quantity`. For sections
+there is a generated object derived from :class:`Section` that is available via
+`m_def` from each `section class` and `section instance`.
+
+These Python classes that are used to represent metainfo definitions form an inheritance
+hierarchy to share common properties
 
 .. autoclass:: Definition
 
@@ -116,65 +153,44 @@ Definitions
 Quantities
 ----------
 
+Quantity definitions are the main building block of meta-info schemas. Each quantity
+represents a single piece of data.
+
 .. autoclass:: Quantity
+
+
+Sections and Sub-Sections
+-------------------------
 
 .. _metainfo-sections:
 
-Sections
---------
 
-With sections it is paramount to always be clear what is talked about. The lose
-term `section` can reference one of the following three:
+The NOMAD Metainfo allows to create hierarchical (meta-)data structures. A hierarchy
+is basically a tree, where *sections* make up the root and inner nodes of the tree,
+and *quantities* are the leaves of the tree. In this sense a section can hold further
+sub-sections (more branches of the tree) and quantities (leaves). We say a section can
+have two types of *properties*: *sub-sections* and *quantities*.
 
-* `section definition`
-    Which is a Python object that represents the definition of
-    a section, its sub-sections and quantities. `Section definitions` should not be not
-    written directly. `Section definitions` are objects of :class:`Section`.
-* `secton class`
-    Which is a Python class and :class:`MSection` decendant that is
-    used to express a `section defintion` in Python. Each `section class` is tightly
-    associated with its `section definition`. The `section definition` can be access
-    with the class attribute ``m_def``. The `section definition` is automatically created
-    from the `section class` upon defining the class through metaclass vodoo.
-* `section instance`
-    The instance (object) of a `section class`, it `follows` the
-    definition associated with the instantiated `section class`. The followed
-    section definition can be accessed with the object attribute ``m_def``.
-
-A `section class` looks like this:
-
-.. code-block:: python
-
-    class SectionName(BaseSection):
-        \'\'\' Section description \'\'\'
-        m_def = Section(**section_attributes)
-
-        quantity_name = Quantity(**quantity_attributes)
-        sub_section_name = SubSection(**sub_section_attributes)
-
-The various Python elements of this class are mapped to a respective *section definition*.
-The ``SectionName`` becomes the *name*. The
-``BaseSection`` is either :class:`MSection` or another *section class*. The
-``section_attributes`` become additional attributes of the `section definition`. The
-various ``Quantity`` and ``SubSection`` become the *quantities* and *sub sections*.
-
-Each *section class* has to directly or indirectly extend :class:`MSection`. This will
-provided certain class and object features to all *section classes* and all *section instances*.
-Read :ref:metainfo-reflection to learn more.
+There is a clear distinction between *section* and *sub-section*. The term *section*
+refers to an object that holds data (*properties*) and the term *sub-section* refers to a
+relation between *sections*, i.e. between the containing section and the contained
+sections of the same type. Furthermore, we have to distinguish between *sections* and
+*section definitions*, as well as *sub-sections* and *sub-section definitions*. A *section
+definition* defines the possible properties of its instances, and an instantiating *section*
+can store quantities and sub-sections according to its definition. A *sub-section*
+definition defines a principle containment relationship between two *section definitions*
+and a *sub-section* is a set of *sections* (contents) contained in another *section* (container).
+*Sub-section definitions* are parts (*properties*) of the definition of containing sections.
 
 .. autoclass:: Section
 
-Sub-Sections
-------------
-
 .. autoclass:: SubSection
+
 
 .. _metainfo-categories:
 
 Categories
 ----------
-
-.. autoclass:: Quantity
 
 In the old meta-info this was known as `abstract types`.
 
@@ -209,6 +225,7 @@ Custom data types
     :members:
 
 .. autoclass:: MEnum
+
 
 .. _metainfo-reflection:
 
@@ -253,7 +270,7 @@ object when a respective quantity is accessed.
 .. autoclass:: MProxy
 
 Resources
-_________
+---------
 
 .. autoclass:: MResource
 

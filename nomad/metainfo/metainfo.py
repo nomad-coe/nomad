@@ -590,7 +590,23 @@ class MResource():
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
-    '''Base class for all section instances on all meta-info levels.
+    '''
+    The base-class for all *section defining classes* and respectively the base-class
+    for all section objects.
+
+    While we use *section classes* to *define sections*, it is important to note that
+    the *section class* is a different Python object than the actual *section definition*.
+    For each *section class* (a Python class), we automatically generate a *section definition*
+    Python object that instantiates :class:`Section`. :class:`MSection` and :class:`Section`
+    are completely different classes. :class:`MSection` is used as a base-class for all
+    *section defining* classes and :class:`Section` is a *section class* that defines the
+    section `Section`.
+
+    Attributes:
+        m_def: Each *section class* (and also *section instance*) has a build-in
+            property ``m_def`` that refers to the actual *section definition*. While this defined
+            automatically, you can do it manually to provide additional characteristics that cannot
+            be covered in a Python class definition.
 
     All `section instances` indirectly instantiate the :class:`MSection` and therefore all
     members of :class:`MSection` are available on all `section instances`. :class:`MSection`
@@ -598,13 +614,22 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     to reflect on a `section's definition` and allow to manipulate the `section instance`
     without a priori knowledge of the `section defintion`.
 
-    It also carries all the data for each section. All sub-classes only define specific
-    sections in terms of possible sub-sections and quantities. The data is managed here.
+    .. automethod:: m_set
+    .. automethod:: m_get
+    .. automethod:: m_add_values
+    .. automethod:: m_get_sub_section
+    .. automethod:: m_get_sub_sections
+    .. automethod:: m_create
+    .. automethod:: m_add_sub_section
+    .. automethod:: m_remove_subsection
+
+    There are some specific attributes for section instances that are sub-sections of
+    another section. While sub-sections are directly accessible from the containing
+    section by using the Python property that represents the sub-section (e.g.
+    `run.section_system`), there is also a way to navigate from the sub-section to
+    the containing section (`parent section`) using these Python properties:
 
     Attributes:
-        m_def: The `section definition` that this `section instance` follows as a
-            :class:`Section` object.
-
         m_parent:
             If this section is a sub-section, this references the parent section instance.
 
@@ -618,6 +643,24 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         m_resource: The :class:`MResource` that contains and manages this section.
 
+    Often some general tasks have to be performed on a whole tree of sections without
+    knowing about the definitions in advance. The following methods allow to access
+    sub-sections reflectively.
+
+    .. automethod:: m_traverse
+    .. automethod:: m_all_contents
+    .. automethod:: m_contents
+    .. automethod:: m_xpath
+
+    Each section and all its quantities and contents can be transformed into a general
+    JSON-serializable Python dictionary. Similarely, a section can be instantiated from
+    such a Python dictionary. This allows to save and load sections to JSON-files or
+    by other compatible means (e.g. document databases, binary JSON flavours).
+
+    .. automethod:: m_to_dict
+    .. automethod:: m_from_dict
+    .. automethod:: m_update_from_dict
+    .. automethod:: m_to_json
     '''
 
     m_def: 'Section' = None
@@ -781,10 +824,24 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         for content in m_def.m_all_contents(depth_first=True, include_self=True):
             cast(Definition, content).__init_metainfo__()
 
+    def __setattr__(self, name, value):
+        all_aliases = None
+        if self.m_def is not None:
+            all_aliases = self.m_def.all_aliases
+
+        if all_aliases is not None and name in self.m_def.all_aliases:
+            name = self.m_def.all_aliases[name].name
+
+        return super().__setattr__(name, value)
+
     def __getattr__(self, name):
-        # This will make mypy and pylint ignore 'missing' dynamic attributes and functions
-        # and wrong types of those.
+        # The existence of __getattr__ will make mypy and pylint ignore 'missing' dynamic
+        # attributes and functions and wrong types of those.
         # Ideally we have a plugin for both that add the corrent type info
+
+        if name in self.m_def.all_aliases:
+            return getattr(self, self.m_def.all_aliases[name].name)
+
         raise AttributeError(name)
 
     def __check_np(self, quantity_def: 'Quantity', value: np.ndarray) -> np.ndarray:
@@ -838,11 +895,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return value
 
-    def __resolve_synonym(self, quantity_def: 'Quantity') -> 'Quantity':
-        if quantity_def.synonym_for is not None:
-            return self.m_def.all_quantities[quantity_def.synonym_for]
-        return quantity_def
-
     def __to_np(self, quantity_def: 'Quantity', value):
         if isinstance(value, pint.quantity._Quantity):
             if quantity_def.unit is None:
@@ -872,7 +924,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def m_set(self, quantity_def: 'Quantity', value: Any) -> None:
         ''' Set the given value for the given quantity. '''
         self.m_mod_count += 1
-        quantity_def = self.__resolve_synonym(quantity_def)
 
         if quantity_def.derived is not None:
             raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
@@ -910,7 +961,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_is_set(self, quantity_def: 'Quantity') -> bool:
         ''' True if the given quantity is set. '''
-        quantity_def = self.__resolve_synonym(quantity_def)
         if quantity_def.derived is not None:
             return True
 
@@ -1725,13 +1775,13 @@ class MCategory(metaclass=MObjectMeta):
 
 
 class Definition(MSection):
-    ''' A common base for all metainfo definitions.
+    '''
+    :class:`Definition` is the common base class for all metainfo definitions.
 
     All metainfo `definitions` (sections, quantities, sub-sections, packages, ...) share
-    some common attributes. These are defined in a common base: all
-    metainfo items extend this common base and inherit from ``Definition``.
+    some common properties.
 
-    Args:
+    Attributes:
         name: Each `definition` has a name. Names have to be valid Python identifier.
             They can contain letters, numbers and _, but must not start with a number.
             This also qualifies them as identifier in most storage formats, databases,
@@ -1740,22 +1790,45 @@ class Definition(MSection):
             Names must be unique within the :class:`Package` or :class:`Section` that
             this definition is part of.
 
+            By convention, we use capitalized `CamelCase` identifier to refer to *sections
+            definitions* (i.e. section definitions are represented by Python classes),
+            lower case `snake_case` identifier for variables that hold *sections*, and for
+            *properties* (i.e. fields in a Python class) we typically use lower
+            case `snake_case` identifier. Sub-sections are often prefixed with ``section_``
+            to clearly separate sub-sections from quantities.
+
+            Generally, you do not have to set this attribute manually, it will be derived
+            from Python identifiers automatically.
+
         description: The description can be an arbitrary human readable text that explains
-            what this definition is about.
+            what a definition is about. For section definitions you do not have to set
+            this manually as it will be derived from the classes doc string. Quantity and
+            sub-section descriptions can also be taken from the containing section class'
+            doc-string ``Attributes:`` section.
 
         links: Each definition can be accompanied by a list of URLs. These should point
             to resources that further explain the definition.
 
+        aliases: A list of alternative names. For quantities and sub-sections these
+            can be used to access the respective property with a different name from
+            its containing section.
+
+        deprecated: If set this definition is marked deprecated. The value should be a
+            string that describes how to replace the deprecated definition.
+
         categories: All metainfo definitions can be put into one or more `categories`.
             Categories allow to organize the definitions themselves. It is different from
             sections, which organize the data (e.g. quantity values) and not the definitions
-            of data (e.g. quantities definitions). See :ref:`metainfo-categories` for more details.
+            of data (e.g. quantities definitions). See :ref:`metainfo-categories` for more
+            details.
     '''
 
     name: 'Quantity' = _placeholder_quantity
     description: 'Quantity' = _placeholder_quantity
     links: 'Quantity' = _placeholder_quantity
     categories: 'Quantity' = _placeholder_quantity
+    deprecated: 'Quantity' = _placeholder_quantity
+    aliases: 'Quantity' = _placeholder_quantity
 
     def __init_metainfo__(self):
         '''
@@ -1802,13 +1875,9 @@ class Property(Definition):
 
 
 class Quantity(Property):
-    ''' Definition of an atomic piece of data.
-
-    Quantity definitions are the main building block of meta-info schemas. Each quantity
-    represents a single piece of data.
-
-    To define quantities, use objects of this class as classattribute values in
-    `section classes`. The name of a quantity is automatically taken from its `section class`
+    '''
+    To define quantities, instantiate :class:`Quantity` as a classattribute values in
+    a `section classes`. The name of a quantity is automatically taken from its `section class`
     attribute. You can provide all other attributes to the constructor with keyword arguments
 
     See :ref:`metainfo-sections` to learn about `section classes`.
@@ -1816,10 +1885,11 @@ class Quantity(Property):
     set attributes in a Python object. This allows us to use sections like regular
     Python objects and quantity like regular Python attributes.
 
-    Beyond basic :class:`Definition` attributes, Quantities are defined with the following
-    attributes.
+    Each quantity must define a basic data type and a shape. The values of a quantity must
+    fulfil the given type. The default shape is a single value. Quantities can also have
+    physical units. Units are applied to all values.
 
-    Args:
+    Attributes:
         type:
             Defines the datatype of quantity values. This is the type of individual elements
             in a potentially complex shape. If you define a list of integers for example,
@@ -1866,12 +1936,15 @@ class Quantity(Property):
             Quantities with dimensionality (length of the shape) higher than 1, must be
             numpy arrays. Theire type must be a `dtype`.
 
+        is_scalar:
+            Derived quantity that is True, iff this quantity has shape of length 0
+
         unit:
             The physics unit for this quantity. It is optional.
 
             Units are represented with the pint_ Python package. Pint defines units and
             their algebra. You can either use *pint* units directly, e.g. ``units.m / units.s``.
-            The metainfo provides a preconfigured *pint* unit registry :py:data:`units`.
+            The metainfo provides a preconfigured *pint* unit registry :py:data:`ureg`.
             You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or
             ``'m/s'``.
 
@@ -1881,12 +1954,15 @@ class Quantity(Property):
             Be careful with a default value like ``[]`` as it will be the default value for
             all occurrences of this quantity.
 
-        synonym_for:
-            The name of a quantity defined in the same section as string. This will make
-            this quantity a synonym for the other quantity. All other properties (type,
-            shape, unit, etc.) are ignored. Getting or setting from/to this quantity will
-            be delegated to the other quantity. Synonyms are always virtual.
+    Quantities are mapped to Python properties on all section objects that instantiate
+    the Python class/section definition that has this quantity. This means quantity values
+    can be read and set like normal Python attributes.
 
+    In some cases it might be desirable to have virtual and read only quantities that are
+    not real quantities used for storing values, but rather define an interface to other
+    quantities. Examples for this are `synonyms` and `derived` quantities.
+
+    Attributes:
         derived:
             A Python callable that takes the containing section as input and outputs the
             value for this quantity. This quantity cannot be set directly, its value
@@ -1901,16 +1977,12 @@ class Quantity(Property):
             A boolean that determines if this quantity is virtual. Virtual quantities can
             be get/set like regular quantities, but their values are not (de-)serialized,
             hence never permanently stored.
-
-        is_scalar:
-            Derived quantity that is True, iff this quantity has shape of length 0
-        '''
+    '''
 
     type: 'Quantity' = _placeholder_quantity
     shape: 'Quantity' = _placeholder_quantity
     unit: 'Quantity' = _placeholder_quantity
     default: 'Quantity' = _placeholder_quantity
-    synonym_for: 'Quantity' = _placeholder_quantity
     derived: 'Quantity' = _placeholder_quantity
     cached: 'Quantity' = _placeholder_quantity
     virtual: 'Quantity' = _placeholder_quantity
@@ -1919,7 +1991,6 @@ class Quantity(Property):
     # TODO derived_from = Quantity(type=Quantity, shape=['0..*'])
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._synonym = None
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
@@ -1927,12 +1998,9 @@ class Quantity(Property):
         if self.derived is not None:
             self.virtual = True
 
-        if self.synonym_for is not None:
-            self._synonym = self.m_parent.all_quantities[self.synonym_for]
-
         # replace the quantity implementation with an optimized version for the most
         # primitive quantities if applicable
-        is_primitive = not self.synonym_for and not self.derived
+        is_primitive = not self.derived
         is_primitive = is_primitive and len(self.shape) <= 1
         is_primitive = is_primitive and self.type in [str, bool, float, int]
         is_primitive = is_primitive and type(self.type) != np.dtype
@@ -1948,9 +2016,6 @@ class Quantity(Property):
             value = obj.__dict__[self.name]
 
         except KeyError:
-            if self._synonym:
-                return obj.m_get(self._synonym)
-
             if self.derived is not None:
                 try:
                     if self.cached:
@@ -2114,8 +2179,7 @@ class PrimitiveQuantity(Quantity):
 
 
 class SubSection(Property):
-    ''' Defines what sections can appear as sub-sections of another section.
-
+    '''
     Like quantities, sub-sections are defined in a `section class` as attributes
     of this class. An like quantities, each sub-section definition becomes a property of
     the corresponding `section definition` (parent). A sub-section definition references
@@ -2126,7 +2190,7 @@ class SubSection(Property):
     and sub-section the property. This allows to use on child `section definition` as
     sub-section of many different parent `section definitions`.
 
-    Args:
+    Attributes:
         sub_section: A :class:`Section` or Python class object for a `section class`. This
             will be the child `section definition`. The defining section the child
             `section definition`.
@@ -2167,12 +2231,28 @@ class SubSection(Property):
 
 
 class Section(Definition):
-    ''' Sections define blocks of related quantities and allows hierarchical data.
+    '''
+    Instances of the class :class:`Section` are created by writing Python classes
+    that extend :class:`MSection` like this:
 
-    Section definitions determine what quantities and sub-sections can appear in a
-    following section instance.
+    .. code-block:: python
 
-    Args:
+        class SectionName(BaseSection):
+            \'\'\' Section description \'\'\'
+            m_def = Section(**section_attributes)
+
+            quantity_name = Quantity(**quantity_attributes)
+            sub_section_name = SubSection(**sub_section_attributes)
+
+    We call such classes *section classes*. They are not the *section definition*, but just
+    representation of it in Python syntax. The *section definition* (in instance of :class:`Section`)
+    will be created for each of these classes and stored in the ``m_def`` property. See
+    :ref:`metainfo-reflection` for more details.
+
+    Most of the attributes for a :class:`Section` instance will be set automatically from
+    the section class:
+
+    Attributes:
         quantities:
             The quantities definitions of this section definition as list of :class:`Quantity`.
             Will be automatically set from the `section class`.
@@ -2186,6 +2266,33 @@ class Section(Definition):
             inherit all quantity and sub section definitions from the given section definitions.
             This behavior might be altered with ``extends_base_section``.
 
+            If there are no base sections to define, you have to use :class:`MSection`.
+
+    The Metainfo supports two inheritance mechanism. By default it behaves like regular
+    Python inheritance and the class inherits all its base
+    classes' properties. The other mode (enabled via ``extends_base_section=True``), will
+    add all sub-class properties to the base-class. This is used throughout the NOMAD metainfo
+    to add code-specific metadata to common section definitions. Here is an example:
+
+    .. code-block:: python
+
+        class Method(MSection):
+            code_name = Quantity(str)
+
+        class VASPMethod(Method):
+            m_def = Section(extends_base_section=True)
+            x_vasp_some_incar_parameter = Quantity(str)
+
+        method = Method()
+        methid.x_vasp_same_incar_parameter = 'value'
+
+    In this example, the section class ``VASPMethod`` defines a section definition that inherits
+    from section definition ``Method``. The quantity `x_vasp_some_incar_parameter` will
+    be added to `Method` and can be used in regular `Method` instances.
+
+    The following :class:`Section` attributes maniputlate the inheritance semantics:
+
+    Attributes:
         extends_base_section:
             If True, this definition must have exactly one ``base_sections``.
             Instead of inheriting properties, the quantity and sub-section definitions
@@ -2201,6 +2308,28 @@ class Section(Definition):
             that add their properties to this section via :attr:`extends_base_section`.
             This quantity will be set automatically.
 
+
+    Besides defining quantities and sub-sections, a section definition can also provide
+    constraints that are used to validate a section and its quantities and sub-sections.
+    Constraints allow to define more specific data structures beyond types and shapes.
+    But constraints are not enforced automatically, sections have to be explicitly
+    validated in order to evaluate constraints.
+
+    Constrains can be defined via methods with the ``constraint`` decorator:
+
+    .. code-block:: python
+
+        class System(MSection):
+            lattice = Quantity(float, shape=[3, 3], unit='meter')
+
+            @constraint
+            def non_empty_lattice(self):
+                assert np.abs(np.linalg.det(self.lattice.magnitude)) > 0
+
+        system = System()
+        system.m_validate()
+
+    Attributes:
         constraints:
             Constraints are rules that a section must fulfil to be valid. This allows to implement
             semantic checks that go behind mere type or shape checks. This quantity takes
@@ -2210,16 +2339,9 @@ class Section(Definition):
             section. This quantity will be set automatically from all constraint methods in the
             respective section class. To run validation of a section use :py:meth:`MSection.m_validate`.
 
-        event_handlers:
-            Event handler are functions that get called when the section data is changed.
-            There are two types of events: ``set`` and ``add_sub_section``. The handler type
-            is determined by the handler (i.e. function) name: ``on_set`` and ``on_add_sub_section``.
-            The handler arguments correspond to :py:meth:`MSection.m_set` (section, quantity_def, value) and
-            :py:meth:`MSection.m_add_sub_section` (section, sub_section_def, sub_section).
-            Handler are called after the respective action was performed. This quantity is
-            automatically populated with handler from the section classes methods. If there
-            is a method ``on_set`` or ``on_add_sub_section``, it will be added as handler.
+    Other attributes and helper properties:
 
+    Attributes:
         section_cls:
             A helper attribute that gives the `section class` as a Python class object.
 
@@ -2251,6 +2373,21 @@ class Section(Definition):
             and ones from extending sections as a dictionary that maps section classes
             (i.e. Python class objects) to lists of :class:`SubSection`.
 
+        all_aliases:
+            A helper attribute that gives all aliases for all properties including
+            inherited properties and properties form extending sections as a
+            dictionary with aliases and the definitions.
+
+        event_handlers:
+            Event handler are functions that get called when the section data is changed.
+            There are two types of events: ``set`` and ``add_sub_section``. The handler type
+            is determined by the handler (i.e. function) name: ``on_set`` and ``on_add_sub_section``.
+            The handler arguments correspond to :py:meth:`MSection.m_set` (section, quantity_def, value) and
+            :py:meth:`MSection.m_add_sub_section` (section, sub_section_def, sub_section).
+            Handler are called after the respective action was performed. This quantity is
+            automatically populated with handler from the section classes methods. If there
+            is a method ``on_set`` or ``on_add_sub_section``, it will be added as handler.
+
         errors:
             A list of errors. These issues prevent the section definition from being usable.
 
@@ -2273,6 +2410,7 @@ class Section(Definition):
     all_quantities: 'Quantity' = _placeholder_quantity
     all_sub_sections: 'Quantity' = _placeholder_quantity
     all_sub_sections_by_section: 'Quantity' = _placeholder_quantity
+    all_aliases: 'Quantity' = _placeholder_quantity
 
     def __init__(self, *args, validate: bool = True, **kwargs):
         self._section_cls: Type[MSection] = None
@@ -2337,16 +2475,22 @@ class Section(Definition):
     @constraint
     def unique_names(self):
         # start with the names of all base_sections
-        names: Set[str] = set(
-            quantity.name
-            for base in list(self.all_base_sections) + self.extending_sections
-            for quantity in base.quantities + base.sub_sections)
+        names: Set[str] = set()
+        for base in list(self.all_base_sections) + self.extending_sections:
+            for quantity in base.quantities + base.sub_sections:
+                for alias in quantity.aliases:
+                    names.add(alias)
+                names.add(quantity.name)
 
         for def_list in [self.quantities, self.sub_sections]:
             for definition in def_list:
                 assert definition.name not in names, 'All names in a section must be unique. ' \
                     'Name %s of %s in %s already exists in %s.' % (definition.name, definition, definition.m_parent, self)
                 names.add(definition.name)
+                for alias in definition.aliases:
+                    assert alias not in names, 'All names (incl. aliases) in a section must be unique. ' \
+                        'Alias %s of %s in %s already exists in %s.' % (alias, definition, definition.m_parent, self)
+                    names.add(alias)
 
 
 class Package(Definition):
@@ -2364,7 +2508,7 @@ class Package(Definition):
     Besides the regular :class:`Defintion` attributes, packages can have the following
     attributes:
 
-    Arguments:
+    Attributes:
         section_definitions: All `section definitions` in this package as :class:`Section`
             objects.
 
@@ -2424,7 +2568,7 @@ class Category(Definition):
     Categories therefore form a hierarchy of concepts that definitions can belong to, i.e.
     they form a `is a` relationship.
 
-    Args:
+    Attributes:
         definitions: A helper attribute that gives all definitions that are directly or
             indirectly in this category.
     '''
@@ -2492,6 +2636,8 @@ Definition.description = Quantity(type=str, name='description')
 Definition.links = Quantity(type=str, shape=['0..*'], name='links')
 Definition.categories = Quantity(
     type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories')
+Definition.deprecated = Quantity(type=str, name='deprecated')
+Definition.aliases = Quantity(type=str, shape=['0..*'], default=[], name='aliases')
 
 Section.quantities = SubSection(
     sub_section=Quantity.m_def, name='quantities', repeats=True)
@@ -2568,12 +2714,25 @@ def all_sub_sections_by_section(self) -> Dict[Section, List[SubSection]]:
     return result
 
 
+@derived(cached=True)
+def all_aliases(self) -> Dict[str, Union[SubSection, Quantity]]:
+    result: Dict[str, Union[SubSection, Quantity]] = dict()
+    for section in self.inherited_sections:
+        for definition in section.quantities + section.sub_sections:
+            for alias in definition.aliases:
+                result[alias] = definition
+            result[definition.name] = definition
+
+    return result
+
+
 Section.inherited_sections = inherited_sections
 Section.all_base_sections = all_base_sections
 Section.all_properties = all_properties
 Section.all_quantities = all_quantities
 Section.all_sub_sections = all_sub_sections
 Section.all_sub_sections_by_section = all_sub_sections_by_section
+Section.all_aliases = all_aliases
 
 
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
@@ -2585,7 +2744,6 @@ Quantity.type = DirectQuantity(type=QuantityType, name='type')
 Quantity.shape = DirectQuantity(type=Dimension, shape=['0..*'], name='shape', default=[])
 Quantity.unit = Quantity(type=Unit, name='unit')
 Quantity.default = DirectQuantity(type=Any, default=None, name='default')
-Quantity.synonym_for = DirectQuantity(type=str, name='synonym_for')
 Quantity.derived = DirectQuantity(type=Callable, default=None, name='derived', virtual=True)
 Quantity.virtual = DirectQuantity(type=bool, default=False, name='virtual')
 Quantity.is_scalar = Quantity(

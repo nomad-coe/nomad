@@ -198,6 +198,29 @@ class TestM2:
                 m_def = Section(extends_base_section=True)
                 name = Quantity(type=int)
 
+    def test_alias(self):
+        class SubTest(MSection):
+            pass
+
+        class Test(MSection):
+            one = Quantity(type=str, aliases=['two', 'three'])
+            section_one = SubSection(sub_section=SubTest, aliases=['section_two'])
+
+        t = Test()
+        t.one = 'value 1'
+        assert t.one == 'value 1'
+        assert t.two == 'value 1'
+        assert t.three == 'value 1'
+
+        t.two = 'value 2'
+        assert t.one == 'value 2'
+        assert t.two == 'value 2'
+        assert t.three == 'value 2'
+
+        sub_section = t.m_create(SubTest)
+        assert t.section_one == sub_section
+        assert t.section_two == sub_section
+
     def test_multiple_sub_sections(self):
         class TestSection(MSection):  # pylint: disable=unused-variable
             one = SubSection(sub_section=System)

@@ -134,7 +134,9 @@ export function metainfoAdaptorFactory(obj) {
 
 class MetainfoAdaptor extends Adaptor {
   itemAdaptor(key) {
-    if (key.startsWith('_category:')) {
+    if (key === '_reference') {
+      return metainfoAdaptorFactory(resolveRef(this.e.type.type_data))
+    } else if (key.startsWith('_category:')) {
       const categoryName = key.split(':')[1]
       return metainfoAdaptorFactory(this.e.categories.map(ref => resolveRef(ref)).find(categoryDef => categoryDef.name === categoryName))
     } else if (key === '_metainfo') {
@@ -216,8 +218,13 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
 
 function Metainfo(props) {
   return <Content>
-    <Compartment title="root sections">
-      {rootSections.map(def => (
+    <Compartment title="archive root section">
+      <Item itemKey="EntryArchive">
+        <Typography>EntryArchive</Typography>
+      </Item>
+    </Compartment>
+    <Compartment title="other root sections">
+      {rootSections.filter(def => def.name !== 'EntryArchive').map(def => (
         <Item key={def.name} itemKey={def.name}>
           <Typography>
             {def.name}
@@ -263,6 +270,7 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
   render() {
     return <Content>
       <Definition def={this.e} />
+      <DefinitionDetails def={this.e} />
     </Content>
   }
 }
@@ -324,6 +332,7 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
+    <DefinitionDetails def={def} />
   </Content>
 }
 SectionDef.propTypes = ({
@@ -333,6 +342,28 @@ SectionDef.propTypes = ({
 function QuantityDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="quantity definition"/>
+    <Compartment title="properties">
+      {def.type.type_kind !== 'reference'
+        ? <Typography>
+          <b>type</b>:&nbsp;
+          {def.type.type_data}&nbsp;
+          {def.type.type_kind !== 'data' && `(${def.type.type_kind})`}
+        </Typography>
+        : <Item itemKey="_reference">
+          <Typography>
+            <b>referenced section</b>
+          </Typography>
+        </Item>}
+      <Typography>
+        <b>shape</b>:&nbsp;
+        [{def.shape.join(', ')}]
+      </Typography>
+      {def.unit &&
+        <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
+      {def.aliases && def.aliases !== [] && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
+      {def.derived && <Typography><b>derived</b></Typography>}
+    </Compartment>
+    <DefinitionDetails def={def} />
   </Content>
 }
 QuantityDef.propTypes = ({
@@ -340,6 +371,22 @@ QuantityDef.propTypes = ({
 })
 
 function Definition({def, ...props}) {
+  return <React.Fragment>
+    <Title def={def} isDefinition {...props} />
+    {def.description && !def.extends_base_section &&
+      <Compartment title="description">
+        <Box marginTop={1} marginBottom={1}>
+          <Markdown>{def.description}</Markdown>
+        </Box>
+      </Compartment>
+    }
+  </React.Fragment>
+}
+Definition.propTypes = {
+  def: PropTypes.object.isRequired
+}
+
+function DefinitionDetails({def, ...props}) {
   const {api} = useContext(apiContext)
   const lane = useContext(laneContext)
   const isLast = !lane.next
@@ -356,14 +403,14 @@ function Definition({def, ...props}) {
   }, [api, def.name, setUsage])
 
   return <React.Fragment>
-    <Title def={def} isDefinition {...props} />
-    {isLast && def.description && !def.extends_base_section &&
-      <Compartment title="description">
-        <Box marginTop={1} marginBottom={1}>
-          <Markdown>{def.description}</Markdown>
-        </Box>
-      </Compartment>
-    }
+    {def.categories && def.categories.length > 0 && <Compartment title="Categories">
+      {def.categories.map(categoryRef => {
+        const categoryDef = resolveRef(categoryRef)
+        return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
+          <Typography>{categoryDef.name}</Typography>
+        </Item>
+      })}
+    </Compartment>}
     {isLast && !def.extends_base_section && def.name !== 'EntryArchive' &&
       <Compartment title="graph">
         <VicinityGraph def={def} />
@@ -388,17 +435,9 @@ function Definition({def, ...props}) {
         )}
       </Compartment>
     }
-    {def.categories && def.categories.length > 0 && <Compartment title="Categories">
-      {def.categories.map(categoryRef => {
-        const categoryDef = resolveRef(categoryRef)
-        return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
-          <Typography>{categoryDef.name}</Typography>
-        </Item>
-      })}
-    </Compartment>}
   </React.Fragment>
 }
-Definition.propTypes = {
+DefinitionDetails.propTypes = {
   def: PropTypes.object.isRequired
 }
 
