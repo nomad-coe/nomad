@@ -1,1 +1,0 @@
-This is NOMAD's docker-compose based elastic stack implementation. Its main purpose is to capture structured logs from NOMAD backend components. Its a basic 3x elasticsearch cluster + kibana + logstash. The created services and respective docker container names are prefixes `nomad_elk_1`. The default database volumes are `/scratch/fairdi/db/nomad_elk_1/...`. 

@@ -5102,6 +5102,7 @@ class section_system(MSection):
     atom_labels = Quantity(
         type=str,
         shape=['number_of_atoms'],
+        aliases=['elements'],
         description='''
         Labels of the atoms. These strings identify the atom kind and conventionally start
         with the symbol of the atomic species, possibly followed by the atomic number. The
