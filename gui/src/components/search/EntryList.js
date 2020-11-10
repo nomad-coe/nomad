@@ -255,11 +255,11 @@ export class EntryListUnstyled extends React.Component {
           <Quantity className={classes.entryDetailsRow} column>
             <Quantity quantity='comment' placeholder='no comment' data={row} />
             <Quantity quantity='references' placeholder='no references' data={row}>
-              <div style={{display: 'inline-grid'}}>
+              {row.references && <div style={{display: 'inline-grid'}}>
                 {(row.references || []).map(ref => <Typography key={ref} noWrap>
-                  <a href={ref}>{ref}</a>
+                  <Link href={ref}>{ref}</Link>
                 </Typography>)}
-              </div>
+              </div>}
             </Quantity>
             <Quantity quantity='authors' data={row}>
               <Typography>
