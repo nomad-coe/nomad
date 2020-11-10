@@ -5,13 +5,14 @@ import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
 import { LinearProgress, MenuList, Typography,
   AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink } from '@material-ui/core'
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink, Menu } from '@material-ui/core'
 import { Route, Link, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
-import FAQIcon from '@material-ui/icons/QuestionAnswer'
+import ForumIcon from '@material-ui/icons/QuestionAnswer'
+import FAQIcon from '@material-ui/icons/LiveHelp'
 import EncyclopediaIcon from '@material-ui/icons/Language'
 import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
@@ -19,6 +20,7 @@ import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import UnderstoodIcon from '@material-ui/icons/Check'
 import AnalyticsIcon from '@material-ui/icons/ShowChart'
+import MoreIcon from '@material-ui/icons/MoreVert'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -90,18 +92,17 @@ function MainMenuItem({tooltip, title, path, href, onClick, icon}) {
   const classes = useMainMenuItemStyles()
   const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
   const rest = path ? {to: path, component: Link} : {href: href}
-  return <Tooltip title={tooltip}>
-    <Button
-      className={classes.button}
-      color={selected ? 'primary' : 'default'}
-      size="small"
-      startIcon={icon}
-      onClick={onClick}
-      {...rest}
-    >
-      {title}
-    </Button>
-  </Tooltip>
+  const button = <Button
+    className={classes.button}
+    color={selected ? 'primary' : 'default'}
+    size="small"
+    startIcon={icon}
+    onClick={onClick}
+    {...rest}
+  >
+    {title}
+  </Button>
+  return tooltip ? <Tooltip title={tooltip}>{button}</Tooltip> : button
 }
 MainMenuItem.propTypes = {
   'tooltip': PropTypes.string.isRequired,
@@ -154,7 +155,7 @@ function BetaSnack() {
   </Snackbar>
 }
 
-function Consent() {
+function Consent(moreProps) {
   const [cookies, setCookie] = useCookies()
   const [accepted, setAccepted] = useState(cookies['terms-accepted'])
   const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
@@ -198,6 +199,7 @@ function Consent() {
         onClick={handleOpen}
         tooltip="NOMAD's terms"
         icon={<TermsIcon/>}
+        {...moreProps}
       />
       <Dialog
         disableBackdropClick disableEscapeKeyDown
@@ -229,15 +231,59 @@ function Consent() {
   )
 }
 
+function MoreMenu(props) {
+  const [anchor, setAnchor] = useState(false)
+  const handleClose = () => setAnchor(null)
+  return <React.Fragment>
+    <MainMenuItem
+      title="More"
+      onClick={e => setAnchor(e.currentTarget)}
+      icon={<MoreIcon/>} />
+    <Menu
+      id="simple-menu"
+      anchorEl={anchor}
+      keepMounted
+      open={Boolean(anchor)}
+      onClose={handleClose}
+    >
+      <MainMenuItem
+        title="Forum"
+        onClick={handleClose}
+        href="https://matsci.org/c/nomad/"
+        tooltip="The NOMAD user/developer forum on matsci.org"
+        icon={<ForumIcon/>}
+      />
+      <MainMenuItem
+        title="FAQ"
+        onClick={handleClose}
+        href="https://nomad-lab.eu/repository-archive-faqs"
+        tooltip="Frequently Asked Questions (FAQ)"
+        icon={<FAQIcon/>}
+      />
+      <MainMenuItem
+        title="Docs"
+        onClick={handleClose}
+        href={`${appBase}/docs/index.html`}
+        tooltip="The NOMAD documentation"
+        icon={<DocIcon/>}
+      />
+      <MainMenuItem
+        title="Sources"
+        onClick={handleClose}
+        href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+        tooltip="NOMAD's Gitlab project"
+        icon={<CodeIcon/>}
+      />
+    </Menu>
+  </React.Fragment>
+}
+
 const useMainMenuStyles = makeStyles(theme => ({
   root: {
     display: 'inline-flex',
     padding: 0,
     width: '100%',
     backgroundColor: 'white'
-  },
-  divider: {
-    width: theme.spacing(3)
   }
 }))
 
@@ -297,32 +343,14 @@ function MainMenu() {
       tooltip="Browse the archive schema"
       icon={<MetainfoIcon/>}
     />
-    <div className={classes.divider} />
     <MainMenuItem
       title="About"
       path="/"
-      tooltip="NOMAD Repository and Archive"
+      tooltip="About the NOMAD Repository and Archive"
       icon={<AboutIcon/>}
     />
-    <MainMenuItem
-      title="FAQ"
-      href="https://nomad-lab.eu/repository-archive-faqs"
-      tooltip="Frequently Asked Questions (FAQ)"
-      icon={<FAQIcon/>}
-    />
-    <MainMenuItem
-      title="Docs"
-      href={`${appBase}/docs/index.html`}
-      tooltip="The NOMAD documentation"
-      icon={<DocIcon/>}
-    />
-    <MainMenuItem
-      title="Sources"
-      href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-      tooltip="NOMAD's Gitlab project"
-      icon={<CodeIcon/>}
-    />
     <Consent />
+    <MoreMenu />
   </MenuList>
 }
 
