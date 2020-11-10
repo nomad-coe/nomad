@@ -47,7 +47,7 @@ from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive, EditableUserMetadata
-from nomad.archive import query_archive, write_partial_archive_to_mongo
+from nomad.archive import query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
@@ -773,6 +773,13 @@ class Upload(Proc):
                 search.delete_upload(self.upload_id)
 
             with utils.timer(
+                    logger, 'upload partial archives', step='files',
+                    upload_size=self.upload_files.size):
+
+                calc_ids = [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
+                delete_partial_archives_from_mongo(calc_ids)
+
+            with utils.timer(
                     logger, 'upload deleted', step='files',
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
@@ -782,7 +789,7 @@ class Upload(Proc):
     @process
     def delete_upload(self):
         '''
-        Deletes of the upload, including its processing state and
+        Deletes the upload, including its processing state and
         staging files. This starts the celery process of deleting the upload.
         '''
         self.delete_upload_local()

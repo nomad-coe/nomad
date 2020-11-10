@@ -306,8 +306,14 @@ class TestUploads:
 
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
         assert rv.status_code == 404
+
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).count() is 0
+
+        mongo_db = infrastructure.mongo_client[config.mongo.db_name]
+        mongo_collection = mongo_db['archive']
+        assert mongo_collection.find({}).count() == 0
+
         upload_files = UploadFiles.get(upload_id)
         assert upload_files is None or isinstance(upload_files, PublicUploadFiles)
 

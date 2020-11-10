@@ -800,6 +800,12 @@ def read_partial_archive_from_mongo(entry_id: str, as_dict=False) -> Union[Entry
     return EntryArchive.m_from_dict(archive_dict)
 
 
+def delete_partial_archives_from_mongo(entry_ids: List[str]):
+    mongo_db = infrastructure.mongo_client[config.mongo.db_name]
+    mongo_collection = mongo_db['archive']
+    mongo_collection.delete_many(dict(_id={'$in': entry_ids}))
+
+
 def read_partial_archives_from_mongo(entry_ids: List[str], as_dict=False) -> Dict[str, Union[EntryArchive, Dict]]:
     '''
     Reads the partial archives for a set of entries of the same upload.
