@@ -52,7 +52,7 @@ class Mapping():
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
         for author in entry.authors:
             self.g.add((dataset, DCT.creator, self.map_user(author)))
-        self.g.add((dataset, DCAT.contactPoint, self.map_contact(uploader)))
+        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry.uploader)))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))
