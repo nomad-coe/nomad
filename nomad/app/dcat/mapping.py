@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from rdflib import Graph, Literal, RDF, URIRef, BNode
-from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT
+from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF
 
 from nomad import config
 from nomad.datamodel import User
@@ -32,7 +32,9 @@ class Mapping():
         self.g.namespace_manager.bind('dcat', DCAT)
         self.g.namespace_manager.bind('dct', DCT)
         self.g.namespace_manager.bind('vcard', VCARD)
+        self.g.namespace_manager.bind('foaf', FOAF)
 
+        self.persons = {}
         self.vcards = {}
 
     def map_entry(self, entry: EntryMetadata):
@@ -50,6 +52,7 @@ class Mapping():
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
         for author in entry.authors:
             self.g.add((dataset, DCT.creator, self.map_user(author)))
+        self.g.add((dataset, DCAT.contactPoint, self.map_contact(uploader)))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))
@@ -58,22 +61,45 @@ class Mapping():
         return dataset
 
     def map_user(self, user: User):
-        # TODO: creator and publisher are FOAF agents, contactPoint is vCard
-        vcard = self.vcards.get(user.user_id)
-        if vcard is not None:
-            return vcard
+        person = self.persons.get(user.user_id)
+        if person is not None:
+            return person
 
         user = User.get(user.user_id)
-        vcard = BNode()
-        self.g.add((vcard, RDF.type, VCARD.Individual))
-        self.g.add((vcard, VCARD.givenName, Literal(user.first_name)))
-        self.g.add((vcard, VCARD.familyName, Literal(user.last_name)))
-        self.g.add((vcard, VCARD.nickName, Literal(user.username)))
-        self.g.add((vcard, VCARD.hasEmail, Literal(user.email)))
+        person = BNode()
 
-        self.vcards[user.user_id] = vcard
+        self.g.add((person, RDF.type, FOAF.Person))
+        self.g.add((person, FOAF.givenName, Literal(user.first_name)))
+        self.g.add((person, FOAF.familyName, Literal(user.last_name)))
+        self.g.add((person, FOAF.nick, Literal(user.username)))
+        self.g.add((person, FOAF.mbox, URIRef('mailto:%s' % (user.email))))
 
-        return vcard
+        self.persons[user.user_id] = person
+
+        return person
+    
+    def map_contact(self, user: User):
+        person = self.persons.get(user.user_id)
+        if person is None:
+            person = self.map_user(user)
+
+        user = User.get(user.user_id)
+        self.g.add((person, RDF.type, VCARD.Individual))
+        self.g.add((person, VCARD.givenName, Literal(user.first_name)))
+        self.g.add((person, VCARD.familyName, Literal(user.last_name)))
+        self.g.add((person, VCARD.nickName, Literal(user.username)))
+        self.g.add((person, VCARD.hasEmail, Literal(user.email)))
+        self.g.add((person, VCARD.organizationName, Literal('unavailable' if user.affiliation is None else user.affiliation)))
+        # address = BNode()
+        # self.g.add((address, RDF.type, VCARD.Address))
+        # self.g.add((address, VCARD.street_address, )) # affiliation_address?
+        # self.g.add((address, VCARD.postal_code, )) # affiliation_address?
+        # self.g.add((address, VCARD.country_name, )) # affiliation_address?
+        # self.g.add((address, VCARD.locality, )) # affiliation_address?
+        # self.g.add((address, VCARD.region, )) # affiliation_address?
+        # self.g.add((person, VCARD.hasAddress, address))
+        
+        return person
 
     def map_distribution(self, entry, dist_kind):
         if dist_kind == 'api':
