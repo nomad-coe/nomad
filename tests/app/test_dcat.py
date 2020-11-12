@@ -21,14 +21,14 @@ from nomad.app.dcat.mapping import Mapping
 from tests.conftest import clear_elastic
 from tests.app.test_app import BlueprintClient
 
+
 @pytest.fixture(scope='session')
 def api(session_client):
     return BlueprintClient(session_client, '/dcat')
 
 
 @pytest.fixture(scope='module')
-def example_entry(elastic_infra, test_user, other_test_user):
-    clear_elastic(elastic_infra)
+def example_entry(test_user, other_test_user):
 
     entry = EntryMetadata(
         calc_id='test-id',
@@ -41,19 +41,21 @@ def example_entry(elastic_infra, test_user, other_test_user):
         formula='H20',
         published=True)
 
-    entry.a_elastic.index()
     yield entry
-    clear_elastic(elastic_infra)
 
 
 def test_mapping(example_entry):
     mapping = Mapping()
     mapping.map_entry(example_entry)
     assert mapping.g is not None
-    print(mapping.g.serialize(format='xml').decode('utf-8'))
+    # print(mapping.g.serialize(format='ttl').decode('utf-8'))
 
 
-def test_get_dataset(api, example_entry):
+def test_get_dataset(elastic_infra, api, example_entry):
+    clear_elastic(elastic_infra)
+    example_entry.a_elastic.index()
     calc_id = 'test-id'
     rv = api.get('/datasets/%s' % calc_id)
     assert rv.status_code == 200
+
+    clear_elastic(elastic_infra)
