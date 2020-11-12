@@ -52,7 +52,7 @@ class Mapping():
 
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
         for author in entry.authors:
-           self.g.add((dataset, DCT.creator, self.map_user(author)))
+            self.g.add((dataset, DCT.creator, self.map_user(author)))
         self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry.uploader)))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
@@ -91,14 +91,14 @@ class Mapping():
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
         self.g.add((person, VCARD.organizationName, Literal('unavailable' if user.affiliation is None else user.affiliation)))
-        address = BNode()
-        self.g.add((address, RDF.type, VCARD.Address))
-        self.g.add((address, VCARD.street_address, )) # affiliation_address?
-        self.g.add((address, VCARD.postal_code, )) # affiliation_address?
-        self.g.add((address, VCARD.country_name, )) # affiliation_address?
-        self.g.add((address, VCARD.locality, )) # affiliation_address?
-        self.g.add((address, VCARD.region, )) # affiliation_address?
-        self.g.add((person, VCARD.hasAddress, address))
+        # address = BNode()
+        # self.g.add((address, RDF.type, VCARD.Address))
+        # self.g.add((address, VCARD.street_address, )) # affiliation_address?
+        # self.g.add((address, VCARD.postal_code, )) # affiliation_address?
+        # self.g.add((address, VCARD.country_name, )) # affiliation_address?
+        # self.g.add((address, VCARD.locality, )) # affiliation_address?
+        # self.g.add((address, VCARD.region, )) # affiliation_address?
+        # self.g.add((person, VCARD.hasAddress, address))
 
         return person
 
@@ -115,14 +115,14 @@ class Mapping():
 
             # Distribution over API
             dist = BNode()
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'api')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_api')))
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCAT.accessService, service))
         elif dist_kind == 'json':
             # Distribution as JSON
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'json')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_json')))
             self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
             self.g.add((dist, DCAT.downloadURL, URIRef(
@@ -133,7 +133,7 @@ class Mapping():
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + 'raw')))
+            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_raw')))
             self.g.add((dist, DCAT.accessURL, URIRef('https://nomad-lab.eu/prod/rae/api/raw/calc/%s/%s' % (
                 entry.upload_id, entry.calc_id))))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
