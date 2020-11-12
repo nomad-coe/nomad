@@ -313,3 +313,19 @@ Keys that are present for events related to exceptions:
    are stored automatically into this key. If you wish to search for exceptions
    in Kibana, you will want to use this value as it will be indexed unlike the
    full exception object.
+
+
+Copyright Notices
+-----------------
+
+We follow this `recommendation <https://www.linuxfoundation.org/blog/2020/01/copyright-notices-in-open-source-software-projects/>`_
+of the Linux Foundation for the copyright notice that is placed on top of each source
+code file.
+
+It is intended to provide a broad generic statement that allows all authors/contributors
+of the NOMAD project to claim their copyright, independent of their organization or
+individual ownership.
+
+You can simply copy the notice from another file. From time to time we can use a tool
+like `licenseheaders <https://pypi.org/project/licenseheaders/>`_ to ensure correct
+notices. In addition we keep an purely informative AUTHORS file.
