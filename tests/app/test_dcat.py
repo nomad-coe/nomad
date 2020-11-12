@@ -21,7 +21,6 @@ from nomad.app.dcat.mapping import Mapping
 from tests.conftest import clear_elastic
 from tests.app.test_app import BlueprintClient
 
-
 @pytest.fixture(scope='session')
 def api(session_client):
     return BlueprintClient(session_client, '/dcat')
@@ -51,7 +50,7 @@ def test_mapping(example_entry):
     mapping = Mapping()
     mapping.map_entry(example_entry)
     assert mapping.g is not None
-    # print(mapping.g.serialize(format='xml').decode('utf-8'))
+    print(mapping.g.serialize(format='xml').decode('utf-8'))
 
 
 def test_get_dataset(api, example_entry):

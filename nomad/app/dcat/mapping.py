@@ -35,7 +35,6 @@ class Mapping():
         self.g.namespace_manager.bind('foaf', FOAF)
 
         self.persons = {}
-        self.vcards = {}
 
     def map_entry(self, entry: EntryMetadata):
         dataset = URIRef(url('datasets', entry.calc_id))
@@ -48,10 +47,12 @@ class Mapping():
             config.gui_url(), entry.upload_id, entry.calc_id))))
         self.g.add((dataset, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula)))
         self.g.add((dataset, DCT.description, Literal('unavailable' if entry.comment is None else entry.comment)))
+        self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
+        self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
         for author in entry.authors:
-            self.g.add((dataset, DCT.creator, self.map_user(author)))
+           self.g.add((dataset, DCT.creator, self.map_user(author)))
         self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry.uploader)))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
@@ -77,7 +78,7 @@ class Mapping():
         self.persons[user.user_id] = person
 
         return person
-    
+
     def map_contact(self, user: User):
         person = self.persons.get(user.user_id)
         if person is None:
@@ -90,15 +91,15 @@ class Mapping():
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
         self.g.add((person, VCARD.organizationName, Literal('unavailable' if user.affiliation is None else user.affiliation)))
-        # address = BNode()
-        # self.g.add((address, RDF.type, VCARD.Address))
-        # self.g.add((address, VCARD.street_address, )) # affiliation_address?
-        # self.g.add((address, VCARD.postal_code, )) # affiliation_address?
-        # self.g.add((address, VCARD.country_name, )) # affiliation_address?
-        # self.g.add((address, VCARD.locality, )) # affiliation_address?
-        # self.g.add((address, VCARD.region, )) # affiliation_address?
-        # self.g.add((person, VCARD.hasAddress, address))
-        
+        address = BNode()
+        self.g.add((address, RDF.type, VCARD.Address))
+        self.g.add((address, VCARD.street_address, )) # affiliation_address?
+        self.g.add((address, VCARD.postal_code, )) # affiliation_address?
+        self.g.add((address, VCARD.country_name, )) # affiliation_address?
+        self.g.add((address, VCARD.locality, )) # affiliation_address?
+        self.g.add((address, VCARD.region, )) # affiliation_address?
+        self.g.add((person, VCARD.hasAddress, address))
+
         return person
 
     def map_distribution(self, entry, dist_kind):
