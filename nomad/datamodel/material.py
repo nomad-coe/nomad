@@ -214,7 +214,7 @@ class Method(MSection):
         a_search=Search()
     )
     functional_type = Quantity(
-        type=MEnum("GGA", "LDA", "hybrid-GGA", "hybrid-meta-GGA" "HF", "GW", "meta-GGA"),
+        type=MEnum("GGA", "LDA", "hybrid-GGA", "hybrid-meta-GGA", "HF", "GW", "meta-GGA"),
         description="""
         Basic type of the used exchange-correlation functional.
         """,
