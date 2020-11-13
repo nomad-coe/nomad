@@ -241,14 +241,46 @@ def index(threads, dry):
 def index_materials(threads, code, dry, in_place, n, source):
     """(Re-)index all materials.
 
-    This command will completely rebuild the materials index. The index is
-    built from the material metainfo stored in MongoDB. The materials index can
-    be used normally during the reindexing.
+    This command will is used to completely rebuild the materials index or
+    parts of it. You can choose which source is used for building the index: In
+    general ElasticSearch is preferred, but if it is not available also MongoDB
+    can be used.
+
+    By default this command will start to rebuild the index from scratch.  This
+    can be done on a "live" system because a new temporary index is used. If
+    you use the --in-place option, the indexing will be run on the same index
+    that is currently in use.
     """
+
     from nomad.datamodel.material import Material, Calculation
     from nomad.datamodel.encyclopedia import EncyclopediaMetadata
     from nomad.search import material_document
     from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
+
+    def create_entry(material, calc, in_place):
+        """Creates an ES update operation that inserts the full material info
+        if entry does not exists, otherwise only adds the calculation into the
+        nested subdocument, possibly replacing the old one if in_place is True.
+        """
+        entry = {}
+        entry['_op_type'] = 'update'
+        entry['_index'] = target_index_name
+        entry['_id'] = material.material_id
+        entry['_type'] = 'doc'
+        entry['_source'] = {
+            "upsert": material.m_to_dict(include_defaults=False, partial="es"),
+            "doc_as_upsert": False,
+            "script": {
+                "params": {
+                    "calc": calc.m_to_dict(include_defaults=False, partial="es")
+                },
+            }
+        }
+        if in_place:
+            entry['_source']["script"]["source"] = "ctx._source.calculations.removeIf(x -> x.calc_id == params.calc.calc_id); ctx._source.calculations.add(params.calc)"
+        else:
+            entry['_source']["script"]["source"] = "ctx._source.calculations.add(params.calc)"
+        return entry
 
     chunk_size = 500
     infrastructure.setup_mongo()
@@ -271,16 +303,20 @@ def index_materials(threads, code, dry, in_place, n, source):
             )
 
     if source == "mongo":
-        all_calcs = proc.Calc.objects().count()
+        mongo_db = infrastructure.mongo_client[config.mongo.db_name]
+        mongo_collection = mongo_db['archive']
+        if code:
+            collection = mongo_collection.find({"section_metadata.dft.code_name": {"$in": code}})
+        else:
+            collection = mongo_collection.find()
+        all_calcs = collection.count()
         print('indexing materials from %d calculations ...' % all_calcs)
 
         # Bulk update
         def elastic_updates():
             with utils.ETA(all_calcs, '   index %10d of %10d calcs, ETA %s') as eta:
-                mongo_db = infrastructure.mongo_client[config.mongo.db_name]
-                mongo_collection = mongo_db['archive']
                 i_calc = 0
-                for mongo_archive in mongo_collection.find():
+                for mongo_archive in collection:
                     i_calc += 1
                     if n is not None:
                         if i_calc > n:
@@ -371,24 +407,10 @@ def index_materials(threads, code, dry, in_place, n, source):
                     material.m_add_sub_section(Material.calculations, calc)
 
                     # Update entry that inserts the full material info if entry
-                    # does not exists, otherwise only adds the calculation into the
-                    # nested subdocument
-                    entry = {}
-                    entry['_op_type'] = 'update'
-                    entry['_index'] = target_index_name
-                    entry['_id'] = material.material_id
-                    entry['_type'] = 'doc'
-                    entry['_source'] = {
-                        "upsert": material.m_to_dict(include_defaults=False, partial="es"),
-                        "doc_as_upsert": False,
-                        "script": {
-                            "source": "ctx._source.calculations.add(params.calc)",
-                            "params": {
-                                "calc": calc.m_to_dict(include_defaults=False, partial="es")
-                            },
-                        }
-                    }
-                    yield entry
+                    # does not exists, otherwise only adds the calculation into
+                    # the nested subdocument
+                    yield create_entry(material, calc, in_place)
+
     elif source == "es":
         s = elasticsearch_dsl.Search(index=config.elastic.index_name)
         filters = [elasticsearch_dsl.Q("term", encyclopedia__status="success")]
@@ -531,28 +553,7 @@ def index_materials(threads, code, dry, in_place, n, source):
 
                     material.m_add_sub_section(Material.calculations, calc)
 
-                    # Update entry that inserts the full material info if entry
-                    # does not exists, otherwise only adds the calculation into
-                    # the nested subdocument
-                    entry = {}
-                    entry['_op_type'] = 'update'
-                    entry['_index'] = target_index_name
-                    entry['_id'] = material.material_id
-                    entry['_type'] = 'doc'
-                    entry['_source'] = {
-                        "upsert": material.m_to_dict(include_defaults=False, partial="es"),
-                        "doc_as_upsert": False,
-                        "script": {
-                            "params": {
-                                "calc": calc.m_to_dict(include_defaults=False, partial="es")
-                            },
-                        }
-                    }
-                    if in_place:
-                        entry['_source']["script"]["source"] = "ctx._source.calculations.removeIf(x -> x.calc_id == params.calc.calc_id); ctx._source.calculations.add(params.calc)"
-                    else:
-                        entry['_source']["script"]["source"] = "ctx._source.calculations.add(params.calc)"
-                    yield entry
+                    yield create_entry(material, calc, in_place)
 
     if dry:
         for _ in elastic_updates():
