@@ -10,6 +10,14 @@ Install from pypi
 
     pip install nomad-lab
 
+
+If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+
+.. code-block:: sh
+
+    pip install nomad-lab --prefer-binary
+
+
 Download and install latest release from nomad
 
 .. code-block:: sh
