@@ -905,6 +905,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise MetainfoError(
                     'The quantity %s has not a unit, but value %s has.' %
                     (quantity_def, value))
+
+            if type(value.magnitude) == np.ndarray and quantity_def.type != value.dtype:
+                value = value.astype(quantity_def.type)
+
             value = value.to(quantity_def.unit).magnitude
 
         if type(value) != np.ndarray:
