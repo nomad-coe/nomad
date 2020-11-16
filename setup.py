@@ -91,7 +91,8 @@ def parse_requirements():
 
 class install(setup_install):
     def __post_install(self, dir):
-        call(['./auto_complete_install.sh'])
+        if os.name == 'posix':
+            call(['./auto_complete_install.sh'])
 
     def run(self):
         setup_install.run(self)
