@@ -4,13 +4,13 @@ The following describes the simplest way to run your own NOMAD.
 
 ## What is an OASIS
 
-Originally NOMAD is a service run at Max-Planck's compute facility in Garching, Germany.
-However, the NOMAD software is Open-Source and everybody can run it. We call any service that
-uses NOMAD software independently a *NOMAD OASIS*.
+Originally, NOMAD Central Repository is a service run at Max-Planck's computing facility in Garching, Germany.
+However, the NOMAD software is Open-Source, and everybody can run it. Any service that
+uses NOMAD software independently is called a *NOMAD OASIS*.
 
-While there are several use cases that require different setups, this documentations
-describes the simples NOMAD OASIS setup possible. It will allow you to use NOMAD to
-manage research data locally, while using NOMAD's central user-management and its users.
+While several use cases require different setups, this documentation
+describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for 
+local research data management, while using NOMAD's central user-management and its users.
 
 ## Pre-requisites
 
