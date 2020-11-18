@@ -17,5 +17,6 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    dev/setup.md
    dev/dev_guidelines.rst
    dev/parser_tutorial.md
+   dev/normalizer.rst
    api.rst
    reference.rst

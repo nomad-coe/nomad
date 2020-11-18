@@ -116,6 +116,12 @@ Finally, you can add nomad to the environment itself (including all extras)
 pip install -e .[all]
 ```
 
+If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+
+```
+pip install -e .[all] --prefer-binary
+```
+
 ### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```

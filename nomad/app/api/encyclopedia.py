@@ -1,16 +1,20 @@
-# Copyright 2018 Markus Scheidgen
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an"AS IS" BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 """
 API for retrieving material information.
@@ -236,7 +240,8 @@ def get_es_doc_values(es_doc, mapping, keys=None):
     for key in keys:
         es_key = mapping[key]
         value = rgetattr(es_doc, es_key)
-        result[key] = value
+        if value is not None:
+            result[key] = value
 
     return result
 
@@ -322,10 +327,9 @@ material_result = api.model("material_result", {
 class EncMaterialResource(Resource):
     @api.response(404, "The material does not exist")
     @api.response(200, "Metadata send", fields.Raw)
-    @api.doc("get_material")
+    @api.doc("get_material", params={"material_id": "28 character identifier for the material."})
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
-    @api.param("material_id", "28 character identifier for the material.")
     @authenticate()
     def get(self, material_id):
         """Used to retrieve basic information related to a material.
@@ -606,8 +610,7 @@ class EncGroupsResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "OK", groups_result)
     @api.marshal_with(groups_result)
-    @api.doc("get_material_groups")
-    @api.param("material_id", "28 character identifier for the material.")
+    @api.doc("get_material_groups", params={"material_id": "28 character identifier for the material."})
     @authenticate()
     def get(self, material_id):
         """Returns a summary of the calculation groups that were identified for this material.
@@ -691,10 +694,11 @@ class EncGroupResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "OK", group_result)
     @api.marshal_with(group_result)
-    @api.doc("get_material_group")
-    @api.param("group_type", "Type of group. Valid options are: 'eos' and 'par'.")
-    @api.param("group_id", "28 character identifier for the group.")
-    @api.param("material_id", "28 character identifier for the material.")
+    @api.doc("get_material_group", params={
+        "material_id": "28 character identifier for the material.",
+        "group_type": "Type of group. Valid options are: 'eos' and 'par'.",
+        "group_id": "28 character identifier for the group.",
+    })
     @authenticate()
     def get(self, material_id, group_type, group_id):
         """Used to query detailed information about a specific calculation group.
@@ -779,8 +783,8 @@ calculation_result = api.model("calculation_result", {
     "code_version": fields.String,
     "functional_type": fields.String,
     "basis_set_type": fields.String,
-    "core_electron_treatment": fields.String,
-    "run_type": fields.String,
+    "core_electron_treatment": fields.String(default="unavailable"),
+    "run_type": fields.String(default="unavailable"),
     "has_dos": fields.Boolean,
     "has_band_structure": fields.Boolean,
     "has_thermal_properties": fields.Boolean,
@@ -793,7 +797,6 @@ representatives_result = api.model("representatives_result", {
 })
 calculations_result = api.model("calculations_result", {
     "total_results": fields.Integer,
-    "pages": fields.Nested(pages_result),
     "results": fields.List(fields.Nested(calculation_result)),
     "representatives": fields.Nested(representatives_result, skip_none=True),
 })
@@ -805,6 +808,7 @@ class EncCalculationsResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "OK", calculations_result)
     @api.doc("get_material_calculations")
+    @api.marshal_with(calculations_result)
     @authenticate()
     def get(self, material_id):
         """Used to return information about all calculations related to the given material.
@@ -943,8 +947,7 @@ class EncStatisticsResource(Resource):
     @api.response(200, "OK", statistics_result)
     @api.expect(statistics_query, validate=False)
     @api.marshal_with(statistics_result, skip_none=True)
-    @api.doc("get_material_statistics")
-    @api.param("material_id", "28 character identifier for the material.")
+    @api.doc("get_material_statistics", params={"material_id": "28 character identifier for the material."})
     @authenticate()
     def post(self, material_id):
         """Used to return statistics related to the specified material and
@@ -1399,8 +1402,7 @@ class ReportsResource(Resource):
     @api.response(400, "Bad request")
     @api.response(204, "Report succesfully sent")
     @api.expect(report_query)
-    @api.doc("post_material_report")
-    @api.param("material_id", "28 character identifier for the material.")
+    @api.doc("post_material_report", params={"material_id": "28 character identifier for the material."})
     @authenticate(required=True)
     def post(self, material_id):
         """Post an error report on a material. Requires authentication.
