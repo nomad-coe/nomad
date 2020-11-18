@@ -24,6 +24,8 @@ services:
         restart: always
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
         container_name: nomad_oasis_elastic
+        environment:
+            - discovery.type=single-node
         volumes:
             - nomad_oasis_elastic:/usr/share/elasticsearch/data
 
@@ -42,7 +44,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:oasis-migration
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -59,7 +61,7 @@ services:
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:oasis-migration
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -71,8 +73,6 @@ services:
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
-            - ./gunicorn.log.conf:/app/gunicorn.log.conf
-            - ./gunicorn.conf:/app/gunicorn.conf
             - nomad_oasis_files:/app/.volumes/fs
         command: ["./run.sh", "/nomad-oasis"]
 

@@ -86,6 +86,8 @@ services:
         restart: always
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
         container_name: nomad_oasis_elastic
+        environment:
+            - discovery.type=single-node
         volumes:
             - nomad_oasis_elastic:/usr/share/elasticsearch/data
 
@@ -133,8 +135,6 @@ services:
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - ./env.js:/app/gui/build/env.js
-            - ./gunicorn.log.conf:/app/gunicorn.log.conf
-            - ./gunicorn.conf:/app/gunicorn.conf
             - nomad_oasis_files:/app/.volumes/fs
         command: ["./run.sh", "/nomad-oasis"]
 
@@ -162,7 +162,7 @@ There are no mandatory changes necessary.
 
 A few things to notice:
 - All services use docker volumes for storage. This could be changed to host mounts.
-- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`, `gunicorn.conf`, `gunicorn.log.conf`.
+- It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`.
 - The only exposed port is `80`. This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
 - All container will be named `nomad_oasis_*`. These names can be used to later reference the container with the `docker` cmd.
@@ -289,13 +289,19 @@ A few things to notice:
 
 ### gunicorn
 
-Simply create empty `gunicorn.conf` and `gunicorn.log.conf` in the beginning. Gunicorn
-is the WSGI-server that runs the nomad app. Consult the [gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html)
-for configuration options.
+Gunicorn is the WSGI-server that runs the nomad app. Consult the
+[gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html) for
+configuration options.
 
 ## Starting and stopping
 
 If you prepared the above files, simply use the usual `docker-compose` commands to start everything.
+
+To make sure you have the latest docker images for everything run this first:
+```
+docker-compose pull
+```
+
 In the beginning and for debugging problems, it is recommended to start services separately:
 ```
 docker-compose up -d mongodb elastic rabbitmq
