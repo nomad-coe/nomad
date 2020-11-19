@@ -313,14 +313,14 @@ class TestEncyclopedia():
         # authentication
         rv = api.post(
             '/materials/',
-            data=json.dumps({"search_by": {"element": "B"}}),
+            data=json.dumps({"search_by": {"elements": ["B"]}}),
             content_type='application/json',
         )
         results = rv.json['results']
         assert len(results) == 0
         rv = api.post(
             '/materials/',
-            data=json.dumps({"search_by": {"element": "B"}}),
+            data=json.dumps({"search_by": {"elements": ["B"]}}),
             content_type='application/json',
             headers=test_user_auth,
         )

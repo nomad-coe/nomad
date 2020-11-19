@@ -326,10 +326,10 @@ material_result = api.model("material_result", {
 @ns.route("/materials/<string:material_id>")
 class EncMaterialResource(Resource):
     @api.response(404, "The material does not exist")
-    @api.response(200, "Metadata send", fields.Raw)
-    @api.doc("get_material", params={"material_id": "28 character identifier for the material."})
+    @api.response(200, "Metadata send", material_result)
     @api.expect(material_query)
     @api.marshal_with(material_result, skip_none=True)
+    @api.doc("get_material", params={"material_id": "28 character identifier for the material."})
     @authenticate()
     def get(self, material_id):
         """Used to retrieve basic information related to a material.
@@ -388,7 +388,7 @@ class EncMaterialResource(Resource):
                 except AttributeError:
                     pass
             if similarity:
-                result["similarity"] = similarity
+                result["similarity"] = sorted(similarity, key=lambda x: x["value"], reverse=True)
 
         return result, 200
 
@@ -400,11 +400,11 @@ range_query = api.model("range_query", {
 })
 materials_query = api.model("materials_input", {
     "search_by": fields.Nested(api.model("search_query", {
-        "exclusive": fields.Boolean(default=False),
-        "formula": fields.String,
-        "element": fields.String,
-        "page": fields.Integer(default=1, description="Requested page number, indexing starts from 1."),
-        "per_page": fields.Integer(default=25, description="Number of results per page."),
+        "exclusive": fields.Boolean(default=False, description="Set to True to enable exclusive element search."),
+        "formula": fields.String(description="Chemical formula of the material as a string. The order of elements does not matter.", example="TiO2"),
+        "elements": fields.List(fields.String, description="List of chemical species that the material should include. Use capitalized element name abbreviations.", example=["Ti", "O"]),
+        "page": fields.Integer(default=1, description="Requested page number, indexing starts from 1.", example=1),
+        "per_page": fields.Integer(default=25, description="Number of results per page.", example=10),
         "restricted": fields.Boolean(default=False, description="Select to restrict the query to individual calculations. If not selected, the query will combine results from several different calculations."),
     })),
     "material_type": fields.List(fields.String(enum=list(Material.material_type.type)), description=Material.material_type.description),
@@ -500,7 +500,7 @@ class EncMaterialsResource(Resource):
         # ))
 
         formula = search_by["formula"]
-        elements = search_by["element"]
+        elements = search_by["elements"]
         exclusive = search_by["exclusive"]
 
         # The given list of species/formula is reformatted with the Hill system into a
@@ -539,7 +539,7 @@ class EncMaterialsResource(Resource):
                     species_and_counts={"query": query_string, "operator": "and"}
                 ))
         elif elements is not None:
-            species, _ = get_hill_decomposition(elements.split(","))
+            species, _ = get_hill_decomposition(elements)
             query_string = " ".join(species)
 
             if exclusive:
