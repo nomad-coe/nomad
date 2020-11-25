@@ -10,7 +10,7 @@ The nomad infrastructure consists of a series of nomad and 3rd party services:
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
 
-All 3rd party services should be run via *docker-compose* (see blow). The
+All 3rd party services should be run via *docker-compose* (see below). The
 nomad python  services can be run with python to develop them.
 The gui can be run with a development server via yarn.
 
