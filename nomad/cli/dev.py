@@ -73,6 +73,7 @@ def metainfo_undecorated():
     import nomad.datamodel.ems
     import nomad.datamodel.optimade
     import nomad.datamodel.encyclopedia
+    from nomad.parsing import LegacyParser
     nomad.metainfo.metainfo.m_package.__init_metainfo__()
     nomad.datamodel.datamodel.m_package.__init_metainfo__()
     nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
@@ -83,7 +84,8 @@ def metainfo_undecorated():
     # Ensure all parser metainfo is loaded
     from nomad.parsing.parsers import parsers
     for parser in parsers:
-        _ = parser.metainfo_env
+        if isinstance(parser, LegacyParser):
+            _ = parser.metainfo_env
 
     export = Environment()
     for package in Package.registry.values():
@@ -119,57 +121,6 @@ def search_quantities():
         for search_quantity in search.search_quantities.values()
     }
     print(json.dumps(export, indent=2))
-
-
-@dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
-@click.argument('path', nargs=-1)
-def legacy_metainfo(path):
-    from nomad.metainfo.legacy import convert, generate_metainfo_code
-
-    if len(path) == 0:
-        path = [
-            'abinit.nomadmetainfo.json',
-            'aptfim.nomadmetainfo.json',
-            'atk.nomadmetainfo.json',
-            'band.nomadmetainfo.json',
-            'bigdft.nomadmetainfo.json',
-            'castep.nomadmetainfo.json',
-            'cp2k.nomadmetainfo.json',
-            'cpmd.nomadmetainfo.json',
-            'crystal.nomadmetainfo.json',
-            'dl_poly.nomadmetainfo.json',
-            'dmol3.nomadmetainfo.json',
-            'eels.nomadmetainfo.json',
-            'elastic.nomadmetainfo.json',
-            'elk.nomadmetainfo.json',
-            'exciting.nomadmetainfo.json',
-            'fhi_aims.nomadmetainfo.json',
-            'fleur.nomadmetainfo.json',
-            'gamess.nomadmetainfo.json',
-            'gaussian.nomadmetainfo.json',
-            'gpaw.nomadmetainfo.json',
-            'gulp.nomadmetainfo.json',
-            'lib_atoms.nomadmetainfo.json',
-            'molcas.nomadmetainfo.json',
-            'mpes.nomadmetainfo.json',
-            'nwchem.nomadmetainfo.json',
-            'octopus.nomadmetainfo.json',
-            'onetep.nomadmetainfo.json',
-            'orca.nomadmetainfo.json',
-            'phonopy.nomadmetainfo.json',
-            'photoemission.nomadmetainfo.json',
-            'qbox.nomadmetainfo.json',
-            'quantum_espresso.nomadmetainfo.json',
-            'siesta.nomadmetainfo.json',
-            'turbomole.nomadmetainfo.json',
-            'vasp.nomadmetainfo.json',
-            'wien2k.nomadmetainfo.json',
-            'dft.nomadmetainfo.json',
-            'ems.nomadmetainfo.json']
-
-    for element in path:
-        env = convert(element)
-        generate_metainfo_code(env)
 
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')

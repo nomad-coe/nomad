@@ -23,7 +23,7 @@ from nomad.metainfo import (
     Datetime, JSON)
 
 
-m_package = Package(name='common_experimental')
+m_package = Package(name='experimental_common')
 
 
 class Experiment(MSection):

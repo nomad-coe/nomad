@@ -117,19 +117,19 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
 
 
 def test_common_metainfo():
-    from nomad.datamodel.metainfo import public
+    from nomad.datamodel.metainfo import common_dft
 
-    run = public.section_run()
-    system = run.m_create(public.section_system)
+    run = common_dft.Run()
+    system = run.m_create(common_dft.System)
     system.atom_labels = ['H', 'H', 'O']
 
     assert run.section_system[0].atom_labels == ['H', 'H', 'O']
 
 
 def test_vasp_metainfo():
-    from nomad.datamodel.metainfo import public
+    from nomad.datamodel.metainfo import common_dft
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
-    run = public.section_run()
+    run = common_dft.Run()
     assert 'vasp_src_date' in run.m_def.all_quantities
 
 

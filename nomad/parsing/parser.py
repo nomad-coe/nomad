@@ -21,7 +21,6 @@ from abc import ABCMeta, abstractmethod
 import re
 
 from nomad import config
-from nomad.metainfo import Environment
 from nomad.datamodel import EntryArchive, UserProvidableMetadata, EntryMetadata
 
 
@@ -34,11 +33,6 @@ class Parser(metaclass=ABCMeta):
 
     def __init__(self):
         self.domain = 'dft'
-        self._metainfo_env: Environment = None
-
-    @property
-    def metainfo_env(self):
-        return self._metainfo_env
 
     @abstractmethod
     def is_mainfile(

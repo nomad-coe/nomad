@@ -27,7 +27,7 @@ from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.datamodel.metainfo.public import fast_access
+from nomad.datamodel.metainfo.common_dft import FastAccess
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -38,9 +38,9 @@ from .qcms import QCMSMetadata
 m_package = metainfo.Package()
 
 from .encyclopedia import EncyclopediaMetadata  # noqa
-from .metainfo.public import section_run, Workflow  # noqa
+from .metainfo.common_dft import Run, Workflow  # noqa
 from .metainfo.common_experimental import Experiment  # noqa
-from .metainfo.general_qcms import QuantumCMS  # noqa
+from .metainfo.common_qcms import QuantumCMS  # noqa
 
 
 def _only_atoms(atoms):
@@ -538,9 +538,9 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search())
 
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
-    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[fast_access])
+    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[FastAccess])
     qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search='qcms')
-    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[fast_access], a_search='encyclopedia')
+    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess], a_search='encyclopedia')
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''
@@ -563,11 +563,11 @@ class EntryMetadata(metainfo.MSection):
 
 class EntryArchive(metainfo.MSection):
 
-    section_run = metainfo.SubSection(sub_section=section_run, repeats=True)
+    section_run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=Experiment)
     section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
-    section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[fast_access])
-    section_metadata = metainfo.SubSection(sub_section=EntryMetadata, categories=[fast_access])
+    section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[FastAccess])
+    section_metadata = metainfo.SubSection(sub_section=EntryMetadata, categories=[FastAccess])
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],

@@ -33,7 +33,7 @@ import signal
 
 from nomad import metainfo
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.common import section_run as Run
+from nomad.datamodel.metainfo.common_dft import Run
 
 from .legacy import Backend
 from .parser import Parser, MatchingParser
@@ -69,8 +69,6 @@ class TemplateParser(ArtificalParser):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from nomad.datamodel.metainfo import m_env as metainfo_env
-        self._metainfo_env = metainfo_env
         self.code_name = 'Template'
 
     def is_mainfile(

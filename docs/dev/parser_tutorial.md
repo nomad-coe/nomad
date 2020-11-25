@@ -358,12 +358,8 @@ Consequently, the parser class implementation is modified as in the following ex
 ```python
 import json
 
-from .metainfo import m_env
 from nomad.parsing.parser import MatchingParser
-from nomad.datamodel.metainfo.common_experimental import section_experiment as msection_experiment
-from nomad.datamodel.metainfo.common_experimental import section_data as msection_data
-from nomad.datamodel.metainfo.general_experimental_method import section_method as msection_method
-from nomad.datamodel.metainfo.general_experimental_sample import section_sample as msection_sample
+from nomad.datamodel.metainfo.common_experimental import Experiment, Data, Method, Sample
 
 
 class ExampleParser(MatchingParser):
@@ -374,34 +370,32 @@ class ExampleParser(MatchingParser):
         )
 
     def run(self, filepath, logger=None):
-        self._metainfo_env = m_env
-
         with open(filepath, 'rt') as f:
             data = json.load(f)
 
-        section_experiment = msection_experiment()
+        experiment = Experiment()
 
         # Read general tool environment details
-        section_experiment.experiment_location = data.get('experiment_location')
-        section_experiment.experiment_facility_institution = data.get('experiment_facility_institution')
+        experiment.experiment_location = data.get('experiment_location')
+        experiment.experiment_facility_institution = data.get('experiment_facility_institution')
 
         # Read data parameters
-        section_data = section_experiment.m_create(msection_data)
+        section_data = experiment.m_create(Data)
         section_data.data_repository_name = data.get('data_repository_name')
         section_data.data_preview_url = data.get('data_repository_url')
 
         # Read parameters related to method
-        section_method = section_experiment.m_create(msection_method)
+        section_method = experiment.m_create(Method)
         section_method.experiment_method_name = data.get('experiment_method')
         section_method.probing_method = 'electric pulsing'
 
         # Read parameters related to sample
-        section_sample = section_experiment.m_create(msection_sample)
+        section_sample = experiment.m_create(Sample)
         section_sample.sample_description = data.get('specimen_description')
         section_sample.sample_microstructure = data.get('specimen_microstructure')
         section_sample.sample_constituents = data.get('specimen_constitution')
 
-        return section_experiment
+        return experiment
 ```
 The parser extends the ``MatchingParser`` class which already implements the determination
 of the necessary file for parsing. The main difference to the old framework is the absense

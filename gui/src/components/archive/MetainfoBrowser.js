@@ -67,6 +67,10 @@ If you bookmark this page, you can save the definition represented by the highli
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 
+function defCompare(a, b) {
+  return a.name.localeCompare(b.name)
+}
+
 export const metainfoConfigState = atom({
   key: 'metainfoConfig',
   default: {
@@ -206,7 +210,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
 
     return <Content>
       <Compartment title="Sections">
-        {sectionDefs.filter(def => !def.extends_base_section).map(def => {
+        {sectionDefs.filter(def => !def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -214,7 +218,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         })}
       </Compartment>
       <Compartment title="Section Extensions">
-        {sectionDefs.filter(def => def.extends_base_section).map(def => {
+        {sectionDefs.filter(def => def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -222,7 +226,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         })}
       </Compartment>
       <Compartment title="Categories">
-        {categoryDefs.map(def => {
+        {categoryDefs.sort(defCompare).map(def => {
           const key = `category_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -323,8 +327,10 @@ function SectionDef({def}) {
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
+          const categories = subSectionDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
-            <Typography component="span">
+            <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
               </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
@@ -337,9 +343,11 @@ function SectionDef({def}) {
       {def.quantities.filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
+          const categories = quantityDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
-              <Typography component="span">
+              <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>

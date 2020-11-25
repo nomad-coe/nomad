@@ -2767,6 +2767,8 @@ def all_definitions(self):
     for sub_section_def in [Package.section_definitions, Package.category_definitions]:
         for definition in self.m_get_sub_sections(sub_section_def):
             all_definitions[definition.name] = definition
+            for alias in definition.aliases:
+                all_definitions[alias] = definition
     return all_definitions
 
 
@@ -2841,9 +2843,10 @@ class Environment(MSection):
         all_definitions_by_name: Dict[str, List[Definition]] = dict()
         for definition in self.m_all_contents():
             if isinstance(definition, Definition):
-                definitions = all_definitions_by_name.setdefault(definition.name, [])
-                assert definition not in definitions, '%s must be unique' % definitions
-                definitions.append(definition)
+                for name in [definition.name] + definition.aliases:
+                    definitions = all_definitions_by_name.setdefault(name, [])
+                    assert definition not in definitions, '%s must be unique' % definitions
+                    definitions.append(definition)
 
         return all_definitions_by_name
 

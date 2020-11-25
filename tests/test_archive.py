@@ -348,8 +348,9 @@ def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     assert archive.section_workflow.calculation_result_ref.energy_total is not None
     assert len(archive.section_workflow.calculation_result_ref.section_eigenvalues) == 0
     # test refs of refs
-    assert archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref.atom_labels == ['H']
-    assert archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref.section_symmetry[0].space_group_number == 221
+    system = archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref
+    assert system.atom_labels == ['H']
+    assert system.section_symmetry[0].space_group_number == 221
 
     return archive
 
