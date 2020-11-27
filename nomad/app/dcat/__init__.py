@@ -21,3 +21,4 @@ from flask_restplus import Api
 
 from .api import blueprint, api
 from .datasets import Dataset
+from .catalog import Catalog

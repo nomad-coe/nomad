@@ -15,6 +15,7 @@
 import pytest
 from datetime import datetime
 
+from nomad import infrastructure, config
 from nomad.datamodel import EntryMetadata
 from nomad.app.dcat.mapping import Mapping
 
@@ -56,6 +57,23 @@ def test_get_dataset(elastic_infra, api, example_entry):
     example_entry.a_elastic.index()
     calc_id = 'test-id'
     rv = api.get('/datasets/%s' % calc_id)
+    assert rv.status_code == 200
+
+    clear_elastic(elastic_infra)
+
+
+def test_get_catalog(elastic_infra, api, example_entry):
+    clear_elastic(elastic_infra)
+
+    for i in range(1, 11):
+        example_entry.calc_id = 'test-id-%d' % i
+        example_entry.upload_time = datetime(2000, 1, 1)
+        example_entry.last_processing = datetime(2020, 1, i)
+        example_entry.a_elastic.index()
+
+    infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
+
+    rv = api.get('/catalog/?after=test-id-3&modified_since=2020-01-07&format=nt')
     assert rv.status_code == 200
 
     clear_elastic(elastic_infra)

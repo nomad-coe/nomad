@@ -36,6 +36,12 @@ class Mapping():
 
         self.persons = {}
 
+    def map_catalog(self, entries):
+        catalog = URIRef(url('catalog'))
+        self.g.add((catalog, RDF.type, DCAT.Catalog))
+        for entry in entries:
+            self.g.add((catalog, DCT.dataset, self.map_entry(entry)))
+
     def map_entry(self, entry: EntryMetadata):
         dataset = URIRef(url('datasets', entry.calc_id))
 
