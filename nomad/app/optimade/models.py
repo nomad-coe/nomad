@@ -234,10 +234,16 @@ json_api_info_model = api.model('CalculationInfo', {
 
 @cached({})
 def get_entry_properties(include_optimade: bool = True):
-    properties = {
-        attr.name: dict(description=attr.description)
-        for attr in OptimadeEntry.m_def.all_properties.values()
-        if include_optimade}
+    properties = {}
+    if include_optimade:
+        for attr in OptimadeEntry.m_def.all_properties.values():
+            prop = dict(description=attr.description)
+            a_optimade = attr.m_get_annotations('optimade')
+            if a_optimade is not None:
+                if a_optimade.type is not None:
+                    prop['type'] = a_optimade.type
+                if a_optimade.sortable is not None:
+                    prop['sortable'] = a_optimade.sortable
 
     def add_nmd_properties(prefix, section_cls):
         for quantity in section_cls.m_def.all_quantities.values():

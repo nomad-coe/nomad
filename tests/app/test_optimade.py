@@ -179,6 +179,33 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data'][item]['attributes'][key] == ref
 
 
+@pytest.mark.parametrize('limit, number, results', [
+    (1, 1, 1), (1, 5, 0), (5, 1, 4)
+])
+def test_list_endpoint_pagination(api, example_structures, limit, number, results):
+    rv = api.get('/structures?page_limit=%d&page_number=%d' % (limit, number))
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert len(data['data']) == results
+
+
+@pytest.mark.parametrize('sort, order', [
+    ('nelements', 1), ('-nelements', -1)
+])
+def test_list_endpoint_sort(api, example_structures, sort, order):
+    rv = api.get('/structures?sort=%s' % sort)
+    assert rv.status_code == 200
+    data = json.loads(rv.data)['data']
+
+    assert len(data) > 0
+    for i, item in enumerate(data):
+        if i > 0:
+            if order == 1:
+                assert item['attributes']['nelements'] >= data[i - 1]['attributes']['nelements']
+            else:
+                assert item['attributes']['nelements'] <= data[i - 1]['attributes']['nelements']
+
+
 def test_list_endpoint_response_fields(api, example_structures):
     rv = api.get('/structures?response_fields=nelements,elements')
     assert rv.status_code == 200
