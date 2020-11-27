@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
-import { Typography, Box, makeStyles, Grid, FormGroup, TextField } from '@material-ui/core'
+import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
 import * as d3 from 'd3'
 import { apiContext } from '../api'
@@ -408,16 +408,19 @@ function DefinitionDetails({def, ...props}) {
   const lane = useContext(laneContext)
   const isLast = !lane.next
   const [usage, setUsage] = useState(null)
+  const [showUsage, setShowUsage] = useState(false)
 
   useEffect(() => {
-    api.quantity_search({
-      'dft.quantities': [def.name],
-      size: 100, // make sure we get all codes
-      quantity: 'dft.code_name'
-    }).then(result => {
-      setUsage(result.quantity.values)
-    })
-  }, [api, def.name, setUsage])
+    if (showUsage) {
+      api.quantity_search({
+        'dft.quantities': [def.name],
+        size: 100, // make sure we get all codes
+        quantity: 'dft.code_name'
+      }).then(result => {
+        setUsage(result.quantity.values)
+      })
+    }
+  }, [api, def.name, showUsage, setUsage])
 
   return <React.Fragment>
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
@@ -435,7 +438,8 @@ function DefinitionDetails({def, ...props}) {
     }
     {isLast && def.m_def !== 'Category' && def.name !== 'EntryArchive' && !def.extends_base_section &&
       <Compartment title="usage">
-        {!usage && <Typography><i>loading ...</i></Typography>}
+        {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}
+        {showUsage && !usage && <Typography><i>loading ...</i></Typography>}
         {usage && Object.keys(usage).length > 0 && (
           <Histogram
             data={Object.keys(usage).map(key => ({
