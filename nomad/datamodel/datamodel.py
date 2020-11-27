@@ -28,6 +28,7 @@ from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common_dft import FastAccess
+from nomad.metainfo.pydantic_extension import PydanticModel
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -90,6 +91,8 @@ class User(Author):
         repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
         is_admin: Bool that indicated, iff the user the use admin user
     '''
+
+    m_def = metainfo.Section(a_pydantic=PydanticModel())
 
     user_id = metainfo.Quantity(
         type=str,
@@ -183,8 +186,14 @@ class Dataset(metainfo.MSection):
         pid: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
             datasets based on this id. Is not used for new datasets.
         created: The date when the dataset was first created.
+        modified: The date when the dataset was last modified. An owned dataset can only
+            be extended after a DOI was assigned. A foreign dataset cannot be changed
+            once a DOI was assigned.
+        dataset_type: The type determined if a dataset is owned, i.e. was created by
+            the uploader/owner of the contained entries; or if a dataset is foreign,
+            i.e. it was created by someone not necessarily related to the entries.
     '''
-    m_def = metainfo.Section(a_mongo=MongoDocument())
+    m_def = metainfo.Section(a_mongo=MongoDocument(), a_pydantic=PydanticModel())
 
     dataset_id = metainfo.Quantity(
         type=str,
@@ -206,6 +215,14 @@ class Dataset(metainfo.MSection):
         a_mongo=Mongo(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
+        a_mongo=Mongo(index=True),
+        a_search=Search())
+    modified = metainfo.Quantity(
+        type=metainfo.Datetime,
+        a_mongo=Mongo(index=True),
+        a_search=Search())
+    dataset_type = metainfo.Quantity(
+        type=metainfo.MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
         a_search=Search())
 

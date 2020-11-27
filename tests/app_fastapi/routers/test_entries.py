@@ -35,6 +35,8 @@ from tests.conftest import clear_raw_files, clear_elastic_infra
 from tests.test_files import create_test_upload_files
 from tests.utils import assert_at_least
 
+from .common import assert_response
+
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
 using the following type of methods: fixtures, ``perfrom_*_test``, ``assert_*``, and
@@ -62,6 +64,10 @@ def data(elastic_infra, raw_files_infra, mongo_infra, test_user, other_test_user
     raw files and archive file for id_02 are missing
     id_10, id_11 reside in the same directory
     '''
+
+    clear_elastic_infra()
+    clear_raw_files()
+
     archives: List[EntryArchive] = []
     archive = EntryArchive()
     entry_metadata = archive.m_create(
@@ -324,31 +330,6 @@ def perform_entries_archive_test(
             for key in archive: assert key in required
 
     return json_response
-
-
-def assert_response(response, status_code=None):
-    ''' General assertions for status_code and error messages '''
-    if status_code and response.status_code != status_code:
-        try:
-            debug(response.json())
-        except Exception:
-            pass
-
-    assert status_code is None or response.status_code == status_code
-
-    if status_code == 422:
-        response_json = response.json()
-        details = response_json['detail']
-        assert len(details) > 0
-        for detail in details:
-            assert 'loc' in detail
-            assert 'msg' in detail
-        return None
-
-    if 400 <= status_code < 500:
-        response_json = response.json()
-        assert 'detail' in response_json
-        return None
 
 
 def assert_entries_metadata_response(response, status_code=None):

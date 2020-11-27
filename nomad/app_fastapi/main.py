@@ -23,7 +23,7 @@ import traceback
 
 from nomad import config, utils
 from nomad.app import app as flask_app
-from nomad.app_fastapi.routers import users, entries, auth
+from nomad.app_fastapi.routers import users, entries, auth, datasets
 
 
 logger = utils.get_logger(__name__)
@@ -144,5 +144,6 @@ async def unicorn_exception_handler(request: Request, e: Exception):
 app.include_router(auth.router, prefix='/api/v1/auth')
 app.include_router(users.router, prefix='/api/v1/users')
 app.include_router(entries.router, prefix='/api/v1/entries')
+app.include_router(datasets.router, prefix='/api/v1/datasets')
 
 app.mount('/', WSGIMiddleware(flask_app))

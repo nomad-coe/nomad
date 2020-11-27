@@ -956,9 +956,9 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     if order_by is None:
         composite = dict(sources={name: terms}, size=agg.pagination.size)
     else:
-        order_quantity = search_quantities[order_by.value]
+        order_quantity = search_quantities[order_by]
         sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = dict(sources=[{order_by.value: sort_terms}, {quantity.name: terms}], size=agg.pagination.size)
+        composite = dict(sources=[{order_by: sort_terms}, {quantity.name: terms}], size=agg.pagination.size)
 
     if agg.pagination.after is not None:
         if order_by is None:
@@ -1047,7 +1047,7 @@ def search(
     search = Search(index=config.elastic.index_name)
 
     search = search.query(es_query)
-    order_field = search_quantities[pagination.order_by.value].search_field
+    order_field = search_quantities[pagination.order_by].search_field
     sort = {order_field: pagination.order.value}
     if order_field != 'calc_id':
         sort['calc_id'] = pagination.order.value
@@ -1058,10 +1058,10 @@ def search(
 
     # required
     if required:
-        if required.include is not None and pagination.order_by.value not in required.include:
-            required.include.append(pagination.order_by.value)
-        if required.exclude is not None and pagination.order_by.value in required.exclude:
-            required.exclude.remove(pagination.order_by.value)
+        if required.include is not None and pagination.order_by not in required.include:
+            required.include.append(pagination.order_by)
+        if required.exclude is not None and pagination.order_by in required.exclude:
+            required.exclude.remove(pagination.order_by)
         search = search.source(includes=required.include, excludes=required.exclude)
 
     # statistics

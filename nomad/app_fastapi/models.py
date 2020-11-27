@@ -33,15 +33,11 @@ from nomad.app_fastapi.utils import parameter_dependency_from_model
 from nomad.metainfo.search_extension import metrics, search_quantities
 
 
-class User(BaseModel):
-    user_id: str
-    email: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+User = datamodel.User.m_def.a_pydantic.model
 
 
+calc_id = 'calc_id'
 Metric = enum.Enum('Metric', {name: name for name in metrics})  # type: ignore
-Quantity = enum.Enum('Quantity', {name: name for name in search_quantities})  # type: ignore
 AggregateableQuantity = enum.Enum('AggregateableQuantity', {  # type: ignore
     name: name for name in search_quantities
     if search_quantities[name].aggregateable})
@@ -441,33 +437,32 @@ class Pagination(BaseModel):
 
     size: Optional[int] = Field(
         10, description=strip('''
-            The page size, e.g. the maximum number of entries contained in one response.
-            A `size` of 0 will omit any results; this is useful, when there is only
-            interest in other data, e.g. `aggregations` or `statistics`.
+            The page size, e.g. the maximum number of items contained in one response.
+            A `size` of 0 will omit any results.
         '''))
-    order_by: Optional[Quantity] = Field(
-        Quantity.calc_id,  # type: ignore
+    order_by: Optional[str] = Field(
+        calc_id,  # type: ignore
         description=strip('''
-            The search results are ordered by the values of this quantity. The response
+            The results are ordered by the values of this field. The response
             either contains the first `size` value or the next `size` values after `after`.
         '''))
     order: Optional[Direction] = Field(
         Direction.asc, description=strip('''
-            The order direction of the search results based on `order_by`. Its either
+            The order direction of the results based on `order_by`. Its either
             ascending `asc` or decending `desc`.
         '''))
     after: Optional[str] = Field(
         None, description=strip('''
             A request for the page after this value, i.e. the next `size` values behind `after`.
-            This depends on the `order_by` and the potentially used aggregation.
+            This depends on the `order_by`.
             Each response contains the `after` value for the *next* request following
             the defined order.
 
-            The after value and its type depends on the `order_by` quantity and its type.
-            The after value will always be a string encoded value. The after value will
-            also contain the entry id as a *tie breaker*, if
-            `order_by` is not the entry's id. The *tie breaker* will be `:` separated, e.g.
-            `<value>:<id>`.
+            The after value and its type depends on the API operation and potentially on
+            the `order_by` field and its type.
+            The after value will always be a string encoded value. It might be an `order_by` value, or an index.
+            The after value might contain an id as *tie breaker*, if `order_by` is not the unique.
+            The *tie breaker* will be `:` separated, e.g. `<value>:<id>`.
         '''))
 
     @validator('order_by')
@@ -475,8 +470,8 @@ class Pagination(BaseModel):
         if order_by is None:
             return order_by
 
-        assert order_by.value in search_quantities, 'order_by must be a valid search quantity'
-        quantity = search_quantities[order_by.value]
+        assert order_by in search_quantities, 'order_by must be a valid search quantity'
+        quantity = search_quantities[order_by]
         assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
         return order_by
 
@@ -487,8 +482,8 @@ class Pagination(BaseModel):
 
     @validator('after')
     def validate_after(cls, after, values):  # pylint: disable=no-self-argument
-        order_by = values.get('order_by', Quantity.calc_id)
-        if after is not None and order_by is not None and order_by != Quantity.calc_id and ':' not in after:
+        order_by = values.get('order_by', calc_id)
+        if after is not None and order_by is not None and order_by != calc_id and ':' not in after:
             after = '%s:' % after
         return after
 
@@ -498,7 +493,7 @@ pagination_parameters = parameter_dependency_from_model(
 
 
 class AggregationPagination(Pagination):
-    order_by: Optional[Quantity] = Field(
+    order_by: Optional[str] = Field(
         None, description=strip('''
         The search results are ordered by the values of this quantity. The response
         either contains the first `size` value or the next `size` values after `after`.

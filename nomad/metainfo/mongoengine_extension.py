@@ -35,7 +35,9 @@ sections from mongoengine. The annotation key is 'mongo'.
 
 from typing import Any, Dict, List
 
-from .metainfo import DefinitionAnnotation, SectionAnnotation, Annotation, MSection, Datetime, Quantity
+from .metainfo import (
+    DefinitionAnnotation, SectionAnnotation, Annotation, MSection, Datetime, Quantity,
+    MEnum)
 
 
 class Mongo(DefinitionAnnotation):
@@ -99,6 +101,8 @@ class MongoDocument(SectionAnnotation):
                 field = me.BooleanField
             elif quantity.type == Datetime:
                 field = me.DateTimeField
+            elif isinstance(quantity.type, MEnum):
+                field = me.StringField
             else:
                 raise NotImplementedError
 

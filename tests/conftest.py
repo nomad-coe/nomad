@@ -50,6 +50,9 @@ from tests.bravado_flask import FlaskTestHttpClient
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
 
+elastic_test_calc_index = 'nomad_fairdi_calcs_test'
+elastic_test_material_index = 'nomad_fairdi_materials_test'
+
 warnings.simplefilter("ignore")
 
 
@@ -188,8 +191,8 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_calcs_test')
-    monkeysession.setattr('nomad.config.elastic.materials_index_name', 'nomad_fairdi_materials_test')
+    monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
+    monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
     try:
         return infrastructure.setup_elastic()
     except Exception:
@@ -203,12 +206,12 @@ def clear_elastic_infra():
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
 
     try:
-        connection.indices.delete(index='nomad_fairdi_test')
+        connection.indices.delete(index=elastic_test_calc_index)
     except Exception:
         pass
 
     try:
-        connection.indices.delete(index='nomad_fairdi_materials_test')
+        connection.indices.delete(index=elastic_test_material_index)
     except Exception:
         pass
 
@@ -218,10 +221,10 @@ def clear_elastic_infra():
 def clear_elastic(elastic):
     try:
         elastic.delete_by_query(
-            index='nomad_fairdi_calcs_test', body=dict(query=dict(match_all={})),
+            index=elastic_test_calc_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
         elastic.delete_by_query(
-            index='nomad_fairdi_materials_test', body=dict(query=dict(match_all={})),
+            index=elastic_test_material_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests
