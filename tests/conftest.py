@@ -40,7 +40,7 @@ from nomad.datamodel import EntryArchive
 from nomad.utils import structlogging
 from nomad.datamodel import User
 
-from tests import test_parsing
+from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file

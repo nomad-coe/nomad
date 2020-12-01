@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.9.8
+- A new library for parsing text-based raw files.
+
 ### v0.9.3
 - Encyclopedia with dedicated materials search index.
 

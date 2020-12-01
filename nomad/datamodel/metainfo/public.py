@@ -3614,6 +3614,16 @@ class section_scf_iteration(MSection):
 
     m_def = Section(validate=False, a_legacy=LegacyDefinition(name='section_scf_iteration'))
 
+    charge_total_scf_iteration = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='coulomb',
+        description='''
+        Value of the total charge, calculated with the method described in XC_method
+        during each self-consistent field (SCF) iteration.
+        ''',
+        a_legacy=LegacyDefinition(name='charge_total_scf_iteration'))
+
     electronic_kinetic_energy_scf_iteration = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -3867,6 +3877,16 @@ class section_scf_iteration(MSection):
         categories=[time_info, accessory_info],
         a_legacy=LegacyDefinition(name='time_scf_iteration_wall_start'))
 
+    time_scf_iteration = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='second',
+        description='''
+        Total time of the self-consistent field (SCF) iteration.
+        ''',
+        categories=[time_info, accessory_info],
+        a_legacy=LegacyDefinition(name='time_scf_iteration'))
+
 
 class section_single_configuration_calculation(MSection):
     '''
@@ -3994,6 +4014,15 @@ class section_single_configuration_calculation(MSection):
         ''',
         categories=[atom_forces_type],
         a_legacy=LegacyDefinition(name='atom_forces'))
+
+    charge_total = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='coulomb',
+        description='''
+        Value of the total charge, calculated with the method described in XC_method.
+        ''',
+        a_legacy=LegacyDefinition(name='charge_total'))
 
     electronic_kinetic_energy = Quantity(
         type=np.dtype(np.float64),
@@ -5210,6 +5239,18 @@ class section_system(MSection):
         ''',
         categories=[configuration_core],
         a_legacy=LegacyDefinition(name='lattice_vectors'))
+
+    lattice_vectors_reciprocal = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='1/meter',
+        description='''
+        Reciprocal lattice vectors (in Cartesian coordinates) of the simulation cell. The
+        first index runs over the $x,y,z$ Cartesian coordinates, and the second index runs
+        over the 3 lattice vectors.
+        ''',
+        categories=[configuration_core],
+        a_legacy=LegacyDefinition(name='lattice_vectors_reciprocal'))
 
     local_rotations = Quantity(
         type=np.dtype(np.float64),

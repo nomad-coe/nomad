@@ -31,6 +31,7 @@ from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
 from lammpsparser import LammpsParser
+from gromacsparser import GromacsParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -388,11 +389,7 @@ parsers = [
         parser_class_name='amberparser.AMBERParser',
         mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
     ),
-    LegacyParser(
-        name='parsers/gromacs', code_name='Gromacs', domain='dft',
-        parser_class_name='gromacsparser.GROMACSParser',
-        mainfile_contents_re=r'GROMACS - gmx mdrun'
-    ),
+    GromacsParser(),
     LegacyParser(
         name='parsers/gromos', code_name='Gromos', domain='dft',
         parser_class_name='gromosparser.GromosParser',

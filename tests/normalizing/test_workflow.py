@@ -18,7 +18,7 @@
 
 import pytest
 
-from tests.test_parsing import parse_file
+from tests.parsing.test_parsing import parse_file
 from .conftest import run_normalize
 
 

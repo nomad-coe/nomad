@@ -23,11 +23,11 @@ from nomad.datamodel import EntryArchive
 from nomad.app import dump_json
 from nomad.datamodel.metainfo.public import section_springer_material as SpringerMaterial
 
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
-from tests.test_parsing import parse_file
+from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parse_file
 from tests.normalizing.conftest import run_normalize, run_normalize_for_structure   # pylint: disable=unused-import
 from tests.utils import assert_log
 
@@ -168,17 +168,17 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
     # Atom
-    assert atom.section_run[0].section_system[0].system_type == "atom"
+    assert atom.section_run[0].section_system[-1].system_type == "atom"
     # Molecule
-    assert molecule.section_run[0].section_system[0].system_type == "molecule / cluster"
+    assert molecule.section_run[0].section_system[-1].system_type == "molecule / cluster"
     # 1D system
-    assert one_d.section_run[0].section_system[0].system_type == "1D"
+    assert one_d.section_run[0].section_system[-1].system_type == "1D"
     # 2D system
-    assert two_d.section_run[0].section_system[0].system_type == "2D"
+    assert two_d.section_run[0].section_system[-1].system_type == "2D"
     # Surface
-    assert surface.section_run[0].section_system[0].system_type == "surface"
+    assert surface.section_run[0].section_system[-1].system_type == "surface"
     # Bulk system
-    assert bulk.section_run[0].section_system[0].system_type == "bulk"
+    assert bulk.section_run[0].section_system[-1].system_type == "bulk"
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):

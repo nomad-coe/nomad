@@ -963,7 +963,7 @@ class section_method(public.section_method):
 
     gw_frequency_number = Quantity(
         type=np.dtype(np.int32),
-        shape=[],
+        shape=['gw_number_of_frequencies'],
         description='''
         Number referring to the frequency used in the calculation of the self energy.
         ''',
@@ -971,7 +971,7 @@ class section_method(public.section_method):
 
     gw_frequency_values = Quantity(
         type=np.dtype(np.float64),
-        shape=[],
+        shape=['gw_number_of_frequencies'],
         unit='joule',
         description='''
         Values of the frequency used in the calculation of the self energy.
@@ -980,7 +980,7 @@ class section_method(public.section_method):
 
     gw_frequency_weights = Quantity(
         type=np.dtype(np.float64),
-        shape=[],
+        shape=['gw_number_of_frequencies'],
         description='''
         Weights of the frequency used in the calculation of the self energy.
         ''',
