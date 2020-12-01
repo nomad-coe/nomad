@@ -193,14 +193,23 @@ class OptimadeEntry(MSection):
     dimension_types = Quantity(
         type=int, shape=[3], default=[0, 0, 0],
         links=optimade_links('h.6.2.8'),
-        a_search=Search(value=lambda a: sum(a.dimension_types), mapping=Integer()),
-        a_optimade=Optimade(query=True, entry=True, sortable=False, type='list'),
+        a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'),
         description='''
             List of three integers. For each of the three directions indicated by the three lattice
             vectors (see property lattice_vectors). This list indicates if the direction is
             periodic (value 1) or non-periodic (value 0). Note: the elements in this list each
             refer to the direction of the corresponding entry in lattice_vectors and not
             the Cartesian x, y, z directions.
+        ''')
+
+    nperiodic_dimensions = Quantity(
+        type=int, derived=lambda a: sum(a.dimension_types),
+        links=optimade_links('h.6.2.8'),
+        a_search=Search(mapping=Integer()),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='integer'),
+        description='''
+            An integer specifying the number of periodic dimensions in the structure, equivalent
+            to the number of non-zero entries in dimension_types.
         ''')
 
     lattice_vectors = Quantity(
@@ -240,7 +249,7 @@ class OptimadeEntry(MSection):
     # TODO assemblies
 
     structure_features = Quantity(
-        type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
+        type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'], default=[],
         links=optimade_links('h.6.2.15'),
         a_search=Search(),
         a_optimade=Optimade(query=True, entry=True, sortable=False, type='list'), description='''

@@ -20,6 +20,7 @@ from typing import Any, Dict
 import numpy as np
 import re
 import ase.data
+import ase.formula
 from string import ascii_uppercase
 import pint.quantity
 
@@ -29,6 +30,24 @@ from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
 from nomad.datamodel.metainfo.public import section_system
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
+
+
+def optimade_chemical_formula_reduced(formula: str):
+    if formula is None:
+        return formula
+
+    try:
+        ase_formula = ase.formula.Formula(formula).count()
+        result_formula = ''
+        for element in sorted(ase_formula.keys()):
+            result_formula += element
+            element_count = ase_formula[element]
+            if element_count > 1:
+                result_formula += str(element_count)
+
+        return result_formula
+    except Exception:
+        return formula
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
@@ -92,7 +111,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             for element in optimade.elements]
 
         # formulas
-        optimade.chemical_formula_reduced = get_value(section_system.chemical_composition_reduced)
+        optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(
+            get_value(section_system.chemical_composition_reduced))
         optimade.chemical_formula_hill = get_value(section_system.chemical_composition_bulk_reduced)
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
         optimade.chemical_formula_anonymous = ''
