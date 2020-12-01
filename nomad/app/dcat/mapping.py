@@ -26,6 +26,13 @@ from .api import url
 VCARD = Namespace('http://www.w3.org/2006/vcard/ns#')
 
 
+def get_optional_entry_prop(entry, name):
+    try:
+        return entry[name]
+    except KeyError:
+        return 'unavailable'
+
+
 class Mapping():
     def __init__(self):
         self.g = Graph()
@@ -51,8 +58,8 @@ class Mapping():
         self.g.add((dataset, DCT.modified, Literal(entry.last_processing)))
         self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
             config.gui_url(), entry.upload_id, entry.calc_id))))
-        self.g.add((dataset, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula)))
-        self.g.add((dataset, DCT.description, Literal('unavailable' if entry.comment is None else entry.comment)))
+        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'formula'))))
+        self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
         self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
@@ -128,7 +135,7 @@ class Mapping():
             # Distribution as JSON
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_json')))
+            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_json')))
             self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
             self.g.add((dist, DCAT.downloadURL, URIRef(
@@ -139,7 +146,7 @@ class Mapping():
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_raw')))
+            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_raw')))
             self.g.add((dist, DCAT.accessURL, URIRef('https://nomad-lab.eu/prod/rae/api/raw/calc/%s/%s' % (
                 entry.upload_id, entry.calc_id))))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
