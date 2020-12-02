@@ -14,7 +14,7 @@ pip install nomad-lab
 
 We prepared an example parser project that you can work with.
 ```sh
-git clone ... --branch hello-word
+git clone https://github.com/nomad-coe/nomad-parser-example.git --branch hello-world
 ```
 
 Alternatively, you can fork the example project on GitHub to create your own parser. Clone
