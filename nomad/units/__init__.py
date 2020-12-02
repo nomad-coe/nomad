@@ -19,4 +19,4 @@
 import os
 from pint import UnitRegistry
 
-ureg = UnitRegistry(os.path.join(os.path.dirname(__file__), "default_en.txt"))
+ureg = UnitRegistry(os.path.join(os.path.dirname(__file__), 'default_en.txt'))

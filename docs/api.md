@@ -1,4 +1,4 @@
-# API Tutorials
+# How to use the APIs
 
 The NOMAD Repository and Archive offers all its functionality through an application
 programming interface (API). More specifically a [RESTful HTTP API](https://en.wikipedia.org/wiki/Representational_state_transfer) that allows you

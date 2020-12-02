@@ -1,5 +1,5 @@
-NOMAD Python package and CLI
------------------------------------------------------
+NOMAD's Python library
+----------------------
 The :code:`nomad` python package comes with a command line interface (CLI) that
 can be accessed after installation by simply running the :code:`nomad` command
 in your terminal. The CLI provides a hiearchy of commands by using the `click

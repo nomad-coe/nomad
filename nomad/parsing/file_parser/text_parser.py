@@ -406,8 +406,8 @@ class UnstructuredTextFileParser(FileParser):
 
                 self._results[quantities[i].name] = value_processed
 
-            except Exception:
-                self.logger.warn('Error setting value for %s ' % quantities[i].name)
+            except Exception as e:
+                self.logger.warn('Error setting value for %s ' % quantities[i].name, exc_info=e)
                 pass
 
     def _parse_quantity(self, quantity):

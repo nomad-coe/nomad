@@ -1,5 +1,5 @@
-Operating NOMAD/OASIS
-#####################
+Operating NOMAD
+###############
 
 .. toctree::
    :maxdepth: 2
@@ -7,4 +7,3 @@ Operating NOMAD/OASIS
    depl_docker.rst
    depl_helm.rst
    depl_images.rst
-   oasis.rst

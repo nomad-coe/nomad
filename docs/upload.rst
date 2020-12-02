@@ -1,6 +1,6 @@
-======================================
-Uploading Data to the NOMAD Repository
-======================================
+==================
+How to upload data
+==================
 
 To contribute your data to the repository, please, login to our `upload page <../gui/uploads>`_
 (you need to register first, if you do not have a NOMAD account yet).

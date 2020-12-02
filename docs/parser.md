@@ -1,25 +1,351 @@
 # How to write a parser
 
-## The parser project
+NOMAD uses parsers to convert raw code input and output files into NOMAD's common
+Archive format. This is documentation on how to develop such a parser.
 
-First copy an existing parser project as a template. E.g. the vasp parser. Change
-the parser metadata in ``setup.py``. You can already install it with ``-e``: from
-the main dir of the new parser:
+## Getting started
 
+Let's assume we need to write a new parser from scratch.
+
+First we need the install *nomad-lab* Python package to get the necessary libraries:
 ```
-pip install -e .
+pip install nomad-lab
 ```
+
+We prepared an example parser project that you can work with.
+```
+git clone ... --branch hello-word
+```
+
+Alternatively, you can fork the example project on GitHub to create your own parser. Clone
+your fork accordingly.
 
 The project structure should be
 ```
-myparser/myparser/__init__.py
-myparser/test/example_file.out
-myparser/LICENSE.txt
-myparser/README.txt
-myparser/setup.py
+example/exampleparser/__init__.py
+example/exampleparser/__main__.py
+example/exampleparser/metainfo.py
+example/exampleparser/parser.py
+example/LICENSE.txt
+example/README.md
+example/setup.py
 ```
 
-## Basic skeleton
+Next you should install your new parser with pip. The `-e` parameter installs the parser
+in *development*. This means you can change the sources without the need to re-install.
+```
+cd example
+pip install -e .
+```
+
+The main code file `exampleparser/parser.py` should look like this:
+```python
+class ExampleParser(FairdiParser):
+    def __init__(self):
+        super().__init__(name='parsers/example', code_name='EXAMPLE')
+
+    def run(self, mainfile: str, archive: EntryArchive, logger):
+        # Log a hello world, just to get us started. TODO remove from an actual parser.
+        logger.info('Hello World')
+
+        run = archive.m_create(Run)
+        run.program_name = 'EXAMPLE'
+```
+
+A parser is a simple program with a single class in it. The base class `FairdiParser`
+provides the necessary interface to NOMAD. We provide some basic information
+about our parser in the constructor. The *main* function `run` simply takes a filepath
+and empty archive as input. Now its up to you, to open the given file and populate the
+given archive accordingly. In the plain *hello world*, we simple create a log entry and
+populate the archive with a *root section* `Run` and set the program name to `EXAMPLE`.
+
+You can run the parser with the included `__main__.py`. It takes a file as argument and
+you can run it like this:
+```
+python -m exampleparser test/data/example.out
+```
+
+The output should show the log entry and the minimal archive with one `section_run` and
+the respective `program_name`.
+```
+INFO     root                 2020-12-02T11:00:52 Hello World
+  - nomad.release: devel
+  - nomad.service: unknown nomad service
+{
+  "section_run": [
+    {
+      "program_name": "EXAMPLE"
+    }
+  ]
+}
+```
+
+## Parsing test files
+
+Let's do some actual parsing. Here we demonstrate how to parse ASCII files with some
+structure information in it. As it is typically used by materials science codes.
+
+The on the `master` branch of the example project, we have a more 'realistic' example:
+```
+git checkout master
+```
+
+This example imagines a potential code output that looks like this (`tests/data/example.out`):
+```
+2020/05/15
+               *** super_code v2 ***
+
+system 1
+--------
+sites: H(1.23, 0, 0), H(-1.23, 0, 0), O(0, 0.33, 0)
+latice: (0, 0, 0), (1, 0, 0), (1, 1, 0)
+energy: 1.29372
+
+*** This was done with magic source                                ***
+***                                x°42                            ***
+
+
+system 2
+--------
+sites: H(1.23, 0, 0), H(-1.23, 0, 0), O(0, 0.33, 0)
+cell: (0, 0, 0), (1, 0, 0), (1, 1, 0)
+energy: 1.29372
+```
+
+There is some general information at the top and then a list of simulated systems with
+sites and lattice describing crystal structures, a computed energy value, an example for
+a code specific quantity from a 'magic source'.
+
+In order to convert the information  from this file into the archive, we first have to
+parse the necessary quantities: the date, system, energy, etc. The *nomad-lab* Python
+package provides a `text_parser` module for declarative text file parsing. You can
+define text file parsers like this:
+```python
+def str_to_sites(string):
+    sym, pos = string.split('(')
+    pos = np.array(pos.split(')')[0].split(',')[:3], dtype=float)
+    return sym, pos
+
+
+calculation_parser = UnstructuredTextFileParser(quantities=[
+    Quantity('sites', r'([A-Z]\([\d\.\, \-]+\))', str_operation=str_to_sites),
+    Quantity(
+        System.lattice_vectors,
+        r'(?:latice|cell): \((\d)\, (\d), (\d)\)\,?\s*\((\d)\, (\d), (\d)\)\,?\s*\((\d)\, (\d), (\d)\)\,?\s*',
+        repeats=False),
+    Quantity('energy', r'energy: (\d\.\d+)'),
+    Quantity('magic_source', r'done with magic source\s*\*{3}\s*\*{3}\s*[^\d]*(\d+)', repeats=False)])
+
+mainfile_parser = UnstructuredTextFileParser(quantities=[
+    Quantity('date', r'(\d\d\d\d\/\d\d\/\d\d)', repeats=False),
+    Quantity('program_version', r'super\_code\s*v(\d+)\s*', repeats=False),
+    Quantity(
+        'calculation', r'\s*system \d+([\s\S]+?energy: [\d\.]+)([\s\S]+\*\*\*)*',
+        sub_parser=calculation_parser,
+        repeats=True)
+])
+```
+
+The quantities to be parsed can be specified as a list of `Quantity` objects with a name
+and a *regular expression* (re) pattern. The matched value should be enclosed in a group(s)
+denoted by `(...)`.
+By default, the parser uses the findall method of `re`, hence overlap
+between matches is not tolerated. If overlap cannot be avoided, one should switch to the
+finditer method by passing *findall=False* to the parser. Multiple
+matches for the quantity are returned if *repeats=True* (default). The name, data type,
+shape and unit for the quantity can also intialized by passing a metainfo Quantity.
+An external function *str_operation* can be also be passed to perform more specific
+string operations on the matched value. A local parsing on a matched block can be carried
+out by nesting a *sub_parser*. This is also an instance of the `UnstructuredTextFileParser`
+with a list of quantities to parse. To access a parsed quantity, one can use the *get*
+method.
+
+We can apply these parser definitions like this:
+```
+mainfile_parser.mainfile = mainfile
+mainfile_parser.parse()
+```
+
+This will populate the `mainfile_parser` object with parsed data and it can be accessed
+like a Python dict with quantity names as keys:
+```python
+run = archive.m_create(Run)
+run.program_name = 'super_code'
+run.program_version = str(mainfile_parser.get('program_version'))
+date = datetime.datetime.strptime(
+    mainfile_parser.get('date'),
+    '%Y/%m/%d') - datetime.datetime(1970, 1, 1)
+run.program_compilation_datetime = date.total_seconds()
+
+for calculation in mainfile_parser.get('calculation'):
+    system = run.m_create(System)
+
+    system.lattice_vectors = calculation.get('lattice_vectors')
+    sites = calculation.get('sites')
+    system.atom_labels = [site[0] for site in sites]
+    system.atom_positions = [site[1] for site in sites]
+
+    scc = run.m_create(SCC)
+    scc.single_configuration_calculation_to_system_ref = system
+    scc.energy_total = calculation.get('energy') * units.eV
+    scc.single_configuration_calculation_to_system_ref = system
+    magic_source = calculation.get('magic_source')
+    if magic_source is not None:
+        scc.x_example_magic_value = magic_source
+```
+
+You can still run the parse on the given example file:
+```
+python -m exampleparser test/data/example.out
+```
+
+Now you should get a more comprehensive archive with all the provided information from
+the `example.out` file.
+
+** TODO more examples an explanations for: unit conversion, logging, types, scalar, vectors,
+multi-line matrices **
+
+## Extending the Metainfo
+The NOMAD Metainfo defines the schema of each archive. There are pre-defined schemas for
+all domains (e.g. `common_dft.py` for electron-structure codes; `common_ems.py` for
+experiment data, etc.). The sections `Run`, `System`, an single configuration calculations (`SCC`)
+in the example are taken fom `common_dft.py`. While this covers most data that is usually
+provide in code input/output files, some data is typically format specific and only applies
+to a certain code or method. For these cases, we allow to extend the Metainfo like
+this (`exampleparser/metainfo.py`):
+```python
+# We extend the existing common definition of a section "single configuration calculation"
+class ExampleSCC(SCC):
+    # We alter the default base class behavior to add all definitions to the existing
+    # base class instead of inheriting from the base class
+    m_def = Section(extends_base_section=True)
+
+    # We define an additional example quantity. Use the prefix x_<parsername>_ to denote
+    # non common quantities.
+    x_example_magic_value = Quantity(type=int, description='The magic value from a magic source.')
+```
+
+## Testing a parser
+
+Until now, we simply run our parse on some example data and manually observed the output.
+To improve the parser quality and ease the further development, you should get into the
+habit of testing the parser.
+
+We use the Python unit test framework *pytest*:
+```
+pip install pytest
+```
+
+A typical test, would take one example file, parse it, and make assertions about
+the output.
+```python
+def test_example():
+    parser = rExampleParser()
+    archive = EntryArchive()
+    parser.run('test/data/example.out', archive, logging)
+
+    run = archive.section_run[0]
+    assert len(run.section_system) == 2
+    assert len(run.section_single_configuration_calculation) == 2
+    assert run.section_single_configuration_calculation[0].x_example_magic_value == 42
+```
+
+You can run all tests in the `tests` directory like this:
+```
+pytest -svx tests
+```
+
+You should define individual test cases with example files that demonstrate certain
+features of the underlying code/format.
+
+## Structured data files with numpy
+**TODO: examples**
+
+The `DataTextFileParser` uses the numpy.loadtxt function to load an structured data file.
+The loaded data can be accessed from property *data*.
+
+## XML Parser
+
+**TODO: examples**
+
+The `XMLParser` uses the ElementTree module to parse an xml file. The parse method of the
+parser takes in an xpath style key to access individual quantities. By default, automatic
+data type conversion is performed, which can be switched off by setting *convert=False*.
+
+## Add the parser to NOMAD
+
+NOMAD has to manage multiple parsers and during processing needs to decide what parsers
+to run on what files. To manage parser, a few more information about parsers is necessary.
+
+Consider the example, where we use the `FairdiParser` constructor to add additional
+attributes that determine for what files the parser is indented:
+```python
+class ExampleParser(FairdiParser):
+    def __init__(self):
+        super().__init__(
+            name='parsers/example', code_name='EXAMPLE', code_homepage='https://www.example.eu/',
+            mainfile_mime_re=r'(application/.*)|(text/.*)',
+            mainfile_contents_re=(r'^\s*#\s*This is example output'))
+```
+
+- `mainfile_mime_re`: A regular expression on the mime type of files. The parser is only
+run on files with matching mime type. The mime-type is *guessed* with libmagic.
+- `mainfile_contents_re`: A regular expression that is applied to the first 4k of a file.
+The parser is only run on files where this matches.
+
+The nomad infrastructure keep a list of parser objects (in `nomad/parsing/parsers.py::parsers`).
+These parser are considered in the order they appear in the list. The first matching parser
+is used to parse a given file.
+
+While each parser project should provide its own tests, a single example file should be
+added to the infrastructure parser tests (`tests/parsing/test_parsing.py`).
+
+Once the parser is added, it become also available through the command line interface and
+normalizers are applied as well:
+```
+nomad parser test/data/example.out
+```
+
+## Developing an existing parser
+To develop an existing parser, you should install all parsers:
+```
+pip install nomad-lab[parsing]
+```
+
+Close the parser project on top:
+```
+git clone <parser-project-url>
+cd <parser-dir>
+```
+
+Either remove the installed parser and pip install the cloned version:
+```
+rm -rf <path-to-your-python-env>/lib/python3.7/site-packages/<parser-module-name>
+pip install -e .
+```
+
+Or use `PYTHONPATH` so that the cloned code takes precedence over the installed code:
+```
+PYTHONPATH=. nomad parser <path-to-example-file>
+```
+
+Alternatively, you can also do a full developer setup of the NOMAD infrastructure and
+develop the parser there.
+
+## Legacy NOMAD-CoE parsers
+During the origin NOMAD-CoE the parsing infrastructure was different. We still have
+old parsers from this time in NOMAD. The key differences are:
+
+- different inconsistent interfaces with NOMAD, mostly via `ParserInterface` or
+  `mainFunction`
+- more complex internal structure with interface, parser, and context classes
+- no direct archive access, instead a *backend* object that takes events like
+  *open-section*, *set-value*, *close-section*
+- *backend* communication follows a *streaming* metaphor; once an *event* is send, the
+  information cannot be altered anymore, the order of parsing is tight to the order of
+  information in the archive
+- close coupling between parsing and archive writing declared in `SimpleMatcher` objects
+  that cover parsing and archive population at the same time
 
 The following is an example for simple almost empty skeleton for a parser. The
 nomad@FAIRDI infrastructure will use the ``ParserInterface`` implementation to use
@@ -99,7 +425,7 @@ or if you installed your new parser in your environment
 python -m myparser test/example_file.out
 ```
 
-## Simple matcher
+### Simple matcher
 The central thing in a parser using this infrastructure is the SimpleMatcher class.
 It is used to defines objects that matches some lines of a file and extracts some values out of them.
 
@@ -180,7 +506,7 @@ of (metaInfoName: value), unit and type conversion are not applied. Can be also 
 * With *startReAction* you can provide a callback function that will get called when the *startReStr* is matched. The callback signature is startReAction(backend, groups). This callback can directly access any matched groups from the regex with argument *groups*. You can use this to e.g. format a line with datetime information into a standard form and push it directly to a corresponding metainfo, or do other more advanced tasks that are not possible e.g. with fixedStartValues.
 * Often the parsing is complex enough that you want to create an object to keep track of it and cache various flags, open files,..., to manage the various parsing that is performed. You can store this object as *superContext* of the parser.
 
-## Nomad meta-info
+### Nomad meta-info
 
 The meta-info has a central role in the parsing.
 It represents the conceptual model of the extracted data, every piece of information
@@ -235,7 +561,7 @@ that one wants to use for interpolation. Currently there are no methods to answe
 and one simply has to build the datasets himself (often with scripts) to be sure that the
 calculations are really consistent.
 
-## What to parse
+### What to parse
 
 You should try to parse all input parameters and all lines of the output.
 
@@ -245,7 +571,7 @@ But the other point, that is just as important is to be able of detecting when a
 fails and needs improvement. This is the only way to keep the parser up to date with
 respect to the data that is in the repository.
 
-## Unit conversion
+### Unit conversion
 
 The code independent meta info should use SI units, codes typically do not.
 As shown in the examples matchers can convert automatically the value matched by the
@@ -282,14 +608,14 @@ register_userdefined_quantity("usrMyCodeLength", "angstrom")
 this call *needs* to be done before any use of that unit. The unit can then be used just
 like all others: add __usrMyCodeLength to the group name.
 
-## Backend
+### Backend
 The backend is an object can stores parsed data according to its meta-info. The
 class :py:class:`nomad.parsing.Backend` provides the basic backend interface.
 It allows to open and close sections, add values, arrays, and values to arrays.
 In NOMAD-coe multiple backend implementations existed to facilitate the communication of
 python parsers with the scala infrastructure, including caching and streaming.
 
-## Triggers
+### Triggers
 
 When a section is closed a function can be called with the backend, gIndex and the section
 object (that might have cached values). This is useful to perform transformations on
@@ -305,14 +631,14 @@ def onClose_section_scf_iteration(self, backend, gIndex, section):
 
 defines a trigger called every time an scf iteration section is closed.
 
-## Logging
+### Logging
 You can use the standard python logging module in parsers. Be aware that all logging
 is stored in a database for analysis. Do not abuse the logging.
 
-## Testing and Debugging
+### Testing and Debugging
 You a writing a python program. You know what to do.
 
-## Adding the parser to nomad@FAIRDI
+### Adding the parser to nomad@FAIRDI
 
 First, you add your parser to the dependencies. Put it into the dependencies folder, then:
 ```
@@ -342,71 +668,3 @@ parser_examples = [
     ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
 ]
 ```
-
-## FAIRDI parsers
-The new fairdi parsers avoid the use of a backend and instead make use of the new metainfo
-sections. The project structure is the same as above with the addition of a `metainfo`
-folder
-
-```
-myparser/myparser/metainfo
-```
-This contains a file containing the definitions and an `__init__.py`. One should refer
-to `nomad.metainfo.example.py` for a guide in writing the metainfo definitions.
-Consequently, the parser class implementation is modified as in the following example.
-
-```python
-import json
-
-from .metainfo import m_env
-from nomad.parsing.parser import MatchingParser
-from nomad.datamodel.metainfo.common_experimental import section_experiment as msection_experiment
-from nomad.datamodel.metainfo.common_experimental import section_data as msection_data
-from nomad.datamodel.metainfo.general_experimental_method import section_method as msection_method
-from nomad.datamodel.metainfo.general_experimental_sample import section_sample as msection_sample
-
-
-class ExampleParser(MatchingParser):
-    def __init__(self):
-        super().__init__(
-            name='parsers/example', code_name='example', code_homepage='https://github.com/example/example',
-            domain='ems', mainfile_mime_re=r'(application/json)|(text/.*)', mainfile_name_re=(r'.*.example')
-        )
-
-    def run(self, filepath, logger=None):
-        self._metainfo_env = m_env
-
-        with open(filepath, 'rt') as f:
-            data = json.load(f)
-
-        section_experiment = msection_experiment()
-
-        # Read general tool environment details
-        section_experiment.experiment_location = data.get('experiment_location')
-        section_experiment.experiment_facility_institution = data.get('experiment_facility_institution')
-
-        # Read data parameters
-        section_data = section_experiment.m_create(msection_data)
-        section_data.data_repository_name = data.get('data_repository_name')
-        section_data.data_preview_url = data.get('data_repository_url')
-
-        # Read parameters related to method
-        section_method = section_experiment.m_create(msection_method)
-        section_method.experiment_method_name = data.get('experiment_method')
-        section_method.probing_method = 'electric pulsing'
-
-        # Read parameters related to sample
-        section_sample = section_experiment.m_create(msection_sample)
-        section_sample.sample_description = data.get('specimen_description')
-        section_sample.sample_microstructure = data.get('specimen_microstructure')
-        section_sample.sample_constituents = data.get('specimen_constitution')
-
-        return section_experiment
-```
-The parser extends the ``MatchingParser`` class which already implements the determination
-of the necessary file for parsing. The main difference to the old framework is the absense
-the opening and closing of sections. One only needs to create a section which can be
-accessed at any point in the code. The ``run`` method should return the root section.
-
-Lastly, one should add an instance of the parser class in the list of parsers at
-``nomad.parsing``.

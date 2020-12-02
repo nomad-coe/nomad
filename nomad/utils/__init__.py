@@ -59,6 +59,7 @@ default_hash_len = 28
 try:
     from . import structlogging
     from .structlogging import legacy_logger
+    from .structlogging import configure_logging
 
     def get_logger(name, **kwargs):
         '''
@@ -70,6 +71,10 @@ try:
 except ImportError:
     def get_logger(name, **kwargs):
         return ClassicLogger(name, **kwargs)
+
+    def configure_logging(console_log_level=config.console_log_level):
+        import logging
+        logging.basicConfig(level=console_log_level)
 
 
 class ClassicLogger:

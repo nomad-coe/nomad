@@ -1,4 +1,4 @@
-# Operating a NOMAD OASIS
+# Operating an OASIS
 
 The following describes the simplest way to run your own NOMAD.
 
@@ -9,7 +9,7 @@ However, the NOMAD software is Open-Source, and everybody can run it. Any servic
 uses NOMAD software independently is called a *NOMAD OASIS*.
 
 While several use cases require different setups, this documentation
-describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for 
+describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for
 local research data management, while using NOMAD's central user-management and its users.
 
 ## Pre-requisites

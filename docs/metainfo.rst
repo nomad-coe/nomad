@@ -1,7 +1,7 @@
 .. _metainfo-label:
 
-NOMAD Metainfo
-==============
+Data schema (Metainfo)
+======================
 
 Introduction
 ------------
