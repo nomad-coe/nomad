@@ -74,6 +74,7 @@ class Species(MSection):
             - a valid chemical-element name, or
             - the special value "X" to represent a non-chemical element, or
             - the special value "vacancy" to represent that this site has a non-zero probability
+
             of having a vacancy (the respective probability is indicated in the concentration
             list, see below).
 
@@ -250,6 +251,7 @@ class OptimadeEntry(MSection):
             - unknown_positions: This flag MUST be present if at least one component of the
             cartesian_site_positions list of lists has value null.
             - assemblies: This flag MUST be present if the assemblies list is present.
+
         ''')
 
     species = SubSection(sub_section=Species.m_def, repeats=True)

@@ -431,6 +431,7 @@ class StagingUploadFiles(UploadFiles):
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
         This is potentially a long running operation.
+
         Arguments:
             upload: The upload with all calcs and  calculation metadata of the upload
                 used to determine what files to pack and what the embargo situation is.
@@ -706,7 +707,9 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
     def pack(self, entries: Iterable[datamodel.EntryMetadata], *args, **kwargs) -> None:
-        ''' Packs only the archive contents and stores it in the existing public upload files. '''
+        '''
+        Packs only the archive contents and stores it in the existing public upload files.
+        '''
         super().pack(entries, target_dir=self.public_upload_files, skip_raw=True)
 
 

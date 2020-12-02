@@ -38,7 +38,7 @@ Let's say you want to see the repository metadata (i.e. the information that you
 our gui) for entries that fit search criteria, like compounds having atoms *Si* and *O* in
 it:
 
-```
+```sh
 curl -X GET "http://nomad-lab.eu/prod/rae/api/repo/?atoms=Si&atoms=O"
 ```
 
@@ -46,7 +46,7 @@ Here we used curl to send an HTTP GET request to return the resource located by 
 In practice you can omit the `-X GET` (which is the default) and you might want to format
 the output:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/repo/?atoms=Si&atoms=O" | python -m json.tool
 ```
 
@@ -68,21 +68,21 @@ Similar functionality is offered to download archive or raw data. Let's say you 
 identified an entry (given via a `upload_id`/`calc_id`, see the query output), and
 you want to download it:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/*" -o download.zip
 ```
 
 With `*` you basically requests all the files under an entry or path..
 If you need a specific file (that you already know) of that calculation:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/raw/calc/JvdvikbhQp673R4ucwQgiA/k-ckeQ73sflE6GDA80L132VCWp1z/INFO.OUT"
 ```
 
 You can also download a specific file from the upload (given a `upload_id`), if you know
 the path of that file:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/raw/JvdvikbhQp673R4ucwQgiA/exciting_basis_set_error_study/monomers_expanded_k8_rgkmax_080_PBE/72_Hf/INFO.OUT"
 ```
 
@@ -90,27 +90,27 @@ If you have a query
 that is more selective, you can also download all results. Here all compounds that only
 consist of Si, O, bulk material simulations of cubic systems (currently ~100 entries):
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/raw/query?only_atoms=Si&only_atoms=O&system=bulk&crystal_system=cubic" -o download.zip
 ```
 
 Here are a few more examples for downloading the raw data of based on DOI or dataset.
 You will have to encode non URL safe characters in potential dataset names (e.g. with a service like [www.urlencoder.org](https://www.urlencoder.org/)):
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/raw/query?datasets.doi=10.17172/NOMAD/2020.03.18-1" -o download.zip
 curl "http://nomad-lab.eu/prod/rae/api/raw/query?dataset=Full%20ahnarmonic%20stAViC%20approach%3A%20Silicon%20and%20SrTiO3" -o download.zip
 ```
 
 In a similar way you can see the archive of an entry:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/archive/f0KQE2aiSz2KRE47QtoZtw/6xe9fZ9xoxBYZOq5lTt8JMgPa3gX" | python -m json.tool
 ```
 
 Or query and display the first page of 10 archives:
 
-```
+```sh
 curl "http://nomad-lab.eu/prod/rae/api/archive/query?only_atoms=Si&only_atoms=O" | python -m json.tool
 ```
 
@@ -164,7 +164,7 @@ Optionally, if you need to access your private data, the package *python-keycloa
 required to conveniently acquire the necessary tokens to authenticate your self towards
 NOMAD.
 
-```
+```sh
 pip install bravado
 pip install python-keycloak
 ```
@@ -386,20 +386,20 @@ The shell tool *curl* can be used to call most API endpoints. Most endpoints for
 or downloading data are only **GET** operations controlled by URL parameters. For example:
 
 Downloading data:
-```
+```sh
 curl http://nomad-lab.eu/prod/rae/api/raw/query?upload_id=<your_upload_id> -o download.zip
 ```
 
 It is a litle bit trickier, if you need to authenticate yourself, e.g. to download
 not yet published or embargoed data. All endpoints support and most require the use of
 an access token. To acquire an access token from our usermanagement system with curl:
-```
+```sh
 curl --data 'grant_type=password&client_id=nomad_public&username=<your_username>&password=<your password>' \
     https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
 ```
 
 You can use the access-token with:
-```
+```sh
 curl -H 'Authorization: Bearer <you_access_token>' \
     http://nomad-lab.eu/prod/rae/api/raw/query?upload_id=<your_upload_id> -o download.zip
 ```

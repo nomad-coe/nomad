@@ -11,7 +11,7 @@ are up and running and both have access to the underlying file storage, part of
 which is mounted inside each container under :code:`.volumes/fs`.
 
 With both the source and target deployment running, you can use the
-:code::ref:`cli_ref:mirror` command to transfer the data from source to target. The
+:ref:`cli_ref:mirror` command to transfer the data from source to target. The
 mirror will copy everything: i.e. the raw data, archive data and associated
 metadata in the database.
 

@@ -625,7 +625,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     .. automethod:: m_get_sub_sections
     .. automethod:: m_create
     .. automethod:: m_add_sub_section
-    .. automethod:: m_remove_subsection
+    .. automethod:: m_remove_sub_section
 
     There are some specific attributes for section instances that are sub-sections of
     another section. While sub-sections are directly accessible from the containing
@@ -1732,11 +1732,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 search. See https://jmespath.org/ for complete description.
 
         .. code-block:: python
-        metainfo_section.m_xpath('code_name')
-        metainfo_section.m_xpath('systems[-1].system_type')
-        metainfo_section.m_xpath('sccs[0].system.atom_labels')
-        metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
-        metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
+
+            metainfo_section.m_xpath('code_name')
+            metainfo_section.m_xpath('systems[-1].system_type')
+            metainfo_section.m_xpath('sccs[0].system.atom_labels')
+            metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
+            metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
+
         '''
         def to_dict(entries):
             if not isinstance(entries, list):
@@ -1946,7 +1948,7 @@ class Quantity(Property):
         unit:
             The physics unit for this quantity. It is optional.
 
-            Units are represented with the pint_ Python package. Pint defines units and
+            Units are represented with the Pint Python package. Pint defines units and
             their algebra. You can either use *pint* units directly, e.g. ``units.m / units.s``.
             The metainfo provides a preconfigured *pint* unit registry :py:data:`ureg`.
             You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or

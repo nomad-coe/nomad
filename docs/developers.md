@@ -1,55 +1,17 @@
 # Developing NOMAD
 
-## Introduction
-The nomad infrastructure consists of a series of nomad and 3rd party services:
-- nomad worker (python): task worker that will do the processing
-- nomad app (python): the nomad app and it's REST APIs
-- nomad gui: a small server serving the web-based react gui
-- proxy: an nginx server that reverse proxyies all services under one port
-- elastic search: nomad's search and analytics engine
-- mongodb: used to store processing state
-- rabbitmq: a task queue used to distribute work in a cluster
-
-All 3rd party services should be run via *docker-compose* (see below). The
-nomad python  services can be run with python to develop them.
-The gui can be run with a development server via yarn.
-
-Below you will find information on how to install all python dependencies and code
-manually. How to use *docker*/*docker-compose*. How run 3rd-party services with *docker-compose*.
-
-Keep in mind the *docker-compose* configures all services in a way that mirror
-the configuration of the python code in `nomad/config.py` and the gui config in
-`gui/.env.development`.
-
-To learn about how to run everything in docker, e.g. to operate a NOMAD OASIS in
-production, go (here)(/app/docs/ops.html).
-
 ## Getting started
 
-### Cloning and development tools
-If not already done, you should clone nomad and create a python virtual environment.
-
-To clone the repository:
+### Clone the sources
+If not already done, you should clone nomad. To clone the main NOMAD repository:
 ```
-git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git
-cd nomad-FAIR
+git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git nomad
+cd nomad
 ```
 
-### C libs
+### Prepare your Python environment
 
-Even though the NOMAD infrastructure is written in python, there is a C library
-required by one of our python dependencies.
-
-#### libmagic
-
-Libmagic allows to determine the MIME type of files. It should be installed on most
-unix/linux systems. It can be installed on MacOS with homebrew:
-
-```
-brew install libmagic
-```
-
-### Virtual environment
+You work in a Python virtual environment.
 
 #### pyenv
 The nomad code currently targets python 3.7. If you host machine has an older version installed,
@@ -67,43 +29,50 @@ virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
 
-#### Conda
+#### conda
 If you are a conda user, there is an equivalent, but you have to install pip and the
 right python version while creating the environment.
-```
+```sh
 conda create --name nomad_env pip python=3.7
 conda activate nomad_env
 ```
 
 To install libmagick for conda, you can use (other channels might also work):
-```
+```sh
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
 #### pip
 Make sure you have the most recent version of pip:
-```
+```sh
 pip install --upgrade pip
 ```
 
 
-The next steps can be done using the `setup.sh` script. If you prefer to understand all
-the steps and run them manually, read on:
+#### Missing system libraries (e.g. on MacOS)
 
+Even though the NOMAD infrastructure is written in python, there is a C library
+required by one of our python dependencies. Libmagic is missing on some systems.
+Libmagic allows to determine the MIME type of files. It should be installed on most
+unix/linux systems. It can be installed on MacOS with homebrew:
 
-### Install NOMAD-coe dependencies.
+```sh
+brew install libmagic
+```
+
+### Install sub-modules.
 Nomad is based on python modules from the NOMAD-coe project.
 This includes parsers, python-common and the meta-info. These modules are maintained as
 their own GITLab/git repositories. To clone and initialize them run:
 
-```
+```sh
 git submodule update --init
 ```
 
 All requirements for these submodules need to be installed and they need to be installed
 themselves as python modules. Run the `dependencies.sh` script that will install
 everything into your virtual environment:
-```
+```sh
 ./dependencies.sh -e
 ```
 
@@ -112,19 +81,19 @@ to change the downloaded dependency code without having to reinstall after.
 
 ### Install nomad
 Finally, you can add nomad to the environment itself (including all extras)
-```
+```sh
 pip install -e .[all]
 ```
 
 If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
 
-```
+```sh
 pip install -e .[all] --prefer-binary
 ```
 
 ### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
-```
+```sh
 nomad dev metainfo > gui/src/metainfo.json
 nomad dev searchQuantities > gui/src/searchQuantities.json
 nomad dev units > gui/src/units.js
@@ -136,92 +105,53 @@ the tests. See below.
 
 ## Running the infrastructure
 
-### Docker and nomad
-Nomad depends on a set of databases, search engines, and other services. Those
-must run to make use of nomad. We use *docker* and *docker-compose* to create a
-unified environment that is easy to build and to run.
+To run NOMAD, some 3-rd party services are neeed
+- elastic search: nomad's search and analytics engine
+- mongodb: used to store processing state
+- rabbitmq: a task queue used to distribute work in a cluster
 
-You can use *docker* to run all necessary 3rd-party components and run all nomad
-services manually from your python environment. You can also run nomad in docker,
-but using Python is often preferred during development, since it allows
-you change things, debug, and re-run things quickly. The later one brings you
-closer to the environment that will be used to run nomad in production. For
-development we recommend to skip the next step.
+All 3rd party services should be run via *docker-compose* (see below).
+Keep in mind the *docker-compose* configures all services in a way that mirror
+the configuration of the python code in `nomad/config.py` and the gui config in
+`gui/.env.development`.
 
-### Docker images for nomad
-Nomad comprises currently two services,
-the *worker* (does the actual processing), and the *app*. Those services can be
-run from one image that have the nomad python code and all dependencies installed. This
-is covered by the `Dockerfile` in the root directory
-of the nomad sources. The gui is served also served from the *app* which entails the react-js frontend code.
-
-Before building the image, make sure to execute
-```
-./gitinfo.sh
-```
-This allows the app to present some information about the current git revision without
-having to copy the git itself to the docker build context.
-
-### Run necessary 3-rd party services with docker-compose
-
-You can run all containers with:
-```
+You can run all services with:
+```sh
 cd ops/docker-compose/infrastructure
-docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d mongo elastic rabbitmq
+docker-compose up -d mongo elastic rabbitmq
 ```
 
 To shut down everything, just `ctrl-c` the running output. If you started everything
 in *deamon* mode (`-d`) use:
-```
+```sh
 docker-compose down
 ```
 
-Usually these services only used by the nomad containers, but sometimes you also
-need to check something or do some manual steps.
-
-The *docker-compose* can be overriden with additional seetings. See documentation section on
-operating NOMAD for more details. The override `docker-compose.override.yml` will
-expose all database ports to the hostmachine and should be used in development. To use
-it run docker-compose with `-f docker-compose.yml -f docker-compose.override.yml`.
-
-### ELK (elastic stack)
-
-If you run the ELK stack (and enable logstash in nomad/config.py),
-you can reach the Kibana with [localhost:5601](http://localhost:5601).
-The index prefix for logs is `logstash-`. The ELK is only available with the
-`docker-compose.dev-elk.yml` override.
-
-### mongodb and elastic search
-
-You can access mongodb and elastic search via your preferred tools. Just make sure
-to use the right ports (see above).
+Usually these services only used by NOMAD, but sometimes you also
+need to check something or do some manual steps. You can access mongodb and elastic search
+via your preferred tools. Just make sure to use the right ports.
 
 ## Running NOMAD
 
-### API and worker
+NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
+the NOMAD cli:
 
-To simply run a worker with the installed nomad cli, do (from the root)
-```
+```sh
+nomad admin run app
 nomad admin run worker
-```
-
-To run it directly with celery, do (from the root)
-```
-celery -A nomad.processing worker -l info
-```
-
-You can also run worker and app together:
-```
 nomad admin run appworker
 ```
 
-### GUI
-When you run the gui on its own (e.g. with react dev server below), you have to have
-the API running manually also. This *inside docker* API is configured for ngingx paths
-and proxies, which are run by the gui container. But you can run the *production* gui
-in docker and the dev server gui in parallel with an API in docker.
-Either with docker, or:
+The app will run at port 8000 by default.
+
+To run the worker directly with celery, do (from the root)
+```sh
+celery -A nomad.processing worker -l info
 ```
+
+When you run the gui on its own (e.g. with react dev server below), you have to have
+the app manually also.
+```sh
 cd gui
 yarn
 yarn start
@@ -229,13 +159,12 @@ yarn start
 
 ## Running tests
 
-### additional settings and artifacts
 To run the tests some additional settings and files are necessary that are not part
 of the code base.
 
 First you need to create a `nomad.yaml` with the admin password for the user management
 system:
-```
+```yaml
 keycloak:
   password: <the-password>
 ```
@@ -245,7 +174,7 @@ be copied from `/nomad/fairdi/db/data/springer.msg` on our servers and should
 be placed at `nomad/normalizing/data/springer.msg`.
 
 Thirdly, you have to provide static files to serve the docs and NOMAD distribution:
-```
+```sh
 cd docs
 make html
 cd ..
@@ -254,24 +183,23 @@ python setup.py sdist
 cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 ```
 
-### run the necessary infrastructure
 You need to have the infrastructure partially running: elastic, rabbitmq.
 The rest should be mocked or provided by the tests. Make sure that you do no run any
 worker, as they will fight for tasks in the queue.
-```
-cd ops/docker-compose
+```sh
+cd ops/docker-compose/infrastructure
 docker-compose up -d elastic rabbitmq
 cd ../..
 pytest -svx tests
 ```
 
 We use pylint, pycodestyle, and mypy to ensure code quality. To run those:
-```
+```sh
 nomad dev qa --skip-test
 ```
 
 To run all tests and code qa:
-```
+```sh
 nomad dev qa
 ```
 
@@ -608,7 +536,7 @@ The lifecycle of a *feature* branch should look like this:
 While working on a feature, there are certain practices that will help us to create
 a clean history with coherent commits, where each commit stands on its own.
 
-```
+```sh
   git commit --amend
 ```
 
@@ -619,7 +547,7 @@ you are basically adding changes to the last commit, i.e. editing the last commi
 you push, you need to force it `git push origin feature-branch --force-with-lease`. So be careful, and
 only use this on your own branches.
 
-```
+```sh
   git rebase <version-branch>
 ```
 
@@ -633,7 +561,7 @@ more consistent history.  You can also rebase before create a merge request, bas
 allowing for no-op merges. Ideally the only real merges that we ever have, are between
 version branches.
 
-```
+```sh
   git merge --squash <other-branch>
 ```
 
@@ -659,7 +587,7 @@ you have to make sure that the modules are updated to not accidentally commit ol
 submodule commits again. Usually you do the following to check if you really have a
 clean working directory.
 
-```
+```sh
   git checkout something-with-changes
   git submodule update
   git status

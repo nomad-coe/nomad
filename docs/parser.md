@@ -8,12 +8,12 @@ Archive format. This is documentation on how to develop such a parser.
 Let's assume we need to write a new parser from scratch.
 
 First we need the install *nomad-lab* Python package to get the necessary libraries:
-```
+```sh
 pip install nomad-lab
 ```
 
 We prepared an example parser project that you can work with.
-```
+```sh
 git clone ... --branch hello-word
 ```
 
@@ -21,7 +21,7 @@ Alternatively, you can fork the example project on GitHub to create your own par
 your fork accordingly.
 
 The project structure should be
-```
+```none
 example/exampleparser/__init__.py
 example/exampleparser/__main__.py
 example/exampleparser/metainfo.py
@@ -33,7 +33,7 @@ example/setup.py
 
 Next you should install your new parser with pip. The `-e` parameter installs the parser
 in *development*. This means you can change the sources without the need to re-install.
-```
+```sh
 cd example
 pip install -e .
 ```
@@ -61,13 +61,13 @@ populate the archive with a *root section* `Run` and set the program name to `EX
 
 You can run the parser with the included `__main__.py`. It takes a file as argument and
 you can run it like this:
-```
+```sh
 python -m exampleparser test/data/example.out
 ```
 
 The output should show the log entry and the minimal archive with one `section_run` and
 the respective `program_name`.
-```
+```json
 INFO     root                 2020-12-02T11:00:52 Hello World
   - nomad.release: devel
   - nomad.service: unknown nomad service
@@ -86,12 +86,12 @@ Let's do some actual parsing. Here we demonstrate how to parse ASCII files with 
 structure information in it. As it is typically used by materials science codes.
 
 The on the `master` branch of the example project, we have a more 'realistic' example:
-```
+```sh
 git checkout master
 ```
 
 This example imagines a potential code output that looks like this (`tests/data/example.out`):
-```
+```none
 2020/05/15
                *** super_code v2 ***
 
@@ -161,7 +161,7 @@ with a list of quantities to parse. To access a parsed quantity, one can use the
 method.
 
 We can apply these parser definitions like this:
-```
+```sh
 mainfile_parser.mainfile = mainfile
 mainfile_parser.parse()
 ```
@@ -195,7 +195,7 @@ for calculation in mainfile_parser.get('calculation'):
 ```
 
 You can still run the parse on the given example file:
-```
+```sh
 python -m exampleparser test/data/example.out
 ```
 
@@ -232,7 +232,7 @@ To improve the parser quality and ease the further development, you should get i
 habit of testing the parser.
 
 We use the Python unit test framework *pytest*:
-```
+```sh
 pip install pytest
 ```
 
@@ -251,7 +251,7 @@ def test_example():
 ```
 
 You can run all tests in the `tests` directory like this:
-```
+```sh
 pytest -svx tests
 ```
 
@@ -302,30 +302,30 @@ added to the infrastructure parser tests (`tests/parsing/test_parsing.py`).
 
 Once the parser is added, it become also available through the command line interface and
 normalizers are applied as well:
-```
+```sh
 nomad parser test/data/example.out
 ```
 
 ## Developing an existing parser
 To develop an existing parser, you should install all parsers:
-```
+```sh
 pip install nomad-lab[parsing]
 ```
 
 Close the parser project on top:
-```
+```sh
 git clone <parser-project-url>
 cd <parser-dir>
 ```
 
 Either remove the installed parser and pip install the cloned version:
-```
+```sh
 rm -rf <path-to-your-python-env>/lib/python3.7/site-packages/<parser-module-name>
 pip install -e .
 ```
 
 Or use `PYTHONPATH` so that the cloned code takes precedence over the installed code:
-```
+```sh
 PYTHONPATH=. nomad parser <path-to-example-file>
 ```
 
@@ -437,7 +437,8 @@ The simplest kind of matcher looks like this
 ```
 
 
-This matcher uses a single regular expression ([regular expressions documentation](https://docs.python.org/2/library/re.html)) to match a line. An online tool to quickly verify regular expressions and to see what they match can be found [here](https://regex101.com/#python).
+This matcher uses a single regular expression ([regular expressions documentation](https://docs.python.org/2/library/re.html))
+to match a line. Here is an online tool to quickly [verify regular expressions](https://regex101.com/#python).
 
 Note the following things:
 
@@ -622,14 +623,13 @@ object (that might have cached values). This is useful to perform transformation
 the data parsed before emitting it.
 
 The simplest way to achieve this is to define methods called onClose and then the section name in the object that you pass as superContext.
-For example
 
 ```python
 def onClose_section_scf_iteration(self, backend, gIndex, section):
-   logging.getLogger("nomadcore.parsing").info("YYYY bla gIndex %d %s", gIndex, section.simpleValues)
+    logging.getLogger("nomadcore.parsing").info("YYYY bla gIndex %d %s", gIndex, section.simpleValues)
 ```
 
-defines a trigger called every time an scf iteration section is closed.
+This example defines a trigger called every time an scf iteration section is closed.
 
 ### Logging
 You can use the standard python logging module in parsers. Be aware that all logging

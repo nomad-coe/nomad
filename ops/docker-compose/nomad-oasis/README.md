@@ -225,7 +225,7 @@ You need to change:
 The GUI container serves as a proxy that forwards request to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
-```
+```none
 server {
     listen        80;
     server_name   <your-host>;
@@ -298,29 +298,29 @@ configuration options.
 If you prepared the above files, simply use the usual `docker-compose` commands to start everything.
 
 To make sure you have the latest docker images for everything run this first:
-```
+```sh
 docker-compose pull
 ```
 
 In the beginning and for debugging problems, it is recommended to start services separately:
-```
+```sh
 docker-compose up -d mongodb elastic rabbitmq
 docker-compose up app worker gui
 ```
 
 The `-d` option runs container in the background as *daemons*. Later you can run all at once:
-```
+```sh
 docker-compose up -d
 ```
 
 You can also use docker to stop and remove faulty containers that run as *daemons*:
-```
+```sh
 docker stop nomad_oasis_app
 docker rm nomad_oasis_app
 ```
 
 If everything works, the gui should be available under:
-```
+```none
 http://<your host>/nomad-oasis/gui/
 ```
 
@@ -328,7 +328,7 @@ If you run into troubles, use the dev-tools of you browser to check the javascri
 or monitor the network traffic for HTTP 500/400/404/401 responses.
 
 To see if at least the api works, check
-```
+```none
 http://<your host>/nomad-oasis/alive
 http://<your host>/nomad-oasis/api/info
 ```
@@ -336,11 +336,11 @@ http://<your host>/nomad-oasis/api/info
 To see logs or 'go into' a running container, you can access the individual containers
 with their names and the usual docker commands:
 
-```
+```sh
 docker logs nomad_oasis_app
 ```
 
-```
+```sh
 docker exec -ti nomad_oasis_app /bin/bash
 ```
 
@@ -356,7 +356,7 @@ internally in files and databases. This means you cannot simply start a new vers
 NOMAD on top of the old data. But there is a strategy to adapt the data.
 
 First, shutdown the OASIS and remove all old container.
-```
+```sh
 docker-compose stop
 docker-compose rm -f
 ```
@@ -367,7 +367,7 @@ databases and search index in your `nomad.yaml` (e.g. `nomad_v0_8`). This will
 allow us to create new data while retaining the old, i.e. to copy the old data over.
 
 Make sure you get the latest images and start the OASIS with the new version of NOMAD:
-```
+```sh
 docker-compose pull
 docker-compose up -d
 ```
@@ -381,14 +381,14 @@ all data over and then reprocess the data to create data in the new archive form
 populate the search index. The default database name in version 0.7.x installations was `nomad_fairdi`.
 Be patient.
 
-```
+```sh
 docker exec -ti nomad_oasis_app bash -c 'nomad admin migrate --mongo-db nomad_fairdi'
 ```
 
 Now all your data should appear in your OASIS again. If you like, you can remove the
 old index and database:
 
-```
+```sh
 docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
 docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
 ```
