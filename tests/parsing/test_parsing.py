@@ -187,8 +187,8 @@ class TestBackend(object):
         backend.openSection('section_method')
         backend.closeSection('section_method', -1)
 
-        from nomad.datamodel.metainfo.public import section_run
-        runs = backend.resource.all(section_run)
+        from nomad.datamodel.metainfo.common_dft import Run
+        runs = backend.resource.all(Run)
         assert len(runs) == 2
         assert len(runs[0]['section_method']) == 2
         assert len(runs[1]['section_method']) == 1
@@ -201,8 +201,8 @@ class TestBackend(object):
         backend.closeSection('section_dos', dos_index)
         backend.closeSection('section_run', run_index)
 
-        from nomad.datamodel.metainfo.public import section_run
-        runs = backend.resource.all(section_run)
+        from nomad.datamodel.metainfo.common_dft import Run
+        runs = backend.resource.all(Run)
         assert len(runs) == 1
         run = runs[0]
         assert len(run['section_single_configuration_calculation']) == 1
@@ -222,8 +222,8 @@ class TestBackend(object):
         backend.closeSection('section_dos', dos_index)
         backend.closeSection('section_run', run_index)
 
-        from nomad.datamodel.metainfo.public import section_run
-        runs = backend.resource.all(section_run)
+        from nomad.datamodel.metainfo.common_dft import Run
+        runs = backend.resource.all(Run)
         assert len(runs) == 1
         run = runs[0]
         assert len(run['section_single_configuration_calculation']) == 2
