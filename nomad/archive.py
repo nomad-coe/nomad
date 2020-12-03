@@ -893,6 +893,7 @@ def compute_required_with_referenced(required):
         if isinstance(current, str):
             return
 
+        current_updates = {}
         for key, value in current.items():
             prop = key.split('[')[0]
             prop_definition = parent.all_properties[prop]
@@ -902,13 +903,14 @@ def compute_required_with_referenced(required):
 
                 traverse(value, prop_definition.sub_section)
             if isinstance(prop_definition, Quantity) and isinstance(prop_definition.type, Reference):
-                current[prop] = '*'
+                current_updates[prop] = '*'
                 if FastAccess.m_def not in prop_definition.categories:
                     continue
 
                 target_section_def = prop_definition.type.target_section_def.m_resolved()
                 add_parent_section(target_section_def, value)
                 traverse(value, target_section_def)
+        current.update(**current_updates)
 
     try:
         traverse(dict(**required))
