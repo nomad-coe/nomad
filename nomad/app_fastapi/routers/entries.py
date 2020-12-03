@@ -316,6 +316,8 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
         # create the streaming response with zip file contents
         content = create_streamed_zipfile(raw_file_generator(), compress=files_params.compress)
         return StreamingResponse(content, media_type='application/zip')
+    except Exception as e:
+        logger.error('exception while streaming download', exc_info=e)
     finally:
         uploads.close()
 
