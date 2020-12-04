@@ -19,8 +19,10 @@
 from flask import Blueprint, request
 import os.path
 
-gui_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../../gui/build'))
+gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui'))
+configuired_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+if os.path.exists(configuired_gui_folder):
+    gui_folder = configuired_gui_folder
 blueprint = Blueprint('gui', __name__, static_url_path='/', static_folder=gui_folder)
 
 
