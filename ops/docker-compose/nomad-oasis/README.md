@@ -340,7 +340,7 @@ If you want to report problems with your OASIS. Please provide the logs for
 ### Pre-requisites
 
 We will run NOMAD from the *nomad-lab* Python package. This package contains all the necessary
-code for running the processing, api, and gui. But, it is missing the necessary databases. You might be 
+code for running the processing, api, and gui. But, it is missing the necessary databases. You might be
 able to run NOMAD in user space.
 
 You will need:
@@ -354,21 +354,27 @@ You will need:
 
 ### Install the NOMAD Python package
 
+You should install everything in a virtual environment. For example like this:
 ```sh
 virtualenv -p `which python3` nomadpyenv
 source nomadpyenv/bin/activate
 ```
 
+You can simply install the Python package from pypi:
 ```sh
 pip install nomad-lab[all]
 ```
 
+If you need the latest version, you can also download the latest package from our
+"beta" installation.
 ```sh
 curl "https://nomad-lab.eu/prod/rae/beta/dist/nomad-lab.tar.gz" -o nomad-lab.tar.gz
 pip install nomad-lab.tar.gz[all]
 ```
 
 ### Configure NOMAD - nomad.yaml
+
+The `nomad.yaml` is our central config file. You should write a `nomad.yaml` like this:
 
 ```yaml
 client:
