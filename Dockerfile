@@ -126,6 +126,7 @@ COPY --from=gui_build /encyclopedia /app/nomad/app/static/encyclopedia
 RUN rm -f /app/nomad/app/static/gui/env.js
 RUN rm -f /app/nomad/app/static/encyclopedia/conf.js
 # build the python package dist
+RUN python setup.py compile
 RUN python setup.py sdist
 RUN cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
 
