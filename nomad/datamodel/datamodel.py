@@ -239,6 +239,11 @@ class EditableUserMetadata(metainfo.MCategory):
     m_def = metainfo.Category(categories=[UserProvidableMetadata])
 
 
+class OasisMetadata(metainfo.MCategory):
+    ''' NOMAD entry metadata quantities that can be provided by an OASIS. '''
+    m_def = metainfo.Category(categories=[EditableUserMetadata])
+
+
 class MongoMetadata(metainfo.MCategory):
     ''' NOMAD entry quantities that are stored in mongodb and not necessarely in the archive. '''
     pass
@@ -305,12 +310,14 @@ class EntryMetadata(metainfo.MSection):
     upload_id = metainfo.Quantity(
         type=str,
         description='The persistent and globally unique identifier for the upload of the entry',
+        categories=[OasisMetadata],
         a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
 
     calc_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
+        categories=[OasisMetadata],
         a_search=Search(many_or='append'))
 
     calc_hash = metainfo.Quantity(
@@ -375,7 +382,7 @@ class EntryMetadata(metainfo.MSection):
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        categories=[MongoMetadata],
+        categories=[MongoMetadata, OasisMetadata],
         a_search=Search())
 
     processed = metainfo.Quantity(
@@ -478,7 +485,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search())
 
     upload_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoMetadata],
+        type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
         description='The date and time this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
         a_search=Search(order_default=True))
@@ -511,7 +518,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(many_or='split'))
 
     last_edit = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoMetadata],
+        type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
         description='The date and time the user metadata was edited last',
         a_search=Search())
 
