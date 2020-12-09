@@ -34,6 +34,7 @@ from typing import List
 import json
 import logging
 import warnings
+import zipfile
 
 from nomad import config, infrastructure, processing, app, utils
 from nomad.datamodel import EntryArchive
@@ -227,7 +228,7 @@ def test_user_uuid(handle):
 
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
-    test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1)),
+    test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1), is_oasis_admin=True),
     test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
 }
 
@@ -266,7 +267,7 @@ class KeycloakMock:
     def search_user(self, query):
         return [
             User(**test_user) for test_user in self.users.values()
-            if query in ' '.join(test_user.values())]
+            if query in ' '.join([str(value) for value in test_user.values()])]
 
     @property
     def access_token(self):
@@ -574,6 +575,39 @@ def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
 def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, str]:
     example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
     return example_upload_id, non_empty_example_upload
+
+
+@pytest.fixture(scope='function')
+def oasis_example_upload(non_empty_example_upload: str, raw_files) -> str:
+    processing.Upload.metadata_file_cached.cache_clear()
+
+    uploaded_path = non_empty_example_upload
+    uploaded_path_modified = os.path.join(
+        config.fs.tmp,
+        os.path.basename(non_empty_example_upload))
+    shutil.copyfile(uploaded_path, uploaded_path_modified)
+
+    metadata = {
+        'upload_id': 'oasis_upload_id',
+        'upload_time': '2020-01-01 00:00:00',
+        'published': True,
+        'entries': {
+            'examples_template/template.json': {
+                'calc_id': 'test_calc_id'
+            }
+        }
+    }
+
+    with zipfile.ZipFile(uploaded_path_modified, 'a') as zf:
+        with zf.open('nomad.json', 'w') as f:
+            f.write(json.dumps(metadata).encode())
+
+    return uploaded_path_modified
+
+
+@pytest.fixture(scope='function')
+def oasis_example_uploaded(oasis_example_upload: str) -> Tuple[str, str]:
+    return 'oasis_upload_id', oasis_example_upload
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

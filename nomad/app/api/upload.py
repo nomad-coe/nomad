@@ -122,7 +122,9 @@ upload_metadata_parser = api.parser()
 upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
+upload_metadata_parser.add_argument('oasis_upload_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the upload_id.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
+
 
 upload_list_parser = pagination_request_parser.copy()
 upload_list_parser.add_argument('state', type=str, help='List uploads with given state: all, unpublished, published.', location='args')
@@ -249,8 +251,23 @@ class UploadListResource(Resource):
             if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
                 abort(400, 'Limit of unpublished uploads exceeded for user.')
 
+        # check if allowed to perform oasis upload
+        oasis_upload_id = request.args.get('oasis_upload_id')
+        from_oasis = oasis_upload_id is not None
+        if from_oasis is not None:
+            if not g.user.is_oasis_admin:
+                abort(401, 'Only an oasis admin can perform an oasis upload.')
+
         upload_name = request.args.get('name')
-        upload_id = utils.create_uuid()
+        if oasis_upload_id is not None:
+            upload_id = oasis_upload_id
+            try:
+                Upload.get(upload_id)
+                abort(400, 'An oasis upload with the given upload_id already exists.')
+            except KeyError:
+                pass
+        else:
+            upload_id = utils.create_uuid()
 
         logger = common.logger.bind(upload_id=upload_id, upload_name=upload_name)
         logger.info('upload created', )
@@ -310,7 +327,8 @@ class UploadListResource(Resource):
             name=upload_name,
             upload_time=datetime.utcnow(),
             upload_path=upload_path,
-            temporary=local_path != upload_path)
+            temporary=local_path != upload_path,
+            from_oasis=from_oasis)
 
         upload.process_upload()
         logger.info('initiated processing')

@@ -1208,17 +1208,13 @@ class Upload(Proc):
                 self.upload_files.delete()
 
             if metadata is not None:
-                self.publish_time = metadata.get('publish_time')
                 self.upload_time = metadata.get('upload_time')
-
-            if self.publish_time is None:
-                self.publish_time = datetime.utcnow()
-                logger.warn('oasis upload without publish time')
 
             if self.upload_time is None:
                 self.upload_time = datetime.utcnow()
                 logger.warn('oasis upload without upload time')
 
+            self.publish_time = datetime.utcnow()
             self.published = True
             self.last_update = datetime.utcnow()
             self.save()

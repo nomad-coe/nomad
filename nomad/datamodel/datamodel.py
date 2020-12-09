@@ -106,6 +106,8 @@ class User(Author):
     is_admin = metainfo.Quantity(
         type=bool, derived=lambda user: user.user_id == config.services.admin_user_id)
 
+    is_oasis_admin = metainfo.Quantity(type=bool, default=False)
+
     @staticmethod
     @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
     def get(*args, **kwargs) -> 'User':

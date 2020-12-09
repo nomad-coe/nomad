@@ -171,11 +171,12 @@ class TestAuth:
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert len(data['users'])
-        keys = data['users'][0].keys()
+        user = data['users'][0]
+        keys = user.keys()
         required_keys = ['name', 'email', 'user_id']
         assert all(key in keys for key in required_keys)
         for key in keys:
-            assert data['users'][0].get(key) is not None
+            assert user.get(key) is not None
 
     def test_invite(self, api, test_user_auth, no_warn):
         rv = api.put(
@@ -529,6 +530,44 @@ class TestUploads:
         assert rv.status_code == 200
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
+
+    def test_post_from_oasis_admin(self, api, other_test_user_auth, oasis_example_upload, proc_infra, no_warn):
+        rv = api.put(
+            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
+            headers=other_test_user_auth)
+        assert rv.status_code == 401
+
+    def test_post_from_oasis_duplicate(self, api, test_user, test_user_auth, oasis_example_upload, proc_infra, no_warn):
+        Upload.create(upload_id='oasis_upload_id', user=test_user).save()
+        rv = api.put(
+            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
+            headers=test_user_auth)
+        assert rv.status_code == 400
+
+    def test_post_from_oasis(self, api, test_user_auth, oasis_example_upload, proc_infra, no_warn):
+        rv = api.put(
+            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
+            headers=test_user_auth)
+        assert rv.status_code == 200
+        upload = self.assert_upload(rv.data)
+        upload_id = upload['upload_id']
+        assert upload_id == 'oasis_upload_id'
+
+        # poll until completed
+        upload = self.block_until_completed(api, upload_id, test_user_auth)
+
+        assert len(upload['tasks']) == 4
+        assert upload['tasks_status'] == SUCCESS
+        assert upload['current_task'] == 'cleanup'
+        assert not upload['process_running']
+
+        upload_proc = Upload.objects(upload_id=upload_id).first()
+        assert upload_proc.published
+        assert upload_proc.from_oasis
+
+        entries = get_upload_entries_metadata(upload)
+        assert_upload_files(upload_id, entries, files.PublicUploadFiles)
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
 
 today = datetime.datetime.utcnow().date()

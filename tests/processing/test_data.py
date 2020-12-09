@@ -22,7 +22,6 @@ from datetime import datetime
 import os.path
 import re
 import shutil
-import json
 
 from nomad import utils, infrastructure, config
 from nomad.archive import read_partial_archive_from_mongo
@@ -205,33 +204,12 @@ def test_publish_failed(
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
-@pytest.mark.timeout(5)
-def test_oasis_upload_processing(proc_infra, non_empty_uploaded: Tuple[str, str], test_user):
-    Upload.metadata_file_cached.cache_clear()
-    from shutil import copyfile
-    import zipfile
-
-    uploaded_id, uploaded_path = non_empty_uploaded
-    uploaded_zipfile = os.path.join(config.fs.tmp, 'upload.zip')
-    copyfile(uploaded_path, uploaded_zipfile)
-
-    metadata = {
-        'upload_id': uploaded_id,
-        'upload_time': '2020-01-01 00:00:00',
-        'published': True,
-        'entries': {
-            'examples_template/template.json': {
-                'calc_id': 'test_calc_id'
-            }
-        }
-    }
-
-    with zipfile.ZipFile(uploaded_zipfile, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f:
-            f.write(json.dumps(metadata).encode())
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, str], test_user, no_warn):
+    uploaded_id, uploaded_path = oasis_example_uploaded
 
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_zipfile)
+        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
     upload.from_oasis = True
 
     assert upload.tasks_status == 'RUNNING'
@@ -241,8 +219,11 @@ def test_oasis_upload_processing(proc_infra, non_empty_uploaded: Tuple[str, str]
     upload.block_until_complete(interval=.01)
 
     assert upload.published
-    assert str(upload.upload_time) == metadata['upload_time']
+    assert str(upload.upload_time) == '2020-01-01 00:00:00'
     assert_processing(upload, published=True)
+    calc = Calc.objects(upload_id='oasis_upload_id').first()
+    assert calc.calc_id == 'test_calc_id'
+    assert calc.metadata['published']
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
