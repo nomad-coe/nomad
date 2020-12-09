@@ -344,7 +344,7 @@ class TestUploads:
         url = '/uploads/?token=%s&local_path=%s&name=test_upload' % (
             generate_upload_token(test_user), non_empty_example_upload)
         rv = api.put(url)
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.data
         assert 'Thanks for uploading' in rv.data.decode('utf-8')
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
@@ -544,11 +544,12 @@ class TestUploads:
             headers=test_user_auth)
         assert rv.status_code == 400
 
-    def test_post_from_oasis(self, api, test_user_auth, oasis_example_upload, proc_infra, no_warn):
-        rv = api.put(
-            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
-            headers=test_user_auth)
-        assert rv.status_code == 200
+    def test_post_from_oasis(self, api, test_user_auth, test_user, oasis_example_upload, proc_infra, no_warn):
+        rv = api.put('/uploads/?%s' % urlencode(dict(
+            local_path=oasis_example_upload,
+            oasis_upload_id='oasis_upload_id',
+            oasis_uploader=test_user.user_id)), headers=test_user_auth)
+        assert rv.status_code == 200, rv.data
         upload = self.assert_upload(rv.data)
         upload_id = upload['upload_id']
         assert upload_id == 'oasis_upload_id'

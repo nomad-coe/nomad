@@ -227,6 +227,46 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
+def test_publish_from_oasis(
+        client, proc_infra, non_empty_uploaded: Tuple[str, str], oasis_central_nomad_client,
+        monkeypatch, test_user, other_test_user, no_warn):
+
+    upload = run_processing(non_empty_uploaded, other_test_user)
+    upload.publish_upload()
+    upload.block_until_complete(interval=.01)
+
+    cn_upload_id = 'cn_' + upload.upload_id
+
+    # We need to alter the ids, because we this by uploading to the same NOMAD
+    def normalize_oasis_upload_metadata(upload_id, metadata):
+        for entry in metadata['entries'].values():
+            entry['calc_id'] = utils.create_uuid()
+        upload_id = 'cn_' + upload_id
+        return upload_id, metadata
+
+    monkeypatch.setattr(
+        'nomad.processing.data._normalize_oasis_upload_metadata',
+        normalize_oasis_upload_metadata)
+
+    def put(url, headers, data):
+        return client.put(url, headers=headers, data=data.read())
+
+    monkeypatch.setattr(
+        'requests.put', put)
+    monkeypatch.setattr(
+        'nomad.config.services.central_nomad_api_url', '/api')
+
+    upload.publish_from_oasis()
+    upload.block_until_complete()
+    assert_processing(upload, published=True)
+
+    cn_upload = Upload.objects(upload_id=cn_upload_id).first()
+    cn_upload.block_until_complete()
+    assert_processing(cn_upload, published=True)
+    assert cn_upload.user_id == other_test_user.user_id
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_warning(proc_infra, test_user, with_warn):
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')

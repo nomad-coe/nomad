@@ -31,7 +31,7 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files, search
+from nomad import config, utils, files, search, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.app import common
@@ -123,6 +123,7 @@ upload_metadata_parser.add_argument('name', type=str, help='An optional name for
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('oasis_upload_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the upload_id.', location='args')
+upload_metadata_parser.add_argument('oasis_uploader', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the uploader\' id.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 
 
@@ -253,10 +254,17 @@ class UploadListResource(Resource):
 
         # check if allowed to perform oasis upload
         oasis_upload_id = request.args.get('oasis_upload_id')
+        oasis_uploader_id = request.args.get('oasis_uploader')
+        user = g.user
         from_oasis = oasis_upload_id is not None
-        if from_oasis is not None:
+        if from_oasis:
             if not g.user.is_oasis_admin:
                 abort(401, 'Only an oasis admin can perform an oasis upload.')
+            if oasis_uploader_id is None:
+                abort(400, 'You must provide the original uploader for an oasis upload.')
+            user = datamodel.User.get(user_id=oasis_uploader_id)
+            if user is None:
+                abort(400, 'The given original uploader does not exist.')
 
         upload_name = request.args.get('name')
         if oasis_upload_id is not None:
@@ -323,7 +331,7 @@ class UploadListResource(Resource):
 
         upload = Upload.create(
             upload_id=upload_id,
-            user=g.user,
+            user=user,
             name=upload_name,
             upload_time=datetime.utcnow(),
             upload_path=upload_path,

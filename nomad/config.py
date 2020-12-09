@@ -159,7 +159,8 @@ services = NomadConfig(
     upload_limit=10,
     force_raw_file_decoding=False,
     download_scan_size=500,
-    download_scan_timeout=u'30m'
+    download_scan_timeout=u'30m',
+    central_nomad_api_url='https://nomad-lab.eu/prod/rae/api'
 )
 
 tests = NomadConfig(

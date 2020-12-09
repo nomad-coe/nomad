@@ -361,6 +361,15 @@ def test_user_bravado_client(client, test_user_auth, monkeypatch):
 
 
 @pytest.fixture(scope='function')
+def oasis_central_nomad_client(client, test_user_auth, monkeypatch):
+    def create_client(*args, **kwargs):
+        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
+        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
+
+    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)
+
+
+@pytest.fixture(scope='function')
 def no_warn(caplog):
     caplog.handler.formatter = structlogging.ConsoleFormatter()
     yield caplog
@@ -588,7 +597,6 @@ def oasis_example_upload(non_empty_example_upload: str, raw_files) -> str:
     shutil.copyfile(uploaded_path, uploaded_path_modified)
 
     metadata = {
-        'upload_id': 'oasis_upload_id',
         'upload_time': '2020-01-01 00:00:00',
         'published': True,
         'entries': {

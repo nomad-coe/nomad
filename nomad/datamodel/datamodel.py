@@ -312,7 +312,6 @@ class EntryMetadata(metainfo.MSection):
     upload_id = metainfo.Quantity(
         type=str,
         description='The persistent and globally unique identifier for the upload of the entry',
-        categories=[OasisMetadata],
         a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
 

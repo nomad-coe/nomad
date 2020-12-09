@@ -41,6 +41,8 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
 import json
 from functools import lru_cache
+import urllib.parse
+import requests
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import (
@@ -84,6 +86,11 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
+
+
+def _normalize_oasis_upload_metadata(upload_id, metadata):
+    # This is overwritten by the tests to do necessary id manipulations
+    return upload_id, metadata
 
 
 class Calc(Proc):
@@ -874,6 +881,67 @@ class Upload(Proc):
                 else:
                     self.last_update = datetime.utcnow()
                     self.save()
+
+    @process
+    def publish_from_oasis(self):
+        '''
+        Uploads the already published upload to a different NOMAD deployment. This allows
+        to push uploads from an OASIS to the central NOMAD.
+        '''
+        assert self.published, 'Only published uploads can be published to the central NOMAD.'
+
+        # TODO check if it might be there
+
+        # create a nomad.json with all necessary metadata that is not determined by
+        # processing the raw data
+        metadata = dict(
+            upload_time=str(self.upload_time))
+
+        entries = {}
+        for calc in self.calcs:
+            entry_metadata = dict(**{
+                key: str(value) if isinstance(value, datetime) else value
+                for key, value in calc.metadata.items()
+                if key in _editable_metadata or key in _oasis_metadata})
+            entry_metadata['calc_id'] = calc.calc_id
+            if entry_metadata.get('with_embargo'):
+                continue
+            entries[calc.mainfile] = entry_metadata
+        metadata['entries'] = entries
+
+        upload_id, metadata = _normalize_oasis_upload_metadata(self.upload_id, metadata)
+
+        assert len(entries) > 0, 'Only uploads with public contents can be published to the central NOMAD.'
+
+        public_upload_files = cast(PublicUploadFiles, self.upload_files)
+        public_upload_files.add_metadata_file(metadata)
+
+        # upload the file
+        from nomad.cli.client.client import _create_client as create_client
+
+        try:
+            client = create_client(
+                user=config.keycloak.username,
+                password=config.keycloak.password,
+                api_base_url=config.services.central_nomad_api_url)
+
+            oasis_admin = client.auth.get_auth().response().result
+            oasis_admin_token = oasis_admin.access_token
+            upload_url = '%s/uploads/?%s' % (
+                config.services.central_nomad_api_url,
+                urllib.parse.urlencode(dict(oasis_upload_id=upload_id, oasis_uploader=self.user_id)))
+            with open(public_upload_files.public_raw_data_file, 'rb') as f:
+                response = requests.put(
+                    upload_url, headers={'Authorization': 'Bearer %s' % oasis_admin_token},
+                    data=f)
+            if response.status_code != 200:
+                self.get_logger().error('Could not upload to central NOMAD', status_code=response.status_code)
+        except Exception as e:
+            self.get_logger().error('Could not upload to central NOMAD', exc_info=e)
+            raise e
+
+        # TODO record the publication at the other NOMAD deployment
+        pass
 
     @process
     def re_process_upload(self):

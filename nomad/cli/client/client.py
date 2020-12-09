@@ -41,6 +41,7 @@ def _create_client(*args, **kwargs):
 def __create_client(
         user: str = nomad_config.client.user,
         password: str = nomad_config.client.password,
+        api_base_url: str = nomad_config.client.url,
         ssl_verify: bool = True, use_token: bool = True):
     ''' A factory method to create the client. '''
     if not ssl_verify:
@@ -50,8 +51,7 @@ def __create_client(
     http_client = bravado_requests_client.RequestsClient(ssl_verify=ssl_verify)
 
     client = bravado_client.SwaggerClient.from_url(
-        '%s/swagger.json' % nomad_config.client.url,
-        http_client=http_client)
+        '%s/swagger.json' % api_base_url, http_client=http_client)
 
     utils.get_logger(__name__).info('created bravado client', user=user)
 
