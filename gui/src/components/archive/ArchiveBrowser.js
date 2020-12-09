@@ -406,7 +406,8 @@ function Overview({section, def}) {
   }, [setMode])
 
   // Structure visualization for section_system
-  if (def.name === 'section_system') {
+  console.log(def)
+  if (def.name === 'System') {
     let url = window.location.href
     let name = 'section_system'
     let rootIndex = url.indexOf(name) + name.length
@@ -467,7 +468,7 @@ function Overview({section, def}) {
       ></Structure>
     </ErrorHandler>
   // Band structure plot for section_k_band
-  } else if (def.name === 'section_k_band') {
+  } else if (def.name === 'KBand') {
     return <>
       {mode === 'bs'
         ? <Box>
@@ -515,7 +516,7 @@ function Overview({section, def}) {
       </FormControl>
     </>
   // DOS plot for section_dos
-  } else if (def.name === 'section_dos') {
+  } else if (def.name === 'Dos') {
     return <ErrorHandler
       message="Could not load the density of states"
       className={style.error}

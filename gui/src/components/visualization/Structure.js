@@ -165,10 +165,10 @@ export default function Structure({className, classes, system, options, viewer, 
       refViewer.current.setOptions({layout: {
         viewCenter: 'COC',
         viewRotation: {
-          align: {
-            top: 'c',
-            right: 'b'
-          },
+          alignments: [
+            ['up', 'c'],
+            ['right', 'b']
+          ],
           rotations: [
             [0, 1, 0, 60],
             [1, 0, 0, 30]

@@ -106,14 +106,14 @@ export default function BrillouinZone({className, classes, options, viewer, data
     if (options === undefined) {
       viewerOptions = {
         view: {
-          fitMargin: 0.02
+          fitMargin: 0.05
         },
         layout: {
           viewRotation: {
-            align: {
-              up: 'a',
-              segments: 'front'
-            },
+            alignments: [
+              ['up', 'a'],
+              ['front', 'segments']
+            ],
             rotations: [
               [0, 1, 0, 45],
               [1, 0, 0, 25]
@@ -193,10 +193,14 @@ export default function BrillouinZone({className, classes, options, viewer, data
         // Start new segment
         segment = []
         segment.push(start)
-        kpoints.push([labels[0], start])
+        if (labels !== undefined) {
+          kpoints.push([labels[0], start])
+        }
       }
       segment.push(end)
-      kpoints.push([labels[1], end])
+      if (labels !== undefined) {
+        kpoints.push([labels[1], end])
+      }
       previousPoint = end
     }
     // Push last segment
