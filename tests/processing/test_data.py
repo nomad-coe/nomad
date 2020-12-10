@@ -211,6 +211,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
     upload.from_oasis = True
+    upload.oasis_deployment_id = 'an_oasis_id'
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
@@ -219,6 +220,8 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     upload.block_until_complete(interval=.01)
 
     assert upload.published
+    assert upload.from_oasis
+    assert upload.oasis_deployment_id == 'an_oasis_id'
     assert str(upload.upload_time) == '2020-01-01 00:00:00'
     assert_processing(upload, published=True)
     calc = Calc.objects(upload_id='oasis_upload_id').first()
@@ -254,7 +257,7 @@ def test_publish_from_oasis(
     monkeypatch.setattr(
         'requests.put', put)
     monkeypatch.setattr(
-        'nomad.config.services.central_nomad_api_url', '/api')
+        'nomad.config.oasis.central_nomad_api_url', '/api')
 
     upload.publish_from_oasis()
     upload.block_until_complete()
@@ -264,6 +267,10 @@ def test_publish_from_oasis(
     cn_upload.block_until_complete()
     assert_processing(cn_upload, published=True)
     assert cn_upload.user_id == other_test_user.user_id
+    assert len(cn_upload.published_to) == 0
+    assert cn_upload.from_oasis
+    assert cn_upload.oasis_deployment_id == config.meta.deployment_id
+    assert upload.published_to[0] == config.oasis.central_nomad_deployment_id
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

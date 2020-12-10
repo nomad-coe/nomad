@@ -531,24 +531,41 @@ class TestUploads:
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
 
-    def test_post_from_oasis_admin(self, api, other_test_user_auth, oasis_example_upload, proc_infra, no_warn):
-        rv = api.put(
-            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
-            headers=other_test_user_auth)
-        assert rv.status_code == 401
+    def test_post_from_oasis_admin(self, api, non_empty_uploaded, other_test_user_auth, test_user, no_warn):
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=other_test_user_auth).status_code == 401
 
-    def test_post_from_oasis_duplicate(self, api, test_user, test_user_auth, oasis_example_upload, proc_infra, no_warn):
+    def test_post_from_oasis_duplicate(self, api, non_empty_uploaded, test_user, test_user_auth, no_warn):
         Upload.create(upload_id='oasis_upload_id', user=test_user).save()
-        rv = api.put(
-            '/uploads/?local_path=%s&oasis_upload_id=oasis_upload_id' % oasis_example_upload,
-            headers=test_user_auth)
-        assert rv.status_code == 400
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+    def test_post_from_oasis_missing_parameters(self, api, non_empty_uploaded, test_user_auth, test_user, no_warn):
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1],
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
 
     def test_post_from_oasis(self, api, test_user_auth, test_user, oasis_example_upload, proc_infra, no_warn):
         rv = api.put('/uploads/?%s' % urlencode(dict(
             local_path=oasis_example_upload,
             oasis_upload_id='oasis_upload_id',
-            oasis_uploader=test_user.user_id)), headers=test_user_auth)
+            oasis_deployment_id='an_id',
+            oasis_uploader_id=test_user.user_id)), headers=test_user_auth)
         assert rv.status_code == 200, rv.data
         upload = self.assert_upload(rv.data)
         upload_id = upload['upload_id']
