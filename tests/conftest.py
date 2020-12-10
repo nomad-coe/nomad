@@ -587,7 +587,7 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 
 
 @pytest.fixture(scope='function')
-def oasis_example_upload(non_empty_example_upload: str, raw_files) -> str:
+def oasis_example_upload(non_empty_example_upload: str, test_user, raw_files) -> str:
     processing.Upload.metadata_file_cached.cache_clear()
 
     uploaded_path = non_empty_example_upload
@@ -601,7 +601,20 @@ def oasis_example_upload(non_empty_example_upload: str, raw_files) -> str:
         'published': True,
         'entries': {
             'examples_template/template.json': {
-                'calc_id': 'test_calc_id'
+                'calc_id': 'test_calc_id',
+                'datasets': ['oasis_dataset_1', 'oasis_dataset_2']
+            }
+        },
+        'oasis_datasets': {
+            'dataset_1_name': {
+                'dataset_id': 'oasis_dataset_1',
+                'user_id': test_user.user_id,
+                'name': 'dataset_1_name'
+            },
+            'dataset_2_name': {
+                'dataset_id': 'oasis_dataset_2',
+                'user_id': test_user.user_id,
+                'name': 'dataset_2_name'
             }
         }
     }

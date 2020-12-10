@@ -558,6 +558,8 @@ class Calc(Proc):
             metadata_part = self.upload.metadata_file_cached(
                 os.path.join(metadata_dir, metadata_file))
             for key, val in metadata_part.items():
+                if key in ['entries', 'oasis_datasets']:
+                    continue
                 metadata.setdefault(key, val)
 
             if metadata_dir == self.upload_files.os_path:
@@ -912,6 +914,7 @@ class Upload(Proc):
         # compile oasis metadata for the upload
         upload_metadata = dict(upload_time=str(self.upload_time))
         upload_metadata_entries = {}
+        upload_metadata_datasets = {}
         for calc in self.calcs:
             entry_metadata = dict(**{
                 key: str(value) if isinstance(value, datetime) else value
@@ -921,7 +924,17 @@ class Upload(Proc):
             if entry_metadata.get('with_embargo'):
                 continue
             upload_metadata_entries[calc.mainfile] = entry_metadata
+            if 'datasets' in entry_metadata:
+                for dataset_id in entry_metadata['datasets']:
+                    if dataset_id in upload_metadata_datasets:
+                        continue
+
+                    dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id)
+                    upload_metadata_datasets[dataset_id] = dataset.m_to_dict()
+
         upload_metadata['entries'] = upload_metadata_entries
+        upload_metadata['oasis_datasets'] = {
+            dataset['name']: dataset for dataset in upload_metadata_datasets.values()}
         oasis_upload_id, upload_metadata = _normalize_oasis_upload_metadata(
             self.upload_id, upload_metadata)
 
@@ -1043,6 +1056,39 @@ class Upload(Proc):
     def process_upload(self):
         ''' A *process* that performs the initial upload processing. '''
         self.extracting()
+
+        if self.from_oasis:
+            # we might need to add datasets from the oasis before processing and
+            # adding the entries
+            oasis_metadata_file = os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name + '.json')
+            with open(oasis_metadata_file, 'rt') as f:
+                oasis_metadata = json.load(f)
+            oasis_datasets = oasis_metadata.get('oasis_datasets', {})
+            metadata_was_changed = False
+            for oasis_dataset in oasis_datasets.values():
+                try:
+                    existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
+                        user_id=self.user_id, name=oasis_dataset['name'])
+                except KeyError:
+                    datamodel.Dataset(**oasis_dataset).a_mongo.save()
+                else:
+                    oasis_dataset_id = oasis_dataset['dataset_id']
+                    if existing_dataset.dataset_id != oasis_dataset_id:
+                        # A dataset for the same user with the same name was created
+                        # in both deployments. We consider this to be the "same" dataset.
+                        # These datasets have different ids and we need to migrate the provided
+                        # dataset ids:
+                        for entry in oasis_metadata['entries'].values():
+                            entry_datasets = entry.get('datasets', [])
+                            for index, dataset_id in enumerate(entry_datasets):
+                                if dataset_id == oasis_dataset_id:
+                                    entry_datasets[index] = existing_dataset.dataset_id
+                                    metadata_was_changed = True
+
+            if metadata_was_changed:
+                with open(oasis_metadata_file, 'wt') as f:
+                    json.dump(oasis_metadata, f)
+
         self.parse_all()
 
     @task

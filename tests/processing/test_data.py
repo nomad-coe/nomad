@@ -23,7 +23,7 @@ import os.path
 import re
 import shutil
 
-from nomad import utils, infrastructure, config
+from nomad import utils, infrastructure, config, datamodel
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
@@ -208,6 +208,12 @@ def test_publish_failed(
 def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, str], test_user, no_warn):
     uploaded_id, uploaded_path = oasis_example_uploaded
 
+    # create a dataset to force dataset joining of one of the datasets in the example
+    # upload
+    datamodel.Dataset(
+        dataset_id='cn_dataset_2', name='dataset_2_name',
+        user_id=test_user.user_id).a_mongo.save()
+
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
     upload.from_oasis = True
@@ -227,6 +233,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     calc = Calc.objects(upload_id='oasis_upload_id').first()
     assert calc.calc_id == 'test_calc_id'
     assert calc.metadata['published']
+    assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -238,9 +245,17 @@ def test_publish_from_oasis(
     upload.publish_upload()
     upload.block_until_complete(interval=.01)
 
+    # create a dataset to also test this aspect of oasis uploads
+    calc = Calc.objects(upload_id=upload.upload_id).first()
+    datamodel.Dataset(
+        dataset_id='dataset_id', name='dataset_name',
+        user_id=other_test_user.user_id).a_mongo.save()
+    calc.metadata['datasets'] = ['dataset_id']
+    calc.save()
+
     cn_upload_id = 'cn_' + upload.upload_id
 
-    # We need to alter the ids, because we this by uploading to the same NOMAD
+    # We need to alter the ids, because we do this test by uploading to the same NOMAD
     def normalize_oasis_upload_metadata(upload_id, metadata):
         for entry in metadata['entries'].values():
             entry['calc_id'] = utils.create_uuid()
@@ -271,6 +286,10 @@ def test_publish_from_oasis(
     assert cn_upload.from_oasis
     assert cn_upload.oasis_deployment_id == config.meta.deployment_id
     assert upload.published_to[0] == config.oasis.central_nomad_deployment_id
+    cn_calc = Calc.objects(upload_id=cn_upload_id).first()
+    assert cn_calc.calc_id != calc.calc_id
+    assert cn_calc.metadata['datasets'] == ['dataset_id']
+    assert datamodel.Dataset.m_def.a_mongo.objects().count() == 1
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
