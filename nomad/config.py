@@ -173,11 +173,13 @@ tests = NomadConfig(
 )
 
 
-def api_url(ssl: bool = True):
-    return '%s://%s/%s/api' % (
+def api_url(ssl: bool = True, api: str = 'api'):
+    base_url = '%s://%s/%s' % (
         'https' if services.https and ssl else 'http',
         services.api_host.strip('/'),
         services.api_base_path.strip('/'))
+
+    return '%s/%s' % (base_url.strip('/'), api)
 
 
 def gui_url(page: str = None):

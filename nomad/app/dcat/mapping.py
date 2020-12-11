@@ -24,6 +24,7 @@ from .api import url
 
 
 VCARD = Namespace('http://www.w3.org/2006/vcard/ns#')
+HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
 
 
 def get_optional_entry_prop(entry, name):
@@ -40,26 +41,46 @@ class Mapping():
         self.g.namespace_manager.bind('dct', DCT)
         self.g.namespace_manager.bind('vcard', VCARD)
         self.g.namespace_manager.bind('foaf', FOAF)
+        self.g.namespace_manager.bind('hydra', HYDRA)
 
         self.persons = {}
 
     def map_catalog(self, entries):
         catalog = URIRef(url('catalog'))
         self.g.add((catalog, RDF.type, DCAT.Catalog))
+        last_entry = None
         for entry in entries:
-            self.g.add((catalog, DCT.dataset, self.map_entry(entry)))
+            self.g.add((catalog, DCT.dataset, self.map_entry(entry, slim=True)))
+            last_entry = entry
 
-    def map_entry(self, entry: EntryMetadata):
+        hydra_collection = BNode()
+        self.g.add((hydra_collection, RDF.type, HYDRA.Collection))
+        self.g.add((hydra_collection, HYDRA.totalItems, Literal(entries.total)))
+        self.g.add((
+            hydra_collection, HYDRA.first,
+            URIRef('%s/catalog' % config.api_url(api='dcat'), last_entry.calc_id)))
+        if last_entry is not None:
+            next_url = '%s/catalog?after=%s' % (config.api_url(api='dcat'), last_entry.calc_id)
+            self.g.add((hydra_collection, HYDRA.next, URIRef(next_url)))
+
+        self.g.add((catalog, HYDRA.collection, hydra_collection))
+
+    def map_entry(self, entry: EntryMetadata, slim=False):
         dataset = URIRef(url('datasets', entry.calc_id))
 
         self.g.add((dataset, RDF.type, DCAT.Dataset))
         self.g.add((dataset, DCT.identifier, Literal(entry.calc_id)))
         self.g.add((dataset, DCT.issued, Literal(entry.upload_time)))
         self.g.add((dataset, DCT.modified, Literal(entry.last_processing)))
-        self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
-            config.gui_url(), entry.upload_id, entry.calc_id))))
         self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'formula'))))
         self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
+
+        if slim:
+            return dataset
+
+        self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
+            config.gui_url(), entry.upload_id, entry.calc_id))))
+
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
         self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
