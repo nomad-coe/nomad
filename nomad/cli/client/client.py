@@ -47,7 +47,6 @@ def __create_client(
     if not ssl_verify:
         import warnings
         warnings.filterwarnings("ignore")
-
     http_client = bravado_requests_client.RequestsClient(ssl_verify=ssl_verify)
 
     client = bravado_client.SwaggerClient.from_url(
@@ -56,7 +55,7 @@ def __create_client(
     utils.get_logger(__name__).info('created bravado client', user=user)
 
     if user is not None:
-        host = urllib_parse.urlparse(nomad_config.client.url).netloc.split(':')[0]
+        host = urllib_parse.urlparse(api_base_url).netloc
         if use_token:
             http_client.authenticator = nomad_client.KeycloakAuthenticator(
                 host=host,

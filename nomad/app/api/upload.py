@@ -81,6 +81,8 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     'upload_path': fields.String(description='The uploaded file on the server'),
     'published': fields.Boolean(description='If this upload is already published'),
     'upload_time': RFC3339DateTime(),
+    'last_status_message': fields.String(description='The last informative message that the processing saved about this uploads status.'),
+    'published_to': fields.List(fields.String(), description='A list of other NOMAD deployments that this upload was uploaded to already.')
 })
 
 upload_list_model = api.model('UploadList', {
@@ -481,7 +483,8 @@ class UploadResource(Resource):
     @authenticate(required=True)
     def post(self, upload_id):
         '''
-        Execute an upload operation. Available operations are ``publish`` and ``re-process``
+        Execute an upload operation. Available operations are ``publish``, ``re-process``,
+        ``publish-to-central-nomad``.
 
         Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -493,6 +496,9 @@ class UploadResource(Resource):
         Re-process will re-process the upload and produce updated repository metadata and
         archive. Only published uploads that are not processing at the moment are allowed.
         Only for uploads where calculations have been processed with an older nomad version.
+
+        Publish-to-central-nomad will upload the upload to the central NOMAD. This is only
+        available on an OASIS. The upload must already be published on the OASIS.
         '''
         try:
             upload = Upload.get(upload_id)
@@ -537,7 +543,7 @@ class UploadResource(Resource):
             return upload, 200
         elif operation == 're-process':
             if upload.tasks_running or upload.process_running or not upload.published:
-                abort(400, message='Can only non processing, re-process published uploads')
+                abort(400, message='Can only re-process on non processing and published uploads')
 
             if len(metadata) > 0:
                 abort(400, message='You can not provide metadata for re-processing')
@@ -547,7 +553,18 @@ class UploadResource(Resource):
 
             upload.reset()
             upload.re_process_upload()
+            return upload, 200
+        elif operation == 'publish-to-central-nomad':
+            if upload.tasks_running or upload.process_running or not upload.published:
+                abort(400, message='Can only upload non processing and published uploads to central NOMAD.')
 
+            if len(metadata) > 0:
+                abort(400, message='You can not provide metadata for publishing to central NOMAD')
+
+            if not config.keycloak.oasis:
+                abort(400, message='This operation is only available on a NOMAD OASIS.')
+
+            upload.publish_from_oasis()
             return upload, 200
 
         abort(400, message='Unsupported operation %s.' % operation)

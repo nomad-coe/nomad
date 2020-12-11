@@ -26,7 +26,7 @@ import ReactJson from 'react-json-view'
 import { compose } from 'recompose'
 import { withErrors } from '../errors'
 import { withRouter } from 'react-router'
-import { debug } from '../../config'
+import { debug, oasis } from '../../config'
 import EntryList, { EntryListUnstyled } from '../search/EntryList'
 import DeleteIcon from '@material-ui/icons/Delete'
 import PublishIcon from '@material-ui/icons/Publish'
@@ -108,6 +108,47 @@ class PublishConfirmDialog extends React.Component {
             </Button>
             <Button onClick={() => onPublish(embargoLength)} color="primary" autoFocus>
               {embargoLength > 0 ? 'Publish with embargo' : 'Publish'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </div>
+    )
+  }
+}
+
+class PublishToCentralNomadConfirmDialog extends React.Component {
+  static propTypes = {
+    onPublish: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
+    open: PropTypes.bool.isRequired
+  }
+
+  state = {
+    embargoLength: 0
+  }
+
+  render() {
+    const { onPublish, onClose, open } = this.props
+    return (
+      <div>
+        <Dialog
+          open={open}
+          onClose={onClose}
+        >
+          <DialogTitle>Publish data to central NOMAD</DialogTitle>
+          <DialogContent>
+            <Markdown>{`
+              If you agree this upload will be published from this OASIS to the
+              central NOMAD. Only the data without an embargo will be published.
+              This operation cannot be repeated.
+            `}</Markdown>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={onPublish} color="primary" autoFocus>
+              Publish to central NOMAD
             </Button>
           </DialogActions>
         </Dialog>
@@ -203,6 +244,7 @@ class Upload extends React.Component {
     },
     updating: true, // it is still not complete and continuously looking for updates
     showPublishDialog: false,
+    showPublishToCentralNomadDialog: false,
     showDeleteDialog: false,
     columns: {},
     expanded: null
@@ -219,6 +261,9 @@ class Upload extends React.Component {
     this.handlePublishCancel = this.handlePublishCancel.bind(this)
     this.handlePublishOpen = this.handlePublishOpen.bind(this)
     this.handlePublishSubmit = this.handlePublishSubmit.bind(this)
+    this.handlePublishToCentralNomadSubmit = this.handlePublishToCentralNomadSubmit.bind(this)
+    this.handlePublishToCentralNomadCancel = this.handlePublishToCentralNomadCancel.bind(this)
+    this.handlePublishToCentralNomadOpen = this.handlePublishToCentralNomadOpen.bind(this)
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -369,6 +414,10 @@ class Upload extends React.Component {
     this.setState({showPublishDialog: true})
   }
 
+  handlePublishToCentralNomadOpen() {
+    this.setState({showPublishToCentralNomadDialog: true})
+  }
+
   handlePublishSubmit(embargoLength) {
     const { api, upload } = this.props
     api.publishUpload(upload.upload_id, embargoLength)
@@ -381,6 +430,24 @@ class Upload extends React.Component {
         this.setState({showPublishDialog: false})
         this.update()
       })
+  }
+
+  handlePublishToCentralNomadSubmit() {
+    const { api, upload } = this.props
+    api.publishUploadToCentralNomad(upload.upload_id)
+      .then(() => {
+        this.setState({showPublishToCentralNomadDialog: false})
+        this.update()
+      })
+      .catch(error => {
+        this.props.raiseError(error)
+        this.setState({showPublishToCentralNomadDialog: false})
+        this.update()
+      })
+  }
+
+  handlePublishToCentralNomadCancel() {
+    this.setState({showPublishToCentralNomadDialog: false})
   }
 
   handlePublishCancel() {
@@ -605,19 +672,31 @@ class Upload extends React.Component {
     }
 
     const running = upload.tasks_running || upload.process_running
+    const alreadyPublishedToCentralNomad = upload.published_to && upload.published_to.length > 0
 
-    const actions = upload.published ? <React.Fragment /> : <React.Fragment>
-      <IconButton onClick={this.handleDeleteOpen} disabled={running}>
-        <Tooltip title="Delete upload">
-          <DeleteIcon />
-        </Tooltip>
-      </IconButton>
-      <IconButton disabled={running || tasks_status !== 'SUCCESS' || data.pagination.total === 0} onClick={this.handlePublishOpen}>
-        <Tooltip title="Publish upload">
-          <PublishIcon />
-        </Tooltip>
-      </IconButton>
-    </React.Fragment>
+    const actions = upload.published
+      ? <React.Fragment>
+        {oasis && <IconButton
+          disabled={running || data.pagination.total === 0 || alreadyPublishedToCentralNomad}
+          onClick={this.handlePublishToCentralNomadOpen}
+        >
+          <Tooltip title="Publish upload to central NOMAD">
+            <PublishIcon />
+          </Tooltip>
+        </IconButton>}
+      </React.Fragment>
+      : <React.Fragment>
+        <IconButton onClick={this.handleDeleteOpen} disabled={running}>
+          <Tooltip title="Delete upload">
+            <DeleteIcon />
+          </Tooltip>
+        </IconButton>
+        <IconButton disabled={running || tasks_status !== 'SUCCESS' || data.pagination.total === 0} onClick={this.handlePublishOpen}>
+          <Tooltip title="Publish upload">
+            <PublishIcon />
+          </Tooltip>
+        </IconButton>
+      </React.Fragment>
 
     return <EntryList
       title={`Upload with ${data.pagination.total} detected entries`}
@@ -658,8 +737,8 @@ class Upload extends React.Component {
 
   render() {
     const { classes, open } = this.props
-    const { upload, showPublishDialog, showDeleteDialog, expanded } = this.state
-    const { errors } = upload
+    const { upload, showPublishDialog, showDeleteDialog, showPublishToCentralNomadDialog, expanded } = this.state
+    const { errors, last_status_message } = upload
 
     if (this.state.upload) {
       return (
@@ -684,6 +763,9 @@ class Upload extends React.Component {
                   Upload processing has errors: {errors.join(', ')}
                 </Typography> : ''
               }
+              {last_status_message && <Typography className={classes.detailsContent}>
+                {last_status_message}
+              </Typography>}
               {this.renderCalcTable()}
               {debug
                 ? <div className={classes.detailsContent}>
@@ -695,6 +777,11 @@ class Upload extends React.Component {
             open={showPublishDialog}
             onClose={this.handlePublishCancel}
             onPublish={this.handlePublishSubmit}
+          />
+          <PublishToCentralNomadConfirmDialog
+            open={showPublishToCentralNomadDialog}
+            onClose={this.handlePublishToCentralNomadCancel}
+            onPublish={this.handlePublishToCentralNomadSubmit}
           />
           <ConfirmDialog
             title="Delete an upload"

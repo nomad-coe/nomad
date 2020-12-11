@@ -626,6 +626,20 @@ class Api {
       .finally(this.onFinishLoading)
   }
 
+  async publishUploadToCentralNomad(uploadId) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.uploads.exec_upload_operation({
+        upload_id: uploadId,
+        payload: {
+          operation: 'publish-to-central-nomad'
+        }
+      }))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
   async getSignatureToken() {
     this.onStartLoading()
     return this.swagger()

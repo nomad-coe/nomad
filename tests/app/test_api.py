@@ -43,6 +43,7 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
+from tests.processing.test_data import oasis_publishable_upload
 
 from tests.app.test_app import BlueprintClient
 
@@ -496,7 +497,7 @@ class TestUploads:
             data=json.dumps(dict(operation='re-process')),
             content_type='application/json')
 
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.data
         assert self.block_until_completed(api, upload_id, test_user_auth) is not None
 
     # TODO validate metadata (or all input models in API for that matter)
@@ -586,6 +587,30 @@ class TestUploads:
         entries = get_upload_entries_metadata(upload)
         assert_upload_files(upload_id, entries, files.PublicUploadFiles)
         assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+
+    def test_post_publish_from_oasis(
+            self, api, oasis_publishable_upload, other_test_user_auth, monkeypatch, no_warn):
+        monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+        cn_upload_id, upload = oasis_publishable_upload
+        upload_id = upload.upload_id
+
+        rv = api.post(
+            '/uploads/%s' % upload_id,
+            headers=other_test_user_auth,
+            data=json.dumps(dict(operation='publish-to-central-nomad')),
+            content_type='application/json')
+
+        assert rv.status_code == 200, rv.data
+        upload = self.assert_upload(rv.data)
+        assert upload['current_process'] == 'publish_from_oasis'
+        assert upload['process_running']
+
+        self.block_until_completed(api, upload_id, other_test_user_auth)
+
+        cn_upload = Upload.objects(upload_id=cn_upload_id).first()
+        cn_upload.block_until_complete()
+        assert len(cn_upload.errors) == 0
+        assert cn_upload.current_process == 'process_upload'
 
 
 today = datetime.datetime.utcnow().date()

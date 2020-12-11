@@ -909,7 +909,8 @@ class Upload(Proc):
         central_nomad_client = create_client(
             user=config.keycloak.username,
             password=config.keycloak.password,
-            api_base_url=config.oasis.central_nomad_api_url)
+            api_base_url=config.oasis.central_nomad_api_url,
+            use_token=False)
 
         # compile oasis metadata for the upload
         upload_metadata = dict(upload_time=str(self.upload_time))
@@ -938,6 +939,9 @@ class Upload(Proc):
         oasis_upload_id, upload_metadata = _normalize_oasis_upload_metadata(
             self.upload_id, upload_metadata)
 
+        self.last_status_message = 'Compiled metadata to upload to the central NOMAD.'
+        self.save()
+
         assert len(upload_metadata_entries) > 0, \
             'Only uploads with public contents can be published to the central NOMAD.'
 
@@ -945,6 +949,9 @@ class Upload(Proc):
         public_upload_files = cast(PublicUploadFiles, self.upload_files)
         public_upload_files.add_metadata_file(upload_metadata)
         file_to_upload = public_upload_files.public_raw_data_file
+
+        self.last_status_message = 'Prepared the upload for uploading to central NOMAD.'
+        self.save()
 
         # upload to central NOMAD
         oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
@@ -963,8 +970,11 @@ class Upload(Proc):
         if response.status_code != 200:
             self.get_logger().error(
                 'Could not upload to central NOMAD', status_code=response.status_code)
+            self.last_status_message = 'Could not upload to central NOMAD.'
+            return
 
         self.published_to.append(config.oasis.central_nomad_deployment_id)
+        self.last_status_message = 'Successfully uploaded to central NOMAD.'
 
     @process
     def re_process_upload(self):

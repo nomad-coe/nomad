@@ -236,10 +236,10 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_publish_from_oasis(
-        client, proc_infra, non_empty_uploaded: Tuple[str, str], oasis_central_nomad_client,
-        monkeypatch, test_user, other_test_user, no_warn):
+@pytest.fixture(scope='function')
+def oasis_publishable_upload(
+        client, proc_infra, non_empty_uploaded, oasis_central_nomad_client, monkeypatch,
+        other_test_user):
 
     upload = run_processing(non_empty_uploaded, other_test_user)
     upload.publish_upload()
@@ -274,6 +274,13 @@ def test_publish_from_oasis(
     monkeypatch.setattr(
         'nomad.config.oasis.central_nomad_api_url', '/api')
 
+    return cn_upload_id, upload
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_publish_from_oasis(oasis_publishable_upload, other_test_user, no_warn):
+    cn_upload_id, upload = oasis_publishable_upload
+
     upload.publish_from_oasis()
     upload.block_until_complete()
     assert_processing(upload, published=True)
@@ -287,6 +294,7 @@ def test_publish_from_oasis(
     assert cn_upload.oasis_deployment_id == config.meta.deployment_id
     assert upload.published_to[0] == config.oasis.central_nomad_deployment_id
     cn_calc = Calc.objects(upload_id=cn_upload_id).first()
+    calc = Calc.objects(upload_id=upload.upload_id).first()
     assert cn_calc.calc_id != calc.calc_id
     assert cn_calc.metadata['datasets'] == ['dataset_id']
     assert datamodel.Dataset.m_def.a_mongo.objects().count() == 1
