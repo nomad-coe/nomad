@@ -143,6 +143,38 @@ class TestEncyclopedia():
         for material in results:
             validate_material(material)
 
+        # Test formula search
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"formula": "Si"}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 200
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"formula": "mgbi2"}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 400
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"formula": "mgBi2"}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 400
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"formula": "Mgbi2"}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 400
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"formula": "MgaBi2"}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 400
+
         # Test that searches across calculations work as intended
         rv = api.post(
             '/materials/',
@@ -165,6 +197,14 @@ class TestEncyclopedia():
         )
         results = rv.json['results']
         assert len(results) == 1
+
+        # Test element search
+        rv = api.post(
+            '/materials/',
+            data=json.dumps({"search_by": {"elements": ["Si"]}}),
+            content_type='application/json'
+        )
+        assert rv.status_code == 200
 
         # Test that searches within calculations work as intended
         rv = api.post(
@@ -359,3 +399,5 @@ class TestEncyclopedia():
                 headers=headers,
             )
             assert rv.status_code == code
+
+        # Test that invalid query parameters raise code 400

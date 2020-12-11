@@ -96,13 +96,17 @@ COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata
 COPY --from=build /install/gui/src/units.js /app/src/units.js
 RUN yarn run build
 
-# Build the Encyclopedia GUI in the gui build image
+# Copy all sources and assets to the GUI build image, build it there, and then
+# slim down the contents before they are copied to the final image
 RUN mkdir -p /encyclopedia
 WORKDIR /encyclopedia
-COPY dependencies/encyclopedia-gui/client/src /encyclopedia/src
-COPY dependencies/encyclopedia-gui/client/webpack.config.js /encyclopedia/webpack.config.js
+COPY dependencies/encyclopedia-gui/client /encyclopedia/
 RUN npm install webpack webpack-cli
 RUN npx webpack --mode=production
+RUN rm -rf /encyclopedia/node_modules
+RUN rm -rf /encyclopedia/src
+RUN rm -f /encyclopedia/webpack.config.js
+RUN rm -f /encyclopedia/.babelrc
 
 # Third, create a slim final image
 FROM final
