@@ -28,6 +28,7 @@ from flask_restplus import Resource, abort, fields, marshal
 from flask import request, g
 from elasticsearch_dsl import Search, Q, A
 from elasticsearch_dsl.utils import AttrDict
+import ase.data
 
 from nomad import config, infrastructure, search
 from nomad.files import UploadFiles
@@ -395,22 +396,22 @@ class EncMaterialResource(Resource):
 
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 range_query = api.model("range_query", {
-    "max": fields.Float,
-    "min": fields.Float,
+    "max": fields.Float(min=0),
+    "min": fields.Float(min=0),
 })
 materials_query = api.model("materials_input", {
     "search_by": fields.Nested(api.model("search_query", {
         "exclusive": fields.Boolean(default=False, description="Set to True to enable exclusive element search."),
-        "formula": fields.String(description="Chemical formula of the material as a string. The order of elements does not matter.", example="TiO2"),
-        "elements": fields.List(fields.String, description="List of chemical species that the material should include. Use capitalized element name abbreviations.", example=["Ti", "O"]),
-        "page": fields.Integer(default=1, description="Requested page number, indexing starts from 1.", example=1),
-        "per_page": fields.Integer(default=25, description="Number of results per page.", example=10),
+        "formula": fields.String(description="Chemical formula of the material as a string. Use a single continuous string with capitalized element names and integer numbers for the element multiplicity. The order of elements does not matter.", example="TiO2"),
+        "elements": fields.List(fields.String(enum=ase.data.chemical_symbols[1:]), description="List of chemical species that the material should include. Use capitalized element name abbreviations.", example=["Ti", "O"]),
+        "page": fields.Integer(default=1, min=1, description="Requested page number, indexing starts from 1.", example=1),
+        "per_page": fields.Integer(default=25, min=1, description="Number of results per page.", example=10),
         "restricted": fields.Boolean(default=False, description="Select to restrict the query to individual calculations. If not selected, the query will combine results from several different calculations."),
     })),
     "material_type": fields.List(fields.String(enum=list(Material.material_type.type)), description=Material.material_type.description),
     "material_name": fields.List(fields.String, description=Material.material_name.description),
     "structure_type": fields.List(fields.String, description=Bulk.structure_type.description),
-    "space_group_number": fields.List(fields.Integer, description=Bulk.space_group_number.description),
+    "space_group_number": fields.List(fields.Integer, min=1, max=230, description=Bulk.space_group_number.description),
     "crystal_system": fields.List(fields.String(enum=list(Bulk.crystal_system.type)), description=Bulk.crystal_system.description),
     "band_gap": fields.Nested(range_query, description="Band gap range in eV.", allow_null=True),
     "has_band_structure": fields.Boolean(description="Set to True if electronic band structure needs to be available for this material."),
@@ -485,33 +486,24 @@ class EncMaterialsResource(Resource):
             for f in calc_filters:
                 s.add_calculation_filter(f)
 
-        # if data["functional_type"] is not None: s.add_calculation_filter(Q("terms", calculations__method__functional_type=data["functional_type"]))
-        # if data["basis_set"] is not None: s.add_calculation_filter(Q("terms", calculations__method__basis_set=data["basis_set"]))
-        # if data["code_name"] is not None: s.add_calculation_filter(Q("terms", calculations__method__program_name=data["code_name"]))
-        # if data["has_band_structure"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_electronic_band_structure=data["has_band_structure"]))
-        # if data["has_dos"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_electronic_dos=data["has_dos"]))
-        # if data["has_thermal_properties"] is not None: s.add_calculation_filter(Q("term", calculations__properties__has_thermodynamical_properties=data["has_thermal_properties"]))
-        # if data["band_gap"] is not None: s.add_calculation_filter(get_range_filter(
-            # "calculations.properties.band_gap",
-            # minimum=data["band_gap"].get("min"),
-            # maximum=data["band_gap"].get("max"),
-            # source_unit=ureg.eV,
-            # target_unit=ureg.J,
-        # ))
-
-        formula = search_by["formula"]
-        elements = search_by["elements"]
-        exclusive = search_by["exclusive"]
-
         # The given list of species/formula is reformatted with the Hill system into a
         # query string. With exclusive search we look for exact match, with
         # non-exclusive search we look for match that includes at least all
         # species, possibly even more.
+        formula = search_by["formula"]
+        elements = search_by["elements"]
+        exclusive = search_by["exclusive"]
         if formula is not None:
             element_list = []
             matches = re_formula.finditer(formula)
 
+            prev_end = 0
+            invalid = False
             for match in matches:
+                if match.start() != prev_end:
+                    invalid = True
+                    break
+                prev_end = match.end()
                 groups = match.groups()
                 symbol = groups[0]
                 count = groups[1]
@@ -520,6 +512,14 @@ class EncMaterialsResource(Resource):
                         element_list.append(symbol)
                     else:
                         element_list += [symbol] * int(count)
+            if prev_end != len(formula) or len(element_list) == 0:
+                invalid = True
+            if invalid:
+                abort(400, message=(
+                    "Invalid chemical formula provided. Please use a single "
+                    "continuous string with capitalized element names and "
+                    "integer numbers for the element multiplicity. E.g. 'TiO2'"
+                ))
 
             names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
             query_string = []
@@ -1248,52 +1248,55 @@ class EncCalculationResource(Resource):
 
             # Add results from archive
             for key, arch_path in arch_properties.items():
-                value = root[arch_path]
+                try:
+                    value = root[arch_path]
 
-                # Replace unnormalized thermodynamical properties with
-                # normalized ones and turn into dict
-                if key == "thermodynamical_properties":
-                    specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
-                    specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
-                    specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
-                    specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
-                if isinstance(value, list):
-                    value = [x.m_to_dict() for x in value]
-                else:
-                    value = value.m_to_dict()
-                if key == "thermodynamical_properties":
-                    del value["thermodynamical_property_heat_capacity_C_v"]
-                    del value["vibrational_free_energy_at_constant_volume"]
-                    value["specific_heat_capacity"] = specific_heat_capacity
-                    value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
+                    # Replace unnormalized thermodynamical properties with
+                    # normalized ones and turn into dict
+                    if key == "thermodynamical_properties":
+                        specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
+                        specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
+                        specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
+                        specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
+                    if isinstance(value, list):
+                        value = [x.m_to_dict() for x in value]
+                    else:
+                        value = value.m_to_dict()
+                    if key == "thermodynamical_properties":
+                        del value["thermodynamical_property_heat_capacity_C_v"]
+                        del value["vibrational_free_energy_at_constant_volume"]
+                        value["specific_heat_capacity"] = specific_heat_capacity
+                        value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
 
-                # DOS results are simplified.
-                if key == "electronic_dos":
-                    if "dos_energies_normalized" in value:
-                        value["dos_energies"] = value["dos_energies_normalized"]
-                        del value["dos_energies_normalized"]
-                    if "dos_values_normalized" in value:
-                        value["dos_values"] = value["dos_values_normalized"]
-                        del value["dos_values_normalized"]
+                    # DOS results are simplified.
+                    if key == "electronic_dos":
+                        if "dos_energies_normalized" in value:
+                            value["dos_energies"] = value["dos_energies_normalized"]
+                            del value["dos_energies_normalized"]
+                        if "dos_values_normalized" in value:
+                            value["dos_values"] = value["dos_values_normalized"]
+                            del value["dos_values_normalized"]
 
-                # Pre-calculate k-path length to be used as x-coordinate in
-                # plots. If the VBM and CBM information is needed later, it
-                # can be added as indices along the path. The exact k-points
-                # and occupations are removed to save some bandwidth.
-                if key == "electronic_band_structure" or key == "phonon_band_structure":
-                    segments = value["section_k_band_segment"]
-                    k_path_length = 0
-                    for segment in segments:
-                        k_points = np.array(segment["band_k_points"])
-                        segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
-                        k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
-                        k_path_length += segment_length
-                        segment["k_path_distances"] = k_path_distances.tolist()
-                        del segment["band_k_points"]
-                        if "band_occupations" in segment:
-                            del segment["band_occupations"]
+                    # Pre-calculate k-path length to be used as x-coordinate in
+                    # plots. If the VBM and CBM information is needed later, it
+                    # can be added as indices along the path. The exact k-points
+                    # and occupations are removed to save some bandwidth.
+                    if key == "electronic_band_structure" or key == "phonon_band_structure":
+                        segments = value["section_k_band_segment"]
+                        k_path_length = 0
+                        for segment in segments:
+                            k_points = np.array(segment["band_k_points"])
+                            segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
+                            k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
+                            k_path_length += segment_length
+                            segment["k_path_distances"] = k_path_distances.tolist()
+                            del segment["band_k_points"]
+                            if "band_occupations" in segment:
+                                del segment["band_occupations"]
 
-                result[key] = value
+                    result[key] = value
+                except (AttributeError, KeyError):
+                    abort(500, "Could not find the requested resource.")
 
         # Add results from ES
         for prop, es_source in es_properties.items():

@@ -49,12 +49,16 @@ class PropertiesNormalizer():
                 kind = band.band_structure_kind
                 if kind != "vibrational":
                     valid = True
+                    if not band.section_k_band_segment:
+                        valid = False
+                        break
                     for segment in band.section_k_band_segment:
                         energies = segment.band_energies
                         k_points = segment.band_k_points
                         labels = segment.band_segm_labels
                         if energies is None or k_points is None or labels is None:
                             valid = False
+                            break
                     if valid:
                         representative_band = band
                         break
