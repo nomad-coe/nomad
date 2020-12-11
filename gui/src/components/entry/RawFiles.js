@@ -124,7 +124,6 @@ class RawFiles extends React.Component {
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
       }
-      console.log('###', files)
       this.setState({files: files, loading: false})
     }).catch(error => {
       this.setState({files: null, loading: false})
