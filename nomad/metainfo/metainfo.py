@@ -946,6 +946,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if quantity_def.derived is not None:
             raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
 
+        if value is None:
+            # This implements the implicit "unset" semantics of assigned None as a
+            # value
+            self.__dict__.pop(quantity_def.name, None)
+            return
+
         if type(quantity_def.type) == np.dtype:
             value = self.__to_np(quantity_def, value)
 
@@ -2172,6 +2178,11 @@ class PrimitiveQuantity(Quantity):
 
     def __set__(self, obj, value):
         obj.m_mod_count += 1
+
+        if value is None:
+            obj.__dict__.pop(self.name, None)
+            return
+
         if self._list:
             if not isinstance(value, list):
                 if hasattr(value, 'tolist'):
@@ -2187,7 +2198,7 @@ class PrimitiveQuantity(Quantity):
                     'The value %s with type %s for quantity %s is not of type %s' %
                     (value, type(value), self, self.type))
 
-        elif value is not None and type(value) != self._type:
+        elif type(value) != self._type:
             raise TypeError(
                 'The value %s with type %s for quantity %s is not of type %s' %
                 (value, type(value), self, self.type))
