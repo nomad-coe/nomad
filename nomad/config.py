@@ -156,6 +156,7 @@ services = NomadConfig(
     not_processed_value='not processed',
     unavailable_value='unavailable',
     https=False,
+    https_upload=False,
     upload_limit=10,
     force_raw_file_decoding=False,
     download_scan_size=500,
@@ -204,7 +205,7 @@ def check_config():
             "--matches-only'."
         )
 
-    if not os.path.exists(normalize.springer_db_path):
+    if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):
         normalize.springer_db_path = None
 
 

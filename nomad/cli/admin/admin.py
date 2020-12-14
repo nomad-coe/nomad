@@ -615,16 +615,20 @@ def restore(path_to_dump):
 @click.option('--prefix', type=str, default=config.services.api_base_path, help='Alter the url path prefix.')
 @click.option('--host', type=str, default=config.services.api_host, help='Alter the NOMAD app host.')
 @click.option('--port', type=str, default=config.services.api_port, help='Alter the NOMAD port host.')
-def nginx_conf(prefix, host, port):
+@click.option('--server/--no-server', default=True, help='Control writing of the outer server {} block. '
+              'Useful when conf file is included within another nginx.conf.')
+def nginx_conf(prefix, host, port, server):
     prefix = prefix.rstrip('/')
     prefix = '/%s' % prefix.lstrip('/')
 
-    print('''\
-server {{
+    if server:
+        print('''server {
     listen        80;
     server_name   www.example.com;
     proxy_set_header Host $host;
+        ''')
 
+    print('''
     location / {{
         proxy_pass http://{1}:{2};
     }}
@@ -680,7 +684,9 @@ server {{
         rewrite ^ {0}/encyclopedia/index.html break;
         proxy_pass http://{1}:{2};
     }}
-}}'''.format(prefix, host, port))
+'''.format(prefix, host, port))
+    if server:
+        print('}')
 
 
 @ops.command(help='Updates the AFLOW prototype information using the latest online version and writes the results to a python module in the given FILEPATH.')

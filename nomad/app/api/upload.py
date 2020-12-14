@@ -538,7 +538,8 @@ class UploadCommandResource(Resource):
     def get(self):
         ''' Get url and example command for shell based uploads. '''
         token = generate_upload_token(g.user)
-        upload_url = '%s/uploads/?token=%s' % (config.api_url(ssl=False), token)
+        upload_url = ('%s/uploads/?token=%s' %
+                      (config.api_url(ssl=config.services.https_upload), token))
         upload_url_with_name = upload_url + '&name=<name>'
 
         # upload_command = 'curl -X PUT "%s" -F file=@<local_file>' % upload_url
