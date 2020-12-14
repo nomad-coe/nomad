@@ -407,7 +407,17 @@ class _Datetime(DataType):
         except ValueError:
             pass
 
-        raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
+        except ValueError:
+            pass
+
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            pass
+
+        raise TypeError('Invalid date literal %s' % datetime_str)
 
     def _convert(self, value):
         if value is None:
@@ -2597,10 +2607,14 @@ class Category(Definition):
             definitions = set()
 
         for definition in self.definitions:
+            if isinstance(definition, MCategory):
+                definition = definition.m_def
+
+            if isinstance(definition, Category):
+                definition.get_all_definitions(definitions)
+
             if definition not in definitions:
                 definitions.add(definition)
-                if isinstance(definition, Category):
-                    definition.get_all_definitions(definitions)
 
         return definitions
 
