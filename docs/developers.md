@@ -95,7 +95,7 @@ pip install -e .[all] --prefer-binary
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
 nomad dev metainfo > gui/src/metainfo.json
-nomad dev searchQuantities > gui/src/searchQuantities.json
+nomad dev search-quantities > gui/src/searchQuantities.json
 nomad dev units > gui/src/units.js
 ./gitinfo.sh
 ```
