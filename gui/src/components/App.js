@@ -122,7 +122,7 @@ function MainMenuItem({tooltip, title, path, href, onClick, icon}) {
   return tooltip ? <Tooltip title={tooltip}>{button}</Tooltip> : button
 }
 MainMenuItem.propTypes = {
-  'tooltip': PropTypes.string.isRequired,
+  'tooltip': PropTypes.string,
   'title': PropTypes.string.isRequired,
   'path': PropTypes.string,
   'href': PropTypes.string,
@@ -251,6 +251,7 @@ function Consent(moreProps) {
 function MoreMenu(props) {
   const [anchor, setAnchor] = useState(false)
   const handleClose = () => setAnchor(null)
+  const MenuItem = React.forwardRef((props, ref) => <MainMenuItem {...props} />)
   return <React.Fragment>
     <MainMenuItem
       title="More"
@@ -263,28 +264,28 @@ function MoreMenu(props) {
       open={Boolean(anchor)}
       onClose={handleClose}
     >
-      <MainMenuItem
+      <MenuItem
         title="Forum"
         onClick={handleClose}
         href="https://matsci.org/c/nomad/"
         tooltip="The NOMAD user/developer forum on matsci.org"
         icon={<ForumIcon/>}
       />
-      <MainMenuItem
+      <MenuItem
         title="FAQ"
         onClick={handleClose}
         href="https://nomad-lab.eu/repository-archive-faqs"
         tooltip="Frequently Asked Questions (FAQ)"
         icon={<FAQIcon/>}
       />
-      <MainMenuItem
+      <MenuItem
         title="Docs"
         onClick={handleClose}
         href={`${appBase}/docs/index.html`}
         tooltip="The NOMAD documentation"
         icon={<DocIcon/>}
       />
-      <MainMenuItem
+      <MenuItem
         title="Sources"
         onClick={handleClose}
         href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
