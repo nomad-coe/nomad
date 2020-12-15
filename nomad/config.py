@@ -163,6 +163,11 @@ services = NomadConfig(
     download_scan_timeout=u'30m'
 )
 
+oasis = NomadConfig(
+    central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
+    central_nomad_deployment_id='nomad-lab.eu/prod/rae'
+)
+
 tests = NomadConfig(
     default_timeout=30
 )
@@ -285,7 +290,8 @@ meta = NomadConfig(
     description='A FAIR data sharing platform for materials science data',
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
-    maintainer_email='markus.scheidgen@physik.hu-berlin.de'
+    maintainer_email='markus.scheidgen@physik.hu-berlin.de',
+    deployment_id='nomad-lab.eu/prod/rae'
 )
 
 auxfile_cutoff = 100

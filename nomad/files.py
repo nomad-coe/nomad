@@ -62,6 +62,7 @@ import tarfile
 import hashlib
 import io
 import pickle
+import json
 
 from nomad import config, utils, datamodel
 from nomad.archive import write_archive, read_archive, ArchiveReader
@@ -804,6 +805,16 @@ class PublicUploadFiles(UploadFiles):
             raise FileExistsError('Staging upload does already exist')
 
         return staging_upload_files
+
+    def add_metadata_file(self, metadata: dict):
+        zip_path = self._zip_file_object('raw', 'public', 'plain').os_path
+        with zipfile.ZipFile(zip_path, 'a') as zf:
+            with zf.open('nomad.json', 'w') as f:
+                f.write(json.dumps(metadata).encode())
+
+    @property
+    def public_raw_data_file(self):
+        return self._zip_file_object('raw', 'public', 'plain').os_path
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         return self._file_in_zip('raw', 'plain', file_path, *args, *kwargs)

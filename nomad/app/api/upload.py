@@ -31,7 +31,7 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files, search
+from nomad import config, utils, files, search, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 from nomad.app import common
@@ -81,6 +81,8 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     'upload_path': fields.String(description='The uploaded file on the server'),
     'published': fields.Boolean(description='If this upload is already published'),
     'upload_time': RFC3339DateTime(),
+    'last_status_message': fields.String(description='The last informative message that the processing saved about this uploads status.'),
+    'published_to': fields.List(fields.String(), description='A list of other NOMAD deployments that this upload was uploaded to already.')
 })
 
 upload_list_model = api.model('UploadList', {
@@ -123,6 +125,10 @@ upload_metadata_parser.add_argument('name', type=str, help='An optional name for
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
+upload_metadata_parser.add_argument('oasis_upload_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the upload_id.', location='args')
+upload_metadata_parser.add_argument('oasis_uploader_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the uploader\' id.', location='args')
+upload_metadata_parser.add_argument('oasis_deployment_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the OASIS\' deployment id.', location='args')
+
 
 upload_list_parser = pagination_request_parser.copy()
 upload_list_parser.add_argument('state', type=str, help='List uploads with given state: all, unpublished, published.', location='args')
@@ -249,8 +255,35 @@ class UploadListResource(Resource):
             if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
                 abort(400, 'Limit of unpublished uploads exceeded for user.')
 
+        # check if allowed to perform oasis upload
+        oasis_upload_id = request.args.get('oasis_upload_id')
+        oasis_uploader_id = request.args.get('oasis_uploader_id')
+        oasis_deployment_id = request.args.get('oasis_deployment_id')
+        user = g.user
+        from_oasis = oasis_upload_id is not None
+        if from_oasis:
+            if not g.user.is_oasis_admin:
+                abort(401, 'Only an oasis admin can perform an oasis upload.')
+            if oasis_uploader_id is None:
+                abort(400, 'You must provide the original uploader for an oasis upload.')
+            if oasis_deployment_id is None:
+                abort(400, 'You must provide the oasis deployment id for an oasis upload.')
+            user = datamodel.User.get(user_id=oasis_uploader_id)
+            if user is None:
+                abort(400, 'The given original uploader does not exist.')
+        elif oasis_uploader_id is not None or oasis_deployment_id is not None:
+            abort(400, 'For an oasis upload you must provide an oasis_upload_id.')
+
         upload_name = request.args.get('name')
-        upload_id = utils.create_uuid()
+        if oasis_upload_id is not None:
+            upload_id = oasis_upload_id
+            try:
+                Upload.get(upload_id)
+                abort(400, 'An oasis upload with the given upload_id already exists.')
+            except KeyError:
+                pass
+        else:
+            upload_id = utils.create_uuid()
 
         logger = common.logger.bind(upload_id=upload_id, upload_name=upload_name)
         logger.info('upload created', )
@@ -306,11 +339,13 @@ class UploadListResource(Resource):
 
         upload = Upload.create(
             upload_id=upload_id,
-            user=g.user,
+            user=user,
             name=upload_name,
             upload_time=datetime.utcnow(),
             upload_path=upload_path,
-            temporary=local_path != upload_path)
+            temporary=local_path != upload_path,
+            from_oasis=from_oasis,
+            oasis_deployment_id=oasis_deployment_id)
 
         upload.process_upload()
         logger.info('initiated processing')
@@ -448,7 +483,8 @@ class UploadResource(Resource):
     @authenticate(required=True)
     def post(self, upload_id):
         '''
-        Execute an upload operation. Available operations are ``publish`` and ``re-process``
+        Execute an upload operation. Available operations are ``publish``, ``re-process``,
+        ``publish-to-central-nomad``.
 
         Publish accepts further meta data that allows to provide coauthors, comments,
         external references, etc. See the model for details. The fields that start with
@@ -460,6 +496,9 @@ class UploadResource(Resource):
         Re-process will re-process the upload and produce updated repository metadata and
         archive. Only published uploads that are not processing at the moment are allowed.
         Only for uploads where calculations have been processed with an older nomad version.
+
+        Publish-to-central-nomad will upload the upload to the central NOMAD. This is only
+        available on an OASIS. The upload must already be published on the OASIS.
         '''
         try:
             upload = Upload.get(upload_id)
@@ -504,7 +543,7 @@ class UploadResource(Resource):
             return upload, 200
         elif operation == 're-process':
             if upload.tasks_running or upload.process_running or not upload.published:
-                abort(400, message='Can only non processing, re-process published uploads')
+                abort(400, message='Can only re-process on non processing and published uploads')
 
             if len(metadata) > 0:
                 abort(400, message='You can not provide metadata for re-processing')
@@ -514,7 +553,18 @@ class UploadResource(Resource):
 
             upload.reset()
             upload.re_process_upload()
+            return upload, 200
+        elif operation == 'publish-to-central-nomad':
+            if upload.tasks_running or upload.process_running or not upload.published:
+                abort(400, message='Can only upload non processing and published uploads to central NOMAD.')
 
+            if len(metadata) > 0:
+                abort(400, message='You can not provide metadata for publishing to central NOMAD')
+
+            if not config.keycloak.oasis:
+                abort(400, message='This operation is only available on a NOMAD OASIS.')
+
+            upload.publish_from_oasis()
             return upload, 200
 
         abort(400, message='Unsupported operation %s.' % operation)
