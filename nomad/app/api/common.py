@@ -34,7 +34,7 @@ import os.path
 import gzip
 from functools import wraps
 
-from nomad import search, config, datamodel
+from nomad import search, config, datamodel, utils
 from nomad.app.optimade import filterparser
 from nomad.app.common import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
@@ -282,19 +282,22 @@ def upload_route(ns, prefix: str = ''):
 
 
 def streamed_zipfile(
-        files: Iterable[Tuple[str, str, Callable[[str], IO], Callable[[str], int]]],
-        zipfile_name: str, compress: bool = False):
+        files: Iterable[Tuple[str, str, dict, Callable[[str], IO], Callable[[str], int]]],
+        zipfile_name: str, compress: bool = False, manifest: dict = None):
     '''
     Creates a response that streams the given files as a streamed zip file. Ensures that
     each given file is only streamed once, based on its filename in the resulting zipfile.
 
     Arguments:
         files: An iterable of tuples with the filename to be used in the resulting zipfile,
-            an file id within the upload, a callable that gives an binary IO object for the
-            file id, and a callable that gives the file size for the file id.
+            an file id within the upload, an optional manifest, a callable that gives an
+            binary IO object for the file id, and a callable that gives the file size for
+            the file id.
         zipfile_name: A name that will be used in the content disposition attachment
             used as an HTTP respone.
         compress: Uses compression. Default is stored only.
+        manifest: The dict contents of the manifest file. Will be extended if the files
+            provide manifest information.
     '''
 
     streamed_files: Set[str] = set()
@@ -306,11 +309,16 @@ def streamed_zipfile(
             Replace the directory based iter of zipstream with an iter over all given
             files.
             '''
+            collected_manifest = manifest
             # the actual contents
-            for zipped_filename, file_id, open_io, file_size in files:
+            for zipped_filename, file_id, manifest_part, open_io, file_size in files:
+                if manifest_part is not None:
+                    if collected_manifest is None:
+                        collected_manifest = {}
+                    collected_manifest.update(manifest_part)
+
                 if zipped_filename in streamed_files:
                     continue
-                streamed_files.add(zipped_filename)
 
                 # Write a file to the zipstream.
                 try:
@@ -319,7 +327,7 @@ def streamed_zipfile(
                         def iter_content():
                             while True:
                                 data = f.read(1024 * 64)
-                                if not data:
+                                if len(data) == 0:
                                     break
                                 yield data
 
@@ -335,6 +343,21 @@ def streamed_zipfile(
                     # due to the streaming nature, we cannot raise 401 here
                     # we just leave it out in the download
                     pass
+                except Exception as e:
+                    utils.get_logger('__name__').error(
+                        'unexpected exception while streaming zipfile', exc_info=e)
+                    manifest.setdefault('errors', []).append(
+                        'unexpected exception while streaming zipfile: %s' % str(e))
+
+            try:
+                if collected_manifest is not None:
+                    manifest_content = json.dumps(collected_manifest).encode('utf-8')
+                    yield dict(
+                        arcname='manifest.json', iterable=[manifest_content],
+                        buffer_size=len(manifest_content))
+            except Exception as e:
+                utils.get_logger('__name__').error(
+                    'could not stream zipfile manifest', exc_info=e)
 
         compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
         zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
