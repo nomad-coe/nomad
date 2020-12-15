@@ -30,7 +30,7 @@ import numpy as np
 from nomad import config, datamodel, files
 from nomad.app.common import RFC3339DateTime
 from nomad.normalizing.optimade import optimade_chemical_formula_reduced
-from nomad.metainfo import Datetime, MEnum
+from nomad.metainfo import Datetime, MEnum, MSection
 from nomad.datamodel import EntryMetadata
 from nomad.datamodel.dft import DFTMetadata
 from nomad.datamodel.optimade import OptimadeEntry
@@ -320,9 +320,14 @@ class EntryDataObject:
 
                 try:
                     if request_field.startswith('_nmd_dft_'):
-                        attrs[request_field] = getattr(calc.dft, request_field[9:])
+                        response_value = getattr(calc.dft, request_field[9:])
                     else:
-                        attrs[request_field] = getattr(calc, request_field[5:])
+                        response_value = getattr(calc, request_field[5:])
+
+                    if isinstance(response_value, MSection):
+                        response_value = response_value.m_to_dict()
+
+                    attrs[request_field] = response_value
                 except AttributeError:
                     # if unknown properties where provided, we will ignore them
                     pass
