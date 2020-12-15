@@ -22,12 +22,10 @@ The raw API of the nomad@FAIRDI APIs. Can be used to retrieve raw calculation fi
 
 from typing import IO, Any, Union, List
 import os.path
-from io import BytesIO
 from flask import request, send_file
 from flask_restplus import abort, Resource, fields
 import magic
 import fnmatch
-import json
 import gzip
 import lzma
 import urllib.parse
@@ -427,119 +425,15 @@ class RawFileQueryResource(Resource):
         The zip file will contain a ``manifest.json`` with the repository meta data.
         '''
         logger = common.logger.bind(query=urllib.parse.urlencode(request.args, doseq=True))
-
-        patterns: List[str] = None
         try:
             args = _raw_file_from_query_parser.parse_args()
-            compress = args.get('compress', False)
-            strip = args.get('strip', False)
-            pattern = args.get('file_pattern', None)
-            if isinstance(pattern, str):
-                patterns = [pattern]
-            elif pattern is None:
-                patterns = []
-            else:
-                patterns = pattern
         except Exception:
-            abort(400, message='bad parameter types')
+            abort(400, message='could not parse request arguments')
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, _raw_file_from_query_parser.parse_args())
-        search_request.include('calc_id', 'upload_id', 'mainfile')
 
-        def path(entry):
-            return '%s/%s' % (entry['upload_id'], entry['mainfile'])
-
-        calcs = search_request.execute_scan(
-            order_by='upload_id',
-            size=config.services.download_scan_size,
-            scroll=config.services.download_scan_timeout)
-
-        if strip:
-            if search_request.execute()['total'] > config.raw_file_strip_cutoff:
-                abort(400, 'The requested download has to many files for using "strip".')
-            calcs = list(calcs)
-            paths = [path(entry) for entry in calcs]
-            common_prefix_len = len(utils.common_prefix(paths))
-        else:
-            common_prefix_len = 0
-
-        def generator():
-            try:
-                manifest = {}
-                directories = set()
-                upload_files = None
-                streamed, skipped = 0, 0
-
-                for entry in calcs:
-                    upload_id = entry['upload_id']
-                    mainfile = entry['mainfile']
-                    if upload_files is None or upload_files.upload_id != upload_id:
-                        logger.info('opening next upload for raw file streaming', upload_id=upload_id)
-                        if upload_files is not None:
-                            upload_files.close()
-
-                        upload_files = UploadFiles.get(upload_id)
-
-                        if upload_files is None:
-                            logger.error('upload files do not exist', upload_id=upload_id)
-                            continue
-
-                        def open_file(upload_filename):
-                            return upload_files.raw_file(upload_filename, 'rb')
-
-                    upload_files._is_authorized = create_authorization_predicate(
-                        upload_id=upload_id, calc_id=entry['calc_id'])
-                    directory = os.path.dirname(mainfile)
-                    directory_w_upload = os.path.join(upload_files.upload_id, directory)
-                    if directory_w_upload not in directories:
-                        streamed += 1
-                        directories.add(directory_w_upload)
-                        for filename, file_size in upload_files.raw_file_list(directory=directory):
-                            filename = os.path.join(directory, filename)
-                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                            if len(patterns) == 0 or any(
-                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                    for pattern in patterns):
-                                yield (
-                                    filename_wo_prefix, filename, open_file,
-                                    lambda *args, **kwargs: file_size)
-                    else:
-                        skipped += 1
-
-                    if (streamed + skipped) % 10000 == 0:
-                        logger.info('streaming raw files', streamed=streamed, skipped=skipped)
-
-                    manifest[path(entry)] = {
-                        key: entry[key]
-                        for key in RawFileQueryResource.manifest_quantities
-                        if entry.get(key) is not None
-                    }
-
-                if upload_files is not None:
-                    upload_files.close()
-
-                logger.info('streaming raw file manifest')
-                try:
-                    manifest_contents = json.dumps(manifest).encode('utf-8')
-                except Exception as e:
-                    manifest_contents = json.dumps(
-                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    logger.error('could not create raw query manifest', exc_info=e)
-
-                yield (
-                    'manifest.json', 'manifest',
-                    lambda *args: BytesIO(manifest_contents),
-                    lambda *args: len(manifest_contents))
-
-            except Exception as e:
-                logger.warning(
-                    'unexpected error while streaming raw data from query', exc_info=e)
-
-        logger.info('start streaming raw files')
-        return streamed_zipfile(
-            generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
+        return respond_to_raw_files_query(search_request, args, logger)
 
     @api.doc('post_raw_files_from_query')
     @api.expect(_raw_file_from_query_model)
@@ -558,28 +452,17 @@ class RawFileQueryResource(Resource):
 
         The zip file will contain a ``manifest.json`` with the repository meta data.
         '''
-        patterns: List[str] = None
         try:
-            data_in = request.get_json()
-            compress = data_in.get('compress', False)
-            strip = data_in.get('strip', False)
-            pattern = data_in.get('file_pattern', None)
-            if isinstance(pattern, str):
-                patterns = [pattern]
-            elif pattern is None:
-                patterns = []
-            else:
-                patterns = pattern
-            query = data_in.get('query', {})
+            post_data = request.get_json()
+            query = post_data.get('query', {})
             query_expression = {key: val for key, val in query.items() if '$' in key}
         except Exception:
-            abort(400, message='bad parameter types')
+            abort(400, message='could not parse request body')
 
         logger = common.logger.bind(query=urllib.parse.urlencode(query, doseq=True))
 
         search_request = search.SearchRequest()
         apply_search_parameters(search_request, query)
-        search_request.include('calc_id', 'upload_id', 'mainfile')
 
         if query_expression:
             try:
@@ -587,99 +470,106 @@ class RawFileQueryResource(Resource):
             except AssertionError as e:
                 abort(400, str(e))
 
-        def path(entry):
-            return '%s/%s' % (entry['upload_id'], entry['mainfile'])
+        return respond_to_raw_files_query(search_request, post_data, logger)
 
-        calcs = search_request.execute_scan(
-            order_by='upload_id',
-            size=config.services.download_scan_size,
-            scroll=config.services.download_scan_timeout)
 
-        if strip:
-            if search_request.execute()['total'] > config.raw_file_strip_cutoff:
-                abort(400, 'The requested download has to many files for using "strip".')
-            calcs = list(calcs)
-            paths = [path(entry) for entry in calcs]
-            common_prefix_len = len(utils.common_prefix(paths))
+def respond_to_raw_files_query(search_request, args, logger):
+    patterns: List[str] = None
+    try:
+        compress = args.get('compress', False)
+        strip = args.get('strip', False)
+        pattern = args.get('file_pattern', None)
+        if isinstance(pattern, str):
+            patterns = [pattern]
+        elif pattern is None:
+            patterns = []
         else:
-            common_prefix_len = 0
+            patterns = pattern
+    except Exception:
+        abort(400, message='bad parameter types')
 
-        def generator():
-            try:
-                manifest = {}
-                directories = set()
-                upload_files = None
-                streamed, skipped = 0, 0
+    search_request.include('calc_id', 'upload_id', 'mainfile')
 
-                for entry in calcs:
-                    upload_id = entry['upload_id']
-                    mainfile = entry['mainfile']
-                    if upload_files is None or upload_files.upload_id != upload_id:
-                        logger.info('opening next upload for raw file streaming', upload_id=upload_id)
-                        if upload_files is not None:
-                            upload_files.close()
+    def path(entry):
+        return '%s/%s' % (entry['upload_id'], entry['mainfile'])
 
-                        upload_files = UploadFiles.get(upload_id)
+    calcs = search_request.execute_scan(
+        order_by='upload_id',
+        size=config.services.download_scan_size,
+        scroll=config.services.download_scan_timeout)
 
-                        if upload_files is None:
-                            logger.error('upload files do not exist', upload_id=upload_id)
-                            continue
+    if strip:
+        if search_request.execute()['total'] > config.raw_file_strip_cutoff:
+            abort(400, 'The requested download has to many files for using "strip".')
+        calcs = list(calcs)
+        paths = [path(entry) for entry in calcs]
+        common_prefix_len = len(utils.common_prefix(paths))
+    else:
+        common_prefix_len = 0
 
-                        def open_file(upload_filename):
-                            return upload_files.raw_file(upload_filename, 'rb')
+    def generator():
+        try:
+            directories = set()
+            upload_files = None
+            streamed, skipped = 0, 0
 
-                    upload_files._is_authorized = create_authorization_predicate(
-                        upload_id=upload_id, calc_id=entry['calc_id'])
-                    directory = os.path.dirname(mainfile)
-                    directory_w_upload = os.path.join(upload_files.upload_id, directory)
-                    if directory_w_upload not in directories:
-                        streamed += 1
-                        directories.add(directory_w_upload)
-                        for filename, file_size in upload_files.raw_file_list(directory=directory):
-                            filename = os.path.join(directory, filename)
-                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                            if len(patterns) == 0 or any(
-                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                    for pattern in patterns):
-                                yield (
-                                    filename_wo_prefix, filename, open_file,
-                                    lambda *args, **kwargs: file_size)
-                    else:
-                        skipped += 1
-
-                    if (streamed + skipped) % 10000 == 0:
-                        logger.info('streaming raw files', streamed=streamed, skipped=skipped)
-
-                    manifest[path(entry)] = {
+            for entry in calcs:
+                manifest = {
+                    path(entry): {
                         key: entry[key]
                         for key in RawFileQueryResource.manifest_quantities
                         if entry.get(key) is not None
                     }
+                }
 
-                if upload_files is not None:
-                    upload_files.close()
+                upload_id = entry['upload_id']
+                mainfile = entry['mainfile']
+                if upload_files is None or upload_files.upload_id != upload_id:
+                    logger.info('opening next upload for raw file streaming', upload_id=upload_id)
+                    if upload_files is not None:
+                        upload_files.close()
 
-                logger.info('streaming raw file manifest')
-                try:
-                    manifest_contents = json.dumps(manifest).encode('utf-8')
-                except Exception as e:
-                    manifest_contents = json.dumps(
-                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    logger.error('could not create raw query manifest', exc_info=e)
+                    upload_files = UploadFiles.get(upload_id)
 
-                yield (
-                    'manifest.json', 'manifest',
-                    lambda *args: BytesIO(manifest_contents),
-                    lambda *args: len(manifest_contents))
+                    if upload_files is None:
+                        logger.error('upload files do not exist', upload_id=upload_id)
+                        continue
 
-            except Exception as e:
-                logger.warning(
-                    'unexpected error while streaming raw data from query', exc_info=e)
+                    def open_file(upload_filename):
+                        return upload_files.raw_file(upload_filename, 'rb')
 
-        logger.info('start streaming raw files')
-        return streamed_zipfile(
-            generator(), zipfile_name='nomad_raw_files.zip', compress=compress)
+                upload_files._is_authorized = create_authorization_predicate(
+                    upload_id=upload_id, calc_id=entry['calc_id'])
+                directory = os.path.dirname(mainfile)
+                directory_w_upload = os.path.join(upload_files.upload_id, directory)
+                if directory_w_upload not in directories:
+                    streamed += 1
+                    directories.add(directory_w_upload)
+                    for filename, file_size in upload_files.raw_file_list(directory=directory):
+                        filename = os.path.join(directory, filename)
+                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                        if len(patterns) == 0 or any(
+                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                for pattern in patterns):
+                            yield (
+                                filename_wo_prefix, filename, manifest, open_file,
+                                lambda *args, **kwargs: file_size)
+                else:
+                    skipped += 1
+
+                if (streamed + skipped) % 10000 == 0:
+                    logger.info('streaming raw files', streamed=streamed, skipped=skipped)
+
+            if upload_files is not None:
+                upload_files.close()
+
+        except Exception as e:
+            logger.error('unexpected error while streaming raw data from query', exc_info=e)
+
+    logger.info('start streaming raw files')
+    return streamed_zipfile(
+        generator(), zipfile_name='nomad_raw_files.zip', compress=compress, manifest=dict())
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
@@ -696,7 +586,7 @@ def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
     try:
         return streamed_zipfile(
             [(
-                filename[common_prefix_len:], filename,
+                filename[common_prefix_len:], filename, None,
                 lambda upload_filename: upload_files.raw_file(upload_filename, 'rb'),
                 lambda upload_filename: upload_files.raw_file_size(upload_filename)
             ) for filename in files],

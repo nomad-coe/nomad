@@ -1811,6 +1811,22 @@ class TestRaw(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
+    def test_raw_files_from_query_file_error(self, api, processeds, test_user_auth, monkeypatch):
+
+        def raw_file(self, *args, **kwargs):
+            raise Exception('test error')
+
+        monkeypatch.setattr('nomad.files.StagingUploadFiles.raw_file', raw_file)
+        url = '/raw/query?%s' % urlencode({'atoms': 'Si'})
+        rv = api.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            with zip_file.open('manifest.json', 'r') as f:
+                manifest = json.load(f)
+                assert 'errors' in manifest
+                assert len(manifest['errors']) > 0
+
     @pytest.mark.parametrize('files, pattern, strip', [
         (1, '*.json', False),
         (1, '*.json', True),

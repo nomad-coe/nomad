@@ -495,6 +495,7 @@ def send_mail(name: str, email: str, message: str, subject: str):
     msg = MIMEText(message)
     msg['Subject'] = subject
     msg['To'] = name
+    msg['From'] = config.mail.from_address
     to_addrs = [email]
 
     if config.mail.cc_address is not None:

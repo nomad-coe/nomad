@@ -25,7 +25,6 @@ from typing import Dict, Any
 from io import BytesIO
 from flask import request, g
 from flask_restplus import abort, Resource, fields
-import json
 import orjson
 import urllib.parse
 
@@ -163,6 +162,15 @@ class ArchiveDownloadResource(Resource):
                 for entry in calcs:
                     upload_id = entry['upload_id']
                     calc_id = entry['calc_id']
+
+                    manifest = {
+                        calc_id: {
+                            key: entry[key]
+                            for key in ArchiveDownloadResource.manifest_quantities
+                            if entry.get(key) is not None
+                        }
+                    }
+
                     if upload_files is None or upload_files.upload_id != upload_id:
                         if upload_files is not None:
                             upload_files.close()
@@ -182,40 +190,21 @@ class ArchiveDownloadResource(Resource):
                             option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
                         yield (
-                            '%s.%s' % (calc_id, 'json'), calc_id,
+                            '%s.%s' % (calc_id, 'json'), calc_id, manifest,
                             lambda calc_id: f,
                             lambda calc_id: f.getbuffer().nbytes)
-
-                    manifest[calc_id] = {
-                        key: entry[key]
-                        for key in ArchiveDownloadResource.manifest_quantities
-                        if entry.get(key) is not None
-                    }
 
                 if upload_files is not None:
                     upload_files.close()
 
-                try:
-                    manifest_contents = json.dumps(manifest).encode('utf-8')
-                except Exception as e:
-                    manifest_contents = json.dumps(
-                        dict(error='Could not create the manifest: %s' % (e))).encode('utf-8')
-                    common.logger.error(
-                        'could not create raw query manifest', exc_info=e)
-
-                yield (
-                    'manifest.json', 'manifest',
-                    lambda *args: BytesIO(manifest_contents),
-                    lambda *args: len(manifest_contents))
-
             except Exception as e:
-                common.logger.warning(
+                common.logger.error(
                     'unexpected error while streaming raw data from query',
                     exc_info=e,
                     query=urllib.parse.urlencode(request.args, doseq=True))
 
         return streamed_zipfile(
-            generator(), zipfile_name='nomad_archive.zip', compress=compress)
+            generator(), zipfile_name='nomad_archive.zip', compress=compress, manifest=dict())
 
 
 _archive_query_model = api.inherit('ArchiveSearch', search_model, {
