@@ -386,8 +386,11 @@ data = response.json()'''.format(
 def _filter_api_query(query):
     def normalize_value(key, value):
         quantity = search.search_quantities.get(key)
-        if quantity.many and not isinstance(value, list):
-            return [value]
+        if quantity.many:
+            if not isinstance(value, list):
+                return [value]
+            else:
+                return value
         elif isinstance(value, list) and len(value) == 1:
             return value[0]
 
