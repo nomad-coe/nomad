@@ -5,7 +5,7 @@ A simple example used in the NOMAD webinar API tutorial
 from nomad.client import ArchiveQuery
 
 query = ArchiveQuery(
-    url='http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/reprocess/api',
+    url='http://nomad-lab.eu/prod/rae/api',
     query={
         'dft.code_name': 'VASP',
         'atoms': ['Ti', 'O']

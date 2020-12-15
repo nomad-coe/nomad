@@ -3,7 +3,7 @@ image:
 
 proxy:
   external:
-    host: "labdev-nomad.esc.rzg.mpg.de"
+    host: "nomad-lab.eu"
 
 ingress:
   enabled: true

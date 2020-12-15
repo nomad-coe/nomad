@@ -10,7 +10,7 @@ import time
 import os.path
 import sys
 
-nomad_url = 'http://labdev-nomad.esc.rzg.mpg.de/fairdi/nomad/testing/api'
+nomad_url = 'http://nomad-lab.eu/prod/rae/api'
 user = 'leonard.hofstadter@nomad-fairdi.tests.de'
 password = 'password'
 
