@@ -23,6 +23,9 @@ from math import gcd as gcd
 from functools import reduce
 from typing import List, Dict, Tuple, Any, Union
 
+from ase.utils import pbc2pbc
+import ase.geometry
+
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 from matid.symmetry import WyckoffSet
@@ -45,17 +48,120 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
-def get_volume(parallelepiped: np.ndarray) -> float:
-    """Calculates a volume of the given parallelepiped.
+def get_volume(basis: np.ndarray) -> float:
+    """Calculates the volume of the given parallelepiped.
 
     Args:
-        cell: The parallellepiped as 3x3 matrix with cell basis vectors as
-        rows.
+        basis: 3x3 matrix with basis vectors of a parallellepiped as rows.
 
     Returns:
-        The cell volume.
+        Volume of the parallelepiped defined by the basis.
     """
-    return np.abs(np.linalg.det(parallelepiped))
+    return np.abs(np.linalg.det(basis))
+
+
+def wrap_positions(
+        positions: np.ndarray,
+        cell: np.ndarray = None,
+        pbc: Union[bool, np.ndarray] = True,
+        center: np.ndarray = [0.5, 0.5, 0.5],
+        eps: float = 1e-7) -> np.ndarray:
+    """Wraps the given position so that they are within the unit cell. If no
+    cell is given, scaled positions are assumed. For wrapping cartesian
+    positions you also need to provide the cell.
+
+    Args:
+        positions: Positions of the atoms. Accepts both scaled and
+            cartesian positions.
+        cell: Lattice vectors for wrapping cartesian positions.
+        pbc: For each axis in the unit cell decides whether the positions will
+            be wrapped along this axis.
+        center: The position in fractional coordinates that the wrapped
+            positions will be nearest possible to.
+        eps: Small number to prevent slightly negative coordinates from being
+            wrapped.
+    """
+    if not hasattr(center, '__len__'):
+        center = (center,) * 3
+
+    pbc = pbc2pbc(pbc)
+    shift = np.asarray(center) - 0.5 - eps
+
+    # Don't change coordinates when pbc is False
+    shift[np.logical_not(pbc)] = 0.0
+
+    if cell is None:
+        fractional = positions
+    else:
+        fractional = to_scaled(positions) - shift
+
+    for i, periodic in enumerate(pbc):
+        if periodic:
+            fractional[:, i] %= 1.0
+            fractional[:, i] += shift[i]
+    if cell:
+        return np.dot(fractional, cell)
+    else:
+        return fractional
+
+
+def to_scaled(
+        positions: np.ndarray,
+        cell: np.ndarray = None) -> np.ndarray:
+    """Converts cartesian positions into scaled position one using the given
+    cell lattice vectors as a basis.
+
+    Args:
+        positions: Scaled positions.
+        cell: Lattice vectors.
+
+    Returns:
+        The given positions in scaled coordinates.
+    """
+    return np.linalg.solve(complete_cell(cell).T, positions.T).T
+
+
+def to_cartesian(
+        positions: np.ndarray,
+        cell: np.ndarray = None) -> np.ndarray:
+    """Converts scaled positions into cartesian one using the given cell
+    lattice vectors as a basis.
+
+    Args:
+        positions: Scaled positions.
+        cell: Lattice vectors.
+
+    Returns:
+        The given positions in cartesian coordinates.
+    """
+    cartesian_positions = np.dot(positions, complete_cell(cell))
+    return cartesian_positions
+
+
+def complete_cell(cell: np.ndarray) -> np.ndarray:
+    """Creates placeholder axes for cells with zero-dimensional lattice vectors
+    in order to do linear algebra.
+
+    Args:
+        cell: Lattice vectors.
+
+    Returns:
+        The given cell with zero-dimensional lattice vectors filled with
+        placeholder axes.
+    """
+    return ase.geometry.complete_cell(cell)
+
+
+def reciprocal_cell(cell: np.ndarray) -> np.ndarray:
+    """Returns the reciprocal cell without the factor or 2*Pi.
+
+    Args:
+        cell: Lattice vectors.
+
+    Returns:
+        Reciprocal cell as a 3x3 array.
+    """
+    return np.linalg.pinv(cell).transpose()
 
 
 def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
@@ -77,6 +183,78 @@ def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, Non
         return min_arg
     else:
         return None
+
+
+def cellpar_to_cell(cellpar: np.ndarray, ab_normal: np.ndarray = [0, 0, 1], a_direction: np.ndarray = None, degrees=False) -> np.ndarray:
+    """Creates a 3x3 cell from the given lattice_parameters.
+
+    The returned cell is orientated such that a and b are normal to `ab_normal`
+    and a is parallel to the projection of `a_direction` in the a-b plane.
+
+    Default `a_direction` is (1,0,0), unless this is parallel to `ab_normal`,
+    in which case default `a_direction` is (0,0,1).
+
+    The returned cell has the vectors va, vb and vc along the rows. The cell
+    will be oriented such that va and vb are normal to `ab_normal` and va will
+    be along the projection of `a_direction` onto the a-b plane.
+
+    Args:
+        cellpar: Six lattice parameters: [a, b, c, alpha, beta, gamma].
+        The following typical convention is used:
+
+            a = length of first basis vector
+            b = length of second basis vector
+            c = length of third basis vector
+            alpha = angle between b and c in radians
+            beta  = angle between a and c in radians
+            gamma = angle between a and b in radians
+        degrees: Use degrees in place of radians.
+
+    Returns:
+        Six parameters (in this order) as a numpy
+        array. Here is an explanation of each parameter:
+    """
+    if not degrees:
+        cellpar[3:6] *= 180.0 / np.pi
+
+    return ase.geometry.cell.cellpar_to_cell(cellpar, ab_normal, a_direction)
+
+
+def cell_to_cellpar(cell: np.ndarray, degrees=False) -> np.ndarray:
+    """Returns lattice parameters for the given cell.
+
+    Args:
+        normalized_cell: The normalized cell as a 3x3 array. Each row is a
+            basis vector.
+        degrees: Use degrees in place of radians.
+
+    Returns:
+        Six parameters [a, b, c, alpha, beta, gamma]. The following typical
+        convention ik used:
+
+            a = length of first basis vector
+            b = length of second basis vector
+            c = length of third basis vector
+            alpha = angle between b and c in radians
+            beta  = angle between a and c in radians
+            gamma = angle between a and b in radians
+    """
+    # Lengths
+    lengths = np.linalg.norm(cell, axis=1)
+
+    # Angles
+    angles = np.zeros(3)
+    for i in range(3):
+        j = (i + 1) % 3
+        k = (i + 2) % 3
+        angles[i] = np.dot(
+            cell[j],
+            cell[k]) / (lengths[j] * lengths[k])
+    angles = np.arccos(np.clip(angles, -1.0, 1.0))
+    if degrees:
+        angles *= 180.0 / np.pi
+
+    return np.concatenate((lengths, angles), axis=0)
 
 
 def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d: bool = False) -> str:
@@ -110,45 +288,6 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d:
         string = "{} {}".format(space_group, wyckoff_string)
 
     return string
-
-
-def get_lattice_parameters(normalized_cell: np.ndarray) -> np.ndarray:
-    """Calculate the lattice parameters for the normalized cell.
-
-    Args:
-        normalized_cell: The normalized cell as a 3x3 array. Each row is a
-            basis vector.
-
-    Returns:
-        Six parameters a, b, c, alpha, beta, gamma (in this order) as a numpy
-        array. Here is an explanation of each parameter:
-
-        a = length of first basis vector
-        b = length of second basis vector
-        c = length of third basis vector
-        alpha = angle between b and c
-        beta  = angle between a and c
-        gamma = angle between a and b
-    """
-    if normalized_cell is None:
-        return None
-
-    # Lengths
-    lengths = np.linalg.norm(normalized_cell, axis=1)
-    a, b, c = lengths
-
-    # Angles
-    angles = np.zeros(3)
-    for i in range(3):
-        j = (i + 1) % 3
-        k = (i + 2) % 3
-        angles[i] = np.dot(
-            normalized_cell[j],
-            normalized_cell[k]) / (lengths[j] * lengths[k])
-    angles = np.clip(angles, -1.0, 1.0)
-    alpha, beta, gamma = np.arccos(angles)
-
-    return [a, b, c, alpha, beta, gamma]
 
 
 def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tuple[List[str], List[int]]:

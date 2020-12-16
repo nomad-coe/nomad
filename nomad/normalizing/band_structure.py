@@ -91,6 +91,9 @@ class BandStructureNormalizer(Normalizer):
         (https://atztogo.github.io/spglib/definition.html#transformation-to-the-primitive-cell)
         whether the k-point path stays inside the first Brillouin zone.
         """
+        # If reciprocal cell is reported by parser, use it.
+        if band.reciprocal_cell is not None:
+            return
         try:
             orig_atoms = system.m_cache["representative_atoms"]
             symmetry_analyzer = system.section_symmetry[0].m_cache["symmetry_analyzer"]
@@ -310,7 +313,7 @@ class BandStructureNormalizer(Normalizer):
         """Return dict of special points.
 
         The definitions are from a paper by Wahyu Setyawana and Stefano
-        Curtarolo::
+        Curtarolo:
 
             http://dx.doi.org/10.1016/j.commatsci.2010.05.010
 
