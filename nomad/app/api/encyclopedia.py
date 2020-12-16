@@ -181,8 +181,8 @@ class MaterialSearch():
         Args:
             query_string: The query string. E.g. 'crystal_system="cubic" AND
                 material_type="bulk"'
-            exclusive: Whether the species search (conceerns both 'elements'
-                and 'formula') is perfomed exclusively or not.
+            exclusive: Whether the species search (concerns both 'elements' and
+                'formula') is perfomed exclusively or not.
         """
         class BoolBinOp:
             def __init__(self, t):
@@ -204,7 +204,7 @@ class MaterialSearch():
 
         class BoolNot:
             def __init__(self, t):
-                self.arg = t[0][1]
+                self.args = t[0][1:2]
 
         def parse_operand(operand):
             name, value = operand.strip().split("=")
@@ -217,7 +217,7 @@ class MaterialSearch():
             # attributes.
             material_prop_map = {
                 # General
-                "elements": ("species_and_counts", None),
+                "elements": ("species", None),
                 "material_id": ("material_id", "terms"),
                 "formula": ("species_and_counts", None),
                 "material_type": ("material_type", "terms"),
@@ -325,7 +325,7 @@ class MaterialSearch():
         boolExpr = infixNotation(
             QUERY,
             [
-                ("!", 1, opAssoc.RIGHT, BoolNot),
+                ("NOT", 1, opAssoc.RIGHT, BoolNot),
                 ("AND", 2, opAssoc.LEFT, BoolAnd),
                 ("OR", 2, opAssoc.LEFT, BoolOr),
             ],
@@ -630,7 +630,7 @@ materials_query = api.model("materials_input", {
         "per_page": fields.Integer(default=25, min=1, description="Number of results per page.", example=10),
         "restricted": fields.Boolean(default=False, description="Select to restrict the query to individual calculations. If not selected, the query will combine results from several different calculations."),
     })),
-    "query": fields.String(description="Single search string that supports combining any of the search parameters with AND, OR, ! and parentheses."),
+    "query": fields.String(description="Single search string that supports combining any of the search parameters with AND, OR, NOT and parentheses."),
     "material_type": fields.List(fields.String(enum=list(Material.material_type.type)), description=Material.material_type.description),
     "material_name": fields.List(fields.String, description=Material.material_name.description),
     "structure_type": fields.List(fields.String, description=Bulk.structure_type.description),
