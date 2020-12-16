@@ -32,6 +32,7 @@ from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
 from lammpsparser import LammpsParser
 from gromacsparser import GromacsParser
+from crystalparser import CrystalParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -157,15 +158,7 @@ parsers = [
             r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n'
         )
     ),
-    LegacyParser(
-        name='parsers/crystal', code_name='Crystal', code_homepage='https://www.crystal.unito.it/',
-        parser_class_name='crystalparser.CrystalParser',
-        mainfile_contents_re=(
-            r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|'
-            r'(\s*\*\s*CRYSTAL[\d]+\s*\*\s*\*\s*(public|Release) \: [\d\.]+.*\*)|'
-            r'(Executable:\s*[/_\-a-zA-Z0-9]*MPPcrystal)'
-        )
-    ),
+    CrystalParser(),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
