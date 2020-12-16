@@ -174,8 +174,15 @@ class MaterialSearch():
                 visible_calcs.append(calc)
         return visible_calcs
 
-    def from_query_string(self, query_string, exclusive):
-        """Turns an user specified search string into a valid ES search.
+    def from_query_string(self, query_string: str, exclusive: bool) -> None:
+        """Initializes this MaterialSearch instance from the specified search
+        string.
+
+        Args:
+            query_string: The query string. E.g. 'crystal_system="cubic" AND
+                material_type="bulk"'
+            exclusive: Whether the species search (conceerns both 'elements'
+                and 'formula') is perfomed exclusively or not.
         """
         class BoolBinOp:
             def __init__(self, t):
