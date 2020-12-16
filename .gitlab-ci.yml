@@ -9,10 +9,11 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
 # services:
 #   - docker:dind
 
+# TODO remove CI_NOMAD_DEV_PROXY
+
 stages:
   - build
   - test
-  - deploy
   - release
 
 
@@ -40,7 +41,7 @@ build:
     - /^dev-.*$/
     - tags
 
-linting:
+python linting:
   stage: test
   image: $TEST_IMAGE
   script:
@@ -55,7 +56,7 @@ linting:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-gui_linting:
+gui linting:
   stage: test
   image: node
   script:
@@ -100,7 +101,7 @@ tests:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-install_tests:
+install tests:
   stage: test
   image: python:3.7
   before_script:
@@ -124,7 +125,7 @@ install_tests:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-dev_setup_tests:
+dev setup tests:
   stage: test
   image: python:3.7
   script:
@@ -138,23 +139,36 @@ dev_setup_tests:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-deploy:
-  stage: deploy
+deploy dev:
+  stage: release
   before_script:
     - mkdir -p /etc/deploy
     - echo ${CI_K8S_CONFIG} | base64 -d > ${KUBECONFIG}
   script:
     - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g'`
     - helm dependency update ops/helm/nomad
-    - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/ci-dev-values.yaml --set proxy.external.path=/dev/nomad/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/nomad/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n $CI_DEV_CLUSTER_PROXY/dev/nomad/$RELEASE_NAME/api -u admin -w $CI_NOMAD_ADMIN_PASSWORD integrationtests
-
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/dev/nomad/$RELEASE_NAME/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
     - /^dev-.*$/
   when: manual
 
-release:
+deploy prod beta:
+  stage: release
+  before_script:
+    - mkdir -p /etc/deploy
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+  script:
+    - helm dependency update ops/helm/nomad
+    - helm upgrade --install nomad-prod-test ops/helm/nomad -f ops/helm/nomad/deployments/prod-beta-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - docker pull $TEST_IMAGE
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/rae/beta/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+  except:
+    - /^dev-.*$/
+  when: manual
+
+release latest image:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
@@ -164,10 +178,8 @@ release:
   except:
     - /^dev-.*$/
   when: manual
-  only:
-    - branches
 
-release_version:
+release stable image:
   stage: release
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
@@ -176,24 +188,26 @@ release_version:
     - docker push $LATEST_IMAGE
     - docker tag $TEST_IMAGE $STABLE_IMAGE
     - docker push $STABLE_IMAGE
+  when: manual
   only:
     - tags
 
-release_pypi:
+python package:
   stage: release
-  image: python:3.7
-  before_script:
-    - git submodule sync
-    - git submodule update --init --jobs=4
   script:
-    - pip install --upgrade pip
-    - pip install fastentrypoints
-    - pip install pyyaml
-    - pip install numpy
-    - pip install twine
-    - python setup.py compile
-    - python setup.py sdist
-    - python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/*
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker pull $TEST_IMAGE
+    - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab.tar.gz
+  except:
+    - /^dev-.*$/
+  when: manual
+
+pypi package:
+  stage: release
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
+    - docker pull $TEST_IMAGE
+    - docker run --rm $TEST_IMAGE python -m twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab.tar.gz
   when: manual
   only:
     - tags
