@@ -27,7 +27,7 @@ pandas
 h5py
 hjson
 scipy
-scikit-learn==0.20.2
+scikit-learn
 matid==0.6.1
 python-magic
 panedr==0.2

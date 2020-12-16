@@ -47,7 +47,7 @@ RUN pip install pandas
 RUN pip install h5py
 RUN pip install hjson
 RUN pip install scipy
-RUN pip install scikit-learn==0.20.2
+RUN pip install scikit-learn
 RUN pip install ase==3.19.0
 RUN pip install Pint
 RUN pip install matid
