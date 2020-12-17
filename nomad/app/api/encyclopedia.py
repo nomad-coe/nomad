@@ -20,18 +20,19 @@
 API for retrieving material information.
 """
 import re
+import os
 import math
-import json
 import numpy as np
+from typing import List
 from collections import defaultdict
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request, g
-from elasticsearch_dsl import Search, Q, A
+from elasticsearch_dsl import Search, Q, A, Text, Keyword, Boolean
 from elasticsearch_dsl.query import Bool
 from elasticsearch_dsl.utils import AttrDict
 import ase.data
-from pyparsing import infixNotation, opAssoc, Regex
+from lark import Lark
 
 from nomad import config, infrastructure, search
 from nomad.files import UploadFiles
@@ -39,11 +40,13 @@ from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.material import Material, Bulk, Method
+from .materialtransformer import MElasticTransformer, MQuantity
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 
 ns = api.namespace("encyclopedia", description="Access materials data.")
 missing_material_msg = "The specified material {} could not be retrieved. It either does not exists or requires authentication."
+re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 
 
 class MaterialAccessError(Exception):
@@ -111,6 +114,8 @@ class MaterialSearch():
             path="calculations",
             query=Q("bool", filter=self.get_authentication_filters_nested()),
         ))
+
+        print(query)
 
         s = self._s.query(query)
         extra = self._extra
@@ -184,156 +189,46 @@ class MaterialSearch():
             exclusive: Whether the species search (concerns both 'elements' and
                 'formula') is perfomed exclusively or not.
         """
-        class BoolBinOp:
-            def __init__(self, t):
-                self.args = t[0][0::2]
+        # Parse using slightly modified Optimade grammar
+        with open("{}/encyclopedia_grammar.lark".format(os.path.dirname(__file__)), "r") as f:
+            parser = Lark(f)
+        try:
+            parse_tree = parser.parse(query_string)
+        except Exception as e:
+            abort(400, message=(
+                "Invalid query string: {}".format(e)
+            ))
+        # print(parse_tree.pretty())
 
-            def __str__(self):
-                sep = " %s " % self.reprsymbol
-                return "(" + sep.join(map(str, self.args)) + ")"
+        # Transform parse tree into ES Query
+        quantities: List[MQuantity] = [
+            # Material level quantities
+            MQuantity("elements", es_field="species", elastic_mapping_type=Text, has_only_quantity=MQuantity(name="species.keyword")),
+            MQuantity("formula", es_field="species_and_counts", elastic_mapping_type=Text, converter=query_from_formula),
+            MQuantity("material_id", es_field="material_id", elastic_mapping_type=Keyword),
+            MQuantity("material_type", es_field="material_type", elastic_mapping_type=Keyword),
+            MQuantity("material_name", es_field="material_name", elastic_mapping_type=Keyword),
+            MQuantity("crystal_system", es_field="bulk.crystal_system", elastic_mapping_type=Keyword),
+            MQuantity("space_group_number", es_field="bulk.space_group_number", elastic_mapping_type=Keyword),
+            MQuantity("structure_type", es_field="bulk.structure_type", elastic_mapping_type=Keyword),
+            # Calculation level (nested) quantities
+            MQuantity("functional_type", es_field="calculations.method.functional_type", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("basis_set", es_field="calculations.method.basis_set", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("code_name", es_field="calculations.method.program_name", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("has_band_structure", es_field="calculations.properties.has_electronic_band_structure", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("has_dos", es_field="calculations.properties.has_electronic_dos", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("has_thermal_properties", es_field="calculations.properties.has_thermodynamical_properties", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("band_gap", es_field="calculations.properties.band_gap", elastic_mapping_type=Keyword, nested_path="calculations", converter=lambda x: (x * ureg.eV).to(ureg.joule).magnitude),
+        ]
+        transformer = MElasticTransformer(quantities)
+        try:
+            query = transformer.transform(parse_tree)
+        except Exception as e:
+            abort(400, message=(
+                "Invalid query string: {}".format(e)
+            ))
 
-            __repr__ = __str__
-
-        class BoolAnd(BoolBinOp):
-            reprsymbol = "&"
-            evalop = all
-
-        class BoolOr(BoolBinOp):
-            reprsymbol = "|"
-            evalop = any
-
-        class BoolNot:
-            def __init__(self, t):
-                self.args = t[0][1:2]
-
-        def parse_operand(operand):
-            name, value = operand.strip().split("=")
-            try:
-                value = json.loads(value)
-            except ValueError:
-                abort(404, message="Invalid query syntax encountered.")
-
-            # Dictionary that maps query parameters to the correct elasticsearch
-            # attributes.
-            material_prop_map = {
-                # General
-                "elements": ("species", None),
-                "material_id": ("material_id", "terms"),
-                "formula": ("species_and_counts", None),
-                "material_type": ("material_type", "terms"),
-                "material_name": ("material_name", "terms"),
-                # Bulk
-                "crystal_system": ("bulk.crystal_system", "terms"),
-                "space_group_number": ("bulk.space_group_number", "terms"),
-                "structure_type": ("bulk.structure_type", "terms"),
-            }
-            calc_prop_map = {
-                "functional_type": ("calculations.method.functional_type", "terms"),
-                "basis_set": ("calculations.method.basis_set", "terms"),
-                "code_name": ("calculations.method.program_name", "terms"),
-                "has_band_structure": ("calculations.properties.has_electronic_band_structure", "term"),
-                "has_dos": ("calculations.properties.has_electronic_dos", "term"),
-                "band_gap": ("calculations.properties.band_gap", "range"),
-            }
-
-            # Queries that target calculations need a special nested attribute
-            # + authentication extras
-            calc_info = calc_prop_map.get(name)
-            if calc_info is not None:
-                query_path, query_type = calc_info
-
-                # Ensure list input for terms query
-                if query_type == "terms" and not isinstance(value, list):
-                    value = [value]
-                inner_query = Q(query_type, **{query_path: value})
-                nested_bool = Q(
-                    "bool",
-                    filter=self.get_authentication_filters_nested() + [inner_query],
-                )
-                nested_query = Q("nested", path="calculations", query=nested_bool)
-                return nested_query
-            else:
-                mat_info = material_prop_map.get(name)
-                if mat_info is not None:
-                    query_path, query_type = mat_info
-
-                    # Turn formula/element searches into valid ES query
-                    if name == "elements" or name == "formula":
-                        if name == "elements":
-                            query_string = query_from_elements(value)
-                        elif name == "formula":
-                            query_string = query_from_formula(value)
-                        if exclusive:
-                            inner_query = Q("term", **{"{}.keyword".format(query_path): query_string})
-                        else:
-                            inner_query = Q(
-                                "match",
-                                **{query_path: {"query": query_string, "operator": "and"}},
-                            )
-                    else:
-                        # Ensure list input for terms query
-                        if query_type == "terms" and not isinstance(value, list):
-                            value = [value]
-                        inner_query = Q(query_type, **{query_path: value})
-                    return inner_query
-            raise AttributeError("Unknown query parameter '{}'".format(name))
-
-        def parse_query(operand):
-            # The query leaf nodes are converted into correct ES queries
-            if isinstance(operand, str):
-                a = parse_operand(operand)
-                return a
-
-            # Nested queries are handled recursively
-            filters = []
-            shoulds = []
-            must_nots = []
-            args = operand.args
-
-            if isinstance(operand, BoolAnd):
-                query1 = parse_query(args[0])
-                query2 = parse_query(args[1])
-                filters.append(query1)
-                filters.append(query2)
-            elif isinstance(operand, BoolOr):
-                query1 = parse_query(args[0])
-                query2 = parse_query(args[1])
-                shoulds.append(query1)
-                shoulds.append(query2)
-            elif isinstance(operand, BoolNot):
-                query1 = parse_query(operand.args[0])
-                must_nots.append(query1)
-            else:
-                raise AttributeError("Unhandled operation type.")
-
-            bool_query = Q(
-                "bool",
-                filter=filters,
-                should=shoulds,
-                must_not=must_nots,
-            )
-
-            return bool_query
-
-        string = r'".*?"'
-        lst = r'\[.*?\]'
-        dct = r'\{.*?\}'
-        integer = r'-?\d+'
-        boolean = r'true|false'
-        flt = r'-?(?:\d+\.?\d*|\d*\.?\d+)(?:E[\+-]?\d+)?'
-        QUERY = Regex(fr'[a-zA-Z_]+(?:\.[a-zA-Z_]+)*?=(?:{string}|{integer}|{flt}|{lst}|{dct}|{boolean})')
-        boolExpr = infixNotation(
-            QUERY,
-            [
-                ("NOT", 1, opAssoc.RIGHT, BoolNot),
-                ("AND", 2, opAssoc.LEFT, BoolAnd),
-                ("OR", 2, opAssoc.LEFT, BoolOr),
-            ],
-        )
-        res = boolExpr.parseString(query_string)
-        query = parse_query(res[0])
-
-        # Wrap the query in a boolean query if it is not already one
+        # Wrap the query in a boolean query if it is not already one.
         if not isinstance(query, Bool):
             query = Q("bool", filter=[query])
 
@@ -427,7 +322,7 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
     return root
 
 
-def query_from_formula(formula: str) -> Q:
+def query_from_formula(formula: str) -> str:
     """Converts a formula into the corresponding element query.
 
     Args:
@@ -448,20 +343,20 @@ def query_from_formula(formula: str) -> Q:
         prev_end = match.end()
         groups = match.groups()
         symbol = groups[0]
-        count = groups[1]
+        n_elem = groups[1]
         if symbol != "":
-            if count == "":
+            if n_elem == "":
                 element_list.append(symbol)
             else:
-                element_list += [symbol] * int(count)
+                element_list += [symbol] * int(n_elem)
     if prev_end != len(formula) or len(element_list) == 0:
         invalid = True
     if invalid:
-        abort(400, message=(
+        raise ValueError(
             "Invalid chemical formula provided. Please use a single "
             "continuous string with capitalized element names and "
             "integer numbers for the element multiplicity. E.g. 'TiO2'"
-        ))
+        )
 
     names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
     query_list = []
@@ -476,7 +371,7 @@ def query_from_formula(formula: str) -> Q:
     return query_string
 
 
-def query_from_elements(elements: list) -> Q:
+def query_from_elements(elements: list) -> str:
     """Converts a list of elements into the corresponding element query.
 
     Args:
@@ -616,7 +511,6 @@ class EncMaterialResource(Resource):
         return result, 200
 
 
-re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 range_query = api.model("range_query", {
     "max": fields.Float(min=0),
     "min": fields.Float(min=0),
@@ -676,14 +570,15 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        # Create filters from user query
         s = MaterialSearch()
         query = data["query"]
         search_by = data["search_by"]
         exclusive = search_by["exclusive"]
+
+        # Initialize MaterialSearch from a query string
         if query is not None:
             s.from_query_string(query, exclusive)
-        # Create filters from individual query terms.
+        # Initialize MaterialSearch from individual query terms
         else:
             # Material level filters
             if data["material_type"] is not None: s.add_material_filter(Q("terms", material_type=data["material_type"]))
