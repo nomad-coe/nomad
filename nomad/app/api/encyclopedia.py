@@ -29,7 +29,7 @@ from collections import defaultdict
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request, g
 from elasticsearch_dsl import Search, Q, A, Text, Keyword, Boolean
-from elasticsearch_dsl.query import Bool
+from elasticsearch_dsl.query import Bool, Nested
 from elasticsearch_dsl.utils import AttrDict
 import ase.data
 from lark import Lark
@@ -80,10 +80,9 @@ class MaterialSearch():
         """
         if not isinstance(queries, (list, tuple)):
             queries = [queries]
-        filters = self.get_authentication_filters_nested() + queries
         nested_bool = Q(
             "bool",
-            filter=filters,
+            filter=queries,
         )
         nested_query = Q("nested", path="calculations", query=nested_bool)
         self._filters.append(nested_query)
@@ -106,16 +105,30 @@ class MaterialSearch():
         else:
             query = self._q
 
-        # Add top-level authentication filters that will filter out materials
-        # that do not have a single accessible calculation. The filtering of
-        # actual calculation results is done by the calculations()-function.
-        query.filter.append(Q(
-            "nested",
-            path="calculations",
-            query=Q("bool", filter=self.get_authentication_filters_nested()),
-        ))
-
-        print(query)
+        # Add authentication filters on top of the query. This will make sure
+        # that materials with only private calculations are excluded and that
+        # private calculations are ignored in queries concerning calculations.
+        def add_authentication(q):
+            if isinstance(q, Nested):
+                if q.path == "calculations":
+                    nested_query = q.query
+                    if not isinstance(nested_query, Bool):
+                        nested_query = Q("bool", filter=[nested_query])
+                    auth_filters = get_authentication_filters_material()
+                    nested_query.filter.extend(auth_filters)
+                    q.query = nested_query
+            elif isinstance(q, Bool):
+                for f in q.must:
+                    add_authentication(f)
+                for f in q.filter:
+                    add_authentication(f)
+                for f in q.should:
+                    add_authentication(f)
+                for f in q.must_not:
+                    add_authentication(f)
+        add_authentication(query)
+        # This makes sure that materials with only private entries are always excluded
+        query.filter.append(Q("nested", path="calculations", query=Q("bool", filter=get_authentication_filters_material())))
 
         s = self._s.query(query)
         extra = self._extra
@@ -125,16 +138,6 @@ class MaterialSearch():
     def execute(self):
         s = self.s()
         return s.execute()
-
-    def get_authentication_filters_nested(self):
-        """Returns a shared term filter that will leave out unpublished (of
-        other users) or embargoed materials.
-        """
-        # Handle authentication
-        q = Q('term', calculations__published=True) & Q('term', calculations__with_embargo=False)
-        if g.user is not None and g.user.user_id is not None:
-            q = q | Q('term', calculations__owners=g.user.user_id)
-        return [q]
 
     def calculations(self):
         """Executes the query and returns a list of visible calculations
@@ -235,7 +238,20 @@ class MaterialSearch():
         self._q = query
 
 
-def get_authentication_filters():
+def get_authentication_filters_material():
+    """Returns a list of queries that when placed inside a filter will leave
+    out unpublished (of other users) or embargoed materials.
+    """
+    # Handle authentication
+    filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
+    if g.user is not None and g.user.user_id is not None:
+        q = filters[0] & filters[1]
+        q = q | Q('term', calculations__owners=g.user.user_id)
+        return [q]
+    return filters
+
+
+def get_authentication_filters_calc():
     """Returns a shared term filter that will leave out unpublished (of other
     users), embargoed or invalid entries in the calculations index.
     """
@@ -352,11 +368,11 @@ def query_from_formula(formula: str) -> str:
     if prev_end != len(formula) or len(element_list) == 0:
         invalid = True
     if invalid:
-        raise ValueError(
+        abort(400, message=(
             "Invalid chemical formula provided. Please use a single "
             "continuous string with capitalized element names and "
             "integer numbers for the element multiplicity. E.g. 'TiO2'"
-        )
+        ))
 
     names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
     query_list = []
@@ -660,7 +676,7 @@ class EncMaterialsResource(Resource):
             nested = materials.bucket("nested", A("nested", path="calculations"))
             nested.bucket(
                 "visible",
-                A("filter", filter=Q("bool", filter=s2.get_authentication_filters_nested()))
+                A("filter", filter=Q("bool", filter=get_authentication_filters_material()))
             )
             response2 = s2.execute()
             agg_dict = {}
@@ -1042,7 +1058,7 @@ class EncStatisticsResource(Resource):
         # Find entries for the given material.
         bool_query = Q(
             "bool",
-            filter=get_authentication_filters() + [
+            filter=get_authentication_filters_calc() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("terms", calc_id=data["calculations"]),
             ]
@@ -1250,7 +1266,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=get_authentication_filters() + [
+            filter=get_authentication_filters_calc() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
@@ -1449,7 +1465,7 @@ class EncSuggestionsResource(Resource):
             s = Search(index=config.elastic.index_name)
             query = Q(
                 "bool",
-                filter=get_authentication_filters()
+                filter=get_authentication_filters_calc()
             )
             s = s.query(query)
             s = s.extra(**{
