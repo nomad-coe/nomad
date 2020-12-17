@@ -62,7 +62,7 @@ gui linting:
   script:
     - cd gui
     - yarn
-    - yarn run eslint 'src/**/*.js'
+    - yarn run lint
   except:
     refs:
       - tags
@@ -70,7 +70,7 @@ gui linting:
       - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
       - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
 
-tests:
+python tests:
   stage: test
   image: $TEST_IMAGE
   services:
@@ -94,6 +94,20 @@ tests:
     - cd /app
     - ls /builds
     - python -m pytest --cov=nomad -sv tests
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^dev-.*$/
+      - $CI_COMMIT_MESSAGE =~ /\[skip[ _-]tests?\]/i
+
+gui tests:
+  stage: test
+  image: node
+  script:
+    - cd gui
+    - yarn
+    - yarn run test
   except:
     refs:
       - tags

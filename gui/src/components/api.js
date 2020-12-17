@@ -75,7 +75,7 @@ class Upload {
   }
 
   uploadFile(file) {
-    const uploadFileWithProgress = async() => {
+    const uploadFileWithProgress = async () => {
       const authHeaders = await this.api.authHeaders()
       let uploadRequest = await UploadRequest(
         {

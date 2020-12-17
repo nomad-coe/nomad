@@ -34,6 +34,7 @@ def dev():
 def qa(skip_tests: bool, exitfirst: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     ret_code = 0
+
     if not skip_tests:
         click.echo('Run tests ...')
         ret_code += os.system('python -m pytest -sv%s tests' % ('x' if exitfirst else ''))
@@ -48,11 +49,17 @@ def qa(skip_tests: bool, exitfirst: bool):
 
 
 @dev.command(help='Runs tests and linting of the nomad gui source code. Useful before committing code.')
-def gui_qa():
-    click.echo('Run gui code linting ...')
+@click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
+def gui_qa(skip_tests: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../gui')))
     ret_code = 0
-    ret_code += os.system('yarn run eslint \'src/**/*.js\'')
+
+    if not skip_tests:
+        click.echo('Run gui testing ...')
+        ret_code += os.system('yarn run test')
+    click.echo('Run gui code linting ...')
+    ret_code += os.system('yarn run lint')
+
     sys.exit(ret_code)
 
 

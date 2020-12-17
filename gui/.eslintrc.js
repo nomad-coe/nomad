@@ -15,10 +15,14 @@ module.exports = {
         "browser": true
     },
     "plugins": [
-        "react", "react-hooks"
+        "react", "react-hooks", "testing-library", "jest"
     ],
     "rules": {
-        "space-before-function-paren": ["error", "never"],
+        "space-before-function-paren": ["error", {
+            "asyncArrow": "always",
+            "named": "never",
+            "anonymous": "never"
+        }],
         "camelcase": [0],
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
@@ -28,5 +32,16 @@ module.exports = {
         "react": {
             "version": "detect"
         }
-    }
+    },
+    "overrides": [
+        {
+            "files": [
+                "**/*.spec.js",
+                "**/*.spec.jsx"
+            ],
+            "env": {
+                "jest": true
+            }
+        }
+    ]
 }

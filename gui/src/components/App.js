@@ -20,10 +20,10 @@ import PropTypes from 'prop-types'
 import { compose } from 'recompose'
 import classNames from 'classnames'
 import { MuiThemeProvider, withStyles, makeStyles } from '@material-ui/core/styles'
-import { LinearProgress, MenuList, Typography,
-  AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog, Tooltip,
-  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink, Menu } from '@material-ui/core'
-import { Route, Link, withRouter, useLocation } from 'react-router-dom'
+import { LinearProgress, Typography,
+  AppBar, Toolbar, Button, DialogContent, DialogTitle, DialogActions, Dialog,
+  Snackbar, SnackbarContent, FormGroup, FormControlLabel, Switch, IconButton, Link as MuiLink } from '@material-ui/core'
+import { Route, withRouter, useLocation } from 'react-router-dom'
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
 import UserDataIcon from '@material-ui/icons/AccountCircle'
@@ -37,7 +37,6 @@ import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import UnderstoodIcon from '@material-ui/icons/Check'
 import AnalyticsIcon from '@material-ui/icons/ShowChart'
-import MoreIcon from '@material-ui/icons/MoreVert'
 import {help as searchHelp, default as SearchPage} from './search/SearchPage'
 import HelpDialog from './Help'
 import { ApiProvider, withApi, apiContext } from './api'
@@ -60,6 +59,7 @@ import { useCookies } from 'react-cookie'
 import Markdown from './Markdown'
 import { help as metainfoHelp, MetainfoPage } from './archive/MetainfoBrowser'
 import AIToolkitPage from './aitoolkit/AIToolkitPage'
+import { MenuBarItem, MenuBar, MenuBarMenu } from './nav/MenuBar'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -95,39 +95,6 @@ function ReloadSnack() {
       message={<span>There is a new NOMAD version. Please press your browser&apos;s reload (or even shift+reload) button.</span>}
     />
   </Snackbar>
-}
-
-const useMainMenuItemStyles = makeStyles(theme => ({
-  button: {
-    margin: theme.spacing(1),
-    whiteSpace: 'nowrap'
-  }
-}))
-
-function MainMenuItem({tooltip, title, path, href, onClick, icon}) {
-  const {pathname} = useLocation()
-  const classes = useMainMenuItemStyles()
-  const selected = path === pathname || (path !== '/' && pathname.startsWith(path))
-  const rest = path ? {to: path, component: Link} : {href: href}
-  const button = <Button
-    className={classes.button}
-    color={selected ? 'primary' : 'default'}
-    size="small"
-    startIcon={icon}
-    onClick={onClick}
-    {...rest}
-  >
-    {title}
-  </Button>
-  return tooltip ? <Tooltip title={tooltip}>{button}</Tooltip> : button
-}
-MainMenuItem.propTypes = {
-  'tooltip': PropTypes.string,
-  'title': PropTypes.string.isRequired,
-  'path': PropTypes.string,
-  'href': PropTypes.string,
-  'onClick': PropTypes.func,
-  'icon': PropTypes.element.isRequired
 }
 
 const useBetaSnackStyles = makeStyles(theme => ({
@@ -211,10 +178,10 @@ function Consent(moreProps) {
 
   return (
     <React.Fragment>
-      <MainMenuItem
-        title="Terms"
+      <MenuBarItem
+        name="terms"
         onClick={handleOpen}
-        tooltip="NOMAD's terms"
+        tooltip="The terms of service and cookie consent"
         icon={<TermsIcon/>}
         {...moreProps}
       />
@@ -248,66 +215,7 @@ function Consent(moreProps) {
   )
 }
 
-function MoreMenu(props) {
-  const [anchor, setAnchor] = useState(false)
-  const handleClose = () => setAnchor(null)
-  const MenuItem = React.forwardRef((props, ref) => <MainMenuItem {...props} />)
-  return <React.Fragment>
-    <MainMenuItem
-      title="More"
-      onClick={e => setAnchor(e.currentTarget)}
-      icon={<MoreIcon/>} />
-    <Menu
-      id="simple-menu"
-      anchorEl={anchor}
-      keepMounted
-      open={Boolean(anchor)}
-      onClose={handleClose}
-    >
-      <MenuItem
-        title="Forum"
-        onClick={handleClose}
-        href="https://matsci.org/c/nomad/"
-        tooltip="The NOMAD user/developer forum on matsci.org"
-        icon={<ForumIcon/>}
-      />
-      <MenuItem
-        title="FAQ"
-        onClick={handleClose}
-        href="https://nomad-lab.eu/repository-archive-faqs"
-        tooltip="Frequently Asked Questions (FAQ)"
-        icon={<FAQIcon/>}
-      />
-      <MenuItem
-        title="Docs"
-        onClick={handleClose}
-        href={`${appBase}/docs/index.html`}
-        tooltip="The NOMAD documentation"
-        icon={<DocIcon/>}
-      />
-      <MenuItem
-        title="Sources"
-        onClick={handleClose}
-        href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-        tooltip="NOMAD's Gitlab project"
-        icon={<CodeIcon/>}
-      />
-    </Menu>
-  </React.Fragment>
-}
-
-const useMainMenuStyles = makeStyles(theme => ({
-  root: {
-    display: 'inline-flex',
-    padding: 0,
-    width: '100%',
-    backgroundColor: 'white'
-  }
-}))
-
 function MainMenu() {
-  const classes = useMainMenuStyles()
-
   // We keep the URL of those path where components keep meaningful state in the URL.
   // If the menu is used to comeback, the old URL is used. Therefore, it appears as
   // if the same component instance with the same state is still there.
@@ -323,53 +231,78 @@ function MainMenu() {
       history[key] = '/' + key
     }
   })
+  const route = Object.keys(routes).find(routeKey => pathname.startsWith(routes[routeKey].path))
+  const routeNavPath = route && routes[route].navPath
+  if (routeNavPath) {
+    historyRef.current.navPath = routeNavPath
+  }
+  const selected = (route && routes[route].navPath) || historyRef.current.navPath || (route && routes[route].defaultNavPath) || 'publish/uploads'
 
-  return <MenuList classes={{root: classes.root}}>
-    <MainMenuItem
-      title="Search"
-      path={history.search}
-      tooltip="Find and download data"
-      icon={<SearchIcon/>}
-    />
-    <MainMenuItem
-      title="Upload"
-      path="/uploads"
-      tooltip="Upload and publish data"
-      icon={<BackupIcon/>}
-    />
-    <MainMenuItem
-      title="Your data"
-      path={history.userdata}
-      tooltip="Manage your data"
-      icon={<UserDataIcon/>}
-    />
-    {encyclopediaEnabled && <MainMenuItem
-      title="Encyclopedia"
-      href={`${appBase}/encyclopedia/#/search`}
-      tooltip="Visit the NOMAD Materials Encyclopedia"
-      icon={<EncyclopediaIcon/>}
-    />}
-    {!oasis && aitoolkitEnabled && <MainMenuItem
-      title="AI Toolkit"
-      path="/aitoolkit"
-      tooltip="NOMAD's Artificial Intelligence Toolkit tutorial jupyter notebooks"
-      icon={<AnalyticsIcon/>}
-    />}
-    <MainMenuItem
-      title="Metainfo"
-      path="/metainfo"
-      tooltip="Browse the archive schema"
-      icon={<MetainfoIcon/>}
-    />
-    <MainMenuItem
-      title="About"
-      path="/"
-      tooltip="About the NOMAD Repository and Archive"
-      icon={<AboutIcon/>}
-    />
-    <Consent />
-    <MoreMenu />
-  </MenuList>
+  return <MenuBar selected={selected}>
+    <MenuBarMenu name="publish" label="Publish" route="/uploads" icon={<BackupIcon/>}>
+      <MenuBarItem
+        name="uploads" label="Upload" route="/uploads" isDefault
+        tooltip="Upload and publish new data" icon={<SearchIcon />}
+      />
+      <MenuBarItem
+        label="Your data" name="userdata" route={history.userdata}
+        tooltip="Manage your uploaded data" icon={<UserDataIcon />}
+      />
+    </MenuBarMenu>
+    <MenuBarMenu name="explore" route={history.search} icon={<SearchIcon/>}>
+      <MenuBarItem
+        name="search" route={history.search}
+        tooltip="Find and download data"
+      />
+      {encyclopediaEnabled && <MenuBarItem
+        name="encyclopedia"
+        href={`${appBase}/encyclopedia/#/search`}
+        tooltip="Visit the NOMAD Materials Encyclopedia"
+        icon={<EncyclopediaIcon/>}
+      />}
+    </MenuBarMenu>
+    <MenuBarMenu name="analyze" route="/metainfo" icon={<AnalyticsIcon/>}>
+      {!oasis && aitoolkitEnabled && <MenuBarItem
+        label="AI Toolkit" name="aitoolkit" route="/aitoolkit"
+        tooltip="NOMAD's Artificial Intelligence Toolkit tutorial Jupyter notebooks"
+        icon={<MetainfoIcon />}
+      />}
+      <MenuBarItem
+        name="metainfo" route="/metainfo" tooltip="Browse the NOMAD Archive schema"
+      />
+    </MenuBarMenu>
+    <MenuBarMenu name="about" route="/" icon={<AboutIcon/>}>
+      <MenuBarItem
+        label="Information" name="about" route="/"
+        tooltip="About the NOMAD Repository and Archive"
+      />
+      <MenuBarItem
+        name="forum"
+        href="https://matsci.org/c/nomad/"
+        tooltip="The NOMAD user/developer forum on matsci.org"
+        icon={<ForumIcon/>}
+      />
+      <MenuBarItem
+        label="FAQ" name="faq"
+        href="https://nomad-lab.eu/repository-archive-faqs"
+        tooltip="Frequently Asked Questions (FAQ)"
+        icon={<FAQIcon/>}
+      />
+      <MenuBarItem
+        name="Docs"
+        href={`${appBase}/docs/index.html`}
+        tooltip="The full user and developer documentation"
+        icon={<DocIcon/>}
+      />
+      <MenuBarItem
+        name="Sources"
+        href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+        tooltip="NOMAD's main Gitlab project"
+        icon={<CodeIcon/>}
+      />
+      <Consent />
+    </MenuBarMenu>
+  </MenuBar>
 }
 
 class NavigationUnstyled extends React.Component {
@@ -404,14 +337,8 @@ class NavigationUnstyled extends React.Component {
       zIndex: theme.zIndex.drawer + 1,
       backgroundColor: 'white'
     },
-    menuButton: {
-      marginLeft: theme.spacing(1)
-    },
     helpButton: {
       marginLeft: theme.spacing(1)
-    },
-    hide: {
-      display: 'none'
     },
     toolbar: {
       paddingRight: theme.spacing(3)
@@ -421,29 +348,22 @@ class NavigationUnstyled extends React.Component {
       marginRight: theme.spacing(2)
     },
     content: {
-      marginTop: theme.spacing(13),
+      marginTop: theme.spacing(14),
       flexGrow: 1,
       backgroundColor: theme.palette.background.default,
       width: '100%',
       overflow: 'auto'
     },
-    link: {
-      textDecoration: 'none',
-      color: theme.palette.text.primary
-    },
-    menuItemIcon: {
-      marginRight: 0
-    },
     barActions: {
       display: 'flex',
       alignItems: 'center'
     },
-    barSelect: {
-      color: `${theme.palette.getContrastText(theme.palette.primary.main)} !important`
-    },
     barButton: {
       borderColor: theme.palette.getContrastText(theme.palette.primary.main),
       marginRight: 0
+    },
+    mainMenu: {
+      marginLeft: theme.spacing(1)
     }
   })
 
@@ -543,7 +463,9 @@ class NavigationUnstyled extends React.Component {
                   <LoginLogout color="primary" classes={{button: classes.barButton}} />
                 </div>
               </Toolbar>
-              <MainMenu />
+              <div className={classes.mainMenu} >
+                <MainMenu />
+              </div>
               <LoadingIndicator />
             </AppBar>
 
@@ -563,11 +485,6 @@ class NavigationUnstyled extends React.Component {
 const Navigation = compose(withRouter, withErrors, withApi(false), withStyles(NavigationUnstyled.styles))(NavigationUnstyled)
 
 const routes = {
-  'about': {
-    exact: true,
-    path: '/',
-    component: About
-  },
   'faq': {
     exact: true,
     path: '/faq',
@@ -576,46 +493,62 @@ const routes = {
   'search': {
     exact: true,
     path: '/search',
+    navPath: 'explore/search',
     component: SearchPage
   },
   'userdata': {
     exact: true,
     path: '/userdata',
+    navPath: 'publish/userdata',
     component: UserdataPage
   },
   'entry': {
     path: '/entry/id',
+    defaultNavPath: 'explore/search',
     component: EntryPage
   },
   'entry_query': {
     exact: true,
     path: '/entry/query',
+    defaultNavPath: 'explore/search',
     component: EntryQuery
   },
   'entry_pid': {
     path: '/entry/pid',
+    defaultNavPath: 'explore/search',
     component: ResolvePID
   },
   'dataset': {
     path: '/dataset/id',
+    defaultNavPath: 'explore/search',
     component: DatasetPage
   },
   'dataset_doi': {
     path: '/dataset/doi',
+    defaultNavPath: 'explore/search',
     component: ResolveDOI
   },
   'uploads': {
     exact: true,
     path: '/uploads',
+    navPath: 'publish/uploads',
     component: UploadPage
   },
   'metainfo': {
     path: '/metainfo',
+    navPath: 'analyze/metainfo',
     component: MetainfoPage
   },
   'aitoolkit': {
     path: '/aitoolkit',
+    navPath: 'analyze/aitoolkit',
     component: AIToolkitPage
+  },
+  'about': {
+    exact: true,
+    path: '/',
+    navPath: 'about/about',
+    component: About
   }
 }
 
