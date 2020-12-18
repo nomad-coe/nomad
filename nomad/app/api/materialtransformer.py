@@ -120,8 +120,6 @@ class MElasticTransformer(ElasticTransformer):
             quantity = quantities[0]
 
             if quantity.has_only_quantity is None:
-                print(quantity.name)
-                print(quantity.has_only_quantity)
                 raise Exception("HAS ONLY is not supported by %s" % quantity.name)
 
             def values():

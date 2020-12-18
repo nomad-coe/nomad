@@ -48,6 +48,10 @@ ns = api.namespace("encyclopedia", description="Access materials data.")
 missing_material_msg = "The specified material {} could not be retrieved. It either does not exists or requires authentication."
 re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 
+# Parse using slightly modified Optimade grammar
+with open("{}/encyclopedia_grammar.lark".format(os.path.dirname(__file__)), "r") as f:
+    parser = Lark(f)
+
 
 class MaterialAccessError(Exception):
     pass
@@ -192,22 +196,18 @@ class MaterialSearch():
             exclusive: Whether the species search (concerns both 'elements' and
                 'formula') is perfomed exclusively or not.
         """
-        # Parse using slightly modified Optimade grammar
-        with open("{}/encyclopedia_grammar.lark".format(os.path.dirname(__file__)), "r") as f:
-            parser = Lark(f)
         try:
             parse_tree = parser.parse(query_string)
         except Exception as e:
             abort(400, message=(
                 "Invalid query string: {}".format(e)
             ))
-        # print(parse_tree.pretty())
 
         # Transform parse tree into ES Query
         quantities: List[MQuantity] = [
             # Material level quantities
             MQuantity("elements", es_field="species", elastic_mapping_type=Text, has_only_quantity=MQuantity(name="species.keyword")),
-            MQuantity("formula", es_field="species_and_counts.keyword", elastic_mapping_type=Keyword, converter=lambda x: "".join(query_from_formula(x).split())),
+            MQuantity("formula", es_field="formula_reduced", elastic_mapping_type=Keyword, converter=lambda x: "".join(query_from_formula(x).split())),
             MQuantity("material_id", es_field="material_id", elastic_mapping_type=Keyword),
             MQuantity("material_type", es_field="material_type", elastic_mapping_type=Keyword),
             MQuantity("material_name", es_field="material_name", elastic_mapping_type=Keyword),
