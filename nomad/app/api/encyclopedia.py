@@ -67,6 +67,7 @@ class MaterialSearch():
         self._filters = []
         self._extra = {}
         self._q = None
+        self.restricted = False
 
     def add_material_filter(self, query):
         """Adds material based filters.
@@ -109,6 +110,42 @@ class MaterialSearch():
         else:
             query = self._q
 
+        # If restricted search is enabled, the order of nested/boolean queries
+        # will be reversed depth-first.
+        if self.restricted:
+            def restrict(query):
+                if isinstance(query, Bool):
+                    # First restrict all inner queries, only after which the
+                    # current query is restricted (=depth-first)
+                    query.must = [q if isinstance(q, Nested) else restrict(q) for q in query.must]
+                    query.filter = [q if isinstance(q, Nested) else restrict(q) for q in query.filter]
+                    query.should = [q if isinstance(q, Nested) else restrict(q) for q in query.should]
+                    query.must_not = [q if isinstance(q, Nested) else restrict(q) for q in query.must_not]
+
+                    musts = [q.query if isinstance(q, Nested) else q for q in query.must]
+                    filters = [q.query if isinstance(q, Nested) else q for q in query.filter]
+                    shoulds = [q.query if isinstance(q, Nested) else q for q in query.should]
+                    must_nots = [q.query if isinstance(q, Nested) else q for q in query.must_not]
+
+                    inner_q = Q(
+                        "bool",
+                        filter=filters,
+                        should=shoulds,
+                        must=musts,
+                        must_not=must_nots,
+                    )
+                    if len(shoulds) != 0:
+                        inner_q.minimum_should_match = 1
+                    outer_q = Q("nested", path="calculations", query=inner_q)
+                    return outer_q
+                else:
+                    return query
+            query = restrict(query)
+
+        # Wrap the query in a boolean query if it is not already one.
+        if not isinstance(query, Bool):
+            query = Q("bool", filter=[query])
+
         # Add authentication filters on top of the query. This will make sure
         # that materials with only private calculations are excluded and that
         # private calculations are ignored in queries concerning calculations.
@@ -131,6 +168,7 @@ class MaterialSearch():
                 for f in q.must_not:
                     add_authentication(f)
         add_authentication(query)
+
         # This makes sure that materials with only private entries are always excluded
         query.filter.append(Q("nested", path="calculations", query=Q("bool", filter=get_authentication_filters_material())))
 
@@ -186,15 +224,15 @@ class MaterialSearch():
                 visible_calcs.append(calc)
         return visible_calcs
 
-    def from_query_string(self, query_string: str, exclusive: bool) -> None:
+    def from_query_string(self, query_string: str, restricted: bool) -> None:
         """Initializes this MaterialSearch instance from the specified search
         string.
 
         Args:
             query_string: The query string. E.g. 'crystal_system="cubic" AND
                 material_type="bulk"'
-            exclusive: Whether the species search (concerns both 'elements' and
-                'formula') is perfomed exclusively or not.
+            restricted: Whether the nested searches concerning calculations are
+                combined or not.
         """
         try:
             parse_tree = parser.parse(query_string)
@@ -231,10 +269,7 @@ class MaterialSearch():
                 "Invalid query string: {}".format(e)
             ))
 
-        # Wrap the query in a boolean query if it is not already one.
-        if not isinstance(query, Bool):
-            query = Q("bool", filter=[query])
-
+        self.restricted = restricted
         self._q = query
 
 
@@ -590,10 +625,11 @@ class EncMaterialsResource(Resource):
         query = data["query"]
         search_by = data["search_by"]
         exclusive = search_by["exclusive"]
+        restricted = search_by["restricted"]
 
         # Initialize MaterialSearch from a query string
         if query is not None:
-            s.from_query_string(query, exclusive)
+            s.from_query_string(query, restricted)
         # Initialize MaterialSearch from individual query terms
         else:
             # Material level filters
@@ -618,7 +654,6 @@ class EncMaterialsResource(Resource):
                 source_unit=ureg.eV,
                 target_unit=ureg.J,
             ))
-            restricted = search_by["restricted"]
             if restricted:
                 s.add_calculation_filter(calc_filters)
             else:
