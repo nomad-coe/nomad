@@ -51,13 +51,13 @@ class MQuantity(Quantity):
         name,
         es_field: str = None,
         elastic_mapping_type: Field = None,
-        length_quantity: "Quantity" = None,
-        has_only_quantity: "Quantity" = None,
-        nested_quantity: "Quantity" = None,
+        length_quantity: "MQuantity" = None,
+        has_only_quantity: "MQuantity" = None,
+        nested_quantity: "MQuantity" = None,
         converter: Callable = None,
         nested_path: str = None,
     ):
-        super().__init__(name, es_field, elastic_mapping_type, length_quantity, nested_quantity)
+        super().__init__(name, es_field, elastic_mapping_type, length_quantity, has_only_quantity, nested_quantity)
         self.converter = converter
         self.nested_path = nested_path
 
@@ -71,7 +71,7 @@ class MElasticTransformer(ElasticTransformer):
     Uses elasticsearch_dsl and will produce a :class:`Q` instance.
 
     Arguments:
-        quantities: A list of :class:`Quantity`s that describe how optimade (and other)
+        quantities: A list of :class:`MQuantity`s that describe how optimade (and other)
             quantities are mapped to the elasticsearch index.
     """
 
@@ -120,6 +120,8 @@ class MElasticTransformer(ElasticTransformer):
             quantity = quantities[0]
 
             if quantity.has_only_quantity is None:
+                print(quantity.name)
+                print(quantity.has_only_quantity)
                 raise Exception("HAS ONLY is not supported by %s" % quantity.name)
 
             def values():
