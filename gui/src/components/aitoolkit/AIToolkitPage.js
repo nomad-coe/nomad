@@ -108,8 +108,6 @@ export default function AIToolkitPage() {
     }
   }, [])
 
-  console.log(sections)
-
   return <Grid container spacing={2} className={classes.root}>
     <Grid item xs={12}>
       <Markdown>{`

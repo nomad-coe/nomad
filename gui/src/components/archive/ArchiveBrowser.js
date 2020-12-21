@@ -406,7 +406,6 @@ function Overview({section, def}) {
   }, [setMode])
 
   // Structure visualization for section_system
-  console.log(def)
   if (def.name === 'System') {
     let url = window.location.href
     let name = 'section_system'
