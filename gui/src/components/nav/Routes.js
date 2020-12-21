@@ -130,7 +130,7 @@ export const routes = {
     exact: true,
     path: '/',
     appBarTitle: 'About, Documentation, Getting Help',
-    navPath: 'about/about',
+    navPath: 'about/info',
     component: About
   }
 }

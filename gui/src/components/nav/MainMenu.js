@@ -175,7 +175,7 @@ export default function MainMenu() {
     </MenuBarMenu>
     <MenuBarMenu name="about" route="/" icon={<AboutIcon/>}>
       <MenuBarItem
-        label="Information" name="about" route="/"
+        label="Information" name="info" route="/"
         tooltip="About the NOMAD Repository and Archive"
       />
       <MenuBarItem
