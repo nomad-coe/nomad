@@ -172,6 +172,24 @@ class MaterialSearch():
         # This makes sure that materials with only private entries are always excluded
         query.filter.append(Q("nested", path="calculations", query=Q("bool", filter=get_authentication_filters_material())))
 
+        # Enforce that all 'should' queries correspond to traditional 'or'
+        # queries by enforcing minimum_should_match=1.
+        def should_to_or(q):
+            if isinstance(q, Bool):
+                for f in q.must:
+                    should_to_or(f)
+                for f in q.filter:
+                    should_to_or(f)
+                for f in q.should:
+                    should_to_or(f)
+                for f in q.must_not:
+                    should_to_or(f)
+                if q.should:
+                    q.minimum_should_match = 1
+            if isinstance(q, Nested):
+                should_to_or(q.query)
+        should_to_or(query)
+
         s = self._s.query(query)
         extra = self._extra
         s = s.extra(**extra)

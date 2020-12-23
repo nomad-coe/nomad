@@ -136,7 +136,7 @@ class MElasticTransformer(ElasticTransformer):
             try:
                 order_numbers = list([ATOMIC_NUMBERS[element] for element in values()])
                 order_numbers.sort()
-                value = "".join(
+                value = " ".join(
                     [CHEMICAL_SYMBOLS[number - 1] for number in order_numbers]
                 )
             except KeyError:
@@ -156,6 +156,7 @@ class MElasticTransformer(ElasticTransformer):
         # other search parameters:
         # https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html#bool-min-should-match
         if kind == "should":
+            print("MINIMUM")
             args["minimum_should_match"] = 1
         return Q("bool", **args)
 
