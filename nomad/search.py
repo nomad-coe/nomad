@@ -551,14 +551,16 @@ class SearchRequest:
             yield hit.to_dict()
 
     def execute_paginated(
-            self, page: int = 1, per_page=10, order_by: str = None,
-            order: int = -1):
+            self,
+            page: int = 1, per_page=10, page_offset: int = None,
+            order_by: str = None, order: int = -1):
         '''
         Executes the search and returns paginated results. Those are sorted.
 
         Arguments:
             page: The requested page, starts with 1.
             per_page: The number of entries per page.
+            page_offset: Instead of a page number, use this absolute offset.
             order_by: The quantity to order by.
             order: -1 or 1 for descending or ascending order.
         '''
@@ -573,13 +575,23 @@ class SearchRequest:
             search = search.sort(order_by_quantity.search_field)
         else:
             search = search.sort('-%s' % order_by_quantity.search_field)  # pylint: disable=no-member
-        search = search[(page - 1) * per_page: page * per_page]
+
+        if page_offset is not None:
+            search = search[page_offset: page_offset + per_page]  # pylint: disable=unsubscriptable-object
+        else:
+            search = search[(page - 1) * per_page: page * per_page]  # pylint: disable=unsubscriptable-object
 
         es_result = search.execute()
 
         result = self._response(es_result, with_hits=True)
 
-        result.update(pagination=dict(total=result['total'], page=page, per_page=per_page))
+        if page_offset is not None:
+            result.update(pagination=dict(
+                total=result['total'],
+                page_offset=page_offset, per_page=per_page))
+        else:
+            result.update(
+                pagination=dict(total=result['total'], page=page, per_page=per_page))
         return result
 
     def execute_scrolled(

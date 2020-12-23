@@ -23,17 +23,18 @@ import traceback
 
 from nomad import config, utils
 from nomad.app import app as flask_app
-from nomad.app_fastapi.routers import users, entries, auth, datasets
+
+from .routers import users, entries, auth, datasets
+from .optimade import optimade_app
 
 
 logger = utils.get_logger(__name__)
 
 app = FastAPI(
-    root_path=config.services.api_prefix,
-    openapi_url='/api/v1/openapi.json',
-    docs_url='/api/v1/docs',
-    redoc_url='/api/v1/redoc',
-    swagger_ui_oauth2_redirect_url='/api/v1/docs/oauth2-redirect',
+    openapi_url='%s/api/v1/openapi.json' % config.services.api_base_path,
+    docs_url='%s/api/v1/docs' % config.services.api_base_path,
+    redoc_url='%s/api/v1/redoc' % config.services.api_base_path,
+    swagger_ui_oauth2_redirect_url='%s/api/v1/docs/oauth2-redirect' % config.services.api_base_path,
 
     title='NOMAD API',
     version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
@@ -141,9 +142,10 @@ async def unicorn_exception_handler(request: Request, e: Exception):
         }
     )
 
-app.include_router(auth.router, prefix='/api/v1/auth')
-app.include_router(users.router, prefix='/api/v1/users')
-app.include_router(entries.router, prefix='/api/v1/entries')
-app.include_router(datasets.router, prefix='/api/v1/datasets')
+app.include_router(auth.router, prefix='%s/api/v1/auth' % config.services.api_base_path)
+app.include_router(users.router, prefix='%s/api/v1/users' % config.services.api_base_path)
+app.include_router(entries.router, prefix='%s/api/v1/entries' % config.services.api_base_path)
+app.include_router(datasets.router, prefix='%s/api/v1/datasets' % config.services.api_base_path)
 
-app.mount('/', WSGIMiddleware(flask_app))
+app.mount('%s/optimade' % config.services.api_base_path, optimade_app)
+app.mount(config.services.api_base_path, WSGIMiddleware(flask_app))

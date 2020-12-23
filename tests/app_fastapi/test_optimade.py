@@ -18,34 +18,14 @@
 
 import json
 import pytest
+from fastapi.testclient import TestClient
 
 from nomad.processing import Upload
 from nomad import search
+from nomad.app_fastapi.main import app
+from nomad.app_fastapi.optimade import parse_filter
 
-from nomad.app.optimade import parse_filter, url
-
-from tests.app.test_app import BlueprintClient
 from tests.conftest import clear_elastic, clear_raw_files
-
-
-@pytest.fixture(scope='session')
-def api(session_client):
-    return BlueprintClient(session_client, '/optimade/v1')
-
-
-@pytest.fixture(scope='session')
-def index_api(session_client):
-    return BlueprintClient(session_client, '/optimade/index/v1')
-
-
-def test_index(index_api):
-    rv = index_api.get('/info')
-    assert rv.status_code == 200
-
-    rv = index_api.get('/links')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade')
 
 
 def test_get_entry(published: Upload):
@@ -58,7 +38,7 @@ def test_get_entry(published: Upload):
     assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
 
 
-def test_no_optimade(mongo, elastic, raw_files, api):
+def test_no_optimade(mongo, elastic, raw_files, client):
     from tests.app.utils import Upload
     upload = Upload()
     upload.create_test_structure(1, 2, 1, [], 0)
@@ -66,10 +46,9 @@ def test_no_optimade(mongo, elastic, raw_files, api):
     upload.create_upload_files()
     search.refresh()
 
-    rv = api.get('/calculations')
+    rv = client.get('/optimade/structures')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
-
+    data = rv.json()
     assert data['meta']['data_returned'] == 1
 
 
@@ -100,7 +79,9 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('nelements < 3', 3),
     ('nelements <= 3', 4),
     ('nelements != 2', 1),
+    ('2 != nelements', 1),
     ('1 < nelements', 4),
+    ('3 <= nelements', 1),
     ('elements HAS "H"', 4),
     ('elements HAS ALL "H", "O"', 4),
     ('elements HAS ALL "H", "C"', 1),
@@ -159,14 +140,10 @@ def test_optimade_parser(example_structures, query, results):
             query = parse_filter(query)
 
 
-def test_url():
-    assert url('endpoint', param='value').endswith('/optimade/v1/endpoint?param=value')
-
-
-def test_list_endpoint(api, example_structures):
-    rv = api.get('/structures')
+def test_list_endpoint(client, example_structures):
+    rv = client.get('/optimade/structures')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     for entry in ['data', 'links', 'meta']:
         assert entry in data
     assert len(data['data']) == 4
@@ -179,23 +156,23 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data'][item]['attributes'][key] == ref
 
 
-@pytest.mark.parametrize('limit, number, results', [
-    (1, 1, 1), (1, 5, 0), (5, 1, 4)
+@pytest.mark.parametrize('limit, offset, results', [
+    (1, 1, 1), (3, 2, 2), (5, 0, 4)
 ])
-def test_list_endpoint_pagination(api, example_structures, limit, number, results):
-    rv = api.get('/structures?page_limit=%d&page_number=%d' % (limit, number))
+def test_list_endpoint_pagination(client, example_structures, limit, offset, results):
+    rv = client.get('/optimade/structures?page_limit=%d&page_offset=%d' % (limit, offset))
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     assert len(data['data']) == results
 
 
 @pytest.mark.parametrize('sort, order', [
     ('nelements', 1), ('-nelements', -1)
 ])
-def test_list_endpoint_sort(api, example_structures, sort, order):
-    rv = api.get('/structures?sort=%s' % sort)
+def test_list_endpoint_sort(client, example_structures, sort, order):
+    rv = client.get('/optimade/structures?sort=%s' % sort)
     assert rv.status_code == 200
-    data = json.loads(rv.data)['data']
+    data = rv.json()['data']
 
     assert len(data) > 0
     for i, item in enumerate(data):
@@ -206,10 +183,10 @@ def test_list_endpoint_sort(api, example_structures, sort, order):
                 assert item['attributes']['nelements'] <= data[i - 1]['attributes']['nelements']
 
 
-def test_list_endpoint_response_fields(api, example_structures):
-    rv = api.get('/structures?response_fields=nelements,elements')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
+def test_list_endpoint_response_fields(client, example_structures):
+    rv = client.get('/optimade/structures?response_fields=nelements,elements')
+    assert rv.status_code == 200, json.dumps(rv.json(), indent=2)
+    data = rv.json()
     ref_elements = [['H', 'O'], ['C', 'H', 'O'], ['H', 'O'], ['H', 'O']]
     data['data'] = sorted(data['data'], key=lambda x: x['id'])
     for i in range(len(data['data'])):
@@ -219,10 +196,10 @@ def test_list_endpoint_response_fields(api, example_structures):
         assert_eq_attrib(data, 'nelements', len(ref_elements[i]), i)
 
 
-def test_single_endpoint_response_fields(api, example_structures):
-    rv = api.get('/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
+def test_single_endpoint_response_fields(client, example_structures):
+    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
+    assert rv.status_code == 200, json.dumps(rv.json(), indent=2)
+    data = rv.json()
     ref_elements = ['H', 'O']
     rf = sorted(list(data['data']['attributes'].keys()))
     assert rf == ['elements', 'nelements']
@@ -230,10 +207,10 @@ def test_single_endpoint_response_fields(api, example_structures):
     assert_eq_attrib(data, 'nelements', len(ref_elements))
 
 
-def test_single_endpoint(api, example_structures):
-    rv = api.get('/structures/%s' % 'test_calc_id_1')
+def test_single_endpoint(client, example_structures):
+    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     for key in ['type', 'id', 'attributes']:
         assert key in data['data']
     fields = ['elements', 'nelements', 'elements_ratios',
@@ -245,39 +222,41 @@ def test_single_endpoint(api, example_structures):
         assert field in data['data']['attributes']
 
 
-def test_base_info_endpoint(api):
-    rv = api.get('/info')
+def test_base_info_endpoint(client):
+    rv = client.get('/optimade/info')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     for key in ['type', 'id', 'attributes']:
         assert key in data['data']
     assert data['data']['type'] == 'info'
     assert data['data']['id'] == '/'
 
 
-@pytest.mark.parametrize('entry_type', ['calculations', 'structures'])
-def test_entry_info_endpoint(api, entry_type):
-    rv = api.get('/info/%s' % entry_type)
+def test_entry_info_endpoint(client):
+    rv = client.get('/optimade/info/structures')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     for key in ['description', 'properties', 'formats', 'output_fields_by_format']:
         assert key in data['data']
 
-    assert '_nmd_atoms' in data['data']['properties']
-    assert '_nmd_dft_system' in data['data']['properties']
+    # TODO this does not seem to be supported by optimade-python-tools
+    # assert '_nmd_atoms' in data['data']['properties']
+    # assert '_nmd_dft_system' in data['data']['properties']
 
 
-def test_links_endpoint(api, example_structures):
-    rv = api.get('/links')
+def test_links_endpoint(client, example_structures):
+    rv = client.get('/optimade/links')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert data['data'][0]['attributes']['base_url']['href'].endswith('optimade/index')
+    data = rv.json()
+
+    nomad_link = next(link for link in data['data'] if link['id'] == 'index')
+    assert nomad_link['attributes']['base_url'].endswith('/nmd')
 
 
-def test_structures_endpoint(api, example_structures):
-    rv = api.get('/structures')
+def test_structures_endpoint(client, example_structures):
+    rv = client.get('/optimade/structures')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     assert len(data['data']) == 4
     for d in data['data']:
         for key in ['id', 'attributes']:
@@ -290,10 +269,10 @@ def test_structures_endpoint(api, example_structures):
             assert key in d['attributes']
 
 
-def test_structure_endpoint(api, example_structures):
-    rv = api.get('/structures/%s' % 'test_calc_id_1')
+def test_structure_endpoint(client, example_structures):
+    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None
@@ -301,33 +280,10 @@ def test_structure_endpoint(api, example_structures):
     assert len(attr.get('dimension_types')) == 3
 
 
-def test_calculations_endpoint(api, example_structures):
-    rv = api.get('/calculations')
+def test_nmd_properties(client, example_structures):
+    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
     assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert len(data['data']) == 4
-    for d in data['data']:
-        for key in ['id', 'attributes']:
-            assert d.get(key) is not None
-        required_keys = ['last_modified']
-        for key in required_keys:
-            assert key in d['attributes']
-
-
-def test_calculation_endpoint(api, example_structures):
-    rv = api.get('/calculations/%s' % 'test_calc_id_1')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
-    assert data.get('data') is not None
-    attr = data['data'].get('attributes')
-    assert attr is not None
-    assert len(attr) == 2
-
-
-def test_nmd_properties(api, example_structures):
-    rv = api.get('/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
-    assert rv.status_code == 200
-    data = json.loads(rv.data)
+    data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None

@@ -203,6 +203,10 @@ class ConsoleFormatter(LogstashFormatter):
 
     short_format = False
 
+    # def __init__(self, message_type='Logstash', tags=None, fqdn=False, **kwargs):
+    #     if isinstance(self, LogstashFormatter):
+    #         super().__init__(message_type=message_type, tags=tags, fqdn=fqdn)
+
     @classmethod
     def serialize(cls, message_dict):
         from io import StringIO

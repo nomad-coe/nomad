@@ -217,24 +217,22 @@ server {
     server_name   www.example.com;
     proxy_set_header Host $host;
 
-    location /nomad-oasis/ {
-        rewrite ^/nomad-oasis/(.*) /$1  break;
+    location / {
         proxy_pass http://app:8000;
     }
 
     location ~ /nomad-oasis\/?(gui)?$ {
-        rewrite ^ /gui/ permanent;
+        rewrite ^ /nomad-oasis/gui/ permanent;
     }
 
     location /nomad-oasis/gui/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
-        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location @redirect_to_index {
-        rewrite ^ /gui/index.html break;
+        rewrite ^ /nomad-oasis/gui/index.html break;
         proxy_pass http://app:8000;
     }
 
@@ -244,27 +242,34 @@ server {
         if_modified_since off;
         expires off;
         etag off;
-        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/uploads\/?$ {
         client_max_body_size 35g;
         proxy_request_buffering off;
-        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/(raw|archive) {
         proxy_buffering off;
-        rewrite ^/nomad-oasis/(.*) /$1  break;
         proxy_pass http://app:8000;
     }
 
     location ~ \/api\/mirror {
         proxy_buffering off;
         proxy_read_timeout 600;
-        rewrite ^/nomad-oasis/(.*) /$1  break;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/encyclopedia\/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_encyclopedia_index;
+        proxy_pass http://app:8000;
+    }
+
+    location @redirect_to_encyclopedia_index {
+        rewrite ^ /nomad-oasis/encyclopedia/index.html break;
         proxy_pass http://app:8000;
     }
 }

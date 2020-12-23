@@ -36,7 +36,6 @@ import orjson
 from nomad import config, utils as nomad_utils
 
 from .api import blueprint as api_blueprint, api
-from .optimade import blueprint as optimade_blueprint, api as optimade
 from .dcat import blueprint as dcat_blueprint
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
@@ -70,7 +69,6 @@ def output_json(data, code, headers=None):
 
 
 api.representation('application/json')(output_json)
-optimade.representation('application/json')(output_json)
 
 
 @property  # type: ignore
@@ -100,7 +98,6 @@ app.config['SECRET_KEY'] = config.services.api_secret
 CORS(app)
 
 app.register_blueprint(api_blueprint, url_prefix='/api')
-app.register_blueprint(optimade_blueprint, url_prefix='/optimade')
 app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')

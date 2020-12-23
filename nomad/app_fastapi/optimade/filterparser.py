@@ -45,6 +45,8 @@ def _get_transformer(nomad_properties, without_prefix):
         for q in OptimadeEntry.m_def.all_quantities.values()
         if 'search' in q.m_annotations}
 
+    quantities['id'] = Quantity('id', es_field='calc_id')
+
     quantities['elements'].length_quantity = quantities['nelements']
     quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
     quantities['elements'].nested_quantity = quantities['elements_ratios']

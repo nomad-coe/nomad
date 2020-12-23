@@ -222,14 +222,14 @@ spec:
         command: ["./run.sh"]
         livenessProbe:
           httpGet:
-            path: "/alive"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: "/alive"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 15

@@ -149,7 +149,7 @@ logstash = NomadConfig(
 services = NomadConfig(
     api_host='localhost',
     api_port=8000,
-    api_prefix='/',
+    api_base_path='/fairdi/nomad/latest',
     api_secret='defaultApiSecret',
     api_chaos=0,
     admin_user_id='00000000-0000-0000-0000-000000000000',
@@ -177,7 +177,7 @@ def api_url(ssl: bool = True, api: str = 'api'):
     base_url = '%s://%s/%s' % (
         'https' if services.https and ssl else 'http',
         services.api_host.strip('/'),
-        services.api_prefix.strip('/'))
+        services.api_base_path.strip('/'))
 
     return '%s/%s' % (base_url.strip('/'), api)
 

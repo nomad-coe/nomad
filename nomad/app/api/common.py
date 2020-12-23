@@ -35,7 +35,7 @@ import gzip
 from functools import wraps
 
 from nomad import search, config, datamodel, utils
-from nomad.app.optimade import filterparser
+from nomad.app_fastapi.optimade import filterparser
 from nomad.app.common import RFC3339DateTime, rfc3339DateTime
 from nomad.files import Restricted
 

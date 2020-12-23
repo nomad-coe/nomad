@@ -44,10 +44,13 @@ def app(debug: bool, with_chaos: int):
 
 def run_app(**kwargs):
     config.meta.service = 'app'
-    from nomad import infrastructure
-    from nomad.app.__main__ import run_dev_server
-    infrastructure.setup()
-    run_dev_server(port=config.services.api_port, **kwargs)
+    from uvicorn import Server, Config
+
+    uv_config = Config(
+        'nomad.app_fastapi.main:app', host='127.0.0.1',
+        port=config.services.api_port, log_level='info')
+    server = Server(config=uv_config)
+    server.run()
 
 
 def run_worker():

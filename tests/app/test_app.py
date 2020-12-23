@@ -82,7 +82,7 @@ def test_internal_server_error_post(client, caplog):
     assert data['json']['test_arg'] == 'value'
 
 
-@pytest.mark.parametrize('api', ['api', 'optimade'])
+@pytest.mark.parametrize('api', ['api'])
 def test_swagger(client, api):
     rv = client.get('/%s/swagger.json' % api)
     assert rv.status_code == 200
