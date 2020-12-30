@@ -114,7 +114,7 @@ class XMLParser(FileParser):
                 val = val_in.strip().split()
                 if len(val) == 1:
                     val = val[0]
-                    re_float = r'(\d+\.\d+)d(\-\d+)'
+                    re_float = r'(\d*\.*\d*)d(\-*\+*\d+)'
                     val = re.sub(re_float, r'\1e\2', val)
                     if val.isdecimal():
                         val = int(val)

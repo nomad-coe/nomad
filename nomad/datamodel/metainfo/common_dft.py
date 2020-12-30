@@ -4482,6 +4482,11 @@ class ScfIteration(MSection):
         categories=[EnergyTypeReference, EnergyValue, Unused],
         a_legacy=LegacyDefinition(name='energy_reference_lowest_unoccupied_iteration'))
 
+    section_eigenvalues_scf_iteration = SubSection(
+        sub_section=SectionProxy('Eigenvalues'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_eigenvalues_scf_iteration'))
+
 
 class SingleConfigurationCalculation(MSection):
     '''
