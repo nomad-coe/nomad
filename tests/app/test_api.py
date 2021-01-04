@@ -1212,7 +1212,7 @@ class TestRepo():
     @pytest.mark.parametrize('query, nbuckets', [
         # (dict(interval='1M', metrics='dft.total_energies'), 1), TODO this fails all first 5 day in the month, because one of the example data is set 5 day before now
         (dict(interval='1d', metrics='dft.quantities'), 6),
-        (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 1),
+        (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 2),
         (dict(until_time='2010-03-20T12:43:54.566414'), 0),
         (dict(interval='1m', from_time='2020-02-20T12:43:54.566414', metrics='dft.calculations'), 7201)
     ])

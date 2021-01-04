@@ -39,7 +39,7 @@ nomad_dos_fingerprints
 
 # [infrastructure]
 optimade==0.8.1
-structlog
+structlog==20.1.0
 elasticsearch==6.4.0
 msgpack<0.6.0
 celery[redis]==4.4.7
