@@ -88,8 +88,12 @@ class LogstashHandler(logstash.TCPLogstashHandler):
     legacy_logger = None
 
     def filter(self, record):
-        if record.name == 'gunicorn.access' and 'alive' in record.args.get('r', ''):
-            return False
+        print('*** ', record)
+        if record.name in ['uvicorn.access', 'gunicorn.access']:
+            record_string = record.args.get('r', '')
+            if 'alive' in record_string or 'gui/index.html' in record_string:
+                print('--- A')
+                return False
 
         if super().filter(record):
             is_structlog = False
@@ -97,9 +101,11 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                 is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
 
             if is_structlog:
+                print('+++ ')
                 return True
             else:
                 if LogstashHandler.legacy_logger is None:
+                    print('+++ ')
                     return True
                 else:
                     LogstashHandler.legacy_logger.log(
@@ -107,8 +113,10 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                         exc_info=record.exc_info, stack_info=record.stack_info,
                         legacy_logger=record.name)
 
+                    print('--- B')
                     return False
 
+        print('--- C')
         return False
 
 

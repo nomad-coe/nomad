@@ -10,7 +10,7 @@ metadata:
 data:
   gunicorn.log.conf: |
     [loggers]
-    keys=root, gunicorn.error, gunicorn.access
+    keys=root, gunicorn, gunicorn.error, gunicorn.access, uvicorn, uvicorn.error, uvicorn.access
 
     [handlers]
     keys=console, access, error
@@ -22,6 +22,11 @@ data:
     level=INFO
     handlers=console
 
+    [logger_gunicorn]
+    level=INFO
+    handlers=console
+    qualname=gunicorn
+
     [logger_gunicorn.error]
     level=INFO
     handlers=error
@@ -31,6 +36,21 @@ data:
     level=INFO
     handlers=access
     qualname=gunicorn.access
+
+    [logger_uvicorn]
+    level=INFO
+    handlers=console
+    qualname=uvicorn
+
+    [logger_uvicorn.error]
+    level=INFO
+    handlers=error
+    qualname=uvicorn.error
+
+    [logger_uvicorn.access]
+    level=INFO
+    handlers=access
+    qualname=uvicorn.access
 
     [handler_console]
     class=StreamHandler

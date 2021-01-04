@@ -3,12 +3,14 @@ import os
 import sys
 import importlib
 
-# patch optimade python tools config and log handling
+# patch optimade python tools config (patched module most be outside this module to force import before optimade)
 os.environ['OPTIMADE_CONFIG_FILE'] = os.path.join(os.path.dirname(__file__), 'optimade_config.json')
+
+# patch optimade logger (patched module most be outside this module to force import before optimade)
 sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app_fastapi.optimade_logger')
 
 # patch optimade base path
-from nomad import config  # nopep8
+from nomad import config, utils  # nopep8
 from optimade.server.config import CONFIG  # nopep8
 CONFIG.root_path = "%s/optimade" % config.services.api_base_path
 
@@ -40,3 +42,20 @@ from .filterparser import parse_filter  # nopep8
 
 structures.structures_coll = ElasticsearchStructureCollection()
 optimade.add_major_version_base_url(optimade.app)
+
+# patch the general exception handler
+logger = utils.get_logger(__name__)
+exception_handlers = sys.modules['optimade.server.exception_handlers']
+original_handler = getattr(exception_handlers, 'general_exception')
+
+
+def general_exception(request, exc, status_code=500, **kwargs):
+    log_method = logger.error if status_code >= 500 else logger.info
+    log_method(
+        'unexpected exception in optimade implementation',
+        status_code=status_code, exc_info=exc, url=request.url)
+
+    return original_handler(request, exc, status_code, **kwargs)
+
+
+setattr(exception_handlers, 'general_exception', general_exception)
