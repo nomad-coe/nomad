@@ -112,7 +112,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('NOT chemical_formula_descriptive ENDS WITH "1"', 4),
     ('chemical_formula_descriptive CONTAINS "C" AND NOT chemical_formula_descriptive STARTS WITH "O"', 1),
     ('NOT chemical_formula_anonymous STARTS WITH "A"', 0),
-    ('chemical_formula_anonymous CONTAINS "AB2" AND chemical_formula_anonymous ENDS WITH "C"', 1),
+    ('chemical_formula_anonymous CONTAINS "A2B" AND chemical_formula_anonymous ENDS WITH "C"', 1),
     ('nsites >=3 AND elements LENGTH = 2', 2),
     ('elements LENGTH = 2', 3),
     ('elements LENGTH 2', 3),

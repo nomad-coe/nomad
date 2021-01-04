@@ -22,7 +22,9 @@ from optimade.models import StructureResource
 
 
 from nomad import config, datamodel, files, search, utils
-from nomad.normalizing.optimade import optimade_chemical_formula_reduced
+from nomad.normalizing.optimade import (
+    optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
+    optimade_chemical_formula_hill)
 
 from .filterparser import _get_transformer as get_transformer
 
@@ -113,14 +115,12 @@ class ElasticsearchStructureCollection(EntryCollection):
             if nresults_now > 1:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Instead of a single entry, {nresults_now} entries were found",
-                )
+                    detail=f'Instead of a single entry, {nresults_now} entries were found')
             results = results[0] if results else None
 
         return results, data_returned, more_data_available, all_fields - fields
 
     def _check_aliases(self, aliases):
-        """ Check that aliases do not clash with mongo keywords. """
         pass
 
     def _es_to_optimade_result(
@@ -161,9 +161,14 @@ class ElasticsearchStructureCollection(EntryCollection):
         if include('last_modified'):
             attrs['last_modified'] = entry.last_processing if entry.last_processing is not None else entry.upload_time
 
+        # TODO this should be removed, once all data is reprocessed with the right normalization
         attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(
             attrs['chemical_formula_reduced'])
-
+        attrs['chemical_formula_anonymous'] = optimade_chemical_formula_anonymous(
+            attrs['chemical_formula_reduced'])
+        attrs['chemical_formula_hill'] = optimade_chemical_formula_hill(
+            attrs['chemical_formula_hill'])
+        attrs['chemical_formula_descriptive'] = attrs['chemical_formula_hill']
         dimension_types = attrs['dimension_types']
         if isinstance(dimension_types, int):
             attrs['dimension_types'] = [1] * dimension_types + [0] * (3 - dimension_types)
