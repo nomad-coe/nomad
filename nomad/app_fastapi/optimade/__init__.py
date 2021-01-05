@@ -43,17 +43,17 @@ from .filterparser import parse_filter  # nopep8
 structures.structures_coll = ElasticsearchStructureCollection()
 optimade.add_major_version_base_url(optimade.app)
 
-# patch the general exception handler
+# patch exception handlers
 logger = utils.get_logger(__name__)
 exception_handlers = sys.modules['optimade.server.exception_handlers']
 original_handler = getattr(exception_handlers, 'general_exception')
 
 
 def general_exception(request, exc, status_code=500, **kwargs):
-    log_method = logger.error if status_code >= 500 else logger.info
-    log_method(
-        'unexpected exception in optimade implementation',
-        status_code=status_code, exc_info=exc, url=request.url)
+    if getattr(exc, 'status_code', status_code) >= 500:
+        logger.error(
+            'unexpected exception in optimade implementation',
+            status_code=status_code, exc_info=exc, url=request.url)
 
     return original_handler(request, exc, status_code, **kwargs)
 
