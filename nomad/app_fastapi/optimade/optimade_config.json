@@ -1,7 +1,6 @@
 {
     "debug": false,
     "root_path": "/optimade",
-    "base_url": "http://nomad-lab.eu/prod/rae/optimade",
     "implementation": {
         "name": "NOMAD's Optimade implementation",
         "source_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR",
