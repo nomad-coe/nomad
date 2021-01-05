@@ -46,6 +46,7 @@ def _get_transformer(nomad_properties, without_prefix):
         if 'search' in q.m_annotations}
 
     quantities['id'] = Quantity('id', es_field='calc_id')
+    quantities['immutable_id'] = Quantity('immutable_id', es_field='calc_id')
 
     quantities['elements'].length_quantity = quantities['nelements']
     quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
