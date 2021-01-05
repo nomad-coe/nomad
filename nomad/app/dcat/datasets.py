@@ -59,6 +59,7 @@ class Dataset(Resource):
 
         mapping = Mapping()
         mapping.map_entry(entry)
+        content_type = 'application/xml' if format_ == 'xml' else 'text/%s' % format_
         return Response(
             mapping.g.serialize(format=format_).decode('utf-8'), 200,
-            {'Content-Type': 'application/xml'})
+            {'Content-Type': content_type})
