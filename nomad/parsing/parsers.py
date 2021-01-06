@@ -217,6 +217,8 @@ parsers = [
     LegacyParser(
         name='parsers/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
         parser_class_name='wien2kparser.Wien2kParser',
+        mainfile_name_re=r'.*\.scf$',
+        mainfile_alternative=True,
         mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     LegacyParser(

@@ -23,6 +23,7 @@ elasticsearch-dsl==6.4.0
 jmespath
 
 # [parsing]
+netCDF4==1.5.4
 pandas
 h5py
 hjson

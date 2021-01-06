@@ -19,6 +19,9 @@
 from typing import List
 from abc import ABCMeta, abstractmethod
 import re
+import os
+import os.path
+from functools import lru_cache
 
 from nomad import config
 from nomad.datamodel import EntryArchive, UserProvidableMetadata, EntryMetadata
@@ -105,6 +108,8 @@ class MatchingParser(Parser):
         mainfile_contents_re: A regexp that is used to match the first 1024 bytes of a
             potential mainfile.
         mainfile_name_re: A regexp that is used to match the paths of potential mainfiles
+        mainfile_alternative: If True files are mainfile if no mainfile_name_re matching file
+            is present in the same directory.
         domain: The domain that this parser should be used for. Default is 'dft'.
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
     '''
@@ -114,6 +119,7 @@ class MatchingParser(Parser):
             mainfile_binary_header: bytes = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
+            mainfile_alternative: bool = False,
             domain='dft',
             supported_compressions: List[str] = []) -> None:
 
@@ -125,12 +131,15 @@ class MatchingParser(Parser):
         self._mainfile_binary_header = mainfile_binary_header
         self._mainfile_mime_re = re.compile(mainfile_mime_re)
         self._mainfile_name_re = re.compile(mainfile_name_re)
+        self._mainfile_alternative = mainfile_alternative
         # Assign private variable this way to avoid static check issue.
         if mainfile_contents_re is not None:
             self._mainfile_contents_re = re.compile(mainfile_contents_re)
         else:
             self._mainfile_contents_re = None
         self._supported_compressions = supported_compressions
+
+        self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
@@ -139,15 +148,34 @@ class MatchingParser(Parser):
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
                 return False
+
         if self._mainfile_contents_re is not None:
             if decoded_buffer is not None:
                 if self._mainfile_contents_re.search(decoded_buffer) is None:
                     return False
             else:
                 return False
-        return self._mainfile_mime_re.match(mime) is not None and \
-            self._mainfile_name_re.fullmatch(filename) is not None and \
-            (compression is None or compression in self._supported_compressions)
+
+        if self._mainfile_mime_re.match(mime) is None:
+            return False
+
+        if compression is not None and compression not in self._supported_compressions:
+            return False
+
+        if self._mainfile_name_re.fullmatch(filename) is None:
+            if not self._mainfile_alternative:
+                return False
+
+            directory = os.path.dirname(filename)
+            for sibling in self._ls(directory):
+                sibling = os.path.join(directory, sibling)
+                sibling_is_mainfile = sibling != filename and \
+                    self._mainfile_name_re.fullmatch(sibling) is not None and \
+                    os.path.isfile(sibling)
+                if sibling_is_mainfile:
+                    return False
+
+        return True
 
     def __repr__(self):
         return self.name
