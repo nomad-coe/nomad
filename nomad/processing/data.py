@@ -29,7 +29,8 @@ calculations, and files
 '''
 
 from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
-from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField, ListField
+from mongoengine import (
+    StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -44,15 +45,17 @@ from functools import lru_cache
 import urllib.parse
 import requests
 
-from nomad import utils, config, infrastructure, search, datamodel
+from nomad import utils, config, infrastructure, search, datamodel, metainfo
 from nomad.files import (
     PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
     PublicUploadFiles, StagingUploadFiles)
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
-from nomad.datamodel import EntryArchive, EditableUserMetadata, OasisMetadata
-from nomad.archive import query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo
+from nomad.datamodel import (
+    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
+from nomad.archive import (
+    query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
@@ -60,8 +63,12 @@ section_metadata = datamodel.EntryArchive.section_metadata.name
 section_workflow = datamodel.EntryArchive.section_workflow.name
 
 
-_editable_metadata = {
-    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
+_editable_metadata: Dict[str, metainfo.Definition] = {}
+_editable_metadata.update(**{
+    quantity.name: quantity for quantity in UserProvidableMetadata.m_def.definitions})
+_editable_metadata.update(**{
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions})
+
 _oasis_metadata = {
     quantity.name: quantity for quantity in OasisMetadata.m_def.definitions}
 
@@ -600,6 +607,9 @@ class Calc(Proc):
         self._entry_metadata.apply_domain_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
+        if self.upload.publish_directly:
+            self._entry_metadata.published |= True
+
         self._read_metadata_from_file(logger)
 
         # persist the calc metadata
@@ -680,6 +690,7 @@ class Upload(Proc):
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, re-processing, upload).
 
+        publish_directly: Boolean indicating that this upload should be published after initial processing.
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
         oasis_id: The deployment id of the NOMAD that uploaded the upload.
         published_to: A list of deployment ids where this upload has been successfully uploaded to.
@@ -700,6 +711,7 @@ class Upload(Proc):
     publish_time = DateTimeField()
     last_update = DateTimeField()
 
+    publish_directly = BooleanField(default=False)
     from_oasis = BooleanField(default=False)
     oasis_deployment_id = StringField(default=None)
     published_to = ListField(StringField())
@@ -715,6 +727,7 @@ class Upload(Proc):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.publish_directly = self.publish_directly or self.from_oasis
         self._upload_files: ArchiveBasedStagingUploadFiles = None
 
     @lru_cache()
@@ -1297,36 +1310,33 @@ class Upload(Proc):
 
     def _cleanup_after_processing(self):
         # send email about process finish
-        user = self.uploader
-        name = '%s %s' % (user.first_name, user.last_name)
-        message = '\n'.join([
-            'Dear %s,' % name,
-            '',
-            'your data %suploaded at %s has completed processing.' % (
-                '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-            'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
-            '',
-            'If you encounter any issues with your upload, please let us know and reply to this email.',
-            '',
-            'The nomad team'
-        ])
-        try:
-            infrastructure.send_mail(
-                name=name, email=user.email, message=message, subject='Processing completed')
-        except Exception as e:
-            # probably due to email configuration problems
-            # don't fail or present this error to clients
-            self.logger.error('could not send after processing email', exc_info=e)
+        if not self.publish_directly:
+            user = self.uploader
+            name = '%s %s' % (user.first_name, user.last_name)
+            message = '\n'.join([
+                'Dear %s,' % name,
+                '',
+                'your data %suploaded at %s has completed processing.' % (
+                    '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
+                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
+                '',
+                'If you encounter any issues with your upload, please let us know and reply to this email.',
+                '',
+                'The nomad team'
+            ])
+            try:
+                infrastructure.send_mail(
+                    name=name, email=user.email, message=message, subject='Processing completed')
+            except Exception as e:
+                # probably due to email configuration problems
+                # don't fail or present this error to clients
+                self.logger.error('could not send after processing email', exc_info=e)
 
-    def _cleanup_after_processing_oasis_upload(self):
-        '''
-        Moves the upload out of staging to the public area. It will
-        pack the staging upload files in to public upload files.
-        '''
-        assert self.processed_calcs > 0
+        if not self.publish_directly or self.processed_calcs == 0:
+            return
 
         logger = self.get_logger()
-        logger.info('started to publish oasis upload')
+        logger.info('started to publish upload directly')
 
         with utils.lnr(logger, 'publish failed'):
             metadata = self.metadata_file_cached(
@@ -1343,12 +1353,13 @@ class Upload(Proc):
                     upload_size=self.upload_files.size):
                 self.upload_files.delete()
 
-            if metadata is not None:
-                self.upload_time = metadata.get('upload_time')
+            if self.from_oasis:
+                if metadata is not None:
+                    self.upload_time = metadata.get('upload_time')
 
-            if self.upload_time is None:
-                self.upload_time = datetime.utcnow()
-                logger.warn('oasis upload without upload time')
+                if self.upload_time is None:
+                    self.upload_time = datetime.utcnow()
+                    logger.warn('oasis upload without upload time')
 
             self.publish_time = datetime.utcnow()
             self.published = True
@@ -1389,10 +1400,7 @@ class Upload(Proc):
         if self.current_process == 're_process_upload':
             self._cleanup_after_re_processing()
         else:
-            if self.from_oasis:
-                self._cleanup_after_processing_oasis_upload()
-            else:
-                self._cleanup_after_processing()
+            self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         ''' Returns the upload calc with the given id or ``None``. '''

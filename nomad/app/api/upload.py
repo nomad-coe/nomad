@@ -125,6 +125,7 @@ upload_metadata_parser.add_argument('name', type=str, help='An optional name for
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
+upload_metadata_parser.add_argument('publish_directly', type=bool, help='Set this parameter to publish the upload directly after processing.', location='args')
 upload_metadata_parser.add_argument('oasis_upload_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the upload_id.', location='args')
 upload_metadata_parser.add_argument('oasis_uploader_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the uploader\' id.', location='args')
 upload_metadata_parser.add_argument('oasis_deployment_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the OASIS\' deployment id.', location='args')
@@ -224,7 +225,7 @@ class UploadListResource(Resource):
     @api.expect(upload_metadata_parser)
     @api.response(400, 'To many uploads')
     @marshal_with(upload_model, skip_none=True, code=200, description='Upload received')
-    @authenticate(required=True, upload_token=True)
+    @authenticate(required=True, upload_token=True, basic=True)
     def put(self):
         '''
         Upload a file and automatically create a new upload in the process.
@@ -254,6 +255,9 @@ class UploadListResource(Resource):
         if not g.user.is_admin:
             if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
                 abort(400, 'Limit of unpublished uploads exceeded for user.')
+
+        # check if the upload is to be published directly
+        publish_directly = request.args.get('publish_directly') is not None
 
         # check if allowed to perform oasis upload
         oasis_upload_id = request.args.get('oasis_upload_id')
@@ -344,6 +348,7 @@ class UploadListResource(Resource):
             upload_time=datetime.utcnow(),
             upload_path=upload_path,
             temporary=local_path != upload_path,
+            publish_directly=publish_directly or from_oasis,
             from_oasis=from_oasis,
             oasis_deployment_id=oasis_deployment_id)
 
