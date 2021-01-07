@@ -294,6 +294,10 @@ meta = NomadConfig(
     deployment_id='nomad-lab.eu/prod/rae'
 )
 
+gitlab = NomadConfig(
+    private_token='not set'
+)
+
 auxfile_cutoff = 100
 parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING

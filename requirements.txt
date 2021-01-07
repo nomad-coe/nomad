@@ -96,3 +96,4 @@ mongomock==3.17.0
 names
 essential_generators
 twine
+python-gitlab
