@@ -25,9 +25,12 @@ from flask_restplus import fields
 import datetime
 import math
 from cachetools import cached
+import numpy as np
 
 from nomad import config, datamodel, files
 from nomad.app.common import RFC3339DateTime
+from nomad.normalizing.optimade import optimade_chemical_formula_reduced
+from nomad.metainfo import Datetime, MEnum, MSection
 from nomad.datamodel import EntryMetadata
 from nomad.datamodel.dft import DFTMetadata
 from nomad.datamodel.optimade import OptimadeEntry
@@ -248,7 +251,28 @@ def get_entry_properties(include_optimade: bool = True):
     def add_nmd_properties(prefix, section_cls):
         for quantity in section_cls.m_def.all_quantities.values():
             name = prefix + quantity.name
-            properties[name] = dict(description=quantity.description)
+            if quantity.is_scalar:
+                if quantity.type == int:
+                    prop_type = 'integer'
+                elif quantity.type == float:
+                    prop_type = 'float'
+                elif quantity.type == str:
+                    prop_type = 'string'
+                elif quantity.type == bool:
+                    prop_type = 'boolean'
+                elif quantity.type == Datetime:
+                    prop_type = 'timestamp'
+                elif isinstance(quantity.type, MEnum):
+                    prop_type = 'string'
+                elif isinstance(quantity.type, np.dtype):
+                    prop_type = 'float'
+                else:
+                    prop_type = 'unknown'
+            else:
+                prop_type = 'list'
+            properties[name] = dict(
+                description=quantity.description if quantity.description else quantity.name,
+                type=prop_type)
 
     add_nmd_properties('_nmd_', EntryMetadata)
     add_nmd_properties('_nmd_dft_', DFTMetadata)
@@ -276,14 +300,34 @@ class EntryDataObject:
 
         if response_fields is not None:
             for request_field in response_fields:
+                if request_field == 'chemical_formula_reduced':
+                    # TODO remove when this is fixed in the index
+                    # ensure correct order of elements in formula
+                    attrs[request_field] = optimade_chemical_formula_reduced(attrs[request_field])
+
+                if request_field == 'dimension_types':
+                    # TODO remove when this is fixed in the index
+                    # ensure correct order of elements in formula
+                    dts = attrs[request_field]
+                    if isinstance(dts, int):
+                        attrs[request_field] = [1] * dts + [0] * (3 - dts)
+                        attrs['nperiodic_dimensions'] = dts
+                    elif isinstance(dts, list):
+                        attrs['nperiodic_dimensions'] = sum(dts)
+
                 if not request_field.startswith('_nmd_'):
                     continue
 
                 try:
                     if request_field.startswith('_nmd_dft_'):
-                        attrs[request_field] = getattr(calc.dft, request_field[9:])
+                        response_value = getattr(calc.dft, request_field[9:])
                     else:
-                        attrs[request_field] = getattr(calc, request_field[5:])
+                        response_value = getattr(calc, request_field[5:])
+
+                    if isinstance(response_value, MSection):
+                        response_value = response_value.m_to_dict()
+
+                    attrs[request_field] = response_value
                 except AttributeError:
                     # if unknown properties where provided, we will ignore them
                     pass
