@@ -6,3 +6,4 @@ include LICENSE.txt
 include requirements.txt
 include auto_complete_install.sh
 include setup.json
+recursive-include nomad/app/static *.css *.ico *.html *.json *.js *.map *.txt *.svg *.png

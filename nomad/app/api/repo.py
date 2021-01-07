@@ -29,7 +29,7 @@ from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import search, utils, datamodel, processing as proc, infrastructure, files
+from nomad import search, utils, datamodel, processing as proc, infrastructure, files, metainfo
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.app import common
 from nomad.app.common import RFC3339DateTime, DotKeyNested
@@ -465,6 +465,7 @@ _repo_edit_model = api.model('RepoEdit', {
         api.model('RepoEditActions', {
             quantity.name: repo_edit_action_field(quantity)
             for quantity in EditableUserMetadata.m_def.definitions
+            if isinstance(quantity, metainfo.Quantity)
         }), skip_none=True,
         description='Each action specifies a single value (even for multi valued quantities).'),
     'success': fields.Boolean(description='If the overall edit can/could be done. Only in API response.'),

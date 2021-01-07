@@ -612,34 +612,40 @@ def restore(path_to_dump):
 
 
 @ops.command(help=('Generate an nginx.conf to serve the GUI and proxy pass to API container.'))
-@click.option('--prefix', type=str, default='/example_nomad', help='Url path prefix. Default is /example_nomd, can be empty str.')
-def nginx_conf(prefix):
+@click.option('--prefix', type=str, default=config.services.api_base_path, help='Alter the url path prefix.')
+@click.option('--host', type=str, default=config.services.api_host, help='Alter the NOMAD app host.')
+@click.option('--port', type=str, default=config.services.api_port, help='Alter the NOMAD port host.')
+@click.option('--server/--no-server', default=True, help='Control writing of the outer server {} block. '
+              'Useful when conf file is included within another nginx.conf.')
+def nginx_conf(prefix, host, port, server):
     prefix = prefix.rstrip('/')
     prefix = '/%s' % prefix.lstrip('/')
 
-    print('''\
-server {{
+    if server:
+        print('''server {
     listen        80;
     server_name   www.example.com;
     proxy_set_header Host $host;
+        ''')
 
+    print('''
     location / {{
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
 
-    location ~ {1}\\/?(gui)?$ {{
-        rewrite ^ {1}/gui/ permanent;
+    location ~ {0}\\/?(gui)?$ {{
+        rewrite ^ {0}/gui/ permanent;
     }}
 
-    location {1}/gui/ {{
+    location {0}/gui/ {{
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
 
     location @redirect_to_index {{
-        rewrite ^ {1}/gui/index.html break;
-        proxy_pass http://app:8000;
+        rewrite ^ {0}/gui/index.html break;
+        proxy_pass http://{1}:{2};
     }}
 
     location ~ \\/gui\\/(service-worker\\.js|meta\\.json)$ {{
@@ -648,69 +654,39 @@ server {{
         if_modified_since off;
         expires off;
         etag off;
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
 
     location ~ \\/api\\/uploads\\/?$ {{
         client_max_body_size 35g;
         proxy_request_buffering off;
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
 
     location ~ \\/api\\/(raw|archive) {{
         proxy_buffering off;
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
 
     location ~ \\/api\\/mirror {{
         proxy_buffering off;
         proxy_read_timeout 600;
-        proxy_pass http://app:8000;
+        proxy_pass http://{1}:{2};
     }}
-}}'''.format(prefix))
 
+    location ~ \\/encyclopedia\\/ {{
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_encyclopedia_index;
+        proxy_pass http://{1}:{2};
+    }}
 
-@ops.command(help=('Generate a proxy pass config for apache2 reverse proxy servers.'))
-@click.option('--prefix', type=str, default='app', help='The path prefix under which everything is proxy passed.')
-@click.option('--host', type=str, default='130.183.207.104', help='The host to proxy to.')
-@click.option('--port', type=str, default='30001', help='The port to proxy to.')
-def apache_conf(prefix, host, port):
-    print('''\
-ProxyPass "/{0}" "http://{1}:{2}/{0}"
-ProxyPassReverse "/{0}" "http://{1}:{2}/{0}"
-<Proxy http://{1}:{2}/{0}>
-    ProxyPreserveHost On
-    <IfModule !mod_access_compat.c>
-         Require all granted
-     </IfModule>
-     <IfModule mod_access_compat.c>
-         Order allow,deny
-         Allow from all
-     </IfModule>
-</Proxy>
-
-RequestHeader set "X-Forwarded-Proto" expr=%{{REQUEST_SCHEME}}
-RequestHeader set "X-Forwarded-SSL" expr=%{{HTTPS}}
-
-ProxyPass /fairdi/keycloak http://{1}:8002/fairdi/keycloak
-ProxyPassReverse /fairdi/keycloak http://{1}:8002/fairdi/keycloak
-<Proxy http://{1}:8002/app>
-     ProxyPreserveHost On
-     <IfModule !mod_access_compat.c>
-         Require all granted
-     </IfModule>
-     <IfModule mod_access_compat.c>
-         Order allow,deny
-         Allow from all
-     </IfModule>
-</Proxy>
-
-RewriteEngine on
-RewriteCond %{QUERY_STRING} ^pid=([^&]+)$
-RewriteRule ^/NomadRepository-1.1/views/calculation.zul$ /{0}/gui/entry/pid/%1? [R=301]
-
-AllowEncodedSlashes On
-'''.format(prefix, host, port))  # type: ignore
+    location @redirect_to_encyclopedia_index {{
+        rewrite ^ {0}/encyclopedia/index.html break;
+        proxy_pass http://{1}:{2};
+    }}
+'''.format(prefix, host, port))
+    if server:
+        print('}')
 
 
 @ops.command(help='Updates the AFLOW prototype information using the latest online version and writes the results to a python module in the given FILEPATH.')
@@ -746,3 +722,76 @@ def update(input_dir, out, verbose):
 def ingest(input_path, batch_size, verbose):
     from nomad.cli.admin import similarity
     similarity.ingest(input_path, batch_size, verbose)
+
+
+@ops.command(help='Configures the GUIs based on NOMAD config.')
+def gui_config():
+    import os
+    import os.path
+    from nomad import config
+    import glob
+    import shutil
+
+    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
+    run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+
+    # copy
+    shutil.rmtree(run_gui_folder, ignore_errors=True)
+    shutil.copytree(gui_folder, run_gui_folder)
+
+    # setup the env
+    env_js_file = os.path.join(run_gui_folder, 'env.js')
+    if not os.path.exists(env_js_file):
+        with open(env_js_file, 'wt') as f:
+            f.write(('''
+window.nomadEnv = {
+    'appBase': '%s',
+    'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
+    'keycloakRealm': '%s',
+    'keycloakClientId': '%s',
+    'debug': false,
+    'matomoEnabled': false,
+    'encyclopediaEnabled': true,
+    'oasis': %s
+};''' % (
+                config.services.api_base_path,
+                config.keycloak.realm_name,
+                config.keycloak.client_id,
+                'true' if config.keycloak.oasis else 'false'
+            )))
+
+    # replace base path in all GUI files
+    source_file_globs = [
+        '**/*.json',
+        '**/*.html',
+        '**/*.js',
+        '**/*.js.map',
+        '**/*.css']
+    for source_file_glob in source_file_globs:
+        source_files = glob.glob(os.path.join(run_gui_folder, source_file_glob), recursive=True)
+        for source_file in source_files:
+            with open(source_file, 'rt') as f:
+                file_data = f.read()
+            file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
+            with open(source_file, 'wt') as f:
+                f.write(file_data)
+
+    gui_folder = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), '../../app/static/encyclopedia'))
+
+    # setup the env
+    conf_js_file = os.path.join(gui_folder, 'conf.js')
+    if not os.path.exists(conf_js_file):
+        with open(conf_js_file, 'wt') as f:
+            f.write(('''
+window.nomadEnv = {
+    apiRoot: "%s/api/encyclopedia/",
+    keycloakBase: "%s",
+    keycloakRealm: "%s",
+    keycloakClientId: "%s"
+};''' % (
+                config.services.api_base_path,
+                config.keycloak.server_url,
+                config.keycloak.realm_name,
+                config.keycloak.client_id
+            )))

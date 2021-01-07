@@ -18,7 +18,7 @@
 
 import pytest
 
-from tests.test_parsing import parse_file
+from tests.parsing.test_parsing import parse_file
 from .conftest import run_normalize
 
 
@@ -44,7 +44,7 @@ def test_geometry_optimization_workflow(workflow_archive):
 
     assert sec_workflow.workflow_type == 'geometry_optimization'
     assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'section_single_configuration_calculation'
+    assert sec_workflow.calculation_result_ref.m_def.name == 'SingleConfigurationCalculation'
     assert sec_workflow.section_geometry_optimization.geometry_optimization_type == 'cell_shape'
     assert sec_workflow.section_geometry_optimization.final_energy_difference > 0.0
     assert sec_workflow.section_geometry_optimization.optimization_steps == 3
@@ -58,7 +58,7 @@ def test_elastic_workflow(workflow_archive):
 
     assert sec_workflow.workflow_type == 'elastic'
     assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'section_single_configuration_calculation'
+    assert sec_workflow.calculation_result_ref.m_def.name == 'SingleConfigurationCalculation'
     assert sec_workflow.section_elastic.elastic_calculation_method == 'energy'
     assert sec_workflow.section_elastic.elastic_constants_order == 2
     assert sec_workflow.section_elastic.is_mechanically_stable
@@ -74,7 +74,7 @@ def test_phonon_workflow(workflow_archive):
     sec_workflow = phonopy_archive.section_workflow
     assert sec_workflow.workflow_type == 'phonon'
     assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'section_single_configuration_calculation'
+    assert sec_workflow.calculation_result_ref.m_def.name == 'SingleConfigurationCalculation'
     assert sec_workflow.section_phonon.force_calculator == 'fhi-aims'
     assert sec_workflow.section_phonon.mesh_density > 0.0
     assert sec_workflow.section_phonon.n_imaginary_frequencies > 0
@@ -90,7 +90,7 @@ def test_molecular_dynamics_workflow(workflow_archive):
     sec_workflow = lammmps_archive.section_workflow
     assert sec_workflow.workflow_type == 'molecular_dynamics'
     assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'section_single_configuration_calculation'
+    assert sec_workflow.calculation_result_ref.m_def.name == 'SingleConfigurationCalculation'
     assert sec_workflow.section_molecular_dynamics.finished_normally
     assert sec_workflow.section_molecular_dynamics.with_trajectory
     assert sec_workflow.section_molecular_dynamics.with_thermodynamics

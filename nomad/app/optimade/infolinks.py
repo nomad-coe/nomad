@@ -48,7 +48,7 @@ class Info(Resource):
                 }],
                 'formats': ['json'],
                 'entry_types_by_format': {
-                    'json': ['structures', 'calculations', 'info']
+                    'json': ['structures', 'calculations']
                 },
                 'available_endpoints': ['structures', 'calculations', 'info'],
                 'is_index': False
@@ -73,11 +73,12 @@ class Links(Resource):
 
         result = [
             {
-                "type": "parent",
+                "type": "links",
                 "id": "index",
                 "attributes": {
                     "name": config.meta.name,
                     "description": config.meta.description,
+                    "link_type": "root",
                     "base_url": {
                         "href": url(version=None, prefix='index'),
                     },

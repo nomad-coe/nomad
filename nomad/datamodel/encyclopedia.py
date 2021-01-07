@@ -26,7 +26,7 @@ from nomad.metainfo.search_extension import Search
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = Package()
 
-from .metainfo.public import section_k_band, section_dos, section_thermodynamical_properties, fast_access  # noqa
+from .metainfo.common_dft import section_k_band, section_dos, section_thermodynamical_properties, FastAccess  # noqa
 
 
 class WyckoffVariables(MSection):
@@ -82,7 +82,7 @@ class WyckoffSet(MSection):
         Chemical element at this Wyckoff position.
         """
     )
-    variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False, categories=[fast_access])
+    variables = SubSection(sub_section=WyckoffVariables.m_def, repeats=False, categories=[FastAccess])
 
 
 class LatticeParameters(MSection):
@@ -208,8 +208,8 @@ class IdealizedStructure(MSection):
         """,
         a_search=Search()
     )
-    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True, categories=[fast_access])
-    lattice_parameters = SubSection(sub_section=LatticeParameters.m_def, categories=[fast_access])
+    wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True, categories=[FastAccess])
+    lattice_parameters = SubSection(sub_section=LatticeParameters.m_def, categories=[FastAccess])
 
 
 class Bulk(MSection):
@@ -388,10 +388,10 @@ class Material(MSection):
     )
 
     # Bulk-specific properties
-    bulk = SubSection(sub_section=Bulk.m_def, repeats=False, categories=[fast_access])
+    bulk = SubSection(sub_section=Bulk.m_def, repeats=False, categories=[FastAccess])
 
     # The idealized structure for this material
-    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False, categories=[fast_access])
+    idealized_structure = SubSection(sub_section=IdealizedStructure.m_def, repeats=False, categories=[FastAccess])
 
 
 class Method(MSection):
@@ -593,7 +593,7 @@ class Properties(MSection):
         """,
         a_search=Search()
     )
-    energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[fast_access], a_search='energies')
+    energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[FastAccess], a_search='energies')
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
@@ -644,10 +644,10 @@ class EncyclopediaMetadata(MSection):
         Section which stores information for the NOMAD Encyclopedia.
         """
     )
-    material = SubSection(sub_section=Material.m_def, repeats=False, categories=[fast_access], a_search='material')
-    method = SubSection(sub_section=Method.m_def, repeats=False, categories=[fast_access], a_search='method')
-    properties = SubSection(sub_section=Properties.m_def, repeats=False, categories=[fast_access], a_search='properties')
-    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, categories=[fast_access], a_search='calculation')
+    material = SubSection(sub_section=Material.m_def, repeats=False, categories=[FastAccess], a_search='material')
+    method = SubSection(sub_section=Method.m_def, repeats=False, categories=[FastAccess], a_search='method')
+    properties = SubSection(sub_section=Properties.m_def, repeats=False, categories=[FastAccess], a_search='properties')
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, categories=[FastAccess], a_search='calculation')
     status = Quantity(
         type=MEnum("success", "unsupported_material_type", "unsupported_method_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
         description="""

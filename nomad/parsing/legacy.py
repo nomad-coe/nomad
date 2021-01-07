@@ -371,6 +371,7 @@ class LegacyParser(MatchingParser):
         parser_class_name = self.parser_class_name.split('.')[-1]
         self.__parser_impl = module_name, parser_class_name
         self.__parser_class = None
+        self._metainfo_env = None
 
     @property
     def metainfo_env(self):
@@ -379,7 +380,7 @@ class LegacyParser(MatchingParser):
             module = importlib.import_module('.'.join(module_name + ['metainfo']))
             self._metainfo_env = getattr(module, 'm_env')
 
-        return super().metainfo_env
+        return self._metainfo_env
 
     @property
     def parser_class(self):

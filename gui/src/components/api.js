@@ -75,7 +75,7 @@ class Upload {
   }
 
   uploadFile(file) {
-    const uploadFileWithProgress = async() => {
+    const uploadFileWithProgress = async () => {
       const authHeaders = await this.api.authHeaders()
       let uploadRequest = await UploadRequest(
         {
@@ -619,6 +619,20 @@ class Api {
             with_embargo: embargoLength > 0,
             embargo_length: embargoLength
           }
+        }
+      }))
+      .catch(handleApiError)
+      .then(response => response.body)
+      .finally(this.onFinishLoading)
+  }
+
+  async publishUploadToCentralNomad(uploadId) {
+    this.onStartLoading()
+    return this.swagger()
+      .then(client => client.apis.uploads.exec_upload_operation({
+        upload_id: uploadId,
+        payload: {
+          operation: 'publish-to-central-nomad'
         }
       }))
       .catch(handleApiError)

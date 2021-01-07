@@ -31,6 +31,8 @@ from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
 from lammpsparser import LammpsParser
+from gromacsparser import GromacsParser
+from crystalparser import CrystalParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -156,15 +158,7 @@ parsers = [
             r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n'
         )
     ),
-    LegacyParser(
-        name='parsers/crystal', code_name='Crystal', code_homepage='https://www.crystal.unito.it/',
-        parser_class_name='crystalparser.CrystalParser',
-        mainfile_contents_re=(
-            r'(CRYSTAL\s*\n\d+ \d+ \d+)|(CRYSTAL will run on \d+ processors)|'
-            r'(\s*\*\s*CRYSTAL[\d]+\s*\*\s*\*\s*(public|Release) \: [\d\.]+.*\*)|'
-            r'(Executable:\s*[/_\-a-zA-Z0-9]*MPPcrystal)'
-        )
-    ),
+    CrystalParser(),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
@@ -223,6 +217,8 @@ parsers = [
     LegacyParser(
         name='parsers/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
         parser_class_name='wien2kparser.Wien2kParser',
+        mainfile_name_re=r'.*\.scf$',
+        mainfile_alternative=True,
         mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
     ),
     LegacyParser(
@@ -388,11 +384,7 @@ parsers = [
         parser_class_name='amberparser.AMBERParser',
         mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
     ),
-    LegacyParser(
-        name='parsers/gromacs', code_name='Gromacs', domain='dft',
-        parser_class_name='gromacsparser.GROMACSParser',
-        mainfile_contents_re=r'GROMACS - gmx mdrun'
-    ),
+    GromacsParser(),
     LegacyParser(
         name='parsers/gromos', code_name='Gromos', domain='dft',
         parser_class_name='gromosparser.GromosParser',

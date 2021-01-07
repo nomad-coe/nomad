@@ -168,11 +168,11 @@ spec:
           name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
-        - mountPath: /app/gui/build/env.js
+        - mountPath: /app/nomad/static/gui/env.js
           readOnly: true
           subPath: env.js
           name: gui-env-js
-        - mountPath: /app/dependencies/encyclopedia-gui/client/conf.js
+        - mountPath: /app/nomad/static/encyclopedia/conf.js
           readOnly: true
           subPath: conf.js
           name: enc-conf-js
@@ -223,7 +223,7 @@ spec:
               name: {{ .Values.datacite.secret }}
               key: user
         {{ end }}
-        command: ["./run.sh",  "{{ .Values.proxy.external.path }}"]
+        command: ["./run.sh"]
         livenessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"

@@ -1,18 +1,38 @@
-# Operating a NOMAD OASIS
-
-The following describes the simplest way to run your own NOMAD.
-
-## What is an OASIS
+# Operating an OASIS
 
 Originally, NOMAD Central Repository is a service run at Max-Planck's computing facility in Garching, Germany.
 However, the NOMAD software is Open-Source, and everybody can run it. Any service that
 uses NOMAD software independently is called a *NOMAD OASIS*.
 
 While several use cases require different setups, this documentation
-describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for 
+describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for
 local research data management, while using NOMAD's central user-management and its users.
+There are several environment in which you can run a NOMAD OASIS: base-metal linux,
+docker with docker-compose, and in a kubernetes cluster. We recommend using docker/docker-compose.
 
-## Pre-requisites
+## Before you start
+
+We need to register some information about your OASIS in the central user management:
+- The hostname for the machine you run NOMAD on. This is important for redirects between
+your OASIS and the central NOMAD user-management and to allow your users to upload files (via GUI or API).
+Your machine needs to be accessible under this hostname from the public internet. The host
+name needs to be registered with the central NOMAD in order to configure the central user-
+management correctly.
+- Your NOMAD account that should act as an admin account for your OASIS. This account must be declared
+to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user-
+management.
+- You will need to know your NOMAD user-id. This information has to be provided by us.
+
+Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
+admin and to register your hostname. Please replace the indicated configuration items with
+the right information.
+
+
+In principle, you can also run your own user management. This is not yet documented.
+
+## docker and docker compose
+
+### Pre-requisites
 
 NOMAD software is distributed as a set of docker containers. Further, other services
 that can be run with docker are required. Further, we use docker-compose to setup
@@ -25,30 +45,15 @@ database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD
 NOMAD **worker**, and NOMAD **gui**. Refer to this [introduction](/app/docs/introduction.html#architecture)
 to learn what each service does and why it is necessary.
 
-There is also some information you need to configure your NOMAD OASIS:
-- The hostname for the machine you run NOMAD on. This is important for redirects between
-your OASIS and the central NOMAD user-management and to allow your users to upload files (via GUI or API).
-Your machine needs to be accessible under this hostname from the public internet. The host
-name needs to be registered with the central NOMAD in order to configure the central user-
-management correctly.
-- A NOMAD account that acts as an admin account for your OASIS. This account must be declared
-to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user-
-management.
-
-## Configuration
+### Configuration overview
 
 All docker container are configured via docker-compose an the respective `docker-compose.yaml` file.
 Further, we will need to mount some configuration files to configure the NOMAD services within
 their respective containers.
 
-Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
-admin and to register your hostname. Please replace the indicated configuration items with
-the right information.
-
 There are three files to configure:
 - `docker-compose.yaml`
 - `nomad.yaml`
-- `env.js`
 - `nginx.conf`
 
 In this example, we have all files in the same directory (the directory we also work from).
@@ -134,9 +139,8 @@ services:
             - mongo
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - ./env.js:/app/gui/build/env.js
             - nomad_oasis_files:/app/.volumes/fs
-        command: ["./run.sh", "/nomad-oasis"]
+        command: gunicorn -b 0.0.0.0 nomad.app:app
 
     # nomad gui (a reverse proxy for nomad)
     gui:
@@ -202,30 +206,12 @@ You need to change:
 A few things to notice:
 - Be secretive about your admin credentials; make sure this file is not publicly readable.
 
-### env.js
-
-The GUI also has a config file, called `env.js` with a similar function than `nomad.yaml`.
-
-```js
-window.nomadEnv = {
-  'appBase': '/nomad-oasis/',
-  'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
-  'keycloakRealm': 'fairdi_nomad_prod',
-  'keycloakClientId': 'nomad_public',
-  'debug': false,
-  'oasis': true
-};
-```
-
-You need to change:
-- `appBase` defines the base path again. It needs to be changed, if you use a different base path.
-
 ### nginx.conf
 
 The GUI container serves as a proxy that forwards request to the app container. The
 proxy is an nginx server and needs a configuration similar to this:
 
-```
+```none
 server {
     listen        80;
     server_name   <your-host>;
@@ -293,34 +279,34 @@ Gunicorn is the WSGI-server that runs the nomad app. Consult the
 [gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html) for
 configuration options.
 
-## Starting and stopping
+### Starting and stopping NOMAD
 
 If you prepared the above files, simply use the usual `docker-compose` commands to start everything.
 
 To make sure you have the latest docker images for everything run this first:
-```
+```sh
 docker-compose pull
 ```
 
 In the beginning and for debugging problems, it is recommended to start services separately:
-```
+```sh
 docker-compose up -d mongodb elastic rabbitmq
 docker-compose up app worker gui
 ```
 
 The `-d` option runs container in the background as *daemons*. Later you can run all at once:
-```
+```sh
 docker-compose up -d
 ```
 
 You can also use docker to stop and remove faulty containers that run as *daemons*:
-```
+```sh
 docker stop nomad_oasis_app
 docker rm nomad_oasis_app
 ```
 
 If everything works, the gui should be available under:
-```
+```none
 http://<your host>/nomad-oasis/gui/
 ```
 
@@ -328,7 +314,7 @@ If you run into troubles, use the dev-tools of you browser to check the javascri
 or monitor the network traffic for HTTP 500/400/404/401 responses.
 
 To see if at least the api works, check
-```
+```none
 http://<your host>/nomad-oasis/alive
 http://<your host>/nomad-oasis/api/info
 ```
@@ -336,11 +322,11 @@ http://<your host>/nomad-oasis/api/info
 To see logs or 'go into' a running container, you can access the individual containers
 with their names and the usual docker commands:
 
-```
+```sh
 docker logs nomad_oasis_app
 ```
 
-```
+```sh
 docker exec -ti nomad_oasis_app /bin/bash
 ```
 
@@ -349,25 +335,139 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_worker
 - nomad_oasis_gui
 
+## base linux (without docker)
+
+### Pre-requisites
+
+We will run NOMAD from the *nomad-lab* Python package. This package contains all the necessary
+code for running the processing, api, and gui. But, it is missing the necessary databases. You might be
+able to run NOMAD in user space.
+
+You will need:
+
+- preferably a linux computer, which Python 3.7, preferable a Python virtual environment
+- elasticsearch 6.x, running without users and authentication, preferable on the default settings
+- mongodb 4.x, running without users and authentication, preferable on the default settings
+- rabbitmq 3.x, running without users and authentication, preferable on the default settings
+- nginx
+- an empty directory to work in
+
+### Install the NOMAD Python package
+
+You should install everything in a virtual environment. For example like this:
+```sh
+virtualenv -p `which python3` nomadpyenv
+source nomadpyenv/bin/activate
+```
+
+You can simply install the Python package from pypi:
+```sh
+pip install nomad-lab[all]
+```
+
+If you need the latest version, you can also download the latest package from our
+"beta" installation.
+```sh
+curl "https://nomad-lab.eu/prod/rae/beta/dist/nomad-lab.tar.gz" -o nomad-lab.tar.gz
+pip install nomad-lab.tar.gz[all]
+```
+
+### Configure NOMAD - nomad.yaml
+
+The `nomad.yaml` is our central config file. You should write a `nomad.yaml` like this:
+
+```yaml
+client:
+  url: 'http://<your-host>/nomad-oasis/api'
+
+services:
+  api_base_path: '/nomad-oasis'
+  admin_user_id: '<your admin user id>'
+
+keycloak:
+  realm_name: fairdi_nomad_prod
+  username: '<your admin username>'
+  password: '<your admin user password>'
+  oasis: true
+
+mongo:
+    db_name: nomad_v0_8
+
+elastic:
+    index_name: nomad_v0_8
+```
+
+You need to change:
+- Replace `your-host` and admin credentials respectively.
+- `api_base_path` defines the path under with the app is run. It needs to be changed, if you use a different base path.
+
+A few things to notice:
+- Be secretive about your admin credentials; make sure this file is not publicly readable.
+
+### Configure NOMAD - nginx
+
+You can generate a suitable `nginx.conf` with the `nomad` command line command that
+comes with the *nomad-lab* Python package. If you server other content but NOMAD with
+your nginx, you need to incorporate the config accordingly.
+
+If you have a standard installation of nginx, this might work. Adapt to your set-up:
+```sh
+nomad admin ops nginx-conf > /etc/nginx/conf.d/default.conf
+nginx -t
+nginx -s reload
+```
+
+If you want to run nginx in docker, this might work. Adapt to your set-up:
+```sh
+nomad admin ops nginx-conf --host host.docker.internal > nginx.conf
+docker run --rm -v `pwd`/nginx.conf:/etc/nginx/conf.d/default.conf -p 80:80 nginx:stable nginx -g 'daemon off;' &
+```
+
+### Running NOMAD
+
+Before you start, we need to transfer your `nomad.yaml` config values to the GUI's
+javascript. You need to repeat this, if you change your `nomad.yaml`. You can do this by running:
+```
+nomad admin ops gui-config
+```
+
+To run NOMAD, you must run two services. One is the NOMAD app, it serves the API and GUI:
+```
+gunicorn "${params[@]}" -b 0.0.0.0:8000 nomad.app:app
+```
+
+And the NOMAD worker, that runs the NOMAD processing.
+```
+celery worker -l info -A nomad.processing -Q celery,calcs,uploads
+```
+
+This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.
+
+## kubernetes
+
+*This is not yet documented.*
+
 ## Migrating from an older version (0.7.x to 0.8.x)
+
+*This documentation is outdated and will be removed in future releases.*
 
 Between versions 0.7.x and 0.8.x we needed to change how archive and metadata data is stored
 internally in files and databases. This means you cannot simply start a new version of
 NOMAD on top of the old data. But there is a strategy to adapt the data.
 
 First, shutdown the OASIS and remove all old container.
-```
+```sh
 docker-compose stop
 docker-compose rm -f
 ```
 
-Update you config files (`docker-compose.yaml`, `nomad.yaml`, `env.js`, `nginx.conf`) according
+Update you config files (`docker-compose.yaml`, `nomad.yaml`, `nginx.conf`) according
 to the latest documentation (see above). Especially make sure to select a new name for
 databases and search index in your `nomad.yaml` (e.g. `nomad_v0_8`). This will
 allow us to create new data while retaining the old, i.e. to copy the old data over.
 
 Make sure you get the latest images and start the OASIS with the new version of NOMAD:
-```
+```sh
 docker-compose pull
 docker-compose up -d
 ```
@@ -381,14 +481,14 @@ all data over and then reprocess the data to create data in the new archive form
 populate the search index. The default database name in version 0.7.x installations was `nomad_fairdi`.
 Be patient.
 
-```
+```sh
 docker exec -ti nomad_oasis_app bash -c 'nomad admin migrate --mongo-db nomad_fairdi'
 ```
 
 Now all your data should appear in your OASIS again. If you like, you can remove the
 old index and database:
 
-```
+```sh
 docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
 docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
 ```

@@ -122,10 +122,10 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('chemical_formula_reduced CONTAINS "H2"', 3),
     ('chemical_formula_reduced CONTAINS "H"', 4),
     ('chemical_formula_reduced CONTAINS "C"', 1),
-    ('chemical_formula_reduced STARTS "H2"', 3),
-    ('chemical_formula_reduced STARTS WITH "H2"', 3),
-    ('chemical_formula_reduced ENDS WITH "C"', 1),
-    ('chemical_formula_reduced ENDS "C"', 1),
+    ('chemical_formula_reduced STARTS "H2"', 2),
+    ('chemical_formula_reduced STARTS WITH "H2"', 2),
+    ('chemical_formula_reduced ENDS WITH "O"', 4),
+    ('chemical_formula_reduced ENDS "C"', 0),
     ('chemical_formula_hill CONTAINS "1"', 0),
     ('chemical_formula_hill STARTS WITH "H" AND chemical_formula_hill ENDS WITH "O"', 3),
     ('NOT chemical_formula_descriptive ENDS WITH "1"', 4),
@@ -136,14 +136,14 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('elements LENGTH = 2', 3),
     ('elements LENGTH 2', 3),
     ('elements LENGTH = 3', 1),
-    ('dimension_types LENGTH = 0', 3),
-    ('dimension_types LENGTH = 1', 1),
-    ('nelements = 2 AND dimension_types LENGTH = 1', 1),
-    ('nelements = 3 AND dimension_types LENGTH = 1', 0),
-    ('nelements = 3 OR dimension_types LENGTH = 1', 2),
-    ('nelements > 1 OR dimension_types LENGTH = 1 AND nelements = 2', 4),
-    ('(nelements > 1 OR dimension_types LENGTH = 1) AND nelements = 2', 3),
-    ('NOT dimension_types LENGTH 1', 3),
+    ('nperiodic_dimensions = 0', 3),
+    ('nperiodic_dimensions = 1', 1),
+    ('nelements = 2 AND nperiodic_dimensions = 1', 1),
+    ('nelements = 3 AND nperiodic_dimensions = 1', 0),
+    ('nelements = 3 OR nperiodic_dimensions = 1', 2),
+    ('nelements > 1 OR nperiodic_dimensions = 1 AND nelements = 2', 4),
+    ('(nelements > 1 OR nperiodic_dimensions = 1) AND nelements = 2', 3),
+    ('NOT nperiodic_dimensions = 1', 3),
     ('nelements LENGTH = 1', -1),
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
@@ -177,6 +177,33 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data']['attributes'][key] == ref
     else:
         assert data['data'][item]['attributes'][key] == ref
+
+
+@pytest.mark.parametrize('limit, number, results', [
+    (1, 1, 1), (1, 5, 0), (5, 1, 4)
+])
+def test_list_endpoint_pagination(api, example_structures, limit, number, results):
+    rv = api.get('/structures?page_limit=%d&page_number=%d' % (limit, number))
+    assert rv.status_code == 200
+    data = json.loads(rv.data)
+    assert len(data['data']) == results
+
+
+@pytest.mark.parametrize('sort, order', [
+    ('nelements', 1), ('-nelements', -1)
+])
+def test_list_endpoint_sort(api, example_structures, sort, order):
+    rv = api.get('/structures?sort=%s' % sort)
+    assert rv.status_code == 200
+    data = json.loads(rv.data)['data']
+
+    assert len(data) > 0
+    for i, item in enumerate(data):
+        if i > 0:
+            if order == 1:
+                assert item['attributes']['nelements'] >= data[i - 1]['attributes']['nelements']
+            else:
+                assert item['attributes']['nelements'] <= data[i - 1]['attributes']['nelements']
 
 
 def test_list_endpoint_response_fields(api, example_structures):

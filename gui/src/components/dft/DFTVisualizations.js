@@ -21,7 +21,7 @@ import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import QuantityHistogram from '../search/QuantityHistogram'
 import { searchContext } from '../search/SearchContext'
-import { path, defsByName } from '../archive/metainfo'
+import { path, defsByName, resolveRef } from '../archive/metainfo'
 import { nomadTheme } from '../../config'
 import Markdown from '../Markdown'
 
@@ -172,10 +172,14 @@ const useMetainfoTooltipStyles = makeStyles(theme => ({
 
 function MetaInfoTooltip({def, path}) {
   const classes = useMetainfoTooltipStyles()
+  let description = def.description
+  if (!description && def.sub_section) {
+    description = resolveRef(def.sub_section)?.description
+  }
   return <div className={classes.root} >
     <Markdown
       classes={{root: classes.tooltipMarkdown}}
-    >{`${def.description.slice(0, def.description.indexOf('.') || undefined)}. Click [here](/metainfo/${path}) for full the definition.`}</Markdown>
+    >{`${description?.slice(0, description.indexOf('.') || undefined)}. Click [here](/metainfo/${path}) for full the definition.`}</Markdown>
   </div>
 }
 

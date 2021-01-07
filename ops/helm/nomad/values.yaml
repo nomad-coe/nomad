@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.9.7"
+  label: "0.9.8"
   isTest: false
   isBeta: false
   usesBetaData: false
@@ -103,7 +103,7 @@ proxy:
   mirrorTimeout: 600
   editTimeout: 1800
   external:
-    host: "labdev-nomad.esc.rzg.mpg.de"
+    host: "nomad-lab.eu"
     port: 80
     path: "/fairdi/nomad/latest"
     https: true

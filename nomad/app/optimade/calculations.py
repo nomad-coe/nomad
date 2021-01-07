@@ -44,10 +44,22 @@ class CalculationList(Resource):
             filter = request.args.get('filter', None)
             page_limit = int(request.args.get('page_limit', 10))
             page_number = int(request.args.get('page_number', 1))
-            sort = request.args.get('sort', 'chemical_formula_reduced')
+            sort = request.args.get('sort', request.args.get('sort', 'chemical_formula_reduced'))
+
+            order = 1
+            if sort[0:1] == '-':
+                order = -1
+                sort = sort[1:]
 
         except Exception:
             abort(400, message='bad parameter types')  # TODO Specific json API error handling
+
+        sort_quantity = OptimadeEntry.m_def.all_quantities.get(sort, None)
+        if sort_quantity is None:
+            abort(400, message='cannot sort by %s' % sort)  # TODO Specific json API error handling
+        sort_quantity_a_optimade = sort_quantity.m_get_annotations('optimade')
+        if not sort_quantity_a_optimade.sortable:
+            abort(400, message='cannot sort by %s' % sort)  # TODO Specific json API error handling
 
         search_request = base_search_request().include('calc_id', 'upload_id')
 
@@ -59,8 +71,9 @@ class CalculationList(Resource):
 
         result = search_request.execute_paginated(
             page=page_number,
-            per_page=page_limit)
-        # order_by='optimade.%s' % sort)  # TODO map the Optimade property
+            per_page=page_limit,
+            order=order,
+            order_by='dft.optimade.%s' % sort)
 
         returned = result['pagination']['total']
         results = to_calc_with_metadata(result['results'])
@@ -71,7 +84,7 @@ class CalculationList(Resource):
                 query=request.url,
                 returned=returned,
                 available=nentries(),
-                last_id=results[-1].calc_id if returned > 0 else None),
+                last_id=results[-1].calc_id if len(results) > 0 else None),
             links=LinksModel(
                 'calculations',
                 returned=returned,

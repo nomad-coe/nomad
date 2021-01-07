@@ -11,12 +11,12 @@ You can use docker-compose to run all necessary databases with one single docker
 To run the infrastructure for a typical development environment (where you need mongodb,
 elastic, and rabbitmq), simply run:
 
-```
+```sh
 docker-compose up -d mongo elastic rabbitmq
 ```
 
 To run nomad on top use the nomad command:
 
-```
+```sh
 nomad admin run appworker
 ```

@@ -189,3 +189,6 @@
 [submodule "dependencies/parsers/eelsdb"]
 	path = dependencies/parsers/eelsdb
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/eelsdb.git
+[submodule "dependencies/parsers/example"]
+	path = dependencies/parsers/example
+	url = https://github.com/nomad-coe/nomad-parser-example.git

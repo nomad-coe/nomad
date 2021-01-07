@@ -281,13 +281,21 @@ structlog.configure(
     logger_factory=logger_factory,
     wrapper_class=structlog.stdlib.BoundLogger)
 
-# configure logging in general
-logging.basicConfig(level=logging.DEBUG)
+
 root = logging.getLogger()
-for handler in root.handlers:
-    if not isinstance(handler, LogstashHandler):
-        handler.setLevel(config.console_log_level)
-        handler.setFormatter(ConsoleFormatter())
+
+
+# configure logging in general
+def configure_logging(console_log_level=config.console_log_level):
+    logging.basicConfig(level=logging.DEBUG)
+    for handler in root.handlers:
+        if not isinstance(handler, LogstashHandler):
+            handler.setLevel(console_log_level)
+            handler.setFormatter(ConsoleFormatter())
+
+
+configure_logging()
+
 
 # configure logstash
 if config.logstash.enabled:

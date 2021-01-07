@@ -167,6 +167,7 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     errors = ListField(StringField())
     warnings = ListField(StringField())
+    last_status_message = StringField(default=None)
 
     current_process = StringField(default=None)
     process_status = StringField(default=None)
@@ -290,6 +291,8 @@ class Proc(Document, metaclass=ProcMetaclass):
         self.on_fail()
 
         logger.info('process failed')
+        if len(self.errors) > 0:
+            self.last_satus_message = 'ERROR: %s' % self.errors[-1]
 
         self.save()
 

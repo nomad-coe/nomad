@@ -62,6 +62,7 @@ import tarfile
 import hashlib
 import io
 import pickle
+import json
 
 from nomad import config, utils, datamodel
 from nomad.archive import write_archive, read_archive, ArchiveReader
@@ -431,6 +432,7 @@ class StagingUploadFiles(UploadFiles):
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
         This is potentially a long running operation.
+
         Arguments:
             upload: The upload with all calcs and  calculation metadata of the upload
                 used to determine what files to pack and what the embargo situation is.
@@ -706,7 +708,9 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
 
     def pack(self, entries: Iterable[datamodel.EntryMetadata], *args, **kwargs) -> None:
-        ''' Packs only the archive contents and stores it in the existing public upload files. '''
+        '''
+        Packs only the archive contents and stores it in the existing public upload files.
+        '''
         super().pack(entries, target_dir=self.public_upload_files, skip_raw=True)
 
 
@@ -801,6 +805,16 @@ class PublicUploadFiles(UploadFiles):
             raise FileExistsError('Staging upload does already exist')
 
         return staging_upload_files
+
+    def add_metadata_file(self, metadata: dict):
+        zip_path = self._zip_file_object('raw', 'public', 'plain').os_path
+        with zipfile.ZipFile(zip_path, 'a') as zf:
+            with zf.open('nomad.json', 'w') as f:
+                f.write(json.dumps(metadata).encode())
+
+    @property
+    def public_raw_data_file(self):
+        return self._zip_file_object('raw', 'public', 'plain').os_path
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         return self._file_in_zip('raw', 'plain', file_path, *args, *kwargs)

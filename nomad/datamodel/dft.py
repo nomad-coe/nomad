@@ -27,8 +27,8 @@ from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
-from .metainfo.public import Workflow, fast_access
-from .metainfo.public import section_XC_functionals
+from .metainfo.common_dft import Workflow, FastAccess
+from .metainfo.common_dft import section_XC_functionals
 
 
 xc_treatments = {
@@ -238,7 +238,7 @@ class DFTMetadata(MSection):
         a_search=Search(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
 
     labels = SubSection(
-        sub_section=Label, repeats=True, categories=[fast_access],
+        sub_section=Label, repeats=True, categories=[FastAccess],
         description='The labels taken from AFLOW prototypes and springer.',
         a_search='labels')
 

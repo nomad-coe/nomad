@@ -42,7 +42,6 @@ def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
-
     search_entry = create_entry(entry_metadata)
     entry = search.flat(search_entry.to_dict())
 

@@ -3,7 +3,7 @@
 **/.mypy_cache
 **/__pycache__
 **/*.pyc
-**/NOMAD.egg-info
+**/*.egg-info
 .*env/
 .pyenv*/
 .pytest_cache
@@ -13,6 +13,8 @@
 .coverage
 **/.ipynb_checkpoints
 **/.volumes
+
+nomad_lab.egg-info/
 
 data/
 local/
@@ -30,6 +32,7 @@ docs/*.graffle
 
 nomad/normalizing/data/*.db
 nomad/normalizing/data/*.msg
+nomad/app/static
 nomad.yaml
 
 gui/node_modules/

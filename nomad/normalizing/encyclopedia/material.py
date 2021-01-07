@@ -132,7 +132,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms) -> None:
         cell_normalized = std_atoms.get_cell() * 1E-10
-        param_values = atomutils.get_lattice_parameters(cell_normalized)
+        param_values = atomutils.cell_to_cellpar(cell_normalized)
         param_section = ideal.m_create(LatticeParameters)
         param_section.a = float(param_values[0])
         param_section.b = float(param_values[1])

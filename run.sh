@@ -1,5 +1,5 @@
 #!/bin/bash
-find gui/build -type f -not -name "env.js" | xargs -L1 bash -c 'sed "s_/fairdi/nomad/latest/gui_$1/gui_g" $2 > /tmp/temp_file; cp /tmp/temp_file $2;' -- $1
+python -m nomad.cli admin ops gui-config
 params=()
 [ -e gunicorn.conf ] && params+=(--config gunicorn.conf)
 [ -e gunicorn.log.conf ] && params+=(--log-config gunicorn.log.conf)

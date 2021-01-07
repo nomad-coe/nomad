@@ -12,7 +12,9 @@ from nomad.metainfo.legacy import LegacyDefinition
 m_package = Package(
     name='{{ pkg.name }}',
     description='{{ pkg.description }}',
-    a_legacy=LegacyDefinition(name='{{pkg.a_legacy.name}}'))
+    {% if pkg.a_legacy is defined -%}
+    a_legacy=LegacyDefinition(name='{{pkg.a_legacy.name}}')
+    {% endif -%})
 {% for category in order_categories(pkg.category_definitions) %}
 
 class {{ category.name }}(MCategory):
@@ -26,7 +28,9 @@ class {{ category.name }}(MCategory):
         {% if category.categories | length > 0 -%}
         categories=[{{ format_definition_refs(pkg, category.categories) }}],
         {% endif -%}
-        a_legacy=LegacyDefinition(name='{{category.a_legacy.name}}'))
+        {% if category.a_legacy is defined -%}
+        a_legacy=LegacyDefinition(name='{{category.a_legacy.name}}')
+        {% endif -%})
 {% endfor -%}
 
 {% for section in pkg.section_definitions %}
@@ -37,7 +41,12 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
     {{ format_description(section.description, indent=1) }}
     '''
     {% endif %}
-    m_def = Section(validate=False{%- if section.extends_base_section -%}, extends_base_section=True{%- endif -%}, a_legacy=LegacyDefinition(name='{{section.a_legacy.name}}'))
+    m_def = Section(
+        validate=False{%- if section.extends_base_section -%},
+        extends_base_section=True{%- endif -%},
+        {% if section.a_legacy is defined -%}
+        a_legacy=LegacyDefinition(name='{{section.a_legacy.name}}')
+        {% endif -%})
     {% for quantity in section.quantities %}
     {{ quantity.name }} = Quantity(
         type={{ format_type(pkg, quantity.type) }},
@@ -52,7 +61,9 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
         {%- if quantity.categories | length > 0 -%},
         categories=[{{ format_definition_refs(pkg, quantity.categories) }}]
         {%- endif -%},
-        a_legacy=LegacyDefinition(name='{{quantity.a_legacy.name}}'))
+        {% if quantity.a_legacy is defined -%}
+        a_legacy=LegacyDefinition(name='{{quantity.a_legacy.name}}')
+        {% endif -%})
     {% endfor -%}
 
     {%- for sub_section in section.sub_sections %}
@@ -63,7 +74,9 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
         description='''
         {{ format_description(sub_section.description, indent=2) }}
         '''{%- endif -%},
-        a_legacy=LegacyDefinition(name='{{sub_section.a_legacy.name}}'))
+        {% if sub_section.a_legacy is defined -%}
+        a_legacy=LegacyDefinition(name='{{sub_section.a_legacy.name}}')
+        {% endif -%})
     {% endfor -%}
 {%- endfor %}
 

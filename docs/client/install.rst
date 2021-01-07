@@ -1,3 +1,5 @@
+.. _install-client:
+
 Install the NOMAD client library
 ================================
 

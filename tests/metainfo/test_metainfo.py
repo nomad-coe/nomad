@@ -333,12 +333,23 @@ class TestM1:
         assert_section_instance(system)
 
     def test_set_none(self):
+        def run_test(section, quantity):
+            assert getattr(section, quantity.name) is not None
+            assert section.m_is_set(quantity)
+
+            for _ in range(0, 2):
+                setattr(section, quantity.name, None)
+                assert not section.m_is_set(quantity)
+                assert getattr(section, quantity.name) is None
+                assert quantity.name not in section.m_to_dict()
+
         run = Run()
         run.code_name = 'test'
-        assert run.code_name is not None
+        run_test(run, Run.code_name)
 
-        run.code_name = None
-        assert run.code_name is None
+        system = System()
+        system.atom_positions = [[0, 0, 0]]
+        run_test(system, System.atom_positions)
 
     def test_set_subsection(self):
         run = Run()
@@ -713,7 +724,7 @@ class TestDatatypes:
 
         obj.datetime = None
         assert obj.datetime is None
-        assert obj.m_to_dict()['datetime'] is None
+        assert 'datetime' not in obj.m_to_dict()
 
     def test_json(self):
         class TestSection(MSection):
@@ -729,7 +740,7 @@ class TestDatatypes:
 
         obj.json = None
         assert obj.json is None
-        assert obj.m_to_dict()['json'] is None
+        assert 'json' not in obj.m_to_dict()
 
 
 class TestEnvironment:

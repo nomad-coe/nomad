@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
-import { Typography, Box, makeStyles, Grid, FormGroup, TextField } from '@material-ui/core'
+import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
 import * as d3 from 'd3'
 import { apiContext } from '../api'
@@ -66,6 +66,10 @@ If you bookmark this page, you can save the definition represented by the highli
 
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
+
+function defCompare(a, b) {
+  return a.name.localeCompare(b.name)
+}
 
 export const metainfoConfigState = atom({
   key: 'metainfoConfig',
@@ -206,7 +210,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
 
     return <Content>
       <Compartment title="Sections">
-        {sectionDefs.filter(def => !def.extends_base_section).map(def => {
+        {sectionDefs.filter(def => !def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -214,7 +218,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         })}
       </Compartment>
       <Compartment title="Section Extensions">
-        {sectionDefs.filter(def => def.extends_base_section).map(def => {
+        {sectionDefs.filter(def => def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -222,7 +226,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         })}
       </Compartment>
       <Compartment title="Categories">
-        {categoryDefs.map(def => {
+        {categoryDefs.sort(defCompare).map(def => {
           const key = `category_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
             <Typography>{def.name}</Typography>
@@ -323,8 +327,10 @@ function SectionDef({def}) {
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
+          const categories = subSectionDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
-            <Typography component="span">
+            <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
                 {subSectionDef.name}
               </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
@@ -337,9 +343,11 @@ function SectionDef({def}) {
       {def.quantities.filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
+          const categories = quantityDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
           return <Item key={key} itemKey={key}>
             <Box component="span" whiteSpace="nowrap">
-              <Typography component="span">
+              <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>
@@ -408,16 +416,19 @@ function DefinitionDetails({def, ...props}) {
   const lane = useContext(laneContext)
   const isLast = !lane.next
   const [usage, setUsage] = useState(null)
+  const [showUsage, setShowUsage] = useState(false)
 
   useEffect(() => {
-    api.quantity_search({
-      'dft.quantities': [def.name],
-      size: 100, // make sure we get all codes
-      quantity: 'dft.code_name'
-    }).then(result => {
-      setUsage(result.quantity.values)
-    })
-  }, [api, def.name, setUsage])
+    if (showUsage) {
+      api.quantity_search({
+        'dft.quantities': [def.name],
+        size: 100, // make sure we get all codes
+        quantity: 'dft.code_name'
+      }).then(result => {
+        setUsage(result.quantity.values)
+      })
+    }
+  }, [api, def.name, showUsage, setUsage])
 
   return <React.Fragment>
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
@@ -435,7 +446,8 @@ function DefinitionDetails({def, ...props}) {
     }
     {isLast && def.m_def !== 'Category' && def.name !== 'EntryArchive' && !def.extends_base_section &&
       <Compartment title="usage">
-        {!usage && <Typography><i>loading ...</i></Typography>}
+        {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}
+        {showUsage && !usage && <Typography><i>loading ...</i></Typography>}
         {usage && Object.keys(usage).length > 0 && (
           <Histogram
             data={Object.keys(usage).map(key => ({

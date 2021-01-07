@@ -336,12 +336,14 @@ class Keycloak():
         from nomad import datamodel
 
         kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
+        oasis_admin = kwargs.pop('is_oasis_admin', None) is not None
         return datamodel.User(
             user_id=keycloak_user['id'],
             email=keycloak_user.get('email'),
             username=keycloak_user.get('username'),
             first_name=keycloak_user.get('firstName'),
             last_name=keycloak_user.get('lastName'),
+            is_oasis_admin=oasis_admin,
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
             **kwargs)
 
@@ -495,6 +497,7 @@ def send_mail(name: str, email: str, message: str, subject: str):
     msg = MIMEText(message)
     msg['Subject'] = subject
     msg['To'] = name
+    msg['From'] = config.mail.from_address
     to_addrs = [email]
 
     if config.mail.cc_address is not None:

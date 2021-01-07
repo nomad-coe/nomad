@@ -407,7 +407,17 @@ class _Datetime(DataType):
         except ValueError:
             pass
 
-        raise TypeError('Invalid date literal "{0}"'.format(datetime_str))
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
+        except ValueError:
+            pass
+
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            pass
+
+        raise TypeError('Invalid date literal %s' % datetime_str)
 
     def _convert(self, value):
         if value is None:
@@ -625,7 +635,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     .. automethod:: m_get_sub_sections
     .. automethod:: m_create
     .. automethod:: m_add_sub_section
-    .. automethod:: m_remove_subsection
+    .. automethod:: m_remove_sub_section
 
     There are some specific attributes for section instances that are sub-sections of
     another section. While sub-sections are directly accessible from the containing
@@ -905,6 +915,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise MetainfoError(
                     'The quantity %s has not a unit, but value %s has.' %
                     (quantity_def, value))
+
+            if type(value.magnitude) == np.ndarray and quantity_def.type != value.dtype:
+                value = value.astype(quantity_def.type)
+
             value = value.to(quantity_def.unit).magnitude
 
         if type(value) != np.ndarray:
@@ -931,6 +945,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         if quantity_def.derived is not None:
             raise MetainfoError('The quantity %s is derived and cannot be set.' % quantity_def)
+
+        if value is None:
+            # This implements the implicit "unset" semantics of assigned None as a
+            # value
+            self.__dict__.pop(quantity_def.name, None)
+            return
 
         if type(quantity_def.type) == np.dtype:
             value = self.__to_np(quantity_def, value)
@@ -1732,11 +1752,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 search. See https://jmespath.org/ for complete description.
 
         .. code-block:: python
-        metainfo_section.m_xpath('code_name')
-        metainfo_section.m_xpath('systems[-1].system_type')
-        metainfo_section.m_xpath('sccs[0].system.atom_labels')
-        metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
-        metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
+
+            metainfo_section.m_xpath('code_name')
+            metainfo_section.m_xpath('systems[-1].system_type')
+            metainfo_section.m_xpath('sccs[0].system.atom_labels')
+            metainfo_section.m_xpath('systems[?system_type == `molecule`].atom_labels')
+            metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
+
         '''
         def to_dict(entries):
             if not isinstance(entries, list):
@@ -1946,7 +1968,7 @@ class Quantity(Property):
         unit:
             The physics unit for this quantity. It is optional.
 
-            Units are represented with the pint_ Python package. Pint defines units and
+            Units are represented with the Pint Python package. Pint defines units and
             their algebra. You can either use *pint* units directly, e.g. ``units.m / units.s``.
             The metainfo provides a preconfigured *pint* unit registry :py:data:`ureg`.
             You can also provide the unit as *pint* parsable string, e.g. ``'meter / seconds'`` or
@@ -2156,6 +2178,11 @@ class PrimitiveQuantity(Quantity):
 
     def __set__(self, obj, value):
         obj.m_mod_count += 1
+
+        if value is None:
+            obj.__dict__.pop(self.name, None)
+            return
+
         if self._list:
             if not isinstance(value, list):
                 if hasattr(value, 'tolist'):
@@ -2171,7 +2198,7 @@ class PrimitiveQuantity(Quantity):
                     'The value %s with type %s for quantity %s is not of type %s' %
                     (value, type(value), self, self.type))
 
-        elif value is not None and type(value) != self._type:
+        elif type(value) != self._type:
             raise TypeError(
                 'The value %s with type %s for quantity %s is not of type %s' %
                 (value, type(value), self, self.type))
@@ -2591,10 +2618,14 @@ class Category(Definition):
             definitions = set()
 
         for definition in self.definitions:
+            if isinstance(definition, MCategory):
+                definition = definition.m_def
+
+            if isinstance(definition, Category):
+                definition.get_all_definitions(definitions)
+
             if definition not in definitions:
                 definitions.add(definition)
-                if isinstance(definition, Category):
-                    definition.get_all_definitions(definitions)
 
         return definitions
 
@@ -2767,6 +2798,8 @@ def all_definitions(self):
     for sub_section_def in [Package.section_definitions, Package.category_definitions]:
         for definition in self.m_get_sub_sections(sub_section_def):
             all_definitions[definition.name] = definition
+            for alias in definition.aliases:
+                all_definitions[alias] = definition
     return all_definitions
 
 
@@ -2841,9 +2874,10 @@ class Environment(MSection):
         all_definitions_by_name: Dict[str, List[Definition]] = dict()
         for definition in self.m_all_contents():
             if isinstance(definition, Definition):
-                definitions = all_definitions_by_name.setdefault(definition.name, [])
-                assert definition not in definitions, '%s must be unique' % definitions
-                definitions.append(definition)
+                for name in [definition.name] + definition.aliases:
+                    definitions = all_definitions_by_name.setdefault(name, [])
+                    assert definition not in definitions, '%s must be unique' % definitions
+                    definitions.append(definition)
 
         return all_definitions_by_name
 

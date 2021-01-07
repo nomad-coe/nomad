@@ -156,10 +156,16 @@ services = NomadConfig(
     not_processed_value='not processed',
     unavailable_value='unavailable',
     https=False,
+    https_upload=False,
     upload_limit=10,
     force_raw_file_decoding=False,
     download_scan_size=500,
     download_scan_timeout=u'30m'
+)
+
+oasis = NomadConfig(
+    central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
+    central_nomad_deployment_id='nomad-lab.eu/prod/rae'
 )
 
 tests = NomadConfig(
@@ -204,7 +210,7 @@ def check_config():
             "--matches-only'."
         )
 
-    if not os.path.exists(normalize.springer_db_path):
+    if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):
         normalize.springer_db_path = None
 
 
@@ -275,7 +281,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.9.7',
+    version='0.9.8',
     commit=gitinfo.commit,
     release='devel',
     default_domain='dft',
@@ -284,11 +290,16 @@ meta = NomadConfig(
     description='A FAIR data sharing platform for materials science data',
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
-    maintainer_email='markus.scheidgen@physik.hu-berlin.de'
+    maintainer_email='markus.scheidgen@physik.hu-berlin.de',
+    deployment_id='nomad-lab.eu/prod/rae'
+)
+
+gitlab = NomadConfig(
+    private_token='not set'
 )
 
 auxfile_cutoff = 100
-parser_matching_size = 9128
+parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000

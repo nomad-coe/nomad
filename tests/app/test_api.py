@@ -43,6 +43,7 @@ from tests.test_files import example_file, example_file_mainfile, example_file_c
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
+from tests.processing.test_data import oasis_publishable_upload
 
 from tests.app.test_app import BlueprintClient
 
@@ -171,11 +172,12 @@ class TestAuth:
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert len(data['users'])
-        keys = data['users'][0].keys()
+        user = data['users'][0]
+        keys = user.keys()
         required_keys = ['name', 'email', 'user_id']
         assert all(key in keys for key in required_keys)
         for key in keys:
-            assert data['users'][0].get(key) is not None
+            assert user.get(key) is not None
 
     def test_invite(self, api, test_user_auth, no_warn):
         rv = api.put(
@@ -343,7 +345,7 @@ class TestUploads:
         url = '/uploads/?token=%s&local_path=%s&name=test_upload' % (
             generate_upload_token(test_user), non_empty_example_upload)
         rv = api.put(url)
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.data
         assert 'Thanks for uploading' in rv.data.decode('utf-8')
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
@@ -495,7 +497,7 @@ class TestUploads:
             data=json.dumps(dict(operation='re-process')),
             content_type='application/json')
 
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.data
         assert self.block_until_completed(api, upload_id, test_user_auth) is not None
 
     # TODO validate metadata (or all input models in API for that matter)
@@ -529,6 +531,86 @@ class TestUploads:
         assert rv.status_code == 200
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
+
+    def test_post_from_oasis_admin(self, api, non_empty_uploaded, other_test_user_auth, test_user, no_warn):
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=other_test_user_auth).status_code == 401
+
+    def test_post_from_oasis_duplicate(self, api, non_empty_uploaded, test_user, test_user_auth, no_warn):
+        Upload.create(upload_id='oasis_upload_id', user=test_user).save()
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+    def test_post_from_oasis_missing_parameters(self, api, non_empty_uploaded, test_user_auth, test_user, no_warn):
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_uploader_id=test_user.user_id))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',
+            oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+        url = '/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_uploaded[1],
+            oasis_uploader_id=test_user.user_id, oasis_deployment_id='an_id'))
+        assert api.put(url, headers=test_user_auth).status_code == 400
+
+    def test_post_from_oasis(self, api, test_user_auth, test_user, oasis_example_upload, proc_infra, no_warn):
+        rv = api.put('/uploads/?%s' % urlencode(dict(
+            local_path=oasis_example_upload,
+            oasis_upload_id='oasis_upload_id',
+            oasis_deployment_id='an_id',
+            oasis_uploader_id=test_user.user_id)), headers=test_user_auth)
+        assert rv.status_code == 200, rv.data
+        upload = self.assert_upload(rv.data)
+        upload_id = upload['upload_id']
+        assert upload_id == 'oasis_upload_id'
+
+        # poll until completed
+        upload = self.block_until_completed(api, upload_id, test_user_auth)
+
+        assert len(upload['tasks']) == 4
+        assert upload['tasks_status'] == SUCCESS
+        assert upload['current_task'] == 'cleanup'
+        assert not upload['process_running']
+
+        upload_proc = Upload.objects(upload_id=upload_id).first()
+        assert upload_proc.published
+        assert upload_proc.from_oasis
+
+        entries = get_upload_entries_metadata(upload)
+        assert_upload_files(upload_id, entries, files.PublicUploadFiles)
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+
+    def test_post_publish_from_oasis(
+            self, api, oasis_publishable_upload, other_test_user_auth, monkeypatch, no_warn):
+        monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+        cn_upload_id, upload = oasis_publishable_upload
+        upload_id = upload.upload_id
+
+        rv = api.post(
+            '/uploads/%s' % upload_id,
+            headers=other_test_user_auth,
+            data=json.dumps(dict(operation='publish-to-central-nomad')),
+            content_type='application/json')
+
+        assert rv.status_code == 200, rv.data
+        upload = self.assert_upload(rv.data)
+        assert upload['current_process'] == 'publish_from_oasis'
+        assert upload['process_running']
+
+        self.block_until_completed(api, upload_id, other_test_user_auth)
+
+        cn_upload = Upload.objects(upload_id=cn_upload_id).first()
+        cn_upload.block_until_complete()
+        assert len(cn_upload.errors) == 0
+        assert cn_upload.current_process == 'process_upload'
 
 
 today = datetime.datetime.utcnow().date()
@@ -1128,7 +1210,7 @@ class TestRepo():
             # assert len(data[group]['values']) == data['statistics']['total']['all'][group]
 
     @pytest.mark.parametrize('query, nbuckets', [
-        # (dict(interval='1M', metrics='dft.total_energies'), 1), TODO this fails all first 5 day in the month, because one of the example data is set 5 day before now
+        (dict(interval='1M', metrics='dft.total_energies'), 1),
         (dict(interval='1d', metrics='dft.quantities'), 6),
         (dict(interval='1y', from_time='2019-03-20T12:43:54.566414'), 1),
         (dict(until_time='2010-03-20T12:43:54.566414'), 0),
@@ -1139,7 +1221,7 @@ class TestRepo():
         assert rv.status_code == 200
         data = json.loads(rv.data)
         histogram = data.get('statistics').get('date_histogram')
-        assert len(histogram) == nbuckets
+        assert len(histogram) >= nbuckets
 
     def test_search_date_histogram_metrics(self, api, example_elastic_calcs, no_warn):
         rv = api.get('/repo/?date_histogram=true&metrics=unique_entries')
@@ -1810,6 +1892,22 @@ class TestRaw(UploadFilesBasedTests):
 
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
+
+    def test_raw_files_from_query_file_error(self, api, processeds, test_user_auth, monkeypatch):
+
+        def raw_file(self, *args, **kwargs):
+            raise Exception('test error')
+
+        monkeypatch.setattr('nomad.files.StagingUploadFiles.raw_file', raw_file)
+        url = '/raw/query?%s' % urlencode({'atoms': 'Si'})
+        rv = api.get(url, headers=test_user_auth)
+
+        assert rv.status_code == 200
+        with zipfile.ZipFile(io.BytesIO(rv.data)) as zip_file:
+            with zip_file.open('manifest.json', 'r') as f:
+                manifest = json.load(f)
+                assert 'errors' in manifest
+                assert len(manifest['errors']) > 0
 
     @pytest.mark.parametrize('files, pattern, strip', [
         (1, '*.json', False),

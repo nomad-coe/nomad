@@ -29,7 +29,7 @@ import re
 from nomad import utils, config, infrastructure
 from nomad.metainfo import Quantity, Reference, Definition, MSection, Section, SubSection
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.public import fast_access
+from nomad.datamodel.metainfo.common_dft import FastAccess
 
 '''
 The archive storage is made from two tiers. First the whole archive is stored in
@@ -681,7 +681,7 @@ def filter_archive(
 def create_partial_archive(archive: EntryArchive) -> Dict:
     '''
     Creates a partial archive JSON serializable dict that can be stored directly.
-    The given archive is filtered based on the metainfo category ``fast_access``.
+    The given archive is filtered based on the metainfo category ``FastAccess``.
     Selected sections and other data that they reference (recursively) comprise the
     resulting partial archive.
 
@@ -708,10 +708,10 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
         if section.m_def == EntryArchive.m_def:
             if definition.m_def == Quantity:
                 return True
-            return fast_access.m_def in definition.categories
+            return FastAccess.m_def in definition.categories
 
         if isinstance(definition, Quantity) and isinstance(definition.type, Reference) \
-                and fast_access.m_def in definition.categories:
+                and FastAccess.m_def in definition.categories:
             # Reference list in partial archives are not supported
             if definition.is_scalar:
                 referenced = getattr(section, definition.name)
@@ -719,7 +719,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
                     referenceds.append(referenced)
 
         if isinstance(definition, SubSection):
-            return fast_access.m_def in definition.categories
+            return FastAccess.m_def in definition.categories
 
         return True
 
@@ -897,13 +897,13 @@ def compute_required_with_referenced(required):
             prop = key.split('[')[0]
             prop_definition = parent.all_properties[prop]
             if isinstance(prop_definition, SubSection):
-                if fast_access.m_def not in prop_definition.categories:
+                if FastAccess.m_def not in prop_definition.categories:
                     raise _Incomplete()
 
                 traverse(value, prop_definition.sub_section)
             if isinstance(prop_definition, Quantity) and isinstance(prop_definition.type, Reference):
                 current[prop] = '*'
-                if fast_access.m_def not in prop_definition.categories:
+                if FastAccess.m_def not in prop_definition.categories:
                     continue
 
                 target_section_def = prop_definition.type.target_section_def.m_resolved()

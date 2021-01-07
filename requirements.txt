@@ -23,11 +23,12 @@ elasticsearch-dsl==6.4.0
 jmespath
 
 # [parsing]
+netCDF4==1.5.4
 pandas
 h5py
 hjson
 scipy
-scikit-learn==0.20.2
+scikit-learn
 matid==0.6.1
 python-magic
 panedr==0.2
@@ -39,7 +40,7 @@ nomad_dos_fingerprints
 
 # [infrastructure]
 optimade==0.8.1
-structlog
+structlog==20.1.0
 elasticsearch==6.4.0
 msgpack<0.6.0
 celery[redis]==4.4.7
@@ -60,7 +61,7 @@ zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
-pyjwt[crypto]
+pyjwt[crypto]==1.7.1
 jsonschema[format]
 runstats
 pyyaml
@@ -94,3 +95,5 @@ rope
 mongomock==3.17.0
 names
 essential_generators
+twine
+python-gitlab

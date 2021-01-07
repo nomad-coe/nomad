@@ -24,11 +24,11 @@ from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import section_system as System
 
-from tests.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_template_example  # pylint: disable=unused-import
-from tests.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.test_parsing import parse_file
-from tests.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
+from tests.parsing.test_parsing import parse_file
+from tests.parsing.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 
 
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:

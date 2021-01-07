@@ -45,8 +45,9 @@ class ElementRatio(InnerDoc):
 
 
 class Optimade(DefinitionAnnotation):
-    def __init__(self, query: bool = False, entry: bool = False):
-        pass
+    def __init__(self, query: bool = False, entry: bool = False, sortable: bool = False, type: str = None):
+        self.sortable = sortable
+        self.type = type
 
 
 class Species(MSection):
@@ -59,13 +60,13 @@ class Species(MSection):
     m_def = Section(links=optimade_links('h.6.2.13'))
 
     name = Quantity(
-        type=str, a_optimade=Optimade(entry=True), description='''
+        type=str, a_optimade=Optimade(entry=True, sortable=False, type='string'), description='''
             The name of the species; the name value MUST be unique in the species list.
         ''')
 
     chemical_symbols = Quantity(
         type=MEnum(chemical_symbols + ['x', 'vacancy']), shape=['1..*'],
-        a_optimade=Optimade(entry=True), description='''
+        a_optimade=Optimade(entry=True, sortable=False, type='list'), description='''
             A list of strings of all chemical elements composing this species.
 
             It MUST be one of the following:
@@ -73,6 +74,7 @@ class Species(MSection):
             - a valid chemical-element name, or
             - the special value "X" to represent a non-chemical element, or
             - the special value "vacancy" to represent that this site has a non-zero probability
+
             of having a vacancy (the respective probability is indicated in the concentration
             list, see below).
 
@@ -83,7 +85,7 @@ class Species(MSection):
 
     concentration = Quantity(
         type=float, shape=['1..*'],
-        a_optimade=Optimade(entry=True), description='''
+        a_optimade=Optimade(entry=True, sortable=False, type='list'), description='''
             A list of floats, with same length as chemical_symbols. The numbers represent the
             relative concentration of the corresponding chemical symbol in this species. The
             numbers SHOULD sum to one. Cases in which the numbers do not sum to one typically fall
@@ -101,9 +103,9 @@ class Species(MSection):
             species).
         ''')
 
-    mass = Quantity(type=float, unit=ureg.amu, a_optimade=dict(entry='optional'))
+    mass = Quantity(type=float, unit=ureg.amu, a_optimade=dict(entry='optional', sortable=False, type='float'))
 
-    original_name = Quantity(type=str, a_optimade=dict(entry='optional'), description='''
+    original_name = Quantity(type=str, a_optimade=dict(entry='optional', sortable=False, type='string'), description='''
         Can be any valid Unicode string, and SHOULD contain (if specified) the name of the
         species that is used internally in the source database.
 
@@ -123,7 +125,7 @@ class OptimadeEntry(MSection):
         type=MEnum(chemical_symbols), shape=['1..*'],
         links=optimade_links('h.6.2.1'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=False, type='list'),
         description='''
             Names of the different elements present in the structure.
         ''')
@@ -132,7 +134,7 @@ class OptimadeEntry(MSection):
         type=int, default=0,
         links=optimade_links('h.6.2.2'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='integer'),
         description='''
             Number of different elements in the structure as an integer.
         ''')
@@ -141,7 +143,7 @@ class OptimadeEntry(MSection):
         type=float, shape=['nelements'],
         links=optimade_links('h.6.2.3'),
         a_search=Search(mapping=Nested(ElementRatio), value=ElementRatio.from_structure_entry),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=False, type='list'),
         description='''
             Relative proportions of different elements in the structure.
         ''')
@@ -150,7 +152,7 @@ class OptimadeEntry(MSection):
         type=str,
         links=optimade_links('h.6.2.4'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='string'),
         description='''
             The chemical formula for a structure as a string in a form chosen by the API
             implementation.
@@ -160,7 +162,7 @@ class OptimadeEntry(MSection):
         type=str,
         links=optimade_links('h.6.2.5'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='string'),
         description='''
             The reduced chemical formula for a structure as a string with element symbols and
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
@@ -170,7 +172,7 @@ class OptimadeEntry(MSection):
         type=str,
         links=optimade_links('h.6.2.6'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=False),
+        a_optimade=Optimade(query=True, entry=False, sortable=True, type='string'),
         description='''
             The chemical formula for a structure in Hill form with element symbols followed by
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
@@ -180,7 +182,7 @@ class OptimadeEntry(MSection):
         type=str,
         links=optimade_links('h.6.2.7'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='string'),
         description='''
             The anonymous formula is the chemical_formula_reduced, but where the elements are
             instead first ordered by their chemical proportion number, and then, in order left to
@@ -191,8 +193,7 @@ class OptimadeEntry(MSection):
     dimension_types = Quantity(
         type=int, shape=[3], default=[0, 0, 0],
         links=optimade_links('h.6.2.8'),
-        a_search=Search(value=lambda a: sum(a.dimension_types), mapping=Integer()),
-        a_optimade=Optimade(query=True, entry=True),
+        a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'),
         description='''
             List of three integers. For each of the three directions indicated by the three lattice
             vectors (see property lattice_vectors). This list indicates if the direction is
@@ -201,10 +202,20 @@ class OptimadeEntry(MSection):
             the Cartesian x, y, z directions.
         ''')
 
+    nperiodic_dimensions = Quantity(
+        type=int, derived=lambda a: sum(a.dimension_types),
+        links=optimade_links('h.6.2.8'),
+        a_search=Search(mapping=Integer()),
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='integer'),
+        description='''
+            An integer specifying the number of periodic dimensions in the structure, equivalent
+            to the number of non-zero entries in dimension_types.
+        ''')
+
     lattice_vectors = Quantity(
         type=np.dtype('f8'), shape=[3, 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.9'),
-        a_optimade=Optimade(query=False, entry=True),
+        a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'),
         description='''
             The three lattice vectors in Cartesian coordinates, in ångström (Å).
         ''')
@@ -212,7 +223,7 @@ class OptimadeEntry(MSection):
     cartesian_site_positions = Quantity(
         type=np.dtype('f8'), shape=['nsites', 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.10'),
-        a_optimade=Optimade(query=False, entry=True), description='''
+        a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'), description='''
             Cartesian positions of each site. A site is an atom, a site potentially occupied by
             an atom, or a placeholder for a virtual mixture of atoms (e.g., in a virtual crystal
             approximation).
@@ -222,14 +233,14 @@ class OptimadeEntry(MSection):
         type=int, default=0,
         links=optimade_links('h.6.2.11'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True), description='''
+        a_optimade=Optimade(query=True, entry=True, sortable=True, type='integer'), description='''
             An integer specifying the length of the cartesian_site_positions property.
         ''')
 
     species_at_sites = Quantity(
         type=str, shape=['nsites'],
         links=optimade_links('h.6.2.12'),
-        a_optimade=Optimade(query=False, entry=True), description='''
+        a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'), description='''
             Name of the species at each site (where values for sites are specified with the same
             order of the cartesian_site_positions property). The properties of the species are
             found in the species property.
@@ -238,10 +249,10 @@ class OptimadeEntry(MSection):
     # TODO assemblies
 
     structure_features = Quantity(
-        type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'],
+        type=MEnum(['disorder', 'unknown_positions', 'assemblies']), shape=['1..*'], default=[],
         links=optimade_links('h.6.2.15'),
         a_search=Search(),
-        a_optimade=Optimade(query=True, entry=True), description='''
+        a_optimade=Optimade(query=True, entry=True, sortable=False, type='list'), description='''
             A list of strings that flag which special features are used by the structure.
 
             - disorder: This flag MUST be present if any one entry in the species list has a
@@ -249,6 +260,7 @@ class OptimadeEntry(MSection):
             - unknown_positions: This flag MUST be present if at least one component of the
             cartesian_site_positions list of lists has value null.
             - assemblies: This flag MUST be present if the assemblies list is present.
+
         ''')
 
     species = SubSection(sub_section=Species.m_def, repeats=True)

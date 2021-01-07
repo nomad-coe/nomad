@@ -1,7 +1,7 @@
 .. _metainfo-label:
 
-NOMAD Metainfo
-==============
+Data schema (Metainfo)
+======================
 
 Introduction
 ------------
@@ -66,6 +66,7 @@ Python modules:
 
     from nomad.datamodel.metainfo.public import section_run
     my_run = section_run()
+
 
 Many more examples about how to read the NOMAD Metainfo programmatically can be found
 `here <https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/master/examples/access_metainfo.py>`_.

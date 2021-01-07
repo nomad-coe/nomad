@@ -29,7 +29,7 @@ calculations, and files
 '''
 
 from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
-from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField
+from mongoengine import StringField, DateTimeField, DictField, BooleanField, IntField, ListField
 import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -40,8 +40,9 @@ import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
 import json
-from cachetools import cached, LRUCache
-from cachetools.keys import hashkey
+from functools import lru_cache
+import urllib.parse
+import requests
 
 from nomad import utils, config, infrastructure, search, datamodel
 from nomad.files import (
@@ -50,7 +51,7 @@ from nomad.files import (
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
-from nomad.datamodel import EntryArchive, EditableUserMetadata
+from nomad.datamodel import EntryArchive, EditableUserMetadata, OasisMetadata
 from nomad.archive import query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
@@ -61,26 +62,8 @@ section_workflow = datamodel.EntryArchive.section_workflow.name
 
 _editable_metadata = {
     quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
-
-
-@cached(cache=LRUCache(maxsize=100), key=lambda path, *args, **kwargs: hashkey(path))
-def metadata_file_cached(path, logger):
-    for ext in config.metadata_file_extensions:
-        full_path = '%s.%s' % (path, ext)
-        if os.path.isfile(full_path):
-            try:
-                with open(full_path) as f:
-                    if full_path.endswith('.json'):
-                        return json.load(f)
-                    elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
-                        return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
-                    else:
-                        return {}
-            except Exception as e:
-                logger.warn('could not parse nomad.yaml/json', path=path, exc_info=e)
-                # ignore the file contents if the file is not parsable
-                pass
-    return {}
+_oasis_metadata = {
+    quantity.name: quantity for quantity in OasisMetadata.m_def.definitions}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -103,6 +86,11 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
+
+
+def _normalize_oasis_upload_metadata(upload_id, metadata):
+    # This is overwritten by the tests to do necessary id manipulations
+    return upload_id, metadata
 
 
 class Calc(Proc):
@@ -131,6 +119,7 @@ class Calc(Proc):
     metadata = DictField()
 
     meta: Any = {
+        'strict': False,
         'indexes': [
             'upload_id',
             'parser',
@@ -557,27 +546,51 @@ class Calc(Proc):
         metadata_dir = os.path.dirname(self.mainfile_file.os_path)
 
         metadata = {}
-        metadata_path = None
-        while metadata_dir:
-            metadata_part = metadata_file_cached(
-                os.path.join(metadata_dir, metadata_file), logger)
+        while True:
+            # top-level nomad file can also contain an entries dict with entry
+            # metadata per mainfile as key
+            if metadata_dir == self.upload_files.os_path:
+                entries = metadata_part.get('entries', {})
+                metadata_part = entries.get(self.mainfile, {})
+                for key, val in metadata_part.items():
+                    metadata.setdefault(key, val)
 
+            # consider the nomad file of the current directory
+            metadata_part = self.upload.metadata_file_cached(
+                os.path.join(metadata_dir, metadata_file))
             for key, val in metadata_part.items():
+                if key in ['entries', 'oasis_datasets']:
+                    continue
                 metadata.setdefault(key, val)
 
-            metadata_dir = os.path.dirname(metadata_dir)
-            if metadata_path is not None:
+            if metadata_dir == self.upload_files.os_path:
                 break
 
-        if len(metadata_dir) > 0:
+            metadata_dir = os.path.dirname(metadata_dir)
+
+        if len(metadata) > 0:
             logger.info('Apply user metadata from nomad.yaml/json file')
 
         for key, val in metadata.items():
-            definition = _editable_metadata.get(key, None)
-            if not definition:
-                logger.warn('Cannot set metadata %s' % key)
+            if key == 'entries':
                 continue
-            self._entry_metadata.m_set(definition, val)
+
+            definition = _editable_metadata.get(key, None)
+            if definition is None and self.upload.from_oasis:
+                definition = _oasis_metadata.get(key, None)
+
+            if definition is None:
+                logger.warn('Users cannot set metadata', quantity=key)
+                continue
+
+            try:
+                self._entry_metadata.m_set(definition, val)
+                if definition == datamodel.EntryMetadata.calc_id:
+                    self.calc_id = val
+            except Exception as e:
+                logger.error(
+                    'Could not apply user metadata from nomad.yaml/json file',
+                    quantitiy=definition.name, exc_info=e)
 
     @task
     def archiving(self):
@@ -655,16 +668,23 @@ class Upload(Proc):
     and processing state.
 
     Attributes:
-        name: optional user provided upload name
-        upload_path: the path were the uploaded files was stored
-        temporary: True if the uploaded file should be removed after extraction
-        upload_id: the upload id generated by the database
-        upload_time: the timestamp when the system realized the upload
-        user_id: the id of the user that created this upload
-        published: Boolean that indicates the publish status
-        publish_time: Date when the upload was initially published
-        last_update: Date of the last publishing/re-processing
-        joined: Boolean indicates if the running processing has joined (:func:`check_join`)
+        name: Optional user provided upload name.
+        upload_path: The fs path were the uploaded files was stored during upload.
+        temporary: True if the uploaded file should be removed after extraction.
+
+        upload_id: The upload id generated by the database or the uploaded NOMAD deployment.
+        upload_time: Datetime of the original upload independent of the NOMAD deployment
+            it was first uploaded to.
+        user_id: The id of the user that created this upload.
+        published: Boolean that indicates that the upload is published on this NOMAD deployment.
+        publish_time: Datetime when the upload was initially published on this NOMAD deployment.
+        last_update: Datetime of the last modifying process run (publish, re-processing, upload).
+
+        from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
+        oasis_id: The deployment id of the NOMAD that uploaded the upload.
+        published_to: A list of deployment ids where this upload has been successfully uploaded to.
+
+        joined: Boolean indicates if the running processing has joined (:func:`check_join`).
     '''
     id_field = 'upload_id'
 
@@ -680,9 +700,14 @@ class Upload(Proc):
     publish_time = DateTimeField()
     last_update = DateTimeField()
 
+    from_oasis = BooleanField(default=False)
+    oasis_deployment_id = StringField(default=None)
+    published_to = ListField(StringField())
+
     joined = BooleanField(default=False)
 
     meta: Any = {
+        'strict': False,
         'indexes': [
             'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
         ]
@@ -691,6 +716,25 @@ class Upload(Proc):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._upload_files: ArchiveBasedStagingUploadFiles = None
+
+    @lru_cache()
+    def metadata_file_cached(self, path):
+        for ext in config.metadata_file_extensions:
+            full_path = '%s.%s' % (path, ext)
+            if os.path.isfile(full_path):
+                try:
+                    with open(full_path) as f:
+                        if full_path.endswith('.json'):
+                            return json.load(f)
+                        elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
+                            return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                        else:
+                            return {}
+                except Exception as e:
+                    self.get_logger().warn('could not parse nomad.yaml/json', path=path, exc_info=e)
+                    # ignore the file contents if the file is not parsable
+                    pass
+        return {}
 
     @property
     def metadata(self) -> dict:
@@ -853,6 +897,88 @@ class Upload(Proc):
                     self.save()
 
     @process
+    def publish_from_oasis(self):
+        '''
+        Uploads the already published upload to a different NOMAD deployment. This allows
+        to push uploads from an OASIS to the central NOMAD.
+        '''
+        assert self.published, \
+            'Only published uploads can be published to the central NOMAD.'
+        assert config.oasis.central_nomad_deployment_id not in self.published_to, \
+            'Upload is already published to the central NOMAD.'
+
+        from nomad.cli.client.client import _create_client as create_client
+        central_nomad_client = create_client(
+            user=config.keycloak.username,
+            password=config.keycloak.password,
+            api_base_url=config.oasis.central_nomad_api_url,
+            use_token=False)
+
+        # compile oasis metadata for the upload
+        upload_metadata = dict(upload_time=str(self.upload_time))
+        upload_metadata_entries = {}
+        upload_metadata_datasets = {}
+        for calc in self.calcs:
+            entry_metadata = dict(**{
+                key: str(value) if isinstance(value, datetime) else value
+                for key, value in calc.metadata.items()
+                if key in _editable_metadata or key in _oasis_metadata})
+            entry_metadata['calc_id'] = calc.calc_id
+            if entry_metadata.get('with_embargo'):
+                continue
+            upload_metadata_entries[calc.mainfile] = entry_metadata
+            if 'datasets' in entry_metadata:
+                for dataset_id in entry_metadata['datasets']:
+                    if dataset_id in upload_metadata_datasets:
+                        continue
+
+                    dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id)
+                    upload_metadata_datasets[dataset_id] = dataset.m_to_dict()
+
+        upload_metadata['entries'] = upload_metadata_entries
+        upload_metadata['oasis_datasets'] = {
+            dataset['name']: dataset for dataset in upload_metadata_datasets.values()}
+        oasis_upload_id, upload_metadata = _normalize_oasis_upload_metadata(
+            self.upload_id, upload_metadata)
+
+        self.last_status_message = 'Compiled metadata to upload to the central NOMAD.'
+        self.save()
+
+        assert len(upload_metadata_entries) > 0, \
+            'Only uploads with public contents can be published to the central NOMAD.'
+
+        # add oasis metadata to the upload
+        public_upload_files = cast(PublicUploadFiles, self.upload_files)
+        public_upload_files.add_metadata_file(upload_metadata)
+        file_to_upload = public_upload_files.public_raw_data_file
+
+        self.last_status_message = 'Prepared the upload for uploading to central NOMAD.'
+        self.save()
+
+        # upload to central NOMAD
+        oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
+        upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
+        upload_parameters = dict(
+            oasis_upload_id=oasis_upload_id,
+            oasis_uploader_id=self.user_id,
+            oasis_deployment_id=config.meta.deployment_id)
+        upload_url = '%s/uploads/?%s' % (
+            config.oasis.central_nomad_api_url,
+            urllib.parse.urlencode(upload_parameters))
+
+        with open(file_to_upload, 'rb') as f:
+            response = requests.put(upload_url, headers=upload_headers, data=f)
+
+        if response.status_code != 200:
+            self.get_logger().error(
+                'Could not upload to central NOMAD', status_code=response.status_code)
+            self.last_status_message = 'Could not upload to central NOMAD.'
+            return
+
+        self.published_to.append(config.oasis.central_nomad_deployment_id)
+        self.last_status_message = 'Successfully uploaded to central NOMAD.'
+
+    @process
     def re_process_upload(self):
         '''
         A *process* that performs the re-processing of a earlier processed
@@ -942,6 +1068,39 @@ class Upload(Proc):
     def process_upload(self):
         ''' A *process* that performs the initial upload processing. '''
         self.extracting()
+
+        if self.from_oasis:
+            # we might need to add datasets from the oasis before processing and
+            # adding the entries
+            oasis_metadata_file = os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name + '.json')
+            with open(oasis_metadata_file, 'rt') as f:
+                oasis_metadata = json.load(f)
+            oasis_datasets = oasis_metadata.get('oasis_datasets', {})
+            metadata_was_changed = False
+            for oasis_dataset in oasis_datasets.values():
+                try:
+                    existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
+                        user_id=self.user_id, name=oasis_dataset['name'])
+                except KeyError:
+                    datamodel.Dataset(**oasis_dataset).a_mongo.save()
+                else:
+                    oasis_dataset_id = oasis_dataset['dataset_id']
+                    if existing_dataset.dataset_id != oasis_dataset_id:
+                        # A dataset for the same user with the same name was created
+                        # in both deployments. We consider this to be the "same" dataset.
+                        # These datasets have different ids and we need to migrate the provided
+                        # dataset ids:
+                        for entry in oasis_metadata['entries'].values():
+                            entry_datasets = entry.get('datasets', [])
+                            for index, dataset_id in enumerate(entry_datasets):
+                                if dataset_id == oasis_dataset_id:
+                                    entry_datasets[index] = existing_dataset.dataset_id
+                                    metadata_was_changed = True
+
+            if metadata_was_changed:
+                with open(oasis_metadata_file, 'wt') as f:
+                    json.dump(oasis_metadata, f)
+
         self.parse_all()
 
     @task
@@ -1060,12 +1219,26 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
 
+        oasis_metadata = {}
+        if self.from_oasis:
+            oasis_metadata = self.metadata_file_cached(
+                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name)).get('entries', {})
+
         with utils.timer(
                 logger, 'upload extracted', step='matching',
                 upload_size=self.upload_files.size):
             for filename, parser in self.match_mainfiles():
+                oasis_entry_metadata = oasis_metadata.get(filename)
+                if oasis_entry_metadata is not None:
+                    calc_id = oasis_entry_metadata.get('calc_id')
+                    if calc_id is None:
+                        logger.warn('Oasis entry without id', mainfile=filename)
+                        calc_id = self.upload_files.calc_id(filename)
+                else:
+                    calc_id = self.upload_files.calc_id(filename)
+
                 calc = Calc.create(
-                    calc_id=self.upload_files.calc_id(filename),
+                    calc_id=calc_id,
                     mainfile=filename, parser=parser.name,
                     worker_hostname=self.worker_hostname,
                     upload_id=self.upload_id)
@@ -1145,6 +1318,43 @@ class Upload(Proc):
             # don't fail or present this error to clients
             self.logger.error('could not send after processing email', exc_info=e)
 
+    def _cleanup_after_processing_oasis_upload(self):
+        '''
+        Moves the upload out of staging to the public area. It will
+        pack the staging upload files in to public upload files.
+        '''
+        assert self.processed_calcs > 0
+
+        logger = self.get_logger()
+        logger.info('started to publish oasis upload')
+
+        with utils.lnr(logger, 'publish failed'):
+            metadata = self.metadata_file_cached(
+                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+
+            with self.entries_metadata(self.metadata) as calcs:
+                with utils.timer(
+                        logger, 'staged upload files packed', step='pack',
+                        upload_size=self.upload_files.size):
+                    self.upload_files.pack(calcs)
+
+            with utils.timer(
+                    logger, 'staged upload deleted', step='delete staged',
+                    upload_size=self.upload_files.size):
+                self.upload_files.delete()
+
+            if metadata is not None:
+                self.upload_time = metadata.get('upload_time')
+
+            if self.upload_time is None:
+                self.upload_time = datetime.utcnow()
+                logger.warn('oasis upload without upload time')
+
+            self.publish_time = datetime.utcnow()
+            self.published = True
+            self.last_update = datetime.utcnow()
+            self.save()
+
     def _cleanup_after_re_processing(self):
         logger = self.get_logger()
         if self.published:
@@ -1179,7 +1389,10 @@ class Upload(Proc):
         if self.current_process == 're_process_upload':
             self._cleanup_after_re_processing()
         else:
-            self._cleanup_after_processing()
+            if self.from_oasis:
+                self._cleanup_after_processing_oasis_upload()
+            else:
+                self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         ''' Returns the upload calc with the given id or ``None``. '''

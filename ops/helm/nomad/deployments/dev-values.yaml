@@ -3,7 +3,7 @@ image:
 
 proxy:
   external:
-    host: "labdev-nomad.esc.rzg.mpg.de"
+    host: "nomad-lab.eu"
 
 ingress:
   enabled: true
@@ -28,6 +28,7 @@ dbname: nomad_dev_v0_8
 
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
   realmName: 'fairdi_nomad_prod'
   clientId: 'nomad_public'

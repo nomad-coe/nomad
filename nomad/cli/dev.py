@@ -34,6 +34,7 @@ def dev():
 def qa(skip_tests: bool, exitfirst: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     ret_code = 0
+
     if not skip_tests:
         click.echo('Run tests ...')
         ret_code += os.system('python -m pytest -sv%s tests' % ('x' if exitfirst else ''))
@@ -48,11 +49,17 @@ def qa(skip_tests: bool, exitfirst: bool):
 
 
 @dev.command(help='Runs tests and linting of the nomad gui source code. Useful before committing code.')
-def gui_qa():
-    click.echo('Run gui code linting ...')
+@click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
+def gui_qa(skip_tests: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../gui')))
     ret_code = 0
-    ret_code += os.system('yarn run eslint \'src/**/*.js\'')
+
+    if not skip_tests:
+        click.echo('Run gui testing ...')
+        ret_code += os.system('yarn run test')
+    click.echo('Run gui code linting ...')
+    ret_code += os.system('yarn run lint')
+
     sys.exit(ret_code)
 
 
@@ -73,6 +80,7 @@ def metainfo_undecorated():
     import nomad.datamodel.ems
     import nomad.datamodel.optimade
     import nomad.datamodel.encyclopedia
+    from nomad.parsing import LegacyParser
     nomad.metainfo.metainfo.m_package.__init_metainfo__()
     nomad.datamodel.datamodel.m_package.__init_metainfo__()
     nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
@@ -83,7 +91,8 @@ def metainfo_undecorated():
     # Ensure all parser metainfo is loaded
     from nomad.parsing.parsers import parsers
     for parser in parsers:
-        _ = parser.metainfo_env
+        if isinstance(parser, LegacyParser):
+            _ = parser.metainfo_env
 
     export = Environment()
     for package in Package.registry.values():
@@ -119,57 +128,6 @@ def search_quantities():
         for search_quantity in search.search_quantities.values()
     }
     print(json.dumps(export, indent=2))
-
-
-@dev.command(help='Generates source-code for the new metainfo from .json files of the old.')
-@click.argument('path', nargs=-1)
-def legacy_metainfo(path):
-    from nomad.metainfo.legacy import convert, generate_metainfo_code
-
-    if len(path) == 0:
-        path = [
-            'abinit.nomadmetainfo.json',
-            'aptfim.nomadmetainfo.json',
-            'atk.nomadmetainfo.json',
-            'band.nomadmetainfo.json',
-            'bigdft.nomadmetainfo.json',
-            'castep.nomadmetainfo.json',
-            'cp2k.nomadmetainfo.json',
-            'cpmd.nomadmetainfo.json',
-            'crystal.nomadmetainfo.json',
-            'dl_poly.nomadmetainfo.json',
-            'dmol3.nomadmetainfo.json',
-            'eels.nomadmetainfo.json',
-            'elastic.nomadmetainfo.json',
-            'elk.nomadmetainfo.json',
-            'exciting.nomadmetainfo.json',
-            'fhi_aims.nomadmetainfo.json',
-            'fleur.nomadmetainfo.json',
-            'gamess.nomadmetainfo.json',
-            'gaussian.nomadmetainfo.json',
-            'gpaw.nomadmetainfo.json',
-            'gulp.nomadmetainfo.json',
-            'lib_atoms.nomadmetainfo.json',
-            'molcas.nomadmetainfo.json',
-            'mpes.nomadmetainfo.json',
-            'nwchem.nomadmetainfo.json',
-            'octopus.nomadmetainfo.json',
-            'onetep.nomadmetainfo.json',
-            'orca.nomadmetainfo.json',
-            'phonopy.nomadmetainfo.json',
-            'photoemission.nomadmetainfo.json',
-            'qbox.nomadmetainfo.json',
-            'quantum_espresso.nomadmetainfo.json',
-            'siesta.nomadmetainfo.json',
-            'turbomole.nomadmetainfo.json',
-            'vasp.nomadmetainfo.json',
-            'wien2k.nomadmetainfo.json',
-            'dft.nomadmetainfo.json',
-            'ems.nomadmetainfo.json']
-
-    for element in path:
-        env = convert(element)
-        generate_metainfo_code(env)
 
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
