@@ -87,12 +87,15 @@ class LogstashHandler(logstash.TCPLogstashHandler):
 
     legacy_logger = None
 
+    def __init__(self):
+        super().__init__(
+            config.logstash.host,
+            config.logstash.tcp_port, version=1)
+
     def filter(self, record):
-        print('*** ', record)
-        if record.name in ['uvicorn.access', 'gunicorn.access']:
-            record_string = record.args.get('r', '')
-            if 'alive' in record_string or 'gui/index.html' in record_string:
-                print('--- A')
+        if record.name == 'uvicorn.access':
+            http_access_path = record.args[2]
+            if 'alive' in http_access_path or 'gui/index.html' in http_access_path:
                 return False
 
         if super().filter(record):
@@ -101,11 +104,9 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                 is_structlog = record.msg.startswith('{') and record.msg.endswith('}')
 
             if is_structlog:
-                print('+++ ')
                 return True
             else:
                 if LogstashHandler.legacy_logger is None:
-                    print('+++ ')
                     return True
                 else:
                     LogstashHandler.legacy_logger.log(
@@ -113,25 +114,9 @@ class LogstashHandler(logstash.TCPLogstashHandler):
                         exc_info=record.exc_info, stack_info=record.stack_info,
                         legacy_logger=record.name)
 
-                    print('--- B')
                     return False
 
-        print('--- C')
         return False
-
-
-_gunicorn_pattern_parts = [
-    r'(?P<host>\S+)',  # host %h
-    r'\S+',  # indent %l (unused)
-    r'(?P<user>\S+)',  # user %u
-    r'\[(?P<time>.+)\]',  # time %t
-    r'"(?P<request>.+)"',  # request "%r"
-    r'(?P<status>[0-9]+)',  # status %>s
-    r'(?P<size>\S+)',  # size %b (careful, can be '-')
-    r'"(?P<referer>.*)"',  # referer "%{Referer}i"
-    r'"(?P<agent>.*)"',  # user agent "%{User-agent}i"
-]
-_gunicorn_pattern = re.compile(r'\s+'.join(_gunicorn_pattern_parts) + r'\s*\Z')
 
 
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
@@ -176,29 +161,29 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         else:
             message.update(structlog)
 
-        # Handle gunicorn access events
-        if record.name == 'gunicorn.access':
-            gunicorn_message = structlog['event']
-            gunicorn_record = _gunicorn_pattern.match(gunicorn_message).groupdict()
-
-            if gunicorn_record['user'] == '-':
-                gunicorn_record['user'] = None
-
-            gunicorn_record['status'] = int(gunicorn_record['status'])
-
-            if gunicorn_record['size'] == '-':
-                gunicorn_record['size'] = 0
-            else:
-                gunicorn_record['size'] = int(gunicorn_record['size'])
-
-            if gunicorn_record['referer'] == '-':
-                gunicorn_record['referer'] = None
-
-            message.update({'gunicorn.%s' % key: value for key, value in gunicorn_record.items()})
-            message['event'] = gunicorn_record['request']
-
-        # Add extra fields
-        message.update(self.get_extra_fields(record))
+        # Handle uvicorn access events
+        if record.name == 'uvicorn.access':
+            status_code = getattr(record, 'status_code', None)
+            if status_code is not None:
+                message['uvicorn.status_code'] = status_code
+            scope = getattr(record, 'scope', None)
+            if scope is not None:
+                message['uvicorn.method'] = scope['method']
+                message['uvicorn.path'] = scope['path']
+                message['uvicorn.query_string'] = scope['query_string'].decode()
+                message['uvicorn.headers'] = {
+                    key.decode(): value.decode() for key, value in scope['headers']}
+            args = getattr(record, 'args', None)
+            if args is not None and len(args) == 5:
+                _, method, path_w_query, _, status_code = args
+                path, query_string = path_w_query.split('?', 1)
+                message['uvicorn.method'] = method
+                message['uvicorn.path'] = path
+                message['uvicorn.query_string'] = query_string
+                message['uvicorn.status_code'] = status_code
+        else:
+            # Add extra fields
+            message.update(self.get_extra_fields(record))
 
         # If exception, add debug info
         if record.exc_info:
@@ -210,10 +195,6 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 class ConsoleFormatter(LogstashFormatter):
 
     short_format = False
-
-    # def __init__(self, message_type='Logstash', tags=None, fqdn=False, **kwargs):
-    #     if isinstance(self, LogstashFormatter):
-    #         super().__init__(message_type=message_type, tags=tags, fqdn=fqdn)
 
     @classmethod
     def serialize(cls, message_dict):
@@ -252,9 +233,7 @@ def add_logstash_handler(logger):
         if isinstance(handler, LogstashHandler)), None)
 
     if logstash_handler is None:
-        logstash_handler = LogstashHandler(
-            config.logstash.host,
-            config.logstash.tcp_port, version=1)
+        logstash_handler = LogstashHandler()
         logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.meta.release])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
@@ -324,6 +303,5 @@ if config.logstash.enabled:
 # configure log levels
 for logger in [
         'elasticsearch',
-        # 'celery.app.trace', 'celery.worker.strategy',
         'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
     logging.getLogger(logger).setLevel(logging.WARNING)
