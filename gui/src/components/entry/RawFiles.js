@@ -25,7 +25,7 @@ import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
 import ViewIcon from '@material-ui/icons/Search'
 import InfiniteScroll from 'react-infinite-scroller'
-import { ScrollContext } from '../App'
+import { ScrollContext } from '../nav/Navigation'
 
 class RawFiles extends React.Component {
   static propTypes = {
@@ -304,7 +304,7 @@ class RawFiles extends React.Component {
                   loadMore={this.handleLoadMore.bind(this)}
                   hasMore={fileContents.hasMore}
                   useWindow={false}
-                  getScrollParent={() => scroll.scrollParentRef}
+                  getScrollParent={() => scroll.scrollParentRef.current}
                 >
                   <pre style={{margin: 0}}>
                     {`${fileContents.contents}`}

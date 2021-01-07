@@ -21,6 +21,13 @@ import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/
 import ErrorIcon from '@material-ui/icons/Error'
 import CloseIcon from '@material-ui/icons/Close'
 
+export class VersionMismatch extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'VersionMismatch'
+  }
+}
+
 export const errorContext = React.createContext({
   errors: [],
   raiseError: () => { throw Error('Error context used incorrectly.') }

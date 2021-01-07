@@ -109,6 +109,7 @@ export const MenuBarItem = React.forwardRef(({name, label, tooltip, route, href,
   }
 
   const item = <MuiMenuItem
+    data-testid={name}
     ref={ref}
     dense
     classes={{root: selected ? classes.selected : undefined}}
@@ -185,6 +186,7 @@ export function MenuBarMenu({name, label, children}) {
       </Button>
     </ClickAwayListener>
     <MuiMenu
+      data-testid={name}
       PopoverClasses={{root: classes.menuPopover, paper: classes.menuPaper}}
       elevation={1}
       anchorEl={anchorEl}
