@@ -119,6 +119,7 @@ class Calc(Proc):
     metadata = DictField()
 
     meta: Any = {
+        'strict': False,
         'indexes': [
             'upload_id',
             'parser',
@@ -706,6 +707,7 @@ class Upload(Proc):
     joined = BooleanField(default=False)
 
     meta: Any = {
+        'strict': False,
         'indexes': [
             'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
         ]
