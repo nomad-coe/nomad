@@ -192,44 +192,6 @@ def lift_embargo(dry, parallel):
         __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
 
 
-@admin.command(help='(Re-)index all calcs.')
-@click.option('--threads', type=int, default=1, help='Number of threads to use.')
-@click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
-def index(threads, dry):
-    infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-
-    all_calcs = proc.Calc.objects().count()
-    print('indexing %d ...' % all_calcs)
-
-    def elastic_updates():
-        with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
-            for calc in proc.Calc.objects():
-                eta.add()
-                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
-                entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
-                entry['_op_type'] = 'index'
-                yield entry
-
-    if dry:
-        for _ in elastic_updates():
-            pass
-    else:
-        if threads > 1:
-            print('  use %d threads' % threads)
-            for _ in elasticsearch.helpers.parallel_bulk(
-                    infrastructure.elastic_client, elastic_updates(), chunk_size=500,
-                    thread_count=threads):
-                pass
-        else:
-            elasticsearch.helpers.bulk(
-                infrastructure.elastic_client, elastic_updates())
-        search.refresh()
-
-    print('')
-    print('indexing completed')
-
-
 @admin.command()
 @click.option('--threads', type=int, default=1, help='Number of threads to use.')
 @click.option('--code', multiple=True, type=str, help='Index only calculcations of given codes.')

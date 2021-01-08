@@ -247,19 +247,32 @@ def reset(ctx, uploads, with_calcs):
 @uploads.command(help='(Re-)index all calcs of the given uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+@click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
 @click.pass_context
-def index(ctx, uploads, parallel):
+def index(ctx, uploads, parallel, transformer):
+    transformer_func = None
+    if transformer is not None:
+        import importlib
+        module_name, func_name = transformer.rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        transformer_func = getattr(module, func_name)
+
     _, uploads = query_uploads(ctx, uploads)
+
+    def transform(calcs):
+        for calc in calcs:
+            try:
+                calc = transformer_func(calc)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f'   ERROR failed to transform calc (stop transforming for upload): {str(e)}')
+                break
 
     def index_upload(upload, logger):
         with upload.entries_metadata() as calcs:
-            # This is just a temporary fix to update the group hash without re-processing
-            try:
-                for calc in calcs:
-                    if calc.dft is not None:
-                        calc.dft.update_group_hash()
-            except Exception:
-                pass
+            if transformer is not None:
+                transform(calcs)
             failed = search.index_all(calcs)
             if failed > 0:
                 print('    WARNING failed to index %d entries' % failed)

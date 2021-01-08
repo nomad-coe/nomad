@@ -33,6 +33,30 @@ from nomad.datamodel.metainfo.public import section_system
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
 
+def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
+    '''
+    Transformation function to use during re-indexing of entries with outdated optimade
+    format. Fixes formulas and periodic dimensions, removed entries with X in formula.
+    '''
+    optimade = entry.dft.optimade if entry.dft is not None else None
+    if optimade is None:
+        return entry
+
+    if 'X' in optimade.chemical_formula_reduced:
+        entry.dft.m_remove_sub_section(DFTMetadata.optimade, -1)
+        return entry
+
+    optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(optimade.chemical_formula_reduced)
+    optimade.chemical_formula_anonymous = optimade_chemical_formula_anonymous(optimade.chemical_formula_reduced)
+    optimade.chemical_formula_hill = optimade_chemical_formula_hill(optimade.chemical_formula_hill)
+    optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
+    dimension_types = optimade.dimension_types
+    if isinstance(dimension_types, int):
+        optimade.dimension_types = [1] * dimension_types + [0] * (3 - dimension_types)
+
+    return entry
+
+
 def optimade_chemical_formula_reduced(formula: str):
     if formula is None:
         return formula

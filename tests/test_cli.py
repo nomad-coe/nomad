@@ -117,21 +117,6 @@ class TestAdmin:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
                 assert calc.calc_id in archive
 
-    def test_index(self, published):
-        upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
-        calc.metadata['comment'] = 'specific'
-        calc.save()
-
-        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 0
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False)
-        assert result.exit_code == 0
-        assert 'index' in result.stdout
-
-        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 1
-
     def test_delete_entry(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -143,6 +128,11 @@ class TestAdmin:
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
         assert Calc.objects(calc_id=calc.calc_id).first() is None
+
+
+def transform_for_index_test(calc):
+    calc.comment = 'specific'
+    return calc
 
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
@@ -231,6 +221,21 @@ class TestAdminUploads:
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert 'index' in result.stdout
+
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+
+    def test_index_with_transform(self, published):
+        upload_id = published.upload_id
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+
+        result = click.testing.CliRunner().invoke(
+            cli, [
+                'admin', 'uploads', 'index',
+                '--transformer', 'tests.test_cli.transform_for_index_test',
+                upload_id],
+            catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
