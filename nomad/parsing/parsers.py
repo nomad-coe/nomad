@@ -35,6 +35,7 @@ from gromacsparser import GromacsParser
 from crystalparser import CrystalParser
 from fhiaimsparser import FHIAimsParser
 from excitingparser import ExcitingParser
+from abinitparser import AbinitParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -233,11 +234,7 @@ parsers = [
         #    r'(\d+)\s*\))?\s+starts[^\n]+'
         #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
     ),
-    LegacyParser(
-        name='parsers/abinit', code_name='ABINIT', code_homepage='https://www.abinit.org/',
-        parser_class_name='abinitparser.AbinitParser',
-        mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
-    ),
+    AbinitParser(),
     LegacyParser(
         name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
         parser_class_name='orcaparser.OrcaParser',

@@ -35,7 +35,7 @@ class ParsePattern:
                 token += r'Ee\+\d\.\-'
             if 'int' in value:
                 token += r'\d'
-            if 'string' in value:
+            if 'str' in value:
                 token += r'\w'
             if 'array' in value:
                 token += r' '
@@ -210,7 +210,10 @@ class Quantity:
                 val = _convert(val)
 
             if isinstance(val, np.ndarray) and self.shape:
-                val = np.reshape(val, self.shape)
+                try:
+                    val = np.reshape(val, self.shape)
+                except Exception:
+                    pass
 
             return val
 
