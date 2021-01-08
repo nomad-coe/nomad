@@ -296,7 +296,7 @@ parsers = [
         mainfile_mime_re=r'application/(x-tar|octet-stream)'
     ),
     LegacyParser(
-        name='parsers/atk', code_name='ATK', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
+        name='parsers/atk', code_name='AtomistixToolKit', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
         parser_class_name='atkparser.ATKParserWrapper',
         # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
         mainfile_name_re=r'^.*\.nc',

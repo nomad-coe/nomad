@@ -194,15 +194,13 @@ def toolkit_metadata():
 @dev.command(help=(
     'Updates parser`s README files by combining a general template with  '
     'a parser`s metadata YAML file.'))
-def update_parsers_readmes():
+@click.option('--parser', help='Only updated the README of the given parsers subdirctory.')
+def update_parser_readmes(parser):
     from glob import glob
     import re
     import yaml
-    print('\nPWD: ', os.getcwd())
-    print('WARNING: to be run from project`s root dir\n')
 
-    # based on
-    # https://www.kite.com/python/answers/how-to-update-and-replace-text-in-a-file-in-python
+    os.chdir(os.path.join(os.path.dirname(__file__), '../..'))
 
     # filenames
     local_fn = 'README.md'
@@ -210,7 +208,11 @@ def update_parsers_readmes():
     parser_path = './dependencies/parsers/'
 
     for num, ddir in enumerate(sorted(glob(parser_path + '*/')), start=1):
-        parser_dirname = ddir.split('/')[-2]
+        if parser is not None and parser != ddir.split(os.sep)[-2]:
+            print(f'Skip {ddir}')
+            continue
+
+        _, parser_dirname = os.path.split(ddir)
         print('{} Working on {}' .format(num, parser_dirname))
 
         # Open general template
