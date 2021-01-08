@@ -16,6 +16,6 @@ window.nomadEnv = {
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
   'encyclopediaEnabled': true,
-  'aitoolkitEnabled': true,
+  'aitoolkitEnabled': false,
   'oasis': false
 }
