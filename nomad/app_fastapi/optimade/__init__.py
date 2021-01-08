@@ -12,10 +12,9 @@ sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app_fasta
 # patch optimade base path
 from nomad import config, utils  # nopep8
 from optimade.server.config import CONFIG  # nopep8
-CONFIG.root_path = "%s/optimade" % config.services.api_base_path
+CONFIG.root_path = '%s/optimade' % config.services.api_base_path
 
 from optimade.server import main as optimade  # nopep8
-from optimade.server.main import app as optimade_app  # nopep8
 from optimade.server.routers import structures  # nopep8
 
 # remove all the test data
@@ -59,3 +58,6 @@ def general_exception(request, exc, status_code=500, **kwargs):
 
 
 setattr(exception_handlers, 'general_exception', general_exception)
+
+# "export" the app object
+optimade_app = optimade.app

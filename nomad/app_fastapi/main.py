@@ -17,7 +17,7 @@
 #
 
 from fastapi import FastAPI, status, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.wsgi import WSGIMiddleware
 import traceback
 
@@ -32,8 +32,8 @@ logger = utils.get_logger(__name__)
 
 app = FastAPI(
     openapi_url='%s/api/v1/openapi.json' % config.services.api_base_path,
-    docs_url='%s/api/v1/docs' % config.services.api_base_path,
-    redoc_url='%s/api/v1/redoc' % config.services.api_base_path,
+    docs_url='%s/api/v1/extensions/docs' % config.services.api_base_path,
+    redoc_url='%s/api/v1/extensions/redoc' % config.services.api_base_path,
     swagger_ui_oauth2_redirect_url='%s/api/v1/docs/oauth2-redirect' % config.services.api_base_path,
 
     title='NOMAD API',
@@ -112,6 +112,14 @@ app = FastAPI(
         dashboard GUI will manage the access token and use it while you try out the various
         operations.
     '''))
+
+
+async def redirect_to_docs(req: Request):
+    return RedirectResponse('%s/api/v1/extensions/docs' % config.services.api_base_path)
+
+
+app.add_route('%s/api/v1' % config.services.api_base_path, redirect_to_docs, include_in_schema=False)
+app.add_route('%s/api/v1/' % config.services.api_base_path, redirect_to_docs, include_in_schema=False)
 
 
 @app.on_event('startup')

@@ -1,3 +1,4 @@
+
 #
 # Copyright The NOMAD Authors.
 #
@@ -24,7 +25,7 @@ import elasticsearch
 import sys
 import threading
 
-from nomad import processing as proc, search, datamodel, infrastructure, utils, config
+from nomad import processing as proc, search, infrastructure, utils, config
 from nomad.cli.cli import cli
 
 
