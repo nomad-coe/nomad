@@ -164,13 +164,23 @@ export default function MainMenu() {
       />}
     </MenuBarMenu>
     <MenuBarMenu name="analyze" route="/metainfo" icon={<AnalyticsIcon/>}>
-      {!oasis && aitoolkitEnabled && <MenuBarItem
-        label="AI Toolkit" name="aitoolkit" route="/aitoolkit"
-        tooltip="NOMAD's Artificial Intelligence Toolkit tutorial Jupyter notebooks"
-        icon={<MetainfoIcon />}
-      />}
+      {(!oasis && aitoolkitEnabled)
+        ? <MenuBarItem
+          label="AI Toolkit" name="aitoolkit" route="/aitoolkit"
+          tooltip="NOMAD's Artificial Intelligence Toolkit tutorial Jupyter notebooks"
+          icon={<MetainfoIcon />}
+        />
+        : <MenuBarItem
+          label="AI Toolkit" name="aitoolkit"
+          href="https://nomad-lab.eu/AIToolkit"
+          tooltip="Visit the NOMAD Artificial Intelligence Analytics Toolkit"
+        />
+      }
       <MenuBarItem
         name="metainfo" route="/metainfo" tooltip="Browse the NOMAD Archive schema"
+      />
+      <MenuBarItem
+        name="apis" label="APIs" route="/apis" tooltip="The list of APIs offered by NOMAD"
       />
     </MenuBarMenu>
     <MenuBarMenu name="about" route="/" icon={<AboutIcon/>}>
