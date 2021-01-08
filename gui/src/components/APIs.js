@@ -60,6 +60,15 @@ export default function About() {
       open API standard for materials science databases. This API can be used to search
       and access NOMAD metadata in a standardized way that can also be applied to many
       [other materials science databses](https://providers.optimade.org/).
+
+      ## DCAT
+
+      - [DCAT API dashboard](${appBase}/dcat/)
+
+      [DCAT](https://www.w3.org/TR/vocab-dcat-2/) is a RDF vocabulary designed to facilitate
+      interoperability between data catalogs published on the Web. This API allows you
+      access to NOMAD via RDF documents following DCAT. You can access NOMAD entries as
+      DCAT Datasets or all NOMAD entries as a DCAT Catalog.
     `}</Markdown>
   </div>
 }
