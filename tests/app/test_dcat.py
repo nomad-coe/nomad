@@ -1,16 +1,20 @@
-# Copyright 2018 Markus Scheidgen
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an"AS IS" BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 import pytest
 from datetime import datetime
@@ -62,7 +66,11 @@ def test_get_dataset(elastic_infra, api, example_entry):
     clear_elastic(elastic_infra)
 
 
-def test_get_catalog(elastic_infra, api, example_entry):
+@pytest.mark.parametrize('after,modified_since', [
+    (None, None),
+    (None, '2020-01-07'),
+    ('test-id-3', '2020-01-07')])
+def test_get_catalog(elastic_infra, api, example_entry, after, modified_since):
     clear_elastic(elastic_infra)
 
     for i in range(1, 11):
@@ -73,7 +81,12 @@ def test_get_catalog(elastic_infra, api, example_entry):
 
     infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
 
-    rv = api.get('/catalog/?after=test-id-3&modified_since=2020-01-07&format=nt')
+    url = '/catalog/?format=turtle'
+    if after:
+        url += '&after=' + after
+    if modified_since:
+        url += '&modified_since=' + modified_since
+    rv = api.get(url)
     assert rv.status_code == 200
 
     clear_elastic(elastic_infra)

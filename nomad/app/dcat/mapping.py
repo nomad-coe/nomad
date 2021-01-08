@@ -1,19 +1,23 @@
-# Copyright 2020 Markus Scheidgen
+#
+# Copyright The NOMAD Authors.
+#
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an"AS IS" BASIS,
+# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 from rdflib import Graph, Literal, RDF, URIRef, BNode
-from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF
+from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF, RDF
 
 from nomad import config
 from nomad.datamodel import User
@@ -21,7 +25,6 @@ from nomad.datamodel import User
 from nomad.datamodel import EntryMetadata, User
 
 from .api import url
-
 
 VCARD = Namespace('http://www.w3.org/2006/vcard/ns#')
 HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
@@ -37,6 +40,7 @@ def get_optional_entry_prop(entry, name):
 class Mapping():
     def __init__(self):
         self.g = Graph()
+        self.g.namespace_manager.bind('rdf', RDF)
         self.g.namespace_manager.bind('dcat', DCAT)
         self.g.namespace_manager.bind('dct', DCT)
         self.g.namespace_manager.bind('vcard', VCARD)
@@ -45,25 +49,32 @@ class Mapping():
 
         self.persons = {}
 
-    def map_catalog(self, entries):
-        catalog = URIRef(url('catalog'))
+    def map_catalog(self, entries, after: str, modified_since):
+        def uri_ref(after):
+            kwargs = dict()
+            if after is not None:
+                kwargs['after'] = after
+            if modified_since is not None:
+                kwargs['modified_since'] = modified_since.strftime('%Y-%m-%d')
+            return URIRef(url('catalog', **kwargs))
+
+        after = after.strip()
+
+        catalog = uri_ref(after=None)
         self.g.add((catalog, RDF.type, DCAT.Catalog))
         last_entry = None
         for entry in entries:
             self.g.add((catalog, DCT.dataset, self.map_entry(entry, slim=True)))
             last_entry = entry
 
-        hydra_collection = BNode()
+        hydra_collection = uri_ref(after)
         self.g.add((hydra_collection, RDF.type, HYDRA.Collection))
         self.g.add((hydra_collection, HYDRA.totalItems, Literal(entries.total)))
-        self.g.add((
-            hydra_collection, HYDRA.first,
-            URIRef('%s/catalog' % config.api_url(api='dcat'), last_entry.calc_id)))
+        self.g.add((hydra_collection, HYDRA.first, uri_ref('')))
         if last_entry is not None:
-            next_url = '%s/catalog?after=%s' % (config.api_url(api='dcat'), last_entry.calc_id)
-            self.g.add((hydra_collection, HYDRA.next, URIRef(next_url)))
+            self.g.add((hydra_collection, HYDRA.next, uri_ref(last_entry.calc_id)))
 
-        self.g.add((catalog, HYDRA.collection, hydra_collection))
+        self.g.add((hydra_collection, RDF.type, HYDRA.collection))
 
     def map_entry(self, entry: EntryMetadata, slim=False):
         dataset = URIRef(url('datasets', entry.calc_id))
