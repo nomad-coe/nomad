@@ -120,6 +120,7 @@ install tests:
   image: python:3.7
   before_script:
     - git submodule sync
+    - sleep 5
     - git submodule update --init --jobs=4
   script:
     - pip install --upgrade pip
@@ -143,6 +144,7 @@ dev setup tests:
   stage: test
   image: python:3.7
   script:
+    - sleep 5
     - pip install --upgrade pip
     - ./setup.sh
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
