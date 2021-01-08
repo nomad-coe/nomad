@@ -145,6 +145,7 @@ dev setup tests:
   image: python:3.7
   script:
     - pip install --upgrade pip
+    - find dependencies -type d -name "*.egg-info" -exec rm -rf {} \;
     - ./setup.sh
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
   except:
