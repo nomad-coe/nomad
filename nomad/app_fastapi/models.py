@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
 import pydantic
@@ -139,7 +139,7 @@ ops = {
 QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_]
 
 Query = Union[
-    Dict[str, QueryParameterValue], And, Or, Not]
+    Mapping[str, QueryParameterValue], And, Or, Not]
 
 
 And.update_forward_refs()

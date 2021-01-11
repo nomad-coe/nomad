@@ -595,7 +595,7 @@ def query_archive(
 
 
 def filter_archive(
-        required: Dict[str, Any], archive_item: Union[Dict, ArchiveObject],
+        required: Union[str, Dict[str, Any]], archive_item: Union[Dict, ArchiveObject],
         transform: Callable) -> Dict:
 
     def _fix_index(index, length):

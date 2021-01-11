@@ -25,14 +25,13 @@ import enum
 from nomad import utils, datamodel
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
-from nomad.search import search
 from nomad.doi import DOI
 
 from nomad.app_fastapi.routers.auth import get_required_user
 from nomad.app_fastapi.utils import create_responses
 from nomad.app_fastapi.models import (
     pagination_parameters, Pagination, PaginationResponse, Query,
-    HTTPExceptionModel, User, Direction, MetadataRequired)
+    HTTPExceptionModel, User, Direction, Owner)
 
 from .entries import _do_exaustive_search
 
@@ -212,7 +211,7 @@ async def post_datasets(
     # get all entry ids
     if create.query is not None:
         entries = _do_exaustive_search(
-            owner='public', query=create.query, user=user,
+            owner=Owner.public, query=create.query, user=user,
             include=['calc_id'])
         dataset.entries = [entry['calc_id'] for entry in entries]
     elif create.entries is not None:

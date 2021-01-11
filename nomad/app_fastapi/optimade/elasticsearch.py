@@ -1,25 +1,13 @@
-import os
-
-from typing import Tuple, List, Union, Dict, Any, Set
-import mongomock
-import pymongo.collection
+from typing import Tuple, List, Union, Dict, Set
 from fastapi import HTTPException
-
 from elasticsearch_dsl import Search, Q
-from urllib.parse import urlparse
 
 from optimade.filterparser import LarkParser
-from optimade.filtertransformers.elasticsearch import ElasticTransformer
-from optimade.models import EntryResource
-from optimade.server.config import CONFIG
 from optimade.server.entry_collections import EntryCollection
-from optimade.server.logger import LOGGER
-from optimade.server.mappers import BaseResourceMapper
 from optimade.server.query_params import EntryListingQueryParams, SingleEntryQueryParams
 from optimade.server.exceptions import BadRequest
 from optimade.server.mappers import StructureMapper
 from optimade.models import StructureResource
-
 
 from nomad import config, datamodel, files, search, utils
 from nomad.normalizing.optimade import (
@@ -94,7 +82,8 @@ class ElasticsearchStructureCollection(EntryCollection):
             logger.error('could not parse optimade filter', filter=filter_param)
             raise NotImplementedError(
                 'some features used in filter query %s are not implemented' % filter_param)
-        elif filter != {}:
+
+        if filter != {}:
             search_request.query(filter)
 
         es_response = search_request.execute_paginated(

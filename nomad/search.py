@@ -20,7 +20,7 @@
 This module represents calculations in elastic search.
 '''
 
-from typing import Iterable, Dict, List, Any
+from typing import cast, Iterable, Dict, List, Any
 from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError, RequestError
@@ -1110,15 +1110,15 @@ def search(
 
     # statistics
     if len(statistics) > 0:
-        more_response_data['statistics'] = {
+        more_response_data['statistics'] = cast(Dict[str, Any], {
             name: _es_to_api_statistics(es_response, name, statistic)
-            for name, statistic in statistics.items()}
+            for name, statistic in statistics.items()})
 
     # aggregations
     if len(aggregations) > 0:
-        more_response_data['aggregations'] = {
+        more_response_data['aggregations'] = cast(Dict[str, Any], {
             name: _es_to_api_aggregation(es_response, name, aggregation)
-            for name, aggregation in aggregations.items()}
+            for name, aggregation in aggregations.items()})
 
     more_response_data['es_query'] = es_query.to_dict()
 

@@ -737,7 +737,7 @@ async def get_entry_raw_download(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The entry with the given id does not exist or is not visible to you.')
 
-    return _answer_entries_raw_download_request(owner='public', query=query, files=files, user=user)
+    return _answer_entries_raw_download_request(owner=Owner.public, query=query, files=files, user=user)
 
 
 @router.get(
