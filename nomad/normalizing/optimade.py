@@ -42,7 +42,7 @@ def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
     if optimade is None:
         return entry
 
-    if 'X' in optimade.chemical_formula_reduced:
+    if optimade.chemical_formula_reduced is None or 'X' in optimade.chemical_formula_reduced:
         entry.dft.m_remove_sub_section(DFTMetadata.optimade, -1)
         return entry
 
