@@ -53,10 +53,10 @@ def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None
     yield example_upload_id, example_file
 
 
-def run_processing(uploaded: Tuple[str, str], test_user) -> Upload:
+def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
+        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path, **kwargs)
     upload.upload_time = datetime.utcnow()
 
     assert upload.tasks_status == 'RUNNING'
@@ -161,6 +161,16 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
     with processed.entries_metadata(internal_example_user_metadata) as entries:
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
+
+    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
+
+
+def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
+    processed = run_processing(non_empty_uploaded, test_user, publish_directly=True)
+
+    with processed.entries_metadata() as entries:
+        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_search_upload(entries, [], published=True)
 
     assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
 

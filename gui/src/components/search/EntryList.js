@@ -32,7 +32,7 @@ import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { domains } from '../domains'
 import { apiContext, withApi } from '../api'
-import { authorList } from '../../utils'
+import { authorList, nameList } from '../../utils'
 
 export function Published(props) {
   const api = useContext(apiContext)
@@ -147,19 +147,19 @@ export class EntryListUnstyled extends React.Component {
     },
     authors: {
       label: 'Authors',
-      render: entry => authorList(entry.authors),
+      render: entry => authorList(entry),
       supportsSort: true,
       description: 'The authors of this entry. This includes the uploader and its co-authors.'
     },
     co_authors: {
       label: 'co-Authors',
-      render: entry => authorList(entry.authors),
+      render: entry => nameList(entry.authors),
       supportsSort: false,
       description: 'The people that this entry was co authored with'
     },
     shared_with: {
       label: 'Shared with',
-      render: entry => authorList(entry.authors),
+      render: entry => nameList(entry.authors),
       supportsSort: false,
       description: 'The people that this entry was shared with'
     },
@@ -280,7 +280,7 @@ export class EntryListUnstyled extends React.Component {
             </Quantity>
             <Quantity quantity='authors' data={row}>
               <Typography>
-                {authorList(row.authors || [])}
+                {authorList(row)}
               </Typography>
             </Quantity>
             <Quantity quantity='datasets' placeholder='no datasets' data={row}>

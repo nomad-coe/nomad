@@ -75,7 +75,6 @@ export default function RepoEntryView({uploadId, calcId}) {
   const loading = !state.calcData
   const quantityProps = {data: calcData, loading: loading}
 
-  const authors = loading ? null : calcData.authors
   const domain = calcData.domain && domains[calcData.domain]
 
   let entryHeader = 'Entry metadata'
@@ -117,7 +116,7 @@ export default function RepoEntryView({uploadId, calcId}) {
                 </Quantity>
                 <Quantity quantity='authors' {...quantityProps}>
                   <Typography>
-                    {authorList(authors || [])}
+                    {authorList(loading ? null : calcData)}
                   </Typography>
                 </Quantity>
                 <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
