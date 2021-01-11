@@ -496,7 +496,7 @@ material_result = api.model("material_result", {
     "formula": fields.String,
     "formula_reduced": fields.String,
     "material_type": fields.String,
-    "n_matches": fields.Integer,
+    "n_calculations": fields.Integer,
     # Bulk only
     "has_free_wyckoff_parameters": fields.Boolean,
     "strukturbericht_designation": fields.String,
@@ -743,7 +743,7 @@ class EncMaterialsResource(Resource):
         for x in response:
             res = get_es_doc_values(x, material_prop_map, list(material_prop_map.keys()))
             material_id = x.material_id
-            res["n_matches"] = agg_dict[material_id]
+            res["n_calculations"] = agg_dict[material_id]
             result_list.append(res)
 
         return {"results": result_list, "pages": pages}, 200
