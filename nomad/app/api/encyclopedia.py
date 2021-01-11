@@ -191,6 +191,8 @@ class MaterialSearch():
         should_to_or(query)
 
         s = self._s.query(query)
+        import json
+        print(json.dumps(s.to_dict(), indent=2))
         extra = self._extra
         s = s.extra(**extra)
         return s

@@ -1,8 +1,8 @@
 from typing import Callable
 from lark import v_args
 from elasticsearch_dsl import Q, Text, Keyword, Integer, Field, Boolean
-from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 from optimade.filtertransformers.elasticsearch import Quantity, ElasticTransformer
+from nomad.atomutils import get_hill_decomposition
 
 
 _cmp_operators = {">": "gt", ">=": "gte", "<": "lt", "<=": "lte"}
@@ -134,11 +134,10 @@ class MElasticTransformer(ElasticTransformer):
                     yield value
 
             try:
-                order_numbers = list([ATOMIC_NUMBERS[element] for element in values()])
-                order_numbers.sort()
-                value = " ".join(
-                    [CHEMICAL_SYMBOLS[number - 1] for number in order_numbers]
-                )
+                # Instead of the Optimade standard, the elements are combined
+                # by the standard used by NOMAD.
+                species, _ = get_hill_decomposition(list(values()))
+                value = " ".join(species)
             except KeyError:
                 raise Exception("HAS ONLY is only supported for chemical symbols")
 
