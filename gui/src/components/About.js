@@ -19,7 +19,7 @@ import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, use
 import {ReactComponent as AboutSvg} from './about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
-import { appBase, optimadeBase, apiBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
+import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import { apiContext } from './api'
 import packageJson from '../../package.json'
 import { domains } from './domains'
@@ -318,20 +318,16 @@ export default function About() {
       </InfoCard>
       <InfoCard xs={4} title="APIs" bottom><Markdown>{`
       The NOMAD can also be accessed programmatically via ReST APIs.
-      There is the proprietary NOMAD API and an implementation of the
-      standardized [OPTiMaDe API (0.10.0)](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
-      materials science database API.
+      There is the proprietary NOMAD API,an implementation of the
+      standardized [OPTiMaDe API](https://github.com/Materials-Consortia/OPTiMaDe/tree/master)
+      materials science database API, and more.
 
-      Both APIs are described via [swagger/OpenAPI spec.](https://swagger.io/),
-      therefore you can use your favorite swagger client library
-      (e.g. [bravado](https://github.com/Yelp/bravado) for Python):
-      - [NOMAD API](${apiBase}/)
-      - [OPTiMaDe API](${optimadeBase}/)
-
-      There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
+      We offer a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
       The [NOMAD Analytics Toolkit](https://nomad-lab.eu/AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
+
+      Visit our [API page](/apis).
       `}</Markdown></InfoCard>
       <Grid item xs={12}>
         <Markdown>{`
