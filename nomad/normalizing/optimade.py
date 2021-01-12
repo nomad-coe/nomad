@@ -51,7 +51,9 @@ def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
     optimade.chemical_formula_hill = optimade_chemical_formula_hill(optimade.chemical_formula_hill)
     optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
     dimension_types = optimade.dimension_types
-    if isinstance(dimension_types, int):
+    if dimension_types is None:
+        optimade.dimension_types = [0, 0, 0]
+    elif isinstance(dimension_types, int):
         optimade.dimension_types = [1] * dimension_types + [0] * (3 - dimension_types)
 
     return entry

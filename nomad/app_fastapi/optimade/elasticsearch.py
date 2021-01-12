@@ -140,10 +140,7 @@ class ElasticsearchStructureCollection(EntryCollection):
         def include(key):
             return response_fields is None or (key in response_fields) or not key.startswith('_')
 
-        attrs = {
-            key: value
-            for key, value in entry.dft.optimade.m_to_dict().items()
-            if include(key)}
+        attrs = entry.dft.optimade.m_to_dict()
 
         if include('immutable_id'):
             attrs['immutable_id'] = calc_id
@@ -164,6 +161,8 @@ class ElasticsearchStructureCollection(EntryCollection):
             attrs['nperiodic_dimensions'] = dimension_types
         elif isinstance(dimension_types, list):
             attrs['nperiodic_dimensions'] = sum(dimension_types)
+
+        attrs = {key: value for key, value in attrs.items() if include(key)}
 
         if response_fields is not None:
             for request_field in response_fields:
