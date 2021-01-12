@@ -46,6 +46,11 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.0
+- A new more consistent API (/api/v1) alongside the old API (/api)
+- OPTIMADE implementation based on optimade-python-tools
+- Re-written parsers for VASP, FHI-aims, exciting, ABINIT, and Crystal
+
 ### v0.9.9
 - A rdf-API that provides dcat datasets and catalog for NOMAD entries.
 - Support to directly publish upon upload via API.
