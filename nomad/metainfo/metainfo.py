@@ -1152,7 +1152,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
     def m_to_dict(
-            self, with_meta: bool = False, include_defaults: bool = False,
+            self, with_meta: bool = False,
+            include_defaults: bool = False,
+            include_derived: bool = False,
             categories: List[Union['Category', Type['MCategory']]] = None,
             partial: TypingCallable[['Definition', 'MSection'], bool] = None) -> Dict[str, Any]:
         '''
@@ -1162,6 +1164,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             with_meta: Include information about the section definition and the sections
                 position in its parent.
             include_defaults: Include default values of unset quantities.
+            include_derived: Include values of derived quantities.
             categories: A list of category classes or category definitions that is used
                 to filter the included quantities and sub sections. Only applied to
                 properties of this section, not on sub-sections. Is overwritten
@@ -1208,7 +1211,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     for category in category_defs)
                 child_partial = lambda *args, **kwargs: True
 
-        def serialize_quantity(quantity, is_set):
+        def serialize_quantity(quantity, is_set, is_derived):
             quantity_type = quantity.type
 
             serialize: TypingCallable[[Any], Any] = str
@@ -1274,6 +1277,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             if is_set:
                 value = self.__dict__[quantity.name]
+            elif is_derived:
+                value = quantity.derived(self)
             else:
                 value = quantity.default
 
@@ -1300,16 +1305,18 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if not partial(quantity, self):
                     continue
 
-                if quantity.virtual:
-                    continue
-
-                is_set = self.m_is_set(quantity)
-                if not is_set:
-                    if not include_defaults or not quantity.m_is_set(Quantity.default):
+                try:
+                    if quantity.virtual:
+                        if include_derived and quantity.derived is not None:
+                            yield name, serialize_quantity(quantity, False, True)
                         continue
 
-                try:
-                    yield name, serialize_quantity(quantity, is_set)
+                    is_set = self.m_is_set(quantity)
+                    if not is_set:
+                        if not include_defaults or not quantity.m_is_set(Quantity.default):
+                            continue
+
+                    yield name, serialize_quantity(quantity, is_set, False)
 
                 except ValueError as e:
                     import traceback
@@ -1325,14 +1332,18 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
                             None if item is None else item.m_to_dict(
-                                with_meta=with_meta, include_defaults=include_defaults,
+                                with_meta=with_meta,
+                                include_defaults=include_defaults,
+                                include_derived=include_derived,
                                 partial=child_partial)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
                         yield name, sub_section.m_to_dict(
-                            with_meta=with_meta, include_defaults=include_defaults,
+                            with_meta=with_meta,
+                            include_defaults=include_defaults,
+                            include_derived=include_derived,
                             partial=child_partial)
 
         return {key: value for key, value in items()}
