@@ -24,7 +24,7 @@ import pymongo
 import elasticsearch_dsl as es
 import json
 
-from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel, archive
+from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
 
 from .admin import admin, __run_processing, __run_parallel
 
@@ -320,30 +320,6 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 
     for upload in uploads:
         delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
-
-
-@uploads.command(help='Create msgpack file for upload')
-@click.argument('UPLOADS', nargs=-1)
-@click.pass_context
-def msgpack(ctx, uploads):
-    _, uploads = query_uploads(ctx, uploads)
-
-    for upload in uploads:
-        upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
-
-        if isinstance(upload_files, files.PublicUploadFiles):
-            def iterator(zf, names):
-                for name in names:
-                    calc_id = name.strip('.json')
-                    with zf.open(name) as f:
-                        yield (calc_id, json.load(f))
-
-            for access in ['public', 'restricted']:
-                with upload_files._open_zip_file('archive', access, 'json') as zf:
-                    archive_path = upload_files._file_object('archive', access, 'msg', 'msg').os_path
-                    names = [name for name in zf.namelist() if name.endswith('json')]
-                    archive.write_archive(archive_path, len(names), iterator(zf, names))
-                print('wrote msgpack archive %s' % archive_path)
 
 
 @uploads.command(help='Reprocess selected uploads.')

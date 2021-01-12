@@ -114,6 +114,7 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     local_tmp='/tmp',
     prefix_size=2,
+    archive_version_suffix=None,
     working_directory=os.getcwd()
 )
 

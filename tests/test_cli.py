@@ -21,7 +21,6 @@ import pytest
 import click.testing
 import json
 import datetime
-import zipfile
 import time
 
 from nomad import search, processing as proc, files
@@ -192,24 +191,6 @@ class TestAdminUploads:
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
-
-    def test_msgpack(self, published):
-        upload_id = published.upload_id
-        upload_files = files.UploadFiles.get(upload_id=upload_id)
-        for access in ['public', 'restricted']:
-            zip_path = upload_files._file_object('archive', access, 'json', 'zip').os_path
-            with zipfile.ZipFile(zip_path, mode='w') as zf:
-                for i in range(0, 2):
-                    with zf.open('%d_%s.json' % (i, access), 'w') as f:
-                        f.write(json.dumps(dict(archive='test')).encode())
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert 'wrote msgpack archive' in result.stdout
-        with upload_files.read_archive('0_public') as archive:
-            assert archive['0_public'].to_dict() == dict(archive='test')
 
     def test_index(self, published):
         upload_id = published.upload_id
