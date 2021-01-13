@@ -26,13 +26,14 @@ import {
 import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
 
-export default function DOS({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+export default function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
     let defaultLayout = {
+      title: {text: 'Density of states'},
       yaxis: {
         title: {
           text: `Energy (${convertSILabel('joule', units)})`
@@ -121,6 +122,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
       <Plot
         data={finalData}
         layout={finalLayout}
+        resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
         onRelayout={onRelayout}
@@ -136,6 +138,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
 DOS.propTypes = {
   data: PropTypes.object, // section_dos
   layout: PropTypes.object,
+  resetLayout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,

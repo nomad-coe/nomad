@@ -26,7 +26,7 @@ import {
 import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
 
-export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+export default function BandStructure({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
@@ -172,10 +172,14 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
         title: {
           text: 'Energy (eV)'
         }
+      },
+      title: {
+        text: {
+          text: 'Band structure'
+        }
       }
     }
-    mergeObjects(layout, defaultLayout)
-    return defaultLayout
+    return mergeObjects(layout, defaultLayout)
   }, [layout])
 
   // Compute layout that depends on data.
@@ -231,7 +235,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
 
   // Merge the given layout and layout computed from data
   const finalLayout = useMemo(() => {
-    return mergeObjects(computedLayout, tmpLayout, 'shallow')
+    return mergeObjects(computedLayout, tmpLayout)
   }, [computedLayout, tmpLayout])
 
   return (
@@ -239,6 +243,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
       <Plot
         data={finalData}
         layout={finalLayout}
+        resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
         onRelayout={onRelayout}
@@ -254,6 +259,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
 BandStructure.propTypes = {
   data: PropTypes.object, // section_band_structure or section_band_structure_normalized
   layout: PropTypes.object,
+  resetLayout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,

@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import { cloneDeep } from 'lodash'
 
 import {
   IconButton,
@@ -37,13 +36,11 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
+export default function Plot({data, layout, resetLayout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
   // States
   const [float, setFloat] = useState(false)
-  const [initialLayout, setInitialLayout] = useState()
   const [captureSettings, setCaptureSettings] = useState()
   const firstUpdate = useRef(true)
-  const dataInitialized = useRef(false)
 
   React.useEffect(() => {
     let defaultCapture = {
@@ -115,6 +112,11 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         t: 20,
         b: 50
       },
+      title: {
+        font: {
+          family: 'Titillium Web,sans-serif'
+        }
+      },
       xaxis: {
         linecolor: '#333',
         linewidth: 1,
@@ -168,61 +170,57 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
     return mergeObjects(config, defaultConfig)
   }, [config])
 
+  // In order to properly detect changes in a reference, a reference callback is
+  // used. This is the recommended way to monitor reference changes as a simple
+  // useRef is not guaranteed to update:
+  // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
+  const canvasRef = useCallback(node => {
+    // Do nothing if the canvas has not actually changed.
+    if (node === null || canvasRef.current === node) {
+      return
+    }
+
+    // Update canvas and redraw on it
+    canvasRef.current = node
+    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
+
+    // Attach events whenever the canvas changes
+    if (onRelayouting) {
+      canvasRef.current.on('plotly_relayouting', onRelayouting)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, finalConfig, onRelayouting])
+
   // Initialize the plot object on first render
   useEffect(() => {
     Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
     if (firstUpdate.current) {
       firstUpdate.current = false
     }
-    if (data) {
-      setInitialLayout(cloneDeep(finalLayout))
-      dataInitialized.current = true
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // In order to properly detect changes in a reference, a reference callback is
-  // used. This is the recommended way to monitor reference changes as a simple
-  // useRef is not guaranteed to update:
-  // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
-  const canvasRef = useCallback(node => {
-    canvasRef.current = node
-    if (node === null) {
-      return
+  // Update plots when data or config is updated. useLayoutEffect is used so
+  // that React rendering and Plotly rendering are synced.
+  useLayoutEffect(() => {
+    if (!firstUpdate.current) {
+      Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
     }
-    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
-  }, [data, finalLayout, finalConfig])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRef, data, finalConfig])
 
-  // Update data
-  useEffect(() => {
-    if (firstUpdate.current) {
-      return
+  // Relayout plots when layout updated. useLayoutEffect is used so that React
+  // rendering and Plotly rendering are synced.
+  useLayoutEffect(() => {
+    if (!firstUpdate.current) {
+      Plotly.relayout(canvasRef.current, finalLayout)
     }
-    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
-    if (data) {
-      if (!dataInitialized.current) {
-        setInitialLayout(cloneDeep(finalLayout))
-        dataInitialized.current = true
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, finalConfig])
-
-  // Update layout
-  useEffect(() => {
-    if (firstUpdate.current) {
-      return
-    }
-    Plotly.relayout(canvasRef.current, finalLayout)
   }, [canvasRef, finalLayout])
 
-  // For resetting the view. We need to pass a deep clone of the initialLayout,
-  // as Plotly will modify the given object in-place
+  // For resetting the view.
   const handleReset = useCallback(() => {
-    if (initialLayout) {
-      Plotly.relayout(canvasRef.current, cloneDeep(initialLayout))
-    }
-  }, [canvasRef, initialLayout])
+    Plotly.relayout(canvasRef.current, mergeObjects(resetLayout, canvasRef.current.layout))
+  }, [canvasRef, resetLayout])
 
   // Handles plot capturing
   const handleCapture = useCallback(() => {
@@ -231,6 +229,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
 
   return (
     <Floatable className={clsx(className, style.root)} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
+      <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
       <div className={style.header}>
         {float && <Typography variant="h6">{floatTitle}</Typography>}
         <div className={style.spacer}></div>
@@ -267,7 +266,6 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
           : ''
         }
       </div>
-      <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
     </Floatable>
   )
 }
@@ -275,6 +273,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
 Plot.propTypes = {
   data: PropTypes.array, // Plotly.js data object
   layout: PropTypes.object, // Plotly.js layout object
+  resetLayout: PropTypes.object, // Plotly.js layout object for resetting
   config: PropTypes.object, // Plotly.js config object
   menu: PropTypes.object, // Menu settings
   capture: PropTypes.object, // Capture settings

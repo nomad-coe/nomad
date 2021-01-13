@@ -18,6 +18,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { Tab, Tabs, Box } from '@material-ui/core'
+import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RepoEntryView from './RepoEntryView'
@@ -64,18 +65,20 @@ export default function EntryPage() {
           return (
             <React.Fragment>
               <Tabs
-                value={tab || 'raw'}
+                value={tab || 'overview'}
                 onChange={(_, value) => history.push(`${url}/${uploadId}/${calcId}/${value}`)}
                 indicatorColor="primary"
                 textColor="primary"
                 variant="fullWidth"
               >
+                <Tab label="Overview" value="overview" />
                 <Tab label="Raw data" value="raw" />
                 <Tab label="Archive" value="archive"/>
                 <Tab label="Logs" value="logs"/>
               </Tabs>
 
-              <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'overview' || tab === undefined} render={props => <OverviewView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'raw'} render={props => <RepoEntryView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
             </React.Fragment>
