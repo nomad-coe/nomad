@@ -116,7 +116,7 @@ export default function RepoEntryView({uploadId, calcId}) {
                 </Quantity>
                 <Quantity quantity='authors' {...quantityProps}>
                   <Typography>
-                    {authorList(loading ? null : calcData)}
+                    {authorList(loading ? null : calcData, true)}
                   </Typography>
                 </Quantity>
                 <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>

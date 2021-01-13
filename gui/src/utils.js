@@ -318,12 +318,15 @@ export function nameList(users) {
   }
 }
 
-export function authorList(entry) {
+export function authorList(entry, expanded) {
   if (!entry) {
     return ''
   }
 
   if (entry.external_db) {
+    if (entry.authors?.length > 1 && expanded) {
+      return `${entry.external_db} (${nameList(entry.authors)})`
+    }
     return entry.external_db
   } else {
     return nameList(entry.authors || [])
