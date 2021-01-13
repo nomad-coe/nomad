@@ -220,7 +220,6 @@ line size ruler, etc.
 {
     "python.venvPath": "${workspaceFolder}/.pyenv",
     "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
-    "git.ignoreLimitWarning": true,
     "editor.rulers": [90],
     "editor.renderWhitespace": "all",
     "editor.tabSize": 4,
@@ -228,29 +227,20 @@ line size ruler, etc.
         "editor.tabSize": 2
     },
     "files.trimTrailingWhitespace": true,
-    "git.enableSmartCommit": true,
-    "eslint.autoFixOnSave": true,
+    "editor.codeActionsOnSave": ["source.fixAll.eslint"],
+    "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
         "--load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin",
     ],
-    "python.linting.pep8Path": "pycodestyle",
-    "python.linting.pep8Enabled": true,
-    "python.linting.pep8Args": ["--ignore=E501,E701"],
+    "python.linting.pycodestylePath": "pycodestyle",
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pycodestyleArgs": ["--ignore=E501,E701,E731"],
     "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [
         "--ignore-missing-imports",
         "--follow-imports=silent",
         "--no-strict-optional"
     ],
-    "workbench.colorCustomizations": {
-        "editorError.foreground": "#FF2222",
-        "editorOverviewRuler.errorForeground": "#FF2222",
-        "editorWarning.foreground": "#FF5500",
-        "editorOverviewRuler.warningForeground": "#FF5500",
-        "activityBar.background": "#4D2111",
-        "titleBar.activeBackground": "#6B2E18",
-        "titleBar.activeForeground": "#FDF9F7"
-    },
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
