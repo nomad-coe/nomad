@@ -37,6 +37,33 @@ from nomad.app_fastapi.models import (
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem)
 
 
+_entry_metadata_defaults = {
+    quantity.name: quantity.default
+    for quantity in datamodel.EntryMetadata.m_def.quantities
+    if quantity.default not in [None, [], False, 0]
+}
+
+
+def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
+    '''
+    Elasticsearch entry metadata does not contain default values, if a metadata is not
+    set. This will add default values to entry metadata in dict form obtained from
+    elasticsearch.
+    '''
+    entry_dict = hit.to_dict()
+    for key, value in _entry_metadata_defaults.items():
+        if key not in entry_dict:
+            if required is not None:
+                if required.exclude and key in required.exclude:
+                    continue
+                if required.include and key not in required.include:
+                    continue
+
+            entry_dict[key] = value
+
+    return entry_dict
+
+
 path_analyzer = analyzer(
     'path_analyzer',
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
@@ -188,6 +215,7 @@ class SearchRequest:
         self._domain = domain
         self._query = query
         self._search = Search(index=config.elastic.index_name)
+        self._required = None
 
     def domain(self, domain: str = None):
         '''
@@ -514,6 +542,7 @@ class SearchRequest:
     def exclude(self, *args):
         ''' Exclude certain elastic fields from the search results. '''
         self._search = self._search.source(excludes=args)
+        self._required = MetadataRequired(exclude=args)
         return self
 
     def include(self, *args):
@@ -548,7 +577,7 @@ class SearchRequest:
             search = search.params(preserve_order=True)
 
         for hit in search.params(**kwargs).scan():
-            yield hit.to_dict()
+            yield _es_to_entry_dict(hit, self._required)
 
     def execute_paginated(
             self,
@@ -730,7 +759,7 @@ class SearchRequest:
 
         # hits
         if len(response.hits) > 0 or with_hits:
-            result.update(results=[hit.to_dict() for hit in response.hits])
+            result.update(results=[_es_to_entry_dict(hit, self._required) for hit in response.hits])
 
         # statistics
         def get_metrics(bucket, code_runs):
@@ -1127,5 +1156,5 @@ def search(
         query=query,
         pagination=pagination_response,
         required=required,
-        data=[hit.to_dict() for hit in es_response.hits],
+        data=[_es_to_entry_dict(hit, required) for hit in es_response.hits],
         **more_response_data)

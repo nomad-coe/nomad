@@ -136,7 +136,7 @@ def perform_entries_raw_test(
     else:
         assert False
 
-    response_json = assert_entries_metadata_response(response, status_code=status_code)
+    response_json = assert_entries_raw_metadata_response(response, status_code=status_code)
 
     if response_json is None:
         return None
@@ -220,7 +220,25 @@ def perform_entries_archive_test(
     return json_response
 
 
+def assert_entry_metadata(response_json):
+    if isinstance(response_json['data'], list):
+        entries = response_json['data']
+    else:
+        entries = [response_json['data']]
+
+    for entry in entries:
+        if 'required' not in response_json:
+            assert 'license' in entry
+
+
 def assert_entries_metadata_response(response, status_code=None):
+    response_json = assert_entries_raw_metadata_response(response, status_code=status_code)
+    if response_json is not None:
+        assert_entry_metadata(response_json)
+    return response_json
+
+
+def assert_entries_raw_metadata_response(response, status_code=None):
     assert_response(response, status_code)
 
     if status_code != 200 or response.status_code != 200:

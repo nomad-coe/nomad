@@ -497,6 +497,15 @@ class EntryMetadata(metainfo.MSection):
             description='The full name of the owners for exact searches',
             many_or='append', search_field='owners.name.keyword'))
 
+    license = metainfo.Quantity(
+        type=str,
+        description='''
+            A short license description (e.g. CC BY 4.0), that refers to the
+            license of this entry.
+        ''',
+        default='CC BY 4.0',
+        categories=[MongoMetadata, EditableUserMetadata])
+
     with_embargo = metainfo.Quantity(
         type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',

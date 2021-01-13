@@ -119,16 +119,18 @@ export default function RepoEntryView({uploadId, calcId}) {
                     {authorList(loading ? null : calcData, true)}
                   </Typography>
                 </Quantity>
-                <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                  {calcData.datasets &&
-                    <div>
+                <Quantity quantity='datasets' {...quantityProps}>
+                  {calcData.datasets && calcData.datasets.length > 0
+                    ? <div>
                       {calcData.datasets.map(ds => (
                         <Typography key={ds.dataset_id}>
                           <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                          {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                          {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi} />)</span> : ''}
                         </Typography>))}
-                    </div>}
+                    </div>
+                    : <Typography><i>not in any dataset</i></Typography>}
                 </Quantity>
+                <Quantity quantity='license' placeholder='unspecified' {...quantityProps} />
               </Quantity>
             </CardContent>
           </Card>

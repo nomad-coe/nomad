@@ -1033,6 +1033,12 @@ class TestRepo():
         assert data['code']['python'] is not None
         assert data['code']['clientlib'] is not None
 
+    def test_get_defaults(self, api, example_elastic_calcs, no_warn, test_user_auth):
+        rv = api.get('/repo/0/1', headers=test_user_auth)
+        assert rv.status_code == 200
+        data = rv.json
+        assert data['license'] is not None
+
     def test_public_calc(self, api, example_elastic_calcs, no_warn, other_test_user_auth):
         rv = api.get('/repo/0/1', headers=other_test_user_auth)
         assert rv.status_code == 200

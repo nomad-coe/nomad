@@ -70,7 +70,7 @@ class RepoCalcResource(Resource):
             if not (any(g.user.user_id == user.user_id for user in calc.owners) or g.user.is_admin):
                 abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
-        result = calc.to_dict()
+        result = search._es_to_entry_dict(calc, required=None)
         result['code'] = {
             'python': query_api_python(dict(upload_id=upload_id, calc_id=calc_id)),
             'curl': query_api_curl(dict(upload_id=upload_id, calc_id=calc_id)),
