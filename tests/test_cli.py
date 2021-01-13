@@ -65,13 +65,6 @@ class TestAdmin:
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
-    # def test_remove(self, reset_infra):
-    #     result = click.testing.CliRunner().invoke(
-    #         cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False)
-    #     assert result.exit_code == 0
-    #     # allow other test to re-establish a connection
-    #     mongoengine.disconnect_all()
-
     def test_clean(self, published):
         upload_id = published.upload_id
 

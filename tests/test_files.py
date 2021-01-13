@@ -445,6 +445,25 @@ class TestPublicUploadFiles(UploadFilesContract):
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
+    def test_archive_version_suffix(self, monkeypatch, test_upload_id):
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', 'test_suffix')
+        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs='rp')
+        upload_files.pack(entries)
+        upload_files.delete()
+
+        public_upload_files = PublicUploadFiles(test_upload_id, is_authorized=lambda: False)
+
+        assert os.path.exists(public_upload_files.join_file('raw-public.plain.zip').os_path)
+        assert os.path.exists(public_upload_files.join_file('raw-restricted.plain.zip').os_path)
+        assert not os.path.exists(public_upload_files.join_file('raw-public-test_suffix.plain.zip').os_path)
+        assert not os.path.exists(public_upload_files.join_file('raw-restricted-test_suffix.plain.zip').os_path)
+        assert os.path.exists(public_upload_files.join_file('archive-public-test_suffix.msg.msg').os_path)
+        assert os.path.exists(public_upload_files.join_file('archive-restricted-test_suffix.msg.msg').os_path)
+        assert not os.path.exists(public_upload_files.join_file('archive-public-test.msg.msg').os_path)
+        assert not os.path.exists(public_upload_files.join_file('archive-restricted.msg.msg').os_path)
+
+        assert_upload_files(test_upload_id, entries, PublicUploadFiles)
+
 
 def assert_upload_files(
         upload_id: str, entries: Iterable[datamodel.EntryMetadata], cls,
