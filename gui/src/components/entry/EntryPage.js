@@ -59,7 +59,7 @@ export default function EntryPage() {
   return (
     <Route
       path={`${path}/:uploadId?/:calcId?/:tab?`}
-      render={({match: {params: {uploadId, calcId, tab = 'raw'}}}) => {
+      render={({match: {params: {uploadId, calcId, tab = 'overview'}}}) => {
         if (calcId && uploadId) {
           const calcProps = { calcId: calcId, uploadId: uploadId }
           return (

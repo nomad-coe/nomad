@@ -17,12 +17,13 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Skeleton } from '@material-ui/lab'
 import { Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import { apiContext } from '../api'
 import ApiDialogButton from '../ApiDialogButton'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
 import Structure from '../visualization/Structure'
+import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -45,11 +46,10 @@ const useStyles = makeStyles(theme => ({
     paddingTop: 0
   },
   topCard: {
-    height: '32rem'
   },
-  structureViewer: {
-    height: '25rem',
-    padding: '0'
+  toggle: {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   }
 }))
 
@@ -64,6 +64,7 @@ export default function OverviewView({uploadId, calcId}) {
   const [exists, setExists] = useState(true)
   const [electronicStructure, setElectronicStructure] = useState(null)
   const [reprSys, setReprSys] = useState(null)
+  const [visualization, setVisualization] = useState('original')
 
   // When loaded for the first time, download calc data from the ElasticSearch
   // index.
@@ -201,11 +202,17 @@ export default function OverviewView({uploadId, calcId}) {
                   </Quantity>
                 </Quantity>
               </Quantity>
+              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={visualization} onChange={(event, value) => setVisualization(value)} aria-label="text formatting">
+                <ToggleButton value="conventional" aria-label="conventional">
+                  Conventional
+                </ToggleButton>
+                <ToggleButton value="original" aria-label="original">
+                  Original
+                </ToggleButton>
+              </ToggleButtonGroup>
               {reprSys
-                ? <Structure
-                  system={reprSys}
-                ></Structure>
-                : <Skeleton variant="rect" width={210} height={118} />
+                ? <Structure system={reprSys} aspectRatio={4 / 3}></Structure>
+                : <Placeholder variant="rect" aspectRatio={4 / 3}></Placeholder>
               }
             </CardContent>
           </Card>

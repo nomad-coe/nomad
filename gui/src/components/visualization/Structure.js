@@ -231,6 +231,7 @@ export default function Structure({className, classes, system, options, viewer, 
   }, [])
 
   const content = <Box className={style.container}>
+    <div className={style.viewerCanvas} ref={measuredRef}></div>
     <div className={style.header}>
       {fullscreen && <Typography variant="h6">Structure</Typography>}
       <div className={style.spacer}></div>
@@ -303,7 +304,6 @@ export default function Structure({className, classes, system, options, viewer, 
         </MenuItem>
       </Menu>
     </div>
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
   </Box>
 
   return (
