@@ -16,9 +16,17 @@
 # limitations under the License.
 #
 
-from flask import Blueprint
-import os.path
+'''
+The official NOMAD API.
 
-dist_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../../dist'))
-blueprint = Blueprint('dist', __name__, static_url_path='/', static_folder=dist_folder)
+There is a separate documentation for the API endpoints from a client perspective.
+
+.. automodule:: nomad.app_fastapi.flask.api.api
+.. automodule:: nomad.app_fastapi.flask.api.auth
+.. automodule:: nomad.app_fastapi.flask.api.upload
+.. automodule:: nomad.app_fastapi.flask.api.repo
+.. automodule:: nomad.app_fastapi.flask.api.archive
+'''
+
+from .api import api, blueprint
+from . import info, auth, upload, repo, archive, encyclopedia, raw, mirror, dataset, metainfo

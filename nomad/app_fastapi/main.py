@@ -22,8 +22,8 @@ from fastapi.middleware.wsgi import WSGIMiddleware
 import traceback
 
 from nomad import config, utils
-from nomad.app import app as flask_app
 
+from .flask import app as flask_app
 from .routers import users, entries, auth, datasets
 from .optimade import optimade_app
 

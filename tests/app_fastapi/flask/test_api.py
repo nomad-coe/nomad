@@ -30,22 +30,23 @@ import base64
 import itertools
 from hashlib import md5
 
-from nomad.app.common import rfc3339DateTime
-from nomad.app.api.auth import generate_upload_token
+from nomad.app_fastapi.flask.common import rfc3339DateTime
+from nomad.app_fastapi.flask.api.auth import generate_upload_token
 from nomad import search, files, config, utils, infrastructure
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.datamodel import EntryMetadata, User, Dataset
 
-from tests.conftest import create_auth_headers, clear_elastic, clear_raw_files
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
 from tests.test_search import assert_search_upload
 from tests.processing import test_data as test_processing
-from tests.processing.test_data import oasis_publishable_upload
+from tests.processing.test_data import oasis_publishable_upload  # pylint: disable=unused-import
+from tests.conftest import clear_elastic, clear_raw_files
 
-from tests.app.test_app import BlueprintClient
+from ..conftest import create_auth_headers
+from .test_app import BlueprintClient
 
 logger = utils.get_logger(__name__)
 
@@ -1519,7 +1520,7 @@ class TestEditRepo():
 
     @pytest.fixture(autouse=True)
     def example_data(self, class_api, test_user, other_test_user, raw_files):
-        from tests.app.utils import Upload
+        from .utils import Upload
 
         uploads = {}
         for i in range(1, 4):

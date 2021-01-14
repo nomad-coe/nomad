@@ -16,6 +16,9 @@
 # limitations under the License.
 #
 
+from devtools import debug
+
+
 def assert_response(response, status_code=None):
     ''' General assertions for status_code and error messages '''
     if status_code and response.status_code != status_code:
@@ -36,9 +39,8 @@ def assert_response(response, status_code=None):
         for detail in details:
             assert 'loc' in detail
             assert 'msg' in detail
-        return None
+        return
 
     if 400 <= status_code < 500:
         response_json = response.json()
         assert 'detail' in response_json
-        return None

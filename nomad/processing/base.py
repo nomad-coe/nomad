@@ -528,8 +528,8 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         try:
             self = cls.get(self_id)
         except KeyError as e:
-            from nomad import app
-            if app.app.config['TESTING']:
+            from nomad.app_fastapi import flask
+            if flask.app.config['TESTING']:
                 # This only happens in tests, where it is not always avoidable that
                 # tasks from old test-cases bleed over.
                 raise ProcObjectDoesNotExist()

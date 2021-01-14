@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from typing import List
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime
@@ -23,10 +24,28 @@ from datetime import datetime
 from nomad import infrastructure, config
 from nomad.archive import write_partial_archive_to_mongo
 from nomad.app_fastapi.main import app
-from nomad.datamodel import EntryArchive, EntryMetadata, DFTMetadata
+from nomad.datamodel import EntryArchive, EntryMetadata, DFTMetadata, User
 
-from tests.conftest import clear_raw_files, clear_elastic_infra
-from tests.test_files import create_test_upload_files
+
+def create_auth_headers(user: User):
+    return {
+        'Authorization': 'Bearer %s' % user.user_id
+    }
+
+
+@pytest.fixture(scope='module')
+def test_user_auth(test_user: User):
+    return create_auth_headers(test_user)
+
+
+@pytest.fixture(scope='module')
+def other_test_user_auth(other_test_user: User):
+    return create_auth_headers(other_test_user)
+
+
+@pytest.fixture(scope='module')
+def admin_user_auth(admin_user: User):
+    return create_auth_headers(admin_user)
 
 
 @pytest.fixture(scope='session')
@@ -50,6 +69,8 @@ def example_data(elastic_infra, raw_files_infra, mongo_infra, test_user, other_t
     raw files and archive file for id_02 are missing
     id_10, id_11 reside in the same directory
     '''
+    from tests.conftest import clear_raw_files, clear_elastic_infra
+    from tests.test_files import create_test_upload_files
 
     clear_elastic_infra()
     clear_raw_files()

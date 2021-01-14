@@ -27,7 +27,7 @@ def migrate(mongo_db: str):
     import pymongo
     import sys
     from nomad import config, processing as proc, doi as nomad_doi, datamodel, infrastructure
-    from nomad.app.api.mirror import _upload_data
+    from nomad.app_fastapi.flask.api.mirror import _upload_data
     from nomad.cli.client.mirror import v0Dot7, fix_time, _Dataset
     from bson.json_util import dumps
 

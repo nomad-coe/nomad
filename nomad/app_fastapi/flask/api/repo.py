@@ -31,9 +31,9 @@ from datetime import datetime
 
 from nomad import search, utils, datamodel, processing as proc, infrastructure, files, metainfo
 from nomad.datamodel import Dataset, User, EditableUserMetadata
-from nomad.app import common
-from nomad.app.common import RFC3339DateTime, DotKeyNested
 
+from .. import common
+from ..common import RFC3339DateTime, DotKeyNested
 from .api import api
 from .auth import authenticate
 from .common import search_model, calc_route, add_pagination_parameters,\

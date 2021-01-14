@@ -33,8 +33,8 @@ from nomad.archive import (
     query_archive, ArchiveQueryError, filter_archive, read_partial_archives_from_mongo,
     compute_required_with_referenced)
 from nomad import search, config
-from nomad.app import common
 
+from .. import common
 from .auth import authenticate, create_authorization_predicate
 from .api import api
 from .common import calc_route, streamed_zipfile, search_model, add_search_parameters,\

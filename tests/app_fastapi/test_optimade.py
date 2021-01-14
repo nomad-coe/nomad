@@ -18,11 +18,9 @@
 
 import json
 import pytest
-from fastapi.testclient import TestClient
 
 from nomad.processing import Upload
 from nomad import search
-from nomad.app_fastapi.main import app
 from nomad.app_fastapi.optimade import parse_filter
 
 from tests.conftest import clear_elastic, clear_raw_files
@@ -39,7 +37,7 @@ def test_get_entry(published: Upload):
 
 
 def test_no_optimade(mongo, elastic, raw_files, client):
-    from tests.app.utils import Upload
+    from tests.app_fastapi.flask.utils import Upload
     upload = Upload()
     upload.create_test_structure(1, 2, 1, [], 0)
     upload.create_test_structure(2, 2, 1, [], 0, optimade=False)
@@ -57,7 +55,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    from tests.app.utils import Upload
+    from tests.app_fastapi.flask.utils import Upload
     upload = Upload()
     upload.create_test_structure(1, 2, 1, [], 0)
     upload.create_test_structure(2, 2, 1, ['C'], 0)

@@ -112,6 +112,7 @@ class DatasetCreate(BaseModel):  # type: ignore
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_datasets(
+        dataset_id: str = FastApiQuery(None),
         name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
@@ -120,7 +121,7 @@ async def get_datasets(
     Retrieves all datasets that match the given criteria.
     '''
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(name=name, user_id=user_id, dataset_type=dataset_type)
+    query_params = dict(dataset_id=dataset_id, name=name, user_id=user_id, dataset_type=dataset_type)
     query_params = {k: v for k, v in query_params.items() if v is not None}
     mongodb_query = mongodb_objects(**query_params)
 

@@ -33,8 +33,8 @@ import urllib.parse
 from nomad import search, utils, config
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
-from nomad.app import common
 
+from .. import common
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 from .common import streamed_zipfile, add_search_parameters, apply_search_parameters,\

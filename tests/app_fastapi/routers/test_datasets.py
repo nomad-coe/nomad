@@ -17,12 +17,12 @@
 #
 
 import pytest
-import json
 from urllib.parse import urlencode
+from datetime import datetime
 
 from nomad.datamodel import Dataset
 
-from .test_entries import data as example_entries
+from .test_entries import data as example_entries  # pylint: disable=unused-import
 from .common import assert_response
 
 '''
@@ -39,7 +39,7 @@ to assert for certain aspects in the responses.
 @pytest.fixture(scope='function')
 def data(mongo, test_user, other_test_user):
     def create_dataset(**kwargs):
-        dataset = Dataset(**kwargs)
+        dataset = Dataset(created=datetime.now(), modified=datetime.now(), **kwargs)
         dataset.m_get_annotations('mongo').save()
 
     create_dataset(
@@ -74,27 +74,32 @@ def assert_dataset(dataset, **kwargs):
 
     mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset['dataset_id']).first()
     assert mongo_dataset is not None
-    for key, value in mongo_dataset.items():
-        assert dataset[key] == value
+    for quantity in Dataset.m_def.quantities:
+        if quantity in [Dataset.pid, Dataset.doi]:
+            assert quantity.name not in dataset or dataset[quantity.name] is not None
+        else:
+            assert quantity.name in dataset
+            assert dataset[quantity.name] is not None
 
 
 @pytest.mark.parametrize('query, size, status_code', [
-    pytest.param({}, 3, 200, id='empty'),
+    pytest.param({}, 4, 200, id='empty'),
     pytest.param({'dataset_id': 'dataset_1'}, 1, 200, id='id'),
-    pytest.param({'dataset_type': 'foreign'}, 1, 200, id='type'),
+    pytest.param({'name': 'test dataset 1'}, 1, 200, id='name'),
+    pytest.param({'dataset_type': 'foreign'}, 2, 200, id='type'),
     pytest.param({'dataset_id': 'DOESNOTEXIST'}, 0, 200, id='id-not-exists')
 ])
 def test_datasets(client, data, query, size, status_code):
-    if len(query) == 0:
-        response = client.get('datasets/')
-    else:
-        response = client.get('datasets/?%s' % urlencode(query, doseq=True))
+    url = 'datasets/'
+    if len(query) > 0:
+        url += '?' + urlencode(query, doseq=True)
+    response = client.get(url)
 
-    json_response = assert_response(response, status_code=status_code)
-
-    if json_response is None:
+    assert_response(response, status_code=status_code)
+    if status_code != 200:
         return
 
+    json_response = response.json()
     assert len(json_response['data']) == size
     for dataset in json_response['data']:
         assert_dataset(dataset, **query)
@@ -107,12 +112,11 @@ def test_datasets(client, data, query, size, status_code):
 def test_dataset(client, data, dataset_id, result, status_code):
     response = client.get('datasets/%s' % dataset_id)
 
-    json_response = assert_response(response, status_code=status_code)
-
-    if json_response is None:
+    assert_response(response, status_code=status_code)
+    if status_code != 200:
         return
 
-    assert_dataset(json_response['data'], **result)
+    assert_dataset(response.json()['data'], **result)
 
 
 @pytest.mark.parametrize('name, dataset_type, query, entries, user, status_code', [
@@ -123,7 +127,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
     pytest.param('another test dataset', 'owned', {}, None, 'test_user', 400, id='query'),
     pytest.param('another test dataset', 'owned', None, ['id_01', 'id_02'], 'test_user', 400, id='entries')
 ])
-def test_post_datasets(client, data, example_entries, test_user_auth, name, dataset_type, query, entries, user, status_code):
+def test_post_datasets(client, data, example_entries, test_user, test_user_auth, name, dataset_type, query, entries, user, status_code):
     dataset = {'name': name, 'dataset_type': dataset_type}
     if query is not None:
         dataset['query'] = query
@@ -135,13 +139,14 @@ def test_post_datasets(client, data, example_entries, test_user_auth, name, data
     response = client.post(
         'datasets/', headers=auth, json=dataset)
 
-    json_response = assert_response(response, status_code=status_code)
-    if json_response is None:
+    assert_response(response, status_code=status_code)
+    if status_code != 200:
         return
 
+    json_response = response.json()
     dataset = json_response['data']
     assert_dataset(dataset, user_id=test_user.user_id, name=name, dataset_type=dataset_type)
-    assert Dataset.a_mongo.objects().count() == 3
+    assert Dataset.m_def.a_mongo.objects().count() == 5
 
     if query is not None or entries is not None:
         assert json_response['data']['entries'] is not None
@@ -165,11 +170,11 @@ def test_delete_dataset(client, data, test_user_auth, other_test_user_auth, data
     response = client.delete(
         'datasets/%s' % dataset_id, headers=auth)
 
-    json_response = assert_response(response, status_code=status_code)
-    if json_response is None:
+    assert_response(response, status_code=status_code)
+    if status_code != 200:
         return
 
-    assert Dataset.a_mongo.objects().count() == 2
+    assert Dataset.m_def.a_mongo.objects().count() == 3
 
 
 @pytest.mark.parametrize('dataset_id, user, status_code', [
@@ -178,7 +183,7 @@ def test_delete_dataset(client, data, test_user_auth, other_test_user_auth, data
     pytest.param('dataset_1', 'other_test_user', 401, id='wrong-user'),
     pytest.param('dataset_doi', 'test_user', 400, id='with-doi')
 ])
-def test_assign_doi_dataset(client, data, test_user_auth, other_test_user_auth, dataset_id, user, status_code):
+def test_assign_doi_dataset(client, data, test_user, test_user_auth, other_test_user_auth, dataset_id, user, status_code):
     auth = None
     if user == 'test_user':
         auth = test_user_auth
@@ -187,10 +192,11 @@ def test_assign_doi_dataset(client, data, test_user_auth, other_test_user_auth, 
     response = client.post(
         'datasets/%s/doi' % dataset_id, headers=auth)
 
-    json_response = assert_response(response, status_code=status_code)
-    if json_response is None:
+    assert_response(response, status_code=status_code)
+    if status_code != 200:
         return
 
+    json_response = response.json()
     dataset = json_response['data']
     assert_dataset(dataset, user_id=test_user.user_id)
-    assert dataset.doi is not None
+    assert dataset['doi'] is not None

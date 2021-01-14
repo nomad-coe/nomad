@@ -25,7 +25,7 @@ from nomad import config
 from nomad.cli import cli
 from nomad import processing as proc, infrastructure
 
-from tests.app.test_app import BlueprintClient
+from tests.app_fastapi.flask.test_app import BlueprintClient
 
 silicon_id = "fh3UBjhUVm4nxzeRd2JJuqw5oXYa"
 

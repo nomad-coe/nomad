@@ -21,10 +21,8 @@
 import json
 import pytest
 
-from nomad import config
-
 from tests.utils import assert_log
-from tests.app import resource  # pylint: disable=unused-import
+from . import resource  # pylint: disable=unused-import
 
 
 class BlueprintClient():

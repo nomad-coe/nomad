@@ -16,23 +16,19 @@
 # limitations under the License.
 #
 
-from typing import List
 import pytest
-from devtools import debug
-from datetime import datetime
 from urllib.parse import urlencode
 import zipfile
 import io
 import json
 
-from nomad import config
 from nomad.metainfo.search_extension import search_quantities
 from nomad.app_fastapi.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least
 
 from .common import assert_response
-from tests.app_fastapi.conftest import example_data as data
+from tests.app_fastapi.conftest import example_data as data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized

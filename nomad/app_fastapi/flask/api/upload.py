@@ -34,9 +34,9 @@ from functools import wraps
 from nomad import config, utils, files, search, datamodel
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
-from nomad.app import common
-from nomad.app.common import RFC3339DateTime
 
+from .. import common
+from ..common import RFC3339DateTime
 from .api import api
 from .auth import authenticate, generate_upload_token
 from .common import pagination_request_parser, pagination_model, upload_route, metadata_model
