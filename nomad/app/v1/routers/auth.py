@@ -22,8 +22,10 @@ from pydantic import BaseModel
 
 from nomad import infrastructure
 from nomad.utils import get_logger, strip
-from nomad.app.models import User, HTTPExceptionModel
-from nomad.app.utils import create_responses
+
+from ..common import root_path
+from ..models import User, HTTPExceptionModel
+from ..utils import create_responses
 
 logger = get_logger(__name__)
 
@@ -36,7 +38,7 @@ class Token(BaseModel):
     token_type: str
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token', auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{root_path}/auth/token', auto_error=False)
 
 
 async def get_optional_user(access_token: str = Depends(oauth2_scheme)) -> User:

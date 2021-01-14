@@ -29,8 +29,9 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.app.utils import parameter_dependency_from_model
 from nomad.metainfo.search_extension import metrics, search_quantities
+
+from .utils import parameter_dependency_from_model
 
 
 User = datamodel.User.m_def.a_pydantic.model

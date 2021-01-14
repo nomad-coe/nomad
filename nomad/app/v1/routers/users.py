@@ -18,10 +18,11 @@
 
 from fastapi import Depends, APIRouter, status
 
-from nomad.app.routers.auth import get_required_user
-from nomad.app.models import User, HTTPExceptionModel
-from nomad.app.utils import create_responses
 from nomad.utils import strip
+
+from .auth import get_required_user
+from ..models import User, HTTPExceptionModel
+from ..utils import create_responses
 
 router = APIRouter()
 default_tag = 'users'

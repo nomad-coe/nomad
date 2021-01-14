@@ -23,7 +23,7 @@ import io
 import json
 
 from nomad.metainfo.search_extension import search_quantities
-from nomad.app.models import AggregateableQuantity, Metric
+from nomad.app.v1.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least
 

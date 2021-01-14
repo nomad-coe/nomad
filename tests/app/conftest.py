@@ -50,7 +50,7 @@ def admin_user_auth(admin_user: User):
 
 @pytest.fixture(scope='session')
 def client():
-    return TestClient(app, base_url='http://testserver/api/v1/')
+    return TestClient(app, base_url='http://testserver/')
 
 
 @pytest.fixture(scope='module')
