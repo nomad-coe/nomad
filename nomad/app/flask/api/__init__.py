@@ -21,11 +21,11 @@ The official NOMAD API.
 
 There is a separate documentation for the API endpoints from a client perspective.
 
-.. automodule:: nomad.app_fastapi.flask.api.api
-.. automodule:: nomad.app_fastapi.flask.api.auth
-.. automodule:: nomad.app_fastapi.flask.api.upload
-.. automodule:: nomad.app_fastapi.flask.api.repo
-.. automodule:: nomad.app_fastapi.flask.api.archive
+.. automodule:: nomad.app.flask.api.api
+.. automodule:: nomad.app.flask.api.auth
+.. automodule:: nomad.app.flask.api.upload
+.. automodule:: nomad.app.flask.api.repo
+.. automodule:: nomad.app.flask.api.archive
 '''
 
 from .api import api, blueprint

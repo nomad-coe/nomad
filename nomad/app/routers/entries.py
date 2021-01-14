@@ -29,9 +29,9 @@ from nomad.utils import strip
 from nomad.archive import (
     query_archive, ArchiveQueryError, compute_required_with_referenced,
     read_partial_archives_from_mongo, filter_archive)
-from nomad.app_fastapi.utils import create_streamed_zipfile, File, create_responses
-from nomad.app_fastapi.routers.auth import get_optional_user
-from nomad.app_fastapi.models import (
+from nomad.app.utils import create_streamed_zipfile, File, create_responses
+from nomad.app.routers.auth import get_optional_user
+from nomad.app.models import (
     Pagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
     EntryMetadataResponse, query_parameters, metadata_required_parameters, Files, Query,
     pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,

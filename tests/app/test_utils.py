@@ -22,7 +22,7 @@ import zipfile
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata
-from nomad.app_fastapi.utils import create_streamed_zipfile, File
+from nomad.app.utils import create_streamed_zipfile, File
 
 from tests.conftest import clear_raw_files
 from tests.test_files import create_test_upload_files

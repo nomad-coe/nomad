@@ -29,7 +29,7 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.app_fastapi.utils import parameter_dependency_from_model
+from nomad.app.utils import parameter_dependency_from_model
 from nomad.metainfo.search_extension import metrics, search_quantities
 
 

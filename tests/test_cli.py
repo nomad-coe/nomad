@@ -28,10 +28,10 @@ from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
 
-from tests.app_fastapi.flask.test_app import BlueprintClient
-from tests.app_fastapi.flask.conftest import (  # pylint: disable=unused-import
+from tests.app.flask.test_app import BlueprintClient
+from tests.app.flask.conftest import (  # pylint: disable=unused-import
     test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
-from tests.app_fastapi.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
+from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
 
 # TODO there is much more to test
 

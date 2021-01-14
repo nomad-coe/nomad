@@ -18,9 +18,9 @@
 
 from fastapi import Depends, APIRouter, status
 
-from nomad.app_fastapi.routers.auth import get_required_user
-from nomad.app_fastapi.models import User, HTTPExceptionModel
-from nomad.app_fastapi.utils import create_responses
+from nomad.app.routers.auth import get_required_user
+from nomad.app.models import User, HTTPExceptionModel
+from nomad.app.utils import create_responses
 from nomad.utils import strip
 
 router = APIRouter()

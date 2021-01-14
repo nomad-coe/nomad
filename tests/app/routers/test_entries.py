@@ -23,12 +23,12 @@ import io
 import json
 
 from nomad.metainfo.search_extension import search_quantities
-from nomad.app_fastapi.models import AggregateableQuantity, Metric
+from nomad.app.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least
 
 from .common import assert_response
-from tests.app_fastapi.conftest import example_data as data  # pylint: disable=unused-import
+from tests.app.conftest import example_data as data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized

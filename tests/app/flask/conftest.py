@@ -19,7 +19,7 @@
 import pytest
 from bravado.client import SwaggerClient
 
-from nomad.app_fastapi.flask import app as flask_app
+from nomad.app.flask import app as flask_app
 
 from .bravado import FlaskTestHttpClient
 from ..conftest import admin_user_auth, test_user_auth  # pylint: disable=unused-import

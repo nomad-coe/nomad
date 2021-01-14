@@ -27,9 +27,9 @@ from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
 
-from nomad.app_fastapi.routers.auth import get_required_user
-from nomad.app_fastapi.utils import create_responses
-from nomad.app_fastapi.models import (
+from nomad.app.routers.auth import get_required_user
+from nomad.app.utils import create_responses
+from nomad.app.models import (
     pagination_parameters, Pagination, PaginationResponse, Query,
     HTTPExceptionModel, User, Direction, Owner)
 

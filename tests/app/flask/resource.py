@@ -23,7 +23,7 @@ error handling, etc.
 
 from flask_restplus import Resource
 
-from nomad.app_fastapi.flask.api.api import api
+from nomad.app.flask.api.api import api
 
 
 ns = api.namespace('test', description='Only used for tests.')

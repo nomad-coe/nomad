@@ -7,7 +7,7 @@ import importlib
 os.environ['OPTIMADE_CONFIG_FILE'] = os.path.join(os.path.dirname(__file__), 'optimade_config.json')
 
 # patch optimade logger (patched module most be outside this module to force import before optimade)
-sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app_fastapi.optimade_logger')
+sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app.optimade_logger')
 
 # patch optimade base path
 from nomad import config, utils  # nopep8

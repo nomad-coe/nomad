@@ -21,10 +21,10 @@ from datetime import datetime
 
 from nomad import infrastructure, config
 from nomad.datamodel import EntryMetadata
-from nomad.app_fastapi.flask.dcat.mapping import Mapping
+from nomad.app.flask.dcat.mapping import Mapping
 
 from tests.conftest import clear_elastic
-from tests.app_fastapi.flask.test_app import BlueprintClient
+from tests.app.flask.test_app import BlueprintClient
 
 
 @pytest.fixture(scope='session')

@@ -31,8 +31,8 @@ from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.app_fastapi.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
-from tests.app_fastapi.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
+from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
+from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
 
 
 def test_send_mail(mails, monkeypatch):

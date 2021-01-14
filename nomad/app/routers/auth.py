@@ -22,8 +22,8 @@ from pydantic import BaseModel
 
 from nomad import infrastructure
 from nomad.utils import get_logger, strip
-from nomad.app_fastapi.models import User, HTTPExceptionModel
-from nomad.app_fastapi.utils import create_responses
+from nomad.app.models import User, HTTPExceptionModel
+from nomad.app.utils import create_responses
 
 logger = get_logger(__name__)
 

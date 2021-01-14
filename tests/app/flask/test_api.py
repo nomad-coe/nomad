@@ -30,8 +30,8 @@ import base64
 import itertools
 from hashlib import md5
 
-from nomad.app_fastapi.flask.common import rfc3339DateTime
-from nomad.app_fastapi.flask.api.auth import generate_upload_token
+from nomad.app.flask.common import rfc3339DateTime
+from nomad.app.flask.api.auth import generate_upload_token
 from nomad import search, files, config, utils, infrastructure
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles

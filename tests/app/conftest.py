@@ -23,7 +23,7 @@ from datetime import datetime
 
 from nomad import infrastructure, config
 from nomad.archive import write_partial_archive_to_mongo
-from nomad.app_fastapi.main import app
+from nomad.app.main import app
 from nomad.datamodel import EntryArchive, EntryMetadata, DFTMetadata, User
 
 

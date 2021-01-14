@@ -11,7 +11,7 @@ consult our *swagger* dashboards:
 Summary
 -------
 
-.. qrefflask:: nomad.app_fastapi.flask:app
+.. qrefflask:: nomad.app.flask:app
   :undoc-static:
 
 
@@ -19,5 +19,5 @@ Summary
 API(s) Details
 --------------
 
-.. autoflask:: nomad.app_fastapi.flask:app
+.. autoflask:: nomad.app.flask:app
   :undoc-static:
