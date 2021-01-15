@@ -230,6 +230,7 @@ export default function BrillouinZone({className, classes, options, viewer, data
   }, [])
 
   const content = <Box className={style.container}>
+    <div className={style.viewerCanvas} ref={measuredRef}></div>
     <div className={style.header}>
       {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
       <div className={style.spacer}></div>
@@ -250,7 +251,6 @@ export default function BrillouinZone({className, classes, options, viewer, data
         </IconButton>
       </Tooltip>
     </div>
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
   </Box>
 
   return (

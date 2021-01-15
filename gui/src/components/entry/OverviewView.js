@@ -17,11 +17,12 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
+import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
+import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import { apiContext } from '../api'
-import ApiDialogButton from '../ApiDialogButton'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
+import ApiDialogButton from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
 import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
@@ -32,6 +33,7 @@ import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 import { authorList, convertSI } from '../../utils'
 import _ from 'lodash'
+
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
 const useStyles = makeStyles(theme => ({
@@ -46,10 +48,15 @@ const useStyles = makeStyles(theme => ({
     paddingTop: 0
   },
   topCard: {
+    height: '32rem'
   },
   toggle: {
-    marginTop: theme.spacing(1),
     marginBottom: theme.spacing(1)
+  },
+  structure: {
+    marginTop: theme.spacing(1),
+    width: '100%',
+    height: '20rem'
   }
 }))
 
@@ -63,14 +70,15 @@ export default function OverviewView({uploadId, calcId}) {
   const [repo, setRepo] = useState(null)
   const [exists, setExists] = useState(true)
   const [electronicStructure, setElectronicStructure] = useState(null)
-  const [reprSys, setReprSys] = useState(null)
-  const [visualization, setVisualization] = useState('original')
+  const [shownSystem, setShownSystem] = useState('original')
+  const [structures, setStructures] = useState(null)
 
   // When loaded for the first time, download calc data from the ElasticSearch
   // index.
   useEffect(() => {
     api.repo(uploadId, calcId).then(data => {
-      console.log('Loaded repo!')
+      // console.log('Loaded repo!')
+      // console.log(data)
       setRepo(data)
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
@@ -87,7 +95,9 @@ export default function OverviewView({uploadId, calcId}) {
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
     api.archive(uploadId, calcId).then(data => {
-      console.log('Loaded archive!')
+      // console.log('Loaded archive!')
+      // console.log(data)
+      let structs = new Map()
 
       // Figure out what properties are present by looping over the SCCS. This
       // information will eventually be directly available in the ES index.
@@ -122,16 +132,31 @@ export default function OverviewView({uploadId, calcId}) {
       for (let i = systems.length - 1; i > -1; --i) {
         const sys = systems[i]
         if (!reprSys && sys.is_representative) {
-          reprSys = {
+          const reprSys = {
             'species': sys.atom_species,
             'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
             'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
             'pbc': sys.configuration_periodic_dimensions
           }
+          structs['original'] = reprSys
           break
         }
       }
-      setReprSys(reprSys)
+
+      // Get the conventional (=normalized) system, if present
+      let idealSys = data?.section_metadata?.encyclopedia?.material?.idealized_structure
+      if (idealSys) {
+        const ideal = {
+          'species': idealSys.atom_labels,
+          'cell': idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+          'positions': idealSys.atom_positions,
+          'fractional': true,
+          'pbc': idealSys.periodicity
+        }
+        structs['conventional'] = ideal
+      }
+
+      setStructures(structs)
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
         setExists(false)
@@ -139,34 +164,13 @@ export default function OverviewView({uploadId, calcId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setExists, setElectronicStructure, setReprSys])
+  }, [api, raiseError, uploadId, calcId, setExists, setElectronicStructure, setStructures])
 
   const calcData = repo || {uploadId: uploadId, calcId: calcId}
   const loadingRepo = !repo
   const quantityProps = {data: calcData, loading: loadingRepo}
-
   const authors = loadingRepo ? null : calcData.authors
   const domain = calcData.domain && domains[calcData.domain]
-
-  const {data} = repo || {uploadId: uploadId, calcId: calcId}
-  const material_name = entry => {
-    let name
-    try {
-      name = entry.encyclopedia.material.material_name
-    } catch {}
-    name = name || 'unnamed'
-
-    if (encyclopediaEnabled && data?.encyclopedia?.material?.material_id && data.published && !data.with_embargo) {
-      const url = `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
-      return (
-        <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
-          <Link href={url}>{name}</Link>
-        </Tooltip>
-      )
-    } else {
-      return name
-    }
-  }
 
   if (!exists) {
     return <EntryPageContent className={classes.root} fixed>
@@ -184,14 +188,19 @@ export default function OverviewView({uploadId, calcId}) {
           <Card className={classes.topCard}>
             <CardHeader
               title="Material"
-              action={<ApiDialogButton title="Repository JSON" data={calcData} />}
+              action={encyclopediaEnabled && repo?.encyclopedia?.material?.material_id
+                ? <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
+                  <IconButton href={`${appBase}/encyclopedia/#/material/${repo.encyclopedia.material.material_id}`}><ArrowForwardIcon/></IconButton>
+                </Tooltip>
+                : null
+              }
             />
             <CardContent classes={{root: classes.cardContent}}>
               <Quantity column>
                 <Quantity row>
                   <Quantity quantity="formula" label='formula' noWrap data={repo}/>
                   <Quantity quantity="dft.system" label='material type' noWrap data={repo}/>
-                  <Quantity quantity={material_name} label='material name' noWrap data={repo}/>
+                  <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={repo}/>
                 </Quantity>
                 <Quantity row>
                   <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={repo}/>
@@ -202,17 +211,19 @@ export default function OverviewView({uploadId, calcId}) {
                   </Quantity>
                 </Quantity>
               </Quantity>
-              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={visualization} onChange={(event, value) => setVisualization(value)} aria-label="text formatting">
-                <ToggleButton value="conventional" aria-label="conventional">
-                  Conventional
-                </ToggleButton>
-                <ToggleButton value="original" aria-label="original">
-                  Original
-                </ToggleButton>
-              </ToggleButtonGroup>
-              {reprSys
-                ? <Structure system={reprSys} aspectRatio={4 / 3}></Structure>
-                : <Placeholder variant="rect" aspectRatio={4 / 3}></Placeholder>
+              {structures
+                ? <Box className={classes.structure}>
+                  <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
+                    <ToggleButton value="original" aria-label="original">
+                    Original
+                    </ToggleButton>
+                    <ToggleButton value="conventional" aria-label="conventional">
+                    Conventional
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                  <Structure system={structures[shownSystem]} aspectRatio={4 / 3} options={{view: {fitMargin: 0.75}}}></Structure>
+                </Box>
+                : <Placeholder className={classes.structure} variant="rect"></Placeholder>
               }
             </CardContent>
           </Card>
@@ -220,18 +231,34 @@ export default function OverviewView({uploadId, calcId}) {
 
         <Grid item xs={4}>
           <Card className={classes.topCard}>
-            <CardHeader
-              title="Method"
-              action={<ApiDialogButton title="Repository JSON" data={calcData} />}
-            />
+            <CardHeader title="Method"/>
             <CardContent classes={{root: classes.cardContent}}>
               <Quantity row>
-                <Quantity quantity="dft.code_name" label='dft code' noWrap data={repo}/>
-                <Quantity quantity="dft.code_version" label='dft code version' noWrap data={repo}/>
+                <Quantity quantity="dft.code_name" label='code name' noWrap data={repo}/>
+                <Quantity quantity="dft.code_version" label='code version' noWrap data={repo}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="dft.basis_set" label='basis set' noWrap data={repo}/>
+                <Quantity quantity="dft.electronic_structure_method" label='electronic structure method' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.restricted" label='restricted' noWrap data={repo}/>
+                <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
                 <Quantity quantity="dft.xc_functional" label='xc functional' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
+                <Quantity quantity="dft.cutoff" label='plane wave cutoff' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.pseudopotential" label='pseudopotential' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.vdw_method" label='vdw method' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.relativistic" label='relativistic' noWrap data={repo}/>
               </Quantity>
             </CardContent>
           </Card>
@@ -239,8 +266,11 @@ export default function OverviewView({uploadId, calcId}) {
 
         <Grid item xs={4}>
           <Card className={classes.topCard}>
-            <CardHeader title="Entry" />
-            <CardContent>
+            <CardHeader
+              title="Entry"
+              action={<ApiDialogButton title="Repository JSON" data={calcData} />}
+            />
+            <CardContent classes={{root: classes.cardContent}}>
               <Quantity column>
                 <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
                 <Quantity quantity='references' placeholder='no references' {...quantityProps}>
@@ -290,7 +320,7 @@ export default function OverviewView({uploadId, calcId}) {
                 title="Electronic properties"
               />
               <CardContent classes={{root: classes.cardContent}}>
-                <Box style={{width: '100%', height: '35rem', margin: '0 1rem'}}>
+                <Box style={{margin: '1rem auto 0 auto', width: '95%', height: '36rem'}}>
                   <ElectronicStructureOverview
                     data={electronicStructure}>
                   </ElectronicStructureOverview>

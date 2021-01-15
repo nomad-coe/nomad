@@ -26,10 +26,8 @@ import PropTypes from 'prop-types'
  */
 export default function Placeholder(props) {
   // If aspect ratio is provided, use it to determine width and height
-
   const {aspectRatio, ...other} = props
   const useStyles = makeStyles(props => {
-    console.log(props)
     if (aspectRatio) {
       return {
         skeletonContainer: {

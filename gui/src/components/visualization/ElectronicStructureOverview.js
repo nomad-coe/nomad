@@ -18,10 +18,13 @@
 import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import {
-  Box
+  Box,
+  Typography
 } from '@material-ui/core'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
+import BrillouinZone from './BrillouinZone'
+import Placeholder from '../visualization/Placeholder'
 import { RecoilRoot } from 'recoil'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
@@ -46,6 +49,9 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
         alignItems: 'center',
         width: '100%',
         height: '100%'
+      },
+      bz: {
+        flex: '0 0 25%'
       },
       bs: {
         flex: '0 0 50%'
@@ -78,36 +84,50 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
   return (
     <RecoilRoot>
       <Box className={style.row}>
-        {/* <BrillouinZone
-          className={style.bz}
-          data={bs}
-          aspectRatio={1}
-        ></BrillouinZone> */}
+        {data.bs
+          ? <Box className={style.bz}>
+            <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
+            {data?.bs?.section_k_band
+              ? <BrillouinZone
+                data={data.bs.section_k_band}
+                aspectRatio={0.5}
+              ></BrillouinZone>
+              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
+            }
+          </Box>
+          : null
+        }
         {data.bs
           ? <Box className={style.bs}>
-            {/* <Typography variant="subtitle1" align='center'>Band structure</Typography> */}
-            <BandStructure
-              data={data.bs.section_k_band}
-              layout={bsLayout}
-              resetLayout={bsResetLayout}
-              aspectRatio={1}
-              unitsState={unitsState}
-              onRelayouting={handleBSRelayouting}
-            ></BandStructure>
+            <Typography variant="subtitle1" align='center'>Band structure</Typography>
+            {data?.bs?.section_k_band
+              ? <BandStructure
+                data={data.bs.section_k_band}
+                layout={bsLayout}
+                resetLayout={bsResetLayout}
+                aspectRatio={1.0}
+                unitsState={unitsState}
+                onRelayouting={handleBSRelayouting}
+              ></BandStructure>
+              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
+            }
           </Box>
           : null
         }
         {data.dos
           ? <Box className={style.dos}>
-            {/* <Typography variant="subtitle1" align='center'>Density of states</Typography> */}
-            <DOS
-              data={data.dos.section_dos}
-              layout={dosLayout}
-              resetLayout={dosResetLayout}
-              aspectRatio={0.5}
-              onRelayouting={handleDOSRelayouting}
-              unitsState={unitsState}
-            ></DOS>
+            <Typography variant="subtitle1" align='center'>Density of states</Typography>
+            {data?.dos?.section_dos
+              ? <DOS
+                data={data.dos.section_dos}
+                layout={dosLayout}
+                resetLayout={dosResetLayout}
+                aspectRatio={0.5}
+                onRelayouting={handleDOSRelayouting}
+                unitsState={unitsState}
+              ></DOS>
+              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
+            }
           </Box>
           : null
         }

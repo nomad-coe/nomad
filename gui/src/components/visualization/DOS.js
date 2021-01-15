@@ -33,7 +33,6 @@ export default function DOS({data, layout, resetLayout, aspectRatio, className, 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
     let defaultLayout = {
-      title: {text: 'Density of states'},
       yaxis: {
         title: {
           text: `Energy (${convertSILabel('joule', units)})`

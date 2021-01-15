@@ -37,7 +37,12 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import { mergeObjects } from '../../utils'
 
+/**
+ * Used to show atomistic systems in an interactive 3D viewer based on the
+ * 'materia'-library.
+ */
 export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -133,7 +138,7 @@ export default function Structure({className, classes, system, options, viewer, 
         }
       }
     } else {
-      viewerOptions = options
+      viewerOptions = mergeObjects(options, viewerOptions)
     }
     if (viewer === undefined) {
       refViewer.current = new StructureViewer(undefined, viewerOptions)
@@ -147,7 +152,8 @@ export default function Structure({className, classes, system, options, viewer, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Called only on first render to load the given structure.
+  // Called whenever the given system changes. If positionsOnly is true, only
+  // updates the positions. Otherwise reloads the entire structure.
   useEffect(() => {
     if (system === undefined) {
       return
@@ -191,8 +197,9 @@ export default function Structure({className, classes, system, options, viewer, 
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    console.log('Changed')
+    console.log(system)
+  }, [system, positionsOnly])
 
   // Viewer settings
   useEffect(() => {
@@ -317,7 +324,7 @@ Structure.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   viewer: PropTypes.object, // Optional shared viewer instance.
-  system: PropTypes.object, // The system to display as section_system
+  system: PropTypes.object, // The system to display in the native materia-format
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
