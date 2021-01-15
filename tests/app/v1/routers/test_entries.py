@@ -549,6 +549,8 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
     pytest.param({'exclude': ['upload_id']}, 200, id='exclude'),
     pytest.param({'exclude': ['missspelled', 'upload_id']}, 422, id='bad-quantitiy'),
     pytest.param({'exclude': ['calc_id']}, 200, id='exclude-id'),
+    pytest.param({'exclude': ['dft.optimade']}, 200, id='exclude-sub-section'),
+    pytest.param({'exclude': ['files', 'dft.optimade', 'dft.quantities']}, 200, id='exclude-multiple'),
     pytest.param({'include': ['upload_id']}, 200, id='include-id')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])

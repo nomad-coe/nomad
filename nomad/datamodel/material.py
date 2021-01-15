@@ -137,7 +137,7 @@ class Properties(MSection):
         """,
         a_search=Search()
     )
-    energies = SubSection(sub_section=Energies.m_def, repeats=False, a_search='energies')
+    energies = SubSection(sub_section=Energies.m_def, repeats=False, a_search=Search())
     has_electronic_band_structure = Quantity(
         type=bool,
         shape=[],

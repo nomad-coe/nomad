@@ -29,7 +29,7 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.metainfo.search_extension import metrics, search_quantities
+from nomad.metainfo.search_extension import metrics, search_quantities, search_sub_sections
 
 from .utils import parameter_dependency_from_model
 
@@ -416,8 +416,8 @@ class MetadataRequired(BaseModel):
             return None
 
         for item in value:
-            assert item in search_quantities or item[-1] == '*', \
-                'required fields must be valid search quantities or contain wildcards'
+            assert item in search_quantities or item in search_sub_sections or item[-1] == '*', \
+                f'required fields ({item}) must be valid search quantities or contain wildcards'
 
         if field.name == 'include' and 'calc_id' not in value:
             value.append('calc_id')

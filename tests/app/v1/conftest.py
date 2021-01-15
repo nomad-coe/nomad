@@ -24,5 +24,4 @@ from nomad.app.main import app
 
 @pytest.fixture(scope='session')
 def client():
-    print('###')
     return TestClient(app, base_url='http://testserver/api/v1/')

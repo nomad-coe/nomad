@@ -162,14 +162,17 @@ class ElasticDocument(SectionAnnotation):
             inner_document = ElasticDocument.create_document(
                 sub_section.sub_section, prefix=sub_section_prefix, index_name=index_name, root=False)
             if inner_document is not None:
-                try:
-                    if sub_section.a_search.nested:
+                for annotation in sub_section.m_get_annotations(Elastic, as_list=True):
+                    if annotation.nested:
                         assert sub_section.repeats, (
                             "Nested fields should be repeatable. If the subsection cannot be repeated, "
                             "define it as unnested instead."
                         )
                         attrs[sub_section.name] = Nested(inner_document)
-                except AttributeError:
+
+                    annotation.register(prefix, annotation.field, index_name)
+
+                if sub_section.name not in attrs:
                     attrs[sub_section.name] = Object(inner_document)
 
         # create an field for each quantity

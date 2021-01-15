@@ -240,7 +240,7 @@ class DFTMetadata(MSection):
     labels = SubSection(
         sub_section=Label, repeats=True, categories=[FastAccess],
         description='The labels taken from AFLOW prototypes and springer.',
-        a_search='labels')
+        a_search=Search())
 
     labels_springer_compound_class = Quantity(
         type=str, shape=['0..*'],
@@ -259,7 +259,7 @@ class DFTMetadata(MSection):
     optimade = SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
-        a_search='optimade')
+        a_search=Search())
 
     workflow = Quantity(type=Workflow, a_search=Search())
 

@@ -1176,7 +1176,7 @@ class TestRepo():
             assert value in statistics['dft.system']
 
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?exclude=atoms,only_atoms')
+        rv = api.get('/repo/?exclude=atoms,only_atoms,dft.optimade,dft.quantities')
         assert rv.status_code == 200
         result = search.flat(json.loads(rv.data)['results'][0])
         assert 'atoms' not in result
