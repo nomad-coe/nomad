@@ -20,15 +20,19 @@
 API for retrieving material information.
 """
 import re
+import os
 import math
 import numpy as np
+from typing import List
 from collections import defaultdict
 
 from flask_restplus import Resource, abort, fields, marshal
 from flask import request, g
-from elasticsearch_dsl import Search, Q, A
+from elasticsearch_dsl import Search, Q, A, Text, Keyword, Boolean
+from elasticsearch_dsl.query import Bool, Nested
 from elasticsearch_dsl.utils import AttrDict
 import ase.data
+from lark import Lark
 
 from nomad import config, infrastructure, search
 from nomad.files import UploadFiles
@@ -36,11 +40,17 @@ from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.material import Material, Bulk, Method
+from .materialtransformer import MElasticTransformer, MQuantity
 from .api import api
 from .auth import authenticate, create_authorization_predicate
 
 ns = api.namespace("encyclopedia", description="Access materials data.")
 missing_material_msg = "The specified material {} could not be retrieved. It either does not exists or requires authentication."
+re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
+
+# Parse using slightly modified Optimade grammar
+with open("{}/encyclopedia_grammar.lark".format(os.path.dirname(__file__)), "r") as f:
+    parser = Lark(f)
 
 
 class MaterialAccessError(Exception):
@@ -55,9 +65,9 @@ class MaterialSearch():
     def __init__(self):
         self._s = Search(index=config.elastic.materials_index_name)
         self._filters = []
-        self._musts = []
         self._extra = {}
-        self._authenticated = False
+        self._q = None
+        self.restricted = False
 
     def add_material_filter(self, query):
         """Adds material based filters.
@@ -69,25 +79,18 @@ class MaterialSearch():
         """
         self._s.aggs.bucket(name, aggregation)
 
-    def add_material_must(self, query):
-        """Adds material based must query.
-        """
-        self._musts.append(query)
-
     def add_calculation_filter(self, queries):
         """Adds calculation based filters. The visibility of calculations is
         automatically checked.
         """
         if not isinstance(queries, (list, tuple)):
             queries = [queries]
-        filters = self.get_authentication_filters_nested() + queries
         nested_bool = Q(
             "bool",
-            filter=filters,
+            filter=queries,
         )
         nested_query = Q("nested", path="calculations", query=nested_bool)
-        self._musts.append(nested_query)
-        self._authenticated = True
+        self._filters.append(nested_query)
 
     def includes(self, includes):
         self._extra["_source"] = {"includes": includes}
@@ -99,19 +102,94 @@ class MaterialSearch():
         self._extra = extra
 
     def s(self):
-        # If no authentication filters have been added already, add them now.
-        if not self._authenticated:
-            self._musts.append(Q(
-                "nested",
-                path="calculations",
-                query=Q("bool", filter=self.get_authentication_filters_nested()),
-            ))
-            self._authenticated = True
-        query = Q(
-            "bool",
-            filter=self._filters,
-            must=self._musts,
-        )
+        if self._q is None:
+            query = Q(
+                "bool",
+                filter=self._filters,
+            )
+        else:
+            query = self._q
+
+        # If restricted search is enabled, the order of nested/boolean queries
+        # will be reversed depth-first.
+        if self.restricted:
+            def restrict(query):
+                if isinstance(query, Bool):
+                    # First restrict all inner queries, only after which the
+                    # current query is restricted (=depth-first)
+                    query.must = [q if isinstance(q, Nested) else restrict(q) for q in query.must]
+                    query.filter = [q if isinstance(q, Nested) else restrict(q) for q in query.filter]
+                    query.should = [q if isinstance(q, Nested) else restrict(q) for q in query.should]
+                    query.must_not = [q if isinstance(q, Nested) else restrict(q) for q in query.must_not]
+
+                    musts = [q.query if isinstance(q, Nested) else q for q in query.must]
+                    filters = [q.query if isinstance(q, Nested) else q for q in query.filter]
+                    shoulds = [q.query if isinstance(q, Nested) else q for q in query.should]
+                    must_nots = [q.query if isinstance(q, Nested) else q for q in query.must_not]
+
+                    inner_q = Q(
+                        "bool",
+                        filter=filters,
+                        should=shoulds,
+                        must=musts,
+                        must_not=must_nots,
+                    )
+                    if len(shoulds) != 0:
+                        inner_q.minimum_should_match = 1
+                    outer_q = Q("nested", path="calculations", query=inner_q)
+                    return outer_q
+                else:
+                    return query
+            query = restrict(query)
+
+        # Wrap the query in a boolean query if it is not already one.
+        if not isinstance(query, Bool):
+            query = Q("bool", filter=[query])
+
+        # Add authentication filters on top of the query. This will make sure
+        # that materials with only private calculations are excluded and that
+        # private calculations are ignored in queries concerning calculations.
+        def add_authentication(q):
+            if isinstance(q, Nested):
+                if q.path == "calculations":
+                    nested_query = q.query
+                    if not isinstance(nested_query, Bool):
+                        nested_query = Q("bool", filter=[nested_query])
+                    auth_filters = get_authentication_filters_material()
+                    nested_query.filter.extend(auth_filters)
+                    q.query = nested_query
+            elif isinstance(q, Bool):
+                for f in q.must:
+                    add_authentication(f)
+                for f in q.filter:
+                    add_authentication(f)
+                for f in q.should:
+                    add_authentication(f)
+                for f in q.must_not:
+                    add_authentication(f)
+        add_authentication(query)
+
+        # This makes sure that materials with only private entries are always excluded
+        query.filter.append(Q("nested", path="calculations", query=Q("bool", filter=get_authentication_filters_material())))
+
+        # Enforce that all 'should' queries correspond to traditional 'or'
+        # queries by enforcing minimum_should_match=1.
+        def should_to_or(q):
+            if isinstance(q, Bool):
+                for f in q.must:
+                    should_to_or(f)
+                for f in q.filter:
+                    should_to_or(f)
+                for f in q.should:
+                    should_to_or(f)
+                for f in q.must_not:
+                    should_to_or(f)
+                if q.should:
+                    q.minimum_should_match = 1
+            if isinstance(q, Nested):
+                should_to_or(q.query)
+        should_to_or(query)
+
         s = self._s.query(query)
         extra = self._extra
         s = s.extra(**extra)
@@ -120,23 +198,6 @@ class MaterialSearch():
     def execute(self):
         s = self.s()
         return s.execute()
-
-    def get_authentication_filters_nested(self):
-        """Returns a shared term filter that will leave out unpublished (of
-        other users) or embargoed materials.
-        """
-        # Handle authentication
-        filters = []
-        if g.user is not None:
-            q = Q('term', calculations__published=True) & Q('term', calculations__with_embargo=False)
-            if g.user.user_id is not None:
-                q = q | Q('term', calculations__owners=g.user.user_id)
-            filters.append(q)
-        else:
-            q = Q('term', calculations__published=True) & Q('term', calculations__with_embargo=False)
-            filters.append(q)
-
-        return filters
 
     def calculations(self):
         """Executes the query and returns a list of visible calculations
@@ -181,8 +242,69 @@ class MaterialSearch():
                 visible_calcs.append(calc)
         return visible_calcs
 
+    def from_query_string(self, query_string: str, restricted: bool) -> None:
+        """Initializes this MaterialSearch instance from the specified search
+        string.
 
-def get_authentication_filters():
+        Args:
+            query_string: The query string. E.g. 'crystal_system="cubic" AND
+                material_type="bulk"'
+            restricted: Whether the nested searches concerning calculations are
+                combined or not.
+        """
+        try:
+            parse_tree = parser.parse(query_string)
+        except Exception as e:
+            abort(400, message=(
+                "Invalid query string: {}".format(e)
+            ))
+
+        # Transform parse tree into ES Query
+        quantities: List[MQuantity] = [
+            # Material level quantities
+            MQuantity("elements", es_field="species", elastic_mapping_type=Text, has_only_quantity=MQuantity(name="species.keyword")),
+            MQuantity("formula", es_field="formula_reduced", elastic_mapping_type=Keyword, converter=lambda x: "".join(query_from_formula(x).split())),
+            MQuantity("material_id", es_field="material_id", elastic_mapping_type=Keyword),
+            MQuantity("material_type", es_field="material_type", elastic_mapping_type=Keyword),
+            MQuantity("material_name", es_field="material_name", elastic_mapping_type=Keyword),
+            MQuantity("crystal_system", es_field="bulk.crystal_system", elastic_mapping_type=Keyword),
+            MQuantity("space_group_number", es_field="bulk.space_group_number", elastic_mapping_type=Keyword),
+            MQuantity("structure_type", es_field="bulk.structure_type", elastic_mapping_type=Keyword),
+            # Calculation level (nested) quantities
+            MQuantity("functional_type", es_field="calculations.method.functional_type", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("basis_set", es_field="calculations.method.basis_set", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("code_name", es_field="calculations.method.program_name", elastic_mapping_type=Keyword, nested_path="calculations"),
+            MQuantity("has_band_structure", es_field="calculations.properties.has_electronic_band_structure", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("has_dos", es_field="calculations.properties.has_electronic_dos", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("has_thermal_properties", es_field="calculations.properties.has_thermodynamical_properties", elastic_mapping_type=Boolean, nested_path="calculations"),
+            MQuantity("band_gap", es_field="calculations.properties.band_gap", elastic_mapping_type=Keyword, nested_path="calculations", converter=lambda x: (x * ureg.eV).to(ureg.joule).magnitude),
+        ]
+        transformer = MElasticTransformer(quantities)
+        try:
+            query = transformer.transform(parse_tree)
+        except Exception as e:
+            abort(400, message=(
+                "Invalid query string: {}".format(e)
+            ))
+
+        self.restricted = restricted
+        self._q = query
+
+
+def get_authentication_filters_material():
+    """Returns a list of queries that when placed inside a filter will leave
+    out unpublished (of other users) or embargoed materials.
+    """
+    # Handle authentication
+    filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
+    if g.user is not None and g.user.user_id is not None:
+        q = filters[0] & filters[1]
+        q = q | Q('term', calculations__owners=g.user.user_id)
+        return [q]
+    return filters
+
+
+def get_authentication_filters_calc():
     """Returns a shared term filter that will leave out unpublished (of other
     users), embargoed or invalid entries in the calculations index.
     """
@@ -269,6 +391,70 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
     return root
 
 
+def query_from_formula(formula: str) -> str:
+    """Converts a formula into the corresponding element query.
+
+    Args:
+        formula: The requested formula.
+
+    Returns:
+        elasticsearch_dsl Query object.
+    """
+    element_list = []
+    matches = re_formula.finditer(formula)
+
+    prev_end = 0
+    invalid = False
+    for match in matches:
+        if match.start() != prev_end:
+            invalid = True
+            break
+        prev_end = match.end()
+        groups = match.groups()
+        symbol = groups[0]
+        n_elem = groups[1]
+        if symbol != "":
+            if n_elem == "":
+                element_list.append(symbol)
+            else:
+                element_list += [symbol] * int(n_elem)
+    if prev_end != len(formula) or len(element_list) == 0:
+        invalid = True
+    if invalid:
+        abort(400, message=(
+            "Invalid chemical formula provided. Please use a single "
+            "continuous string with capitalized element names and "
+            "integer numbers for the element multiplicity. E.g. 'TiO2'"
+        ))
+
+    names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
+    query_list = []
+
+    for name, count in zip(names, reduced_counts):
+        if count == 1:
+            query_list.append(name)
+        else:
+            query_list.append("{}{}".format(name, int(count)))
+    query_string = " ".join(query_list)
+
+    return query_string
+
+
+def query_from_elements(elements: list) -> str:
+    """Converts a list of elements into the corresponding element query.
+
+    Args:
+        elements: List of queried elmenents.
+
+    Returns:
+        elasticsearch_dsl Query object.
+    """
+    species, _ = get_hill_decomposition(elements)
+    query_string = " ".join(species)
+
+    return query_string
+
+
 material_prop_map = {
     # General
     "material_id": "material_id",
@@ -308,7 +494,7 @@ material_result = api.model("material_result", {
     "formula": fields.String,
     "formula_reduced": fields.String,
     "material_type": fields.String,
-    "n_matches": fields.Integer,
+    "n_calculations": fields.Integer,
     # Bulk only
     "has_free_wyckoff_parameters": fields.Boolean,
     "strukturbericht_designation": fields.String,
@@ -394,7 +580,6 @@ class EncMaterialResource(Resource):
         return result, 200
 
 
-re_formula = re.compile(r"([A-Z][a-z]?)(\d*)")
 range_query = api.model("range_query", {
     "max": fields.Float(min=0),
     "min": fields.Float(min=0),
@@ -408,6 +593,7 @@ materials_query = api.model("materials_input", {
         "per_page": fields.Integer(default=25, min=1, description="Number of results per page.", example=10),
         "restricted": fields.Boolean(default=False, description="Select to restrict the query to individual calculations. If not selected, the query will combine results from several different calculations."),
     })),
+    "query": fields.String(description="Single search string that supports combining any of the search parameters with AND, OR, NOT and parentheses."),
     "material_type": fields.List(fields.String(enum=list(Material.material_type.type)), description=Material.material_type.description),
     "material_name": fields.List(fields.String, description=Material.material_name.description),
     "structure_type": fields.List(fields.String, description=Bulk.structure_type.description),
@@ -453,102 +639,65 @@ class EncMaterialsResource(Resource):
         except Exception as e:
             abort(400, message=str(e))
 
-        # Create filters from user query
         s = MaterialSearch()
-
-        # Material level filters
-        if data["material_type"] is not None: s.add_material_filter(Q("terms", material_type=data["material_type"]))
-        if data["material_name"] is not None: s.add_material_filter(Q("terms", material_name=data["material_name"]))
-        if data["structure_type"] is not None: s.add_material_filter(Q("terms", bulk__structure_type=data["structure_type"]))
-        if data["space_group_number"] is not None: s.add_material_filter(Q("terms", bulk__space_group_number=data["space_group_number"]))
-        if data["crystal_system"] is not None: s.add_material_filter(Q("terms", bulk__crystal_system=data["crystal_system"]))
-
-        # Calculation filters
-        calc_filters = []
-        if data["functional_type"] is not None: calc_filters.append(Q("terms", calculations__method__functional_type=data["functional_type"]))
-        if data["basis_set"] is not None: calc_filters.append(Q("terms", calculations__method__basis_set=data["basis_set"]))
-        if data["code_name"] is not None: calc_filters.append(Q("terms", calculations__method__program_name=data["code_name"]))
-        if data["has_band_structure"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_band_structure=data["has_band_structure"]))
-        if data["has_dos"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_dos=data["has_dos"]))
-        if data["has_thermal_properties"] is not None: calc_filters.append(Q("term", calculations__properties__has_thermodynamical_properties=data["has_thermal_properties"]))
-        if data["band_gap"] is not None: calc_filters.append(get_range_filter(
-            "calculations.properties.band_gap",
-            minimum=data["band_gap"].get("min"),
-            maximum=data["band_gap"].get("max"),
-            source_unit=ureg.eV,
-            target_unit=ureg.J,
-        ))
+        query = data["query"]
         search_by = data["search_by"]
-        restricted = search_by["restricted"]
-        if restricted:
-            s.add_calculation_filter(calc_filters)
-        else:
-            for f in calc_filters:
-                s.add_calculation_filter(f)
-
-        # The given list of species/formula is reformatted with the Hill system into a
-        # query string. With exclusive search we look for exact match, with
-        # non-exclusive search we look for match that includes at least all
-        # species, possibly even more.
-        formula = search_by["formula"]
-        elements = search_by["elements"]
         exclusive = search_by["exclusive"]
-        if formula is not None:
-            element_list = []
-            matches = re_formula.finditer(formula)
+        restricted = search_by["restricted"]
 
-            prev_end = 0
-            invalid = False
-            for match in matches:
-                if match.start() != prev_end:
-                    invalid = True
-                    break
-                prev_end = match.end()
-                groups = match.groups()
-                symbol = groups[0]
-                count = groups[1]
-                if symbol != "":
-                    if count == "":
-                        element_list.append(symbol)
-                    else:
-                        element_list += [symbol] * int(count)
-            if prev_end != len(formula) or len(element_list) == 0:
-                invalid = True
-            if invalid:
-                abort(400, message=(
-                    "Invalid chemical formula provided. Please use a single "
-                    "continuous string with capitalized element names and "
-                    "integer numbers for the element multiplicity. E.g. 'TiO2'"
-                ))
+        # Initialize MaterialSearch from a query string
+        if query is not None:
+            s.from_query_string(query, restricted)
+        # Initialize MaterialSearch from individual query terms
+        else:
+            # Material level filters
+            if data["material_type"] is not None: s.add_material_filter(Q("terms", material_type=data["material_type"]))
+            if data["material_name"] is not None: s.add_material_filter(Q("terms", material_name=data["material_name"]))
+            if data["structure_type"] is not None: s.add_material_filter(Q("terms", bulk__structure_type=data["structure_type"]))
+            if data["space_group_number"] is not None: s.add_material_filter(Q("terms", bulk__space_group_number=data["space_group_number"]))
+            if data["crystal_system"] is not None: s.add_material_filter(Q("terms", bulk__crystal_system=data["crystal_system"]))
 
-            names, reduced_counts = get_hill_decomposition(element_list, reduced=True)
-            query_string = []
+            # Calculation filters
+            calc_filters = []
+            if data["functional_type"] is not None: calc_filters.append(Q("terms", calculations__method__functional_type=data["functional_type"]))
+            if data["basis_set"] is not None: calc_filters.append(Q("terms", calculations__method__basis_set=data["basis_set"]))
+            if data["code_name"] is not None: calc_filters.append(Q("terms", calculations__method__program_name=data["code_name"]))
+            if data["has_band_structure"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_band_structure=data["has_band_structure"]))
+            if data["has_dos"] is not None: calc_filters.append(Q("term", calculations__properties__has_electronic_dos=data["has_dos"]))
+            if data["has_thermal_properties"] is not None: calc_filters.append(Q("term", calculations__properties__has_thermodynamical_properties=data["has_thermal_properties"]))
+            if data["band_gap"] is not None: calc_filters.append(get_range_filter(
+                "calculations.properties.band_gap",
+                minimum=data["band_gap"].get("min"),
+                maximum=data["band_gap"].get("max"),
+                source_unit=ureg.eV,
+                target_unit=ureg.J,
+            ))
+            if restricted:
+                s.add_calculation_filter(calc_filters)
+            else:
+                for f in calc_filters:
+                    s.add_calculation_filter(f)
 
-            for name, count in zip(names, reduced_counts):
-                if count == 1:
-                    query_string.append(name)
+            # The given list of species/formula is reformatted with the Hill system into a
+            # query string. With exclusive search we look for exact match, with
+            # non-exclusive search we look for match that includes at least all
+            # species, possibly even more.
+            formula = search_by["formula"]
+            elements = search_by["elements"]
+            if formula is not None or elements is not None:
+                if formula is not None:
+                    query_string = query_from_formula(formula)
+                    path = "species_and_counts"
+                elif elements is not None:
+                    query_string = query_from_elements(elements)
+                    path = "species"
+                if exclusive:
+                    s.add_material_filter(Q("term", **{"{}.keyword".format(path): query_string}))
                 else:
-                    query_string.append("{}{}".format(name, int(count)))
-            query_string = " ".join(query_string)
-
-            if exclusive:
-                s.add_material_filter(Q("term", **{"species_and_counts.keyword": query_string}))
-            else:
-                s.add_material_must(Q(
-                    "match",
-                    species_and_counts={"query": query_string, "operator": "and"}
-                ))
-        elif elements is not None:
-            species, _ = get_hill_decomposition(elements)
-            query_string = " ".join(species)
-
-            if exclusive:
-                s.add_material_filter(Q("term", **{"species.keyword": query_string}))
-            else:
-                s.add_material_must(Q(
-                    "match",
-                    species={"query": query_string, "operator": "and"}
-                ))
+                    s.add_material_filter(Q(
+                        "match",
+                        **{path: {"query": query_string, "operator": "and"}},
+                    ))
 
         # Execute query
         page = search_by["page"]
@@ -580,7 +729,7 @@ class EncMaterialsResource(Resource):
             nested = materials.bucket("nested", A("nested", path="calculations"))
             nested.bucket(
                 "visible",
-                A("filter", filter=Q("bool", filter=s2.get_authentication_filters_nested()))
+                A("filter", filter=Q("bool", filter=get_authentication_filters_material()))
             )
             response2 = s2.execute()
             agg_dict = {}
@@ -592,7 +741,7 @@ class EncMaterialsResource(Resource):
         for x in response:
             res = get_es_doc_values(x, material_prop_map, list(material_prop_map.keys()))
             material_id = x.material_id
-            res["n_matches"] = agg_dict[material_id]
+            res["n_calculations"] = agg_dict[material_id]
             result_list.append(res)
 
         return {"results": result_list, "pages": pages}, 200
@@ -962,7 +1111,7 @@ class EncStatisticsResource(Resource):
         # Find entries for the given material.
         bool_query = Q(
             "bool",
-            filter=get_authentication_filters() + [
+            filter=get_authentication_filters_calc() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("terms", calc_id=data["calculations"]),
             ]
@@ -1170,7 +1319,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=get_authentication_filters() + [
+            filter=get_authentication_filters_calc() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
@@ -1322,18 +1471,22 @@ class EncCalculationResource(Resource):
 suggestions_map = {
     "code_name": "dft.code_name",
     "structure_type": "bulk.structure_type",
+    "material_name": "material_name",
+    "strukturbericht_designation": "bulk.strukturbericht_designation",
 }
 suggestions_query = api.parser()
 suggestions_query.add_argument(
     "property",
     type=str,
-    choices=("code_name", "structure_type"),
+    choices=("code_name", "structure_type", "material_name", "strukturbericht_designation"),
     help="The property name for which suggestions are returned.",
     location="args"
 )
 suggestions_result = api.model("suggestions_result", {
     "code_name": fields.List(fields.String),
     "structure_type": fields.List(fields.String),
+    "material_name": fields.List(fields.String),
+    "strukturbericht_designation": fields.List(fields.String),
 })
 
 
@@ -1360,16 +1513,16 @@ class EncSuggestionsResource(Resource):
         prop = args.get("property", None)
 
         # Material level suggestions
-        if prop == "structure_type":
+        if prop in {"structure_type", "material_name", "strukturbericht_designation"}:
             s = MaterialSearch()
             s.size(0)
             s.add_material_aggregation("suggestions", A("terms", field=suggestions_map[prop], size=999))
         # Calculation level suggestions
-        elif prop == "code_name":
+        elif prop in {"code_name"}:
             s = Search(index=config.elastic.index_name)
             query = Q(
                 "bool",
-                filter=get_authentication_filters()
+                filter=get_authentication_filters_calc()
             )
             s = s.query(query)
             s = s.extra(**{
@@ -1378,6 +1531,8 @@ class EncSuggestionsResource(Resource):
 
             terms_agg = A("terms", field=suggestions_map[prop], size=999)
             s.aggs.bucket("suggestions", terms_agg)
+        else:
+            raise ValueError("No suggestion available for '{}'".format(prop))
 
         # Gather unique values into a list
         response = s.execute()
