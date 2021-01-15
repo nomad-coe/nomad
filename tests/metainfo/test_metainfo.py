@@ -286,25 +286,30 @@ class TestM2:
             def new(self, section):
                 return dict(test='test annotation')
 
-        class TestQuantityAnnotation(DefinitionAnnotation):
+        class TestDefinitionAnnotation(DefinitionAnnotation):
             def init_annotation(self, definition):
                 super().init_annotation(definition)
-                assert definition.name in ['test_quantity', 'list_test_quantity']
+                assert definition.name in ['test_quantity', 'list_test_quantity', 'test_sub_section']
                 assert definition.m_parent is not None
                 self.initialized = True
 
         class TestSection(MSection):
             m_def = Section(a_test=TestSectionAnnotation())
 
-            test_quantity = Quantity(type=str, a_test=TestQuantityAnnotation())
+            test_quantity = Quantity(type=str, a_test=TestDefinitionAnnotation())
             list_test_quantity = Quantity(
                 type=str,
-                a_test=[TestQuantityAnnotation(), TestQuantityAnnotation()])
+                a_test=[TestDefinitionAnnotation(), TestDefinitionAnnotation()])
+
+            test_sub_section = SubSection(sub_section=System, a_test=TestDefinitionAnnotation())
 
         assert TestSection.m_def.a_test.initialized
         assert TestSection.m_def.m_get_annotations(TestSectionAnnotation).initialized
-
         assert TestSection().a_test == 'test annotation'
+
+        assert TestSection.test_quantity.a_test is not None
+        assert len(TestSection.list_test_quantity.m_get_annotations(TestDefinitionAnnotation)) == 2
+        assert TestSection.test_sub_section.a_test is not None
 
 
 class TestM1:

@@ -31,8 +31,8 @@ from nomad.datamodel.material import Material
 from nomad import config, datamodel, infrastructure, utils
 from nomad.metainfo.search_extension import (  # pylint: disable=unused-import
     search_quantities, metrics, order_default_quantities, groups)
-from nomad.app_fastapi import models as api_models
-from nomad.app_fastapi.models import (
+from nomad.app.v1 import models as api_models
+from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, SearchResponse, Aggregation,
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem)
 

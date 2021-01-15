@@ -695,7 +695,7 @@ def gui_config():
     import glob
     import shutil
 
-    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
+    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/flask/static/gui'))
     run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 
     # copy
@@ -740,7 +740,7 @@ window.nomadEnv = {
                 f.write(file_data)
 
     gui_folder = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../../app/static/encyclopedia'))
+        os.path.dirname(__file__), '../../app/flask/static/encyclopedia'))
 
     # setup the env
     conf_js_file = os.path.join(gui_folder, 'conf.js')

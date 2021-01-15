@@ -571,10 +571,10 @@ class EntryMetadata(metainfo.MSection):
         description='The number of atoms in the entry\'s material',
         a_search=Search())
 
-    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
-    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[FastAccess])
-    qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search='qcms')
-    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess], a_search='encyclopedia')
+    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search=Search())
+    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search=Search(), categories=[FastAccess])
+    qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search=Search())
+    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess], a_search=Search())
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''

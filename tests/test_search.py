@@ -25,7 +25,7 @@ import json
 from nomad import datamodel, processing, infrastructure, config
 from nomad.metainfo import search_extension
 from nomad.search import entry_document, SearchRequest, search, flat
-from nomad.app_fastapi.models import WithQuery
+from nomad.app.v1.models import WithQuery
 
 
 def test_init_mapping(elastic):

@@ -18,7 +18,7 @@
 
 from flask_restplus import fields
 
-from nomad.app.common import RFC3339DateTime
+from nomad.app.flask.common import RFC3339DateTime
 
 from .metainfo import Section, Quantity, Datetime, Capitalized, MEnum
 

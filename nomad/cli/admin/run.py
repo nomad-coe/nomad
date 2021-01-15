@@ -47,7 +47,7 @@ def run_app(**kwargs):
     from uvicorn import Server, Config
 
     uv_config = Config(
-        'nomad.app_fastapi.main:app', host='127.0.0.1',
+        'nomad.app.main:app', host='127.0.0.1',
         port=config.services.api_port, log_level='info')
     server = Server(config=uv_config)
     server.run()

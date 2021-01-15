@@ -27,7 +27,6 @@ import time
 import shutil
 import os.path
 import datetime
-from bravado.client import SwaggerClient
 from flask import request, g
 import elasticsearch.exceptions
 from typing import List
@@ -36,7 +35,7 @@ import logging
 import warnings
 import zipfile
 
-from nomad import config, infrastructure, processing, app, utils
+from nomad import config, infrastructure, processing, utils
 from nomad.datamodel import EntryArchive
 from nomad.utils import structlogging
 from nomad.datamodel import User
@@ -45,7 +44,6 @@ from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
-from tests.bravado_flask import FlaskTestHttpClient
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
@@ -104,22 +102,6 @@ def clear_raw_files():
             shutil.rmtree(directory)
         except FileNotFoundError:
             pass
-
-
-@pytest.fixture(scope='session')
-def session_client():
-    app.app.config['TESTING'] = True
-    client = app.app.test_client()
-
-    yield client
-
-
-@pytest.fixture(scope='function')
-def client(mongo, session_client):
-    app.app.config['TESTING'] = True
-    client = app.app.test_client()
-
-    yield client
 
 
 @pytest.fixture(scope='session')
@@ -345,60 +327,6 @@ def other_test_user():
 @pytest.fixture(scope='module')
 def admin_user():
     return User(**test_users[test_user_uuid(0)])
-
-
-def create_auth_headers(user: User):
-    return {
-        'Authorization': 'Bearer %s' % user.user_id
-    }
-
-
-@pytest.fixture(scope='module')
-def test_user_auth(test_user: User):
-    return create_auth_headers(test_user)
-
-
-@pytest.fixture(scope='module')
-def other_test_user_auth(other_test_user: User):
-    return create_auth_headers(other_test_user)
-
-
-@pytest.fixture(scope='module')
-def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user)
-
-
-@pytest.fixture(scope='function')
-def bravado(client, test_user_auth):
-    http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-    return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-
-@pytest.fixture(scope='function')
-def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def test_user_bravado_client(client, test_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def oasis_central_nomad_client(client, test_user_auth, monkeypatch):
-    def create_client(*args, **kwargs):
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)
 
 
 @pytest.fixture(scope='function')

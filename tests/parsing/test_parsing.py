@@ -27,7 +27,7 @@ from nomad import utils, files, datamodel
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.parsing import BrokenParser, Backend
 from nomad.parsing.parsers import parser_dict, match_parser
-from nomad.app import dump_json
+from nomad.app.flask import dump_json
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),

@@ -20,7 +20,7 @@ import ase.build
 
 from nomad import datamodel, config
 from nomad.datamodel import EntryArchive
-from nomad.app import dump_json
+from nomad.app.flask import dump_json
 from nomad.datamodel.metainfo.public import section_springer_material as SpringerMaterial
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
