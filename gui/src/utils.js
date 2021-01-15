@@ -309,10 +309,10 @@ export function titleCase(str) {
   return splitStr.join(' ')
 }
 
-export function nameList(users) {
+export function nameList(users, expanded) {
   const names = users.map(user => titleCase(user.name)).filter(name => name !== '')
-  if (names.length > 3) {
-    return names.slice(0, 2).join(', ') + ' et al'
+  if (names.length > 3 && !expanded) {
+    return [names[0], names[names.length - 1]].join(', ') + ' et al'
   } else {
     return names.join(', ')
   }
@@ -329,6 +329,6 @@ export function authorList(entry, expanded) {
     }
     return entry.external_db
   } else {
-    return nameList(entry.authors || [])
+    return nameList(entry.authors || [], expanded)
   }
 }
