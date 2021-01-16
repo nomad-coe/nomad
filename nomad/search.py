@@ -1058,7 +1058,8 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
         if order_by is None:
             pagination.next_after = after_key[name]
         else:
-            pagination.next_after = ':'.join(after_key.to_dict().values())
+            str_values = [str(v) for v in after_key.to_dict().values()]
+            pagination.next_after = ':'.join(str_values)
 
     return AggregationResponse(data=agg_data, pagination=pagination, **aggregation_dict)
 
