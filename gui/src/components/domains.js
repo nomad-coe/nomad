@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import DFTEntryOverview from './dft/DFTEntryOverview'
+import DFTOverview from './dft/DFTOverview'
 import DFTEntryCards from './dft/DFTEntryCards'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import EMSEntryCards from './ems/EMSEntryCards'
@@ -172,7 +172,7 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryOverview: DFTEntryOverview,
+    EntryOverview: DFTOverview,
     /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),

@@ -17,77 +17,60 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { Typography, makeStyles } from '@material-ui/core'
 import { apiContext } from '../api'
 import { domains } from '../domains'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
-import { Typography, makeStyles } from '@material-ui/core'
 
 const useStyles = makeStyles(theme => ({
   error: {
     marginTop: theme.spacing(2)
-  },
-  cardContent: {
-    paddingTop: 0
-  },
-  topCard: {
-    height: '32rem'
-  },
-  toggle: {
-    marginBottom: theme.spacing(1)
-  },
-  structure: {
-    marginTop: theme.spacing(1),
-    width: '100%',
-    height: '20rem'
   }
 }))
 
-/**
- * Shows an informative overview about the selected entry.
- */
-export default function OverviewView({uploadId, calcId}) {
+export default function RawFileView({uploadId, calcId}) {
   const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
-  const [repo, setRepo] = useState(null)
-  const [exists, setExists] = useState(true)
+  const [state, setState] = useState({calcData: null, doesNotExist: false})
 
-  // When loaded for the first time, download calc data from the ElasticSearch
-  // index. It is used quick to fetch and will be used to decide the subview to
-  // show.
+  useEffect(() => {
+    setState({calcData: null, doesNotExist: false})
+  }, [setState, uploadId, calcId])
+
   useEffect(() => {
     api.repo(uploadId, calcId).then(data => {
-      setRepo(data)
+      setState({calcData: data, doesNotExist: false})
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
-        setExists(false)
+        setState({calcData: null, doesNotExist: true})
       } else {
+        setState({calcData: null, doesNotExist: false})
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setRepo, setExists])
+  }, [api, raiseError, uploadId, calcId, setState])
 
-  // The entry does not exist
-  if (!exists) {
-    return <EntryPageContent className={classes.root} fixed>
+  const calcData = state.calcData || {uploadId: uploadId, calcId: calcId}
+  const domain = calcData.domain && domains[calcData.domain]
+
+  if (state.doesNotExist) {
+    return <EntryPageContent fixed>
       <Typography className={classes.error}>
         This entry does not exist.
       </Typography>
     </EntryPageContent>
   }
 
-  // When repo data is loaded, return a subview that depends on the domain
-  if (repo) {
-    const domain = repo.domain && domains[repo.domain]
-    return <EntryPageContent fixed>
-      {domain && <domain.EntryOverview repo={repo} uploadId={uploadId} calcId={calcId}/>}
+  return (
+    <EntryPageContent fixed>
+      {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} />}
     </EntryPageContent>
-  }
-  return null
+  )
 }
 
-OverviewView.propTypes = {
+RawFileView.propTypes = {
   uploadId: PropTypes.string.isRequired,
   calcId: PropTypes.string.isRequired
 }

@@ -21,7 +21,7 @@ import { Tab, Tabs, Box } from '@material-ui/core'
 import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
-import RepoEntryView from './RepoEntryView'
+import RawFileView from './RawFileView'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
 import { useRouteMatch, useHistory, Route } from 'react-router-dom'
@@ -39,7 +39,7 @@ The *log* tab, will show you a log of the entry's processing.
 `
 
 export function EntryPageContent({children, fixed}) {
-  const props = fixed ? {maxWidth: 1024} : {}
+  const props = fixed ? {maxWidth: 1280, minWidth: 1100} : {}
   return <Box padding={3} margin="auto" {...props}>
     {children}
   </Box>
@@ -78,7 +78,7 @@ export default function EntryPage() {
               </Tabs>
 
               <KeepState visible={tab === 'overview' || tab === undefined} render={props => <OverviewView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'raw'} render={props => <RepoEntryView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'raw'} render={props => <RawFileView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
             </React.Fragment>
