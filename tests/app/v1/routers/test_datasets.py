@@ -16,11 +16,17 @@
 # limitations under the License.
 #
 
+from typing import List
 import pytest
 from urllib.parse import urlencode
 from datetime import datetime
 
 from nomad.datamodel import Dataset
+from nomad import search, processing
+from nomad.app.v1.models import Query
+
+from tests.app.conftest import ExampleData
+from tests.conftest import admin_user_id
 
 from .test_entries import data as example_entries  # pylint: disable=unused-import
 from .common import assert_response
@@ -37,42 +43,66 @@ to assert for certain aspects in the responses.
 
 
 @pytest.fixture(scope='function')
-def data(mongo, test_user, other_test_user):
+def data(elastic, raw_files, mongo, test_user, other_test_user):
     def create_dataset(**kwargs):
         dataset = Dataset(created=datetime.now(), modified=datetime.now(), **kwargs)
         dataset.m_get_annotations('mongo').save()
+        return dataset
 
-    create_dataset(
-        dataset_id='dataset_1',
-        user_id=test_user.user_id,
-        name='test dataset 1',
-        dataset_type='owned')
+    data = ExampleData(uploader=test_user)
+    data._create_entry(
+        upload_id='upload_1',
+        calc_id='entry_1',
+        mainfile='test_content/1/mainfile.json',
+        datasets=[
+            create_dataset(
+                dataset_id='dataset_1',
+                user_id=test_user.user_id,
+                name='test dataset 1',
+                dataset_type='owned'),
+            create_dataset(
+                dataset_id='dataset_2',
+                user_id=test_user.user_id,
+                name='test dataset 2',
+                dataset_type='owned')
+        ])
 
-    create_dataset(
-        dataset_id='dataset_2',
-        user_id=test_user.user_id,
-        name='test dataset 2',
-        dataset_type='owned')
+    data._create_entry(
+        upload_id='upload_1',
+        calc_id='entry_2',
+        mainfile='test_content/2/mainfile.json',
+        datasets=[
+            create_dataset(
+                dataset_id='dataset_listed',
+                user_id=test_user.user_id,
+                name='foreign test dataset',
+                dataset_type='foreign'),
+            create_dataset(
+                dataset_id='dataset_doi',
+                user_id=test_user.user_id,
+                name='foreign test dataset',
+                dataset_type='foreign',
+                doi='test_doi')
+        ])
 
-    create_dataset(
-        dataset_id='dataset_listed',
-        user_id=test_user.user_id,
-        name='foreign test dataset',
-        dataset_type='foreign')
+    for i in range(1, 4):
+        data._create_entry(
+            upload_id='other_data',
+            calc_id='id_%02d' % i,
+            mainfile='test_content/%02d/mainfile.json' % i)
 
-    create_dataset(
-        dataset_id='dataset_doi',
-        user_id=test_user.user_id,
-        name='foreign test dataset',
-        dataset_type='foreign',
-        doi='test_doi')
+    data.save(with_files=False)
+
+    return data
 
 
-def assert_dataset(dataset, **kwargs):
+def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_entries: int = -1, **kwargs):
     for key, value in kwargs.items():
         assert dataset[key] == value
 
-    mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset['dataset_id']).first()
+    dataset_id = dataset['dataset_id']
+
+    mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     assert mongo_dataset is not None
     for quantity in Dataset.m_def.quantities:
         if quantity in [Dataset.pid, Dataset.doi]:
@@ -80,6 +110,31 @@ def assert_dataset(dataset, **kwargs):
         else:
             assert quantity.name in dataset
             assert dataset[quantity.name] is not None
+
+    if entries is not None:
+        n_entries = len(entries)
+    if query is not None:
+        search_results = search.search(
+            owner='public', query=query, user_id=dataset['user_id'])
+        n_entries = search_results.pagination.total
+
+    if n_entries == -1:
+        return
+
+    search_results = search.search(
+        owner='public', query=dict(dataset_id=dataset_id), user_id=dataset['user_id'])
+    assert search_results.pagination.total == n_entries
+    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == n_entries
+
+
+def assert_dataset_deleted(dataset_id):
+    mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
+    assert mongo_dataset is None
+
+    search_results = search.search(
+        owner='admin', query=dict(dataset_id=dataset_id), user_id=admin_user_id)
+    assert search_results.pagination.total == 0
+    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == 0
 
 
 @pytest.mark.parametrize('query, size, status_code', [
@@ -123,9 +178,9 @@ def test_dataset(client, data, dataset_id, result, status_code):
     pytest.param('another test dataset', 'foreign', None, None, 'test_user', 200, id='plain'),
     pytest.param('another test dataset', 'foreign', None, None, None, 401, id='no-user'),
     pytest.param('test dataset 1', 'foreign', None, None, 'test_user', 400, id='exists'),
-    pytest.param('another test dataset', 'owned', None, None, 'test_user', 400, id='owned'),
-    pytest.param('another test dataset', 'owned', {}, None, 'test_user', 400, id='query'),
-    pytest.param('another test dataset', 'owned', None, ['id_01', 'id_02'], 'test_user', 400, id='entries')
+    pytest.param('another test dataset', 'owned', None, None, 'test_user', 200, id='owned'),
+    pytest.param('another test dataset', 'foreign', {}, None, 'test_user', 200, id='query'),
+    pytest.param('another test dataset', 'foreign', None, ['id_01', 'id_02'], 'test_user', 200, id='entries')
 ])
 def test_post_datasets(client, data, example_entries, test_user, test_user_auth, name, dataset_type, query, entries, user, status_code):
     dataset = {'name': name, 'dataset_type': dataset_type}
@@ -145,12 +200,10 @@ def test_post_datasets(client, data, example_entries, test_user, test_user_auth,
 
     json_response = response.json()
     dataset = json_response['data']
-    assert_dataset(dataset, user_id=test_user.user_id, name=name, dataset_type=dataset_type)
+    assert_dataset(
+        dataset, query=query, entries=entries,
+        user_id=test_user.user_id, name=name, dataset_type=dataset_type)
     assert Dataset.m_def.a_mongo.objects().count() == 5
-
-    if query is not None or entries is not None:
-        assert json_response['data']['entries'] is not None
-        assert len(json_response['data']['entries']) > 0
 
 
 @pytest.mark.parametrize('dataset_id, user, status_code', [
@@ -158,8 +211,7 @@ def test_post_datasets(client, data, example_entries, test_user, test_user_auth,
     pytest.param('dataset_listed', None, 401, id='no-user'),
     pytest.param('dataset_listed', 'other_test_user', 401, id='wrong-user'),
     pytest.param('DOESNOTEXIST', 'test_user', 404, id='does-not-exist'),
-    pytest.param('dataset_1', 'test_user', 400, id='owned'),
-    pytest.param('dataset_doi', 'test_user', 400, id='with-doi'),
+    pytest.param('dataset_doi', 'test_user', 400, id='with-doi')
 ])
 def test_delete_dataset(client, data, test_user_auth, other_test_user_auth, dataset_id, user, status_code):
     auth = None
@@ -175,6 +227,7 @@ def test_delete_dataset(client, data, test_user_auth, other_test_user_auth, data
         return
 
     assert Dataset.m_def.a_mongo.objects().count() == 3
+    assert_dataset_deleted(dataset_id)
 
 
 @pytest.mark.parametrize('dataset_id, user, status_code', [

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List
+from typing import List, Dict
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime
@@ -53,8 +53,94 @@ def client():
     return TestClient(app, base_url='http://testserver/')
 
 
+class ExampleData:
+    def __init__(self, dft: dict = None, **kwargs):
+        self.uploads: Dict[str, List[str]] = dict()
+        self.entries: Dict[str, EntryMetadata] = dict()
+        self.archives: Dict[str, EntryArchive] = dict()
+
+        self.entry_defaults = kwargs
+        self.dft_defaults = dft
+
+    def save(self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True):
+        from tests.test_files import create_test_upload_files
+        from nomad import processing as proc
+
+        # save to elastic and mongo
+        for entry_metadata in self.entries.values():
+            if with_mongo:
+                mongo_entry = proc.Calc(
+                    create_time=datetime.now(),
+                    calc_id=entry_metadata.calc_id,
+                    upload_id=entry_metadata.upload_id,
+                    mainfile=entry_metadata.mainfile)
+                mongo_entry.apply_entry_metadata(entry_metadata)
+                mongo_entry.save()
+
+            if with_es:
+                entry_metadata.a_elastic.index()
+
+        if with_es:
+            infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
+
+        # create upload files
+        if with_files:
+            published = True
+            for upload_id, entry_ids in self.uploads.items():
+                archives = []
+                for entry_id in entry_ids:
+                    published &= self.entries[entry_id].published
+                    if entry_id in self.archives:
+                        archives.append(self.archives[entry_id])
+
+                create_test_upload_files(upload_id, archives, published=published)
+
+    def _create_entry(
+            self,
+            calc_id: str, upload_id: str, mainfile: str,
+            dft: dict = None, archive: dict = None, **kwargs):
+
+        entry_archive = EntryArchive()
+        entry_metadata = entry_archive.m_create(EntryMetadata)
+        entry_metadata.m_update(
+            calc_id=calc_id,
+            upload_id=upload_id,
+            mainfile=mainfile,
+            domain='dft',
+            upload_time=datetime.now(),
+            published=True,
+            processed=True,
+            with_embargo=False,
+            atoms=['H', 'O'],
+            n_atoms=2,
+            parser_name='parsers/vasp')
+        entry_metadata.m_update(**self.entry_defaults)
+        entry_metadata.m_update(**kwargs)
+
+        section_dft = entry_metadata.m_create(DFTMetadata)
+        section_dft.m_update(
+            code_name='VASP',
+            xc_functional='GGA',
+            system='bulk')
+        if self.dft_defaults is not None:
+            section_dft.m_update(**self.dft_defaults)
+        if dft is not None:
+            section_dft.m_update(**dft)
+
+        entry_archive.m_update_from_dict(dict(
+            section_run=[{}],
+            section_workflow={}))
+        if archive is not None:
+            entry_archive.m_update(**archive)
+
+        entry_id = entry_metadata.calc_id
+        self.archives[entry_id] = entry_archive
+        self.entries[entry_id] = entry_metadata
+        self.uploads.setdefault(entry_metadata.upload_id, []).append(entry_id)
+
+
 @pytest.fixture(scope='module')
-def example_data(elastic_infra, raw_files_infra, mongo_infra, test_user, other_test_user, normalized):
+def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
     '''
     Provides a couple of uploads and entries including metadata, raw-data, and
     archive files.
@@ -69,98 +155,59 @@ def example_data(elastic_infra, raw_files_infra, mongo_infra, test_user, other_t
     raw files and archive file for id_02 are missing
     id_10, id_11 reside in the same directory
     '''
-    from tests.conftest import clear_raw_files, clear_elastic_infra
-    from tests.test_files import create_test_upload_files
 
-    clear_elastic_infra()
-    clear_raw_files()
-
-    archives: List[EntryArchive] = []
-    archive = EntryArchive()
-    entry_metadata = archive.m_create(
-        EntryMetadata,
-        domain='dft',
-        upload_id='upload_id_1',
-        upload_time=datetime.now(),
+    data = ExampleData(
         uploader=test_user,
-        published=True,
-        processed=True,
-        with_embargo=False,
-        atoms=['H', 'O'],
-        n_atoms=2,
-        parser_name='parsers/vasp')
-    entry_metadata.m_create(
-        DFTMetadata,
-        code_name='VASP',
-        xc_functional='GGA',
-        system='bulk')
-    entry_metadata.dft.optimade = normalized.section_metadata.dft.optimade
-    archive.m_update_from_dict({
-        'section_run': [{}],
-        'section_workflow': {}
-    })
+        dft=dict(optimade=normalized.section_metadata.dft.optimade)
+    )
 
     # one upload with two calc published with embargo, one shared
-    archives.clear()
-    entry_metadata.m_update(
+    data._create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo',
         mainfile='test_content/test_embargo_entry/mainfile.json',
         shared_with=[],
         with_embargo=True)
-    entry_metadata.a_elastic.index()
-    archives.append(archive.m_copy(deep=True))
-    entry_metadata.m_update(
+    data._create_entry(
+        upload_id='id_embargo',
         calc_id='id_embargo_shared',
         mainfile='test_content/test_embargo_entry_shared/mainfile.json',
-        shared_with=[other_test_user])
-    entry_metadata.a_elastic.index()
-    archives.append(archive.m_copy(deep=True))
-    create_test_upload_files(entry_metadata.upload_id, archives)
+        shared_with=[other_test_user],
+        with_embargo=True)
 
     # one upload with two calc in staging, one shared
-    archives.clear()
-    entry_metadata.m_update(
+    data._create_entry(
         upload_id='id_unpublished',
         calc_id='id_unpublished',
         mainfile='test_content/test_entry/mainfile.json',
         with_embargo=False,
         shared_with=[],
         published=False)
-    entry_metadata.a_elastic.index()
-    archives.append(archive.m_copy(deep=True))
-    entry_metadata.m_update(
+    data._create_entry(
+        upload_id='id_unpublished',
         calc_id='id_unpublished_shared',
         mainfile='test_content/test_entry_shared/mainfile.json',
-        shared_with=[other_test_user])
-    entry_metadata.a_elastic.index()
-    archives.append(archive.m_copy(deep=True))
-    create_test_upload_files(
-        entry_metadata.upload_id, archives, published=False)
+        shared_with=[other_test_user],
+        with_embargo=False,
+        published=False)
 
     # one upload with 23 calcs published
-    archives.clear()
     for i in range(1, 24):
+        entry_id = 'id_%02d' % i
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
         if i == 11:
             mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
-        entry_metadata.m_update(
+        data._create_entry(
             upload_id='id_published',
-            calc_id='id_%02d' % i,
-            mainfile=mainfile,
-            with_embargo=False,
-            published=True,
-            shared_with=[])
-        entry_metadata.a_elastic.index()
-        if i != 2:
-            archives.append(archive.m_copy(deep=True))
+            calc_id=entry_id,
+            mainfile=mainfile)
+
+        if i == 2:
+            del(data.archives[entry_id])
         if i == 1:
+            archive = data.archives[entry_id]
             write_partial_archive_to_mongo(archive)
 
-    infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
-    create_test_upload_files(entry_metadata.upload_id, archives)
+    data.save()
 
-    yield
-
-    clear_elastic_infra()
-    clear_raw_files()
+    return data
