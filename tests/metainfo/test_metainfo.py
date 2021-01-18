@@ -711,6 +711,25 @@ class TestM1:
         assert run.m_xpath('systems[?system_type == `molecule`].atom_labels') == [['H', 'O']]
         assert run.m_xpath('sccs[?energy_total < `1.0E-23`].system') == [{'atom_labels': ['H', 'O'], 'system_type': 'molecule'}]
 
+    def test_m_update(self):
+        class Child(MSection):
+            pass
+
+        class Parent(MSection):
+            quantity = Quantity(type=str)
+            single_sub_section = SubSection(sub_section=Child)
+            many_sub_section = SubSection(sub_section=Child, repeats=True)
+
+        parent = Parent()
+        parent.m_update(
+            quantity='Hello',
+            single_sub_section=Child(),
+            many_sub_section=[Child(), Child()])
+
+        assert parent.quantity == 'Hello'
+        assert parent.single_sub_section is not None
+        assert len(parent.many_sub_section) == 2
+
 
 class TestDatatypes:
 

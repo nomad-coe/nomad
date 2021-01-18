@@ -1133,7 +1133,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         else:
                             raise TypeError('Sub section %s repeats, but no list was given' % prop.name)
                     else:
-                        self.m_add_sub_section(prop, item)
+                        self.m_add_sub_section(prop, value)
 
                 else:
                     self.m_set(prop, value)
