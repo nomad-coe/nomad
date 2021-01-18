@@ -35,7 +35,7 @@ class ParsePattern:
                 token += r'Ee\+\d\.\-'
             if 'int' in value:
                 token += r'\d'
-            if 'string' in value:
+            if 'str' in value:
                 token += r'\w'
             if 'array' in value:
                 token += r' '
@@ -73,14 +73,14 @@ class ParsePattern:
 
 class Quantity:
     '''
-    Class to define a quantity to be parsed in the UnstructuredTextFileParser.
+    Class to define a quantity to be parsed in the TextParser.
 
     Arguments:
         quantity: string to identify the name or a metainfo quantity to initialize the
             quantity object.
         re_pattern: pattern to be used by re for matching. Ideally, overlaps among
             quantities for a given parser should be avoided.
-        sub_parser: instance of UnstructuredTextFileParser to perform local parsing
+        sub_parser: instance of TextParser to perform local parsing
             within a matched block
         str_operation: external function to be performed on a matched block
         dtype: data type of the quantity
@@ -117,9 +117,10 @@ class Quantity:
         self._re_pattern: str = re_pattern.re_pattern if isinstance(
             re_pattern, ParsePattern) else re_pattern
         self._str_operation: Callable = kwargs.get('str_operation', None)
-        self._sub_parser: UnstructuredTextFileParser = kwargs.get('sub_parser', None)
-        self.repeats: bool = kwargs.get('repeats', True)
+        self._sub_parser: TextParser = kwargs.get('sub_parser', None)
+        self.repeats: bool = kwargs.get('repeats', False)
         self.convert: bool = kwargs.get('convert', True)
+        self.flatten: bool = kwargs.get('flatten', True)
         self.comment: str = kwargs.get('comment', None)
 
     @property
@@ -156,7 +157,7 @@ class Quantity:
             if self.str_operation is not None:
                 val = self.str_operation(val)
 
-            else:
+            elif self.flatten:
                 val = val.strip().split() if isinstance(val, str) else val
                 val = val[0] if len(val) == 1 else val
 
@@ -170,6 +171,11 @@ class Quantity:
                                 val = float(val)
                             except Exception:
                                 pass
+                    else:
+                        try:
+                            val = self.dtype(val)
+                        except Exception:
+                            pass
 
                     self.shape = [] if self.shape is None else self.shape
                     return val
@@ -204,7 +210,10 @@ class Quantity:
                 val = _convert(val)
 
             if isinstance(val, np.ndarray) and self.shape:
-                val = np.reshape(val, self.shape)
+                try:
+                    val = np.reshape(val, self.shape)
+                except Exception:
+                    pass
 
             return val
 
@@ -216,7 +225,7 @@ class Quantity:
         return val_out
 
 
-class DataTextFileParser(FileParser):
+class DataTextParser(FileParser):
     '''
     Parser for structured data text files using numpy.loadtxt
 
@@ -256,7 +265,7 @@ class DataTextFileParser(FileParser):
         return self._file_handler
 
 
-class UnstructuredTextFileParser(FileParser):
+class TextParser(FileParser):
     '''
     Parser for unstructured text files using the re module. The quantities to be parsed
     are given as a list of Quantity objects which specifies the re pattern. The mmap
@@ -287,7 +296,7 @@ class UnstructuredTextFileParser(FileParser):
         '''
         Returns a copy of the object excluding the parsed results.
         '''
-        return UnstructuredTextFileParser(
+        return TextParser(
             self.mainfile, self.quantities, self.logger, **self._kwargs)
 
     def init_quantities(self):
@@ -406,8 +415,8 @@ class UnstructuredTextFileParser(FileParser):
 
                 self._results[quantities[i].name] = value_processed
 
-            except Exception as e:
-                self.logger.warn('Error setting value for %s ' % quantities[i].name, exc_info=e)
+            except Exception:
+                self.logger.warn('Error setting value for %s ' % quantities[i].name)
                 pass
 
     def _parse_quantity(self, quantity):
@@ -421,7 +430,7 @@ class UnstructuredTextFileParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
-                    if (span[1] - span[0]) < mmap.PAGESIZE:
+                    if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
                         #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
@@ -434,7 +443,7 @@ class UnstructuredTextFileParser(FileParser):
                 else:
                     unit = res.groupdict().get('__unit_%s' % quantity.name, None)
                     units.append(unit.decode() if unit is not None else None)
-                    value.append(''.join(
+                    value.append(' '.join(
                         [group.decode() for group in res.groups() if group and group != unit]))
 
         else:
@@ -443,7 +452,7 @@ class UnstructuredTextFileParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
-                    if (span[1] - span[0]) < mmap.PAGESIZE:
+                    if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
                         #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
@@ -456,7 +465,7 @@ class UnstructuredTextFileParser(FileParser):
                 else:
                     unit = res.groupdict().get('__unit_%s' % quantity.name, None)
                     value.append(
-                        ''.join([group.decode() for group in res.groups() if group and group != unit]))
+                        ' '.join([group.decode() for group in res.groups() if group and group != unit]))
                     units.append(unit.decode() if unit is not None else None)
 
         if not value:

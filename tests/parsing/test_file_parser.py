@@ -2,12 +2,12 @@ import pytest
 import numpy as np
 import pint
 
-from nomad.parsing.file_parser import UnstructuredTextFileParser, Quantity, ParsePattern,\
+from nomad.parsing.file_parser import TextParser, Quantity, ParsePattern,\
     XMLParser
 from nomad.datamodel.metainfo.public import section_system
 
 
-class TestUnstructuredTextFileParser:
+class TestTextParser:
     @pytest.fixture(scope='class')
     def mainfile(self):
         return 'tests/data/parsers/exciting/Ag/INFO.OUT'
@@ -40,7 +40,7 @@ class TestUnstructuredTextFileParser:
     @pytest.fixture(scope='class')
     def quantity_repeats(self):
         return dict(
-            quantity=Quantity('total_energy', r'Total energy\s*:\s*([\d\.\-]+)'),
+            quantity=Quantity('total_energy', r'Total energy\s*:\s*([\d\.\-]+)', repeats=True),
             value=np.array([
                 -5307.34855605, -5313.90710687, -5315.97055490, -5316.38701749,
                 -5317.59994092, -5317.26163104, -5317.26791647, -5317.26750374,
@@ -50,14 +50,15 @@ class TestUnstructuredTextFileParser:
     @pytest.fixture(scope='class')
     def quantity_with_unit(self):
         return dict(
-            quantity=Quantity('wall_time', r'Wall time \((?P<__unit>\w+)\)\s*:\s*([\d\.]+)'),
+            quantity=Quantity(
+                'wall_time', r'Wall time \((?P<__unit>\w+)\)\s*:\s*([\d\.]+)', repeats=True),
             value=[pint.Quantity(v, 'seconds') for v in [
                 3.55, 5.32, 7.09, 8.84, 10.58, 12.33, 14.09, 15.84, 17.58,
                 19.33, 21.09, 22.91]])
 
     @pytest.fixture(scope='function')
     def parser(self, mainfile):
-        return UnstructuredTextFileParser(mainfile=mainfile)
+        return TextParser(mainfile=mainfile)
 
     def test_mainfile_setter(self, parser, mainfile2):
         parser.quantities = [Quantity(
@@ -67,7 +68,7 @@ class TestUnstructuredTextFileParser:
         assert parser.get('time') == '08:24:03'
 
     def test_constructor(self, mainfile, quantity_string):
-        class TestParser(UnstructuredTextFileParser):
+        class TestParser(TextParser):
             def __init__(self, **kwargs):
                 super().__init__(**kwargs)
 
@@ -114,21 +115,21 @@ class TestUnstructuredTextFileParser:
     def test_quantity_sub_parser(self, parser):
         quantity_species = Quantity(
             'species', r'cies :\s*([\s\S]+?)(?:Spe|Total)', repeats=True,
-            sub_parser=UnstructuredTextFileParser(quantities=[
+            sub_parser=TextParser(quantities=[
                 Quantity('name', r'name\s*:\s*(\w+)', repeats=False),
                 Quantity('mass', r'atomic mass\s*:\s*([\d\.]+)', repeats=False)]))
 
         quantity_initialization = Quantity(
             'initialization',
             r'Starting initialization([\s\S]+?)Ending initialization', repeats=False,
-            sub_parser=UnstructuredTextFileParser(quantities=[
+            sub_parser=TextParser(quantities=[
                 Quantity('k_point_grid', r'k\-point grid\s*:\s*([\d ]+)', repeats=False),
                 quantity_species]))
 
         quantity_scf = Quantity(
             'scf', r'Self\-consistent loop started([\s\S]+?)Self\-consistent loop stopped',
-            repeats=True, sub_parser=UnstructuredTextFileParser(quantities=[
-                Quantity('iteration', r'SCF iteration number\s*:\s*(\d+)')]))
+            repeats=True, sub_parser=TextParser(quantities=[
+                Quantity('iteration', r'SCF iteration number\s*:\s*(\d+)', repeats=True)]))
 
         parser.quantities = [
             quantity_initialization, quantity_scf, Quantity(
@@ -151,7 +152,7 @@ class TestUnstructuredTextFileParser:
     def test_block_short(self, parser, quantity_repeats):
         parser.quantities = [Quantity(
             'scf', r'SCF iteration number\s*:\s*\d+([\s\S]+?)Wall time',
-            repeats=True, sub_parser=UnstructuredTextFileParser(quantities=[
+            repeats=True, sub_parser=TextParser(quantities=[
                 quantity_repeats.get('quantity')]))]
 
         scf = parser.get('scf')

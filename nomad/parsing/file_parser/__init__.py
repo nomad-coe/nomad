@@ -1,3 +1,3 @@
 from .file_parser import FileParser
-from .text_parser import UnstructuredTextFileParser, DataTextFileParser, Quantity, ParsePattern
+from .text_parser import TextParser, DataTextParser, Quantity, ParsePattern
 from .xml_parser import XMLParser
