@@ -24,7 +24,7 @@ import json
 
 from nomad import datamodel, processing, infrastructure, config
 from nomad.metainfo import search_extension
-from nomad.search import entry_document, SearchRequest, search, flat
+from nomad.search import entry_document, SearchRequest, search, flat, update_by_query, refresh
 from nomad.app.v1.models import WithQuery
 
 
@@ -93,7 +93,7 @@ def example_search_data(elastic, normalized: datamodel.EntryArchive):
         upload_time=datetime.now())
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
-    refresh_index()
+    refresh()
 
     return normalized
 
@@ -105,7 +105,7 @@ def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)
     create_entry(entry_metadata)
-    refresh_index()
+    refresh()
 
     return parsed_ems
 
@@ -278,7 +278,7 @@ def test_search_quantity(
     entry_metadata.calc_id = 'other test id'
     entry_metadata.uploader = other_test_user.user_id
     create_entry(entry_metadata)
-    refresh_index()
+    refresh()
 
     request = SearchRequest(domain='dft').quantity(
         name='authors', size=1, examples=1, order_by=order_by)
@@ -293,10 +293,6 @@ def test_search_quantity(
             results['quantities']['authors']['values'][name]['examples'][0][order_by]
 
 
-def refresh_index():
-    infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
-
-
 def create_entry(entry_metadata: datamodel.EntryMetadata):
     entry = entry_metadata.a_elastic.index()
     assert_entry(entry_metadata.calc_id)
@@ -304,7 +300,7 @@ def create_entry(entry_metadata: datamodel.EntryMetadata):
 
 
 def assert_entry(calc_id):
-    refresh_index()
+    refresh()
     calc = entry_document.get(calc_id)
     assert calc is not None
 
@@ -318,7 +314,7 @@ def assert_search_upload(
         upload_entries: Iterable[datamodel.EntryMetadata],
         additional_keys: List[str] = [], **kwargs):
     keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
-    refresh_index()
+    refresh()
     search_results = entry_document.search().query('match_all')[0:10]
     assert search_results.count() == len(list(upload_entries))
     if search_results.count() > 0:
@@ -381,3 +377,17 @@ def test_search_query(elastic, example_search_data, api_query, total):
     api_query = json.loads(api_query)
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
+
+
+def test_update_by_query(elastic, example_search_data):
+    result = update_by_query(
+        update_script='''
+            ctx._source.calc_id = "other test id";
+        ''',
+        owner='all', query={})
+
+    refresh()
+
+    assert result['updated'] == 1
+    results = search(owner='all', query=dict(calc_id='other test id'))
+    assert results.pagination.total == 1

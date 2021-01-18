@@ -82,17 +82,22 @@ def raw_files_infra():
     clear_raw_files()
 
 
+@pytest.fixture(scope='module')
+def raw_files_module(raw_files_infra):
+    ''' Provides cleaned out files directory structure per module. Clears files before test. '''
+    clear_raw_files()
+
+
+@pytest.fixture(scope='function')
+def raw_files_function(raw_files_infra):
+    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    clear_raw_files()
+
+
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
-    ''' Provides cleaned out files directory structure per function. Clears files after test. '''
-    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
-    for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-    try:
-        yield
-    finally:
-        clear_raw_files()
+    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    clear_raw_files()
 
 
 def clear_raw_files():
@@ -102,6 +107,8 @@ def clear_raw_files():
             shutil.rmtree(directory)
         except FileNotFoundError:
             pass
+
+        os.makedirs(directory)
 
 
 @pytest.fixture(scope='session')
@@ -160,14 +167,28 @@ def mongo_infra(monkeysession):
     return infrastructure.setup_mongo()
 
 
+def clear_mongo(mongo_infra):
+    # Some test cases need to reset the database connection
+    infrastructure.mongo_client.drop_database('test_db')
+    return infrastructure.mongo_client
+
+
+@pytest.fixture(scope='module')
+def mongo_module(mongo_infra):
+    ''' Provides a cleaned mocked mongo per module. '''
+    return clear_mongo(mongo_infra)
+
+
+@pytest.fixture(scope='function')
+def mongo_function(mongo_infra):
+    ''' Provides a cleaned mocked mongo per function. '''
+    return clear_mongo(mongo_infra)
+
+
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     ''' Provides a cleaned mocked mongo per function. '''
-    # Some test cases need to reset the database connection
-    if infrastructure.mongo_client != mongo_infra:
-        mongo_infra = infrastructure.mongo_client
-    mongo_infra.drop_database('test_db')
-    return mongo_infra
+    return clear_mongo(mongo_infra)
 
 
 @pytest.fixture(scope='session')
@@ -200,12 +221,12 @@ def clear_elastic_infra():
     return infrastructure.setup_elastic()
 
 
-def clear_elastic(elastic):
+def clear_elastic(elastic_infra):
     try:
-        elastic.delete_by_query(
+        elastic_infra.delete_by_query(
             index=elastic_test_calc_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
-        elastic.delete_by_query(
+        elastic_infra.delete_by_query(
             index=elastic_test_material_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
@@ -213,19 +234,33 @@ def clear_elastic(elastic):
         # are executed
         clear_elastic_infra()
 
+    assert infrastructure.elastic_client is not None
+    return elastic_infra
+
+
+@pytest.fixture(scope='module')
+def elastic_module(elastic_infra):
+    ''' Provides a clean elastic per module. Clears elastic before test. '''
+    return clear_elastic(elastic_infra)
+
+
+@pytest.fixture(scope='function')
+def elastic_function(elastic_infra):
+    ''' Provides a clean elastic per function. Clears elastic before test. '''
+    return clear_elastic(elastic_infra)
+
 
 @pytest.fixture(scope='function')
 def elastic(elastic_infra):
     ''' Provides a clean elastic per function. Clears elastic before test. '''
-    clear_elastic(elastic_infra)
-
-    assert infrastructure.elastic_client is not None
-    return elastic_infra
+    return clear_elastic(elastic_infra)
 
 
 def test_user_uuid(handle):
     return '00000000-0000-0000-0000-00000000000%d' % handle
 
+
+admin_user_id = test_user_uuid(0)
 
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),

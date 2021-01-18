@@ -23,7 +23,7 @@ This module represents calculations in elastic search.
 from typing import cast, Iterable, Dict, List, Any
 from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
-from elasticsearch.exceptions import NotFoundError, RequestError
+from elasticsearch.exceptions import NotFoundError, RequestError, TransportError
 from datetime import datetime
 import json
 
@@ -1058,7 +1058,8 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
         if order_by is None:
             pagination.next_after = after_key[name]
         else:
-            pagination.next_after = ':'.join(after_key.to_dict().values())
+            str_values = [str(v) for v in after_key.to_dict().values()]
+            pagination.next_after = ':'.join(str_values)
 
     return AggregationResponse(data=agg_data, pagination=pagination, **aggregation_dict)
 
@@ -1158,3 +1159,42 @@ def search(
         required=required,
         data=[_es_to_entry_dict(hit, required) for hit in es_response.hits],
         **more_response_data)
+
+
+def update_by_query(update_script: str, owner: str = 'public', query: Query = None, user_id: str = None, **kwargs):
+    '''
+    Uses the given painless script to update the entries by given query.
+
+    In most cases, the elasticsearch entry index should not be updated field by field;
+    you should run `index_all` instead and fully replace documents from mongodb and
+    archive files.
+
+    This method provides a faster direct method to update individual fiels, e.g. to quickly
+    update fields for editing operations.
+    '''
+
+    if query is None:
+        query = {}
+    es_query = _api_to_es_query(query)
+    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    body = {
+        'script': {
+            'source': update_script,
+            'lang': 'painless'
+        },
+        'query': es_query.to_dict()
+    }
+
+    body['script'].update(**kwargs)
+
+    try:
+        result = infrastructure.elastic_client.update_by_query(
+            body=body, index=config.elastic.index_name)
+    except TransportError as e:
+        utils.get_logger(__name__).error(
+            'es update_by_query script error', exc_info=e,
+            es_info=json.dumps(e.info, indent=2))
+        raise e
+
+    return result

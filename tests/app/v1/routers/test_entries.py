@@ -519,7 +519,9 @@ def test_entries_all_statistics(client, data):
 
 
 @pytest.mark.parametrize('aggregation, total, size, status_code', [
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader'}}, 3, 3, 200, id='order'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader'}}, 3, 3, 200, id='order-str'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'dft.n_calculations'}}, 3, 3, 200, id='order-int'),
     pytest.param({'quantity': 'dft.labels_springer_classification'}, 0, 0, 200, id='no-results'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'after': 'id_published'}}, 3, 1, 200, id='after'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader', 'after': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),

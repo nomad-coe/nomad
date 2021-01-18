@@ -16,13 +16,14 @@
 # limitations under the License.
 #
 
-from typing import Optional, List
+from typing import cast, Optional, List
 from fastapi import APIRouter, Depends, Query as FastApiQuery, Path, HTTPException, status
 from pydantic import BaseModel, Field
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel
+from nomad import utils, datamodel, search, processing
+from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
@@ -32,7 +33,7 @@ from .entries import _do_exaustive_search
 from ..utils import create_responses
 from ..models import (
     pagination_parameters, Pagination, PaginationResponse, Query, HTTPExceptionModel,
-    User, Direction, Owner)
+    User, Direction, Owner, Any_)
 
 
 router = APIRouter()
@@ -50,12 +51,6 @@ _bad_user_response = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
         The dataset can only be edited by the user who created the dataset.''')}
-
-_bad_dataset_type_response = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Only dataset with type 'foreign' can be edited. To edit 'owned' datasets,
-        edit the entries in the dataset.''')}
 
 _bad_owned_dataset_response = status.HTTP_400_BAD_REQUEST, {
     'model': HTTPExceptionModel,
@@ -174,7 +169,7 @@ async def get_dataset(
     '/', tags=[default_tag],
     summary='Create a new dataset',
     response_model=DatasetResponse,
-    responses=create_responses(_existing_name_response, _bad_dataset_type_response),
+    responses=create_responses(_existing_name_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_datasets(
@@ -202,22 +197,38 @@ async def post_datasets(
         created=now,
         modified=now,
         dataset_type=dataset_type)
+    dataset.a_mongo.create()
 
-    if dataset_type == 'owned':
-        raise HTTPException(
-            status_code=_bad_dataset_type_response[0],
-            detail=_bad_dataset_type_response[1]['description'])
-
-    # get all entry ids
-    if create.query is not None:
+    # add dataset to entries in mongo and elastic
+    # TODO this should be part of a new edit API
+    if create.entries is not None:
+        es_query = cast(Query, {'calc_id': Any_(any=create.entries)})
+        mongo_query = {'_id': {'$in': create.entries}}
+        empty = len(create.entries) == 0
+    elif create.query is not None:
+        es_query = create.query
         entries = _do_exaustive_search(
             owner=Owner.public, query=create.query, user=user,
             include=['calc_id'])
-        dataset.entries = [entry['calc_id'] for entry in entries]
-    elif create.entries is not None:
-        dataset.entries = create.entries
+        entry_ids = [entry['calc_id'] for entry in entries]
+        mongo_query = {'_id': {'$in': entry_ids}}
+        empty = len(entry_ids) == 0
+    else:
+        empty = True
 
-    dataset.a_mongo.create()
+    if not empty:
+        processing.Calc._get_collection().update_many(
+            mongo_query, {'$push': {'metadata.datasets': dataset.dataset_id}})
+        search.update_by_query(
+            '''
+                if (ctx._source.datasets == null) {
+                    ctx._source.datasets = new ArrayList();
+                }
+                ctx._source.datasets.add(params.dataset);
+            ''',
+            params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
+            owner='user', query=es_query, user_id=user.user_id)
+        search.refresh()
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -228,7 +239,7 @@ async def post_datasets(
     '/{dataset_id}', tags=[default_tag],
     summary='Delete a dataset',
     response_model=DatasetResponse,
-    responses=create_responses(_bad_id_response, _dataset_is_fixed_response, _bad_user_response, _bad_dataset_type_response),
+    responses=create_responses(_bad_id_response, _dataset_is_fixed_response, _bad_user_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def delete_dataset(
@@ -254,12 +265,35 @@ async def delete_dataset(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
 
-    if dataset.dataset_type == 'owned':
-        raise HTTPException(
-            status_code=_bad_dataset_type_response[0],
-            detail=_bad_dataset_type_response[1]['description'])
-
     dataset.delete()
+
+    # delete dataset from entries in mongo and elastic
+    # TODO this should be part of a new edit API
+    es_query = cast(Query, {'dataset_id': dataset_id})
+    entries = _do_exaustive_search(
+        owner=Owner.public, query=es_query, user=user,
+        include=['calc_id'])
+    entry_ids = [entry['calc_id'] for entry in entries]
+    mongo_query = {'_id': {'$in': entry_ids}}
+
+    if len(entry_ids) > 0:
+        processing.Calc._get_collection().update_many(
+            mongo_query, {'$pull': {'metadata.datasets': dataset.dataset_id}})
+        search.update_by_query(
+            '''
+                int index = -1;
+                for (int i = 0; i < ctx._source.datasets.length; i++) {
+                    if (ctx._source.datasets[i].dataset_id == params.dataset_id) {
+                        index = i
+                    }
+                }
+                if (index != -1) {
+                    ctx._source.datasets.remove(index);
+                }
+            ''',
+            params=dict(dataset_id=dataset_id),
+            owner='user', query=es_query, user_id=user.user_id)
+        search.refresh()
 
     return {
         'dataset_id': dataset.dataset_id,
