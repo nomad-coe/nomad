@@ -16,44 +16,49 @@
  * limitations under the License.
  */
 import React, { useState } from 'react'
+import DefaultEntryOverview from '../entry/DefaultEntryOverview'
 import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
 import { Typography } from '@material-ui/core'
 import { apiBase } from '../../config'
 
-export default function QCMSEntryOverview(props) {
+/**
+ * Shows an informative overview about the selected entry.
+ */
+export default function QCMSEntryOverview({repo, uploadId, calcId}) {
   const [previewBroken, setPreviewBroken] = useState(false)
-
-  if (!props.data) {
+  const { qcms } = repo
+  if (!qcms) {
     return <Typography color="error">No metadata available</Typography>
   }
-
-  const {data} = props
-  const dirname = data.mainfile.substring(0, data.mainfile.lastIndexOf('/'))
-  const relative_preview_url = `${apiBase}/raw/${data.upload_id}/${dirname}/circuit.png`
+  const dirname = repo.mainfile.substring(0, repo.mainfile.lastIndexOf('/'))
+  const relative_preview_url = `${apiBase}/raw/${repo.upload_id}/${dirname}/circuit.png`
 
   return (
-    <Quantity column>
-      <Quantity row>
-        <Quantity quantity="formula" label="formula" noWrap {...props} />
-        <Quantity quantity="qcms.chemical" label="chemical name" noWrap {...props} />
+    <DefaultEntryOverview repo={repo} uploadId={uploadId} calcId={calcId}>
+      <Quantity column>
+        <Quantity row>
+          <Quantity quantity="formula" label="formula" noWrap data={repo}/>
+          <Quantity quantity="qcms.chemical" label="chemical name" noWrap data={repo}/>
+        </Quantity>
+        <Quantity row>
+          <Quantity quantity="qcms.quantum_computer_system" label="system" noWrap data={repo}/>
+          <Quantity quantity="qcms.quantum_computing_libraries" label="libraries" noWrap data={repo}/>
+        </Quantity>
+        <Quantity label="compute time">
+          <Typography noWrap>{new Date(qcms.computation_datetime).toLocaleDateString()}</Typography>
+        </Quantity>
+        {!previewBroken &&
+         <Quantity label="circuit" data={repo}>
+           <img alt="circuit" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={() => setPreviewBroken(true)}></img>
+         </Quantity>}
       </Quantity>
-      <Quantity row>
-        <Quantity quantity="qcms.quantum_computer_system" label="system" noWrap {...props} />
-        <Quantity quantity="qcms.quantum_computing_libraries" label="libraries" noWrap {...props} />
-      </Quantity>
-      <Quantity label="compute time">
-        <Typography noWrap>{new Date(data.qcms.computation_datetime).toLocaleDateString()}</Typography>
-      </Quantity>
-      {!previewBroken &&
-        <Quantity label="circuit" {...props}>
-          <img alt="circuit" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={() => setPreviewBroken(true)}></img>
-        </Quantity>}
-    </Quantity>
+    </DefaultEntryOverview>
   )
 }
 
 QCMSEntryOverview.propTypes = {
-  data: PropTypes.object.isRequired,
-  loading: PropTypes.bool
+  repo: PropTypes.object.isRequired,
+  uploadId: PropTypes.string.isRequired,
+  calcId: PropTypes.string.isRequired
 }

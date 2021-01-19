@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 import React from 'react'
-import DFTOverview from './dft/DFTOverview'
-import DFTEntryCards from './dft/DFTEntryCards'
+import DFTEntryOverview from './dft/DFTEntryOverview'
+import DFTEntryRawView from './dft/DFTEntryRawView'
+import EMSEntryRawView from './ems/EMSEntryRawView'
 import EMSEntryOverview from './ems/EMSEntryOverview'
-import EMSEntryCards from './ems/EMSEntryCards'
 import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
 import QCMSEntryOverview from './qcms/QCMSEntryOverview'
-import QCMSEntryCards from './qcms/QCMSEntryCards'
+import QCMSEntryRawView from './qcms/QCMSEntryRawView'
 import { Link, Typography } from '@material-ui/core'
 import { amber } from '@material-ui/core/colors'
 
@@ -172,13 +172,13 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryOverview: DFTOverview,
+    EntryOverview: DFTEntryOverview,
     /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryCards: DFTEntryCards,
+    EntryRawView: DFTEntryRawView,
     /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),
@@ -267,7 +267,7 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryCards: EMSEntryCards,
+    EntryRawView: EMSEntryRawView,
     /**
      * Names of the possible search tabs for this domain
      */
@@ -344,7 +344,7 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
-    EntryCards: QCMSEntryCards,
+    EntryRawView: QCMSEntryRawView,
     /**
      * Names of the possible search tabs for this domain
      */

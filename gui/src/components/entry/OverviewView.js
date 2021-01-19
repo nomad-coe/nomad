@@ -77,11 +77,13 @@ export default function OverviewView({uploadId, calcId}) {
     </EntryPageContent>
   }
 
-  // When repo data is loaded, return a subview that depends on the domain
+  // When repo data is loaded, return a subview that depends on the domain. If a
+  // specialized overview component has not been declared, a default component
+  // will be loaded.
   if (repo) {
     const domain = repo.domain && domains[repo.domain]
     return <EntryPageContent fixed>
-      {domain && <domain.EntryOverview repo={repo} uploadId={uploadId} calcId={calcId}/>}
+      <domain.EntryOverview repo={repo} uploadId={uploadId} calcId={calcId}/>
     </EntryPageContent>
   }
   return null

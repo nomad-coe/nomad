@@ -65,7 +65,7 @@ export default function RawFileView({uploadId, calcId}) {
 
   return (
     <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
-      {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} />}
+      {domain && <domain.EntryRawView data={calcData} calcId={calcId} uploadId={uploadId} />}
     </EntryPageContent>
   )
 }
