@@ -38,9 +38,11 @@ all parsed data.
 The *log* tab, will show you a log of the entry's processing.
 `
 
-export function EntryPageContent({children, fixed}) {
-  const props = fixed ? {maxWidth: 1280, minWidth: 1100} : {}
-  return <Box padding={3} margin="auto" {...props}>
+export function EntryPageContent({children, width, minWidth, maxWidth}) {
+  width = width || '1150px'
+  minWidth = minWidth || '1150px'
+  maxWidth = maxWidth || '1150px'
+  return <Box boxSizing={'border-box'} width={width} minWidth={minWidth} maxWidth={maxWidth} padding={'1.5rem 2rem'} margin="auto">
     {children}
   </Box>
 }
@@ -48,8 +50,10 @@ EntryPageContent.propTypes = ({
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ]).isRequired,
-  fixed: PropTypes.bool
+  ]),
+  width: PropTypes.number,
+  minWidth: PropTypes.number,
+  maxWidth: PropTypes.number
 })
 
 export default function EntryPage() {

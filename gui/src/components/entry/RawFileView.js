@@ -56,7 +56,7 @@ export default function RawFileView({uploadId, calcId}) {
   const domain = calcData.domain && domains[calcData.domain]
 
   if (state.doesNotExist) {
-    return <EntryPageContent fixed>
+    return <EntryPageContent>
       <Typography className={classes.error}>
         This entry does not exist.
       </Typography>
@@ -64,7 +64,7 @@ export default function RawFileView({uploadId, calcId}) {
   }
 
   return (
-    <EntryPageContent fixed>
+    <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
       {domain && <domain.EntryCards data={calcData} calcId={calcId} uploadId={uploadId} />}
     </EntryPageContent>
   )

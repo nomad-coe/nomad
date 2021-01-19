@@ -70,7 +70,7 @@ export default function OverviewView({uploadId, calcId}) {
 
   // The entry does not exist
   if (!exists) {
-    return <EntryPageContent className={classes.root} fixed>
+    return <EntryPageContent>
       <Typography className={classes.error}>
         This entry does not exist.
       </Typography>
