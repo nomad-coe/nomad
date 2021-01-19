@@ -36,8 +36,8 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/wien2k"]
 	path = dependencies/parsers/wien2k
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-wien2k.git
+	branch = master
 [submodule "dependencies/parsers/band"]
 	path = dependencies/parsers/band
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-band.git
@@ -107,8 +107,8 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/turbomole"]
 	path = dependencies/parsers/turbomole
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-turbomole.git
+	branch = master
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
@@ -164,7 +164,8 @@
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-mopac.git
 [submodule "dependencies/parsers/amber"]
     path = dependencies/parsers/amber
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-amber.git
+	url = https://github.com/nomad-coe/nomad-parser-amber.git
+	branch = master
 [submodule "dependencies/parsers/gromacs"]
     path = dependencies/parsers/gromacs
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromacs.git
