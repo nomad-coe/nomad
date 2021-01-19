@@ -17,17 +17,72 @@
 #
 
 import pytest
+import os
+import yaml
 
 from nomad import config
+
+from .utils import assert_log
 
 
 @pytest.fixture
 def with_config():
-    old_value = config.fs.public
+    old_values = config.fs.public, config.fs.archive_version_suffix, config.auxfile_cutoff
     yield config
-    config.fs.public = old_value
+    config.fs.public, config.fs.archive_version_suffix, config.auxfile_cutoff = old_values
 
 
-def test_apply(with_config):
-    config.apply('fs_public', 'test_value')
+def test_apply(with_config, caplog):
+    config._apply('fs_public', 'test_value')
     assert config.fs.public == 'test_value'
+
+    config._apply('fs_archive_version_suffix', 'test_value')
+    assert config.fs.archive_version_suffix == 'test_value'
+
+    config._apply('auxfile_cutoff', '200')
+    assert config.auxfile_cutoff == 200
+
+    config._apply('does_not_exist', 'test_value')
+    assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
+
+    config._apply('fs_does_not_exist', 'test_value')
+    assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
+
+    config._apply('max_entry_download', 'not_a_number')
+    assert_log(caplog, 'ERROR', 'cannot set')
+
+
+def test_env(with_config, monkeypatch):
+    monkeypatch.setattr('os.environ', dict(NOMAD_FS_PUBLIC='test_value'))
+    os.environ['NOMAD_FS_PUBLIC'] = 'test_value'
+    config._apply_env_variables()
+    assert config.fs.public == 'test_value'
+
+
+def test_nomad_yaml(raw_files, with_config, monkeypatch, caplog):
+    config_data = {
+        'fs': {
+            'public': 'test_value',
+            'archive_version_suffix': 'test_value',
+            'does_not_exist': 'test_value'
+        },
+        'auxfile_cutoff': '200',
+        'does_not_exist': 'test_value',
+        'max_entry_download': 'not_a_number'
+    }
+
+    test_nomad_yaml = os.path.join(config.fs.tmp, 'nomad_test.yaml')
+    monkeypatch.setattr('os.environ', dict(NOMAD_CONFIG=test_nomad_yaml))
+    with open(test_nomad_yaml, 'w') as file:
+        yaml.dump(config_data, file)
+
+    config.load_config()
+
+    os.remove(test_nomad_yaml)
+
+    assert config.fs.public == 'test_value'
+    assert config.fs.archive_version_suffix == 'test_value'
+    assert config.auxfile_cutoff == 200
+    assert_log(caplog, 'ERROR', 'does_not_exist does not exist')
+    assert_log(caplog, 'ERROR', 'fs_does_not_exist does not exist')
+    assert_log(caplog, 'ERROR', 'cannot set')
