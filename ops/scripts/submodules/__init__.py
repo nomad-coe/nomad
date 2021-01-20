@@ -75,7 +75,7 @@ def move_submodule_to_github(path: str):
     origin = re.split(r'\t| ', origin)[1]
     if 'github.com/nomad-coe' in origin:
         print(f'Skip {path}. It already has GitHUB origin {origin}.')
-        # return
+        return
 
     print(f'Moving {path} now.')
 
@@ -90,6 +90,8 @@ def move_submodule_to_github(path: str):
     # 1. license file
     license_file = os.path.join(os.path.dirname(__file__), '../../../LICENSE')
     sh(f'cp {license_file} .')
+    if os.path.exists('LICENSE.txt'):
+        os.remove('LICENSE.txt')
     # 2. update copyright headers
     header_templ = os.path.join(os.path.dirname(__file__), 'apache-2.tmpl')
     sh(f'licenseheaders -t {header_templ} -o "The NOMAD Authors" -u "https://nomad-lab.eu" -n NOMAD -x "*.yaml" "*.yml"')
@@ -107,6 +109,8 @@ def move_submodule_to_github(path: str):
         parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
         title = parser_metadata['codeLabel']
         parser_metadata['parserGitUrl'] = github_url
+        parser_metadata['preamble'] = ''
+        parser_metadata['codeName'] = name
     with open('metadata.yaml', 'wt') as f:
         yaml.dump(parser_metadata, f)
     sh(f'nomad dev update-parser-readmes --parser {name}')
