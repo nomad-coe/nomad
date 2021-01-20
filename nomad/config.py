@@ -309,6 +309,7 @@ raw_file_strip_cutoff = 1000
 max_entry_download = 500000
 use_empty_parsers = False
 reprocess_unmatched = True
+reprocess_rematch = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
 

@@ -283,27 +283,34 @@ class Calc(Proc):
         instead of creating it initially, we are just updating the existing
         records.
         '''
-        parser = match_parser(self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
         logger = self.get_logger()
 
-        if parser is None and not config.reprocess_unmatched:
-            self.errors = ['no parser matches during re-process, will not re-process this calc']
+        if config.reprocess_rematch:
+            with utils.timer(logger, 'parser matching executed'):
+                parser = match_parser(
+                    self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
 
-            try:
-                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                with upload_files.read_archive(self.calc_id) as archive:
-                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
+            if parser is None and not config.reprocess_unmatched:
+                self.errors = ['no parser matches during re-process, will not re-process this calc']
 
-            except Exception as e:
-                logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
-                raise e
+                try:
+                    upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                    with upload_files.read_archive(self.calc_id) as archive:
+                        self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
 
-            # mock the steps of actual processing
-            self._continue_with('parsing')
-            self._continue_with('normalizing')
-            self._continue_with('archiving')
-            self._complete()
-            return
+                except Exception as e:
+                    logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
+                    raise e
+
+                # mock the steps of actual processing
+                self._continue_with('parsing')
+                self._continue_with('normalizing')
+                self._continue_with('archiving')
+                self._complete()
+                return
+
+        else:
+            parser = parser_dict.get(self.parser)
 
         if parser is None:
             self.get_logger().warn('no parser matches during re-process, use the old parser')
