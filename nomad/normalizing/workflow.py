@@ -303,7 +303,11 @@ class WorkflowNormalizer(Normalizer):
         self._phonon_programs = ['phonopy']
 
     def _resolve_workflow_type_vasp(self):
-        ibrion = self.section_run.section_method[0].x_vasp_incarOut_IBRION
+        try:
+            ibrion = self.section_run.section_method[0].x_vasp_incarOut_IBRION
+        except Exception:
+            ibrion = 1
+
         if ibrion == 0:
             workflow_type = "molecular_dynamics"
         else:

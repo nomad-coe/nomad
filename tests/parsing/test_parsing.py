@@ -41,7 +41,7 @@ parser_examples = [
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_carbon'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
-    ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
+    ('parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),

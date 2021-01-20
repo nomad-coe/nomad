@@ -33,7 +33,7 @@ def workflow_archive():
 
 def test_no_workflow(workflow_archive):
     vasp_archive = workflow_archive(
-        'parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR')
+        'parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR_broken')
     assert vasp_archive.section_workflow is None
 
 
