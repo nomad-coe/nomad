@@ -20,6 +20,9 @@ data:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
+      {{ if .Values.volumes.archiveVersionSuffix }}
+      archive_version_suffix: "{{ .Values.volumes.archiveVersionSuffix }}"
+      {{ end }}
     logstash:
       enabled: {{ .Values.logstash.enabled }}
       host: "{{ .Values.logstash.host }}"
