@@ -16,6 +16,7 @@ data:
       source_url: "{{ .Values.meta.source_url }}"
       maintainer_email: "{{ .Values.meta.maintainer_email }}"
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
+    reprocess_rematch: {{ .Values.reprocess_rematch }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
