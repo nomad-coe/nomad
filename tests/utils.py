@@ -41,7 +41,13 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
     record = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
-            if (event_part in json.loads(record.msg)['event']):
+            try:
+                event_data = json.loads(record.msg)
+                present = event_part in event_data['event']
+            except Exception:
+                present = event_part in record.msg
+
+            if present:
                 record = record
                 # No need to look for more matches since we aren't counting matches.
                 break

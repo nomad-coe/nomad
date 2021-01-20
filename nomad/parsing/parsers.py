@@ -33,6 +33,9 @@ from elasticparser import ElasticParser
 from lammpsparser import LammpsParser
 from gromacsparser import GromacsParser
 from crystalparser import CrystalParser
+from fhiaimsparser import FHIAimsParser
+from excitingparser import ExcitingParser
+from abinitparser import AbinitParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -132,21 +135,8 @@ parsers = [
         mainfile_name_re=r'(.*/)?OUTCAR(\.[^\.]*)?',
         mainfile_contents_re=(r'^\svasp\.')
     ),
-    LegacyParser(
-        name='parsers/exciting', code_name='exciting', code_homepage='http://exciting-code.org/',
-        parser_class_name='excitingparser.ExcitingParser',
-        mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
-        mainfile_contents_re=(r'EXCITING.*started')
-    ),
-    LegacyParser(
-        name='parsers/fhi-aims', code_name='FHI-aims', code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
-        parser_class_name='fhiaimsparser.FHIaimsParser',
-        mainfile_contents_re=(
-            r'^(.*\n)*'
-            r'?\s*Invoking FHI-aims \.\.\.'
-            # r'?\s*Version'
-        )
-    ),
+    ExcitingParser(),
+    FHIAimsParser(),
     LegacyParser(
         name='parsers/cp2k', code_name='CP2K', code_homepage='https://www.cp2k.org/',
         parser_class_name='cp2kparser.CP2KParser',
@@ -244,11 +234,7 @@ parsers = [
         #    r'(\d+)\s*\))?\s+starts[^\n]+'
         #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
     ),
-    LegacyParser(
-        name='parsers/abinit', code_name='ABINIT', code_homepage='https://www.abinit.org/',
-        parser_class_name='abinitparser.AbinitParser',
-        mainfile_contents_re=(r'^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*')
-    ),
+    AbinitParser(),
     LegacyParser(
         name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
         parser_class_name='orcaparser.OrcaParser',

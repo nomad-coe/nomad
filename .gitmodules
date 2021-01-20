@@ -16,35 +16,36 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/cp2k"]
 	path = dependencies/parsers/cp2k
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-cp2k.git
+	branch = master
 [submodule "dependencies/parsers/crystal"]
 	path = dependencies/parsers/crystal
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/cpmd"]
 	path = dependencies/parsers/cpmd
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cpmd.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-cpmd.git
+	branch = master
 [submodule "dependencies/parsers/nwchem"]
 	path = dependencies/parsers/nwchem
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-nwchem.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-nwchem.git
+	branch = master
 [submodule "dependencies/parsers/bigdft"]
 	path = dependencies/parsers/bigdft
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-big-dft.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-bigdft.git
+	branch = master
 [submodule "dependencies/parsers/wien2k"]
 	path = dependencies/parsers/wien2k
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-wien2k.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-wien2k.git
+	branch = master
 [submodule "dependencies/parsers/band"]
 	path = dependencies/parsers/band
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-band.git
+	url = https://github.com/nomad-coe/nomad-parser-band.git
+	branch = master
 [submodule "dependencies/parsers/gaussian"]
 	path = dependencies/parsers/gaussian
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gaussian.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-gaussian.git
+	branch = master
 [submodule "dependencies/parsers/quantum-espresso"]
 	path = dependencies/parsers/quantum-espresso
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-quantum-espresso.git
@@ -55,131 +56,141 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/orca"]
 	path = dependencies/parsers/orca
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-orca.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-orca.git
+	branch = master
 [submodule "dependencies/parsers/castep"]
 	path = dependencies/parsers/castep
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-castep.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-castep.git
+	branch = master
 [submodule "dependencies/parsers/dl-poly"]
 	path = dependencies/parsers/dl-poly
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dl-poly.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-dl-poly.git
+	branch = master
 [submodule "dependencies/parsers/lib-atoms"]
 	path = dependencies/parsers/lib-atoms
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lib-atoms.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-lib-atoms.git
+	branch = master
 [submodule "dependencies/parsers/octopus"]
 	path = dependencies/parsers/octopus
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-octopus.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-octopus.git
+	branch = master
 [submodule "dependencies/parsers/phonopy"]
 	path = dependencies/parsers/phonopy
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/gpaw"]
 	path = dependencies/parsers/gpaw
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gpaw.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-gpaw.git
+	branch = master
 [submodule "dependencies/parsers/atk"]
 	path = dependencies/parsers/atk
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-atk.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-atk.git
+	branch = master
 [submodule "dependencies/parsers/gulp"]
 	path = dependencies/parsers/gulp
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gulp.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-gulp.git
+	branch = master
 [submodule "dependencies/parsers/siesta"]
 	path = dependencies/parsers/siesta
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-siesta.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-siesta.git
+	branch = master
 [submodule "dependencies/parsers/elk"]
 	path = dependencies/parsers/elk
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elk.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-elk.git
+	branch = master
 [submodule "dependencies/parsers/elastic"]
 	path = dependencies/parsers/elastic
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/gamess"]
 	path = dependencies/parsers/gamess
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gamess.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-gamess.git
+	branch = master
 [submodule "dependencies/parsers/turbomole"]
 	path = dependencies/parsers/turbomole
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-turbomole.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-turbomole.git
+	branch = master
 [submodule "dependencies/parsers/skeleton"]
 	path = dependencies/parsers/skeleton
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
 	branch = nomad-fair
 [submodule "dependencies/parsers/mpes"]
 	path = dependencies/parsers/mpes
-	url = https://gitlab.mpcdf.mpg.de/rpx/parser-mpes.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-mpes.git
+	branch = master
 [submodule "dependencies/parsers/aptfim"]
 	path = dependencies/parsers/aptfim
-	url = https://gitlab.mpcdf.mpg.de/mkuehbac/parser-aptfim.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-aptfim.git
+	branch = master
 [submodule "dependencies/parsers/dmol3"]
 	path = dependencies/parsers/dmol3
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dmol3.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-dmol3.git
+	branch = master
 [submodule "dependencies/parsers/fleur"]
 	path = dependencies/parsers/fleur
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fleur.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-fleur.git
+	branch = master
 [submodule "dependencies/parsers/molcas"]
 	path = dependencies/parsers/molcas
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-molcas.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-molcas.git
+	branch = master
 [submodule "dependencies/parsers/qbox"]
 	path = dependencies/parsers/qbox
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-qbox.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-qbox.git
+	branch = master
 [submodule "dependencies/parsers/onetep"]
 	path = dependencies/parsers/onetep
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-onetep.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-onetep.git
+	branch = master
 [submodule "dependencies/optimade-python-tools"]
 	path = dependencies/optimade-python-tools
 	url = https://github.com/markus1978/optimade-python-tools.git
 [submodule "dependencies/parsers/namd"]
     path = dependencies/parsers/namd
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-namd.git
+	url = https://github.com/nomad-coe/nomad-parser-namd.git
+	branch = master
 [submodule "dependencies/parsers/charmm"]
     path = dependencies/parsers/charmm
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-charmm.git
+	url = https://github.com/nomad-coe/nomad-parser-charmm.git
+	branch = master
 [submodule "dependencies/parsers/dftbplus"]
     path = dependencies/parsers/dftbplus
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-dftb-plus.git
+	url = https://github.com/nomad-coe/nomad-parser-dftbplus.git
+	branch = master
 [submodule "dependencies/parsers/asap"]
     path = dependencies/parsers/asap
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-asap.git
+	url = https://github.com/nomad-coe/nomad-parser-asap.git
+	branch = master
 [submodule "dependencies/parsers/fplo"]
     path = dependencies/parsers/fplo
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fplo.git
+	url = https://github.com/nomad-coe/nomad-parser-fplo.git
+	branch = master
 [submodule "dependencies/parsers/mopac"]
     path = dependencies/parsers/mopac
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-mopac.git
+	url = https://github.com/nomad-coe/nomad-parser-mopac.git
+	branch = master
 [submodule "dependencies/parsers/amber"]
     path = dependencies/parsers/amber
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-amber.git
+	url = https://github.com/nomad-coe/nomad-parser-amber.git
+	branch = master
 [submodule "dependencies/parsers/gromacs"]
     path = dependencies/parsers/gromacs
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromacs.git
 [submodule "dependencies/parsers/gromos"]
     path = dependencies/parsers/gromos
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromos.git
+	url = https://github.com/nomad-coe/nomad-parser-gromos.git
+	branch = master
 [submodule "dependencies/parsers/lammps"]
     path = dependencies/parsers/lammps
     url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lammps.git
 [submodule "dependencies/parsers/openkim"]
     path = dependencies/parsers/openkim
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-openkim.git
+	url = https://github.com/nomad-coe/nomad-parser-openkim.git
+	branch = master
 [submodule "dependencies/parsers/tinker"]
     path = dependencies/parsers/tinker
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-tinker.git
+	url = https://github.com/nomad-coe/nomad-parser-tinker.git
+	branch = master
 [submodule "dependencies/encyclopedia-gui"]
 	path = dependencies/encyclopedia-gui
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-gui.git
@@ -188,7 +199,8 @@
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-dos-fingerprints.git
 [submodule "dependencies/parsers/eelsdb"]
 	path = dependencies/parsers/eelsdb
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/eelsdb.git
+	url = https://github.com/nomad-coe/nomad-parser-eelsdb.git
+	branch = master
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
