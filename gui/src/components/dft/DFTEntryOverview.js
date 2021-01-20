@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
@@ -31,6 +31,7 @@ import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { errorContext } from '../errors'
 import { authorList, convertSI } from '../../utils'
+import CollapsibleCard from '../CollapsibleCard'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
@@ -43,19 +44,13 @@ const useStyles = makeStyles(theme => ({
   error: {
     marginTop: theme.spacing(2)
   },
-  cardContent: {
-    paddingTop: 0
-  },
-  topCard: {
-    height: '32rem'
-  },
   toggle: {
     marginBottom: theme.spacing(1)
   },
   structure: {
-    marginTop: theme.spacing(1),
+    marginTop: theme.spacing(1.5),
     width: '100%',
-    height: '20rem'
+    height: '16.5rem'
   }
 }))
 
@@ -69,6 +64,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   const [electronicStructure, setElectronicStructure] = useState(null)
   const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
+  const materialType = repo?.encyclopedia?.material?.material_type
 
   // When loaded for the first time, start downloading the archive. Once
   // finished, determine the final layout based on it's contents.TODO: When we
@@ -76,8 +72,6 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
     api.archive(uploadId, calcId).then(data => {
-      // console.log('Loaded archive!')
-      // console.log(data)
       let structs = new Map()
 
       // Figure out what properties are present by looping over the SCCS. This
@@ -103,9 +97,11 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
           }
         }
       }
-      setElectronicStructure({
-        'dos': dos, 'bs': bs
-      })
+      if (dos || bs) {
+        setElectronicStructure({
+          'dos': dos, 'bs': bs
+        })
+      }
 
       // Get the representative system by looping over systems
       let reprSys = null
@@ -119,7 +115,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
             'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
             'pbc': sys.configuration_periodic_dimensions
           }
-          structs['original'] = reprSys
+          structs.set('original', reprSys)
           break
         }
       }
@@ -134,7 +130,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
           'fractional': true,
           'pbc': idealSys.periodicity
         }
-        structs['conventional'] = ideal
+        structs.set('conventional', ideal)
       }
 
       setStructures(structs)
@@ -151,113 +147,125 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   const quantityProps = {data: calcData, loading: loadingRepo}
   const authors = loadingRepo ? null : calcData.authors
   const domain = calcData.domain && domains[calcData.domain]
+  const structureToggles = useMemo(() => {
+    if (structures) {
+      const toggles = []
+      structures.forEach((value, key) => {
+        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
+      })
+      return toggles
+    }
+    return null
+  }, [structures])
 
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
-        <Card className={classes.topCard}>
-          <CardHeader
-            title="Material"
-            action={encyclopediaEnabled && repo?.encyclopedia?.material?.material_id
-              ? <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
-                <IconButton href={`${appBase}/encyclopedia/#/material/${repo.encyclopedia.material.material_id}`}><ArrowForwardIcon/></IconButton>
-              </Tooltip>
-              : null
-            }
-          />
-          <CardContent classes={{root: classes.cardContent}}>
-            <Quantity column>
-              <Quantity row>
-                <Quantity quantity="formula" label='formula' noWrap data={repo}/>
-                <Quantity quantity="dft.system" label='material type' noWrap data={repo}/>
-                <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={repo}/>
-              </Quantity>
-              <Quantity row>
-                <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={repo}/>
-                <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={repo}>
-                  <Typography noWrap>
-                    {normalizeDisplayValue(_.get(repo, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(repo, 'dft.spacegroup'))})
-                  </Typography>
+        <CollapsibleCard
+          height={'33rem'}
+          title='Material'
+          action={encyclopediaEnabled && repo?.encyclopedia?.material?.material_id
+            ? <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
+              <IconButton href={`${appBase}/encyclopedia/#/material/${repo.encyclopedia.material.material_id}`}><ArrowForwardIcon/></IconButton>
+            </Tooltip>
+            : null
+          }
+          content={
+            <>
+              <Quantity column>
+                <Quantity row>
+                  <Quantity quantity="formula" label='formula' noWrap data={repo}/>
+                  <Quantity quantity="dft.system" label='material type' noWrap data={repo}/>
+                  <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={repo}/>
                 </Quantity>
+                {materialType === 'bulk'
+                  ? <Quantity row>
+                    <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={repo}/>
+                    <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={repo}>
+                      <Typography noWrap>
+                        {normalizeDisplayValue(_.get(repo, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(repo, 'dft.spacegroup'))})
+                      </Typography>
+                    </Quantity>
+                  </Quantity>
+                  : null
+                }
               </Quantity>
-            </Quantity>
-            {structures
-              ? <Box className={classes.structure}>
-                <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
-                  <ToggleButton value="original" aria-label="original">
-                  Original
-                  </ToggleButton>
-                  <ToggleButton value="conventional" aria-label="conventional">
-                  Conventional
-                  </ToggleButton>
-                </ToggleButtonGroup>
-                <Structure system={structures[shownSystem]} aspectRatio={4 / 3} options={{view: {fitMargin: 0.75}}}></Structure>
-              </Box>
-              : <Placeholder className={classes.structure} variant="rect"></Placeholder>
-            }
-          </CardContent>
-        </Card>
+            </>
+          }
+          fixedContent={structures
+            ? <Box className={classes.structure}>
+              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
+                {structureToggles}
+              </ToggleButtonGroup>
+              <Structure system={structures.get(shownSystem)} aspectRatio={4 / 3} options={{view: {fitMargin: 0.75}}}></Structure>
+            </Box>
+            : <Placeholder className={classes.structure} variant="rect"></Placeholder>
+          }
+        ></CollapsibleCard>
       </Grid>
 
       <Grid item xs={4}>
-        <Card className={classes.topCard}>
-          <CardHeader title="Method"/>
-          <CardContent classes={{root: classes.cardContent}}>
-            <Quantity row>
-              <Quantity quantity="dft.code_name" label='code name' noWrap data={repo}/>
-              <Quantity quantity="dft.code_version" label='code version' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.electronic_structure_method" label='electronic structure method' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.restricted" label='restricted' noWrap data={repo}/>
-              <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.xc_functional" label='xc functional' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
-              <Quantity quantity="dft.cutoff" label='plane wave cutoff' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.pseudopotential" label='pseudopotential' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.vdw_method" label='vdw method' noWrap data={repo}/>
-            </Quantity>
-            <Quantity row>
-              <Quantity quantity="dft.relativistic" label='relativistic' noWrap data={repo}/>
-            </Quantity>
-          </CardContent>
-        </Card>
+        <CollapsibleCard
+          height={'33rem'}
+          title='Method'
+          content={
+            <>
+              <Quantity row>
+                <Quantity quantity="dft.code_name" label='code name' noWrap data={repo}/>
+                <Quantity quantity="dft.code_version" label='code version' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.electronic_structure_method" label='electronic structure method' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.restricted" label='restricted' noWrap data={repo}/>
+                <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.xc_functional" label='xc functional' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
+                <Quantity quantity="dft.cutoff" label='plane wave cutoff' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.pseudopotential" label='pseudopotential' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.vdw_method" label='vdw method' noWrap data={repo}/>
+              </Quantity>
+              <Quantity row>
+                <Quantity quantity="dft.relativistic" label='relativistic' noWrap data={repo}/>
+              </Quantity>
+            </>
+          }
+        ></CollapsibleCard>
       </Grid>
 
       <Grid item xs={4}>
-        <Card className={classes.topCard}>
-          <CardHeader
-            title="Entry"
-            action={<ApiDialogButton title="Repository JSON" data={calcData} />}
-          />
-          <CardContent classes={{root: classes.cardContent}}>
-            <Quantity column>
-              <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
-              <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                {calcData.references &&
+        <CollapsibleCard
+          height={'33rem'}
+          title={'Entry'}
+          action={<ApiDialogButton title="Repository JSON" data={calcData} />}
+          content={
+            <>
+              <Quantity column>
+                <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
+                <Quantity quantity='references' placeholder='no references' {...quantityProps}>
+                  {calcData.references &&
                   <div style={{display: 'inline-grid'}}>
                     {calcData.references.map(ref => <Typography key={ref} noWrap>
                       <Link href={ref}>{ref}</Link>
                     </Typography>)}
                   </div>}
-              </Quantity>
-              <Quantity quantity='authors' {...quantityProps}>
-                <Typography>
-                  {authorList(authors || [])}
-                </Typography>
-              </Quantity>
-              <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                {calcData.datasets &&
+                </Quantity>
+                <Quantity quantity='authors' {...quantityProps}>
+                  <Typography>
+                    {authorList(authors || [])}
+                  </Typography>
+                </Quantity>
+                <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
+                  {calcData.datasets &&
                   <div>
                     {calcData.datasets.map(ds => (
                       <Typography key={ds.dataset_id}>
@@ -265,22 +273,34 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
                         {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
                       </Typography>))}
                   </div>}
+                </Quantity>
               </Quantity>
-            </Quantity>
-            <Quantity column style={{maxWidth: 350}}>
-              <Quantity quantity="mainfile" loading={loadingRepo} noWrap ellipsisFront {...quantityProps} withClipboard />
-              <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps} />
-              <Quantity quantity="upload_id" label='upload id' {...quantityProps} noWrap withClipboard />
-              <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps} >
-                <Typography noWrap>
-                  {new Date(calcData.upload_time).toLocaleString()}
-                </Typography>
+              <Quantity column style={{maxWidth: 350}}>
+                <Quantity quantity="mainfile" noWrap ellipsisFront data={repo} withClipboard />
+                <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={repo} />
+                <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={repo} withClipboard />
+                <Quantity quantity="upload_id" label='upload id' data={repo} noWrap withClipboard />
+                <Quantity quantity="upload_time" label='upload time' noWrap data={repo}>
+                  <Typography noWrap>
+                    {new Date(repo.upload_time).toLocaleString()}
+                  </Typography>
+                </Quantity>
+                <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={repo} withClipboard />
+                <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={repo} withClipboard />
+                <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={repo}>
+                  <Typography noWrap>
+                    {new Date(repo.last_processing).toLocaleString()}
+                  </Typography>
+                </Quantity>
+                <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={repo}>
+                  <Typography noWrap>
+                    {repo.nomad_version}/{repo.nomad_commit}
+                  </Typography>
+                </Quantity>
               </Quantity>
-              <Quantity quantity="raw_id" label='raw id' loading={loadingRepo} noWrap hideIfUnavailable {...quantityProps} withClipboard />
-              <Quantity quantity="external_id" label='external id' loading={loadingRepo} hideIfUnavailable noWrap {...quantityProps} withClipboard />
-            </Quantity>
-          </CardContent>
-        </Card>
+            </>
+          }
+        ></CollapsibleCard>
       </Grid>
 
       {electronicStructure

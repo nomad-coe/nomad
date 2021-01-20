@@ -51,9 +51,9 @@ EntryPageContent.propTypes = ({
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]),
-  width: PropTypes.number,
-  minWidth: PropTypes.number,
-  maxWidth: PropTypes.number
+  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  minWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  maxWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
 })
 
 export default function EntryPage() {

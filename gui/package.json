@@ -36,6 +36,7 @@
     "react-autosuggest": "^9.4.3",
     "react-cookie": "^3.0.8",
     "react-copy-to-clipboard": "^5.0.1",
+    "react-detectable-overflow": "^0.5.0",
     "react-dom": "^16.13.1",
     "react-dropzone": "^5.0.1",
     "react-highlight": "^0.12.0",
