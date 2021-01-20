@@ -47,7 +47,7 @@ from contextlib import contextmanager
 import json
 import re
 
-from nomad import config
+from nomad import config, utils
 
 
 def sanitize_logevent(event: str) -> str:
@@ -152,6 +152,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                     continue
                 elif key == 'exception':
                     message['digest'] = str(value)[-256:]
+                    message['exception_hash'] = utils.hash(value)
                 elif key in ['upload_id', 'calc_id', 'mainfile']:
                     key = 'nomad.%s' % key
                 else:
