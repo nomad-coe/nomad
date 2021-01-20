@@ -37,6 +37,9 @@ export default function DOS({data, layout, resetLayout, aspectRatio, className, 
         title: {
           text: `Energy (${convertSILabel('joule', units)})`
         }
+      },
+      xaxis: {
+        showexponent: 'first'
       }
     }
     return mergeObjects(layout, defaultLayout)

@@ -158,6 +158,17 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
     return null
   }, [structures])
 
+  let eSize
+  if (electronicStructure) {
+    if (electronicStructure.bs && electronicStructure.dos) {
+      eSize = 12
+    } else if (electronicStructure.bs) {
+      eSize = 9
+    } else if (electronicStructure.dos) {
+      eSize = 4
+    }
+  }
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={4}>
@@ -304,13 +315,13 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
       </Grid>
 
       {electronicStructure
-        ? <Grid item xs={!!electronicStructure.bs * 7 + !!electronicStructure.dos * 5}>
+        ? <Grid item xs={eSize}>
           <Card>
             <CardHeader
               title="Electronic properties"
             />
             <CardContent classes={{root: classes.cardContent}}>
-              <Box style={{margin: '1rem auto 0 auto', width: '95%', height: '36rem'}}>
+              <Box style={{margin: '0 auto 0 auto', width: '100%', height: '36rem'}}>
                 <ElectronicStructureOverview
                   data={electronicStructure}>
                 </ElectronicStructureOverview>

@@ -45,19 +45,19 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
       row: {
         display: 'flex',
         flexDirection: 'row',
-        justifyContent: 'flex-start',
+        justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
         height: '100%'
       },
       bz: {
-        flex: '0 0 25%'
+        flex: data.dos ? '0 0 25%' : '0 0 33.3%'
       },
       bs: {
-        flex: '0 0 50%'
+        flex: data.dos ? '0 0 50%' : '0 0 66.6%'
       },
       dos: {
-        flex: '0 0 25%'
+        flex: data.bs ? '0 0 25%' : '0 0 90%'
       }
     }
   })
