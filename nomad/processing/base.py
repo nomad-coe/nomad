@@ -620,7 +620,12 @@ def process(func):
         self.process_status = PROCESS_CALLED
         self.save()
 
-        self._run_process(func)
+        @functools.wraps(func)
+        def timed_func(self, *args, **kwargs):
+            with utils.timer(self.get_logger(), 'run process on worker'):
+                return func()
+
+        self._run_process(timed_func)
 
     task = getattr(func, '__task_name', None)
     if task is not None:
