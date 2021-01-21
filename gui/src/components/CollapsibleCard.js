@@ -111,7 +111,7 @@ export default function CollapsibleCard({height, title, action, content, fixedCo
       </div>
     </div>
     {fixedContent
-      ? <div fixedContent className={classes.cardFixedContent}>
+      ? <div className={classes.cardFixedContent}>
         {fixedContent}
       </div>
       : null

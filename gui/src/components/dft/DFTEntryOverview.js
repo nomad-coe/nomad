@@ -17,13 +17,14 @@
  */
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
+import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles, useTheme } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import { apiContext } from '../api'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
 import ApiDialogButton from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
+import Plot from '../visualization/Plot'
 import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
@@ -32,7 +33,8 @@ import { domains } from '../domains'
 import { errorContext } from '../errors'
 import { authorList, convertSI } from '../../utils'
 import CollapsibleCard from '../CollapsibleCard'
-import _ from 'lodash'
+import { resolveRef } from '../archive/metainfo'
+import _, { initial } from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
@@ -62,6 +64,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
   const [electronicStructure, setElectronicStructure] = useState(null)
+  const [geoOpt, setGeoOpt] = useState(null)
   const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
   const materialType = repo?.encyclopedia?.material?.material_type
@@ -101,6 +104,29 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         setElectronicStructure({
           'dos': dos, 'bs': bs
         })
+      }
+
+      // See if there are workflow results
+      const section_wf = data.section_workflow
+      if (section_wf) {
+        const wfType = section_wf.workflow_type
+
+        // Gather energies from geometry optimization
+        if (wfType === 'geometry_optimization') {
+          const calculations = section_wf.calculations_ref
+          let energies = []
+          let initialEnergy = null
+          calculations.forEach((ref, i) => {
+            const calc = resolveRef(ref, data)
+            const e = calc.energy_total
+            if (i === 0) {
+              initialEnergy = e
+            }
+            energies.push(e - initialEnergy)
+          })
+          energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
+          setGeoOpt({energies: energies})
+        }
       }
 
       // Get the representative system by looping over systems
@@ -168,6 +194,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
       eSize = 4
     }
   }
+  const theme = useTheme()
 
   return (
     <Grid container spacing={2}>
@@ -326,6 +353,46 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
                   data={electronicStructure}>
                 </ElectronicStructureOverview>
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        : null
+      }
+      {geoOpt
+        ? <Grid item xs={12}>
+          <Card>
+            <CardHeader
+              title="Geometry optimization"
+            />
+            <CardContent classes={{root: classes.cardContent}}>
+              <Plot
+                data={[{
+                  x: [...Array(geoOpt.energies.length).keys()],
+                  y: geoOpt.energies,
+                  type: 'scatter',
+                  mode: 'lines',
+                  line: {
+                    color: theme.palette.primary.main,
+                    width: 2
+                  }
+                }]}
+                layout={{
+                  xaxis: {
+                    title: 'Step number',
+                    autorange: true,
+                    zeroline: false
+                  },
+                  yaxis: {
+                    title: 'Energy (eV)',
+                    autorange: true,
+                    zeroline: false
+                  }
+                }}
+                // resetLayout={resetLayout}
+                aspectRatio={2}
+                floatTitle="Geometry optimizaiton"
+              >
+              </Plot>
             </CardContent>
           </Card>
         </Grid>
