@@ -337,7 +337,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.get_logger().info('started process')
         else:
             self.current_task = task
-            self.get_logger().info('successfully completed task')
+            self.get_logger().info('task completed successfully')
 
         self.save()
         return True
@@ -586,7 +586,8 @@ def proc_task(task, cls_name, self_id, func_attr):
     try:
         self.process_status = PROCESS_RUNNING
         os.chdir(config.fs.working_directory)
-        deleted = func(self)
+        with utils.timer(logger, 'process executed on worker'):
+            deleted = func(self)
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
         self.fail(e)
@@ -620,12 +621,7 @@ def process(func):
         self.process_status = PROCESS_CALLED
         self.save()
 
-        @functools.wraps(func)
-        def timed_func(self, *args, **kwargs):
-            with utils.timer(self.get_logger(), 'run process on worker'):
-                return func()
-
-        self._run_process(timed_func)
+        self._run_process(func)
 
     task = getattr(func, '__task_name', None)
     if task is not None:

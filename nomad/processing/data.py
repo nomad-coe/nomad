@@ -45,7 +45,7 @@ from functools import lru_cache
 import urllib.parse
 import requests
 
-from nomad import utils, config, infrastructure, search, datamodel, metainfo
+from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
     PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
     PublicUploadFiles, StagingUploadFiles)
@@ -435,6 +435,15 @@ class Calc(Proc):
         self._entry_metadata.parser_name = self.parser
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
+            if not config.process_reuse_parser:
+                if isinstance(parser, parsing.FairdiParser):
+                    try:
+                        parser = parser.__class__()
+                    except Exception as e:
+                        self.fail(
+                            'could not re-create parser instance',
+                            exc_info=e, error=str(e), **context)
+                        return
             try:
                 self._parser_results = EntryArchive()
                 # allow parsers to read/write metadata
@@ -547,7 +556,7 @@ class Calc(Proc):
             with utils.timer(logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 try:
                     normalizer(self._parser_results).normalize(logger=logger)
-                    logger.info('processor completed successfull', **context)
+                    logger.info('normalizer completed successfull', **context)
                 except Exception as e:
                     self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
