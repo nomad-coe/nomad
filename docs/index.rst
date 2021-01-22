@@ -8,7 +8,7 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    :maxdepth: 1
 
    introduction.md
-   upload.rst
+   upload.md
    api.md
    client/client.rst
    metainfo.rst
