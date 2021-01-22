@@ -309,6 +309,23 @@ export function titleCase(str) {
   return splitStr.join(' ')
 }
 
-export function authorList(authors) {
-  return authors.map(author => titleCase(author.name)).filter(name => name !== '').join(', ')
+export function nameList(users) {
+  const names = users.map(user => titleCase(user.name)).filter(name => name !== '')
+  if (names.length > 3) {
+    return names.slice(0, 2).join(', ') + ' et al'
+  } else {
+    return names.join(', ')
+  }
+}
+
+export function authorList(entry) {
+  if (!entry) {
+    return ''
+  }
+
+  if (entry.external_db) {
+    return entry.external_db
+  } else {
+    return nameList(entry.authors || [])
+  }
 }

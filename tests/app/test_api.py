@@ -532,6 +532,29 @@ class TestUploads:
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
 
+    def test_put_publish_directly(self, api, test_user_auth, non_empty_example_upload, proc_infra, no_warn):
+        rv = api.put('/uploads/?%s' % urlencode(dict(
+            local_path=non_empty_example_upload,
+            publish_directly=True)), headers=test_user_auth)
+        assert rv.status_code == 200, rv.data
+        upload = self.assert_upload(rv.data)
+        upload_id = upload['upload_id']
+
+        # poll until completed
+        upload = self.block_until_completed(api, upload_id, test_user_auth)
+
+        assert len(upload['tasks']) == 4
+        assert upload['tasks_status'] == SUCCESS
+        assert upload['current_task'] == 'cleanup'
+        assert not upload['process_running']
+
+        upload_proc = Upload.objects(upload_id=upload_id).first()
+        assert upload_proc.published
+
+        entries = get_upload_entries_metadata(upload)
+        assert_upload_files(upload_id, entries, files.PublicUploadFiles)
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+
     def test_post_from_oasis_admin(self, api, non_empty_uploaded, other_test_user_auth, test_user, no_warn):
         url = '/uploads/?%s' % urlencode(dict(
             local_path=non_empty_uploaded[1], oasis_upload_id='oasis_upload_id',

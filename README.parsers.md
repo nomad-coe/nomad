@@ -1,5 +1,7 @@
 ***Note:** This is a general README file for NOMAD parsers, consult the README of specific parser projects for more detailed information!*
 
+$preamble$
+
 This is a NOMAD parser for [$codeLabel$]($codeUrl$). It will read $codeLabel$ input and
 output files and provide all information in NOMAD's unified Metainfo based Archive format.
 
@@ -64,7 +66,15 @@ python_dict = section_run.m_to_dict()
 
 ## Developing the parser
 
-Also install NOMAD's pypi package:
+Create a virtual environment to install the parser in development mode:
+
+```
+pip install virtualenv
+virtualenv -p `which python3` .pyenv
+source .pyenv/bin/activate
+```
+
+Install NOMAD's pypi package:
 
 ```
 pip install nomad-lab

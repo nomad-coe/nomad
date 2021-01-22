@@ -37,6 +37,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.lnr
 '''
 
+from typing import cast, Any
 import logging
 import structlog
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper, JSONRenderer
@@ -277,7 +278,7 @@ def logger_factory(*args):
 
 
 structlog.configure(
-    processors=log_processors,
+    processors=cast(Any, log_processors),
     logger_factory=logger_factory,
     wrapper_class=structlog.stdlib.BoundLogger)
 

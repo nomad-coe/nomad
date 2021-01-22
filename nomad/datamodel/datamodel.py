@@ -424,7 +424,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELSDB'), categories=[MongoMetadata, UserProvidableMetadata],
+        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoMetadata, UserProvidableMetadata],
         description='The repository or external database where the original data resides',
         a_search=Search())
 

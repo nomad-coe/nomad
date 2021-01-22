@@ -19,6 +19,7 @@
 import React from 'react'
 import { Route } from 'react-router-dom'
 import About from '../About'
+import APIs from '../APIs'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import ResolveDOI from '../dataset/ResolveDOI'
@@ -125,6 +126,13 @@ export const routes = {
     appBarTitle: 'Artificial Intelligence Toolkit',
     navPath: 'analyze/aitoolkit',
     component: AIToolkitPage
+  },
+  'apis': {
+    exact: true,
+    path: '/apis',
+    appBarTitle: 'APIs',
+    navPath: 'analyze/apis',
+    component: APIs
   },
   'about': {
     exact: true,

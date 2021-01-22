@@ -256,14 +256,7 @@ class DatasetListUnstyled extends React.Component {
     authors: {
       label: 'Authors',
       description: 'Authors including the uploader and the co-authors',
-      render: (dataset) => {
-        const authors = dataset.example.authors
-        if (authors.length > 3) {
-          return authorList(authors.filter((_, index) => index < 2)) + ' et al'
-        } else {
-          return authorList(authors)
-        }
-      }
+      render: (dataset) => authorList(dataset.example)
     }
   }
 

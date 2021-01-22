@@ -492,6 +492,9 @@ class TestM1:
 
         system.atom_labels = ['H', 'H', 'O']
         assert system.n_atoms == 3
+
+        assert 'n_atoms' not in system.m_to_dict()
+        assert 'n_atoms' in system.m_to_dict(include_derived=True)
         pass
 
     def test_derived_cached(self):

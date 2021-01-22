@@ -75,6 +75,7 @@ unidecode
 python-json-logger
 recommonmark
 jinja2
+rdflib
 
 # [dev]
 setuptools
