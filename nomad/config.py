@@ -287,6 +287,7 @@ meta = NomadConfig(
     version='0.10.0',
     commit=gitinfo.commit,
     release='devel',
+    deployment='standard',
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',

@@ -145,7 +145,8 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             'nomad.service': config.meta.service,
             'nomad.release': config.meta.release,
             'nomad.version': config.meta.version,
-            'nomad.commit': config.meta.commit
+            'nomad.commit': config.meta.commit,
+            'nomad.deployment': config.meta.deployment
         }
 
         if record.name.startswith('nomad'):

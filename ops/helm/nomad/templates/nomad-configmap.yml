@@ -15,6 +15,9 @@ data:
       homepage: "{{ .Values.meta.homepage }}"
       source_url: "{{ .Values.meta.source_url }}"
       maintainer_email: "{{ .Values.meta.maintainer_email }}"
+      {{ if .Values.meta.deployment }}
+      deployment: "{{ .Values.meta.deployment }}"
+      {{ end }}
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     reprocess_rematch: {{ .Values.reprocess_rematch }}
     process_reuse_parser: {{ .Values.process_reuse_parser }}
