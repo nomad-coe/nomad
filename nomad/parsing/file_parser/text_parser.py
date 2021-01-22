@@ -416,7 +416,7 @@ class TextParser(FileParser):
                 self._results[quantities[i].name] = value_processed
 
             except Exception:
-                self.logger.warn('Error setting value for %s ' % quantities[i].name)
+                self.logger.warn('Error setting value', data=dict(quantity=quantities[i].name))
                 pass
 
     def _parse_quantity(self, quantity):
@@ -488,7 +488,7 @@ class TextParser(FileParser):
 
                 self._results[quantity.name] = value_processed
             except Exception:
-                self.logger.warn('Error setting value for %s ' % quantity.name)
+                self.logger.warn('Error setting value', data=dict(quantity=quantity.name))
                 pass
 
     def parse(self, key=None):
