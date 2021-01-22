@@ -177,7 +177,6 @@ class Quantity:
                         except Exception:
                             pass
 
-                    self.shape = [] if self.shape is None else self.shape
                     return val
 
                 elif type(val) in [np.ndarray, list]:
@@ -187,7 +186,6 @@ class Quantity:
                         if self.dtype is None:
                             if np.all(np.mod(val_test, 1) == 0):
                                 val_test = np.array(val_test, dtype=int)
-                        self.shape = list(np.shape(val)) if self.shape is None else self.shape
                         val = val_test
 
                     except Exception:
@@ -197,13 +195,10 @@ class Quantity:
 
                 elif isinstance(val, dict):
                     for k, v in val.items():
-                        self.dtype = None
                         val[k] = _convert(v)
                     return val
 
                 else:
-                    self.dtype = type(val)
-                    self.shape = [] if self.shape is None else self.shape
                     return val
 
             if self.convert:
