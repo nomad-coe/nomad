@@ -50,9 +50,19 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1)
   },
   structure: {
-    marginTop: theme.spacing(1.5),
+    marginTop: theme.spacing(0.5),
     width: '100%',
-    height: '16.5rem'
+    height: '17.5rem'
+  },
+  opt: {
+    display: 'flex',
+    width: '100%'
+  },
+  energies: {
+    flex: '1 1 66.6%'
+  },
+  optStructure: {
+    flex: '1 1 33.3%'
   }
 }))
 
@@ -235,7 +245,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
               <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
                 {structureToggles}
               </ToggleButtonGroup>
-              <Structure system={structures.get(shownSystem)} aspectRatio={4 / 3} options={{view: {fitMargin: 0.75}}}></Structure>
+              <Structure system={structures.get(shownSystem)} aspectRatio={5 / 4} options={{view: {fitMargin: 0.75}}}></Structure>
             </Box>
             : <Placeholder className={classes.structure} variant="rect"></Placeholder>
           }
@@ -358,41 +368,57 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         </Grid>
         : null
       }
-      {geoOpt
+      {geoOpt && structures
         ? <Grid item xs={12}>
           <Card>
             <CardHeader
               title="Geometry optimization"
             />
             <CardContent classes={{root: classes.cardContent}}>
-              <Plot
-                data={[{
-                  x: [...Array(geoOpt.energies.length).keys()],
-                  y: geoOpt.energies,
-                  type: 'scatter',
-                  mode: 'lines',
-                  line: {
-                    color: theme.palette.primary.main,
-                    width: 2
-                  }
-                }]}
-                layout={{
-                  xaxis: {
-                    title: 'Step number',
-                    autorange: true,
-                    zeroline: false
-                  },
-                  yaxis: {
-                    title: 'Energy (eV)',
-                    autorange: true,
-                    zeroline: false
-                  }
-                }}
-                // resetLayout={resetLayout}
-                aspectRatio={2}
-                floatTitle="Geometry optimizaiton"
-              >
-              </Plot>
+              <Box className={classes.opt}>
+                <Box className={classes.energies}>
+                  <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
+                  <Plot
+                    data={[{
+                      x: [...Array(geoOpt.energies.length).keys()],
+                      y: geoOpt.energies,
+                      type: 'scattergl',
+                      mode: 'lines',
+                      line: {
+                        color: theme.palette.primary.main,
+                        width: 2
+                      }
+                    }]}
+                    layout={{
+                      hovermode: 'x',
+                      hoverdistance: 100,
+                      spikedistance: 1000,
+                      xaxis: {
+                        title: 'Step number',
+                        autorange: true,
+                        zeroline: false,
+                        showspikes: true,
+                        spikethickness: 2,
+                        spikedash: 'dot',
+                        spikecolor: '#999999',
+                        spikemode: 'across' },
+                      yaxis: {
+                        title: 'Energy change (eV)',
+                        autorange: true,
+                        zeroline: false
+                      }
+                    }}
+                    // resetLayout={resetLayout}
+                    aspectRatio={1.5}
+                    floatTitle="Energy convergence"
+                  >
+                  </Plot>
+                </Box>
+                <Box className={classes.optStructure}>
+                  <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
+                  <Structure system={structures.get(shownSystem)} aspectRatio={0.75} options={{view: {fitMargin: 0.75}}}></Structure>
+                </Box>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

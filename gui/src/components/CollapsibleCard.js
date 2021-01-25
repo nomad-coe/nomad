@@ -104,9 +104,9 @@ export default function CollapsibleCard({height, title, action, content, fixedCo
     <div ref={collapsible} className={classes.cardContent}>
       <div style={{boxSizing: 'border-box'}}>
         {content}
-        { expandable && expanded
-          ? null
-          : <div className={classes.limiter}></div>
+        { expandable && !expanded
+          ? <div className={classes.limiter}></div>
+          : null
         }
       </div>
     </div>
@@ -121,6 +121,7 @@ export default function CollapsibleCard({height, title, action, content, fixedCo
       className={classes.cardActions}
     >
       <IconButton
+        size='small'
         className={clsx(classes.expand, {
           [classes.expandOpen]: expanded
         })}
