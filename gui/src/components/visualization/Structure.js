@@ -38,18 +38,22 @@ import {
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import { mergeObjects } from '../../utils'
+import { ErrorCard } from '../ErrorHandler'
 
 /**
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly}) {
+export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, loading, sizeLimit}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [accepted, setAccepted] = useState(false)
+  const [nAtoms, setNAtoms] = useState(false)
 
   // Variables
   const open = Boolean(anchorEl)
@@ -152,18 +156,7 @@ export default function Structure({className, classes, system, options, viewer, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Called whenever the given system changes. If positionsOnly is true, only
-  // updates the positions. Otherwise reloads the entire structure.
-  useEffect(() => {
-    if (system === undefined) {
-      return
-    }
-
-    if (positionsOnly) {
-      refViewer.current.setPositions(system.positions)
-      return
-    }
-
+  const loadSystem = useCallback((system, refViewer) => {
     // Systems with cell are centered on the cell center and orientation is defined
     // by the cell vectors.
     let cell = system.cell
@@ -197,9 +190,31 @@ export default function Structure({className, classes, system, options, viewer, 
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
-    console.log('Changed')
-    console.log(system)
-  }, [system, positionsOnly])
+  }, [])
+
+  // Called whenever the given system changes. If positionsOnly is true, only
+  // updates the positions. Otherwise reloads the entire structure.
+  useEffect(() => {
+    if (system === undefined) {
+      return
+    }
+
+    if (!accepted) {
+      const nAtoms = system.species.length
+      setNAtoms(nAtoms)
+      if (nAtoms > 300) {
+        setShowPrompt(true)
+        return
+      }
+    }
+
+    if (positionsOnly) {
+      refViewer.current.setPositions(system.positions)
+      return
+    }
+
+    loadSystem(system, refViewer)
+  }, [system, positionsOnly, loadSystem, accepted])
 
   // Viewer settings
   useEffect(() => {
@@ -238,79 +253,89 @@ export default function Structure({className, classes, system, options, viewer, 
   }, [])
 
   const content = <Box className={style.container}>
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
-    <div className={style.header}>
-      {fullscreen && <Typography variant="h6">Structure</Typography>}
-      <div className={style.spacer}></div>
-      <Tooltip title="Reset view">
-        <IconButton className={style.iconButton} onClick={handleReset}>
-          <Replay />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title="Toggle fullscreen">
-        <IconButton className={style.iconButton} onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Capture image">
-        <IconButton className={style.iconButton} onClick={takeScreencapture}>
-          <CameraAlt />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Options">
-        <IconButton className={style.iconButton} onClick={openMenu}>
-          <MoreVert />
-        </IconButton>
-      </Tooltip>
-      <Menu
-        id='settings-menu'
-        anchorEl={anchorEl}
-        getContentAnchorEl={null}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        keepMounted
-        open={open}
-        onClose={closeMenu}
+    {showPrompt
+      ? <ErrorCard
+        message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+        className={style.error}
+        actions={[{label: 'Yes', onClick: e => { setShowPrompt(false); loadSystem(system, refViewer); setAccepted(true) }}]}
       >
-        <MenuItem key='show-bonds'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showBonds}
-                onChange={(event) => { setShowBonds(!showBonds) }}
-                color='primary'
+      </ErrorCard>
+      : <>
+        <div className={style.viewerCanvas} ref={measuredRef}></div>
+        <div className={style.header}>
+          {fullscreen && <Typography variant="h6">Structure</Typography>}
+          <div className={style.spacer}></div>
+          <Tooltip title="Reset view">
+            <IconButton className={style.iconButton} onClick={handleReset}>
+              <Replay />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Toggle fullscreen">
+            <IconButton className={style.iconButton} onClick={toggleFullscreen}>
+              {fullscreen ? <FullscreenExit /> : <Fullscreen />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Capture image">
+            <IconButton className={style.iconButton} onClick={takeScreencapture}>
+              <CameraAlt />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Options">
+            <IconButton className={style.iconButton} onClick={openMenu}>
+              <MoreVert />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            id='settings-menu'
+            anchorEl={anchorEl}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            keepMounted
+            open={open}
+            onClose={closeMenu}
+          >
+            <MenuItem key='show-bonds'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showBonds}
+                    onChange={(event) => { setShowBonds(!showBonds) }}
+                    color='primary'
+                  />
+                }
+                label='Show bonds'
               />
-            }
-            label='Show bonds'
-          />
-        </MenuItem>
-        <MenuItem key='show-axis'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showLatticeConstants}
-                onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
-                color='primary'
+            </MenuItem>
+            <MenuItem key='show-axis'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showLatticeConstants}
+                    onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
+                    color='primary'
+                  />
+                }
+                label='Show lattice constants'
               />
-            }
-            label='Show lattice constants'
-          />
-        </MenuItem>
-        <MenuItem key='show-cell'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showCell}
-                onChange={(event) => { setShowCell(!showCell) }}
-                color='primary'
+            </MenuItem>
+            <MenuItem key='show-cell'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showCell}
+                    onChange={(event) => { setShowCell(!showCell) }}
+                    color='primary'
+                  />
+                }
+                label='Show simulation cell'
               />
-            }
-            label='Show simulation cell'
-          />
-        </MenuItem>
-      </Menu>
-    </div>
+            </MenuItem>
+          </Menu>
+        </div>
+      </>
+    }
   </Box>
 
   return (
@@ -328,9 +353,12 @@ Structure.propTypes = {
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
-  positionsOnly: PropTypes.bool // Whether to update only positions. This is much faster than loading the entire structure.
+  positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
+  loading: PropTypes.bool, // If true, a placeholder will be shown instead.
+  sizeLimit: PropTypes.number // Maximum system size before a prompt is shown
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
-  captureName: 'structure'
+  captureName: 'structure',
+  sizeLimit: 300
 }

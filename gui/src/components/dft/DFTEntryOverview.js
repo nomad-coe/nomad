@@ -17,26 +17,27 @@
  */
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles, useTheme } from '@material-ui/core'
+import { IconButton, Tooltip, Box, Card, CardContent, Grid, CardHeader, Typography, Link, makeStyles } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import { apiContext } from '../api'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
 import ApiDialogButton from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
-import Plot from '../visualization/Plot'
 import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { errorContext } from '../errors'
-import { authorList, convertSI } from '../../utils'
+import { authorList, convertSI, mergeObjects } from '../../utils'
 import CollapsibleCard from '../CollapsibleCard'
 import { resolveRef } from '../archive/metainfo'
-import _, { initial } from 'lodash'
+import { ErrorHandler } from '../ErrorHandler'
+import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
+import GeoOptOverview from '../visualization/GeoOptOverview'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -54,15 +55,15 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     height: '17.5rem'
   },
-  opt: {
+  quantities: {
     display: 'flex',
-    width: '100%'
-  },
-  energies: {
-    flex: '1 1 66.6%'
-  },
-  optStructure: {
-    flex: '1 1 33.3%'
+    flexWrap: 'wrap',
+    '& > *': {
+      marginRight: theme.spacing(3)
+    },
+    '&:last-child': {
+      marginRight: 0
+    }
   }
 }))
 
@@ -78,6 +79,9 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
   const materialType = repo?.encyclopedia?.material?.material_type
+  const [method, setMethod] = useState(null)
+  const [loading, setLoading] = useState(true)
+  console.log(repo)
 
   // When loaded for the first time, start downloading the archive. Once
   // finished, determine the final layout based on it's contents.TODO: When we
@@ -91,8 +95,9 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
       // information will eventually be directly available in the ES index.
       let dos = null
       let bs = null
-      const section_run = data.section_run
-      const sccs = section_run[0].section_single_configuration_calculation
+      const section_run = data.section_run[0]
+      let section_method = null
+      const sccs = section_run.section_single_configuration_calculation
       for (let i = sccs.length - 1; i > -1; --i) {
         const scc = sccs[i]
         if (!dos && scc.section_dos) {
@@ -107,6 +112,14 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
             'section_system': scc.single_configuration_calculation_to_system_ref,
             'section_method': scc.single_configuration_calculation_to_system_ref,
             'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+          }
+        }
+        if (section_method !== false) {
+          let iMethod = scc.single_configuration_to_calculation_method_ref
+          if (section_method === null) {
+            section_method = iMethod
+          } else if (iMethod !== section_method) {
+            section_method = false
           }
         }
       }
@@ -125,6 +138,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         if (wfType === 'geometry_optimization') {
           const calculations = section_wf.calculations_ref
           let energies = []
+          const trajectory = []
           let initialEnergy = null
           calculations.forEach((ref, i) => {
             const calc = resolveRef(ref, data)
@@ -133,15 +147,45 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
               initialEnergy = e
             }
             energies.push(e - initialEnergy)
+            let sys = calc?.single_configuration_calculation_to_system_ref
+            sys = resolveRef(sys, data)
+            trajectory.push({
+              'species': sys.atom_species,
+              'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+              'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+              'pbc': sys.configuration_periodic_dimensions
+            })
           })
           energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
-          setGeoOpt({energies: energies})
+          setGeoOpt({energies: energies, structures: trajectory})
         }
+      }
+
+      // Get method details. Any referenced core_setttings will also be taken
+      // into account
+      if (section_method) {
+        section_method = resolveRef(section_method, data)
+        const refs = section_method?.section_method_to_method_refs
+        if (refs) {
+          for (const ref of refs) {
+            if (ref.method_to_method_kind === 'core_settings') {
+              section_method = mergeObjects(resolveRef(ref.method_to_method_ref, data), section_method)
+            }
+          }
+        }
+        const es_method = section_method?.electronic_structure_method
+        const vdw_method = section_method?.van_der_Waals_method
+        const relativity_method = section_method?.relativity_method
+        setMethod({
+          electronic_structure_method: es_method,
+          van_der_Waals_method: vdw_method,
+          relativity_method: relativity_method
+        })
       }
 
       // Get the representative system by looping over systems
       let reprSys = null
-      const systems = section_run[0].section_system
+      const systems = section_run.section_system
       for (let i = systems.length - 1; i > -1; --i) {
         const sys = systems[i]
         if (!reprSys && sys.is_representative) {
@@ -170,7 +214,9 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
       }
 
       setStructures(structs)
+      setLoading(false)
     }).catch(error => {
+      setLoading(false)
       if (error.name === 'DoesNotExist') {
       } else {
         raiseError(error)
@@ -204,7 +250,6 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
       eSize = 4
     }
   }
-  const theme = useTheme()
 
   return (
     <Grid container spacing={2}>
@@ -245,7 +290,9 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
               <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
                 {structureToggles}
               </ToggleButtonGroup>
-              <Structure system={structures.get(shownSystem)} aspectRatio={5 / 4} options={{view: {fitMargin: 0.75}}}></Structure>
+              <ErrorHandler message='Could not load structure.'>
+                <Structure system={structures.get(shownSystem)} aspectRatio={5 / 4} options={{view: {fitMargin: 0.75}}}></Structure>
+              </ErrorHandler>
             </Box>
             : <Placeholder className={classes.structure} variant="rect"></Placeholder>
           }
@@ -257,35 +304,41 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
           height={'33rem'}
           title='Method'
           content={
-            <>
+            <Quantity column>
               <Quantity row>
                 <Quantity quantity="dft.code_name" label='code name' noWrap data={repo}/>
                 <Quantity quantity="dft.code_version" label='code version' noWrap data={repo}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="dft.electronic_structure_method" label='electronic structure method' noWrap data={repo}/>
+                <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} noWrap data={method}/>
               </Quantity>
-              <Quantity row>
+              {/* <Quantity row>
                 <Quantity quantity="dft.restricted" label='restricted' noWrap data={repo}/>
                 <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={repo}/>
+              </Quantity> */}
+              <Quantity row>
+                <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap data={repo}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="dft.xc_functional" label='xc functional' noWrap data={repo}/>
+                <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap data={repo}/>
               </Quantity>
               <Quantity row>
                 <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
-                <Quantity quantity="dft.cutoff" label='plane wave cutoff' noWrap data={repo}/>
+                {/* <Quantity quantity="encyclopedia.method.core_electron_treatment" label='core electron treatment' noWrap data={repo}/> */}
               </Quantity>
-              <Quantity row>
-                <Quantity quantity="dft.pseudopotential" label='pseudopotential' noWrap data={repo}/>
-              </Quantity>
-              <Quantity row>
-                <Quantity quantity="dft.vdw_method" label='vdw method' noWrap data={repo}/>
-              </Quantity>
-              <Quantity row>
-                <Quantity quantity="dft.relativistic" label='relativistic' noWrap data={repo}/>
-              </Quantity>
-            </>
+              {method?.van_der_Waals_method
+                ? <Quantity row>
+                  <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap data={method}/>
+                </Quantity>
+                : null
+              }
+              {method?.relativity_method
+                ? <Quantity row>
+                  <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>
+                </Quantity>
+                : null
+              }
+            </Quantity>
           }
         ></CollapsibleCard>
       </Grid>
@@ -375,50 +428,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
               title="Geometry optimization"
             />
             <CardContent classes={{root: classes.cardContent}}>
-              <Box className={classes.opt}>
-                <Box className={classes.energies}>
-                  <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
-                  <Plot
-                    data={[{
-                      x: [...Array(geoOpt.energies.length).keys()],
-                      y: geoOpt.energies,
-                      type: 'scattergl',
-                      mode: 'lines',
-                      line: {
-                        color: theme.palette.primary.main,
-                        width: 2
-                      }
-                    }]}
-                    layout={{
-                      hovermode: 'x',
-                      hoverdistance: 100,
-                      spikedistance: 1000,
-                      xaxis: {
-                        title: 'Step number',
-                        autorange: true,
-                        zeroline: false,
-                        showspikes: true,
-                        spikethickness: 2,
-                        spikedash: 'dot',
-                        spikecolor: '#999999',
-                        spikemode: 'across' },
-                      yaxis: {
-                        title: 'Energy change (eV)',
-                        autorange: true,
-                        zeroline: false
-                      }
-                    }}
-                    // resetLayout={resetLayout}
-                    aspectRatio={1.5}
-                    floatTitle="Energy convergence"
-                  >
-                  </Plot>
-                </Box>
-                <Box className={classes.optStructure}>
-                  <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
-                  <Structure system={structures.get(shownSystem)} aspectRatio={0.75} options={{view: {fitMargin: 0.75}}}></Structure>
-                </Box>
-              </Box>
+              <GeoOptOverview data={geoOpt}></GeoOptOverview>
             </CardContent>
           </Card>
         </Grid>

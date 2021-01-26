@@ -28,7 +28,7 @@ import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
-import { ErrorHandler, ErrorCard } from '../ErrorHandler'
+import { ErrorHandler } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
 import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
@@ -378,7 +378,6 @@ QuantityValue.propTypes = ({
 function Overview({section, def}) {
   // States
   const [mode, setMode] = useState('bs')
-  const [warningIgnored, setWarningIgnored] = useState(false)
 
   // Styles
   const useStyles = makeStyles(
@@ -390,8 +389,6 @@ function Overview({section, def}) {
       dos: {
         width: '20rem',
         height: '40rem'
-      },
-      error: {
       },
       radio: {
         display: 'flex',
@@ -436,15 +433,6 @@ function Overview({section, def}) {
     // the first time, check the system size and for large systems ask the user
     // for permission.
     } else {
-      const sizeLimit = 300
-      if (nAtoms >= sizeLimit && !warningIgnored) {
-        return <ErrorCard
-          message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-          className={style.error}
-          actions={[{label: 'Yes', onClick: e => setWarningIgnored(true)}]}
-        >
-        </ErrorCard>
-      }
       system = {
         'species': section.atom_species,
         'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
@@ -457,7 +445,7 @@ function Overview({section, def}) {
     visualizedSystem.nAtoms = nAtoms
 
     return <ErrorHandler
-      message='Could not load structure viewer.'
+      message='Could not load structure.'
       className={style.error}
     >
       <Structure

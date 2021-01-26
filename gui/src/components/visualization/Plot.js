@@ -36,7 +36,7 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, resetLayout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
+export default function Plot({data, layout, resetLayout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
@@ -188,6 +188,10 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
     if (onRelayouting) {
       canvasRef.current.on('plotly_relayouting', onRelayouting)
     }
+    // Attach events whenever the canvas changes
+    if (onHover) {
+      canvasRef.current.on('plotly_hover', onHover)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, finalConfig, onRelayouting])
 
@@ -284,7 +288,8 @@ Plot.propTypes = {
   onRelayout: PropTypes.func,
   onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
-  onRelayouting: PropTypes.func
+  onRelayouting: PropTypes.func,
+  onHover: PropTypes.func
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

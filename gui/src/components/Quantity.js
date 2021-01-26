@@ -72,9 +72,10 @@ class Quantity extends React.Component {
     },
     row: {
       display: 'flex',
+      flexWrap: 'wrap',
       flexDirection: 'row',
-      '& > :not(:first-child)': {
-        marginLeft: theme.spacing(3)
+      '& > :not(:last-child)': {
+        marginRight: theme.spacing(3)
       }
     },
     column: {
@@ -88,6 +89,10 @@ class Quantity extends React.Component {
       color: 'rgba(0, 0, 0, 0.54)',
       fontSize: '0.75rem',
       fontWeight: 500
+    },
+    quantityList: {
+      display: 'flex',
+      flexDirection: 'column'
     }
   })
 
@@ -127,6 +132,9 @@ class Quantity extends React.Component {
       if (children && children.length !== 0) {
         content = children
       } else if (value) {
+        if (Array.isArray(value)) {
+          value = value.join(', ')
+        }
         clipboardContent = value
         content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
           {value}

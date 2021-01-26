@@ -28,6 +28,7 @@ import Placeholder from '../visualization/Placeholder'
 import { RecoilRoot } from 'recoil'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
+import { ErrorHandler } from '../ErrorHandler'
 
 function ElectronicStructureOverview({data, range, className, classes, raiseError}) {
   const [dosResetLayout] = useState({
@@ -88,10 +89,12 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
           ? <Box className={style.bz}>
             <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
             {data?.bs?.section_k_band
-              ? <BrillouinZone
-                data={data.bs.section_k_band}
-                aspectRatio={0.5}
-              ></BrillouinZone>
+              ? <ErrorHandler message='Could not load Brilllouin zone.'>
+                <BrillouinZone
+                  data={data.bs.section_k_band}
+                  aspectRatio={0.5}
+                ></BrillouinZone>
+              </ErrorHandler>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
           </Box>
@@ -101,14 +104,16 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
           ? <Box className={style.bs}>
             <Typography variant="subtitle1" align='center'>Band structure</Typography>
             {data?.bs?.section_k_band
-              ? <BandStructure
-                data={data.bs.section_k_band}
-                layout={bsLayout}
-                resetLayout={bsResetLayout}
-                aspectRatio={1.0}
-                unitsState={unitsState}
-                onRelayouting={handleBSRelayouting}
-              ></BandStructure>
+              ? <ErrorHandler message='Could not load band structure.'>
+                <BandStructure
+                  data={data.bs.section_k_band}
+                  layout={bsLayout}
+                  resetLayout={bsResetLayout}
+                  aspectRatio={1.0}
+                  unitsState={unitsState}
+                  onRelayouting={handleBSRelayouting}
+                ></BandStructure>
+              </ErrorHandler>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
           </Box>
@@ -118,14 +123,16 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
           ? <Box className={style.dos}>
             <Typography variant="subtitle1" align='center'>Density of states</Typography>
             {data?.dos?.section_dos
-              ? <DOS
-                data={data.dos.section_dos}
-                layout={dosLayout}
-                resetLayout={dosResetLayout}
-                aspectRatio={0.5}
-                onRelayouting={handleDOSRelayouting}
-                unitsState={unitsState}
-              ></DOS>
+              ? <ErrorHandler message='Could not load density of states.'>
+                <DOS
+                  data={data.dos.section_dos}
+                  layout={dosLayout}
+                  resetLayout={dosResetLayout}
+                  aspectRatio={0.5}
+                  onRelayouting={handleDOSRelayouting}
+                  unitsState={unitsState}
+                ></DOS>
+              </ErrorHandler>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
           </Box>
