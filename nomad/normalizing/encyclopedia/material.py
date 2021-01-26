@@ -575,7 +575,7 @@ class Material1DNormalizer(MaterialNormalizer):
         # If one axis is not periodic, return. This only happens if the vacuum
         # gap is not aligned with a cell vector.
         if sum(periodicity) != 1:
-            raise ValueError("Could not detect the periodic dimensions in a 1D system.")
+            self.logger.error("Could not detect the periodic dimensions in a 1D system.")
 
         ideal.periodicity = periodicity
 
