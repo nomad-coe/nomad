@@ -190,8 +190,68 @@ and a *sub-section* is a set of *sections* (contents) contained in another *sect
 
 .. autoclass:: SubSection
 
-
 .. _metainfo-categories:
+
+
+References and Proxies
+----------------------
+
+
+Beside creating hierarchies (e.g. tree structures) with ``SubSection``, the metainfo
+also allows to create cross references between sections and other sections or quantity
+values:
+
+.. code-block:: python
+
+    class Calculation(MSection):
+        system = Quantity(type=System.m_def)
+        atom_labels = Quantity(type=System.atom_labels)
+
+    calc = Calculation()
+    calc.system = run.systems[-1]
+    calc.atom_labels = run.systems[-1]
+
+
+To define a reference, you define a normal quantity and simply use the section or quantity
+that you want to reference as type. Then you can assign respective section instances
+as values.
+
+When in Python memory, quantity values that reference other sections simply contain a
+Python reference to the respective `section instance`. However, upon serializing/storing
+metainfo data, these references have to be represented differently.
+
+Value references are a little different. When you read a value references it behaves like
+the references value. Internally, we do not store the values, but a reference to the
+section that holds the referenced quantity. Therefore, when you want to
+assign a value reference, you use the section with the quantity and not the value itself.
+
+Currently this metainfo implementation only supports references within a single
+section hierarchy (e.g. the same JSON file). References are stored as paths from the
+root section, over sub-sections, to the referenced section or quantity value. Each path segment is
+the name of the sub-section or an index in a repeatable sub-section:
+``/system/0`` or ``/system/0/atom_labels``.
+
+References are automatically serialized by :py:meth:`MSection.m_to_dict`. When de-serializing
+data with :py:meth:`MSection.m_from_dict` these references are not resolved right away,
+because the references section might not yet be available. Instead references are stored
+as :class:`MProxy` instances. These objects are automatically replaced by the referenced
+object when a respective quantity is accessed.
+
+.. autoclass:: MProxy
+
+If you want to defined references, it might not be possible to define the referenced
+section or quantity before hand, due to how Python definitions and imports work. In these
+cases, you can use a proxy to reference the reference type:
+
+.. code-block:: python
+
+    class Calculation(MSection):
+        system = Quantity(type=MProxy('System')
+        atom_labels = Quantity(type=MProxy('System/atom_labels')
+
+The strings given to ``MProxy`` are paths within the available definitions. The above example
+works, if ``System`` and ``System/atom_labels`` are eventually defined in the same package.
+
 
 Categories
 ----------
@@ -252,27 +312,6 @@ quantity definitions are unknown when writing code.
 
 .. _metainfo-urls:
 
-References and metainfo URLs
-----------------------------
-
-When in Python memory, quantity values that reference other sections simply contain a
-Python reference to the respective `section instance`. However, upon serializing/storing
-metainfo data, these references have to be represented differently.
-
-Currently this metainfo implementation only supports references within a single
-section hierarchy (e.g. the same JSON file). References are stored as paths from the
-root section, over sub-sections, to the references section. Each path segment is
-the name of the sub-section or an index in a repeatable sub-section:
-``/system/0/symmetry``.
-
-References are automatically serialized by :py:meth:`MSection.m_to_dict`. When de-serializing
-data with :py:meth:`MSection.m_from_dict` these references are not resolved right away,
-because the references section might not yet be available. Instead references are stored
-as :class:`MProxy` instances. These objects are automatically replaced by the referenced
-object when a respective quantity is accessed.
-
-.. autoclass:: MProxy
-
 Resources
 ---------
 
@@ -308,6 +347,7 @@ from .metainfo import (
     MetainfoReferenceError,
     DataType,
     Reference,
+    QuantityReference,
     Datetime,
     JSON,
     MResource,

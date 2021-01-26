@@ -618,53 +618,6 @@ class TestM1:
         scc.m_to_dict()
         test_utils.assert_log(caplog, 'WARN', 'wrong shape')
 
-    def test_proxy(self):
-        class OtherSection(MSection):
-            name = Quantity(type=str)
-
-        class ReferencingSection(MSection):
-            proxy = Quantity(type=Reference(OtherSection.m_def))
-            sub = SubSection(sub_section=OtherSection.m_def)
-
-        obj = ReferencingSection()
-        referenced = obj.m_create(OtherSection)
-        referenced.name = 'test_value'
-        obj.proxy = referenced
-
-        assert obj.proxy == referenced
-        assert obj.m_to_dict()['proxy'] == '/sub'
-        assert obj.m_resolve('sub') == referenced
-        assert obj.m_resolve('/sub') == referenced
-
-        obj.proxy = MProxy('doesnotexist', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)
-        with pytest.raises(ReferenceError):
-            obj.proxy.name
-
-        obj.proxy = MProxy('sub', m_proxy_section=obj, m_proxy_quantity=ReferencingSection.proxy)
-        assert obj.proxy.name == 'test_value'
-        assert not isinstance(obj.proxy, MProxy)
-
-        obj = ReferencingSection.m_from_dict(obj.m_to_dict(with_meta=True))
-        assert obj.proxy.name == 'test_value'
-
-    def test_ref_with_section_proxy(self):
-        package = Package(name='test_package')
-
-        class OtherSection(MSection):
-            name = Quantity(type=str)
-
-        class ReferencingSection(MSection):
-            reference = Quantity(type=Reference(SectionProxy('OtherSection')))
-
-        package.m_add_sub_section(Package.section_definitions, OtherSection.m_def)
-        package.m_add_sub_section(Package.section_definitions, ReferencingSection.m_def)
-
-        referencing = ReferencingSection()
-        reference = OtherSection()
-        referencing.reference = reference
-
-        assert referencing.reference == reference
-
     def test_copy(self):
         run = Run()
         run.m_create(Parsing).parser_name = 'test'
