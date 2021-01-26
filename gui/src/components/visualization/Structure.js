@@ -163,6 +163,7 @@ export default function Structure({className, classes, system, options, viewer, 
     if (cell !== undefined) {
       refViewer.current.setOptions({layout: {
         viewCenter: 'COC',
+        periodicity: 'wrap',
         viewRotation: {
           alignments: [
             ['up', 'c'],

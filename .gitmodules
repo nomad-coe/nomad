@@ -204,3 +204,6 @@
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
+[submodule "dependencies/materia"]
+	path = dependencies/materia
+	url = https://github.com/nomad-coe/materia
