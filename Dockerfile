@@ -87,7 +87,7 @@ WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
 COPY gui/package.json /app/package.json
 COPY gui/yarn.lock /app/yarn.lock
-COPY dependencies/materia /app/dependencies/materia
+COPY dependencies/materia /dependencies/materia
 RUN yarn
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
