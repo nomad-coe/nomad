@@ -73,6 +73,9 @@ class FileParser:
         results default will be returned. A pint unit can be provided which is attached
         to the returned value.
         '''
+        if self.mainfile is None:
+            return default
+
         self._key = key
         self._kwargs = kwargs
         val = self.results.get(key, None)

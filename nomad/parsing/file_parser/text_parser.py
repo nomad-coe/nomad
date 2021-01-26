@@ -103,7 +103,7 @@ class Quantity:
             self.shape = None
         elif isinstance(quantity, mQuantity):
             self.name = quantity.name
-            self.dtype = quantity.type
+            self.dtype = quantity.type.type if isinstance(quantity.type, np.dtype) else quantity.type
             self.unit = quantity.unit
             # check if metainfo shape has dependencies
             self.shape = quantity.shape
@@ -425,6 +425,7 @@ class TextParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
+                    sub_parser.logger = self.logger
                     if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
@@ -447,6 +448,7 @@ class TextParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
+                    sub_parser.logger = self.logger
                     if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
