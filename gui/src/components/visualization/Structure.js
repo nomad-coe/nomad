@@ -39,6 +39,7 @@ import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import { mergeObjects } from '../../utils'
 import { ErrorCard } from '../ErrorHandler'
+import _ from 'lodash'
 
 /**
  * Used to show atomistic systems in an interactive 3D viewer based on the
@@ -51,6 +52,7 @@ export default function Structure({className, classes, system, options, viewer, 
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
+  const [wrap, setWrap] = useState(true)
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
@@ -157,10 +159,15 @@ export default function Structure({className, classes, system, options, viewer, 
   }, [])
 
   const loadSystem = useCallback((system, refViewer) => {
-    // Systems with cell are centered on the cell center and orientation is defined
-    // by the cell vectors.
-    let cell = system.cell
-    if (cell !== undefined) {
+    // If the cell all zeroes, positions are assumed to be cartesian.
+    if (system.cell !== undefined) {
+      if (_.sum(_.flattenDeep(system.cell)) === 0) {
+        system.cell = undefined
+      }
+    }
+    // Systems with non-empty cell are centered on the cell center and
+    // orientation is defined by the cell vectors.
+    if (system.cell !== undefined) {
       refViewer.current.setOptions({layout: {
         viewCenter: 'COC',
         periodicity: 'wrap',
@@ -225,6 +232,10 @@ export default function Structure({className, classes, system, options, viewer, 
   useEffect(() => {
     refViewer.current.setOptions({latticeConstants: {enabled: showLatticeConstants}})
   }, [showLatticeConstants])
+
+  useEffect(() => {
+    refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
+  }, [wrap])
 
   useEffect(() => {
     refViewer.current.setOptions({cell: {enabled: showCell}})
@@ -331,6 +342,18 @@ export default function Structure({className, classes, system, options, viewer, 
                   />
                 }
                 label='Show simulation cell'
+              />
+            </MenuItem>
+            <MenuItem key='wrap'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={wrap}
+                    onChange={(event) => { setWrap(!wrap) }}
+                    color='primary'
+                  />
+                }
+                label='Wrap positions'
               />
             </MenuItem>
           </Menu>

@@ -53,7 +53,7 @@ const useStyles = makeStyles(theme => ({
   structure: {
     marginTop: theme.spacing(0.5),
     width: '100%',
-    height: '17.5rem'
+    height: '19.5rem'
   },
   quantities: {
     display: 'flex',
@@ -176,10 +176,12 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         const es_method = section_method?.electronic_structure_method
         const vdw_method = section_method?.van_der_Waals_method
         const relativity_method = section_method?.relativity_method
+        const basis_set = section_method?.basis_set
         setMethod({
           electronic_structure_method: es_method,
           van_der_Waals_method: vdw_method,
-          relativity_method: relativity_method
+          relativity_method: relativity_method,
+          basis_set: basis_set
         })
       }
 
@@ -291,7 +293,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
                 {structureToggles}
               </ToggleButtonGroup>
               <ErrorHandler message='Could not load structure.'>
-                <Structure system={structures.get(shownSystem)} aspectRatio={5 / 4} options={{view: {fitMargin: 0.75}}}></Structure>
+                <Structure system={structures.get(shownSystem)} aspectRatio={7 / 6} options={{view: {fitMargin: 0.75}}}></Structure>
               </ErrorHandler>
             </Box>
             : <Placeholder className={classes.structure} variant="rect"></Placeholder>
@@ -324,7 +326,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
               </Quantity>
               <Quantity row>
                 <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
-                {/* <Quantity quantity="encyclopedia.method.core_electron_treatment" label='core electron treatment' noWrap data={repo}/> */}
+                <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
               </Quantity>
               {method?.van_der_Waals_method
                 ? <Quantity row>

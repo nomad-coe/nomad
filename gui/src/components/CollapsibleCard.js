@@ -41,16 +41,20 @@ const useStyles = makeStyles(theme => ({
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    flex: 1,
+    flex: '0 1 auto',
     overflow: 'hidden'
   },
   cardFixedContent: {
     padding: theme.spacing(2),
     paddingTop: 0,
+    paddingBottom: 0,
     flex: '0 0 auto'
   },
   cardActions: {
     flex: '0 0 1.5rem'
+  },
+  vspace: {
+    flex: '1 1 0'
   },
   expand: {
     transform: 'rotate(0deg)',
@@ -110,28 +114,33 @@ export default function CollapsibleCard({height, title, action, content, fixedCo
         }
       </div>
     </div>
+    <div className={classes.vspace}></div>
     {fixedContent
       ? <div className={classes.cardFixedContent}>
         {fixedContent}
       </div>
       : null
     }
+    <div className={classes.vspace}></div>
     <CardActions
       disableSpacing
       className={classes.cardActions}
     >
-      <IconButton
-        size='small'
-        className={clsx(classes.expand, {
-          [classes.expandOpen]: expanded
-        })}
-        disabled={!expandable}
-        onClick={handleExpandClick}
-        aria-expanded={expanded}
-        aria-label="show more"
-      >
-        <ExpandMoreIcon />
-      </IconButton>
+      {expandable
+        ? <IconButton
+          size='small'
+          className={clsx(classes.expand, {
+            [classes.expandOpen]: expanded
+          })}
+          disabled={!expandable}
+          onClick={handleExpandClick}
+          aria-expanded={expanded}
+          aria-label="show more"
+        >
+          <ExpandMoreIcon />
+        </IconButton>
+        : null
+      }
     </CardActions>
   </Card>
 }
