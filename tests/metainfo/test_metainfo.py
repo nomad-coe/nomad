@@ -16,6 +16,9 @@
 # limitations under the License.
 #
 
+# Contains more general test cases that are replaced continiously by more specialized
+# in-depth tests in test_* files of the same module.
+
 import pytest
 import numpy as np
 import pint.quantity
@@ -682,45 +685,6 @@ class TestM1:
         assert parent.quantity == 'Hello'
         assert parent.single_sub_section is not None
         assert len(parent.many_sub_section) == 2
-
-
-class TestDatatypes:
-
-    def test_datetime(self):
-        class TestSection(MSection):
-            datetime = Quantity(type=Datetime)
-
-        obj = TestSection()
-        assert obj.datetime is None
-        assert 'datetime' not in obj.m_to_dict()
-
-        obj.datetime = datetime.datetime.now()
-        assert obj.datetime is not None
-        assert isinstance(obj.m_to_dict()['datetime'], str)
-
-        obj.datetime = obj.datetime.isoformat()
-        assert obj.datetime is not None
-        assert isinstance(obj.m_to_dict()['datetime'], str)
-
-        obj.datetime = None
-        assert obj.datetime is None
-        assert 'datetime' not in obj.m_to_dict()
-
-    def test_json(self):
-        class TestSection(MSection):
-            json = Quantity(type=JSON)
-
-        obj = TestSection()
-        assert obj.json is None
-        assert 'json' not in obj.m_to_dict()
-
-        obj.json = dict(test_key='test_value')
-        assert obj.json is not None
-        assert isinstance(obj.m_to_dict()['json'], dict)
-
-        obj.json = None
-        assert obj.json is None
-        assert 'json' not in obj.m_to_dict()
 
 
 class TestEnvironment:

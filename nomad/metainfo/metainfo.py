@@ -419,8 +419,10 @@ class _Datetime(DataType):
             pass
 
         try:
-            return aniso8601.parse_date(datetime_str)
-        except ValueError:
+            date = aniso8601.parse_date(datetime_str)
+            if isinstance(date, datetime):
+                return date
+        except ValueError as e:
             pass
 
         try:
@@ -437,6 +439,11 @@ class _Datetime(DataType):
 
         try:
             return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            pass
+
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d')
         except ValueError:
             pass
 
