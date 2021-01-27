@@ -415,6 +415,10 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoMetadata],
         a_search=Search())
 
+    processing_errors = metainfo.Quantity(
+        type=str, shape=['*'], description='Errors that occured during processing',
+        a_search=Search(many_and='append'))
+
     nomad_version = metainfo.Quantity(
         type=str,
         description='The NOMAD version used for the last processing',

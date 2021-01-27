@@ -268,6 +268,11 @@ class Calc(Proc):
                 dump_dict.update(level=method_name.upper())
                 self._calc_proc_logs.append(dump_dict)
 
+                if method_name == 'error':
+                    error = event_dict.get('event', None)
+                    if error is not None:
+                        self._entry_metadata.processing_errors.append(error)
+
             except Exception:
                 # Exceptions here will cause indefinite loop
                 pass
@@ -333,6 +338,7 @@ class Calc(Proc):
             self._entry_metadata.nomad_version = config.meta.version
             self._entry_metadata.nomad_commit = config.meta.commit
             self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.processing_errors = []
             self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
             self.parsing()
@@ -351,6 +357,7 @@ class Calc(Proc):
         self._entry_metadata = self.create_metadata()
         self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         self._entry_metadata.last_processing = datetime.utcnow()
+        self._entry_metadata.processing_errors = []
         self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
         self._entry_metadata.parser_name = self.parser
 
