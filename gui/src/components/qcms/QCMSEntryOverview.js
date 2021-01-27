@@ -15,44 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState } from 'react'
+import React from 'react'
 import DefaultEntryOverview from '../entry/DefaultEntryOverview'
 import PropTypes from 'prop-types'
-import Quantity from '../Quantity'
-import { Typography } from '@material-ui/core'
-import { apiBase } from '../../config'
+import QCMSEntryDetails from './QCMSEntryDetails'
 
 /**
  * Shows an informative overview about the selected entry.
  */
 export default function QCMSEntryOverview({repo, uploadId, calcId}) {
-  const [previewBroken, setPreviewBroken] = useState(false)
-  const { qcms } = repo
-  if (!qcms) {
-    return <Typography color="error">No metadata available</Typography>
-  }
-  const dirname = repo.mainfile.substring(0, repo.mainfile.lastIndexOf('/'))
-  const relative_preview_url = `${apiBase}/raw/${repo.upload_id}/${dirname}/circuit.png`
-
   return (
     <DefaultEntryOverview repo={repo} uploadId={uploadId} calcId={calcId}>
-      <Quantity column>
-        <Quantity row>
-          <Quantity quantity="formula" label="formula" noWrap data={repo}/>
-          <Quantity quantity="qcms.chemical" label="chemical name" noWrap data={repo}/>
-        </Quantity>
-        <Quantity row>
-          <Quantity quantity="qcms.quantum_computer_system" label="system" noWrap data={repo}/>
-          <Quantity quantity="qcms.quantum_computing_libraries" label="libraries" noWrap data={repo}/>
-        </Quantity>
-        <Quantity label="compute time">
-          <Typography noWrap>{new Date(qcms.computation_datetime).toLocaleDateString()}</Typography>
-        </Quantity>
-        {!previewBroken &&
-         <Quantity label="circuit" data={repo}>
-           <img alt="circuit" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={() => setPreviewBroken(true)}></img>
-         </Quantity>}
-      </Quantity>
+      <QCMSEntryDetails data={repo}></QCMSEntryDetails>
     </DefaultEntryOverview>
   )
 }

@@ -242,6 +242,13 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
     return null
   }, [structures])
 
+  // Enforce at least one structure view option
+  const handleStructureChange = (event, value) => {
+    if (value !== null) {
+      setShownSystem(value)
+    }
+  }
+
   let eSize
   if (electronicStructure) {
     if (electronicStructure.bs && electronicStructure.dos) {
@@ -289,7 +296,7 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
           }
           fixedContent={structures
             ? <Box className={classes.structure}>
-              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={(event, value) => { setShownSystem(value) }} aria-label="text formatting">
+              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={handleStructureChange} aria-label="text formatting">
                 {structureToggles}
               </ToggleButtonGroup>
               <ErrorHandler message='Could not load structure.'>

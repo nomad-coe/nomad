@@ -16,14 +16,17 @@
  * limitations under the License.
  */
 import React from 'react'
+import DFTEntryDetails from './dft/DFTEntryDetails'
 import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryRawView from './dft/DFTEntryRawView'
+import EMSEntryDetails from './ems/EMSEntryDetails'
 import EMSEntryRawView from './ems/EMSEntryRawView'
 import EMSEntryOverview from './ems/EMSEntryOverview'
 import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
+import QCMSEntryDetails from './qcms/QCMSEntryDetails'
 import QCMSEntryOverview from './qcms/QCMSEntryOverview'
 import QCMSEntryRawView from './qcms/QCMSEntryRawView'
 import { Link, Typography } from '@material-ui/core'
@@ -172,6 +175,10 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
+    EntryDetails: DFTEntryDetails,
+    /**
+     * Determines the layout of the overview page.
+     */
     EntryOverview: DFTEntryOverview,
     /**
      * A component to render additional domain specific cards in the
@@ -261,6 +268,10 @@ export const domains = ({
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
      */
+    EntryDetails: EMSEntryDetails,
+    /**
+     * Determines the layout of the overview page.
+     */
     EntryOverview: EMSEntryOverview,
     /**
      * A component to render additional domain specific cards in the
@@ -337,6 +348,10 @@ export const domains = ({
      * A component to render the domain specific quantities in the metadata card of
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
+     */
+    EntryDetails: QCMSEntryDetails,
+    /**
+     * Determines the layout of the overview page.
      */
     EntryOverview: QCMSEntryOverview,
     /**
