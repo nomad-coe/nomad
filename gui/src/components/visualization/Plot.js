@@ -231,14 +231,16 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
   // Relayout plots when layout updated. useLayoutEffect is used so that React
   // rendering and Plotly rendering are synced.
   useLayoutEffect(() => {
-    if (!firstUpdate.current) {
+    if (!firstUpdate.current && canvasRef?.current && finalLayout) {
       Plotly.relayout(canvasRef.current, finalLayout)
     }
   }, [canvasRef, finalLayout])
 
   // For resetting the view.
   const handleReset = useCallback(() => {
-    Plotly.relayout(canvasRef.current, mergeObjects(finalResetLayout, canvasRef.current.layout))
+    if (canvasRef?.current && finalResetLayout) {
+      Plotly.relayout(canvasRef.current, mergeObjects(finalResetLayout, canvasRef.current.layout))
+    }
   }, [canvasRef, finalResetLayout])
 
   // Handles plot capturing

@@ -217,7 +217,6 @@ export default function Structure({className, classes, system, options, viewer, 
     }
 
     if (positionsOnly && !!(refViewer?.current?.structure)) {
-      console.log('load positions only')
       refViewer.current.setPositions(system.positions)
       return
     }

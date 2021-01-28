@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -48,10 +48,43 @@ function GeoOptOverview({data, className, classes}) {
   })
   const style = useStyles(classes)
   const theme = useTheme()
+  const plotData = useMemo(() => {
+    return [{
+      x: [...Array(data.energies.length).keys()],
+      y: data.energies,
+      type: 'scatter',
+      line: {
+        color: theme.palette.primary.main,
+        width: 2
+      }
+    }]
+  }, [data, theme])
+
+  const plotLayout = useMemo(() => {
+    return {
+      hovermode: 'x',
+      hoverdistance: 100,
+      spikedistance: 1000,
+      xaxis: {
+        title: 'Step number',
+        tickmode: 'auto',
+        autorange: true,
+        zeroline: false,
+        showspikes: true,
+        spikethickness: 2,
+        spikedash: 'dot',
+        spikecolor: '#999999',
+        spikemode: 'across' },
+      yaxis: {
+        title: 'Energy change (eV)',
+        autorange: true,
+        zeroline: false
+      }
+    }
+  }, [])
 
   // Handles hover event on the plot to update the currently shown structure
   const handleHover = useCallback((event) => {
-    console.log('Hover callback')
     setStep(event.points[0].x)
   }, [])
 
@@ -62,35 +95,8 @@ function GeoOptOverview({data, className, classes}) {
           <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
           <ErrorHandler message='Could not load energies.'>
             <Plot
-              data={[{
-                x: [...Array(data.energies.length).keys()],
-                y: data.energies,
-                type: 'scatter',
-                line: {
-                  color: theme.palette.primary.main,
-                  width: 2
-                }
-              }]}
-              layout={{
-                hovermode: 'x',
-                hoverdistance: 100,
-                spikedistance: 1000,
-                xaxis: {
-                  title: 'Step number',
-                  tickmode: 'auto',
-                  autorange: true,
-                  zeroline: false,
-                  showspikes: true,
-                  spikethickness: 2,
-                  spikedash: 'dot',
-                  spikecolor: '#999999',
-                  spikemode: 'across' },
-                yaxis: {
-                  title: 'Energy change (eV)',
-                  autorange: true,
-                  zeroline: false
-                }
-              }}
+              data={plotData}
+              layout={plotLayout}
               aspectRatio={1.5}
               onHover={handleHover}
               floatTitle="Energy convergence"
