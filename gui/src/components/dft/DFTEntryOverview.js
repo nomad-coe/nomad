@@ -55,6 +55,9 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     height: '19.5rem'
   },
+  cardHeader: {
+    paddingBottom: 0
+  },
   quantities: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -416,9 +419,10 @@ export default function DFTEntryOverview({data}) {
         ? <Grid item xs={eSize}>
           <Card>
             <CardHeader
+              classes={{root: classes.cardHeader}}
               title="Electronic properties"
             />
-            <CardContent classes={{root: classes.cardContent}}>
+            <CardContent>
               <Box style={{margin: '0 auto 0 auto', width: '100%', height: '36rem'}}>
                 <ElectronicStructureOverview
                   data={electronicStructure}>
@@ -433,9 +437,10 @@ export default function DFTEntryOverview({data}) {
         ? <Grid item xs={12}>
           <Card>
             <CardHeader
+              classes={{root: classes.cardHeader}}
               title="Geometry optimization"
             />
-            <CardContent classes={{root: classes.cardContent}}>
+            <CardContent>
               <GeoOptOverview data={geoOpt}></GeoOptOverview>
             </CardContent>
           </Card>

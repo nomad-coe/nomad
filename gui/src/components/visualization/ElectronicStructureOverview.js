@@ -31,14 +31,12 @@ import { makeStyles } from '@material-ui/core/styles'
 import { ErrorHandler } from '../ErrorHandler'
 
 function ElectronicStructureOverview({data, range, className, classes, raiseError}) {
-  const [dosResetLayout] = useState({
+  const [dosLayout, setDosLayout] = useState({
     yaxis: {range: range}
   })
-  const [bsResetLayout] = useState({
+  const [bsLayout, setBsLayout] = useState({
     yaxis: {range: range}
   })
-  const [dosLayout, setDosLayout] = useState(dosResetLayout)
-  const [bsLayout, setBsLayout] = useState(bsResetLayout)
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -108,7 +106,6 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
                 <BandStructure
                   data={data.bs.section_k_band}
                   layout={bsLayout}
-                  resetLayout={bsResetLayout}
                   aspectRatio={1.0}
                   unitsState={unitsState}
                   onRelayouting={handleBSRelayouting}
@@ -127,7 +124,6 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
                 <DOS
                   data={data.dos.section_dos}
                   layout={dosLayout}
-                  resetLayout={dosResetLayout}
                   aspectRatio={0.5}
                   onRelayouting={handleDOSRelayouting}
                   unitsState={unitsState}

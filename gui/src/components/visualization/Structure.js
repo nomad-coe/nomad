@@ -208,7 +208,7 @@ export default function Structure({className, classes, system, options, viewer, 
     }
 
     if (!accepted) {
-      const nAtoms = system.species.length
+      const nAtoms = system.positions.length
       setNAtoms(nAtoms)
       if (nAtoms > 300) {
         setShowPrompt(true)
@@ -216,7 +216,8 @@ export default function Structure({className, classes, system, options, viewer, 
       }
     }
 
-    if (positionsOnly) {
+    if (positionsOnly && !!(refViewer?.current?.structure)) {
+      console.log('load positions only')
       refViewer.current.setPositions(system.positions)
       return
     }

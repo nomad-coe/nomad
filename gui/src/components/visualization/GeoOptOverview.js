@@ -51,6 +51,7 @@ function GeoOptOverview({data, className, classes}) {
 
   // Handles hover event on the plot to update the currently shown structure
   const handleHover = useCallback((event) => {
+    console.log('Hover callback')
     setStep(event.points[0].x)
   }, [])
 
@@ -64,8 +65,7 @@ function GeoOptOverview({data, className, classes}) {
               data={[{
                 x: [...Array(data.energies.length).keys()],
                 y: data.energies,
-                type: 'scattergl',
-                mode: 'lines',
+                type: 'scatter',
                 line: {
                   color: theme.palette.primary.main,
                   width: 2
@@ -77,6 +77,7 @@ function GeoOptOverview({data, className, classes}) {
                 spikedistance: 1000,
                 xaxis: {
                   title: 'Step number',
+                  tickmode: 'auto',
                   autorange: true,
                   zeroline: false,
                   showspikes: true,
@@ -90,7 +91,6 @@ function GeoOptOverview({data, className, classes}) {
                   zeroline: false
                 }
               }}
-              // resetLayout={resetLayout}
               aspectRatio={1.5}
               onHover={handleHover}
               floatTitle="Energy convergence"
@@ -105,7 +105,7 @@ function GeoOptOverview({data, className, classes}) {
               system={data.structures[step]}
               aspectRatio={0.75}
               options={{view: {fitMargin: 0.75}}}
-              positionsOnly={step !== 0}
+              positionsOnly={true}
             ></Structure>
           </ErrorHandler>
         </Box>

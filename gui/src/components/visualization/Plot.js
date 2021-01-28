@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
+import { cloneDeep } from 'lodash'
 
 import {
   IconButton,
@@ -36,7 +37,7 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, resetLayout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover}) {
+export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
@@ -161,6 +162,12 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
     return mergeObjects(layout, defaultLayout)
   }, [layout])
 
+  // Save the initial layout as reset
+  const finalResetLayout = useMemo(() => {
+    return cloneDeep(finalLayout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Set the final config
   const finalConfig = useMemo(() => {
     let defaultConfig = {
@@ -169,6 +176,23 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
     }
     return mergeObjects(config, defaultConfig)
   }, [config])
+
+  // Initialize the plot object on first render
+  useEffect(() => {
+    Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
+
+    if (firstUpdate.current) {
+      // Attach events when the canvas is first created
+      if (onRelayouting) {
+        canvasRef.current.on('plotly_relayouting', onRelayouting)
+      }
+      if (onHover) {
+        canvasRef.current.on('plotly_hover', onHover)
+      }
+      firstUpdate.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -184,24 +208,15 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
     canvasRef.current = node
     Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
 
-    // Attach events whenever the canvas changes
+    // Re-attach events whenever the canvas changes
     if (onRelayouting) {
       canvasRef.current.on('plotly_relayouting', onRelayouting)
     }
-    // Attach events whenever the canvas changes
     if (onHover) {
       canvasRef.current.on('plotly_hover', onHover)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, finalConfig, onRelayouting])
 
-  // Initialize the plot object on first render
-  useEffect(() => {
-    Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
-    if (firstUpdate.current) {
-      firstUpdate.current = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Update plots when data or config is updated. useLayoutEffect is used so
@@ -223,8 +238,8 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
 
   // For resetting the view.
   const handleReset = useCallback(() => {
-    Plotly.relayout(canvasRef.current, mergeObjects(resetLayout, canvasRef.current.layout))
-  }, [canvasRef, resetLayout])
+    Plotly.relayout(canvasRef.current, mergeObjects(finalResetLayout, canvasRef.current.layout))
+  }, [canvasRef, finalResetLayout])
 
   // Handles plot capturing
   const handleCapture = useCallback(() => {
@@ -277,7 +292,6 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
 Plot.propTypes = {
   data: PropTypes.array, // Plotly.js data object
   layout: PropTypes.object, // Plotly.js layout object
-  resetLayout: PropTypes.object, // Plotly.js layout object for resetting
   config: PropTypes.object, // Plotly.js config object
   menu: PropTypes.object, // Menu settings
   capture: PropTypes.object, // Capture settings

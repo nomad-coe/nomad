@@ -413,7 +413,6 @@ function Overview({section, def}) {
     let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
 
     let system
-    let positionsOnly = false
 
     // Do not attempt to perform visualization if size is too big
     if (!section.atom_species) {
@@ -425,7 +424,6 @@ function Overview({section, def}) {
     if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
     // Loading same system with different positions
     } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
-      positionsOnly = true
       system = {
         positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
       }
@@ -451,7 +449,7 @@ function Overview({section, def}) {
       <Structure
         viewer={viewer}
         system={system}
-        positionsOnly={positionsOnly}
+        positionsOnly={true}
       ></Structure>
     </ErrorHandler>
   // Band structure plot for section_k_band
