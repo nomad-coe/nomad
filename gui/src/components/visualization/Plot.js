@@ -37,13 +37,13 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover}) {
+export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
   const firstUpdate = useRef(true)
 
-  React.useEffect(() => {
+  useEffect(() => {
     let defaultCapture = {
       format: 'png',
       width: 1024,
@@ -186,6 +186,12 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
       if (onRelayouting) {
         canvasRef.current.on('plotly_relayouting', onRelayouting)
       }
+      if (onRedraw) {
+        canvasRef.current.on('plotly_redraw', onRedraw)
+      }
+      if (onRelayout) {
+        canvasRef.current.on('plotly_relayout', onRelayout)
+      }
       if (onHover) {
         canvasRef.current.on('plotly_hover', onHover)
       }
@@ -194,7 +200,8 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // In order to properly detect changes in a reference, a reference callback is
+  // This callback redraws the plot whenever the canvas element changes. In
+  // order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
@@ -204,17 +211,30 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
       return
     }
 
-    // Update canvas and redraw on it
-    canvasRef.current = node
-    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
+    // Redraw if moving to a new canvas. Also re-attach events.
+    if (canvasRef.current !== undefined) {
+      let oldLayout = canvasRef.current.layout
+      let oldData = canvasRef.current.data
+      // Update canvas and redraw on it
+      Plotly.react(node, oldData, oldLayout, finalConfig)
 
-    // Re-attach events whenever the canvas changes
-    if (onRelayouting) {
-      canvasRef.current.on('plotly_relayouting', onRelayouting)
+      // Re-attach events whenever the canvas changes
+      if (onRelayouting) {
+        node.on('plotly_relayouting', onRelayouting)
+      }
+      if (onRedraw) {
+        node.on('plotly_redraw', onRedraw)
+      }
+      if (onRelayout) {
+        node.on('plotly_relayout', onRelayout)
+      }
+      if (onHover) {
+        node.on('plotly_hover', onHover)
+      }
     }
-    if (onHover) {
-      canvasRef.current.on('plotly_hover', onHover)
-    }
+
+    // Update canvas element
+    canvasRef.current = node
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -240,8 +260,11 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
   const handleReset = useCallback(() => {
     if (canvasRef?.current && finalResetLayout) {
       Plotly.relayout(canvasRef.current, mergeObjects(finalResetLayout, canvasRef.current.layout))
+      if (onReset) {
+        onReset()
+      }
     }
-  }, [canvasRef, finalResetLayout])
+  }, [canvasRef, finalResetLayout, onReset])
 
   // Handles plot capturing
   const handleCapture = useCallback(() => {
@@ -250,9 +273,9 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
 
   return (
     <Floatable className={clsx(className, style.root)} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
+      {float && <Typography variant="h6">{floatTitle}</Typography>}
       <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
       <div className={style.header}>
-        {float && <Typography variant="h6">{floatTitle}</Typography>}
         <div className={style.spacer}></div>
         { finalMenu.reset.visible === true
           ? <Tooltip title="Reset view">
@@ -305,7 +328,8 @@ Plot.propTypes = {
   onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayouting: PropTypes.func,
-  onHover: PropTypes.func
+  onHover: PropTypes.func,
+  onReset: PropTypes.func
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

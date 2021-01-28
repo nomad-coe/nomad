@@ -26,7 +26,7 @@ import {
 import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
 
-export default function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+export default function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -131,6 +131,7 @@ export default function DOS({data, layout, resetLayout, aspectRatio, className, 
         onAfterPlot={onAfterPlot}
         onRedraw={onRedraw}
         onRelayouting={onRelayouting}
+        onReset={onReset}
       >
       </Plot>
     </Box>
@@ -148,5 +149,6 @@ DOS.propTypes = {
   onRedraw: PropTypes.func,
   onRelayout: PropTypes.func,
   onRelayouting: PropTypes.func,
+  onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }

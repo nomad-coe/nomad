@@ -109,6 +109,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
                   aspectRatio={1.0}
                   unitsState={unitsState}
                   onRelayouting={handleBSRelayouting}
+                  onReset={() => { setDosLayout({yaxis: {range: range}}) }}
                 ></BandStructure>
               </ErrorHandler>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
@@ -126,6 +127,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
                   layout={dosLayout}
                   aspectRatio={0.5}
                   onRelayouting={handleDOSRelayouting}
+                  onReset={() => { setBsLayout({yaxis: {range: range}}) }}
                   unitsState={unitsState}
                 ></DOS>
               </ErrorHandler>

@@ -273,9 +273,9 @@ export default function Structure({className, classes, system, options, viewer, 
       >
       </ErrorCard>
       : <>
+        {fullscreen && <Typography variant="h6">Structure</Typography>}
         <div className={style.viewerCanvas} ref={measuredRef}></div>
         <div className={style.header}>
-          {fullscreen && <Typography variant="h6">Structure</Typography>}
           <div className={style.spacer}></div>
           <Tooltip title="Reset view">
             <IconButton className={style.iconButton} onClick={handleReset}>

@@ -26,7 +26,7 @@ import {
 import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
 
-export default function BandStructure({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
@@ -157,7 +157,7 @@ export default function BandStructure({data, layout, resetLayout, aspectRatio, c
     }
 
     setFinalData(plotData)
-  }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
+  }, [data, theme, units])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -243,13 +243,13 @@ export default function BandStructure({data, layout, resetLayout, aspectRatio, c
       <Plot
         data={finalData}
         layout={finalLayout}
-        resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
         onRelayout={onRelayout}
         onAfterPlot={onAfterPlot}
         onRedraw={onRedraw}
         onRelayouting={onRelayouting}
+        onReset={onReset}
       >
       </Plot>
     </Box>
@@ -259,7 +259,6 @@ export default function BandStructure({data, layout, resetLayout, aspectRatio, c
 BandStructure.propTypes = {
   data: PropTypes.object, // section_band_structure or section_band_structure_normalized
   layout: PropTypes.object,
-  resetLayout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
@@ -267,5 +266,6 @@ BandStructure.propTypes = {
   onRedraw: PropTypes.func,
   onRelayout: PropTypes.func,
   onRelayouting: PropTypes.func,
+  onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }

@@ -230,9 +230,9 @@ export default function BrillouinZone({className, classes, options, viewer, data
   }, [])
 
   const content = <Box className={style.container}>
+    {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
     <div className={style.viewerCanvas} ref={measuredRef}></div>
     <div className={style.header}>
-      {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
       <div className={style.spacer}></div>
       <Tooltip title="Reset view">
         <IconButton className={style.iconButton} onClick={handleReset}>
