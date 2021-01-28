@@ -83,7 +83,7 @@ export default function OverviewView({uploadId, calcId}) {
   if (repo) {
     const domain = repo.domain && domains[repo.domain]
     return <EntryPageContent fixed>
-      <domain.EntryOverview repo={repo} uploadId={uploadId} calcId={calcId}/>
+      <domain.EntryOverview data={repo}/>
     </EntryPageContent>
   }
   return null

@@ -16,23 +16,21 @@
  * limitations under the License.
  */
 import React from 'react'
-import DefaultEntryOverview from '../entry/DefaultEntryOverview'
 import PropTypes from 'prop-types'
+import DefaultEntryOverview from '../entry/DefaultEntryOverview'
 import QCMSEntryDetails from './QCMSEntryDetails'
 
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function QCMSEntryOverview({repo, uploadId, calcId}) {
+export default function QCMSEntryOverview({data}) {
   return (
-    <DefaultEntryOverview repo={repo} uploadId={uploadId} calcId={calcId}>
-      <QCMSEntryDetails data={repo}></QCMSEntryDetails>
+    <DefaultEntryOverview data={data}>
+      <QCMSEntryDetails data={data}></QCMSEntryDetails>
     </DefaultEntryOverview>
   )
 }
 
 QCMSEntryOverview.propTypes = {
-  repo: PropTypes.object.isRequired,
-  uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  data: PropTypes.object.isRequired
 }

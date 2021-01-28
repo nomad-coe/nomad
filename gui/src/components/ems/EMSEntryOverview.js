@@ -23,16 +23,14 @@ import EMSEntryDetails from './EMSEntryDetails'
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function EMSEntryOverview({repo, uploadId, calcId}) {
+export default function EMSEntryOverview({data}) {
   return (
-    <DefaultEntryOverview repo={repo} uploadId={uploadId} calcId={calcId}>
-      <EMSEntryDetails data={repo}></EMSEntryDetails>
+    <DefaultEntryOverview data={data}>
+      <EMSEntryDetails data={data}></EMSEntryDetails>
     </DefaultEntryOverview>
   )
 }
 
 EMSEntryOverview.propTypes = {
-  repo: PropTypes.object.isRequired,
-  uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  data: PropTypes.object.isRequired
 }

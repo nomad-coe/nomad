@@ -22,9 +22,8 @@ import Quantity from '../Quantity'
 import _ from 'lodash'
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
-export default function DFTEntryOverview(props) {
-  const {data} = props
-  if (!data.dft) {
+export default function DFTEntryOverview({data}) {
+  if (!data?.dft) {
     return <Typography color="error">No metadata available</Typography>
   }
 
@@ -50,21 +49,21 @@ export default function DFTEntryOverview(props) {
   return <div>
     <Quantity column>
       <Quantity row>
-        <Quantity quantity="formula" label='formula' noWrap {...props} />
-        <Quantity quantity={material_name} label='material' noWrap {...props} />
+        <Quantity quantity="formula" label='formula' noWrap data={data}/>
+        <Quantity quantity={material_name} label='material' noWrap data={data}/>
       </Quantity>
       <Quantity row>
-        <Quantity quantity="dft.code_name" label='dft code' noWrap {...props} />
-        <Quantity quantity="dft.code_version" label='dft code version' noWrap {...props} />
+        <Quantity quantity="dft.code_name" label='dft code' noWrap data={data}/>
+        <Quantity quantity="dft.code_version" label='dft code version' noWrap data={data}/>
       </Quantity>
       <Quantity row>
-        <Quantity quantity="dft.basis_set" label='basis set' noWrap {...props} />
-        <Quantity quantity="dft.xc_functional" label='xc functional' noWrap {...props} />
+        <Quantity quantity="dft.basis_set" label='basis set' noWrap data={data}/>
+        <Quantity quantity="dft.xc_functional" label='xc functional' noWrap data={data}/>
       </Quantity>
       <Quantity row>
-        <Quantity quantity="dft.system" label='system type' noWrap {...props} />
-        <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...props} />
-        <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...props}>
+        <Quantity quantity="dft.system" label='system type' noWrap data={data}/>
+        <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={data}/>
+        <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={data}>
           <Typography noWrap>
             {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
           </Typography>

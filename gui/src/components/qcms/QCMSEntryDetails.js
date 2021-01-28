@@ -21,14 +21,13 @@ import Quantity from '../Quantity'
 import { Typography } from '@material-ui/core'
 import { apiBase } from '../../config'
 
-export default function QCMSEntryDetails(props) {
+export default function QCMSEntryDetails({data}) {
   const [previewBroken, setPreviewBroken] = useState(false)
 
-  if (!props.data) {
+  if (!data) {
     return <Typography color="error">No metadata available</Typography>
   }
 
-  const {data} = props
   let dirname = data.mainfile.substring(0, data.mainfile.lastIndexOf('/'))
   if (dirname !== '') dirname += '/'
   const relative_preview_url = `${apiBase}/raw/${data.upload_id}/${dirname}circuit.png`
@@ -36,18 +35,18 @@ export default function QCMSEntryDetails(props) {
   return (
     <Quantity column>
       <Quantity row>
-        <Quantity quantity="formula" label="formula" noWrap {...props} />
-        <Quantity quantity="qcms.chemical" label="chemical name" noWrap {...props} />
+        <Quantity quantity="formula" label="formula" noWrap data={data}/>
+        <Quantity quantity="qcms.chemical" label="chemical name" noWrap data={data}/>
       </Quantity>
       <Quantity row>
-        <Quantity quantity="qcms.quantum_computer_system" label="system" noWrap {...props} />
-        <Quantity quantity="qcms.quantum_computing_libraries" label="libraries" noWrap {...props} />
+        <Quantity quantity="qcms.quantum_computer_system" label="system" noWrap data={data}/>
+        <Quantity quantity="qcms.quantum_computing_libraries" label="libraries" noWrap data={data}/>
       </Quantity>
       <Quantity label="compute time">
         <Typography noWrap>{new Date(data.qcms.computation_datetime).toLocaleDateString()}</Typography>
       </Quantity>
       {!previewBroken &&
-        <Quantity label="circuit" {...props}>
+        <Quantity label="circuit" data={data}>
           <img alt="circuit" style={{maxWidth: '100%', height: 'auto'}} src={relative_preview_url} onError={() => setPreviewBroken(true)}></img>
         </Quantity>}
     </Quantity>
@@ -55,6 +54,5 @@ export default function QCMSEntryDetails(props) {
 }
 
 QCMSEntryDetails.propTypes = {
-  data: PropTypes.object.isRequired,
-  loading: PropTypes.bool
+  data: PropTypes.object.isRequired
 }

@@ -44,13 +44,12 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function DefaultEntryOverview({repo, uploadId, calcId, children}) {
-  console.log(repo)
+export default function DefaultEntryOverview({data, children}) {
   const classes = useStyles()
-  const domain = repo.domain && domains[repo.domain]
+  const domain = data.domain && domains[data.domain]
   let entryHeader = 'Entry metadata'
   if (domain) {
-    entryHeader = domain.entryTitle(repo)
+    entryHeader = domain.entryTitle(data)
   }
 
   return (
@@ -59,7 +58,7 @@ export default function DefaultEntryOverview({repo, uploadId, calcId, children})
         <Card>
           <CardHeader
             title={entryHeader}
-            action={<ApiDialogButton title="Repository JSON" data={repo} />}
+            action={<ApiDialogButton title="Repository JSON" data={data} />}
           />
           <CardContent classes={{root: classes.cardContent}}>
             {children}
@@ -67,24 +66,24 @@ export default function DefaultEntryOverview({repo, uploadId, calcId, children})
           <Divider />
           <CardContent>
             <Quantity column>
-              <Quantity quantity='comment' placeholder='no comment' data={repo}/>
-              <Quantity quantity='references' placeholder='no references' data={repo}>
-                {repo.references &&
+              <Quantity quantity='comment' placeholder='no comment' data={data}/>
+              <Quantity quantity='references' placeholder='no references' data={data}>
+                {data.references &&
                   <div style={{display: 'inline-grid'}}>
-                    {repo.references.map(ref => <Typography key={ref} noWrap>
+                    {data.references.map(ref => <Typography key={ref} noWrap>
                       <Link href={ref}>{ref}</Link>
                     </Typography>)}
                   </div>}
               </Quantity>
-              <Quantity quantity='authors' data={repo}>
+              <Quantity quantity='authors' data={data}>
                 <Typography>
-                  {authorList(repo, true)}
+                  {authorList(data, true)}
                 </Typography>
               </Quantity>
-              <Quantity quantity='datasets' data={repo}>
-                {repo.datasets && repo.datasets.length > 0
+              <Quantity quantity='datasets' data={data}>
+                {data.datasets && data.datasets.length > 0
                   ? <div>
-                    {repo.datasets.map(ds => (
+                    {data.datasets.map(ds => (
                       <Typography key={ds.dataset_id}>
                         <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
                         {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi} />)</span> : ''}
@@ -92,7 +91,7 @@ export default function DefaultEntryOverview({repo, uploadId, calcId, children})
                   </div>
                   : <Typography><i>not in any dataset</i></Typography>}
               </Quantity>
-              <Quantity quantity='license' placeholder='unspecified' data={repo}/>
+              <Quantity quantity='license' placeholder='unspecified' data={data}/>
             </Quantity>
           </CardContent>
         </Card>
@@ -103,25 +102,25 @@ export default function DefaultEntryOverview({repo, uploadId, calcId, children})
           <CardHeader title="Ids / processing" />
           <CardContent classes={{root: classes.cardContent}}>
             <Quantity column style={{maxWidth: 350}}>
-              <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={repo} />
-              <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={repo} withClipboard />
-              <Quantity quantity="mainfile" noWrap ellipsisFront data={repo} withClipboard />
-              <Quantity quantity="upload_id" label='upload id' data={repo} noWrap withClipboard />
-              <Quantity quantity="upload_time" label='upload time' noWrap data={repo}>
+              <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={data} />
+              <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={data} withClipboard />
+              <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
+              <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard />
+              <Quantity quantity="upload_time" label='upload time' noWrap data={data}>
                 <Typography noWrap>
-                  {new Date(repo.upload_time).toLocaleString()}
+                  {new Date(data.upload_time).toLocaleString()}
                 </Typography>
               </Quantity>
-              <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={repo} withClipboard />
-              <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={repo} withClipboard />
-              <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={repo}>
+              <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={data} withClipboard />
+              <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={data} withClipboard />
+              <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={data}>
                 <Typography noWrap>
-                  {new Date(repo.last_processing).toLocaleString()}
+                  {new Date(data.last_processing).toLocaleString()}
                 </Typography>
               </Quantity>
-              <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" dat={repo}>
+              <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" dat={data}>
                 <Typography noWrap>
-                  {repo.nomad_version}/{repo.nomad_commit}
+                  {data.nomad_version}/{data.nomad_commit}
                 </Typography>
               </Quantity>
             </Quantity>
@@ -133,8 +132,6 @@ export default function DefaultEntryOverview({repo, uploadId, calcId, children})
 }
 
 DefaultEntryOverview.propTypes = {
-  repo: PropTypes.object.isRequired,
-  uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired,
+  data: PropTypes.object.isRequired,
   children: PropTypes.object
 }

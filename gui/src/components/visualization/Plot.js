@@ -189,7 +189,6 @@ export default function Plot({data, layout, resetLayout, config, menu, floatTitl
       canvasRef.current.on('plotly_relayouting', onRelayouting)
     }
     // Attach events whenever the canvas changes
-    console.log("canvas changed")
     if (onHover) {
       canvasRef.current.on('plotly_hover', onHover)
     }

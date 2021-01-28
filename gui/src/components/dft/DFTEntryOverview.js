@@ -70,7 +70,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function DFTEntryOverview({repo, uploadId, calcId}) {
+export default function DFTEntryOverview({data}) {
   const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
@@ -78,17 +78,16 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
   const [geoOpt, setGeoOpt] = useState(null)
   const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
-  const materialType = repo?.encyclopedia?.material?.material_type
+  const materialType = data?.encyclopedia?.material?.material_type
   const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
-  console.log(repo)
 
   // When loaded for the first time, start downloading the archive. Once
   // finished, determine the final layout based on it's contents.TODO: When we
   // have more information stored in the ES index, it can be used to select
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
-    api.archive(uploadId, calcId).then(data => {
+    api.archive(data.upload_id, data.calc_id).then(data => {
       let structs = new Map()
 
       // Figure out what properties are present by looping over the SCCS. This
@@ -224,10 +223,10 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setElectronicStructure, setStructures])
+  }, [data, api, raiseError, setElectronicStructure, setStructures])
 
-  const calcData = repo || {uploadId: uploadId, calcId: calcId}
-  const loadingRepo = !repo
+  const calcData = data
+  const loadingRepo = !data
   const quantityProps = {data: calcData, loading: loadingRepo}
   const authors = loadingRepo ? null : calcData.authors
   const domain = calcData.domain && domains[calcData.domain]
@@ -266,9 +265,9 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
         <CollapsibleCard
           height={'33rem'}
           title='Material'
-          action={encyclopediaEnabled && repo?.encyclopedia?.material?.material_id
+          action={encyclopediaEnabled && data?.encyclopedia?.material?.material_id
             ? <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
-              <IconButton href={`${appBase}/encyclopedia/#/material/${repo.encyclopedia.material.material_id}`}><ArrowForwardIcon/></IconButton>
+              <IconButton href={`${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`}><ArrowForwardIcon/></IconButton>
             </Tooltip>
             : null
           }
@@ -276,16 +275,16 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
             <>
               <Quantity column>
                 <Quantity row>
-                  <Quantity quantity="formula" label='formula' noWrap data={repo}/>
-                  <Quantity quantity="dft.system" label='material type' noWrap data={repo}/>
-                  <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={repo}/>
+                  <Quantity quantity="formula" label='formula' noWrap data={data}/>
+                  <Quantity quantity="dft.system" label='material type' noWrap data={data}/>
+                  <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={data}/>
                 </Quantity>
                 {materialType === 'bulk'
                   ? <Quantity row>
-                    <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={repo}/>
-                    <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={repo}>
+                    <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={data}/>
+                    <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={data}>
                       <Typography noWrap>
-                        {normalizeDisplayValue(_.get(repo, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(repo, 'dft.spacegroup'))})
+                        {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
                       </Typography>
                     </Quantity>
                   </Quantity>
@@ -315,24 +314,24 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
           content={
             <Quantity column>
               <Quantity row>
-                <Quantity quantity="dft.code_name" label='code name' noWrap data={repo}/>
-                <Quantity quantity="dft.code_version" label='code version' noWrap data={repo}/>
+                <Quantity quantity="dft.code_name" label='code name' noWrap data={data}/>
+                <Quantity quantity="dft.code_version" label='code version' noWrap data={data}/>
               </Quantity>
               <Quantity row>
                 <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} noWrap data={method}/>
               </Quantity>
               {/* <Quantity row>
-                <Quantity quantity="dft.restricted" label='restricted' noWrap data={repo}/>
-                <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={repo}/>
+                <Quantity quantity="dft.restricted" label='restricted' noWrap data={data}/>
+                <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={data}/>
               </Quantity> */}
               <Quantity row>
-                <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap data={repo}/>
+                <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap data={data}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap data={repo}/>
+                <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap data={data}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={repo}/>
+                <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={data}/>
                 <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
               </Quantity>
               {method?.van_der_Waals_method
@@ -386,25 +385,25 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
                 </Quantity>
               </Quantity>
               <Quantity column style={{maxWidth: 350}}>
-                <Quantity quantity="mainfile" noWrap ellipsisFront data={repo} withClipboard />
-                <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={repo} />
-                <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={repo} withClipboard />
-                <Quantity quantity="upload_id" label='upload id' data={repo} noWrap withClipboard />
-                <Quantity quantity="upload_time" label='upload time' noWrap data={repo}>
+                <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
+                <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={data} />
+                <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={data} withClipboard />
+                <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard />
+                <Quantity quantity="upload_time" label='upload time' noWrap data={data}>
                   <Typography noWrap>
-                    {new Date(repo.upload_time).toLocaleString()}
+                    {new Date(data.upload_time).toLocaleString()}
                   </Typography>
                 </Quantity>
-                <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={repo} withClipboard />
-                <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={repo} withClipboard />
-                <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={repo}>
+                <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={data} withClipboard />
+                <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={data} withClipboard />
+                <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={data}>
                   <Typography noWrap>
-                    {new Date(repo.last_processing).toLocaleString()}
+                    {new Date(data.last_processing).toLocaleString()}
                   </Typography>
                 </Quantity>
-                <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={repo}>
+                <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={data}>
                   <Typography noWrap>
-                    {repo.nomad_version}/{repo.nomad_commit}
+                    {data.nomad_version}/{data.nomad_commit}
                   </Typography>
                 </Quantity>
               </Quantity>
@@ -448,7 +447,5 @@ export default function DFTEntryOverview({repo, uploadId, calcId}) {
 }
 
 DFTEntryOverview.propTypes = {
-  repo: PropTypes.object.isRequired,
-  uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  data: PropTypes.object.isRequired
 }
