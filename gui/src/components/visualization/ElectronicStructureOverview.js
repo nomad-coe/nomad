@@ -31,9 +31,11 @@ import { makeStyles } from '@material-ui/core/styles'
 
 function ElectronicStructureOverview({data, range, className, classes, raiseError}) {
   const [dosLayout, setDosLayout] = useState({
+    autorange: false,
     yaxis: {range: range}
   })
   const [bsLayout, setBsLayout] = useState({
+    autorange: false,
     yaxis: {range: range}
   })
 
@@ -65,6 +67,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
   const handleBSRelayouting = useCallback((event) => {
     let update = {
       yaxis: {
+        autorange: false,
         range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
       }
     }
@@ -73,6 +76,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
   const handleDOSRelayouting = useCallback((event) => {
     let update = {
       yaxis: {
+        autorange: false,
         range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
       }
     }

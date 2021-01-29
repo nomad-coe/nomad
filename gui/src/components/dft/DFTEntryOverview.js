@@ -22,6 +22,7 @@ import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import { apiContext } from '../api'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
+import VibrationalOverview from '../visualization/VibrationalOverview'
 import ApiDialogButton from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
 import Placeholder from '../visualization/Placeholder'
@@ -76,6 +77,7 @@ export default function DFTEntryOverview({data}) {
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
   const [electronicStructure, setElectronicStructure] = useState(null)
+  const [vibrationalData, setVibrationalData] = useState(null)
   const [geoOpt, setGeoOpt] = useState(null)
   const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
@@ -93,25 +95,29 @@ export default function DFTEntryOverview({data}) {
 
       // Figure out what properties are present by looping over the SCCS. This
       // information will eventually be directly available in the ES index.
-      let dos = null
-      let bs = null
+      let e_dos = null
+      let e_bs = null
       const section_run = data.section_run[0]
       let section_method = null
       const sccs = section_run.section_single_configuration_calculation
       for (let i = sccs.length - 1; i > -1; --i) {
         const scc = sccs[i]
-        if (!dos && scc.section_dos) {
-          dos = {
-            'section_system': scc.single_configuration_calculation_to_system_ref,
-            'section_method': scc.single_configuration_calculation_to_system_ref,
-            'section_dos': scc.section_dos[scc.section_dos.length - 1]
+        if (!e_dos && scc.section_dos) {
+          if (scc.section_dos[scc.section_dos.length - 1].dos_kind !== 'vibrational') {
+            e_dos = {
+              'section_system': scc.single_configuration_calculation_to_system_ref,
+              'section_method': scc.single_configuration_calculation_to_system_ref,
+              'section_dos': scc.section_dos[scc.section_dos.length - 1]
+            }
           }
         }
-        if (!bs && scc.section_k_band) {
-          bs = {
-            'section_system': scc.single_configuration_calculation_to_system_ref,
-            'section_method': scc.single_configuration_calculation_to_system_ref,
-            'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+        if (!e_bs && scc.section_k_band) {
+          if (scc.section_k_band[scc.section_k_band.length - 1].band_structure_kind !== 'vibrational') {
+            e_bs = {
+              'section_system': scc.single_configuration_calculation_to_system_ref,
+              'section_method': scc.single_configuration_calculation_to_system_ref,
+              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+            }
           }
         }
         if (section_method !== false) {
@@ -123,9 +129,10 @@ export default function DFTEntryOverview({data}) {
           }
         }
       }
-      if (dos || bs) {
+
+      if (e_dos || e_bs) {
         setElectronicStructure({
-          'dos': dos, 'bs': bs
+          'dos': e_dos, 'bs': e_bs
         })
       }
 
@@ -174,6 +181,49 @@ export default function DFTEntryOverview({data}) {
           } else {
             setGeoOpt({energies: null, structures: null, energy_change_criteria: null})
           }
+        } else if (wfType === 'phonon') {
+          // Find phonon dos and dispersion
+          const scc_ref = section_wf.calculation_result_ref
+          const scc = resolveRef(scc_ref, data)
+          let v_dos = null
+          let v_bs = null
+          if (scc) {
+            v_bs = {
+              'section_system': scc.single_configuration_calculation_to_system_ref,
+              'section_method': scc.single_configuration_calculation_to_system_ref,
+              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+            }
+            v_dos = {
+              'section_system': scc.single_configuration_calculation_to_system_ref,
+              'section_method': scc.single_configuration_calculation_to_system_ref,
+              'section_dos': scc.section_dos[scc.section_dos.length - 1]
+            }
+          }
+
+          // Find thermal properties
+          let free_energy = null
+          let heat_capacity = null
+          let temperature = null
+          const sequences = section_run.section_frame_sequence
+          const sequence = sequences && sequences[sequences.length - 1]
+          if (sequence) {
+            const properties = sequence.section_thermodynamical_properties && sequence.section_thermodynamical_properties[0]
+            if (properties) {
+              heat_capacity = properties.thermodynamical_property_heat_capacity_C_v
+              free_energy = properties.vibrational_free_energy_at_constant_volume
+              temperature = properties.thermodynamical_property_temperature
+            }
+          }
+
+          if (v_dos || v_bs || free_energy || heat_capacity) {
+            setVibrationalData({
+              'dos': v_dos,
+              'bs': v_bs,
+              'free_energy': free_energy,
+              'heat_capacity': heat_capacity,
+              'temperature': temperature
+            })
+          }
         }
       }
 
@@ -220,7 +270,7 @@ export default function DFTEntryOverview({data}) {
 
       // Get the conventional (=normalized) system, if present
       let idealSys = data?.section_metadata?.encyclopedia?.material?.idealized_structure
-      if (idealSys) {
+      if (idealSys && data.system === 'bulk') {
         const ideal = {
           'species': idealSys.atom_labels,
           'cell': idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
@@ -309,14 +359,19 @@ export default function DFTEntryOverview({data}) {
               </Quantity>
             </>
           }
-          fixedContent={structures
-            ? <Box className={classes.structure}>
-              <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={handleStructureChange} aria-label="text formatting">
-                {structureToggles}
-              </ToggleButtonGroup>
-              <Structure system={structures.get(shownSystem)} aspectRatio={7 / 6} options={{view: {fitMargin: 0.75}}}></Structure>
-            </Box>
-            : <Placeholder className={classes.structure} variant="rect"></Placeholder>
+          fixedContent={loading
+            ? <Placeholder className={classes.structure} variant="rect"></Placeholder>
+            : <>
+              {structures
+                ? <Box className={classes.structure}>
+                  <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={handleStructureChange} aria-label="text formatting">
+                    {structureToggles}
+                  </ToggleButtonGroup>
+                  <Structure system={structures.get(shownSystem)} aspectRatio={7 / 6} options={{view: {fitMargin: 0.75}}}></Structure>
+                </Box>
+                : null
+              }
+            </>
           }
         ></CollapsibleCard>
       </Grid>
@@ -453,6 +508,24 @@ export default function DFTEntryOverview({data}) {
             />
             <CardContent>
               <GeoOptOverview data={geoOpt}></GeoOptOverview>
+            </CardContent>
+          </Card>
+        </Grid>
+        : null
+      }
+      {vibrationalData
+        ? <Grid item xs={12}>
+          <Card>
+            <CardHeader
+              classes={{root: classes.cardHeader}}
+              title="Vibrational properties"
+            />
+            <CardContent>
+              <Box style={{margin: '0 auto 0 auto', width: '95%', minHeight: '36rem'}}>
+                <VibrationalOverview
+                  data={vibrationalData}>
+                </VibrationalOverview>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

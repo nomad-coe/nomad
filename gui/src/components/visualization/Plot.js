@@ -124,6 +124,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         mirror: true,
         ticks: 'outside',
         showline: true,
+        autorange: true,
         fixedrange: true,
         title: {
           font: {
