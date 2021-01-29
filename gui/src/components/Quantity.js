@@ -41,7 +41,8 @@ class Quantity extends React.Component {
     ]),
     withClipboard: PropTypes.bool,
     ellipsisFront: PropTypes.bool,
-    hideIfUnavailable: PropTypes.bool
+    hideIfUnavailable: PropTypes.bool,
+    description: PropTypes.string
   }
 
   static styles = theme => ({
@@ -99,7 +100,7 @@ class Quantity extends React.Component {
   render() {
     const {
       classes, children, label, typography, loading, placeholder, noWrap, row, column,
-      quantity, data, withClipboard, ellipsisFront, hideIfUnavailable
+      quantity, data, withClipboard, ellipsisFront, hideIfUnavailable, description
     } = this.props
     let content = null
     let clipboardContent = null
@@ -152,7 +153,7 @@ class Quantity extends React.Component {
       return <div className={row ? classes.row : classes.column}>{children}</div>
     } else {
       return (
-        <Tooltip title={(searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
+        <Tooltip title={description || (searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
           <div className={classes.root}>
             <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
             <div className={classes.valueContainer}>

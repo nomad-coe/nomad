@@ -60,7 +60,7 @@ export class ErrorHandler extends React.Component {
 }
 ErrorHandler.propTypes = ({
   children: PropTypes.object,
-  message: PropTypes.oneOf([PropTypes.string, PropTypes.func]), // Provide either a fixed error message or a callback that will receive the error details.
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]), // Provide either a fixed error message or a callback that will receive the error details.
   classes: PropTypes.object,
   className: PropTypes.string
 })
@@ -136,3 +136,6 @@ export const withErrorHandler = (WrappedComponent, message) => props => (
   <ErrorHandler message={message}>
     <WrappedComponent {...props}></WrappedComponent>
   </ErrorHandler>)
+withErrorHandler.propTypes = ({
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
+})

@@ -33,7 +33,6 @@ import { errorContext } from '../errors'
 import { authorList, convertSI, mergeObjects } from '../../utils'
 import CollapsibleCard from '../CollapsibleCard'
 import { resolveRef } from '../archive/metainfo'
-import { ErrorHandler } from '../ErrorHandler'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
@@ -246,7 +245,6 @@ export default function DFTEntryOverview({data}) {
   const calcData = data
   const loadingRepo = !data
   const quantityProps = {data: calcData, loading: loadingRepo}
-  const authors = loadingRepo ? null : calcData.authors
   const domain = calcData.domain && domains[calcData.domain]
   const structureToggles = useMemo(() => {
     if (structures) {
@@ -316,9 +314,7 @@ export default function DFTEntryOverview({data}) {
               <ToggleButtonGroup className={classes.toggle} size="small" exclusive value={shownSystem} onChange={handleStructureChange} aria-label="text formatting">
                 {structureToggles}
               </ToggleButtonGroup>
-              <ErrorHandler message='Could not load structure.'>
-                <Structure system={structures.get(shownSystem)} aspectRatio={7 / 6} options={{view: {fitMargin: 0.75}}}></Structure>
-              </ErrorHandler>
+              <Structure system={structures.get(shownSystem)} aspectRatio={7 / 6} options={{view: {fitMargin: 0.75}}}></Structure>
             </Box>
             : <Placeholder className={classes.structure} variant="rect"></Placeholder>
           }
@@ -336,7 +332,7 @@ export default function DFTEntryOverview({data}) {
                 <Quantity quantity="dft.code_version" label='code version' noWrap data={data}/>
               </Quantity>
               <Quantity row>
-                <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} noWrap data={method}/>
+                <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} description="The used electronic structure method." noWrap data={method}/>
               </Quantity>
               {/* <Quantity row>
                 <Quantity quantity="dft.restricted" label='restricted' noWrap data={data}/>
@@ -388,7 +384,7 @@ export default function DFTEntryOverview({data}) {
                 </Quantity>
                 <Quantity quantity='authors' {...quantityProps}>
                   <Typography>
-                    {authorList(authors || [])}
+                    {authorList(calcData || [])}
                   </Typography>
                 </Quantity>
                 <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
