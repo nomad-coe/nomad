@@ -41,8 +41,7 @@ import GeoOptOverview from '../visualization/GeoOptOverview'
 
 const useStyles = makeStyles(theme => ({
   root: {
-    maxWidth: '1240px',
-    minWidth: '1024px'
+    marginBottom: theme.spacing(4)
   },
   error: {
     marginTop: theme.spacing(2)
@@ -136,15 +135,23 @@ export default function DFTEntryOverview({data}) {
       if (section_wf) {
         const wfType = section_wf.workflow_type
 
-        // Gather energies from geometry optimization
+        // Gather energies, trajectory and energy change threshold from geometry
+        // optimization
         if (wfType === 'geometry_optimization') {
           const calculations = section_wf.calculations_ref
           let energies = []
           const trajectory = []
           let initialEnergy = null
-          calculations.forEach((ref, i) => {
+
+          let failed = false
+          for (let i = 0; i < calculations.length; ++i) {
+            let ref = calculations[i]
             const calc = resolveRef(ref, data)
-            const e = calc.energy_total
+            const e = calc?.energy_total
+            if (e === undefined) {
+              failed = true
+              break
+            }
             if (i === 0) {
               initialEnergy = e
             }
@@ -157,9 +164,17 @@ export default function DFTEntryOverview({data}) {
               'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
               'pbc': sys.configuration_periodic_dimensions
             })
-          })
-          energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
-          setGeoOpt({energies: energies, structures: trajectory})
+          }
+          if (!failed) {
+            energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
+            const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
+            const sampling_method = section_run?.section_sampling_method
+            const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
+            const e_criteria = e_criteria_wf || e_criteria_fs
+            setGeoOpt({energies: energies, structures: trajectory, energy_change_criteria: e_criteria})
+          } else {
+            setGeoOpt({energies: null, structures: null, energy_change_criteria: null})
+          }
         }
       }
 
@@ -263,7 +278,7 @@ export default function DFTEntryOverview({data}) {
   }
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} className={classes.root}>
       <Grid item xs={4}>
         <CollapsibleCard
           height={'33rem'}

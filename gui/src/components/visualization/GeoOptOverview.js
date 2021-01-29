@@ -26,7 +26,7 @@ import { RecoilRoot } from 'recoil'
 import { makeStyles } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import Structure from '../visualization/Structure'
-import { ErrorHandler } from '../ErrorHandler'
+import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 
 function GeoOptOverview({data, className, classes}) {
   const [step, setStep] = useState(0)
@@ -49,15 +49,53 @@ function GeoOptOverview({data, className, classes}) {
   const style = useStyles(classes)
   const theme = useTheme()
   const plotData = useMemo(() => {
-    return [{
-      x: [...Array(data.energies.length).keys()],
-      y: data.energies,
-      type: 'scatter',
-      line: {
-        color: theme.palette.primary.main,
-        width: 2
+    // See if energies are present. If not, still do an empty plot to allow user
+    // to navigate the steps.
+    let steps = [...Array(data.structures.length).keys()]
+    let energies = data.energies
+    const diff = [0]
+    for (let i = 0; i < energies.length - 1; ++i) {
+      diff.push(energies[i + 1] - energies[i])
+    }
+    const traces = [
+      {
+        x: steps,
+        y: diff,
+        hoverinfo: 'x',
+        name: 'Change per step',
+        type: 'scatter',
+        line: {
+          color: theme.palette.secondary.main,
+          width: 2
+        }
+      },
+      {
+        x: steps,
+        y: energies,
+        hoverinfo: 'x',
+        name: 'Total change',
+        type: 'scatter',
+        line: {
+          color: theme.palette.primary.main,
+          width: 2
+        }
       }
-    }]
+    ]
+    if (data?.energy_change_criteria) {
+      traces.push({
+        x: [steps[0], steps[steps.length - 1]],
+        y: [data?.energy_change_criteria, data?.energy_change_criteria],
+        hoverinfo: 'x',
+        name: 'Convergence criteria',
+        type: 'line',
+        line: {
+          color: '#999',
+          width: 1,
+          dash: '10px,10px'
+        }
+      })
+    }
+    return traces
   }, [data, theme])
 
   const plotLayout = useMemo(() => {
@@ -65,10 +103,16 @@ function GeoOptOverview({data, className, classes}) {
       hovermode: 'x',
       hoverdistance: 100,
       spikedistance: 1000,
+      showlegend: true,
+      legend: {
+        x: 1,
+        xanchor: 'right',
+        y: 0.5
+      },
       xaxis: {
         title: 'Step number',
         tickmode: 'auto',
-        autorange: true,
+        range: [0, data.structures.length - 1],
         zeroline: false,
         showspikes: true,
         spikethickness: 2,
@@ -76,12 +120,12 @@ function GeoOptOverview({data, className, classes}) {
         spikecolor: '#999999',
         spikemode: 'across' },
       yaxis: {
-        title: 'Energy change (eV)',
+        title: 'Energy (eV)',
         autorange: true,
         zeroline: false
       }
     }
-  }, [])
+  }, [data])
 
   // Handles hover event on the plot to update the currently shown structure
   const handleHover = useCallback((event) => {
@@ -126,4 +170,4 @@ GeoOptOverview.propTypes = {
   classes: PropTypes.object
 }
 
-export default GeoOptOverview
+export default withErrorHandler(GeoOptOverview, 'Could not load geometry optimization data.')

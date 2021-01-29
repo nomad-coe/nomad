@@ -25,8 +25,9 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
+function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -152,3 +153,5 @@ DOS.propTypes = {
   onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
+
+export default withErrorHandler(DOS, 'Could not load density of states.')

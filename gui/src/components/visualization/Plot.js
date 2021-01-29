@@ -172,7 +172,8 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
   const finalConfig = useMemo(() => {
     let defaultConfig = {
       scrollZoom: true,
-      displayModeBar: false
+      displayModeBar: false,
+      showTips: false
     }
     return mergeObjects(config, defaultConfig)
   }, [config])

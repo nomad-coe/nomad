@@ -38,14 +38,14 @@ import {
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import { mergeObjects } from '../../utils'
-import { ErrorCard } from '../ErrorHandler'
+import { withErrorHandler, ErrorCard } from '../ErrorHandler'
 import _ from 'lodash'
 
 /**
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, loading, sizeLimit}) {
+function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, loading, sizeLimit}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -386,3 +386,5 @@ Structure.defaultProps = {
   captureName: 'structure',
   sizeLimit: 300
 }
+
+export default withErrorHandler(Structure, 'Could not load structure.')

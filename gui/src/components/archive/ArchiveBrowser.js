@@ -442,46 +442,29 @@ function Overview({section, def}) {
     visualizedSystem.index = index
     visualizedSystem.nAtoms = nAtoms
 
-    return <ErrorHandler
-      message='Could not load structure.'
-      className={style.error}
-    >
-      <Structure
-        viewer={viewer}
-        system={system}
-        positionsOnly={true}
-      ></Structure>
-    </ErrorHandler>
+    return <Structure
+      viewer={viewer}
+      system={system}
+      positionsOnly={true}
+    ></Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
     return <>
       {mode === 'bs'
         ? <Box>
-          <ErrorHandler
-            message="Could not load the band structure."
-            className={style.error}
-          >
-            <BandStructure
-              className={style.bands}
-              data={section}
-              aspectRatio={1}
-              unitsState={unitsState}
-            ></BandStructure>
-          </ErrorHandler>
+          <BandStructure
+            className={style.bands}
+            data={section}
+            aspectRatio={1}
+            unitsState={unitsState}
+          ></BandStructure>
         </Box>
-        : <>
-          <ErrorHandler
-            message="Could not load the Brillouin zone."
-            className={style.error}
-          >
-            <BrillouinZone
-              viewer={bzViewer}
-              className={style.bands}
-              data={section}
-              aspectRatio={1}
-            ></BrillouinZone>
-          </ErrorHandler>
-        </>
+        : <BrillouinZone
+          viewer={bzViewer}
+          className={style.bands}
+          data={section}
+          aspectRatio={1}
+        ></BrillouinZone>
       }
       <FormControl component="fieldset" className={style.radio}>
         <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
@@ -502,17 +485,12 @@ function Overview({section, def}) {
     </>
   // DOS plot for section_dos
   } else if (def.name === 'Dos') {
-    return <ErrorHandler
-      message="Could not load the density of states"
-      className={style.error}
-    >
-      <DOS
-        className={style.dos}
-        data={section}
-        aspectRatio={1 / 2}
-        unitsState={unitsState}
-      ></DOS>
-    </ErrorHandler>
+    return <DOS
+      className={style.dos}
+      data={section}
+      aspectRatio={1 / 2}
+      unitsState={unitsState}
+    ></DOS>
   }
   return null
 }

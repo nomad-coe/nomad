@@ -34,8 +34,9 @@ import {
 import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import { scale, distance } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
+function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
   // States
   const [fullscreen, setFullscreen] = useState(false)
 
@@ -275,3 +276,5 @@ BrillouinZone.defaultProps = {
   aspectRatio: 4 / 3,
   captureName: 'brillouin_zone'
 }
+
+export default withErrorHandler(BrillouinZone, 'Could not load Brillouin zone.')

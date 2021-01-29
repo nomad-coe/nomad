@@ -25,8 +25,9 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
+function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
@@ -269,3 +270,5 @@ BandStructure.propTypes = {
   onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
+
+export default withErrorHandler(BandStructure, 'Could not load band structure.')
