@@ -69,7 +69,8 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         flex: 1
       },
       iconButton: {
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        marginLeft: theme.spacing(1)
       }
     }
   })
@@ -281,7 +282,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         <div className={style.spacer}></div>
         { finalMenu.reset.visible === true
           ? <Tooltip title="Reset view">
-            <IconButton className={style.iconButton} onClick={handleReset} disabled={finalMenu.reset.disabled}> <Replay />
+            <IconButton size="small" className={style.iconButton} onClick={handleReset} disabled={finalMenu.reset.disabled}> <Replay />
             </IconButton>
           </Tooltip>
           : ''
@@ -289,7 +290,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         { finalMenu.fullscreen.visible === true
           ? <Tooltip
             title="Toggle fullscreen">
-            <IconButton className={style.iconButton} onClick={() => setFloat(!float)} disabled={finalMenu.fullscreen.disabled}>
+            <IconButton size="small" className={style.iconButton} onClick={() => setFloat(!float)} disabled={finalMenu.fullscreen.disabled}>
               {float ? <FullscreenExit /> : <Fullscreen />}
             </IconButton>
           </Tooltip>
@@ -297,7 +298,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         }
         { finalMenu.capture.visible === true
           ? <Tooltip title="Capture image">
-            <IconButton className={style.iconButton} onClick={handleCapture} disabled={finalMenu.capture.disabled}>
+            <IconButton size="small" className={style.iconButton} onClick={handleCapture} disabled={finalMenu.capture.disabled}>
               <CameraAlt />
             </IconButton>
           </Tooltip>
@@ -305,7 +306,7 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         }
         { finalMenu.dropdown.visible === true
           ? <Tooltip title="Options">
-            <IconButton className={style.iconButton} onClick={() => {}} disabled={finalMenu.dropdown.disabled}>
+            <IconButton size="small" className={style.iconButton} onClick={() => {}} disabled={finalMenu.dropdown.disabled}>
               <MoreVert />
             </IconButton>
           </Tooltip>

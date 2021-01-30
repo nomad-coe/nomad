@@ -88,7 +88,8 @@ function Structure({className, classes, system, options, viewer, captureName, as
         marginBottom: theme.spacing(2)
       },
       iconButton: {
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        marginLeft: theme.spacing(1)
       }
     }
   })
@@ -278,23 +279,23 @@ function Structure({className, classes, system, options, viewer, captureName, as
         <div className={style.header}>
           <div className={style.spacer}></div>
           <Tooltip title="Reset view">
-            <IconButton className={style.iconButton} onClick={handleReset}>
+            <IconButton size="small" className={style.iconButton} onClick={handleReset}>
               <Replay />
             </IconButton>
           </Tooltip>
           <Tooltip
             title="Toggle fullscreen">
-            <IconButton className={style.iconButton} onClick={toggleFullscreen}>
+            <IconButton size="small" className={style.iconButton} onClick={toggleFullscreen}>
               {fullscreen ? <FullscreenExit /> : <Fullscreen />}
             </IconButton>
           </Tooltip>
           <Tooltip title="Capture image">
-            <IconButton className={style.iconButton} onClick={takeScreencapture}>
+            <IconButton size="small" className={style.iconButton} onClick={takeScreencapture}>
               <CameraAlt />
             </IconButton>
           </Tooltip>
           <Tooltip title="Options">
-            <IconButton className={style.iconButton} onClick={openMenu}>
+            <IconButton size="small" className={style.iconButton} onClick={openMenu}>
               <MoreVert />
             </IconButton>
           </Tooltip>
