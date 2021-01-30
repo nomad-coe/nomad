@@ -34,6 +34,7 @@ class Quantity extends React.Component {
     noWrap: PropTypes.bool,
     row: PropTypes.bool,
     column: PropTypes.bool,
+    flex: PropTypes.bool,
     data: PropTypes.object,
     quantity: PropTypes.oneOfType([
       PropTypes.string,
@@ -86,6 +87,15 @@ class Quantity extends React.Component {
         marginTop: theme.spacing(1)
       }
     },
+    flex: {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignContent: 'flex-start',
+      '& div': {
+        marginRight: theme.spacing(1)
+      }
+    },
     label: {
       color: 'rgba(0, 0, 0, 0.54)',
       fontSize: '0.75rem',
@@ -99,7 +109,7 @@ class Quantity extends React.Component {
 
   render() {
     const {
-      classes, children, label, typography, loading, placeholder, noWrap, row, column,
+      classes, children, label, typography, loading, placeholder, noWrap, row, column, flex,
       quantity, data, withClipboard, ellipsisFront, hideIfUnavailable, description
     } = this.props
     let content = null
@@ -149,8 +159,8 @@ class Quantity extends React.Component {
 
     const useLabel = label || (typeof quantity === 'string' ? quantity : 'MISSING LABEL')
 
-    if (row || column) {
-      return <div className={row ? classes.row : classes.column}>{children}</div>
+    if (row || column || flex) {
+      return <div className={row ? classes.row : (column ? classes.column : classes.flex)}>{children}</div>
     } else {
       return (
         <Tooltip title={description || (searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
