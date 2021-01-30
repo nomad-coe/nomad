@@ -45,6 +45,7 @@ export const domains = ({
     </Typography>,
     entryLabel: 'entry',
     entryLabelPlural: 'entries',
+    entryHeader: 'DFT Calculation',
     entryTitle: data =>
       data.dft && data.dft.code_name
         ? data.dft.code_name.charAt(0).toUpperCase() + data.dft.code_name.slice(1) + ' run'
