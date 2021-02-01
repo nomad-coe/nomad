@@ -293,6 +293,9 @@ class _QuantityType(DataType):
             if section is not None:
                 return Reference(section)
 
+        if isinstance(value, Quantity):
+            return QuantityReference(value)
+
         if isinstance(value, MProxy):
             value.m_proxy_section = section
             value.m_proxy_quantity = quantity_def
@@ -387,6 +390,26 @@ class Reference(DataType):
         return MProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
 
+class QuantityReference(Reference):
+    ''' Datatype used for reference quantities that reference other quantities. '''
+
+    def __init__(self, quantity_def: Union['Quantity']):
+        super().__init__(cast(Section, quantity_def.m_parent))
+        self.target_quantity_def = quantity_def
+
+    def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        section = super().get_normalize(section, quantity_def, value)
+        return getattr(section, self.target_quantity_def.name)
+
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        section_path = super().serialize(section, quantity_def, value)
+        return f'{section_path}/{self.target_quantity_def.name}'
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        section_path = value.rsplit('/', 1)[0]
+        return MProxy(section_path, m_proxy_section=section, m_proxy_quantity=quantity_def)
+
+
 class _Datetime(DataType):
 
     def _parse(self, datetime_str: str) -> datetime:
@@ -396,8 +419,10 @@ class _Datetime(DataType):
             pass
 
         try:
-            return aniso8601.parse_date(datetime_str)
-        except ValueError:
+            date = aniso8601.parse_date(datetime_str)
+            if isinstance(date, datetime):
+                return date
+        except ValueError as e:
             pass
 
         try:
@@ -414,6 +439,11 @@ class _Datetime(DataType):
 
         try:
             return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            pass
+
+        try:
+            return datetime.strptime(datetime_str, '%Y-%m-%d')
         except ValueError:
             pass
 
