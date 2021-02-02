@@ -39,9 +39,9 @@ The *log* tab, will show you a log of the entry's processing.
 `
 
 export function EntryPageContent({children, width, minWidth, maxWidth}) {
-  width = width || '1150px'
-  minWidth = minWidth || '1150px'
-  maxWidth = maxWidth || '1150px'
+  width = width || '1200px'
+  minWidth = minWidth || '1200px'
+  maxWidth = maxWidth || '1200px'
   return <Box boxSizing={'border-box'} width={width} minWidth={minWidth} maxWidth={maxWidth} padding={'1.5rem 2rem'} margin="auto">
     {children}
   </Box>

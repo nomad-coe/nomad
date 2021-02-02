@@ -17,13 +17,13 @@
  */
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import {Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider, IconButton, Tooltip} from '@material-ui/core'
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
+import { Tooltip, Button, Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import { apiContext } from '../api'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
 import VibrationalOverview from '../visualization/VibrationalOverview'
-import ApiDialogButton from '../ApiDialogButton'
+import { ApiDialog } from '../ApiDialogButton'
+import CodeIcon from '@material-ui/icons/Code'
 import Structure from '../visualization/Structure'
 import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
@@ -33,6 +33,7 @@ import { domains } from '../domains'
 import { errorContext } from '../errors'
 import { authorList, convertSI, mergeObjects } from '../../utils'
 import { resolveRef } from '../archive/metainfo'
+import clsx from 'clsx'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
@@ -80,6 +81,19 @@ const useStyles = makeStyles(theme => ({
   cardHeader: {
     paddingBottom: 0
   },
+  title: {
+    fontSize: '1.25rem',
+    marginBottom: theme.spacing(1)
+  },
+  sidebar: {
+    paddingRight: theme.spacing(3)
+  },
+  actions: {
+    marginBottom: theme.spacing(2)
+  },
+  sidebarContent: {
+    marginBottom: theme.spacing(2)
+  },
   divider: {
     marginTop: theme.spacing(1),
     marginBottom: theme.spacing(1)
@@ -101,9 +115,10 @@ export default function DFTEntryOverview({data}) {
   const materialType = data?.encyclopedia?.material?.material_type
   const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showAPIDialog, setShowAPIDialog] = useState(false)
 
   // When loaded for the first time, start downloading the archive. Once
-  // finished, determine the final layout based on it's contents.TODO: When we
+  // finished, determine the final layout based on it's contents. TODO: When we
   // have more information stored in the ES index, it can be used to select
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
@@ -309,10 +324,9 @@ export default function DFTEntryOverview({data}) {
     })
   }, [data, api, raiseError, setElectronicStructure, setStructures])
 
-  const calcData = data
   const loadingRepo = !data
-  const quantityProps = {data: calcData, loading: loadingRepo}
-  const domain = calcData.domain && domains[calcData.domain]
+  const quantityProps = {data: data, loading: loadingRepo}
+  const domain = data.domain && domains[data.domain]
   const structureToggles = useMemo(() => {
     if (structures) {
       const toggles = []
@@ -332,119 +346,131 @@ export default function DFTEntryOverview({data}) {
   }
 
   return (
-    <Grid container spacing={3} className={classes.root}>
-      <Grid item xs={4}>
-        <Box display="flex" flexDirection="row" alignItems="flex-start">
-          <Box flexGrow={1}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              {domain.entryHeader || 'NOMAD Entry'}
-            </Typography>
-            <Box marginBottom={3}>
-              <Typography variant="h5" component="h2">
-                {data.formula}
-              </Typography>
-            </Box>
-          </Box>
-          <ApiDialogButton size="small" title="Repository JSON" data={calcData} />
+    <Grid container spacing={0} className={classes.root}>
+      <Grid item xs={4} className={classes.sidebar}>
+        <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+        <Actions
+          className={classes.actions}
+          size='medium'
+          buttons={[
+            {
+              tooltip: 'Show the API access code',
+              onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+              icon: <CodeIcon/>,
+              text: 'API access'
+            },
+            {
+              tooltip: 'View more information about this material',
+              icon: <CodeIcon/>,
+              text: 'Material',
+              href: `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
+            }
+          ]}></Actions>
+        <Box className={classes.sidebarContent}>
+          <Typography variant="body1" className={classes.title}>Method</Typography>
+          <Quantity flex>
+            <Quantity quantity="dft.code_name" label='code name' noWrap data={data}/>
+            <Quantity quantity="dft.code_version" label='code version' noWrap data={data}/>
+            <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} description="The used electronic structure method." noWrap data={method}/>
+            <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap data={data}/>
+            <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap data={data}/>
+            <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={data}/>
+            <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
+            {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap data={method}/>}
+            {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
+          </Quantity>
         </Box>
-        <Quantity flex>
-          <Quantity quantity="dft.code_name" label='code name' noWrap data={data}/>
-          <Quantity quantity="dft.code_version" label='code version' noWrap data={data}/>
-          <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} description="The used electronic structure method." noWrap data={method}/>
-          {/* <Quantity row>
-            <Quantity quantity="dft.restricted" label='restricted' noWrap data={data}/>
-            <Quantity quantity="dft.closed_shell" label='closed shell' noWrap data={data}/>
-          </Quantity> */}
-          <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap data={data}/>
-          <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap data={data}/>
-          <Quantity quantity="dft.basis_set" label='basis set type' noWrap data={data}/>
-          <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
-          {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap data={method}/>}
-          {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
-        </Quantity>
         <Divider className={classes.divider} />
-        <Quantity flex>
-          <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
-          <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-            {calcData.references &&
-            <div style={{display: 'inline-grid'}}>
-              {calcData.references.map(ref => <Typography key={ref} noWrap>
-                <Link href={ref}>{ref}</Link>
-              </Typography>)}
-            </div>}
+        <Box className={classes.sidebarContent}>
+          <Typography variant="body1" className={classes.title}>Author metadata</Typography>
+          <Quantity flex>
+            <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
+            <Quantity quantity='references' placeholder='no references' {...quantityProps}>
+              {data.references &&
+              <div style={{display: 'inline-grid'}}>
+                {data.references.map(ref => <Typography key={ref} noWrap>
+                  <Link href={ref}>{ref}</Link>
+                </Typography>)}
+              </div>}
+            </Quantity>
+            <Quantity quantity='authors' {...quantityProps}>
+              <Typography>
+                {authorList(data || [])}
+              </Typography>
+            </Quantity>
+            <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
+              {data.datasets &&
+              <div>
+                {data.datasets.map(ds => (
+                  <Typography key={ds.dataset_id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                  </Typography>))}
+              </div>}
+            </Quantity>
           </Quantity>
-          <Quantity quantity='authors' {...quantityProps}>
-            <Typography>
-              {authorList(calcData || [])}
-            </Typography>
-          </Quantity>
-          <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-            {calcData.datasets &&
-            <div>
-              {calcData.datasets.map(ds => (
-                <Typography key={ds.dataset_id}>
-                  <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                  {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
-                </Typography>))}
-            </div>}
-          </Quantity>
-        </Quantity>
+        </Box>
         <Divider className={classes.divider}/>
-        <Quantity column style={{maxWidth: 350}}>
-          <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
-          <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={data} />
-          <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={data} withClipboard />
-          <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard />
-          <Quantity quantity="upload_time" label='upload time' noWrap data={data}>
-            <Typography noWrap>
-              {new Date(data.upload_time).toLocaleString()}
-            </Typography>
+        <Box className={classes.sidebarContent}>
+          <Typography variant="body1" className={classes.title}>Processing information</Typography>
+          <Quantity column style={{maxWidth: 350}}>
+            <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
+            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={data} />
+            <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={data} withClipboard />
+            <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard />
+            <Quantity quantity="upload_time" label='upload time' noWrap data={data}>
+              <Typography noWrap>
+                {new Date(data.upload_time).toLocaleString()}
+              </Typography>
+            </Quantity>
+            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={data} withClipboard />
+            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={data} withClipboard />
+            <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={data}>
+              <Typography noWrap>
+                {new Date(data.last_processing).toLocaleString()}
+              </Typography>
+            </Quantity>
+            <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={data}>
+              <Typography noWrap>
+                {data.nomad_version}/{data.nomad_commit}
+              </Typography>
+            </Quantity>
           </Quantity>
-          <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable data={data} withClipboard />
-          <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap data={data} withClipboard />
-          <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={data}>
-            <Typography noWrap>
-              {new Date(data.last_processing).toLocaleString()}
-            </Typography>
-          </Quantity>
-          <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" data={data}>
-            <Typography noWrap>
-              {data.nomad_version}/{data.nomad_commit}
-            </Typography>
-          </Quantity>
-        </Quantity>
+        </Box>
       </Grid>
       <Grid item xs={8}>
         <PropertyCard
           title="Material"
-          actions={encyclopediaEnabled && data?.encyclopedia?.material?.material_id &&
-            <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
-              <IconButton
-                size="small"
-                href={`${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`}
-              >
-                <ArrowForwardIcon/>
-              </IconButton>
-            </Tooltip>
-          }
+          // actions={encyclopediaEnabled && data?.encyclopedia?.material?.material_id &&
+          //   <Tooltip title="Show the material of this entry in the NOMAD Encyclopedia.">
+          //     <IconButton
+          //       size="small"
+          //       href={`${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`}
+          //     >
+          //       <ArrowForwardIcon/>
+          //     </IconButton>
+          //   </Tooltip>
+          // }
         >
           <Grid container spacing={1}>
-            <Grid item xs={4}>
+            <Grid item xs={5}>
               <Box marginTop={1}>
                 <Quantity column>
                   <Quantity quantity="formula" label='formula' noWrap data={data}/>
                   <Quantity quantity="dft.system" label='material type' noWrap data={data}/>
                   <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap data={data}/>
-                  {materialType === 'bulk' && <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={data}/>}
-                  {materialType === 'bulk' && <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={data}>
-                    <Typography noWrap>
-                      {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
-                    </Typography>
-                  </Quantity>}
+                  <Quantity row>
+                    {materialType === 'bulk' && <Quantity quantity="dft.crystal_system" label='crystal system' noWrap data={data}/>}
+                    {materialType === 'bulk' && <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap data={data}>
+                      <Typography noWrap>
+                        {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
+                      </Typography>
+                    </Quantity>}
+                  </Quantity>
                 </Quantity>
               </Box>
             </Grid>
-            <Grid item xs={8}>
+            <Grid item xs={7}>
               {loading
                 ? <Placeholder className={classes.structure} variant="rect"></Placeholder>
                 : structures &&
@@ -495,4 +521,44 @@ export default function DFTEntryOverview({data}) {
 
 DFTEntryOverview.propTypes = {
   data: PropTypes.object.isRequired
+}
+
+const actionsStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'flex-end'
+  },
+  iconButton: {
+    backgroundColor: 'white',
+    marginRight: theme.spacing(1)
+  }
+}))
+
+function Actions({buttons, size, alignItems, className, classes}) {
+  const styles = actionsStyles(classes)
+  const buttonList = buttons.map((value, idx) => {
+    return <Tooltip key={idx} title={value.tooltip}>
+      <Button
+        variant="contained"
+        size={size}
+        className={styles.iconButton}
+        onClick={value.onClick}
+        disabled={value.disabled}
+        href={value.href}>
+        {value.text}
+      </Button>
+    </Tooltip>
+  })
+  return <Box className={clsx(className, styles.root)}>
+    {buttonList}
+  </Box>
+}
+
+Actions.propTypes = {
+  buttons: PropTypes.object,
+  size: PropTypes.string,
+  alignItems: PropTypes.string,
+  className: PropTypes.string,
+  classes: PropTypes.string
 }
