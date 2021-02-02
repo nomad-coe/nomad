@@ -168,11 +168,11 @@ spec:
           name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
-        - mountPath: /app/nomad/static/gui/env.js
+        - mountPath: /app/nomad/app/static/gui/env.js
           readOnly: true
           subPath: env.js
           name: gui-env-js
-        - mountPath: /app/nomad/static/encyclopedia/conf.js
+        - mountPath: /app/nomad/app/static/encyclopedia/conf.js
           readOnly: true
           subPath: conf.js
           name: enc-conf-js

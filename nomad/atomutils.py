@@ -21,7 +21,8 @@ import fractions
 import itertools
 from math import gcd as gcd
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union
+from typing import List, Dict, Tuple, Any, Union, cast
+from nptyping import NDArray
 
 from ase.utils import pbc2pbc
 import ase.geometry
@@ -34,7 +35,7 @@ from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 
 
-def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
+def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
     """Calculates the summed atomic mass for the given atomic numbers.
 
     Args:
@@ -48,7 +49,7 @@ def get_summed_atomic_mass(atomic_numbers: np.ndarray) -> float:
     return mass
 
 
-def get_volume(basis: np.ndarray) -> float:
+def get_volume(basis: NDArray[Any]) -> float:
     """Calculates the volume of the given parallelepiped.
 
     Args:
@@ -61,11 +62,11 @@ def get_volume(basis: np.ndarray) -> float:
 
 
 def wrap_positions(
-        positions: np.ndarray,
-        cell: np.ndarray = None,
-        pbc: Union[bool, np.ndarray] = True,
-        center: np.ndarray = [0.5, 0.5, 0.5],
-        eps: float = 1e-7) -> np.ndarray:
+        positions: NDArray[Any],
+        cell: NDArray[Any] = None,
+        pbc: Union[bool, NDArray[Any]] = True,
+        center: NDArray[Any] = [0.5, 0.5, 0.5],
+        eps: float = 1e-7) -> NDArray[Any]:
     """Wraps the given position so that they are within the unit cell. If no
     cell is given, scaled positions are assumed. For wrapping cartesian
     positions you also need to provide the cell.
@@ -106,8 +107,8 @@ def wrap_positions(
 
 
 def to_scaled(
-        positions: np.ndarray,
-        cell: np.ndarray = None) -> np.ndarray:
+        positions: NDArray[Any],
+        cell: NDArray[Any] = None) -> NDArray[Any]:
     """Converts cartesian positions into scaled position one using the given
     cell lattice vectors as a basis.
 
@@ -122,8 +123,8 @@ def to_scaled(
 
 
 def to_cartesian(
-        positions: np.ndarray,
-        cell: np.ndarray = None) -> np.ndarray:
+        positions: NDArray[Any],
+        cell: NDArray[Any] = None) -> NDArray[Any]:
     """Converts scaled positions into cartesian one using the given cell
     lattice vectors as a basis.
 
@@ -138,7 +139,7 @@ def to_cartesian(
     return cartesian_positions
 
 
-def complete_cell(cell: np.ndarray) -> np.ndarray:
+def complete_cell(cell: NDArray[Any]) -> NDArray[Any]:
     """Creates placeholder axes for cells with zero-dimensional lattice vectors
     in order to do linear algebra.
 
@@ -152,7 +153,7 @@ def complete_cell(cell: np.ndarray) -> np.ndarray:
     return ase.geometry.complete_cell(cell)
 
 
-def reciprocal_cell(cell: np.ndarray) -> np.ndarray:
+def reciprocal_cell(cell: NDArray[Any]) -> NDArray[Any]:
     """Returns the reciprocal cell without the factor or 2*Pi.
 
     Args:
@@ -164,7 +165,7 @@ def reciprocal_cell(cell: np.ndarray) -> np.ndarray:
     return np.linalg.pinv(cell).transpose()
 
 
-def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, None]:
+def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[int, None]:
     """Attempts to find a position within a larger list of positions.
 
     Args:
@@ -180,12 +181,12 @@ def find_match(pos: np.array, positions: np.array, eps: float) -> Union[int, Non
     min_arg = np.argmin(distances)
     min_value = distances[min_arg]
     if min_value <= eps:
-        return min_arg
+        return cast(int, min_arg)
     else:
         return None
 
 
-def cellpar_to_cell(cellpar: np.ndarray, ab_normal: np.ndarray = [0, 0, 1], a_direction: np.ndarray = None, degrees=False) -> np.ndarray:
+def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], a_direction: NDArray[Any] = None, degrees=False) -> NDArray[Any]:
     """Creates a 3x3 cell from the given lattice_parameters.
 
     The returned cell is orientated such that a and b are normal to `ab_normal`
@@ -220,7 +221,7 @@ def cellpar_to_cell(cellpar: np.ndarray, ab_normal: np.ndarray = [0, 0, 1], a_di
     return ase.geometry.cell.cellpar_to_cell(cellpar, ab_normal, a_direction)
 
 
-def cell_to_cellpar(cell: np.ndarray, degrees=False) -> np.ndarray:
+def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
     """Returns lattice parameters for the given cell.
 
     Args:
@@ -290,7 +291,7 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d:
     return string
 
 
-def get_hill_decomposition(atom_labels: np.ndarray, reduced: bool = False) -> Tuple[List[str], List[int]]:
+def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> Tuple[List[str], List[int]]:
     """Given a list of atomic labels, returns the chemical formula using the
     Hill system (https://en.wikipedia.org/wiki/Hill_system) with an exception
     for binary ionic compounds where the cation is always given first.
@@ -401,7 +402,7 @@ def get_formula_string(symbols: List[str], counts: List[int]) -> str:
     return formula
 
 
-def get_normalized_wyckoff(atomic_numbers: np.array, wyckoff_letters: np.array) -> Dict[str, Dict[str, int]]:
+def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArray[Any]) -> Dict[str, Dict[str, int]]:
     """Returns a normalized Wyckoff sequence for the given atomic numbers and
     corresponding wyckoff letters. In a normalized sequence the chemical
     species are "anonymized" by replacing them with upper case alphabets.
@@ -502,7 +503,7 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
     return structure_type_info
 
 
-def get_brillouin_zone(reciprocal_lattice: np.array) -> dict:
+def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
     """Calculates the Brillouin Zone information from the given reciprocal
     lattice.
 

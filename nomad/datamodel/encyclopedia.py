@@ -185,7 +185,7 @@ class IdealizedStructure(MSection):
         """
     )
     periodicity = Quantity(
-        type=np.bool,
+        type=np.bool_,
         shape=[3],
         description="""
         Automatically detected true periodicity of each lattice direction. May

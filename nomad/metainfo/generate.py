@@ -55,7 +55,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
             for i, p in enumerate(paragraphs) if p != ''])
 
     def format_type(pkg, mi_type):
-        if type(mi_type) == np.dtype:
+        if isinstance(mi_type, np.dtype):
             if mi_type == np.dtype('U'):
                 return 'np.dtype(\'U\')'
 

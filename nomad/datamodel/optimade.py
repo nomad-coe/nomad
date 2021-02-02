@@ -213,7 +213,7 @@ class OptimadeEntry(MSection):
         ''')
 
     lattice_vectors = Quantity(
-        type=np.dtype('f8'), shape=[3, 3], unit=ureg.angstrom,
+        type=np.dtype('float64'), shape=[3, 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.9'),
         a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'),
         description='''
@@ -221,7 +221,7 @@ class OptimadeEntry(MSection):
         ''')
 
     cartesian_site_positions = Quantity(
-        type=np.dtype('f8'), shape=['nsites', 3], unit=ureg.angstrom,
+        type=np.dtype('float64'), shape=['nsites', 3], unit=ureg.angstrom,
         links=optimade_links('h.6.2.10'),
         a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'), description='''
             Cartesian positions of each site. A site is an atom, a site potentially occupied by

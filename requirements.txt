@@ -8,6 +8,7 @@ cython>=0.19
 future
 
 # nomad
+nptyping
 cachetools
 docstring-parser
 Pint

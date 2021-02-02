@@ -586,6 +586,10 @@ class Calc(Proc):
             if definition is None and self.upload.from_oasis:
                 definition = _oasis_metadata.get(key, None)
 
+            if key == 'uploader':
+                if datamodel.User.get(self.upload.user_id).is_admin:
+                    definition = datamodel.EntryMetadata.uploader
+
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
                 continue

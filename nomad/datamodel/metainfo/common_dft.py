@@ -1,5 +1,6 @@
 import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
+from nptyping import NDArray
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
@@ -6285,7 +6286,7 @@ class ThermodynamicalProperties(MSection):
         a_legacy=LegacyDefinition(name='specific_heat_capacity'),
         cached=True
     )
-    def specific_heat_capacity(self) -> np.array:
+    def specific_heat_capacity(self) -> NDArray:
         """Returns the specific heat capacity by dividing the heat capacity per
         cell with the mass of the atoms in the cell.
         """
