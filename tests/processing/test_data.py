@@ -608,3 +608,25 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
             assert entry_coauthors[j].email == coauthors[i][j].email
             assert entry_coauthors[j].first_name == coauthors[i][j].first_name
             assert entry_coauthors[j].last_name == coauthors[i][j].last_name
+
+
+@pytest.mark.parametrize('user,uploader', [
+    ('admin_user', 'other_test_user'),
+    ('test_user', 'test_user')
+])
+def test_read_adminmetadata_from_file(proc_infra, test_user, other_test_user, admin_user, user, uploader):
+    def user_from_name(user_name):
+        if user_name == 'test_user':
+            return test_user
+        if user_name == 'other_test_user':
+            return other_test_user
+        if user_name == 'admin_user':
+            return admin_user
+
+    user = user_from_name(user)
+    uploader = user_from_name(uploader)
+
+    upload = run_processing(
+        ('test_upload', 'tests/data/proc/examples_with_adminmetadata.zip'), user)
+    calc = Calc.objects(upload_id=upload.upload_id).first()
+    assert calc.metadata['uploader'] == uploader.user_id

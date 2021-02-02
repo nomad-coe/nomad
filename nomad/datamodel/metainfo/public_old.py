@@ -5427,7 +5427,7 @@ class section_thermodynamical_properties(MSection):
         a_legacy=LegacyDefinition(name='specific_heat_capacity'),
         cached=True
     )
-    def specific_heat_capacity(self) -> np.array:
+    def specific_heat_capacity(self):
         """Returns the specific heat capacity by dividing the heat capacity per
         cell with the mass of the atoms in the cell.
         """
@@ -5471,7 +5471,7 @@ class section_thermodynamical_properties(MSection):
         a_legacy=LegacyDefinition(name='specific_vibrational_free_energy_at_constant_volume'),
         cached=True
     )
-    def specific_vibrational_free_energy_at_constant_volume(self) -> np.array:
+    def specific_vibrational_free_energy_at_constant_volume(self):
         """Returns the specific vibrational free energy by dividing the vibrational free energy per
         cell with the mass of the atoms in the cell.
         """

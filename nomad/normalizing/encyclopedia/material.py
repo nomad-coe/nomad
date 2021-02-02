@@ -17,6 +17,7 @@
 #
 
 from typing import Dict, List
+from nptyping import NDArray
 from math import gcd, isnan
 from functools import reduce
 from abc import abstractmethod
@@ -272,7 +273,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
             material.material_name = name
 
     def periodicity(self, ideal: IdealizedStructure) -> None:
-        ideal.periodicity = np.array([True, True, True], dtype=np.bool)
+        ideal.periodicity = np.array([True, True, True], dtype=np.bool_)
 
     def point_group(self, bulk: Bulk, section_symmetry: Section) -> None:
         point_group = section_symmetry["point_group"]
@@ -447,7 +448,7 @@ class Material2DNormalizer(MaterialNormalizer):
         cell_prim *= 1e-10
         ideal.lattice_vectors_primitive = cell_prim
 
-    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
+    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: NDArray) -> None:
         # 2D systems only have three lattice parameter: two lengths and angle between them
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
@@ -556,7 +557,7 @@ class Material1DNormalizer(MaterialNormalizer):
         cell_normalized *= 1e-10
         ideal.lattice_vectors = cell_normalized
 
-    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: np.array) -> None:
+    def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: NDArray) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
         cell = std_atoms.get_cell()
@@ -680,7 +681,7 @@ class Material1DNormalizer(MaterialNormalizer):
 
         return symmetry_analyzer
 
-    def get_std_atoms(self, periodicity: np.array, prim_atoms: Atoms) -> Atoms:
+    def get_std_atoms(self, periodicity: NDArray, prim_atoms: Atoms) -> Atoms:
         """For 1D systems the standardized system is based on a primitive
         system. This primitive system is translated to the center of mass and
         the non-periodic dimensions are minimized so that the atoms just fit.

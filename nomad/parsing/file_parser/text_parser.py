@@ -220,7 +220,7 @@ class Quantity:
         val_out = [process(val) for val in val_in]
 
         if isinstance(val_out[0], np.ndarray):
-            self.dtype = val_out[0].dtype
+            self.dtype = val_out[0].dtype  # type: ignore
 
         return val_out
 

@@ -21,7 +21,7 @@ from elasticsearch_dsl import Q
 
 from nomad import search
 
-from .api import api, arg_parser, rdf_respose
+from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping
 
 ns = api.namespace('catalog', description='The API for DCAT catalog.')
@@ -39,13 +39,13 @@ arg_parser.add_argument(
 class Catalog(Resource):
     @api.doc('get_dcat_datasets')
     @api.expect(arg_parser)
-    @api.produces(['application/xml'])
+    @api.representation('application/xml')
+    @api.produces(response_types)
     @api.response(404, 'There is no entry with the given id.')
     @api.response(401, 'This entry is not publically accessible.')
     @api.response(200, 'Data send', headers={'Content-Type': 'application/xml'})
     def get(self):
         ''' Returns a page of DCAT datasets. '''
-
         args = arg_parser.parse_args()
         modified_since = args.get('modified_since', None)
         after = args.get('after', '')

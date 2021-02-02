@@ -20,7 +20,7 @@ from elasticsearch.exceptions import NotFoundError
 
 from nomad import search
 
-from .api import api, arg_parser, rdf_respose
+from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping
 
 ns = api.namespace('datasets', description='The API for DCAT datasets.')
@@ -30,7 +30,8 @@ ns = api.namespace('datasets', description='The API for DCAT datasets.')
 class Dataset(Resource):
     @api.doc('get_dcat_dataset')
     @api.expect(arg_parser)
-    @api.produces(['application/xml'])
+    @api.representation('application/xml')
+    @api.produces(response_types)
     @api.response(404, 'There is no entry with the given id.')
     @api.response(401, 'This entry is not publically accessible.')
     @api.response(200, 'Data send', headers={'Content-Type': 'application/xml'})

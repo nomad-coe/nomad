@@ -193,7 +193,7 @@ class LegacyMetainfoEnvironment(Environment):
                     def_name(definition.type.target_section_def.m_resolved())]
             elif isinstance(definition.type, MEnum):
                 dtype_str = 'C'
-            elif type(definition.type) == np.dtype:
+            elif isinstance(definition.type, np.dtype):
                 dtype_str = definition.type.name[0]
             elif definition.type == Any:
                 dtype_str = 'D'
