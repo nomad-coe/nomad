@@ -140,7 +140,7 @@ services:
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - nomad_oasis_files:/app/.volumes/fs
-        command: gunicorn -b 0.0.0.0 nomad.app:app
+        command: ./run.sh
 
     # nomad gui (a reverse proxy for nomad)
     gui:

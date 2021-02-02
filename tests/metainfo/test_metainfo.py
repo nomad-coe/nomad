@@ -614,6 +614,32 @@ class TestM1:
         assert scc.an_int.__class__ == np.int32
         assert scc.an_int.item() == 1  # pylint: disable=no-member
 
+        scc.energy_total_0 = 1
+        assert scc.energy_total_0.m == 1.0  # pylint: disable=no-member
+
+        system = System()
+        value = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+        system.lattice_vectors = value
+        assert isinstance(system.lattice_vectors.m, np.ndarray)
+        assert system.lattice_vectors.m[1][2] == 1.0
+        assert system.m_to_dict()['lattice_vectors'] == value
+
+        class TestSection(MSection):
+            f32_default = Quantity(
+                type=np.dtype(np.float32),
+                shape=[], default=1.0)
+            f32 = Quantity(
+                type=np.dtype(np.float32),
+                shape=[])
+            f64 = Quantity(
+                type=np.dtype(np.float64),
+                shape=[])
+
+        section = TestSection()
+        section.f32_default = -200
+        section.f32 = -200
+        section.f64 = -200
+
     def test_np_allow_wrong_shape(self, caplog):
         resource = MResource(logger=utils.get_logger(__name__))
         scc = resource.create(SCC)

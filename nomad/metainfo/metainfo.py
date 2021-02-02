@@ -50,7 +50,7 @@ _placeholder_quantity: 'Quantity' = property()  # type: ignore
 if True:
     _placeholder_quantity: 'Quantity' = None  # type: ignore
 
-_primitive_types = {str: str, int: int, float: float, bool: bool}
+_primitive_types = {str: str, int: int, float: float, bool: bool, np.bool_: bool}
 
 
 # Metainfo errors
@@ -261,7 +261,7 @@ class _QuantityType(DataType):
     '''
 
     def set_normalize(self, section, quantity_def, value):
-        if value in [str, int, float, bool]:
+        if value in _primitive_types:
             return value
 
         if isinstance(value, MEnum):
@@ -270,7 +270,7 @@ class _QuantityType(DataType):
                     raise TypeError('MEnum value %s is not a string.' % enum_value)
             return value
 
-        if type(value) == np.dtype:
+        if isinstance(value, np.dtype):
             return value
 
         if isinstance(value, Section):
@@ -306,13 +306,13 @@ class _QuantityType(DataType):
             (value, quantity_def))
 
     def serialize(self, section, quantity_def, value):
-        if value is str or value is int or value is float or value is bool:
+        if value in _primitive_types:
             return dict(type_kind='python', type_data=value.__name__)
 
         if isinstance(value, MEnum):
             return dict(type_kind='Enum', type_data=list(value))
 
-        if type(value) == np.dtype:
+        if isinstance(value, np.dtype):
             return dict(type_kind='numpy', type_data=str(value))
 
         if isinstance(value, Reference):
@@ -982,7 +982,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self.__dict__.pop(quantity_def.name, None)
             return
 
-        if type(quantity_def.type) == np.dtype:
+        if isinstance(quantity_def.type, np.dtype):
             value = self.__to_np(quantity_def, value)
 
         else:
@@ -1267,7 +1267,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             elif quantity_type in _primitive_types:
                 serialize = _primitive_types[quantity_type]
 
-            elif type(quantity_type) == np.dtype:
+            elif isinstance(quantity_type, np.dtype):
                 is_scalar = quantity.is_scalar
 
                 def serialize_dtype(value):
@@ -1290,7 +1290,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             elif quantity_type == Any:
                 def _serialize(value: Any):
-                    if type(value) not in [str, int, float, bool, list, dict, type(None)]:
+                    if type(value) not in [str, int, float, bool, np.bool_, list, dict, type(None)]:
                         raise MetainfoError(
                             'Only python primitives are allowed for Any typed non '
                             'virtual quantities: %s of quantity %s in section %s' %
@@ -1312,7 +1312,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 value = quantity.default
 
-            if type(quantity_type) == np.dtype:
+            if isinstance(quantity_type, np.dtype):
                 return serialize(value)
             elif len(quantity.shape) == 0:
                 return serialize(value)
@@ -1405,7 +1405,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if name in dct:
                 quantity_value = dct[name]
 
-                if type(quantity_def.type) == np.dtype:
+                if isinstance(quantity_def.type, np.dtype):
                     quantity_value = np.asarray(quantity_value)
 
                 if isinstance(quantity_def.type, DataType):
@@ -2076,7 +2076,7 @@ class Quantity(Property):
         is_primitive = not self.derived
         is_primitive = is_primitive and len(self.shape) <= 1
         is_primitive = is_primitive and self.type in [str, bool, float, int]
-        is_primitive = is_primitive and type(self.type) != np.dtype
+        is_primitive = is_primitive and not isinstance(self.type, np.dtype)
         if is_primitive:
             self._default = self.default
             self._name = self.name
@@ -2126,7 +2126,7 @@ class Quantity(Property):
                     'Only numpy arrays and dtypes can be used for higher dimensional '
                     'quantities.')
 
-        elif type(self.type) == np.dtype:
+        elif isinstance(self.type, np.dtype):
             if self.unit is not None:
                 value = value * self.unit
 
@@ -2167,7 +2167,7 @@ class Quantity(Property):
     @constraint
     def higher_shapes_require_dtype(self):
         if len(self.shape) > 1:
-            assert type(self.type) == np.dtype, \
+            assert isinstance(self.type, np.dtype), \
                 'Higher dimensional quantities (%s) need a dtype and will be treated as ' \
                 'numpy arrays.' % self
 

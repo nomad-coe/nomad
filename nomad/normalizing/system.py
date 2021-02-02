@@ -17,6 +17,7 @@
 #
 
 from typing import Any, Dict
+from nptyping import NDArray
 from collections import Counter
 import ase
 from ase import Atoms
@@ -409,7 +410,7 @@ class SystemNormalizer(SystemBasedNormalizer):
                 if (class_test or comp_test) is False:
                     self.logger.info('Mismatch in Springer classification or compounds')
 
-    def prototypes(self, system, atom_species: np.array, wyckoffs: np.array, spg_number: int) -> None:
+    def prototypes(self, system, atom_species: NDArray, wyckoffs: NDArray, spg_number: int) -> None:
         '''Tries to match the material to an entry in the AFLOW prototype data.
         If a match is found, a section_prototype is added to section_system.
 

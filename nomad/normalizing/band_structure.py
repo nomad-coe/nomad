@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nptyping import NDArray
 import numpy as np
 import ase
 
@@ -134,7 +135,7 @@ class BandStructureNormalizer(Normalizer):
         section_bz.vertices = brillouin_zone_data["vertices"]
         section_bz.faces = brillouin_zone_data["faces"]
 
-    def get_k_space_distance(self, reciprocal_cell: np.array, point1: np.array, point2: np.array) -> float:
+    def get_k_space_distance(self, reciprocal_cell: NDArray, point1: NDArray, point2: NDArray) -> float:
         """Used to calculate the Euclidean distance of two points in k-space,
         given relative positions in the reciprocal cell.
 
@@ -151,7 +152,7 @@ class BandStructureNormalizer(Normalizer):
 
         return k_point_distance
 
-    def add_band_gaps(self, band: section_k_band, energy_reference: np.array) -> None:
+    def add_band_gaps(self, band: section_k_band, energy_reference: NDArray) -> None:
         """Given the band structure and an energy reference, calculates the band gap
         separately for all spin channels.
         """
@@ -167,8 +168,8 @@ class BandStructureNormalizer(Normalizer):
         # Gather the energies and k points from each segment into one big
         # array
         reciprocal_cell = reciprocal_cell.magnitude
-        path: np.array = []
-        energies: np.array = []
+        path: NDArray = []
+        energies: NDArray = []
         for segment in band.section_k_band_segment:
             seg_k_points = segment.band_k_points
             seg_energies = segment.band_energies

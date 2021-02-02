@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nptyping import NDArray
 import numpy as np
 # import matplotlib.pyplot as mpl
 
@@ -63,7 +64,7 @@ def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive,
     assert is_same_magnitude(dos_vasp_mean, dos_exciting_mean, dos_fhiaims_mean)
 
 
-def mean_nonzero(dos: np.array):
+def mean_nonzero(dos: NDArray):
     """Returns the mean value of all nonzero elements in the given array.
     """
     return dos[np.nonzero(dos)].mean()
