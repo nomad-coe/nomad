@@ -23,8 +23,6 @@ import {
   Checkbox,
   Menu,
   MenuItem,
-  IconButton,
-  Tooltip,
   Typography,
   FormControlLabel
 } from '@material-ui/core'
@@ -37,6 +35,7 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
 import { withErrorHandler, ErrorCard } from '../ErrorHandler'
 import _ from 'lodash'
@@ -78,18 +77,11 @@ function Structure({className, classes, system, options, viewer, captureName, as
         flexDirection: 'row',
         zIndex: 1
       },
-      spacer: {
-        flex: 1
-      },
       viewerCanvas: {
         flex: 1,
         zIndex: 0,
         minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
         marginBottom: theme.spacing(2)
-      },
-      iconButton: {
-        backgroundColor: 'white',
-        marginLeft: theme.spacing(1)
       }
     }
   })
@@ -265,6 +257,14 @@ function Structure({className, classes, system, options, viewer, captureName, as
     refViewer.current.render()
   }, [])
 
+  // List of actionable buttons for the viewer
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>},
+    {tooltip: 'Options', onClick: openMenu, content: <MoreVert/>}
+  ]
+
   const content = <Box className={style.container}>
     {showPrompt
       ? <ErrorCard
@@ -277,28 +277,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
         {fullscreen && <Typography variant="h6">Structure</Typography>}
         <div className={style.viewerCanvas} ref={measuredRef}></div>
         <div className={style.header}>
-          <div className={style.spacer}></div>
-          <Tooltip title="Reset view">
-            <IconButton size="small" className={style.iconButton} onClick={handleReset}>
-              <Replay />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Toggle fullscreen">
-            <IconButton size="small" className={style.iconButton} onClick={toggleFullscreen}>
-              {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Capture image">
-            <IconButton size="small" className={style.iconButton} onClick={takeScreencapture}>
-              <CameraAlt />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Options">
-            <IconButton size="small" className={style.iconButton} onClick={openMenu}>
-              <MoreVert />
-            </IconButton>
-          </Tooltip>
+          <Actions actions={actions}></Actions>
           <Menu
             id='settings-menu'
             anchorEl={anchorEl}

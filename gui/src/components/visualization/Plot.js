@@ -21,23 +21,21 @@ import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
 
 import {
-  IconButton,
-  Tooltip,
   Typography
 } from '@material-ui/core'
 import {
-  MoreVert,
   Fullscreen,
   FullscreenExit,
   CameraAlt,
   Replay
 } from '@material-ui/icons'
 import Floatable from './Floatable'
+import Actions from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset}) {
+export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
@@ -76,30 +74,6 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
   })
 
   const style = useStyles(classes)
-
-  // Set the final menu
-  const finalMenu = useMemo(() => {
-    let defaultMenu = {
-      reset: {
-        visible: true,
-        disabled: false
-      },
-      fullscreen: {
-        visible: true,
-        disabled: false
-      },
-      capture: {
-        visible: true,
-        disabled: false
-      },
-      dropdown: {
-        visible: false,
-        disabled: false,
-        items: undefined
-      }
-    }
-    return mergeObjects(menu, defaultMenu)
-  }, [menu])
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -274,44 +248,19 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
     Plotly.downloadImage(canvasRef.current, captureSettings)
   }, [canvasRef, captureSettings])
 
+  // List of actionable buttons for the plot
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
+  ]
+
   return (
     <Floatable className={clsx(className, style.root)} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
       <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
       <div className={style.header}>
-        <div className={style.spacer}></div>
-        { finalMenu.reset.visible === true
-          ? <Tooltip title="Reset view">
-            <IconButton size="small" className={style.iconButton} onClick={handleReset} disabled={finalMenu.reset.disabled}> <Replay />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.fullscreen.visible === true
-          ? <Tooltip
-            title="Toggle fullscreen">
-            <IconButton size="small" className={style.iconButton} onClick={() => setFloat(!float)} disabled={finalMenu.fullscreen.disabled}>
-              {float ? <FullscreenExit /> : <Fullscreen />}
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.capture.visible === true
-          ? <Tooltip title="Capture image">
-            <IconButton size="small" className={style.iconButton} onClick={handleCapture} disabled={finalMenu.capture.disabled}>
-              <CameraAlt />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.dropdown.visible === true
-          ? <Tooltip title="Options">
-            <IconButton size="small" className={style.iconButton} onClick={() => {}} disabled={finalMenu.dropdown.disabled}>
-              <MoreVert />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
+        <Actions actions={actions}></Actions>
       </div>
     </Floatable>
   )
@@ -321,7 +270,6 @@ Plot.propTypes = {
   data: PropTypes.array, // Plotly.js data object
   layout: PropTypes.object, // Plotly.js layout object
   config: PropTypes.object, // Plotly.js config object
-  menu: PropTypes.object, // Menu settings
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   className: PropTypes.string,
