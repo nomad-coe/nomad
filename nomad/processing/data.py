@@ -55,7 +55,7 @@ from nomad.normalizing import normalizers
 from nomad.datamodel import (
     EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
 from nomad.archive import (
-    query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
+    write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
@@ -481,8 +481,8 @@ class Calc(Proc):
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
             with upload_files.read_archive(self.calc_id) as archive:
-                arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
-                phonon_archive = EntryArchive.m_from_dict(arch)
+                arch = archive[self.calc_id]
+                phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
             self._entry_metadata = phonon_archive.section_metadata
             self._calc_proc_logs = phonon_archive.processing_logs
 
@@ -493,16 +493,23 @@ class Calc(Proc):
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
             scc = self._parser_results.section_run[0].section_single_configuration_calculation[0]
+            calculation_refs = scc.section_calculation_to_calculation_refs
+            if calculation_refs is None:
+                logger.error("No calculation_to_calculation references found")
+                return
+
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
-                arch = query_archive(archive, {ref_id: ref_id})[ref_id]
-                ref_archive = EntryArchive.m_from_dict(arch)
+                arch = archive[ref_id]
+                ref_archive = EntryArchive.m_from_dict(arch.to_dict())
 
             # Get encyclopedia method information directly from the referenced calculation.
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
             if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
-                raise ValueError("No method information available in referenced calculation.")
+                logger.error("No method information available in referenced calculation.")
+                return
+
             self._parser_results.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with

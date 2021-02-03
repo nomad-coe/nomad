@@ -134,6 +134,8 @@ class PhononNormalizer(Normalizer):
 
     def _get_n_imaginary_frequencies(self):
         scc = self.section_run.section_single_configuration_calculation
+        if not scc:
+            return
         sec_band = scc[0].section_k_band
         result = 0
         for band_segment in sec_band[0].section_k_band_segment:
