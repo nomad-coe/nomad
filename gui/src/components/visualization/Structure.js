@@ -40,6 +40,7 @@ import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
 import { withErrorHandler, ErrorCard } from '../ErrorHandler'
 import _ from 'lodash'
+import clsx from 'clsx'
 
 /**
  * Used to show atomistic systems in an interactive 3D viewer based on the
@@ -65,6 +66,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
   // Styles
   const useStyles = makeStyles((theme) => {
     return {
+      root: {},
       container: {
         display: 'flex',
         width: '100%',
@@ -92,7 +94,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
-  const measuredRef = useCallback(node => {
+  const refCanvas = useCallback(node => {
     if (node === null) {
       return
     }
@@ -100,12 +102,12 @@ function Structure({className, classes, system, options, viewer, captureName, as
       return
     }
     refViewer.current.changeHostElement(node, true, true)
-    measuredRef.current = node
+    refCanvas.current = node
   }, [])
 
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
-  // https://lauri-codes.github.io/materia/viewers/structureviewer
+  // https://nomad-coe.github.io/materia/viewers/structureviewer
   useEffect(() => {
     let viewerOptions
     if (options === undefined) {
@@ -146,8 +148,8 @@ function Structure({className, classes, system, options, viewer, captureName, as
       refViewer.current = viewer
       refViewer.current.setOptions(viewerOptions, false, false)
     }
-    if (measuredRef.current) {
-      refViewer.current.changeHostElement(measuredRef.current, false, false)
+    if (refCanvas.current) {
+      refViewer.current.changeHostElement(refCanvas.current, false, false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -281,7 +283,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
       </ErrorCard>
       : <>
         {fullscreen && <Typography variant="h6">Structure</Typography>}
-        <div className={style.viewerCanvas} ref={measuredRef}></div>
+        <div className={style.viewerCanvas} ref={refCanvas}></div>
         <div className={style.header}>
           <Actions actions={actions}></Actions>
           <Menu
@@ -348,9 +350,11 @@ function Structure({className, classes, system, options, viewer, captureName, as
     }
   </Box>
 
-  return <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-    {content}
-  </Floatable>
+  return <Box className={clsx(style.root, className)} >
+    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
+      {content}
+    </Floatable>
+  </Box>
 }
 
 Structure.propTypes = {

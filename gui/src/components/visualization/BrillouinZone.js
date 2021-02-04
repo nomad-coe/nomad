@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
@@ -33,16 +32,21 @@ import {
 } from '@material-ui/icons'
 import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
+import clsx from 'clsx'
 
+/**
+ * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
+ */
 function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
   // States
   const [fullscreen, setFullscreen] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Variables
+  // Refs
   const refViewer = useRef(null)
-  const refCanvas = useRef(null)
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -87,8 +91,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
-  const measuredRef = useCallback(node => {
-    refCanvas.current = node
+  const refCanvas = useCallback(node => {
     if (node === null) {
       return
     }
@@ -96,6 +99,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
       return
     }
     refViewer.current.changeHostElement(node, true, true)
+    refCanvas.current = node
   }, [])
 
   // Run only on first render to initialize the viewer. See the viewer
@@ -167,7 +171,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
 
   // Called only on first render to load the given structure.
   useEffect(() => {
-    if (data === undefined) {
+    if (!data) {
       return
     }
 
@@ -212,7 +216,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
-
+    setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -230,9 +234,13 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     refViewer.current.render()
   }, [])
 
+  if (loading) {
+    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+  }
+
   const content = <Box className={style.container}>
     {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
+    <div className={style.viewerCanvas} ref={refCanvas}></div>
     <div className={style.header}>
       <div className={style.spacer}></div>
       <Tooltip title="Reset view">
@@ -254,13 +262,11 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     </div>
   </Box>
 
-  return (
-    <Box className={clsx(style.root, className)} >
-      <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-        {content}
-      </Floatable>
-    </Box>
-  )
+  return <Box className={clsx(style.root, className)} >
+    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
+      {content}
+    </Floatable>
+  </Box>
 }
 
 BrillouinZone.propTypes = {
