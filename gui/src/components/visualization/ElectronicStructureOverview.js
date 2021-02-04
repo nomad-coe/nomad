@@ -24,7 +24,6 @@ import {
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import Placeholder from '../visualization/Placeholder'
 import { RecoilRoot } from 'recoil'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
@@ -48,16 +47,17 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        height: '100%'
+        height: '100%',
+        flexWrap: 'wrap'
       },
       bz: {
-        flex: data.dos ? '0 0 25%' : '0 0 33.3%'
+        flex: '0 0 66.6%'
       },
       bs: {
-        flex: data.dos ? '0 0 50%' : '0 0 66.6%'
+        flex: '0 0 66.6%'
       },
       dos: {
-        flex: data.bs ? '0 0 25%' : '0 0 90%'
+        flex: '0 0 33.3%'
       }
     }
   })
@@ -91,25 +91,12 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
     <RecoilRoot>
       <Box className={style.row}>
         {data.bs
-          ? <Box className={style.bz}>
-            <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
-            {data?.bs?.section_k_band
-              ? <BrillouinZone
-                data={data.bs.section_k_band}
-                aspectRatio={0.5}
-              ></BrillouinZone>
-              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
-            }
-          </Box>
-          : null
-        }
-        {data.bs
           ? <Box className={style.bs}>
             <Typography variant="subtitle1" align='center'>Band structure</Typography>
             <BandStructure
               data={data?.bs?.section_k_band}
               layout={bsLayout}
-              aspectRatio={1.0}
+              aspectRatio={1.2}
               unitsState={unitsState}
               onRelayouting={handleBSRelayouting}
               onReset={() => { setDosLayout({yaxis: {range: range}}) }}
@@ -120,17 +107,24 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
         {data.dos
           ? <Box className={style.dos}>
             <Typography variant="subtitle1" align='center'>Density of states</Typography>
-            {data?.dos?.section_dos
-              ? <DOS
-                data={data.dos.section_dos}
-                layout={dosLayout}
-                aspectRatio={0.5}
-                onRelayouting={handleDOSRelayouting}
-                onReset={() => { setBsLayout({yaxis: {range: range}}) }}
-                unitsState={unitsState}
-              ></DOS>
-              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
-            }
+            <DOS
+              data={data.dos.section_dos}
+              layout={dosLayout}
+              aspectRatio={0.6}
+              onRelayouting={handleDOSRelayouting}
+              onReset={() => { setBsLayout({yaxis: {range: range}}) }}
+              unitsState={unitsState}
+            ></DOS>
+          </Box>
+          : null
+        }
+        {data.bs
+          ? <Box className={style.bz}>
+            <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
+            <BrillouinZone
+              data={data.bs.section_k_band}
+              aspectRatio={1.2}
+            ></BrillouinZone>
           </Box>
           : null
         }
