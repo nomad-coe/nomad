@@ -65,23 +65,27 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
-    let update = {
-      yaxis: {
-        autorange: false,
-        range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+    if (data.dos) {
+      let update = {
+        yaxis: {
+          autorange: false,
+          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+        }
       }
+      setDosLayout(update)
     }
-    setDosLayout(update)
-  }, [])
+  }, [data])
   const handleDOSRelayouting = useCallback((event) => {
-    let update = {
-      yaxis: {
-        autorange: false,
-        range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+    if (data.bs) {
+      let update = {
+        yaxis: {
+          autorange: false,
+          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+        }
       }
+      setBsLayout(update)
     }
-    setBsLayout(update)
-  }, [])
+  }, [data])
 
   return (
     <RecoilRoot>
@@ -102,17 +106,14 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
         {data.bs
           ? <Box className={style.bs}>
             <Typography variant="subtitle1" align='center'>Band structure</Typography>
-            {data?.bs?.section_k_band
-              ? <BandStructure
-                data={data.bs.section_k_band}
-                layout={bsLayout}
-                aspectRatio={1.0}
-                unitsState={unitsState}
-                onRelayouting={handleBSRelayouting}
-                onReset={() => { setDosLayout({yaxis: {range: range}}) }}
-              ></BandStructure>
-              : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
-            }
+            <BandStructure
+              data={data?.bs?.section_k_band}
+              layout={bsLayout}
+              aspectRatio={1.0}
+              unitsState={unitsState}
+              onRelayouting={handleBSRelayouting}
+              onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+            ></BandStructure>
           </Box>
           : null
         }

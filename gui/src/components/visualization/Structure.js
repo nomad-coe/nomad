@@ -35,6 +35,7 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
 import { withErrorHandler, ErrorCard } from '../ErrorHandler'
@@ -44,7 +45,7 @@ import _ from 'lodash'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, loading, sizeLimit}) {
+function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -55,11 +56,11 @@ function Structure({className, classes, system, options, viewer, captureName, as
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // Variables
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
-  const refCanvas = useRef(null)
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -92,7 +93,6 @@ function Structure({className, classes, system, options, viewer, captureName, as
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const measuredRef = useCallback(node => {
-    refCanvas.current = node
     if (node === null) {
       return
     }
@@ -100,6 +100,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
       return
     }
     refViewer.current.changeHostElement(node, true, true)
+    measuredRef.current = node
   }, [])
 
   // Run only on first render to initialize the viewer. See the viewer
@@ -145,8 +146,8 @@ function Structure({className, classes, system, options, viewer, captureName, as
       refViewer.current = viewer
       refViewer.current.setOptions(viewerOptions, false, false)
     }
-    if (refCanvas.current !== null) {
-      refViewer.current.changeHostElement(refCanvas.current, false, false)
+    if (measuredRef.current) {
+      refViewer.current.changeHostElement(measuredRef.current, false, false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -191,12 +192,13 @@ function Structure({className, classes, system, options, viewer, captureName, as
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
+    setLoading(false)
   }, [])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
   useEffect(() => {
-    if (system === undefined) {
+    if (system === undefined || system === null) {
       return
     }
 
@@ -256,6 +258,10 @@ function Structure({className, classes, system, options, viewer, captureName, as
     refViewer.current.fitToCanvas()
     refViewer.current.render()
   }, [])
+
+  if (loading) {
+    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+  }
 
   // List of actionable buttons for the viewer
   const actions = [
@@ -342,11 +348,9 @@ function Structure({className, classes, system, options, viewer, captureName, as
     }
   </Box>
 
-  return (
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
-  )
+  return <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
+    {content}
+  </Floatable>
 }
 
 Structure.propTypes = {
@@ -358,7 +362,6 @@ Structure.propTypes = {
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
-  loading: PropTypes.bool, // If true, a placeholder will be shown instead.
   sizeLimit: PropTypes.number // Maximum system size before a prompt is shown
 }
 Structure.defaultProps = {

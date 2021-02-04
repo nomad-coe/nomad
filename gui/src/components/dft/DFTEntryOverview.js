@@ -25,7 +25,6 @@ import VibrationalOverview from '../visualization/VibrationalOverview'
 import { ApiDialog } from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
 import Actions from '../Actions'
-import Placeholder from '../visualization/Placeholder'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -37,6 +36,35 @@ import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 import GeoOptOverview from '../visualization/GeoOptOverview'
+
+const useHeaderStyles = makeStyles(theme => ({
+  root: {
+    marginBottom: theme.spacing(1),
+    display: 'flex',
+    flexDirection: 'row',
+    alignContent: 'flex-start'
+  },
+  title: {
+    fontSize: '1.25rem'
+  }
+}))
+
+function Header({title, actions}) {
+  const classes = useHeaderStyles()
+  return <Box className={classes.root}>
+    <Box flexGrow={1}>
+      <Typography className={classes.title}>
+        {title}
+      </Typography>
+    </Box>
+    {actions}
+  </Box>
+}
+
+Header.propTypes = {
+  title: PropTypes.string,
+  actions: PropTypes.any
+}
 
 const usePropertyCardStyles = makeStyles(theme => ({
   root: {
@@ -51,14 +79,7 @@ function PropertyCard({title, children, actions}) {
   const classes = usePropertyCardStyles()
   return <Card className={classes.root}>
     <CardContent>
-      <Box display="flex" flexDirection="row" alignContent="flex-start">
-        <Box flexGrow={1}>
-          <Typography className={classes.title}>
-            {title}
-          </Typography>
-        </Box>
-        {actions}
-      </Box>
+      <Header title={title} actions={actions}></Header>
       {children}
     </CardContent>
   </Card>
@@ -68,6 +89,31 @@ PropertyCard.propTypes = {
   children: PropTypes.any,
   actions: PropTypes.any,
   title: PropTypes.string
+}
+
+const useSidebarCardStyles = makeStyles(theme => ({
+  content: {
+    padding: 0,
+    paddingBottom: theme.spacing(2)
+  },
+  title: {
+    fontSize: '1.25rem',
+    marginBottom: theme.spacing(1)
+  }
+}))
+
+function SidebarCard({title, actions, children}) {
+  const classes = useSidebarCardStyles()
+  return <CardContent className={classes.content}>
+    <Header title={title} actions={actions}></Header>
+    {children}
+  </CardContent>
+}
+
+SidebarCard.propTypes = {
+  title: PropTypes.string,
+  actions: PropTypes.any,
+  children: PropTypes.any
 }
 
 const useStyles = makeStyles(theme => ({
@@ -80,17 +126,10 @@ const useStyles = makeStyles(theme => ({
   cardHeader: {
     paddingBottom: 0
   },
-  title: {
-    fontSize: '1.25rem',
-    marginBottom: theme.spacing(1)
-  },
   sidebar: {
     paddingRight: theme.spacing(3)
   },
   actions: {
-    marginBottom: theme.spacing(2)
-  },
-  sidebarContent: {
     marginBottom: theme.spacing(2)
   },
   divider: {
@@ -202,15 +241,13 @@ export default function DFTEntryOverview({data}) {
               'pbc': sys.configuration_periodic_dimensions
             })
           }
-          if (!failed) {
+          if (!failed && energies.length > 2) {
             energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
             const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
             const sampling_method = section_run?.section_sampling_method
             const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
             const e_criteria = e_criteria_wf || e_criteria_fs
             setGeoOpt({energies: energies, structures: trajectory, energy_change_criteria: e_criteria})
-          } else {
-            setGeoOpt({energies: null, structures: null, energy_change_criteria: null})
           }
         } else if (wfType === 'phonon') {
           // Find phonon dos and dispersion
@@ -323,8 +360,7 @@ export default function DFTEntryOverview({data}) {
     })
   }, [data, api, raiseError, setElectronicStructure, setStructures])
 
-  const loadingRepo = !data
-  const quantityProps = {data: data, loading: loadingRepo}
+  const quantityProps = {data: data, loading: !data}
   const domain = data.domain && domains[data.domain]
 
   // Create toggle buttons for each structure option
@@ -369,11 +405,12 @@ export default function DFTEntryOverview({data}) {
 
   return (
     <Grid container spacing={0} className={classes.root}>
+
+      {/* Left column */}
       <Grid item xs={4} className={classes.sidebar}>
         <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
         <Actions className={classes.actions} justifyContent='flex-start' variant='contained' size='medium' actions={actions}></Actions>
-        <Box className={classes.sidebarContent}>
-          <Typography variant="body1" className={classes.title}>Method</Typography>
+        <SidebarCard title='Method'>
           <Quantity flex>
             <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
             <Quantity quantity="dft.code_version" label='code version' noWrap {...quantityProps}/>
@@ -385,10 +422,9 @@ export default function DFTEntryOverview({data}) {
             {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap {...quantityProps}/>}
             {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
           </Quantity>
-        </Box>
+        </SidebarCard>
         <Divider className={classes.divider} />
-        <Box className={classes.sidebarContent}>
-          <Typography variant="body1" className={classes.title}>Author metadata</Typography>
+        <SidebarCard title='Author metadata'>
           <Quantity flex>
             <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
             <Quantity quantity='references' placeholder='no references' {...quantityProps}>
@@ -415,10 +451,9 @@ export default function DFTEntryOverview({data}) {
               </div>}
             </Quantity>
           </Quantity>
-        </Box>
+        </SidebarCard>
         <Divider className={classes.divider}/>
-        <Box className={classes.sidebarContent}>
-          <Typography variant="body1" className={classes.title}>Processing information</Typography>
+        <SidebarCard title='Processing information'>
           <Quantity column style={{maxWidth: 350}}>
             <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
             <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps}/>
@@ -442,13 +477,15 @@ export default function DFTEntryOverview({data}) {
               </Typography>
             </Quantity>
           </Quantity>
-        </Box>
+        </SidebarCard>
       </Grid>
+
+      {/* Right column */}
       <Grid item xs={8}>
         <PropertyCard title="Material">
           <Grid container spacing={1}>
             <Grid item xs={5}>
-              <Box marginTop={1}>
+              <Box>
                 <Quantity column>
                   <Quantity quantity="formula" label='formula' noWrap {...quantityProps}/>
                   <Quantity quantity="dft.system" label='material type' noWrap {...quantityProps}/>
@@ -465,28 +502,23 @@ export default function DFTEntryOverview({data}) {
               </Box>
             </Grid>
             <Grid item xs={7}>
-              {loading
-                ? <Placeholder className={classes.structure} variant="rect"></Placeholder>
-                : structures &&
-                  <>
-                    {structureToggles.length > 1 &&
-                      <ToggleButtonGroup
-                        size="small"
-                        exclusive
-                        value={shownSystem}
-                        onChange={handleStructureChange}
-                        aria-label="text formatting"
-                      >
-                        {structureToggles}
-                      </ToggleButtonGroup>
-                    }
-                    <Structure system={structures.get(shownSystem)} aspectRatio={1.5} />
-                  </>
-              }
+              <>
+                {structureToggles?.length > 1 &&
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={shownSystem}
+                    onChange={handleStructureChange}
+                    aria-label="text formatting"
+                  >
+                    {structureToggles}
+                  </ToggleButtonGroup>
+                }
+                <Structure system={structures && structures.get(shownSystem)} aspectRatio={1.5} />
+              </>
             </Grid>
           </Grid>
         </PropertyCard>
-
         {electronicStructure &&
           <PropertyCard title="Electronic properties">
             <ElectronicStructureOverview
@@ -494,13 +526,11 @@ export default function DFTEntryOverview({data}) {
             </ElectronicStructureOverview>
           </PropertyCard>
         }
-
         {geoOpt && structures &&
           <PropertyCard title="Geometry optimization">
             <GeoOptOverview data={geoOpt}></GeoOptOverview>
           </PropertyCard>
         }
-
         {vibrationalData &&
           <PropertyCard title="Vibrational properties">
             <VibrationalOverview

@@ -45,7 +45,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, onRelayou
   // Determine the final plotted data based on the received data. Will work with
   // normalized and unnormalized data.
   useEffect(() => {
-    if (data === undefined) {
+    if (!data) {
       return
     }
 

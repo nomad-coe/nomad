@@ -21,7 +21,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
 
 import {
-  Typography
+  Typography,
+  Box
 } from '@material-ui/core'
 import {
   Fullscreen,
@@ -30,6 +31,7 @@ import {
   Replay
 } from '@material-ui/icons'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
@@ -40,6 +42,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
   const firstUpdate = useRef(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let defaultCapture = {
@@ -63,6 +66,14 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       },
       root: {
       },
+      placeHolder: {
+        left: 0,
+        right: 0,
+        position: 'absolute'
+      },
+      plot: {
+        visibility: loading ? 'hidden' : 'visible'
+      },
       spacer: {
         flex: 1
       },
@@ -73,7 +84,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     }
   })
 
-  const style = useStyles(classes)
+  const styles = useStyles(classes)
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -154,67 +165,53 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     return mergeObjects(config, defaultConfig)
   }, [config])
 
-  // Initialize the plot object on first render
-  useEffect(() => {
-    Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
-
-    if (firstUpdate.current) {
-      // Attach events when the canvas is first created
-      if (onRelayouting) {
-        canvasRef.current.on('plotly_relayouting', onRelayouting)
-      }
-      if (onRedraw) {
-        canvasRef.current.on('plotly_redraw', onRedraw)
-      }
-      if (onRelayout) {
-        canvasRef.current.on('plotly_relayout', onRelayout)
-      }
-      if (onHover) {
-        canvasRef.current.on('plotly_hover', onHover)
-      }
-      firstUpdate.current = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   // This callback redraws the plot whenever the canvas element changes. In
   // order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const canvasRef = useCallback(node => {
-    // Do nothing if the canvas has not actually changed.
-    if (node === null || canvasRef.current === node) {
+    // Do nothing if the canvas has not actually changed or data is not ready
+    if (node === null || canvasRef.current === node || !data) {
       return
     }
 
-    // Redraw if moving to a new canvas. Also re-attach events.
-    if (canvasRef.current !== undefined) {
+    // When the canvas reference is instantiated for the first time, create a
+    // new plot.
+    if (canvasRef.current === undefined) {
+      console.log('Loaded!')
+      Plotly.newPlot(node, data, finalLayout, finalConfig)
+      if (firstUpdate.current) {
+        firstUpdate.current = false
+      }
+      setLoading(false)
+    // When the reference changes for the second time, react instead to save
+    // some time
+    } else {
+      console.log('Redraw!')
       let oldLayout = canvasRef.current.layout
       let oldData = canvasRef.current.data
-      // Update canvas and redraw on it
       Plotly.react(node, oldData, oldLayout, finalConfig)
+    }
 
-      // Re-attach events whenever the canvas changes
-      if (onRelayouting) {
-        node.on('plotly_relayouting', onRelayouting)
-      }
-      if (onRedraw) {
-        node.on('plotly_redraw', onRedraw)
-      }
-      if (onRelayout) {
-        node.on('plotly_relayout', onRelayout)
-      }
-      if (onHover) {
-        node.on('plotly_hover', onHover)
-      }
+    // (Re-)attach events whenever the canvas changes
+    if (onRelayouting) {
+      node.on('plotly_relayouting', onRelayouting)
+    }
+    if (onRedraw) {
+      node.on('plotly_redraw', onRedraw)
+    }
+    if (onRelayout) {
+      node.on('plotly_relayout', onRelayout)
+    }
+    if (onHover) {
+      node.on('plotly_hover', onHover)
     }
 
     // Update canvas element
     canvasRef.current = node
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, onHover, onRedraw, onRelayout, onRelayouting])
 
   // Update plots when data or config is updated. useLayoutEffect is used so
   // that React rendering and Plotly rendering are synced.
@@ -255,15 +252,20 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
   ]
 
-  return (
-    <Floatable className={clsx(className, style.root)} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
+  // Even if the plots are still loading, all the html elements need to be
+  // placed in the DOM. During loading, they are placed underneath the
+  // palceholder with visibility=hidden. This way Plotly still has access to
+  // these HTML nodes and their sizes when the plots are loading.
+  return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
+    {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
+    <Floatable className={styles.plot} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
       <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
-      <div className={style.header}>
+      <div className={styles.header}>
         <Actions actions={actions}></Actions>
       </div>
     </Floatable>
-  )
+  </Box>
 }
 
 Plot.propTypes = {

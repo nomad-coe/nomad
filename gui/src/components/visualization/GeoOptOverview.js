@@ -150,14 +150,12 @@ function GeoOptOverview({data, className, classes}) {
         </Box>
         <Box className={style.structure}>
           <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
-          <ErrorHandler message='Could not load structure.'>
-            <Structure
-              system={data.structures[step]}
-              aspectRatio={0.75}
-              options={{view: {fitMargin: 0.75}}}
-              positionsOnly={true}
-            ></Structure>
-          </ErrorHandler>
+          <Structure
+            system={data.structures[step]}
+            aspectRatio={0.75}
+            options={{view: {fitMargin: 0.75}}}
+            positionsOnly={true}
+          ></Structure>
         </Box>
       </Box>
     </RecoilRoot>

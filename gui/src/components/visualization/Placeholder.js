@@ -19,6 +19,7 @@ import React from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
 
 /**
  * Component that is used as a placeholder while loading data. Fairly simple
@@ -26,10 +27,12 @@ import PropTypes from 'prop-types'
  */
 export default function Placeholder(props) {
   // If aspect ratio is provided, use it to determine width and height
-  const {aspectRatio, ...other} = props
+  const {aspectRatio, className, classes, ...other} = props
   const useStyles = makeStyles(props => {
     if (aspectRatio) {
       return {
+        root: {
+        },
         skeletonContainer: {
           height: 0,
           overflow: 'hidden',
@@ -46,15 +49,19 @@ export default function Placeholder(props) {
       }
     }
   })
-  const classes = useStyles()
+  const styles = useStyles(classes)
   if (aspectRatio) {
-    return <div className={classes.skeletonContainer}>
-      <Skeleton variant="rect" className={classes.skeleton} {...other}/>
+    return <div className={clsx(className, styles.root)}>
+      <div className={styles.skeletonContainer}>
+        <Skeleton variant="rect" className={styles.skeleton} {...other}/>
+      </div>
     </div>
   }
   return <Skeleton {...other}></Skeleton>
 }
 
 Placeholder.propTypes = {
-  aspectRatio: PropTypes.number
+  aspectRatio: PropTypes.number,
+  className: PropTypes.string,
+  classes: PropTypes.string
 }
