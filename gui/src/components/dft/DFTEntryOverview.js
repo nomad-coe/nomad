@@ -18,12 +18,11 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import { apiContext } from '../api'
 import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
 import VibrationalOverview from '../visualization/VibrationalOverview'
 import { ApiDialog } from '../ApiDialogButton'
-import Structure from '../visualization/Structure'
+import { Structure } from '../visualization/Structure'
 import Actions from '../Actions'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
@@ -148,7 +147,7 @@ export default function DFTEntryOverview({data}) {
   const [electronicStructure, setElectronicStructure] = useState(null)
   const [vibrationalData, setVibrationalData] = useState(null)
   const [geoOpt, setGeoOpt] = useState(null)
-  const [shownSystem, setShownSystem] = useState('original')
+  // const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
   const materialType = data?.encyclopedia?.material?.material_type
   const [method, setMethod] = useState(null)
@@ -160,14 +159,14 @@ export default function DFTEntryOverview({data}) {
   // have more information stored in the ES index, it can be used to select
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
-    api.archive(data.upload_id, data.calc_id).then(data => {
-      let structs = new Map()
+    api.archive(data.upload_id, data.calc_id).then(archive => {
+      let structs = {}
 
       // Figure out what properties are present by looping over the SCCS. This
       // information will eventually be directly available in the ES index.
       let e_dos = null
       let e_bs = null
-      const section_run = data.section_run[0]
+      const section_run = archive.section_run[0]
       let section_method = null
       const sccs = section_run.section_single_configuration_calculation
       for (let i = sccs.length - 1; i > -1; --i) {
@@ -207,7 +206,7 @@ export default function DFTEntryOverview({data}) {
       }
 
       // See if there are workflow results
-      const section_wf = data.section_workflow
+      const section_wf = archive.section_workflow
       if (section_wf) {
         const wfType = section_wf.workflow_type
 
@@ -222,7 +221,7 @@ export default function DFTEntryOverview({data}) {
           let failed = false
           for (let i = 0; i < calculations.length; ++i) {
             let ref = calculations[i]
-            const calc = resolveRef(ref, data)
+            const calc = resolveRef(ref, archive)
             const e = calc?.energy_total
             if (e === undefined) {
               failed = true
@@ -233,7 +232,7 @@ export default function DFTEntryOverview({data}) {
             }
             energies.push(e - initialEnergy)
             let sys = calc?.single_configuration_calculation_to_system_ref
-            sys = resolveRef(sys, data)
+            sys = resolveRef(sys, archive)
             trajectory.push({
               'species': sys.atom_species,
               'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
@@ -252,7 +251,7 @@ export default function DFTEntryOverview({data}) {
         } else if (wfType === 'phonon') {
           // Find phonon dos and dispersion
           const scc_ref = section_wf.calculation_result_ref
-          const scc = resolveRef(scc_ref, data)
+          const scc = resolveRef(scc_ref, archive)
           let v_dos = null
           let v_bs = null
           if (scc) {
@@ -298,12 +297,12 @@ export default function DFTEntryOverview({data}) {
       // Get method details. Any referenced core_setttings will also be taken
       // into account
       if (section_method) {
-        section_method = resolveRef(section_method, data)
+        section_method = resolveRef(section_method, archive)
         const refs = section_method?.section_method_to_method_refs
         if (refs) {
           for (const ref of refs) {
             if (ref.method_to_method_kind === 'core_settings') {
-              section_method = mergeObjects(resolveRef(ref.method_to_method_ref, data), section_method)
+              section_method = mergeObjects(resolveRef(ref.method_to_method_ref, archive), section_method)
             }
           }
         }
@@ -331,14 +330,14 @@ export default function DFTEntryOverview({data}) {
             'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
             'pbc': sys.configuration_periodic_dimensions
           }
-          structs.set('original', reprSys)
+          structs.original = reprSys
           break
         }
       }
 
       // Get the conventional (=normalized) system, if present
-      let idealSys = data?.section_metadata?.encyclopedia?.material?.idealized_structure
-      if (idealSys && data.system === 'bulk') {
+      let idealSys = archive?.section_metadata?.encyclopedia?.material?.idealized_structure
+      if (idealSys && data?.dft?.system === 'bulk') {
         const ideal = {
           'species': idealSys.atom_labels,
           'cell': idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
@@ -346,9 +345,8 @@ export default function DFTEntryOverview({data}) {
           'fractional': true,
           'pbc': idealSys.periodicity
         }
-        structs.set('conventional', ideal)
+        structs.conventional = ideal
       }
-
       setStructures(structs)
       setLoading(false)
     }).catch(error => {
@@ -362,25 +360,6 @@ export default function DFTEntryOverview({data}) {
 
   const quantityProps = {data: data, loading: !data}
   const domain = data.domain && domains[data.domain]
-
-  // Create toggle buttons for each structure option
-  const structureToggles = useMemo(() => {
-    if (structures) {
-      const toggles = []
-      structures.forEach((value, key) => {
-        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
-      })
-      return toggles
-    }
-    return null
-  }, [structures])
-
-  // Enforce at least one structure view option
-  const handleStructureChange = (event, value) => {
-    if (value !== null) {
-      setShownSystem(value)
-    }
-  }
 
   // Figure out which actions are available for this entry
   const actions = useMemo(() => {
@@ -414,7 +393,14 @@ export default function DFTEntryOverview({data}) {
           <Quantity flex>
             <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
             <Quantity quantity="dft.code_version" label='code version' noWrap {...quantityProps}/>
-            <Quantity quantity="electronic_structure_method" label='electronic structure method' loading={loading} description="The used electronic structure method." noWrap data={method}/>
+            <Quantity
+              quantity="electronic_structure_method"
+              label='electronic structure method'
+              loading={loading}
+              description="The used electronic structure method."
+              noWrap
+              data={method}
+            />
             <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap {...quantityProps}/>
             <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
             <Quantity quantity="dft.basis_set" label='basis set type' noWrap {...quantityProps}/>
@@ -501,21 +487,8 @@ export default function DFTEntryOverview({data}) {
                 </Quantity>
               </Box>
             </Grid>
-            <Grid item xs={7}>
-              <>
-                {structureToggles?.length > 1 &&
-                  <ToggleButtonGroup
-                    size="small"
-                    exclusive
-                    value={shownSystem}
-                    onChange={handleStructureChange}
-                    aria-label="text formatting"
-                  >
-                    {structureToggles}
-                  </ToggleButtonGroup>
-                }
-                <Structure system={structures && structures.get(shownSystem)} aspectRatio={1.5} />
-              </>
+            <Grid item xs={7} style={{marginTop: '-2rem'}}>
+              <Structure systems={structures} aspectRatio={1.5} />
             </Grid>
           </Grid>
         </PropertyCard>

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -26,6 +26,7 @@ import {
   Typography,
   FormControlLabel
 } from '@material-ui/core'
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import {
   MoreVert,
   Fullscreen,
@@ -46,7 +47,7 @@ import clsx from 'clsx'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) {
+export const Structure = withErrorHandler(({className, classes, system, systems, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -58,6 +59,8 @@ function Structure({className, classes, system, options, viewer, captureName, as
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [shownSystem, setShownSystem] = useState(null)
+  const [finalSystem, setFinalSystem] = useState(system)
 
   // Variables
   const open = Boolean(anchorEl)
@@ -80,15 +83,34 @@ function Structure({className, classes, system, options, viewer, captureName, as
         flexDirection: 'row',
         zIndex: 1
       },
+      toggles: {
+        marginBottom: theme.spacing(1),
+        height: '2rem'
+      },
+      title: {
+        marginBottom: theme.spacing(1)
+      },
       viewerCanvas: {
         flex: 1,
         zIndex: 0,
         minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2)
+        marginBottom: theme.spacing(1)
       }
     }
   })
-  const style = useStyles(classes)
+  const styles = useStyles(classes)
+
+  useEffect(() => {
+    setFinalSystem(system)
+  }, [system])
+
+  useEffect(() => {
+    if (systems) {
+      const firstSystem = Object.keys(systems)[0]
+      setFinalSystem(systems[firstSystem])
+      setShownSystem(firstSystem)
+    }
+  }, [systems])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -115,7 +137,7 @@ function Structure({className, classes, system, options, viewer, captureName, as
         view: {
           autoResize: true,
           autoFit: true,
-          fitMargin: 0.5
+          fitMargin: 0.6
         },
         bonds: {
           enabled: true
@@ -200,12 +222,12 @@ function Structure({className, classes, system, options, viewer, captureName, as
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
   useEffect(() => {
-    if (system === undefined || system === null) {
+    if (!finalSystem) {
       return
     }
 
     if (!accepted) {
-      const nAtoms = system.positions.length
+      const nAtoms = finalSystem.positions.length
       setNAtoms(nAtoms)
       if (nAtoms > 300) {
         setShowPrompt(true)
@@ -214,12 +236,12 @@ function Structure({className, classes, system, options, viewer, captureName, as
     }
 
     if (positionsOnly && !!(refViewer?.current?.structure)) {
-      refViewer.current.setPositions(system.positions)
+      refViewer.current.setPositions(finalSystem.positions)
       return
     }
 
-    loadSystem(system, refViewer)
-  }, [system, positionsOnly, loadSystem, accepted])
+    loadSystem(finalSystem, refViewer)
+  }, [finalSystem, positionsOnly, loadSystem, accepted])
 
   // Viewer settings
   useEffect(() => {
@@ -261,6 +283,33 @@ function Structure({className, classes, system, options, viewer, captureName, as
     refViewer.current.render()
   }, [])
 
+  const structureToggles = useMemo(() => {
+    if (systems) {
+      const toggles = []
+      for (let key in systems) {
+        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
+      }
+      return toggles
+    }
+    return null
+  }, [systems])
+
+  // Enforce at least one structure view option
+  const handleStructureChange = (event, value) => {
+    if (value !== null) {
+      setShownSystem(value)
+      setFinalSystem(systems[value])
+    }
+  }
+
+  if (showPrompt) {
+    return <ErrorCard
+      message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+      className={styles.error}
+      actions={[{label: 'Yes', onClick: e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}]}
+    >
+    </ErrorCard>
+  }
   if (loading) {
     return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
   }
@@ -273,95 +322,96 @@ function Structure({className, classes, system, options, viewer, captureName, as
     {tooltip: 'Options', onClick: openMenu, content: <MoreVert/>}
   ]
 
-  const content = <Box className={style.container}>
-    {showPrompt
-      ? <ErrorCard
-        message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-        className={style.error}
-        actions={[{label: 'Yes', onClick: e => { setShowPrompt(false); loadSystem(system, refViewer); setAccepted(true) }}]}
-      >
-      </ErrorCard>
-      : <>
-        {fullscreen && <Typography variant="h6">Structure</Typography>}
-        <div className={style.viewerCanvas} ref={refCanvas}></div>
-        <div className={style.header}>
-          <Actions actions={actions}></Actions>
-          <Menu
-            id='settings-menu'
-            anchorEl={anchorEl}
-            getContentAnchorEl={null}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            keepMounted
-            open={open}
-            onClose={closeMenu}
-          >
-            <MenuItem key='show-bonds'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showBonds}
-                    onChange={(event) => { setShowBonds(!showBonds) }}
-                    color='primary'
-                  />
-                }
-                label='Show bonds'
-              />
-            </MenuItem>
-            <MenuItem key='show-axis'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showLatticeConstants}
-                    onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
-                    color='primary'
-                  />
-                }
-                label='Show lattice constants'
-              />
-            </MenuItem>
-            <MenuItem key='show-cell'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showCell}
-                    onChange={(event) => { setShowCell(!showCell) }}
-                    color='primary'
-                  />
-                }
-                label='Show simulation cell'
-              />
-            </MenuItem>
-            <MenuItem key='wrap'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={wrap}
-                    onChange={(event) => { setWrap(!wrap) }}
-                    color='primary'
-                  />
-                }
-                label='Wrap positions'
-              />
-            </MenuItem>
-          </Menu>
-        </div>
-      </>
+  const content = <Box className={styles.container}>
+    {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
+    {systems && <ToggleButtonGroup
+      className={styles.toggles}
+      size="small"
+      exclusive
+      value={shownSystem}
+      onChange={handleStructureChange}
+    >
+      {structureToggles}
+    </ToggleButtonGroup>
     }
+    <div className={styles.viewerCanvas} ref={refCanvas}></div>
+    <div className={styles.header}>
+      <Actions actions={actions}></Actions>
+      <Menu
+        id='settings-menu'
+        anchorEl={anchorEl}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        keepMounted
+        open={open}
+        onClose={closeMenu}
+      >
+        <MenuItem key='show-bonds'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showBonds}
+                onChange={(event) => { setShowBonds(!showBonds) }}
+                color='primary'
+              />
+            }
+            label='Show bonds'
+          />
+        </MenuItem>
+        <MenuItem key='show-axis'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showLatticeConstants}
+                onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
+                color='primary'
+              />
+            }
+            label='Show lattice constants'
+          />
+        </MenuItem>
+        <MenuItem key='show-cell'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showCell}
+                onChange={(event) => { setShowCell(!showCell) }}
+                color='primary'
+              />
+            }
+            label='Show simulation cell'
+          />
+        </MenuItem>
+        <MenuItem key='wrap'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={wrap}
+                onChange={(event) => { setWrap(!wrap) }}
+                color='primary'
+              />
+            }
+            label='Wrap positions'
+          />
+        </MenuItem>
+      </Menu>
+    </div>
   </Box>
 
-  return <Box className={clsx(style.root, className)} >
+  return <Box className={clsx(styles.root, className)} >
     <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
       {content}
     </Floatable>
   </Box>
-}
+}, 'Could not load structure.')
 
 Structure.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   viewer: PropTypes.object, // Optional shared viewer instance.
   system: PropTypes.object, // The system to display in the native materia-format
+  systems: PropTypes.object, // Set of systems that can be switched
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
@@ -373,5 +423,3 @@ Structure.defaultProps = {
   captureName: 'structure',
   sizeLimit: 300
 }
-
-export default withErrorHandler(Structure, 'Could not load structure.')

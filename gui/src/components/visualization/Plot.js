@@ -179,7 +179,6 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     // When the canvas reference is instantiated for the first time, create a
     // new plot.
     if (canvasRef.current === undefined) {
-      console.log('Loaded!')
       Plotly.newPlot(node, data, finalLayout, finalConfig)
       if (firstUpdate.current) {
         firstUpdate.current = false
@@ -188,7 +187,6 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     // When the reference changes for the second time, react instead to save
     // some time
     } else {
-      console.log('Redraw!')
       let oldLayout = canvasRef.current.layout
       let oldData = canvasRef.current.data
       Plotly.react(node, oldData, oldLayout, finalConfig)
