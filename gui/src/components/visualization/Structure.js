@@ -117,6 +117,7 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const refCanvas = useCallback(node => {
+    refCanvas.current = node
     if (node === null) {
       return
     }
@@ -124,7 +125,6 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
       return
     }
     refViewer.current.changeHostElement(node, true, true)
-    refCanvas.current = node
   }, [])
 
   // Run only on first render to initialize the viewer. See the viewer
@@ -237,6 +237,7 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
 
     if (positionsOnly && !!(refViewer?.current?.structure)) {
       refViewer.current.setPositions(finalSystem.positions)
+      setLoading(false)
       return
     }
 

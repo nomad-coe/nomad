@@ -414,10 +414,9 @@ function Overview({section, def}) {
 
     let system
 
-    // Do not attempt to perform visualization if size is too big
+    // The section is incomplete, we leave the overview empty
     if (!section.atom_species) {
-      // the section is incomplete, we leave the overview empty
-      return ''
+      return null
     }
     const nAtoms = section.atom_species.length
     // Loading exact same system, no need to reload visualizer
