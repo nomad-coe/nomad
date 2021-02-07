@@ -71,7 +71,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         right: 0,
         position: 'absolute'
       },
-      plot: {
+      floatable: {
         visibility: loading ? 'hidden' : 'visible'
       },
       spacer: {
@@ -256,7 +256,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
   // these HTML nodes and their sizes when the plots are loading.
   return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
     {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
-    <Floatable className={styles.plot} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
+    <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
       <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
       <div className={styles.header}>

@@ -22,7 +22,6 @@ import {
   Typography,
   useTheme
 } from '@material-ui/core'
-import { RecoilRoot } from 'recoil'
 import { makeStyles } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { Structure } from '../visualization/Structure'
@@ -49,8 +48,6 @@ function GeoOptOverview({data, className, classes}) {
   const style = useStyles(classes)
   const theme = useTheme()
   const plotData = useMemo(() => {
-    // See if energies are present. If not, still do an empty plot to allow user
-    // to navigate the steps.
     let steps = [...Array(data.structures.length).keys()]
     let energies = data.energies
     const diff = [0]
@@ -110,8 +107,11 @@ function GeoOptOverview({data, className, classes}) {
         y: 0.5
       },
       xaxis: {
+        showexponent: 'first',
         title: 'Step number',
         tickmode: 'auto',
+        tickformat: ',d',
+        autorange: false,
         range: [0, data.structures.length - 1],
         zeroline: false,
         showspikes: true,
@@ -133,32 +133,30 @@ function GeoOptOverview({data, className, classes}) {
   }, [])
 
   return (
-    <RecoilRoot>
-      <Box className={style.root}>
-        <Box className={style.energies}>
-          <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
-          <ErrorHandler message='Could not load energies.'>
-            <Plot
-              data={plotData}
-              layout={plotLayout}
-              aspectRatio={1.5}
-              onHover={handleHover}
-              floatTitle="Energy convergence"
-            >
-            </Plot>
-          </ErrorHandler>
-        </Box>
-        <Box className={style.structure}>
-          <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
-          <Structure
-            system={data.structures[step]}
-            aspectRatio={0.75}
-            options={{view: {fitMargin: 0.75}}}
-            positionsOnly={true}
-          ></Structure>
-        </Box>
+    <Box className={style.root}>
+      <Box className={style.energies}>
+        <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
+        <ErrorHandler message='Could not load energies.'>
+          <Plot
+            data={plotData}
+            layout={plotLayout}
+            aspectRatio={1.5}
+            onHover={handleHover}
+            floatTitle="Energy convergence"
+          >
+          </Plot>
+        </ErrorHandler>
       </Box>
-    </RecoilRoot>
+      <Box className={style.structure}>
+        <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
+        <Structure
+          system={data.structures[step]}
+          aspectRatio={0.75}
+          options={{view: {fitMargin: 0.75}}}
+          positionsOnly={true}
+        ></Structure>
+      </Box>
+    </Box>
   )
 }
 

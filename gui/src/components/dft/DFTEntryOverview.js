@@ -25,6 +25,7 @@ import { ApiDialog } from '../ApiDialogButton'
 import { Structure } from '../visualization/Structure'
 import Actions from '../Actions'
 import Quantity from '../Quantity'
+import { RecoilRoot } from 'recoil'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
@@ -147,7 +148,6 @@ export default function DFTEntryOverview({data}) {
   const [electronicStructure, setElectronicStructure] = useState(null)
   const [vibrationalData, setVibrationalData] = useState(null)
   const [geoOpt, setGeoOpt] = useState(null)
-  // const [shownSystem, setShownSystem] = useState('original')
   const [structures, setStructures] = useState(null)
   const materialType = data?.encyclopedia?.material?.material_type
   const [method, setMethod] = useState(null)
@@ -383,136 +383,138 @@ export default function DFTEntryOverview({data}) {
   }, [data, showAPIDialog])
 
   return (
-    <Grid container spacing={0} className={classes.root}>
+    <RecoilRoot>
+      <Grid container spacing={0} className={classes.root}>
 
-      {/* Left column */}
-      <Grid item xs={4} className={classes.sidebar}>
-        <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
-        <Actions className={classes.actions} justifyContent='flex-start' variant='contained' size='medium' actions={actions}></Actions>
-        <SidebarCard title='Method'>
-          <Quantity flex>
-            <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
-            <Quantity quantity="dft.code_version" label='code version' noWrap {...quantityProps}/>
-            <Quantity
-              quantity="electronic_structure_method"
-              label='electronic structure method'
-              loading={loading}
-              description="The used electronic structure method."
-              noWrap
-              data={method}
-            />
-            <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap {...quantityProps}/>
-            <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
-            <Quantity quantity="dft.basis_set" label='basis set type' noWrap {...quantityProps}/>
-            <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
-            {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap {...quantityProps}/>}
-            {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
-          </Quantity>
-        </SidebarCard>
-        <Divider className={classes.divider} />
-        <SidebarCard title='Author metadata'>
-          <Quantity flex>
-            <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
-            <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-              {data.references &&
-              <div style={{display: 'inline-grid'}}>
-                {data.references.map(ref => <Typography key={ref} noWrap>
-                  <Link href={ref}>{ref}</Link>
-                </Typography>)}
-              </div>}
+        {/* Left column */}
+        <Grid item xs={4} className={classes.sidebar}>
+          <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+          <Actions className={classes.actions} justifyContent='flex-start' variant='contained' size='medium' actions={actions}></Actions>
+          <SidebarCard title='Method'>
+            <Quantity flex>
+              <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
+              <Quantity quantity="dft.code_version" label='code version' noWrap {...quantityProps}/>
+              <Quantity
+                quantity="electronic_structure_method"
+                label='electronic structure method'
+                loading={loading}
+                description="The used electronic structure method."
+                noWrap
+                data={method}
+              />
+              <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap {...quantityProps}/>
+              <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
+              <Quantity quantity="dft.basis_set" label='basis set type' noWrap {...quantityProps}/>
+              <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
+              {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap {...quantityProps}/>}
+              {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
             </Quantity>
-            <Quantity quantity='authors' {...quantityProps}>
-              <Typography>
-                {authorList(data || [])}
-              </Typography>
+          </SidebarCard>
+          <Divider className={classes.divider} />
+          <SidebarCard title='Author metadata'>
+            <Quantity flex>
+              <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
+              <Quantity quantity='references' placeholder='no references' {...quantityProps}>
+                {data.references &&
+                <div style={{display: 'inline-grid'}}>
+                  {data.references.map(ref => <Typography key={ref} noWrap>
+                    <Link href={ref}>{ref}</Link>
+                  </Typography>)}
+                </div>}
+              </Quantity>
+              <Quantity quantity='authors' {...quantityProps}>
+                <Typography>
+                  {authorList(data || [])}
+                </Typography>
+              </Quantity>
+              <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
+                {data.datasets &&
+                <div>
+                  {data.datasets.map(ds => (
+                    <Typography key={ds.dataset_id}>
+                      <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                      {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                    </Typography>))}
+                </div>}
+              </Quantity>
             </Quantity>
-            <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-              {data.datasets &&
-              <div>
-                {data.datasets.map(ds => (
-                  <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                    {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
-                  </Typography>))}
-              </div>}
+          </SidebarCard>
+          <Divider className={classes.divider}/>
+          <SidebarCard title='Processing information'>
+            <Quantity column style={{maxWidth: 350}}>
+              <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
+              <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
+                <Typography noWrap>
+                  {new Date(data.upload_time).toLocaleString()}
+                </Typography>
+              </Quantity>
+              <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard {...quantityProps}/>
+              <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap {...quantityProps}>
+                <Typography noWrap>
+                  {new Date(data.last_processing).toLocaleString()}
+                </Typography>
+              </Quantity>
+              <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
+                <Typography noWrap>
+                  {data.nomad_version}/{data.nomad_commit}
+                </Typography>
+              </Quantity>
             </Quantity>
-          </Quantity>
-        </SidebarCard>
-        <Divider className={classes.divider}/>
-        <SidebarCard title='Processing information'>
-          <Quantity column style={{maxWidth: 350}}>
-            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
-            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps}/>
-            <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
-            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
-            <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
-              <Typography noWrap>
-                {new Date(data.upload_time).toLocaleString()}
-              </Typography>
-            </Quantity>
-            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard {...quantityProps}/>
-            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard {...quantityProps}/>
-            <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap {...quantityProps}>
-              <Typography noWrap>
-                {new Date(data.last_processing).toLocaleString()}
-              </Typography>
-            </Quantity>
-            <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
-              <Typography noWrap>
-                {data.nomad_version}/{data.nomad_commit}
-              </Typography>
-            </Quantity>
-          </Quantity>
-        </SidebarCard>
-      </Grid>
+          </SidebarCard>
+        </Grid>
 
-      {/* Right column */}
-      <Grid item xs={8}>
-        <PropertyCard title="Material">
-          <Grid container spacing={1}>
-            <Grid item xs={5}>
-              <Box>
-                <Quantity column>
-                  <Quantity quantity="formula" label='formula' noWrap {...quantityProps}/>
-                  <Quantity quantity="dft.system" label='material type' noWrap {...quantityProps}/>
-                  <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap {...quantityProps}/>
-                  <Quantity row>
-                    {materialType === 'bulk' && <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...quantityProps}/>}
-                    {materialType === 'bulk' && <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...quantityProps}>
-                      <Typography noWrap>
-                        {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
-                      </Typography>
-                    </Quantity>}
+        {/* Right column */}
+        <Grid item xs={8}>
+          <PropertyCard title="Material">
+            <Grid container spacing={1}>
+              <Grid item xs={5}>
+                <Box>
+                  <Quantity column>
+                    <Quantity quantity="formula" label='formula' noWrap {...quantityProps}/>
+                    <Quantity quantity="dft.system" label='material type' noWrap {...quantityProps}/>
+                    <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap {...quantityProps}/>
+                    <Quantity row>
+                      {materialType === 'bulk' && <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...quantityProps}/>}
+                      {materialType === 'bulk' && <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...quantityProps}>
+                        <Typography noWrap>
+                          {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
+                        </Typography>
+                      </Quantity>}
+                    </Quantity>
                   </Quantity>
-                </Quantity>
-              </Box>
+                </Box>
+              </Grid>
+              <Grid item xs={7} style={{marginTop: '-2rem'}}>
+                <Structure systems={structures} aspectRatio={1.5} />
+              </Grid>
             </Grid>
-            <Grid item xs={7} style={{marginTop: '-2rem'}}>
-              <Structure systems={structures} aspectRatio={1.5} />
-            </Grid>
-          </Grid>
-        </PropertyCard>
-        {electronicStructure &&
-          <PropertyCard title="Electronic properties">
-            <ElectronicStructureOverview
-              data={electronicStructure}>
-            </ElectronicStructureOverview>
           </PropertyCard>
-        }
-        {geoOpt && structures &&
-          <PropertyCard title="Geometry optimization">
-            <GeoOptOverview data={geoOpt}></GeoOptOverview>
-          </PropertyCard>
-        }
-        {vibrationalData &&
-          <PropertyCard title="Vibrational properties">
-            <VibrationalOverview
-              data={vibrationalData}>
-            </VibrationalOverview>
-          </PropertyCard>
-        }
+          {electronicStructure &&
+            <PropertyCard title="Electronic properties">
+              <ElectronicStructureOverview
+                data={electronicStructure}>
+              </ElectronicStructureOverview>
+            </PropertyCard>
+          }
+          {geoOpt && structures &&
+            <PropertyCard title="Geometry optimization">
+              <GeoOptOverview data={geoOpt}></GeoOptOverview>
+            </PropertyCard>
+          }
+          {vibrationalData &&
+            <PropertyCard title="Vibrational properties">
+              <VibrationalOverview
+                data={vibrationalData}>
+              </VibrationalOverview>
+            </PropertyCard>
+          }
+        </Grid>
       </Grid>
-    </Grid>
+    </RecoilRoot>
   )
 }
 

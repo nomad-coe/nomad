@@ -25,23 +25,30 @@ import {
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import Placeholder from '../visualization/Placeholder'
-import { RecoilRoot } from 'recoil'
+import { useRecoilValue, RecoilRoot } from 'recoil'
+import { convertSI } from '../../utils'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
 import { ErrorHandler } from '../ErrorHandler'
 import Plot from '../visualization/Plot'
 
-function VibrationalOverview({data, range, className, classes, raiseError}) {
-  const [dosLayout, setDosLayout] = useState({
-    yaxis: {
-      autorange: true
+export default function VibrationalOverview({data, className, classes, raiseError}) {
+  // Find minimum and maximum from DOS/BS. Use this range for both plots.
+  const units = useRecoilValue(unitsState)
+  const range = useMemo(() => {
+    let min
+    let max
+    const energies = data?.dos?.section_dos?.dos_energies
+    if (energies) {
+      min = Math.min(...energies)
+      max = Math.max(...energies)
     }
-  })
-  const [bsLayout, setBsLayout] = useState({
-    yaxis: {
-      autorange: true
-    }
-  })
+    return convertSI([min, max], 'joule', units, false)
+  }, [data, units])
+
+  // States
+  const [dosLayout, setDosLayout] = useState({yaxis: {range: range}})
+  const [bsLayout, setBsLayout] = useState({yaxis: {range: range}})
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -73,23 +80,27 @@ function VibrationalOverview({data, range, className, classes, raiseError}) {
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
-    let update = {
-      yaxis: {
-        autorange: false,
-        range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+    if (data.dos) {
+      let update = {
+        yaxis: {
+          autorange: false,
+          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+        }
       }
+      setDosLayout(update)
     }
-    setDosLayout(update)
-  }, [])
+  }, [data])
   const handleDOSRelayouting = useCallback((event) => {
-    let update = {
-      yaxis: {
-        autorange: false,
-        range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+    if (data.bs) {
+      let update = {
+        yaxis: {
+          autorange: false,
+          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
+        }
       }
+      setBsLayout(update)
     }
-    setBsLayout(update)
-  }, [])
+  }, [data])
 
   const theme = useTheme()
   const heatCapacityData = useMemo(() => {
@@ -112,6 +123,7 @@ function VibrationalOverview({data, range, className, classes, raiseError}) {
         zeroline: false
       },
       yaxis: {
+        autorange: true,
         title: 'Heat capacity (J/K)',
         zeroline: false
       }
@@ -137,6 +149,7 @@ function VibrationalOverview({data, range, className, classes, raiseError}) {
         zeroline: false
       },
       yaxis: {
+        autorange: true,
         title: 'Helmholtz free energy (J)',
         zeroline: false
       }
@@ -156,7 +169,7 @@ function VibrationalOverview({data, range, className, classes, raiseError}) {
                 aspectRatio={1.2}
                 unitsState={unitsState}
                 onRelayouting={handleBSRelayouting}
-                onReset={() => { setDosLayout({yaxis: {autorange: true}}) }}
+                onReset={() => { setDosLayout({yaxis: {range: range}}) }}
               ></BandStructure>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
@@ -172,7 +185,7 @@ function VibrationalOverview({data, range, className, classes, raiseError}) {
                 layout={dosLayout}
                 aspectRatio={0.6}
                 onRelayouting={handleDOSRelayouting}
-                onReset={() => { setBsLayout({yaxis: {autorange: true}}) }}
+                onReset={() => { setBsLayout({yaxis: {range: range}}) }}
                 unitsState={unitsState}
               ></DOS>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
@@ -222,8 +235,3 @@ VibrationalOverview.propTypes = {
   classes: PropTypes.object,
   raiseError: PropTypes.func
 }
-VibrationalOverview.defaultProps = {
-  range: [-10, 20]
-}
-
-export default VibrationalOverview
