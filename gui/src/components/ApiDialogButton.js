@@ -122,13 +122,13 @@ ApiDialog.propTypes = {
   onClose: PropTypes.func
 }
 
-export default function ApiDialogButton({component, ...dialogProps}) {
+export default function ApiDialogButton({component, size, ...dialogProps}) {
   const [showDialog, setShowDialog] = useState(false)
 
   return (
     <React.Fragment>
       {component ? component({onClick: () => setShowDialog(true)}) : <Tooltip title="Show API code">
-        <IconButton onClick={() => setShowDialog(true)}>
+        <IconButton size={size} onClick={() => setShowDialog(true)}>
           <CodeIcon />
         </IconButton>
       </Tooltip>
@@ -143,5 +143,6 @@ export default function ApiDialogButton({component, ...dialogProps}) {
 ApiDialogButton.propTypes = {
   data: PropTypes.any.isRequired,
   title: PropTypes.string,
+  size: PropTypes.string,
   component: PropTypes.func
 }

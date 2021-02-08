@@ -16,23 +16,31 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Card, CardHeader, CardContent, makeStyles } from '@material-ui/core'
+import PropTypes from 'prop-types'
+import { withStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import RawFiles from '../entry/RawFiles'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    marginTop: theme.spacing(2)
+class DFTEntryRawView extends React.Component {
+  static propTypes = {
+    classes: PropTypes.object.isRequired
   }
-}))
 
-export default function QCMSEntryCards(props) {
-  const classes = useStyles()
-  return (
-    <Card className={classes.root}>
-      <CardHeader title="Raw files" />
-      <CardContent>
-        <RawFiles {...props} />
-      </CardContent>
-    </Card>
-  )
+  static styles = theme => ({
+    root: {}
+  })
+
+  render() {
+    const { classes, ...props } = this.props
+
+    return (
+      <Card className={classes.root}>
+        <CardHeader title="Raw files" />
+        <CardContent classes={{root: classes.cardContent}}>
+          <RawFiles {...props} />
+        </CardContent>
+      </Card>
+    )
+  }
 }
+
+export default withStyles(DFTEntryRawView.styles)(DFTEntryRawView)

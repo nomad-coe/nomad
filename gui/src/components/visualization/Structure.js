@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -23,11 +23,10 @@ import {
   Checkbox,
   Menu,
   MenuItem,
-  IconButton,
-  Tooltip,
   Typography,
   FormControlLabel
 } from '@material-ui/core'
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import {
   MoreVert,
   Fullscreen,
@@ -37,23 +36,40 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
+import Actions from '../Actions'
+import { mergeObjects } from '../../utils'
+import { withErrorHandler, ErrorCard } from '../ErrorHandler'
+import _ from 'lodash'
+import clsx from 'clsx'
 
-export default function Structure({className, classes, system, options, viewer, captureName, aspectRatio, positionsOnly}) {
+/**
+ * Used to show atomistic systems in an interactive 3D viewer based on the
+ * 'materia'-library.
+ */
+export const Structure = withErrorHandler(({className, classes, system, systems, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
+  const [wrap, setWrap] = useState(true)
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [accepted, setAccepted] = useState(false)
+  const [nAtoms, setNAtoms] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [shownSystem, setShownSystem] = useState(null)
+  const [finalSystem, setFinalSystem] = useState(system)
 
   // Variables
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
-  const refCanvas = useRef(null)
 
   // Styles
   const useStyles = makeStyles((theme) => {
     return {
+      root: {},
       container: {
         display: 'flex',
         width: '100%',
@@ -67,27 +83,40 @@ export default function Structure({className, classes, system, options, viewer, 
         flexDirection: 'row',
         zIndex: 1
       },
-      spacer: {
-        flex: 1
+      toggles: {
+        marginBottom: theme.spacing(1),
+        height: '2rem'
+      },
+      title: {
+        marginBottom: theme.spacing(1)
       },
       viewerCanvas: {
         flex: 1,
         zIndex: 0,
         minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2)
-      },
-      iconButton: {
-        backgroundColor: 'white'
+        marginBottom: theme.spacing(1)
       }
     }
   })
-  const style = useStyles(classes)
+  const styles = useStyles(classes)
+
+  useEffect(() => {
+    setFinalSystem(system)
+  }, [system])
+
+  useEffect(() => {
+    if (systems) {
+      const firstSystem = Object.keys(systems)[0]
+      setFinalSystem(systems[firstSystem])
+      setShownSystem(firstSystem)
+    }
+  }, [systems])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
-  const measuredRef = useCallback(node => {
+  const refCanvas = useCallback(node => {
     refCanvas.current = node
     if (node === null) {
       return
@@ -100,7 +129,7 @@ export default function Structure({className, classes, system, options, viewer, 
 
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
-  // https://lauri-codes.github.io/materia/viewers/structureviewer
+  // https://nomad-coe.github.io/materia/viewers/structureviewer
   useEffect(() => {
     let viewerOptions
     if (options === undefined) {
@@ -108,7 +137,7 @@ export default function Structure({className, classes, system, options, viewer, 
         view: {
           autoResize: true,
           autoFit: true,
-          fitMargin: 0.5
+          fitMargin: 0.6
         },
         bonds: {
           enabled: true
@@ -133,7 +162,7 @@ export default function Structure({className, classes, system, options, viewer, 
         }
       }
     } else {
-      viewerOptions = options
+      viewerOptions = mergeObjects(options, viewerOptions)
     }
     if (viewer === undefined) {
       refViewer.current = new StructureViewer(undefined, viewerOptions)
@@ -141,29 +170,25 @@ export default function Structure({className, classes, system, options, viewer, 
       refViewer.current = viewer
       refViewer.current.setOptions(viewerOptions, false, false)
     }
-    if (refCanvas.current !== null) {
+    if (refCanvas.current) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Called only on first render to load the given structure.
-  useEffect(() => {
-    if (system === undefined) {
-      return
+  const loadSystem = useCallback((system, refViewer) => {
+    // If the cell all zeroes, positions are assumed to be cartesian.
+    if (system.cell !== undefined) {
+      if (_.sum(_.flattenDeep(system.cell)) === 0) {
+        system.cell = undefined
+      }
     }
-
-    if (positionsOnly) {
-      refViewer.current.setPositions(system.positions)
-      return
-    }
-
-    // Systems with cell are centered on the cell center and orientation is defined
-    // by the cell vectors.
-    let cell = system.cell
-    if (cell !== undefined) {
+    // Systems with non-empty cell are centered on the cell center and
+    // orientation is defined by the cell vectors.
+    if (system.cell !== undefined) {
       refViewer.current.setOptions({layout: {
         viewCenter: 'COC',
+        periodicity: 'wrap',
         viewRotation: {
           alignments: [
             ['up', 'c'],
@@ -191,8 +216,33 @@ export default function Structure({className, classes, system, options, viewer, 
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoading(false)
   }, [])
+
+  // Called whenever the given system changes. If positionsOnly is true, only
+  // updates the positions. Otherwise reloads the entire structure.
+  useEffect(() => {
+    if (!finalSystem) {
+      return
+    }
+
+    if (!accepted) {
+      const nAtoms = finalSystem.positions.length
+      setNAtoms(nAtoms)
+      if (nAtoms > 300) {
+        setShowPrompt(true)
+        return
+      }
+    }
+
+    if (positionsOnly && !!(refViewer?.current?.structure)) {
+      refViewer.current.setPositions(finalSystem.positions)
+      setLoading(false)
+      return
+    }
+
+    loadSystem(finalSystem, refViewer)
+  }, [finalSystem, positionsOnly, loadSystem, accepted])
 
   // Viewer settings
   useEffect(() => {
@@ -202,6 +252,10 @@ export default function Structure({className, classes, system, options, viewer, 
   useEffect(() => {
     refViewer.current.setOptions({latticeConstants: {enabled: showLatticeConstants}})
   }, [showLatticeConstants])
+
+  useEffect(() => {
+    refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
+  }, [wrap])
 
   useEffect(() => {
     refViewer.current.setOptions({cell: {enabled: showCell}})
@@ -230,31 +284,60 @@ export default function Structure({className, classes, system, options, viewer, 
     refViewer.current.render()
   }, [])
 
-  const content = <Box className={style.container}>
-    <div className={style.header}>
-      {fullscreen && <Typography variant="h6">Structure</Typography>}
-      <div className={style.spacer}></div>
-      <Tooltip title="Reset view">
-        <IconButton className={style.iconButton} onClick={handleReset}>
-          <Replay />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title="Toggle fullscreen">
-        <IconButton className={style.iconButton} onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Capture image">
-        <IconButton className={style.iconButton} onClick={takeScreencapture}>
-          <CameraAlt />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Options">
-        <IconButton className={style.iconButton} onClick={openMenu}>
-          <MoreVert />
-        </IconButton>
-      </Tooltip>
+  const structureToggles = useMemo(() => {
+    if (systems) {
+      const toggles = []
+      for (let key in systems) {
+        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
+      }
+      return toggles
+    }
+    return null
+  }, [systems])
+
+  // Enforce at least one structure view option
+  const handleStructureChange = (event, value) => {
+    if (value !== null) {
+      setShownSystem(value)
+      setFinalSystem(systems[value])
+    }
+  }
+
+  if (showPrompt) {
+    return <ErrorCard
+      message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+      className={styles.error}
+      actions={[{label: 'Yes', onClick: e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}]}
+    >
+    </ErrorCard>
+  }
+  if (loading) {
+    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+  }
+
+  // List of actionable buttons for the viewer
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>},
+    {tooltip: 'Options', onClick: openMenu, content: <MoreVert/>}
+  ]
+
+  const content = <Box className={styles.container}>
+    {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
+    {systems && <ToggleButtonGroup
+      className={styles.toggles}
+      size="small"
+      exclusive
+      value={shownSystem}
+      onChange={handleStructureChange}
+    >
+      {structureToggles}
+    </ToggleButtonGroup>
+    }
+    <div className={styles.viewerCanvas} ref={refCanvas}></div>
+    <div className={styles.header}>
+      <Actions actions={actions}></Actions>
       <Menu
         id='settings-menu'
         anchorEl={anchorEl}
@@ -301,29 +384,43 @@ export default function Structure({className, classes, system, options, viewer, 
             label='Show simulation cell'
           />
         </MenuItem>
+        <MenuItem key='wrap'>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={wrap}
+                onChange={(event) => { setWrap(!wrap) }}
+                color='primary'
+              />
+            }
+            label='Wrap positions'
+          />
+        </MenuItem>
       </Menu>
     </div>
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
   </Box>
 
-  return (
+  return <Box className={clsx(styles.root, className)} >
     <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
       {content}
     </Floatable>
-  )
-}
+  </Box>
+}, 'Could not load structure.')
 
 Structure.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   viewer: PropTypes.object, // Optional shared viewer instance.
-  system: PropTypes.object, // The system to display as section_system
+  system: PropTypes.object, // The system to display in the native materia-format
+  systems: PropTypes.object, // Set of systems that can be switched
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
-  positionsOnly: PropTypes.bool // Whether to update only positions. This is much faster than loading the entire structure.
+  positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
+  sizeLimit: PropTypes.number // Maximum system size before a prompt is shown
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
-  captureName: 'structure'
+  captureName: 'structure',
+  sizeLimit: 300
 }

@@ -265,7 +265,7 @@ export class EntryListUnstyled extends React.Component {
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <domain.EntryOverview data={row} />
+          <domain.EntryDetails data={row} />
         </div>
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>

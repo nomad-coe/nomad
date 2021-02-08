@@ -21,7 +21,7 @@ import { withStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import RawFiles from '../entry/RawFiles'
 import Markdown from '../Markdown'
 
-class EMSEntryCards extends React.Component {
+class EMSEntryRawView extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
     data: PropTypes.object.isRequired,
@@ -29,7 +29,6 @@ class EMSEntryCards extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
     description: {
       marginBottom: theme.spacing(3)
     }
@@ -39,7 +38,7 @@ class EMSEntryCards extends React.Component {
     const { classes, data, ...props } = this.props
 
     return (
-      <Card className={classes.root}>
+      <Card>
         <CardHeader title="Raw Data and Meta Data Files" />
         <CardContent classes={{root: classes.cardContent}}>
           <Markdown classes={{root: classes.description}}>{`
@@ -56,4 +55,4 @@ class EMSEntryCards extends React.Component {
   }
 }
 
-export default withStyles(EMSEntryCards.styles)(EMSEntryCards)
+export default withStyles(EMSEntryRawView.styles)(EMSEntryRawView)
