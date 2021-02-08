@@ -25,10 +25,10 @@ import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
-import Structure from '../visualization/Structure'
+import { Structure } from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
-import { ErrorHandler, ErrorCard } from '../ErrorHandler'
+import { ErrorHandler } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
 import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
@@ -378,7 +378,6 @@ QuantityValue.propTypes = ({
 function Overview({section, def}) {
   // States
   const [mode, setMode] = useState('bs')
-  const [warningIgnored, setWarningIgnored] = useState(false)
 
   // Styles
   const useStyles = makeStyles(
@@ -390,8 +389,6 @@ function Overview({section, def}) {
       dos: {
         width: '20rem',
         height: '40rem'
-      },
-      error: {
       },
       radio: {
         display: 'flex',
@@ -416,19 +413,16 @@ function Overview({section, def}) {
     let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
 
     let system
-    let positionsOnly = false
 
-    // Do not attempt to perform visualization if size is too big
+    // The section is incomplete, we leave the overview empty
     if (!section.atom_species) {
-      // the section is incomplete, we leave the overview empty
-      return ''
+      return null
     }
     const nAtoms = section.atom_species.length
     // Loading exact same system, no need to reload visualizer
     if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
     // Loading same system with different positions
     } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
-      positionsOnly = true
       system = {
         positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
       }
@@ -436,15 +430,6 @@ function Overview({section, def}) {
     // the first time, check the system size and for large systems ask the user
     // for permission.
     } else {
-      const sizeLimit = 300
-      if (nAtoms >= sizeLimit && !warningIgnored) {
-        return <ErrorCard
-          message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-          className={style.error}
-          actions={[{label: 'Yes', onClick: e => setWarningIgnored(true)}]}
-        >
-        </ErrorCard>
-      }
       system = {
         'species': section.atom_species,
         'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
@@ -456,46 +441,29 @@ function Overview({section, def}) {
     visualizedSystem.index = index
     visualizedSystem.nAtoms = nAtoms
 
-    return <ErrorHandler
-      message='Could not load structure viewer.'
-      className={style.error}
-    >
-      <Structure
-        viewer={viewer}
-        system={system}
-        positionsOnly={positionsOnly}
-      ></Structure>
-    </ErrorHandler>
+    return <Structure
+      viewer={viewer}
+      system={system}
+      positionsOnly={true}
+    ></Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
     return <>
       {mode === 'bs'
         ? <Box>
-          <ErrorHandler
-            message="Could not load the band structure."
-            className={style.error}
-          >
-            <BandStructure
-              className={style.bands}
-              data={section}
-              aspectRatio={1}
-              unitsState={unitsState}
-            ></BandStructure>
-          </ErrorHandler>
+          <BandStructure
+            className={style.bands}
+            data={section}
+            aspectRatio={1}
+            unitsState={unitsState}
+          ></BandStructure>
         </Box>
-        : <>
-          <ErrorHandler
-            message="Could not load the Brillouin zone."
-            className={style.error}
-          >
-            <BrillouinZone
-              viewer={bzViewer}
-              className={style.bands}
-              data={section}
-              aspectRatio={1}
-            ></BrillouinZone>
-          </ErrorHandler>
-        </>
+        : <BrillouinZone
+          viewer={bzViewer}
+          className={style.bands}
+          data={section}
+          aspectRatio={1}
+        ></BrillouinZone>
       }
       <FormControl component="fieldset" className={style.radio}>
         <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
@@ -516,17 +484,12 @@ function Overview({section, def}) {
     </>
   // DOS plot for section_dos
   } else if (def.name === 'Dos') {
-    return <ErrorHandler
-      message="Could not load the density of states"
-      className={style.error}
-    >
-      <DOS
-        className={style.dos}
-        data={section}
-        aspectRatio={1 / 2}
-        unitsState={unitsState}
-      ></DOS>
-    </ErrorHandler>
+    return <DOS
+      className={style.dos}
+      data={section}
+      aspectRatio={1 / 2}
+      unitsState={unitsState}
+    ></DOS>
   }
   return null
 }

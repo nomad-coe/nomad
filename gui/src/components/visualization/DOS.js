@@ -25,8 +25,9 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function DOS({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -37,6 +38,9 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
         title: {
           text: `Energy (${convertSILabel('joule', units)})`
         }
+      },
+      xaxis: {
+        showexponent: 'first'
       }
     }
     return mergeObjects(layout, defaultLayout)
@@ -121,12 +125,14 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
       <Plot
         data={finalData}
         layout={finalLayout}
+        resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
         onRelayout={onRelayout}
         onAfterPlot={onAfterPlot}
         onRedraw={onRedraw}
         onRelayouting={onRelayouting}
+        onReset={onReset}
       >
       </Plot>
     </Box>
@@ -136,6 +142,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
 DOS.propTypes = {
   data: PropTypes.object, // section_dos
   layout: PropTypes.object,
+  resetLayout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
@@ -143,5 +150,8 @@ DOS.propTypes = {
   onRedraw: PropTypes.func,
   onRelayout: PropTypes.func,
   onRelayouting: PropTypes.func,
+  onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
+
+export default withErrorHandler(DOS, 'Could not load density of states.')

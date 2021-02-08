@@ -18,9 +18,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { Tab, Tabs, Box } from '@material-ui/core'
+import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
-import RepoEntryView from './RepoEntryView'
+import RawFileView from './RawFileView'
 import KeepState from '../KeepState'
 import { guiBase } from '../../config'
 import { useRouteMatch, useHistory, Route } from 'react-router-dom'
@@ -37,9 +38,11 @@ all parsed data.
 The *log* tab, will show you a log of the entry's processing.
 `
 
-export function EntryPageContent({children, fixed}) {
-  const props = fixed ? {maxWidth: 1024} : {}
-  return <Box padding={3} margin="auto" {...props}>
+export function EntryPageContent({children, width, minWidth, maxWidth}) {
+  width = width || '1200px'
+  minWidth = minWidth || '1200px'
+  maxWidth = maxWidth || '1200px'
+  return <Box boxSizing={'border-box'} width={width} minWidth={minWidth} maxWidth={maxWidth} padding={'1.5rem 2rem'} margin="auto">
     {children}
   </Box>
 }
@@ -47,8 +50,10 @@ EntryPageContent.propTypes = ({
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ]).isRequired,
-  fixed: PropTypes.bool
+  ]),
+  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  minWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  maxWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
 })
 
 export default function EntryPage() {
@@ -58,24 +63,26 @@ export default function EntryPage() {
   return (
     <Route
       path={`${path}/:uploadId?/:calcId?/:tab?`}
-      render={({match: {params: {uploadId, calcId, tab = 'raw'}}}) => {
+      render={({match: {params: {uploadId, calcId, tab = 'overview'}}}) => {
         if (calcId && uploadId) {
           const calcProps = { calcId: calcId, uploadId: uploadId }
           return (
             <React.Fragment>
               <Tabs
-                value={tab || 'raw'}
+                value={tab || 'overview'}
                 onChange={(_, value) => history.push(`${url}/${uploadId}/${calcId}/${value}`)}
                 indicatorColor="primary"
                 textColor="primary"
                 variant="fullWidth"
               >
+                <Tab label="Overview" value="overview" />
                 <Tab label="Raw data" value="raw" />
                 <Tab label="Archive" value="archive"/>
                 <Tab label="Logs" value="logs"/>
               </Tabs>
 
-              <KeepState visible={tab === 'raw' || tab === undefined} render={props => <RepoEntryView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'overview' || tab === undefined} render={props => <OverviewView {...props} />} {...calcProps} />
+              <KeepState visible={tab === 'raw'} render={props => <RawFileView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
               <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
             </React.Fragment>

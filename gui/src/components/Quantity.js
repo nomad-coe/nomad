@@ -34,6 +34,7 @@ class Quantity extends React.Component {
     noWrap: PropTypes.bool,
     row: PropTypes.bool,
     column: PropTypes.bool,
+    flex: PropTypes.bool,
     data: PropTypes.object,
     quantity: PropTypes.oneOfType([
       PropTypes.string,
@@ -41,7 +42,8 @@ class Quantity extends React.Component {
     ]),
     withClipboard: PropTypes.bool,
     ellipsisFront: PropTypes.bool,
-    hideIfUnavailable: PropTypes.bool
+    hideIfUnavailable: PropTypes.bool,
+    description: PropTypes.string
   }
 
   static styles = theme => ({
@@ -72,9 +74,10 @@ class Quantity extends React.Component {
     },
     row: {
       display: 'flex',
+      flexWrap: 'wrap',
       flexDirection: 'row',
-      '& > :not(:first-child)': {
-        marginLeft: theme.spacing(3)
+      '& > :not(:last-child)': {
+        marginRight: theme.spacing(3)
       }
     },
     column: {
@@ -84,17 +87,30 @@ class Quantity extends React.Component {
         marginTop: theme.spacing(1)
       }
     },
+    flex: {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignContent: 'flex-start',
+      '& div': {
+        marginRight: theme.spacing(1)
+      }
+    },
     label: {
       color: 'rgba(0, 0, 0, 0.54)',
       fontSize: '0.75rem',
       fontWeight: 500
+    },
+    quantityList: {
+      display: 'flex',
+      flexDirection: 'column'
     }
   })
 
   render() {
     const {
-      classes, children, label, typography, loading, placeholder, noWrap, row, column,
-      quantity, data, withClipboard, ellipsisFront, hideIfUnavailable
+      classes, children, label, typography, loading, placeholder, noWrap, row, column, flex,
+      quantity, data, withClipboard, ellipsisFront, hideIfUnavailable, description
     } = this.props
     let content = null
     let clipboardContent = null
@@ -127,6 +143,9 @@ class Quantity extends React.Component {
       if (children && children.length !== 0) {
         content = children
       } else if (value) {
+        if (Array.isArray(value)) {
+          value = value.join(', ')
+        }
         clipboardContent = value
         content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
           {value}
@@ -140,11 +159,11 @@ class Quantity extends React.Component {
 
     const useLabel = label || (typeof quantity === 'string' ? quantity : 'MISSING LABEL')
 
-    if (row || column) {
-      return <div className={row ? classes.row : classes.column}>{children}</div>
+    if (row || column || flex) {
+      return <div className={row ? classes.row : (column ? classes.column : classes.flex)}>{children}</div>
     } else {
       return (
-        <Tooltip title={(searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
+        <Tooltip title={description || (searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
           <div className={classes.root}>
             <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
             <div className={classes.valueContainer}>

@@ -15,37 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
 
 import {
-  IconButton,
-  Tooltip,
-  Typography
+  Typography,
+  Box
 } from '@material-ui/core'
 import {
-  MoreVert,
   Fullscreen,
   FullscreenExit,
   CameraAlt,
   Replay
 } from '@material-ui/icons'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
+import Actions from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, menu, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting}) {
+export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset}) {
   // States
   const [float, setFloat] = useState(false)
-  const [initialLayout, setInitialLayout] = useState()
   const [captureSettings, setCaptureSettings] = useState()
   const firstUpdate = useRef(true)
-  const dataInitialized = useRef(false)
+  const [loading, setLoading] = useState(true)
 
-  React.useEffect(() => {
+  useEffect(() => {
     let defaultCapture = {
       format: 'png',
       width: 1024,
@@ -67,40 +66,25 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
       },
       root: {
       },
+      placeHolder: {
+        left: 0,
+        right: 0,
+        position: 'absolute'
+      },
+      floatable: {
+        visibility: loading ? 'hidden' : 'visible'
+      },
       spacer: {
         flex: 1
       },
       iconButton: {
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        marginLeft: theme.spacing(1)
       }
     }
   })
 
-  const style = useStyles(classes)
-
-  // Set the final menu
-  const finalMenu = useMemo(() => {
-    let defaultMenu = {
-      reset: {
-        visible: true,
-        disabled: false
-      },
-      fullscreen: {
-        visible: true,
-        disabled: false
-      },
-      capture: {
-        visible: true,
-        disabled: false
-      },
-      dropdown: {
-        visible: false,
-        disabled: false,
-        items: undefined
-      }
-    }
-    return mergeObjects(menu, defaultMenu)
-  }, [menu])
+  const styles = useStyles(classes)
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -115,12 +99,18 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
         t: 20,
         b: 50
       },
+      title: {
+        font: {
+          family: 'Titillium Web,sans-serif'
+        }
+      },
       xaxis: {
         linecolor: '#333',
         linewidth: 1,
         mirror: true,
         ticks: 'outside',
         showline: true,
+        autorange: true,
         fixedrange: true,
         title: {
           font: {
@@ -159,124 +149,127 @@ export default function Plot({data, layout, config, menu, floatTitle, capture, a
     return mergeObjects(layout, defaultLayout)
   }, [layout])
 
+  // Save the initial layout as reset
+  const finalResetLayout = useMemo(() => {
+    return cloneDeep(finalLayout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Set the final config
   const finalConfig = useMemo(() => {
     let defaultConfig = {
       scrollZoom: true,
-      displayModeBar: false
+      displayModeBar: false,
+      showTips: false
     }
     return mergeObjects(config, defaultConfig)
   }, [config])
 
-  // Initialize the plot object on first render
-  useEffect(() => {
-    Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
-    if (firstUpdate.current) {
-      firstUpdate.current = false
-    }
-    if (data) {
-      setInitialLayout(cloneDeep(finalLayout))
-      dataInitialized.current = true
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // In order to properly detect changes in a reference, a reference callback is
+  // This callback redraws the plot whenever the canvas element changes. In
+  // order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const canvasRef = useCallback(node => {
-    canvasRef.current = node
-    if (node === null) {
+    // Do nothing if the canvas has not actually changed or data is not ready
+    if (node === null || canvasRef.current === node || !data) {
       return
     }
-    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
-  }, [data, finalLayout, finalConfig])
 
-  // Update data
-  useEffect(() => {
-    if (firstUpdate.current) {
-      return
-    }
-    Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
-    if (data) {
-      if (!dataInitialized.current) {
-        setInitialLayout(cloneDeep(finalLayout))
-        dataInitialized.current = true
+    // When the canvas reference is instantiated for the first time, create a
+    // new plot.
+    if (canvasRef.current === undefined) {
+      Plotly.newPlot(node, data, finalLayout, finalConfig)
+      if (firstUpdate.current) {
+        firstUpdate.current = false
       }
+      setLoading(false)
+    // When the reference changes for the second time, react instead to save
+    // some time
+    } else {
+      let oldLayout = canvasRef.current.layout
+      let oldData = canvasRef.current.data
+      Plotly.react(node, oldData, oldLayout, finalConfig)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, finalConfig])
 
-  // Update layout
-  useEffect(() => {
-    if (firstUpdate.current) {
-      return
+    // (Re-)attach events whenever the canvas changes
+    if (onRelayouting) {
+      node.on('plotly_relayouting', onRelayouting)
     }
-    Plotly.relayout(canvasRef.current, finalLayout)
+    if (onRedraw) {
+      node.on('plotly_redraw', onRedraw)
+    }
+    if (onRelayout) {
+      node.on('plotly_relayout', onRelayout)
+    }
+    if (onHover) {
+      node.on('plotly_hover', onHover)
+    }
+
+    // Update canvas element
+    canvasRef.current = node
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, onHover, onRedraw, onRelayout, onRelayouting])
+
+  // Update plots when data or config is updated. useLayoutEffect is used so
+  // that React rendering and Plotly rendering are synced.
+  useLayoutEffect(() => {
+    if (!firstUpdate.current) {
+      Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRef, data, finalConfig])
+
+  // Relayout plots when layout updated. useLayoutEffect is used so that React
+  // rendering and Plotly rendering are synced.
+  useLayoutEffect(() => {
+    if (!firstUpdate.current && canvasRef?.current && finalLayout) {
+      Plotly.relayout(canvasRef.current, finalLayout)
+    }
   }, [canvasRef, finalLayout])
 
-  // For resetting the view. We need to pass a deep clone of the initialLayout,
-  // as Plotly will modify the given object in-place
+  // For resetting the view.
   const handleReset = useCallback(() => {
-    if (initialLayout) {
-      Plotly.relayout(canvasRef.current, cloneDeep(initialLayout))
+    if (canvasRef?.current && finalResetLayout) {
+      Plotly.relayout(canvasRef.current, mergeObjects(finalResetLayout, canvasRef.current.layout))
+      if (onReset) {
+        onReset()
+      }
     }
-  }, [canvasRef, initialLayout])
+  }, [canvasRef, finalResetLayout, onReset])
 
   // Handles plot capturing
   const handleCapture = useCallback(() => {
     Plotly.downloadImage(canvasRef.current, captureSettings)
   }, [canvasRef, captureSettings])
 
-  return (
-    <Floatable className={clsx(className, style.root)} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
-      <div className={style.header}>
-        {float && <Typography variant="h6">{floatTitle}</Typography>}
-        <div className={style.spacer}></div>
-        { finalMenu.reset.visible === true
-          ? <Tooltip title="Reset view">
-            <IconButton className={style.iconButton} onClick={handleReset} disabled={finalMenu.reset.disabled}> <Replay />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.fullscreen.visible === true
-          ? <Tooltip
-            title="Toggle fullscreen">
-            <IconButton className={style.iconButton} onClick={() => setFloat(!float)} disabled={finalMenu.fullscreen.disabled}>
-              {float ? <FullscreenExit /> : <Fullscreen />}
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.capture.visible === true
-          ? <Tooltip title="Capture image">
-            <IconButton className={style.iconButton} onClick={handleCapture} disabled={finalMenu.capture.disabled}>
-              <CameraAlt />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-        { finalMenu.dropdown.visible === true
-          ? <Tooltip title="Options">
-            <IconButton className={style.iconButton} onClick={() => {}} disabled={finalMenu.dropdown.disabled}>
-              <MoreVert />
-            </IconButton>
-          </Tooltip>
-          : ''
-        }
-      </div>
+  // List of actionable buttons for the plot
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
+  ]
+
+  // Even if the plots are still loading, all the html elements need to be
+  // placed in the DOM. During loading, they are placed underneath the
+  // palceholder with visibility=hidden. This way Plotly still has access to
+  // these HTML nodes and their sizes when the plots are loading.
+  return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
+    {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
+    <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
+      {float && <Typography variant="h6">{floatTitle}</Typography>}
       <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
+      <div className={styles.header}>
+        <Actions actions={actions}></Actions>
+      </div>
     </Floatable>
-  )
+  </Box>
 }
 
 Plot.propTypes = {
   data: PropTypes.array, // Plotly.js data object
   layout: PropTypes.object, // Plotly.js layout object
   config: PropTypes.object, // Plotly.js config object
-  menu: PropTypes.object, // Menu settings
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   className: PropTypes.string,
@@ -285,7 +278,9 @@ Plot.propTypes = {
   onRelayout: PropTypes.func,
   onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
-  onRelayouting: PropTypes.func
+  onRelayouting: PropTypes.func,
+  onHover: PropTypes.func,
+  onReset: PropTypes.func
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

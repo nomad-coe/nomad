@@ -48,7 +48,7 @@ export class ErrorHandler extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      let msg = this.props.errorHandler ? this.props.errorHandler(this.state.error) : this.props.message
+      let msg = typeof this.props.message === 'string' ? this.props.message : this.props.message(this.state.error)
       return <ErrorCard
         message={msg}
         className={this.props.className}
@@ -60,8 +60,7 @@ export class ErrorHandler extends React.Component {
 }
 ErrorHandler.propTypes = ({
   children: PropTypes.object,
-  message: PropTypes.string, // Fixed error message. Provide either this or errorHandler
-  errorHandler: PropTypes.func, // Function that is called once an error is caught. It recveives the error object as argument and should return an error message as string.
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]), // Provide either a fixed error message or a callback that will receive the error details.
   classes: PropTypes.object,
   className: PropTypes.string
 })
@@ -102,7 +101,6 @@ export function ErrorCard({message, className, classes, actions}) {
   })
 
   const style = useStyles(classes)
-  console.log(actions)
 
   return <Card className={clsx(style.root, className)}>
     <CardContent className={[style.content, style['content:last-child']].join(' ')}>
@@ -132,4 +130,12 @@ ErrorCard.propTypes = ({
   classes: PropTypes.object,
   className: PropTypes.string,
   actions: PropTypes.array
+})
+
+export const withErrorHandler = (WrappedComponent, message) => props => (
+  <ErrorHandler message={message}>
+    <WrappedComponent {...props}></WrappedComponent>
+  </ErrorHandler>)
+withErrorHandler.propTypes = ({
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
 })
