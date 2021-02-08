@@ -191,6 +191,8 @@ class MaterialSearch():
         should_to_or(query)
 
         s = self._s.query(query)
+        # import json
+        # print(json.dumps(s.to_dict(), indent=2))
         extra = self._extra
         s = s.extra(**extra)
         return s
@@ -263,7 +265,8 @@ class MaterialSearch():
         quantities: List[MQuantity] = [
             # Material level quantities
             MQuantity("elements", es_field="species", elastic_mapping_type=Text, has_only_quantity=MQuantity(name="species.keyword")),
-            MQuantity("formula", es_field="formula_reduced", elastic_mapping_type=Keyword, converter=lambda x: "".join(query_from_formula(x).split())),
+            MQuantity("formula", es_field="species_and_counts", elastic_mapping_type=Text, has_only_quantity=MQuantity(name="species_and_counts.keyword")),
+            # MQuantity("formula", es_field="formula_reduced", elastic_mapping_type=Keyword, converter=lambda x: "".join(query_from_formula(x).split())),
             MQuantity("material_id", es_field="material_id", elastic_mapping_type=Keyword),
             MQuantity("material_type", es_field="material_type", elastic_mapping_type=Keyword),
             MQuantity("material_name", es_field="material_name", elastic_mapping_type=Keyword),

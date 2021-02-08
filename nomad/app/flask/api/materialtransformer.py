@@ -136,8 +136,8 @@ class MElasticTransformer(ElasticTransformer):
             try:
                 # Instead of the Optimade standard, the elements are combined
                 # by the standard used by NOMAD.
-                species, _ = get_hill_decomposition(list(values()))
-                value = " ".join(species)
+                species, counts = get_hill_decomposition(list(values()))
+                value = " ".join(["{}{}".format(s, "" if c == 1 else c) for s, c in zip(species, counts)])
             except KeyError:
                 raise Exception("HAS ONLY is only supported for chemical symbols")
 
@@ -155,7 +155,6 @@ class MElasticTransformer(ElasticTransformer):
         # other search parameters:
         # https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html#bool-min-should-match
         if kind == "should":
-            print("MINIMUM")
             args["minimum_should_match"] = 1
         return Q("bool", **args)
 
