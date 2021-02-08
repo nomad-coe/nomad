@@ -16,13 +16,13 @@ worker:
   routing: "queue"
 
 elastic:
-  host: elastic
+  host: elasticsearch.elasticsearch.svc.cluster.local
 
 mongo:
-  host: mongo
+  host: rs0/mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local
 
 logstash:
-  host: logstash
+  host: logstash.elk.svc.cluster.local
 
 dbname: nomad_dev_v0_8
 
