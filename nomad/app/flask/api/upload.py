@@ -126,6 +126,7 @@ upload_metadata_parser.add_argument('local_path', type=str, help='Use a local fi
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
 upload_metadata_parser.add_argument('publish_directly', type=bool, help='Set this parameter to publish the upload directly after processing.', location='args')
+upload_metadata_parser.add_argument('uploader_id', type=str, help='Admins can upload on behalf of other users.', location='args')
 upload_metadata_parser.add_argument('oasis_upload_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the upload_id.', location='args')
 upload_metadata_parser.add_argument('oasis_uploader_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the uploader\' id.', location='args')
 upload_metadata_parser.add_argument('oasis_deployment_id', type=str, help='Use if this is an upload from an OASIS to the central NOMAD and set it to the OASIS\' deployment id.', location='args')
@@ -277,6 +278,15 @@ class UploadListResource(Resource):
                 abort(400, 'The given original uploader does not exist.')
         elif oasis_uploader_id is not None or oasis_deployment_id is not None:
             abort(400, 'For an oasis upload you must provide an oasis_upload_id.')
+
+        uploader_id = request.args.get('uploader_id')
+        if uploader_id is not None:
+            if not g.user.is_admin:
+                abort(401, 'Only an admins can upload for other users.')
+
+            user = datamodel.User.get(user_id=uploader_id)
+            if user is None:
+                abort(400, 'The given uploader does not exist.')
 
         upload_name = request.args.get('name')
         if oasis_upload_id is not None:
