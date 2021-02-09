@@ -37,7 +37,7 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset}) {
+export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset, layoutSubject}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
@@ -206,6 +206,14 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       node.on('plotly_hover', onHover)
     }
 
+    // Subscribe to the layout change publisher if one is given
+    if (layoutSubject) {
+      layoutSubject.subscribe(layout => {
+        let oldLayout = canvasRef.current.layout
+        Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+      })
+    }
+
     // Update canvas element
     canvasRef.current = node
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,7 +288,8 @@ Plot.propTypes = {
   onRedraw: PropTypes.func,
   onRelayouting: PropTypes.func,
   onHover: PropTypes.func,
-  onReset: PropTypes.func
+  onReset: PropTypes.func,
+  layoutSubject: PropTypes.any // A RxJS Subject for listening to layout changes
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

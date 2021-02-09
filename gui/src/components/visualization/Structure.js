@@ -17,7 +17,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, fade } from '@material-ui/core/styles'
 import {
   Box,
   Checkbox,
@@ -88,7 +88,12 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
         height: '2rem'
       },
       toggle: {
-        color: theme.palette.action.active
+        color: fade(theme.palette.action.active, 0.87)
+      },
+      selected: {
+        '&$selected': {
+          color: fade(theme.palette.action.active, 0.87)
+        }
       },
       title: {
         marginBottom: theme.spacing(1)
@@ -291,7 +296,12 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     if (systems) {
       const toggles = []
       for (let key in systems) {
-        toggles.push(<ToggleButton key={key} value={key} aria-label={key} classes={{root: styles.toggle}}>{key}</ToggleButton>)
+        toggles.push(<ToggleButton
+          key={key}
+          value={key}
+          aria-label={key}
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >{key}</ToggleButton>)
       }
       return toggles
     }

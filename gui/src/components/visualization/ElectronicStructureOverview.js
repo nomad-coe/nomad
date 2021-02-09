@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
+import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -38,6 +39,10 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
     autorange: false,
     yaxis: {range: range}
   })
+
+  // RxJS subject for efficiently propagating y axis changes between DOS and BS
+  const bsYSubject = useMemo(() => new Subject(), [])
+  const dosYSubject = useMemo(() => new Subject(), [])
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -73,9 +78,9 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
           range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
         }
       }
-      setDosLayout(update)
+      bsYSubject.next(update)
     }
-  }, [data])
+  }, [data, bsYSubject])
   const handleDOSRelayouting = useCallback((event) => {
     if (data.bs) {
       let update = {
@@ -84,9 +89,9 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
           range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
         }
       }
-      setBsLayout(update)
+      dosYSubject.next(update)
     }
-  }, [data])
+  }, [data, dosYSubject])
 
   return (
     <RecoilRoot>
@@ -101,6 +106,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               unitsState={unitsState}
               onRelayouting={handleBSRelayouting}
               onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+              layoutSubject={dosYSubject}
             ></BandStructure>
             : <NoData aspectRatio={1.2}/>
           }
@@ -115,6 +121,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               onRelayouting={handleDOSRelayouting}
               onReset={() => { setBsLayout({yaxis: {range: range}}) }}
               unitsState={unitsState}
+              layoutSubject={bsYSubject}
             ></DOS>
             : <NoData aspectRatio={0.6}/>
           }

@@ -17,6 +17,7 @@
  */
 import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
+import { Subject } from 'rxjs'
 import {
   Box,
   Typography,
@@ -49,6 +50,10 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   // States
   const [dosLayout, setDosLayout] = useState({yaxis: {range: range}})
   const [bsLayout, setBsLayout] = useState({yaxis: {range: range}})
+
+  // RxJS subject for efficiently propagating y axis changes between DOS and BS
+  const bsYSubject = useMemo(() => new Subject(), [])
+  const dosYSubject = useMemo(() => new Subject(), [])
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -87,9 +92,9 @@ export default function VibrationalOverview({data, className, classes, raiseErro
           range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
         }
       }
-      setDosLayout(update)
+      bsYSubject.next(update)
     }
-  }, [data])
+  }, [data, bsYSubject])
   const handleDOSRelayouting = useCallback((event) => {
     if (data.bs) {
       let update = {
@@ -98,9 +103,9 @@ export default function VibrationalOverview({data, className, classes, raiseErro
           range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
         }
       }
-      setBsLayout(update)
+      dosYSubject.next(update)
     }
-  }, [data])
+  }, [data, dosYSubject])
 
   const theme = useTheme()
   const heatCapacityData = useMemo(() => {
@@ -170,6 +175,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 unitsState={unitsState}
                 onRelayouting={handleBSRelayouting}
                 onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+                layoutSubject={dosYSubject}
               ></BandStructure>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
@@ -187,6 +193,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 onRelayouting={handleDOSRelayouting}
                 onReset={() => { setBsLayout({yaxis: {range: range}}) }}
                 unitsState={unitsState}
+                layoutSubject={bsYSubject}
               ></DOS>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
