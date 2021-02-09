@@ -87,6 +87,9 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
         marginBottom: theme.spacing(1),
         height: '2rem'
       },
+      toggle: {
+        color: theme.palette.action.active
+      },
       title: {
         marginBottom: theme.spacing(1)
       },
@@ -288,12 +291,12 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     if (systems) {
       const toggles = []
       for (let key in systems) {
-        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
+        toggles.push(<ToggleButton key={key} value={key} aria-label={key} classes={{root: styles.toggle}}>{key}</ToggleButton>)
       }
       return toggles
     }
     return null
-  }, [systems])
+  }, [systems, styles])
 
   // Enforce at least one structure view option
   const handleStructureChange = (event, value) => {

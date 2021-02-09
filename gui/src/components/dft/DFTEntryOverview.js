@@ -363,13 +363,7 @@ export default function DFTEntryOverview({data}) {
 
   // Figure out which actions are available for this entry
   const actions = useMemo(() => {
-    const buttons = [
-      {
-        tooltip: 'Show the API access code',
-        onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-        content: 'API access'
-      }
-    ]
+    const buttons = []
     if (encyclopediaEnabled && data?.encyclopedia?.material?.material_id) {
       buttons.push(
         {
@@ -379,6 +373,13 @@ export default function DFTEntryOverview({data}) {
         }
       )
     }
+    buttons.push(
+      {
+        tooltip: 'Show the API access code',
+        onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+        content: 'API access'
+      }
+    )
     return buttons
   }, [data, showAPIDialog])
 
