@@ -22,6 +22,7 @@ import {
   Typography
 } from '@material-ui/core'
 import DOS from './DOS'
+import NoData from './NoData'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
 import { RecoilRoot } from 'recoil'
@@ -90,10 +91,10 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
   return (
     <RecoilRoot>
       <Box className={style.row}>
-        {data.bs
-          ? <Box className={style.bs}>
-            <Typography variant="subtitle1" align='center'>Band structure</Typography>
-            <BandStructure
+        <Box className={style.bs}>
+          <Typography variant="subtitle1" align='center'>Band structure</Typography>
+          {data.bs
+            ? <BandStructure
               data={data?.bs?.section_k_band}
               layout={bsLayout}
               aspectRatio={1.2}
@@ -101,13 +102,13 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               onRelayouting={handleBSRelayouting}
               onReset={() => { setDosLayout({yaxis: {range: range}}) }}
             ></BandStructure>
-          </Box>
-          : null
-        }
-        {data.dos
-          ? <Box className={style.dos}>
-            <Typography variant="subtitle1" align='center'>Density of states</Typography>
-            <DOS
+            : <NoData aspectRatio={1.2}/>
+          }
+        </Box>
+        <Box className={style.dos}>
+          <Typography variant="subtitle1" align='center'>Density of states</Typography>
+          {data.dos
+            ? <DOS
               data={data.dos.section_dos}
               layout={dosLayout}
               aspectRatio={0.6}
@@ -115,9 +116,9 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               onReset={() => { setBsLayout({yaxis: {range: range}}) }}
               unitsState={unitsState}
             ></DOS>
-          </Box>
-          : null
-        }
+            : <NoData aspectRatio={0.6}/>
+          }
+        </Box>
         {data.bs
           ? <Box className={style.bz}>
             <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
