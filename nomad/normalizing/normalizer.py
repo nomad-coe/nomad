@@ -95,7 +95,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # Try to find workflow information and select the representative system
         # based on it
-        workflow = self.section_run.section_workflow
+        workflow = self.entry_archive.section_workflow
         if workflow:
             try:
                 iscc = workflow.calculation_result_ref

@@ -50,7 +50,7 @@ class EncyclopediaNormalizer(Normalizer):
         # Primarily try to determine the calculation type from workflow
         # information
         try:
-            workflow = self.section_run.section_workflow
+            workflow = self.entry_archive.section_workflow
             workflow_map = {
                 "molecular_dynamics": calc_enums.molecular_dynamics,
                 "geometry_optimization": calc_enums.geometry_optimization,
@@ -58,8 +58,8 @@ class EncyclopediaNormalizer(Normalizer):
             }
             workflow_enum = workflow_map.get(workflow.workflow_type)
             if workflow_enum is not None:
-                calc.calculation_type = calc_type
-                return calc_type
+                calc.calculation_type = workflow_enum
+                return workflow_enum
         except Exception:
             pass
 
