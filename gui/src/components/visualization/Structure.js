@@ -199,7 +199,7 @@ export const Structure = withErrorHandler(({
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
     // If the cell all zeroes, positions are assumed to be cartesian.

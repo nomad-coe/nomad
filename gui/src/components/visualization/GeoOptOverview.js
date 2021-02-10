@@ -155,7 +155,6 @@ function GeoOptOverview({data, className, classes}) {
           system={data.structures[0]}
           aspectRatio={0.75}
           options={{view: {fitMargin: 0.75}}}
-          positionsOnly={true}
           positionsSubject={positionsSubject}
         ></Structure>
       </Box>

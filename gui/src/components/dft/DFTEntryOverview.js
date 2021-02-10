@@ -169,32 +169,34 @@ export default function DFTEntryOverview({data}) {
       const section_run = archive.section_run[0]
       let section_method = null
       const sccs = section_run.section_single_configuration_calculation
-      for (let i = sccs.length - 1; i > -1; --i) {
-        const scc = sccs[i]
-        if (!e_dos && scc.section_dos) {
-          if (scc.section_dos[scc.section_dos.length - 1].dos_kind !== 'vibrational') {
-            e_dos = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_dos': scc.section_dos[scc.section_dos.length - 1]
+      if (sccs) {
+        for (let i = sccs.length - 1; i > -1; --i) {
+          const scc = sccs[i]
+          if (!e_dos && scc.section_dos) {
+            if (scc.section_dos[scc.section_dos.length - 1].dos_kind !== 'vibrational') {
+              e_dos = {
+                'section_system': scc.single_configuration_calculation_to_system_ref,
+                'section_method': scc.single_configuration_calculation_to_system_ref,
+                'section_dos': scc.section_dos[scc.section_dos.length - 1]
+              }
             }
           }
-        }
-        if (!e_bs && scc.section_k_band) {
-          if (scc.section_k_band[scc.section_k_band.length - 1].band_structure_kind !== 'vibrational') {
-            e_bs = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+          if (!e_bs && scc.section_k_band) {
+            if (scc.section_k_band[scc.section_k_band.length - 1].band_structure_kind !== 'vibrational') {
+              e_bs = {
+                'section_system': scc.single_configuration_calculation_to_system_ref,
+                'section_method': scc.single_configuration_calculation_to_system_ref,
+                'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+              }
             }
           }
-        }
-        if (section_method !== false) {
-          let iMethod = scc.single_configuration_to_calculation_method_ref
-          if (section_method === null) {
-            section_method = iMethod
-          } else if (iMethod !== section_method) {
-            section_method = false
+          if (section_method !== false) {
+            let iMethod = scc.single_configuration_to_calculation_method_ref
+            if (section_method === null) {
+              section_method = iMethod
+            } else if (iMethod !== section_method) {
+              section_method = false
+            }
           }
         }
       }
@@ -295,9 +297,17 @@ export default function DFTEntryOverview({data}) {
       }
 
       // Get method details. Any referenced core_setttings will also be taken
-      // into account
+      // into account. If there were no SCCs from which the method could be
+      // selected, simply select the last available method.
       if (section_method) {
         section_method = resolveRef(section_method, archive)
+      } else {
+        const methods = section_run.section_method
+        if (methods) {
+          section_method = methods[methods.length - 1]
+        }
+      }
+      if (section_method) {
         const refs = section_method?.section_method_to_method_refs
         if (refs) {
           for (const ref of refs) {
