@@ -15,6 +15,7 @@
 
 import logging
 import mmap
+import io
 import re
 import numpy as np
 import pint
@@ -337,12 +338,15 @@ class TextParser(FileParser):
         Memory mapped representation of the file.
         '''
         if self._file_handler is None:
-            with open(self.mainfile) as f:
-                self._file_handler = mmap.mmap(
-                    f.fileno(), self._file_length, access=mmap.ACCESS_COPY,
-                    offset=self._file_offset)
-                # set the extra chunk loaded before the intended offset to empty
-                self._file_handler[:self._file_pad] = b' ' * self._file_pad
+            with self.open(self.mainfile) as f:
+                if isinstance(f, io.TextIOWrapper):
+                    self._file_handler = mmap.mmap(
+                        f.fileno(), self._file_length, access=mmap.ACCESS_COPY,
+                        offset=self._file_offset)
+                    # set the extra chunk loaded before the intended offset to empty
+                    self._file_handler[:self._file_pad] = b' ' * self._file_pad
+                else:
+                    self._file_handler = f.read()
             self._file_pad = 0
         return self._file_handler
 

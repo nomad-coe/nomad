@@ -184,10 +184,13 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
             args = getattr(record, 'args', None)
             if args is not None and len(args) == 5:
                 _, method, path_w_query, _, status_code = args
-                path, query_string = path_w_query.split('?', 1)
+                path_w_query_components = path_w_query.split('?', 1)
+                path = path_w_query_components[0]
+                if len(path_w_query_components) == 2:
+                    query_string = path_w_query_components[1]
+                    message['uvicorn.query_string'] = query_string
                 message['uvicorn.method'] = method
                 message['uvicorn.path'] = path
-                message['uvicorn.query_string'] = query_string
                 message['uvicorn.status_code'] = status_code
         else:
             # Add extra fields

@@ -21,7 +21,7 @@ import os.path
 from nomad import config, datamodel
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
-from .legacy import LegacyParser, VaspOutcarParser
+from .legacy import LegacyParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
 from eelsdbconverter import EELSApiJsonConverter
@@ -129,12 +129,6 @@ parsers = [
     ChaosParser(),
     PhonopyParser(),
     VASPParser(),
-    VaspOutcarParser(
-        name='parsers/vasp-outcar', code_name='VASP', code_homepage='https://www.vasp.at/',
-        parser_class_name='vaspparser.VaspOutcarParser',
-        mainfile_name_re=r'(.*/)?OUTCAR(\.[^\.]*)?',
-        mainfile_contents_re=(r'^\svasp\.')
-    ),
     ExcitingParser(),
     FHIAimsParser(),
     LegacyParser(
