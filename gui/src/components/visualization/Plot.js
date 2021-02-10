@@ -289,7 +289,12 @@ Plot.propTypes = {
   onRelayouting: PropTypes.func,
   onHover: PropTypes.func,
   onReset: PropTypes.func,
-  layoutSubject: PropTypes.any // A RxJS Subject for listening to layout changes
+  /**
+   * A RxJS Subject for efficient, non-persistent, layout changes that bypass
+   * rendering of the component. Should send messages that contain the new
+   * layout object.
+  */
+  layoutSubject: PropTypes.any
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

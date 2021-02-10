@@ -86,23 +86,13 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
     if (data.dos) {
-      let update = {
-        yaxis: {
-          autorange: false,
-          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
-        }
-      }
+      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
       bsYSubject.next(update)
     }
   }, [data, bsYSubject])
   const handleDOSRelayouting = useCallback((event) => {
     if (data.bs) {
-      let update = {
-        yaxis: {
-          autorange: false,
-          range: [event['yaxis.range[0]'], event['yaxis.range[1]']]
-        }
-      }
+      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
       dosYSubject.next(update)
     }
   }, [data, dosYSubject])

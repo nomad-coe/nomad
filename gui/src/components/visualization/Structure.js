@@ -47,7 +47,19 @@ import clsx from 'clsx'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-export const Structure = withErrorHandler(({className, classes, system, systems, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) => {
+export const Structure = withErrorHandler(({
+  className,
+  classes,
+  system,
+  systems,
+  options,
+  viewer,
+  captureName,
+  aspectRatio,
+  positionsOnly,
+  sizeLimit,
+  positionsSubject}
+) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -180,6 +192,11 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     }
     if (refCanvas.current) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
+    }
+    if (positionsSubject && refViewer.current) {
+      positionsSubject.subscribe((positions) => {
+        refViewer.current.setPositions(positions)
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -412,7 +429,6 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
       </Menu>
     </div>
   </Box>
-
   return <Box className={clsx(styles.root, className)} >
     <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
       {content}
@@ -430,7 +446,13 @@ Structure.propTypes = {
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
-  sizeLimit: PropTypes.number // Maximum system size before a prompt is shown
+  sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
+  /**
+   * A RxJS Subject for efficient, non-persistent, position changes that bypass
+   * rendering of the component. Should send messages that contain the new
+   * atomic positions as a list.
+  */
+  positionsSubject: PropTypes.any
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,
