@@ -23,6 +23,7 @@ import ElectronicStructureOverview from '../visualization/ElectronicStructureOve
 import VibrationalOverview from '../visualization/VibrationalOverview'
 import { ApiDialog } from '../ApiDialogButton'
 import { Structure } from '../visualization/Structure'
+import NoData from '../visualization/NoData'
 import Actions from '../Actions'
 import Quantity from '../Quantity'
 import { RecoilRoot } from 'recoil'
@@ -337,17 +338,19 @@ export default function DFTEntryOverview({data}) {
       // Get the representative system by looping over systems
       let reprSys = null
       const systems = section_run.section_system
-      for (let i = systems.length - 1; i > -1; --i) {
-        const sys = systems[i]
-        if (!reprSys && sys.is_representative) {
-          const reprSys = {
-            'species': sys.atom_species,
-            'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-            'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-            'pbc': sys.configuration_periodic_dimensions
+      if (systems) {
+        for (let i = systems.length - 1; i > -1; --i) {
+          const sys = systems[i]
+          if (!reprSys && sys.is_representative) {
+            const reprSys = {
+              'species': sys.atom_species,
+              'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+              'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+              'pbc': sys.configuration_periodic_dimensions
+            }
+            structs.original = reprSys
+            break
           }
-          structs.original = reprSys
-          break
         }
       }
 
@@ -506,7 +509,10 @@ export default function DFTEntryOverview({data}) {
                 </Box>
               </Grid>
               <Grid item xs={7} style={{marginTop: '-2rem'}}>
-                <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5} />
+                {(loading || !_.isEmpty(structures))
+                  ? <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5}/>
+                  : <NoData aspectRatio={1.5}/>
+                }
               </Grid>
             </Grid>
           </PropertyCard>
