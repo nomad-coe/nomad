@@ -248,7 +248,7 @@ export const Structure = withErrorHandler(({
     refViewer.current.saveReset()
     refViewer.current.reset()
     setLoading(false)
-  }, [])
+  }, [materialType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
