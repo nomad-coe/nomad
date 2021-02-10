@@ -52,7 +52,7 @@ class XMLParser(FileParser):
             try:
                 self._file_handler = ElementTree.parse(self.open(self.mainfile)).getroot()
             except Exception:
-                self.logger.error('Failed to load xml file %s' % self.mainfile)
+                self.logger.error('failed to load xml file')
             self.init_parameters()
 
         return self._file_handler
