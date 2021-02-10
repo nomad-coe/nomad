@@ -53,6 +53,7 @@ export const Structure = withErrorHandler(({
   system,
   systems,
   options,
+  materialType,
   viewer,
   captureName,
   aspectRatio,
@@ -210,10 +211,9 @@ export const Structure = withErrorHandler(({
     }
     // Systems with non-empty cell are centered on the cell center and
     // orientation is defined by the cell vectors.
+    const opts = {}
     if (system.cell !== undefined) {
-      refViewer.current.setOptions({layout: {
-        viewCenter: 'COC',
-        periodicity: 'wrap',
+      opts.layout = {
         viewRotation: {
           alignments: [
             ['up', 'c'],
@@ -224,19 +224,25 @@ export const Structure = withErrorHandler(({
             [1, 0, 0, 30]
           ]
         }
-      }}, false, false)
-    // Systems without cell are centered on the center of positions
+      }
     } else {
-      refViewer.current.setOptions({layout: {
-        viewCenter: 'COP',
+      opts.layout = {
         viewRotation: {
           rotations: [
             [0, 1, 0, 60],
             [1, 0, 0, 30]
           ]
         }
-      }}, false, false)
+      }
     }
+    if (system.cell !== undefined && materialType === 'bulk') {
+      opts.layout.viewCenter = 'COC'
+      opts.layout.periodicity = 'wrap'
+    // Systems without cell are centered on the center of positions
+    } else {
+      opts.layout.viewCenter = 'COP'
+    }
+    refViewer.current.setOptions(opts, false, false)
     refViewer.current.load(system)
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
@@ -443,6 +449,7 @@ Structure.propTypes = {
   system: PropTypes.object, // The system to display in the native materia-format
   systems: PropTypes.object, // Set of systems that can be switched
   options: PropTypes.object, // Viewer options
+  materialType: PropTypes.string, // The material type, affects the visualization layout.
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.

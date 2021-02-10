@@ -51,7 +51,7 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'flex-start',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         width: '100%',
         height: '100%',
         flexWrap: 'wrap'

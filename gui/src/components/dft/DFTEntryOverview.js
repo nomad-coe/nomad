@@ -173,20 +173,26 @@ export default function DFTEntryOverview({data}) {
         for (let i = sccs.length - 1; i > -1; --i) {
           const scc = sccs[i]
           if (!e_dos && scc.section_dos) {
-            if (scc.section_dos[scc.section_dos.length - 1].dos_kind !== 'vibrational') {
-              e_dos = {
-                'section_system': scc.single_configuration_calculation_to_system_ref,
-                'section_method': scc.single_configuration_calculation_to_system_ref,
-                'section_dos': scc.section_dos[scc.section_dos.length - 1]
+            const first_dos = scc.section_dos[scc.section_dos.length - 1]
+            if (!_.isEmpty(first_dos)) {
+              if (first_dos.dos_kind !== 'vibrational') {
+                e_dos = {
+                  'section_system': scc.single_configuration_calculation_to_system_ref,
+                  'section_method': scc.single_configuration_calculation_to_system_ref,
+                  'section_dos': scc.section_dos[scc.section_dos.length - 1]
+                }
               }
             }
           }
           if (!e_bs && scc.section_k_band) {
-            if (scc.section_k_band[scc.section_k_band.length - 1].band_structure_kind !== 'vibrational') {
-              e_bs = {
-                'section_system': scc.single_configuration_calculation_to_system_ref,
-                'section_method': scc.single_configuration_calculation_to_system_ref,
-                'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+            const first_band = scc.section_k_band[scc.section_k_band.length - 1]
+            if (!_.isEmpty(first_band)) {
+              if (first_band.band_structure_kind !== 'vibrational') {
+                e_bs = {
+                  'section_system': scc.single_configuration_calculation_to_system_ref,
+                  'section_method': scc.single_configuration_calculation_to_system_ref,
+                  'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+                }
               }
             }
           }
@@ -500,7 +506,7 @@ export default function DFTEntryOverview({data}) {
                 </Box>
               </Grid>
               <Grid item xs={7} style={{marginTop: '-2rem'}}>
-                <Structure systems={structures} aspectRatio={1.5} />
+                <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5} />
               </Grid>
             </Grid>
           </PropertyCard>
