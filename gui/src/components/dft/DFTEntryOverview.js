@@ -23,6 +23,7 @@ import ElectronicStructureOverview from '../visualization/ElectronicStructureOve
 import VibrationalOverview from '../visualization/VibrationalOverview'
 import { ApiDialog } from '../ApiDialogButton'
 import { Structure } from '../visualization/Structure'
+import NoData from '../visualization/NoData'
 import Actions from '../Actions'
 import Quantity from '../Quantity'
 import { RecoilRoot } from 'recoil'
@@ -169,32 +170,40 @@ export default function DFTEntryOverview({data}) {
       const section_run = archive.section_run[0]
       let section_method = null
       const sccs = section_run.section_single_configuration_calculation
-      for (let i = sccs.length - 1; i > -1; --i) {
-        const scc = sccs[i]
-        if (!e_dos && scc.section_dos) {
-          if (scc.section_dos[scc.section_dos.length - 1].dos_kind !== 'vibrational') {
-            e_dos = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_dos': scc.section_dos[scc.section_dos.length - 1]
+      if (sccs) {
+        for (let i = sccs.length - 1; i > -1; --i) {
+          const scc = sccs[i]
+          if (!e_dos && scc.section_dos) {
+            const first_dos = scc.section_dos[scc.section_dos.length - 1]
+            if (!_.isEmpty(first_dos)) {
+              if (first_dos.dos_kind !== 'vibrational') {
+                e_dos = {
+                  'section_system': scc.single_configuration_calculation_to_system_ref,
+                  'section_method': scc.single_configuration_calculation_to_system_ref,
+                  'section_dos': scc.section_dos[scc.section_dos.length - 1]
+                }
+              }
             }
           }
-        }
-        if (!e_bs && scc.section_k_band) {
-          if (scc.section_k_band[scc.section_k_band.length - 1].band_structure_kind !== 'vibrational') {
-            e_bs = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+          if (!e_bs && scc.section_k_band) {
+            const first_band = scc.section_k_band[scc.section_k_band.length - 1]
+            if (!_.isEmpty(first_band)) {
+              if (first_band.band_structure_kind !== 'vibrational') {
+                e_bs = {
+                  'section_system': scc.single_configuration_calculation_to_system_ref,
+                  'section_method': scc.single_configuration_calculation_to_system_ref,
+                  'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+                }
+              }
             }
           }
-        }
-        if (section_method !== false) {
-          let iMethod = scc.single_configuration_to_calculation_method_ref
-          if (section_method === null) {
-            section_method = iMethod
-          } else if (iMethod !== section_method) {
-            section_method = false
+          if (section_method !== false) {
+            let iMethod = scc.single_configuration_to_calculation_method_ref
+            if (section_method === null) {
+              section_method = iMethod
+            } else if (iMethod !== section_method) {
+              section_method = false
+            }
           }
         }
       }
@@ -295,9 +304,17 @@ export default function DFTEntryOverview({data}) {
       }
 
       // Get method details. Any referenced core_setttings will also be taken
-      // into account
+      // into account. If there were no SCCs from which the method could be
+      // selected, simply select the last available method.
       if (section_method) {
         section_method = resolveRef(section_method, archive)
+      } else {
+        const methods = section_run.section_method
+        if (methods) {
+          section_method = methods[methods.length - 1]
+        }
+      }
+      if (section_method) {
         const refs = section_method?.section_method_to_method_refs
         if (refs) {
           for (const ref of refs) {
@@ -321,17 +338,19 @@ export default function DFTEntryOverview({data}) {
       // Get the representative system by looping over systems
       let reprSys = null
       const systems = section_run.section_system
-      for (let i = systems.length - 1; i > -1; --i) {
-        const sys = systems[i]
-        if (!reprSys && sys.is_representative) {
-          const reprSys = {
-            'species': sys.atom_species,
-            'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-            'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-            'pbc': sys.configuration_periodic_dimensions
+      if (systems) {
+        for (let i = systems.length - 1; i > -1; --i) {
+          const sys = systems[i]
+          if (!reprSys && sys.is_representative) {
+            const reprSys = {
+              'species': sys.atom_species,
+              'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+              'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+              'pbc': sys.configuration_periodic_dimensions
+            }
+            structs.original = reprSys
+            break
           }
-          structs.original = reprSys
-          break
         }
       }
 
@@ -363,13 +382,7 @@ export default function DFTEntryOverview({data}) {
 
   // Figure out which actions are available for this entry
   const actions = useMemo(() => {
-    const buttons = [
-      {
-        tooltip: 'Show the API access code',
-        onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-        content: 'API access'
-      }
-    ]
+    const buttons = []
     if (encyclopediaEnabled && data?.encyclopedia?.material?.material_id) {
       buttons.push(
         {
@@ -379,6 +392,13 @@ export default function DFTEntryOverview({data}) {
         }
       )
     }
+    buttons.push(
+      {
+        tooltip: 'Show the API access code',
+        onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+        content: 'API access'
+      }
+    )
     return buttons
   }, [data, showAPIDialog])
 
@@ -489,7 +509,10 @@ export default function DFTEntryOverview({data}) {
                 </Box>
               </Grid>
               <Grid item xs={7} style={{marginTop: '-2rem'}}>
-                <Structure systems={structures} aspectRatio={1.5} />
+                {(loading || !_.isEmpty(structures))
+                  ? <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5}/>
+                  : <NoData aspectRatio={1.5}/>
+                }
               </Grid>
             </Grid>
           </PropertyCard>
