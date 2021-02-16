@@ -104,12 +104,14 @@ export class EntryListUnstyled extends React.Component {
       overflow: 'auto'
     },
     entryDetails: {
-      paddingTop: theme.spacing(3),
-      paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3)
+      paddingTop: theme.spacing(2),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     entryDetailsContents: {
-      display: 'flex'
+      display: 'flex',
+      maxWidth: 1024,
+      margin: 'auto'
     },
     entryDetailsRow: {
       paddingRight: theme.spacing(3)
@@ -121,9 +123,7 @@ export class EntryListUnstyled extends React.Component {
       flexShrink: 0,
       justifyContent: 'flex-end',
       marginBottom: theme.spacing(1),
-      marginLeft: theme.spacing(0.5),
-      marginRight: theme.spacing(0.5),
-      marginTop: theme.spacing(1)
+      marginTop: theme.spacing(2)
     }
   })
 
