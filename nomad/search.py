@@ -39,7 +39,7 @@ from nomad.app.v1.models import (
 
 _entry_metadata_defaults = {
     quantity.name: quantity.default
-    for quantity in datamodel.EntryMetadata.m_def.quantities
+    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
     if quantity.default not in [None, [], False, 0]
 }
 

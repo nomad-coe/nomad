@@ -104,7 +104,7 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
 
     mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     assert mongo_dataset is not None
-    for quantity in Dataset.m_def.quantities:
+    for quantity in Dataset.m_def.quantities:  # pylint: disable=not-an-iterable
         if quantity in [Dataset.pid, Dataset.doi]:
             assert quantity.name not in dataset or dataset[quantity.name] is not None
         else:
