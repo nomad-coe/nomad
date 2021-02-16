@@ -247,17 +247,6 @@ export class EntryListUnstyled extends React.Component {
     }
   }
 
-  selectionQuery() {
-    const { selected } = this.state
-    if (selected) {
-      return {
-        'calc_id': selected.join(',')
-      }
-    } else {
-      return this.props.query
-    }
-  }
-
   renderEntryDetails(row) {
     const { classes } = this.props
     const domain = (row.domain && domains[row.domain]) || domains.dft
@@ -375,7 +364,7 @@ export class EntryListUnstyled extends React.Component {
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
-    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected} : query
+    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected, owner: query['owner']} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}
