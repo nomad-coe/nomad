@@ -421,30 +421,16 @@ function Overview({section, def}) {
     let tmpIndex = tmp.indexOf('/')
     let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
 
-    let system
-
     // The section is incomplete, we leave the overview empty
     if (!section.atom_species) {
       return null
     }
     const nAtoms = section.atom_species.length
-    // Loading exact same system, no need to reload visualizer
-    if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
-    // Loading same system with different positions
-    } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
-      system = {
-        positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
-      }
-    // Loading a completely new system. When trying to visualize the system for
-    // the first time, check the system size and for large systems ask the user
-    // for permission.
-    } else {
-      system = {
-        'species': section.atom_species,
-        'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-        'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
-        'pbc': section.configuration_periodic_dimensions
-      }
+    let system = {
+      'species': section.atom_species,
+      'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+      'pbc': section.configuration_periodic_dimensions
     }
     visualizedSystem.sectionPath = sectionPath
     visualizedSystem.index = index
@@ -455,7 +441,6 @@ function Overview({section, def}) {
       className={style.structure}
       viewer={viewer}
       system={system}
-      positionsOnly={true}
     ></Structure>
   // Structure visualization for idealized_structure
   } else if (def.name === 'IdealizedStructure') {
@@ -470,7 +455,12 @@ function Overview({section, def}) {
       fractional: true,
       pbc: section.periodicity
     }
-    return <Structure system={system} className={style.structure} aspectRatio={1}></Structure>
+    return <Structure
+      system={system}
+      className={style.structure}
+      viewer={viewer}
+      aspectRatio={1}>
+    </Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
     return section.band_structure_kind !== 'vibrational'
