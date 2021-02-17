@@ -104,3 +104,5 @@ export function normalizeDisplayValue(value) {
   }
   return value
 }
+
+export const electronicRange = [-10, 20]

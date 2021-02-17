@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState, useEffect, useMemo } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { apiContext } from '../api'
@@ -32,7 +32,7 @@ import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { errorContext } from '../errors'
 import { authorList, convertSI, mergeObjects } from '../../utils'
-import { resolveRef } from '../archive/metainfo'
+import { resolveRef, refPath } from '../archive/metainfo'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
@@ -51,10 +51,10 @@ const useHeaderStyles = makeStyles(theme => ({
 }))
 
 function Header({title, actions}) {
-  const classes = useHeaderStyles()
-  return <Box className={classes.root}>
+  const styles = useHeaderStyles()
+  return <Box className={styles.root}>
     <Box flexGrow={1}>
-      <Typography className={classes.title}>
+      <Typography className={styles.title}>
         {title}
       </Typography>
     </Box>
@@ -106,7 +106,7 @@ const useSidebarCardStyles = makeStyles(theme => ({
 function SidebarCard({title, actions, children}) {
   const classes = useSidebarCardStyles()
   return <CardContent className={classes.content}>
-    <Header title={title} actions={actions}></Header>
+    {(title || actions) && <Header title={title} actions={actions}></Header>}
     {children}
   </CardContent>
 }
@@ -130,12 +130,15 @@ const useStyles = makeStyles(theme => ({
   sidebar: {
     paddingRight: theme.spacing(3)
   },
-  actions: {
-    marginBottom: theme.spacing(2)
-  },
   divider: {
     marginTop: theme.spacing(1),
     marginBottom: theme.spacing(1)
+  },
+  materialText: {
+    height: '100%',
+    display: 'flex',
+    justifyContent: 'space-between',
+    flexDirection: 'column'
   }
 }))
 
@@ -143,17 +146,18 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 export default function DFTEntryOverview({data}) {
-  const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
   const [electronicStructure, setElectronicStructure] = useState(null)
   const [vibrationalData, setVibrationalData] = useState(null)
   const [geoOpt, setGeoOpt] = useState(null)
   const [structures, setStructures] = useState(null)
-  const materialType = data?.encyclopedia?.material?.material_type
   const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
+  const materialType = data?.encyclopedia?.material?.material_type
+
+  const styles = useStyles()
 
   // When loaded for the first time, start downloading the archive. Once
   // finished, determine the final layout based on it's contents. TODO: When we
@@ -162,6 +166,7 @@ export default function DFTEntryOverview({data}) {
   useEffect(() => {
     api.archive(data.upload_id, data.calc_id).then(archive => {
       let structs = {}
+      const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
 
       // Figure out what properties are present by looping over the SCCS. This
       // information will eventually be directly available in the ES index.
@@ -175,25 +180,23 @@ export default function DFTEntryOverview({data}) {
           const scc = sccs[i]
           if (!e_dos && scc.section_dos) {
             const first_dos = scc.section_dos[scc.section_dos.length - 1]
-            if (!_.isEmpty(first_dos)) {
-              if (first_dos.dos_kind !== 'vibrational') {
-                e_dos = {
-                  'section_system': scc.single_configuration_calculation_to_system_ref,
-                  'section_method': scc.single_configuration_calculation_to_system_ref,
-                  'section_dos': scc.section_dos[scc.section_dos.length - 1]
-                }
+            if (first_dos.dos_kind !== 'vibrational') {
+              e_dos = {
+                'section_system': scc.single_configuration_calculation_to_system_ref,
+                'section_method': scc.single_configuration_calculation_to_system_ref,
+                'section_dos': scc.section_dos[scc.section_dos.length - 1],
+                'path': `${url}/section_run/section_single_configuration_calculation:${i}/section_dos:${scc.section_dos.length - 1}`
               }
             }
           }
           if (!e_bs && scc.section_k_band) {
             const first_band = scc.section_k_band[scc.section_k_band.length - 1]
-            if (!_.isEmpty(first_band)) {
-              if (first_band.band_structure_kind !== 'vibrational') {
-                e_bs = {
-                  'section_system': scc.single_configuration_calculation_to_system_ref,
-                  'section_method': scc.single_configuration_calculation_to_system_ref,
-                  'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
-                }
+            if (first_band.band_structure_kind !== 'vibrational') {
+              e_bs = {
+                'section_system': scc.single_configuration_calculation_to_system_ref,
+                'section_method': scc.single_configuration_calculation_to_system_ref,
+                'section_k_band': scc.section_k_band[scc.section_k_band.length - 1],
+                'path': `${url}/section_run/section_single_configuration_calculation:${i}/section_k_band:${scc.section_k_band.length - 1}`
               }
             }
           }
@@ -249,7 +252,7 @@ export default function DFTEntryOverview({data}) {
               'pbc': sys.configuration_periodic_dimensions
             })
           }
-          if (!failed && energies.length > 2) {
+          if (!failed) {
             energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
             const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
             const sampling_method = section_run?.section_sampling_method
@@ -267,12 +270,14 @@ export default function DFTEntryOverview({data}) {
             v_bs = {
               'section_system': scc.single_configuration_calculation_to_system_ref,
               'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1]
+              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1],
+              'path': `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
             }
             v_dos = {
               'section_system': scc.single_configuration_calculation_to_system_ref,
               'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_dos': scc.section_dos[scc.section_dos.length - 1]
+              'section_dos': scc.section_dos[scc.section_dos.length - 1],
+              'path': `${url}/${refPath(scc_ref)}/section_dos:${scc.section_dos.length - 1}`
             }
           }
 
@@ -380,36 +385,12 @@ export default function DFTEntryOverview({data}) {
   const quantityProps = {data: data, loading: !data}
   const domain = data.domain && domains[data.domain]
 
-  // Figure out which actions are available for this entry
-  const actions = useMemo(() => {
-    const buttons = []
-    if (encyclopediaEnabled && data?.encyclopedia?.material?.material_id) {
-      buttons.push(
-        {
-          tooltip: 'View more information about this material',
-          content: 'Material',
-          href: `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
-        }
-      )
-    }
-    buttons.push(
-      {
-        tooltip: 'Show the API access code',
-        onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-        content: 'API access'
-      }
-    )
-    return buttons
-  }, [data, showAPIDialog])
-
   return (
     <RecoilRoot>
-      <Grid container spacing={0} className={classes.root}>
+      <Grid container spacing={0} className={styles.root}>
 
         {/* Left column */}
-        <Grid item xs={4} className={classes.sidebar}>
-          <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
-          <Actions className={classes.actions} justifyContent='flex-start' variant='contained' size='medium' actions={actions}></Actions>
+        <Grid item xs={4} className={styles.sidebar}>
           <SidebarCard title='Method'>
             <Quantity flex>
               <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
@@ -430,7 +411,7 @@ export default function DFTEntryOverview({data}) {
               {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
             </Quantity>
           </SidebarCard>
-          <Divider className={classes.divider} />
+          <Divider className={styles.divider} />
           <SidebarCard title='Author metadata'>
             <Quantity flex>
               <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
@@ -459,8 +440,8 @@ export default function DFTEntryOverview({data}) {
               </Quantity>
             </Quantity>
           </SidebarCard>
-          <Divider className={classes.divider}/>
-          <SidebarCard title='Processing information'>
+          <Divider className={styles.divider}/>
+          <SidebarCard>
             <Quantity column style={{maxWidth: 350}}>
               <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
               <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps}/>
@@ -485,6 +466,19 @@ export default function DFTEntryOverview({data}) {
               </Quantity>
             </Quantity>
           </SidebarCard>
+          <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+          <Actions
+            justifyContent='flex-end'
+            variant='outlined'
+            color='primary'
+            size='medium'
+            actions={[{
+              tooltip: 'Show the API access code',
+              onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+              content: 'API'
+            }]}
+          >
+          </Actions>
         </Grid>
 
         {/* Right column */}
@@ -492,7 +486,7 @@ export default function DFTEntryOverview({data}) {
           <PropertyCard title="Material">
             <Grid container spacing={1}>
               <Grid item xs={5}>
-                <Box>
+                <Box className={styles.materialText}>
                   <Quantity column>
                     <Quantity quantity="formula" label='formula' noWrap {...quantityProps}/>
                     <Quantity quantity="dft.system" label='material type' noWrap {...quantityProps}/>
@@ -506,6 +500,21 @@ export default function DFTEntryOverview({data}) {
                       </Quantity>}
                     </Quantity>
                   </Quantity>
+                  {encyclopediaEnabled && data?.encyclopedia?.material?.material_id &&
+                    <Actions
+                      className={styles.actions}
+                      justifyContent='flex-start'
+                      color='primary'
+                      variant='text'
+                      size='medium'
+                      actions={[{
+                        tooltip: 'View this material in the Encyclopedia',
+                        content: 'Encyclopedia',
+                        href: `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
+                      }]}
+                    >
+                    </Actions>
+                  }
                 </Box>
               </Grid>
               <Grid item xs={7} style={{marginTop: '-2rem'}}>

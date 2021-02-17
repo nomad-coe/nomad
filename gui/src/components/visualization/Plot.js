@@ -19,6 +19,7 @@ import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallba
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
+import { useHistory } from 'react-router-dom'
 
 import {
   Typography,
@@ -28,7 +29,8 @@ import {
   Fullscreen,
   FullscreenExit,
   CameraAlt,
-  Replay
+  Replay,
+  ViewList
 } from '@material-ui/icons'
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
@@ -37,12 +39,31 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset, layoutSubject}) {
+export default function Plot({
+  data,
+  layout,
+  config,
+  floatTitle,
+  metaInfoLink,
+  capture,
+  aspectRatio,
+  autoMargin,
+  className,
+  classes,
+  onRelayout,
+  onRedraw,
+  onRelayouting,
+  onHover,
+  onReset,
+  layoutSubject
+}) {
   // States
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
-  const firstUpdate = useRef(true)
+  const firstRender = useRef(true)
   const [loading, setLoading] = useState(true)
+
+  const history = useHistory()
 
   useEffect(() => {
     let defaultCapture = {
@@ -65,6 +86,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         zIndex: 1
       },
       root: {
+
       },
       placeHolder: {
         left: 0,
@@ -83,7 +105,6 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       }
     }
   })
-
   const styles = useStyles(classes)
 
   // Set the final layout
@@ -93,10 +114,12 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       hovermode: false,
       showlegend: false,
       autosize: true,
+      // There is extra space reserved for the top and bottom margins so that
+      // automargin does not make the plot jump around too much.
       margin: {
         l: 60,
         r: 20,
-        t: 20,
+        t: 25,
         b: 50
       },
       title: {
@@ -105,12 +128,13 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         }
       },
       xaxis: {
+        automargin: false,
+        autorange: true,
         linecolor: '#333',
         linewidth: 1,
         mirror: true,
         ticks: 'outside',
         showline: true,
-        autorange: true,
         fixedrange: true,
         title: {
           font: {
@@ -127,6 +151,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       },
       yaxis: {
         automargin: true,
+        autorange: true,
         linecolor: '#333',
         linewidth: 1,
         mirror: true,
@@ -151,9 +176,10 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
 
   // Save the initial layout as reset
   const finalResetLayout = useMemo(() => {
-    return cloneDeep(finalLayout)
+    const resLayout = cloneDeep(finalLayout)
+    return resLayout
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [autoMargin])
 
   // Set the final config
   const finalConfig = useMemo(() => {
@@ -180,9 +206,6 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     // new plot.
     if (canvasRef.current === undefined) {
       Plotly.newPlot(node, data, finalLayout, finalConfig)
-      if (firstUpdate.current) {
-        firstUpdate.current = false
-      }
       setLoading(false)
     // When the reference changes for the second time, react instead to save
     // some time
@@ -222,19 +245,28 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
   // Update plots when data or config is updated. useLayoutEffect is used so
   // that React rendering and Plotly rendering are synced.
   useLayoutEffect(() => {
-    if (!firstUpdate.current) {
+    if (!firstRender.current) {
       Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasRef, data, finalConfig])
+  }, [firstRender, canvasRef, data, finalConfig])
 
   // Relayout plots when layout updated. useLayoutEffect is used so that React
   // rendering and Plotly rendering are synced.
   useLayoutEffect(() => {
-    if (!firstUpdate.current && canvasRef?.current && finalLayout) {
+    if (!firstRender.current && canvasRef?.current && finalLayout) {
       Plotly.relayout(canvasRef.current, finalLayout)
     }
-  }, [canvasRef, finalLayout])
+  }, [firstRender, canvasRef, finalLayout])
+
+  // Only called once after the first render. Sets the reference for determining
+  // if an initial render has been done. Using a reference instead of a state
+  // avoids a rerender.
+  useLayoutEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false
+    }
+  })
 
   // For resetting the view.
   const handleReset = useCallback(() => {
@@ -257,6 +289,9 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
     {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
   ]
+  if (metaInfoLink) {
+    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(metaInfoLink) }, content: <ViewList/>})
+  }
 
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
@@ -266,7 +301,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
     <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
+      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative', top: '-5px', overflow: 'hidden'}}></div>
       <div className={styles.header}>
         <Actions actions={actions}></Actions>
       </div>
@@ -280,11 +315,12 @@ Plot.propTypes = {
   config: PropTypes.object, // Plotly.js config object
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
+  autoMargin: PropTypes.bool, // Whether to automatically update margins beyond the first render.
   className: PropTypes.string,
   classes: PropTypes.string,
   floatTitle: PropTypes.string, // The title of the plot shown in floating mode
+  metaInfoLink: PropTypes.string, // A link to the metainfo definition
   onRelayout: PropTypes.func,
-  onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayouting: PropTypes.func,
   onHover: PropTypes.func,

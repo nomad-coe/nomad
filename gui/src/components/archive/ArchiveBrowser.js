@@ -35,6 +35,7 @@ import Markdown from '../Markdown'
 import { UnitSelector } from './UnitSelector'
 import { convertSI } from '../../utils'
 import { conversionMap } from '../../units'
+import { electronicRange } from '../../config'
 
 export const configState = atom({
   key: 'config',
@@ -378,6 +379,7 @@ QuantityValue.propTypes = ({
 function Overview({section, def}) {
   // States
   const [mode, setMode] = useState('bs')
+  const units = useRecoilValue(unitsState)
 
   // Styles
   const useStyles = makeStyles(
@@ -448,44 +450,55 @@ function Overview({section, def}) {
     ></Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
-    return <>
-      {mode === 'bs'
-        ? <Box>
-          <BandStructure
+    return section.band_structure_kind !== 'vibrational'
+      ? <>
+        {mode === 'bs'
+          ? <Box>
+            <BandStructure
+              className={style.bands}
+              data={section}
+              layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+              aspectRatio={1}
+              unitsState={unitsState}
+            ></BandStructure>
+          </Box>
+          : <BrillouinZone
+            viewer={bzViewer}
             className={style.bands}
             data={section}
             aspectRatio={1}
-            unitsState={unitsState}
-          ></BandStructure>
-        </Box>
-        : <BrillouinZone
-          viewer={bzViewer}
+          ></BrillouinZone>
+        }
+        <FormControl component="fieldset" className={style.radio}>
+          <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
+            <FormControlLabel
+              value="bs"
+              control={<Radio color="primary" />}
+              label="Band structure"
+              labelPlacement="end"
+            />
+            <FormControlLabel
+              value="bz"
+              control={<Radio color="primary" />}
+              label="Brillouin zone"
+              labelPlacement="end"
+            />
+          </RadioGroup>
+        </FormControl>
+      </>
+      : <Box>
+        <BandStructure
           className={style.bands}
           data={section}
           aspectRatio={1}
-        ></BrillouinZone>
-      }
-      <FormControl component="fieldset" className={style.radio}>
-        <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
-          <FormControlLabel
-            value="bs"
-            control={<Radio color="primary" />}
-            label="Band structure"
-            labelPlacement="end"
-          />
-          <FormControlLabel
-            value="bz"
-            control={<Radio color="primary" />}
-            label="Brillouin zone"
-            labelPlacement="end"
-          />
-        </RadioGroup>
-      </FormControl>
-    </>
+          unitsState={unitsState}
+        ></BandStructure>
+      </Box>
   // DOS plot for section_dos
   } else if (def.name === 'Dos') {
     return <DOS
       className={style.dos}
+      layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
       data={section}
       aspectRatio={1 / 2}
       unitsState={unitsState}

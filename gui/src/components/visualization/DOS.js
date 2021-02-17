@@ -27,7 +27,11 @@ import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
 
-function DOS({data, layout, resetLayout, aspectRatio, className, classes, unitsState, ...other}) {
+const useStyles = makeStyles({
+  root: {}
+})
+
+function DOS({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -47,12 +51,6 @@ function DOS({data, layout, resetLayout, aspectRatio, className, classes, unitsS
   }, [layout, units])
 
   // Styles
-  const useStyles = makeStyles(
-    {
-      root: {
-      }
-    }
-  )
   const style = useStyles(classes)
   const theme = useTheme()
 
@@ -125,7 +123,6 @@ function DOS({data, layout, resetLayout, aspectRatio, className, classes, unitsS
       <Plot
         data={finalData}
         layout={finalLayout}
-        resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
         {...other}
@@ -138,7 +135,6 @@ function DOS({data, layout, resetLayout, aspectRatio, className, classes, unitsS
 DOS.propTypes = {
   data: PropTypes.object, // section_dos
   layout: PropTypes.object,
-  resetLayout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,

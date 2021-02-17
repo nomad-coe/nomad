@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Subject } from 'rxjs'
 import {
@@ -46,10 +46,6 @@ export default function VibrationalOverview({data, className, classes, raiseErro
     }
     return convertSI([min, max], 'joule', units, false)
   }, [data, units])
-
-  // States
-  const [dosLayout, setDosLayout] = useState({yaxis: {range: range}})
-  const [bsLayout, setBsLayout] = useState({yaxis: {range: range}})
 
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
@@ -118,7 +114,6 @@ export default function VibrationalOverview({data, className, classes, raiseErro
         zeroline: false
       },
       yaxis: {
-        autorange: true,
         title: 'Heat capacity (J/K)',
         zeroline: false
       }
@@ -144,7 +139,6 @@ export default function VibrationalOverview({data, className, classes, raiseErro
         zeroline: false
       },
       yaxis: {
-        autorange: true,
         title: 'Helmholtz free energy (J)',
         zeroline: false
       }
@@ -160,12 +154,13 @@ export default function VibrationalOverview({data, className, classes, raiseErro
             {data?.bs?.section_k_band
               ? <BandStructure
                 data={data.bs.section_k_band}
-                layout={bsLayout}
+                layout={{yaxis: {autorange: false, range: range}}}
                 aspectRatio={1.2}
                 unitsState={unitsState}
                 onRelayouting={handleBSRelayouting}
-                onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+                onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
                 layoutSubject={dosYSubject}
+                metaInfoLink={data.bs.path}
               ></BandStructure>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
@@ -178,12 +173,13 @@ export default function VibrationalOverview({data, className, classes, raiseErro
             {data?.dos?.section_dos
               ? <DOS
                 data={data.dos.section_dos}
-                layout={dosLayout}
+                layout={{yaxis: {autorange: false, range: range}}}
                 aspectRatio={0.6}
                 onRelayouting={handleDOSRelayouting}
-                onReset={() => { setBsLayout({yaxis: {range: range}}) }}
+                onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
                 unitsState={unitsState}
                 layoutSubject={bsYSubject}
+                metaInfoLink={data.dos.path}
               ></DOS>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }

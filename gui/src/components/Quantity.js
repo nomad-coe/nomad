@@ -136,7 +136,11 @@ class Quantity extends React.Component {
         value = 'unavailable'
       }
 
-      if ((!value || value === 'unavailable') && hideIfUnavailable) {
+      if (value === 'unavailable') {
+        value = ''
+      }
+
+      if (!value && hideIfUnavailable) {
         return ''
       }
 

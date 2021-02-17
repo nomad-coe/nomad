@@ -27,18 +27,17 @@ import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
 
+const useStyles = makeStyles({
+  root: {
+  }
+})
+
 function BandStructure({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
   // Styles
-  const useStyles = makeStyles(
-    {
-      root: {
-      }
-    }
-  )
   const style = useStyles(classes)
   const theme = useTheme()
 
@@ -181,7 +180,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout])
+  }, [units, layout])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
