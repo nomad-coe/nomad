@@ -32,7 +32,8 @@ import {
   Fullscreen,
   FullscreenExit,
   CameraAlt,
-  Replay
+  Replay,
+  ViewList
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
@@ -40,6 +41,7 @@ import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
 import { withErrorHandler, ErrorCard } from '../ErrorHandler'
+import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
 import clsx from 'clsx'
 
@@ -74,6 +76,8 @@ export const Structure = withErrorHandler(({
   const [loading, setLoading] = useState(true)
   const [shownSystem, setShownSystem] = useState(null)
   const [finalSystem, setFinalSystem] = useState(system)
+
+  const history = useHistory()
 
   // Variables
   const open = Boolean(anchorEl)
@@ -355,9 +359,12 @@ export const Structure = withErrorHandler(({
   const actions = [
     {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
     {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>},
-    {tooltip: 'Options', onClick: openMenu, content: <MoreVert/>}
+    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
   ]
+  if (finalSystem?.path) {
+    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(finalSystem.path) }, content: <ViewList/>})
+  }
+  actions.push({tooltip: 'Options', onClick: openMenu, content: <MoreVert/>})
 
   const content = <Box className={styles.container}>
     {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
@@ -448,6 +455,7 @@ Structure.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
   system: PropTypes.object, // The system to display in the native materia-format
   systems: PropTypes.object, // Set of systems that can be switched
+  metaInfoLink: PropTypes.string, // A link to the metainfo definition
   options: PropTypes.object, // Viewer options
   materialType: PropTypes.string, // The material type, affects the visualization layout.
   captureName: PropTypes.string, // Name of the file that the user can download

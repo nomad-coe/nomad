@@ -180,7 +180,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [units, layout])
+  }, [layout])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {

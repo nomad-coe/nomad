@@ -105,7 +105,7 @@ export default function Plot({
       }
     }
   })
-  const styles = useStyles(classes)
+  const styles = useStyles({classes: classes})
 
   // Set the final layout
   const finalLayout = useMemo(() => {

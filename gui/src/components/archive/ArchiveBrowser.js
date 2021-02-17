@@ -386,11 +386,18 @@ function Overview({section, def}) {
     {
       bands: {
         width: '30rem',
-        height: '30rem'
+        height: '30rem',
+        margin: 'auto'
+      },
+      structure: {
+        width: '20rem',
+        height: '20rem',
+        margin: 'auto'
       },
       dos: {
         width: '20rem',
-        height: '40rem'
+        height: '40rem',
+        margin: 'auto'
       },
       radio: {
         display: 'flex',
@@ -444,10 +451,26 @@ function Overview({section, def}) {
     visualizedSystem.nAtoms = nAtoms
 
     return <Structure
+      aspectRatio={1}
+      className={style.structure}
       viewer={viewer}
       system={system}
       positionsOnly={true}
     ></Structure>
+  // Structure visualization for idealized_structure
+  } else if (def.name === 'IdealizedStructure') {
+    // The section is incomplete, we leave the overview empty
+    if (!section.atom_labels) {
+      return null
+    }
+    const system = {
+      species: section.atom_labels,
+      cell: section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      positions: section.atom_positions,
+      fractional: true,
+      pbc: section.periodicity
+    }
+    return <Structure system={system} className={style.structure} aspectRatio={1}></Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
     return section.band_structure_kind !== 'vibrational'
@@ -498,7 +521,7 @@ function Overview({section, def}) {
   } else if (def.name === 'Dos') {
     return <DOS
       className={style.dos}
-      layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+      layout={section.dos_kind === 'vibrational' ? undefined : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
       data={section}
       aspectRatio={1 / 2}
       unitsState={unitsState}

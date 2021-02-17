@@ -97,7 +97,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const heatCapacityData = useMemo(() => {
     return [{
       x: data.temperature,
-      y: data.heat_capacity,
+      y: data.heat_capacity.thermodynamical_property_heat_capacity_C_v,
       type: 'scatter',
       mode: 'lines',
       line: {
@@ -122,7 +122,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const freeEnergyData = useMemo(() => {
     return [{
       x: data.temperature,
-      y: data.free_energy,
+      y: data.free_energy.vibrational_free_energy_at_constant_volume,
       type: 'scatter',
       mode: 'lines',
       line: {
@@ -195,6 +195,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 layout={heatCapacityLayout}
                 aspectRatio={1}
                 floatTitle="Heat capacity"
+                metaInfoLink={data.heat_capacity.path}
               >
               </Plot>
             </ErrorHandler>
@@ -210,6 +211,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 layout={freeEnergyLayout}
                 aspectRatio={1}
                 floatTitle="Helmholtz free energy"
+                metaInfoLink={data.free_energy.path}
               >
               </Plot>
             </ErrorHandler>

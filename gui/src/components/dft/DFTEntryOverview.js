@@ -246,10 +246,10 @@ export default function DFTEntryOverview({data}) {
             let sys = calc?.single_configuration_calculation_to_system_ref
             sys = resolveRef(sys, archive)
             trajectory.push({
-              'species': sys.atom_species,
-              'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-              'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-              'pbc': sys.configuration_periodic_dimensions
+              species: sys.atom_species,
+              cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+              positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+              pbc: sys.configuration_periodic_dimensions
             })
           }
           if (!failed) {
@@ -268,16 +268,16 @@ export default function DFTEntryOverview({data}) {
           let v_bs = null
           if (scc) {
             v_bs = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_k_band': scc.section_k_band[scc.section_k_band.length - 1],
-              'path': `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
+              section_system: scc.single_configuration_calculation_to_system_ref,
+              section_method: scc.single_configuration_calculation_to_system_ref,
+              section_k_band: scc.section_k_band[scc.section_k_band.length - 1],
+              path: `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
             }
             v_dos = {
-              'section_system': scc.single_configuration_calculation_to_system_ref,
-              'section_method': scc.single_configuration_calculation_to_system_ref,
-              'section_dos': scc.section_dos[scc.section_dos.length - 1],
-              'path': `${url}/${refPath(scc_ref)}/section_dos:${scc.section_dos.length - 1}`
+              section_system: scc.single_configuration_calculation_to_system_ref,
+              section_method: scc.single_configuration_calculation_to_system_ref,
+              section_dos: scc.section_dos[scc.section_dos.length - 1],
+              path: `${url}/${refPath(scc_ref)}/section_dos:${scc.section_dos.length - 1}`
             }
           }
 
@@ -290,19 +290,25 @@ export default function DFTEntryOverview({data}) {
           if (sequence) {
             const properties = sequence.section_thermodynamical_properties && sequence.section_thermodynamical_properties[0]
             if (properties) {
-              heat_capacity = properties.thermodynamical_property_heat_capacity_C_v
-              free_energy = properties.vibrational_free_energy_at_constant_volume
+              heat_capacity = {
+                thermodynamical_property_heat_capacity_C_v: properties.thermodynamical_property_heat_capacity_C_v,
+                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/thermodynamical_property_heat_capacity_C_v`
+              }
+              free_energy = {
+                vibrational_free_energy_at_constant_volume: properties.vibrational_free_energy_at_constant_volume,
+                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/vibrational_free_energy_at_constant_volume`
+              }
               temperature = properties.thermodynamical_property_temperature
             }
           }
 
           if (v_dos || v_bs || free_energy || heat_capacity) {
             setVibrationalData({
-              'dos': v_dos,
-              'bs': v_bs,
-              'free_energy': free_energy,
-              'heat_capacity': heat_capacity,
-              'temperature': temperature
+              dos: v_dos,
+              bs: v_bs,
+              free_energy: free_energy,
+              heat_capacity: heat_capacity,
+              temperature: temperature
             })
           }
         }
@@ -348,10 +354,11 @@ export default function DFTEntryOverview({data}) {
           const sys = systems[i]
           if (!reprSys && sys.is_representative) {
             const reprSys = {
-              'species': sys.atom_species,
-              'cell': sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-              'positions': convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-              'pbc': sys.configuration_periodic_dimensions
+              species: sys.atom_species,
+              cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+              positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+              pbc: sys.configuration_periodic_dimensions,
+              path: `${url}/section_run/section_system:${i}`
             }
             structs.original = reprSys
             break
@@ -363,11 +370,12 @@ export default function DFTEntryOverview({data}) {
       let idealSys = archive?.section_metadata?.encyclopedia?.material?.idealized_structure
       if (idealSys && data?.dft?.system === 'bulk') {
         const ideal = {
-          'species': idealSys.atom_labels,
-          'cell': idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-          'positions': idealSys.atom_positions,
-          'fractional': true,
-          'pbc': idealSys.periodicity
+          species: idealSys.atom_labels,
+          cell: idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+          positions: idealSys.atom_positions,
+          fractional: true,
+          pbc: idealSys.periodicity,
+          path: `${url}/section_metadata/encyclopedia/material/idealized_structure`
         }
         structs.conventional = ideal
       }
