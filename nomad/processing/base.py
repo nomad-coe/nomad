@@ -212,9 +212,9 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return self
 
-    def reset(self, worker_hostname: str = None):
+    def reset(self, worker_hostname: str = None, force: bool = False):
         ''' Resets the task chain. Assumes there no current running process. '''
-        assert not self.process_running
+        assert not self.process_running or force
 
         self.current_task = None
         self.process_status = None

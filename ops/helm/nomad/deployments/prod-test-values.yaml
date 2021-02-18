@@ -13,7 +13,7 @@ proxy:
   nodeIP: '130.183.207.81'
   external:
     host: "nomad-lab.eu"
-    path: "/prod/rae/beta"
+    path: "/prod/rae/test"
 
 gui:
   debug: true
@@ -23,7 +23,7 @@ gui:
   aitoolkitEnabled: true
 
 app:
-  replicas: 2
+  replicas: 1
 
 worker:
   replicas: 1
@@ -41,16 +41,15 @@ mongo:
 logstash:
   host: logstash.elk.svc.cluster.local
 
-dbname: fairdi_nomad_prod_v0_8
+dbname: fairdi_nomad_test_v0_8
 
-uploadurl: 'http://nomad-lab.eu/prod/rae/beta/api/uploads'
+uploadurl: 'http://nomad-lab.eu/prod/rae/test/api/uploads'
 
 client:
   passwordSecret: 'nomad-keycloak-password'
 
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
   passwordSecret: 'nomad-keycloak-password'
   realmName: 'fairdi_nomad_prod'
   clientId: 'nomad_public'
@@ -58,7 +57,13 @@ keycloak:
 
 volumes:
   prefixSize: 1
-  public: /nomad/fairdi/prod/fs/public
-  staging: /nomad/fairdi/prod/fs/staging
-  tmp: /nomad/fairdi/prod/fs/tmp
+  public: /nomad/fairdi/test/fs/public
+  staging: /nomad/fairdi/test/fs/staging
+  tmp: /nomad/fairdi/test/fs/tmp
   nomad: /nomad
+
+mail:
+  enabled: true
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'webmaster@nomad-coe.eu'

@@ -140,7 +140,7 @@ kibana:
   host: nomad-flink-01.esc
 
 mail:
-  enabled: "false"
+  enabled: false
   host: 'localhost'
   port: 25
   from: 'support@nomad-lab.eu'
