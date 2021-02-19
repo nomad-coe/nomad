@@ -65,11 +65,10 @@ const useStyles = makeStyles((theme) => {
 })
 
 function ElectronicStructureOverview({data, className, classes, raiseError}) {
-  // Find minimum and maximum from DOS/BS. Use this range for both plots.
   const units = useRecoilValue(unitsState)
-  const range = useMemo(() => {
-    return convertSI(electronicRange, 'electron_volt', units, false)
-  }, [units])
+  const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
@@ -100,7 +99,7 @@ function ElectronicStructureOverview({data, className, classes, raiseError}) {
           {data.bs
             ? <BandStructure
               data={data?.bs?.section_k_band}
-              layout={{yaxis: {autorange: false, range: range}}}
+              layout={bsLayout}
               aspectRatio={1.2}
               unitsState={unitsState}
               onRelayouting={handleBSRelayouting}
@@ -116,7 +115,7 @@ function ElectronicStructureOverview({data, className, classes, raiseError}) {
           {data.dos
             ? <DOS
               data={data.dos.section_dos}
-              layout={{yaxis: {autorange: false, range: range}}}
+              layout={dosLayout}
               aspectRatio={0.6}
               onRelayouting={handleDOSRelayouting}
               onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}

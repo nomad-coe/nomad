@@ -108,11 +108,14 @@ function GeoOptOverview({data, className, classes}) {
       legend: {
         x: 0,
         xanchor: 'left',
-        y: 1
+        y: 1,
+        bgcolor: 'rgba(255, 255, 255, 0.9)'
       },
       xaxis: {
         showexponent: 'first',
-        title: 'Step number',
+        title: {
+          text: 'Step number'
+        },
         tickmode: 'auto',
         tickformat: ',d',
         autorange: false,
@@ -124,7 +127,9 @@ function GeoOptOverview({data, className, classes}) {
         spikecolor: '#999999',
         spikemode: 'across' },
       yaxis: {
-        title: 'Energy (eV)',
+        title: {
+          text: 'Energy (eV)'
+        },
         autorange: true,
         zeroline: false
       }

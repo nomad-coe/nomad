@@ -73,7 +73,7 @@ export default function NoData({aspectRatio, className, classes}) {
     }
   }))
   const staticStyles = useStaticStyles({classes: classes})
-  const styles = useStyles({classes: classes})
+  const styles = useStyles()
   const content = <Box className={staticStyles.box}>
     <Box className={staticStyles.background}>
       <div className={staticStyles.message}>no data</div>

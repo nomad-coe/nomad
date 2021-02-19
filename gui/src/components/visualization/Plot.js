@@ -47,7 +47,7 @@ export default function Plot({
   metaInfoLink,
   capture,
   aspectRatio,
-  autoMargin,
+  fixedMargins,
   className,
   classes,
   onRelayout,
@@ -61,8 +61,8 @@ export default function Plot({
   const [float, setFloat] = useState(false)
   const [captureSettings, setCaptureSettings] = useState()
   const firstRender = useRef(true)
+  const [margins, setMargins] = useState()
   const [loading, setLoading] = useState(true)
-
   const history = useHistory()
 
   useEffect(() => {
@@ -117,9 +117,9 @@ export default function Plot({
       // There is extra space reserved for the top and bottom margins so that
       // automargin does not make the plot jump around too much.
       margin: {
-        l: 60,
+        l: 30,
         r: 20,
-        t: 25,
+        t: 20,
         b: 50
       },
       title: {
@@ -137,6 +137,7 @@ export default function Plot({
         showline: true,
         fixedrange: true,
         title: {
+          standoff: 10,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -158,6 +159,7 @@ export default function Plot({
         ticks: 'outside',
         showline: true,
         title: {
+          standoff: 10,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -171,15 +173,23 @@ export default function Plot({
         }
       }
     }
-    return mergeObjects(layout, defaultLayout)
-  }, [layout])
+    const finalLayoutResult = mergeObjects(layout, defaultLayout)
+    // Override automargin settings
+    if (fixedMargins && margins) {
+      finalLayoutResult.yaxis.automargin = false
+      finalLayoutResult.xaxis.automargin = false
+      finalLayoutResult.margin.l = margins.l
+      finalLayoutResult.margin.t = margins.t
+    }
+    return finalLayoutResult
+  }, [fixedMargins, layout, margins])
 
   // Save the initial layout as reset
   const finalResetLayout = useMemo(() => {
     const resLayout = cloneDeep(finalLayout)
     return resLayout
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoMargin])
+  }, [margins])
 
   // Set the final config
   const finalConfig = useMemo(() => {
@@ -246,6 +256,7 @@ export default function Plot({
   // that React rendering and Plotly rendering are synced.
   useLayoutEffect(() => {
     if (!firstRender.current) {
+      // console.log('Plotting new data')
       Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,6 +266,8 @@ export default function Plot({
   // rendering and Plotly rendering are synced.
   useLayoutEffect(() => {
     if (!firstRender.current && canvasRef?.current && finalLayout) {
+      // console.log('Relayouting')
+      // console.log(finalLayout)
       Plotly.relayout(canvasRef.current, finalLayout)
     }
   }, [firstRender, canvasRef, finalLayout])
@@ -266,7 +279,24 @@ export default function Plot({
     if (firstRender.current) {
       firstRender.current = false
     }
-  })
+  }, [])
+
+  // Captures the first margin value from the plot.
+  useLayoutEffect(() => {
+    if (canvasRef.current && fixedMargins) {
+      // console.log('Figuring out new margins')
+      try {
+        // Get the element which explicitly stores the computed margin, and save
+        // these values on the layout directly.
+        const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
+        const l = parseInt(group.getAttribute('x'))
+        const t = parseInt(group.getAttribute('y'))
+        setMargins({l: l, t: t})
+      } catch (e) {
+        console.log('Could not determine the margin values.')
+      }
+    }
+  }, [canvasRef, data, fixedMargins])
 
   // For resetting the view.
   const handleReset = useCallback(() => {
@@ -301,7 +331,7 @@ export default function Plot({
     {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
     <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative', top: '-5px', overflow: 'hidden'}}></div>
+      <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
       <div className={styles.header}>
         <Actions actions={actions}></Actions>
       </div>
@@ -315,7 +345,7 @@ Plot.propTypes = {
   config: PropTypes.object, // Plotly.js config object
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
-  autoMargin: PropTypes.bool, // Whether to automatically update margins beyond the first render.
+  fixedMargins: PropTypes.bool, // Whether to automatically update margins beyond the first render.
   className: PropTypes.string,
   classes: PropTypes.string,
   floatTitle: PropTypes.string, // The title of the plot shown in floating mode
@@ -334,5 +364,6 @@ Plot.propTypes = {
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,
-  floatTitle: ''
+  floatTitle: '',
+  fixedMargins: true
 }

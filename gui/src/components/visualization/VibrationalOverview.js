@@ -110,11 +110,15 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const heatCapacityLayout = useMemo(() => {
     return {
       xaxis: {
-        title: 'Temperature (K)',
+        title: {
+          text: 'Temperature (K)'
+        },
         zeroline: false
       },
       yaxis: {
-        title: 'Heat capacity (J/K)',
+        title: {
+          text: 'Heat capacity (J/K)'
+        },
         zeroline: false
       }
     }
@@ -135,11 +139,15 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const freeEnergyLayout = useMemo(() => {
     return {
       xaxis: {
-        title: 'Temperature (K)',
+        title: {
+          text: 'Temperature (K)'
+        },
         zeroline: false
       },
       yaxis: {
-        title: 'Helmholtz free energy (J)',
+        title: {
+          text: 'Helmholtz free energy (J)'
+        },
         zeroline: false
       }
     }
