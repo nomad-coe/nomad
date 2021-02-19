@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
@@ -59,13 +59,14 @@ export default function Plot({
 }) {
   // States
   const [float, setFloat] = useState(false)
-  const [captureSettings, setCaptureSettings] = useState()
   const firstRender = useRef(true)
+  const [canvasNode, setCanvasNode] = useState()
   const [margins, setMargins] = useState()
+  const attach = useRef()
   const [loading, setLoading] = useState(true)
   const history = useHistory()
 
-  useEffect(() => {
+  const captureSettings = useMemo(() => {
     let defaultCapture = {
       format: 'png',
       width: 1024,
@@ -73,7 +74,7 @@ export default function Plot({
       filename: 'plot'
     }
     let settings = mergeObjects(capture, defaultCapture)
-    setCaptureSettings(settings)
+    return settings
   }, [capture, aspectRatio])
 
   // Styles
@@ -174,19 +175,18 @@ export default function Plot({
       }
     }
     const finalLayoutResult = mergeObjects(layout, defaultLayout)
-    // Override automargin settings
-    if (fixedMargins && margins) {
-      finalLayoutResult.yaxis.automargin = false
-      finalLayoutResult.xaxis.automargin = false
-      finalLayoutResult.margin.l = margins.l
-      finalLayoutResult.margin.t = margins.t
-    }
     return finalLayoutResult
-  }, [fixedMargins, layout, margins])
+  }, [layout])
 
   // Save the initial layout as reset
   const finalResetLayout = useMemo(() => {
     const resLayout = cloneDeep(finalLayout)
+    if (margins) {
+      resLayout.yaxis.automargin = false
+      resLayout.xaxis.automargin = false
+      resLayout.margin.l = margins.l
+      resLayout.margin.t = margins.t
+    }
     return resLayout
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [margins])
@@ -207,91 +207,71 @@ export default function Plot({
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const canvasRef = useCallback(node => {
-    // Do nothing if the canvas has not actually changed or data is not ready
-    if (node === null || canvasRef.current === node || !data) {
-      return
+    if (node && !firstRender.current) {
+      attach.current = true
+      // We use a dummy state to request a redraw on the new canvas
+      setCanvasNode(node)
     }
-
-    // When the canvas reference is instantiated for the first time, create a
-    // new plot.
-    if (canvasRef.current === undefined) {
-      Plotly.newPlot(node, data, finalLayout, finalConfig)
-      setLoading(false)
-    // When the reference changes for the second time, react instead to save
-    // some time
-    } else {
-      let oldLayout = canvasRef.current.layout
-      let oldData = canvasRef.current.data
-      Plotly.react(node, oldData, oldLayout, finalConfig)
-    }
-
-    // (Re-)attach events whenever the canvas changes
-    if (onRelayouting) {
-      node.on('plotly_relayouting', onRelayouting)
-    }
-    if (onRedraw) {
-      node.on('plotly_redraw', onRedraw)
-    }
-    if (onRelayout) {
-      node.on('plotly_relayout', onRelayout)
-    }
-    if (onHover) {
-      node.on('plotly_hover', onHover)
-    }
-
-    // Subscribe to the layout change publisher if one is given
-    if (layoutSubject) {
-      layoutSubject.subscribe(layout => {
-        let oldLayout = canvasRef.current.layout
-        Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
-      })
-    }
-
-    // Update canvas element
     canvasRef.current = node
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, onHover, onRedraw, onRelayout, onRelayouting])
-
-  // Update plots when data or config is updated. useLayoutEffect is used so
-  // that React rendering and Plotly rendering are synced.
-  useLayoutEffect(() => {
-    if (!firstRender.current) {
-      // console.log('Plotting new data')
-      Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstRender, canvasRef, data, finalConfig])
-
-  // Relayout plots when layout updated. useLayoutEffect is used so that React
-  // rendering and Plotly rendering are synced.
-  useLayoutEffect(() => {
-    if (!firstRender.current && canvasRef?.current && finalLayout) {
-      // console.log('Relayouting')
-      // console.log(finalLayout)
-      Plotly.relayout(canvasRef.current, finalLayout)
-    }
-  }, [firstRender, canvasRef, finalLayout])
-
-  // Only called once after the first render. Sets the reference for determining
-  // if an initial render has been done. Using a reference instead of a state
-  // avoids a rerender.
-  useLayoutEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false
-    }
   }, [])
 
-  // Captures the first margin value from the plot.
+  // Update plots when data, config or rendering canvas is updated.
+  // useLayoutEffect is used so that React rendering and Plotly rendering are
+  // synced.
   useLayoutEffect(() => {
-    if (canvasRef.current && fixedMargins) {
-      // console.log('Figuring out new margins')
+    if (firstRender.current) {
+      Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
+      attach.current = true
+      firstRender.current = false
+
+      // Subscribe to the layout change publisher if one is given
+      if (layoutSubject) {
+        layoutSubject.subscribe(layout => {
+          let oldLayout = canvasRef.current.layout
+          Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+        })
+      }
+      setLoading(false)
+    } else {
+      Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
+    }
+    // Upon first render or changing the plot DOM element the events are (re-)attached.
+    if (attach.current === true) {
+      if (onRelayouting) {
+        canvasRef.current.on('plotly_relayouting', onRelayouting)
+      }
+      if (onRedraw) {
+        canvasRef.current.on('plotly_redraw', onRedraw)
+      }
+      if (onRelayout) {
+        canvasRef.current.on('plotly_relayout', onRelayout)
+      }
+      if (onHover) {
+        canvasRef.current.on('plotly_hover', onHover)
+      }
+
+      attach.current = false
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutSubject, canvasNode, firstRender, data, finalConfig])
+
+  // Captures the first margin value from the plot and performs
+  useLayoutEffect(() => {
+    if (fixedMargins && canvasRef.current) {
       try {
-        // Get the element which explicitly stores the computed margin, and save
-        // these values on the layout directly.
+        // Get the element which explicitly stores the computed margin and
+        // perform a relayout with these values.
         const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
-        const l = parseInt(group.getAttribute('x'))
-        const t = parseInt(group.getAttribute('y'))
-        setMargins({l: l, t: t})
+        const currentLayout = canvasRef.current.layout
+        currentLayout.yaxis.automargin = false
+        currentLayout.xaxis.automargin = false
+        currentLayout.margin.l = parseInt(group.getAttribute('x'))
+        currentLayout.margin.t = parseInt(group.getAttribute('y'))
+        Plotly.relayout(canvasRef.current, currentLayout)
+
+        // Save the margins so that they can also be updated on the reset config
+        setMargins({l: currentLayout.margin.l, t: currentLayout.margin.t})
       } catch (e) {
         console.log('Could not determine the margin values.')
       }

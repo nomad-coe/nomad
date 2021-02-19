@@ -50,6 +50,8 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
   const dosYSubject = useMemo(() => new Subject(), [])
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -162,7 +164,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
             {data?.bs?.section_k_band
               ? <BandStructure
                 data={data.bs.section_k_band}
-                layout={{yaxis: {autorange: false, range: range}}}
+                layout={bsLayout}
                 aspectRatio={1.2}
                 unitsState={unitsState}
                 onRelayouting={handleBSRelayouting}
@@ -181,7 +183,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
             {data?.dos?.section_dos
               ? <DOS
                 data={data.dos.section_dos}
-                layout={{yaxis: {autorange: false, range: range}}}
+                layout={dosLayout}
                 aspectRatio={0.6}
                 onRelayouting={handleDOSRelayouting}
                 onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
