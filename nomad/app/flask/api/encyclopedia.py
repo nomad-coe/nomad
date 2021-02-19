@@ -1472,6 +1472,8 @@ class EncCalculationResource(Resource):
 
 suggestions_map = {
     "code_name": "dft.code_name",
+    "basis_set": "dft.basis_set",
+    "functional_type": "encyclopedia.method.functional_type",
     "structure_type": "bulk.structure_type",
     "material_name": "material_name",
     "strukturbericht_designation": "bulk.strukturbericht_designation",
@@ -1480,12 +1482,14 @@ suggestions_query = api.parser()
 suggestions_query.add_argument(
     "property",
     type=str,
-    choices=("code_name", "structure_type", "material_name", "strukturbericht_designation"),
+    choices=("code_name", "structure_type", "material_name", "strukturbericht_designation", "basis_set", "functional_type"),
     help="The property name for which suggestions are returned.",
     location="args"
 )
 suggestions_result = api.model("suggestions_result", {
     "code_name": fields.List(fields.String),
+    "basis_set": fields.List(fields.String),
+    "functional_type": fields.List(fields.String),
     "structure_type": fields.List(fields.String),
     "material_name": fields.List(fields.String),
     "strukturbericht_designation": fields.List(fields.String),
@@ -1520,7 +1524,7 @@ class EncSuggestionsResource(Resource):
             s.size(0)
             s.add_material_aggregation("suggestions", A("terms", field=suggestions_map[prop], size=999))
         # Calculation level suggestions
-        elif prop in {"code_name"}:
+        elif prop in {"code_name", "basis_set", "functional_type"}:
             s = Search(index=config.elastic.index_name)
             query = Q(
                 "bool",
