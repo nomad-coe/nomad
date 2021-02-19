@@ -54,12 +54,12 @@ const useStyles = makeStyles((theme) => {
       flex: '0 0 33.3%'
     },
     boxBs: {
-      padding: '1.18rem',
-      paddingBottom: '2.6rem'
+      padding: '1.45rem',
+      paddingBottom: '2.4rem'
     },
     boxDos: {
-      padding: '1.18rem',
-      paddingBottom: '3.72rem'
+      padding: '1.45rem',
+      paddingBottom: '3.55rem'
     }
   }
 })
