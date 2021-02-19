@@ -72,27 +72,6 @@ api.authorizations = {
 }
 
 
-def _verify_upload_token(token) -> str:
-    '''
-    Verifies the upload token generated with :func:`generate_upload_token`.
-
-    Returns: The user UUID or None if the toke could not be verified.
-    '''
-    payload, signature = token.split('.')
-    payload = utils.base64_decode(payload)
-    signature = utils.base64_decode(signature)
-
-    compare = hmac.new(
-        bytes(config.services.api_secret, 'utf-8'),
-        msg=payload,
-        digestmod=hashlib.sha1)
-
-    if signature != compare.digest():
-        return None
-
-    return str(uuid.UUID(bytes=payload))
-
-
 def authenticate(
         basic: bool = False, upload_token: bool = False, signature_token: bool = False,
         required: bool = False, admin_only: bool = False):
@@ -124,35 +103,54 @@ def authenticate(
             g.user = None
 
             if upload_token and 'token' in request.args:
-                token = request.args['token']
-                user_id = _verify_upload_token(token)
-                if user_id is not None:
+                try:
+                    token = request.args['token']
+                    payload, signature = token.split('.')
+                    payload = utils.base64_decode(payload)
+                    signature = utils.base64_decode(signature)
+
+                    compare = hmac.new(
+                        bytes(config.services.api_secret, 'utf-8'),
+                        msg=payload,
+                        digestmod=hashlib.sha1)
+
+                    if signature != compare.digest():
+                        return None
+
+                    user_id = str(uuid.UUID(bytes=payload))
                     g.user = infrastructure.keycloak.get_user(user_id)
+                except KeyError:
+                    abort(401, 'Invalid token')
 
             elif signature_token and 'signature_token' in request.args:
                 token = request.args.get('signature_token', None)
-                if token is not None:
-                    try:
-                        decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
-                        user = datamodel.User(user_id=decoded['user'])
-                        if user is None:
-                            abort(401, 'User for the given signature does not exist')
-                        else:
-                            g.user = user
-                    except KeyError:
-                        abort(401, 'Token with invalid/unexpected payload')
-                    except jwt.ExpiredSignatureError:
-                        abort(401, 'Expired token')
-                    except jwt.InvalidTokenError:
-                        abort(401, 'Invalid token')
+                try:
+                    decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+                    g.user = datamodel.User.get(user_id=decoded['user'])
+                except KeyError:
+                    abort(401, 'Token with invalid/unexpected payload')
+                except jwt.ExpiredSignatureError:
+                    abort(401, 'Expired token')
+                except jwt.InvalidTokenError:
+                    abort(401, 'Invalid token')
 
             elif 'token' in request.args:
                 abort(401, 'Query param token not supported for this endpoint')
 
+            elif 'signature_token' in request.args:
+                abort(401, 'Query param signature_token not supported for this endpoint')
+
             else:
-                error = infrastructure.keycloak.authorize_flask(basic=basic)
-                if error is not None:
-                    abort(401, message=error)
+                try:
+                    g.user, g.oidc_access_token = infrastructure.keycloak.auth(request.headers, allow_basic=basic)
+                except infrastructure.KeycloakError as e:
+                    abort(401, message=str(e))
+
+            if config.oasis.allowed_users is not None:
+                if g.user is None:
+                    abort(401, message='Authentication is required for this Oasis')
+                if g.user.email not in config.oasis.allowed_users:
+                    abort(401, message='You are not authorized to access this Oasis')
 
             if required and g.user is None:
                 abort(401, message='Authentication is required for this endpoint')
@@ -218,7 +216,7 @@ class AuthResource(Resource):
             return {
                 'upload_token': generate_upload_token(g.user),
                 'signature_token': signature_token(),
-                'access_token': infrastructure.keycloak.access_token
+                'access_token': g.oidc_access_token
             }
 
         except KeyError:

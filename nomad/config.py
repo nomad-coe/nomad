@@ -166,7 +166,8 @@ services = NomadConfig(
 
 oasis = NomadConfig(
     central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/rae'
+    central_nomad_deployment_id='nomad-lab.eu/prod/rae',
+    allowed_users=None  # a list of usernames or user account emails
 )
 
 tests = NomadConfig(

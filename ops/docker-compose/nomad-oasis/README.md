@@ -504,6 +504,28 @@ docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/noma
 docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
 ```
 
+## Restricting access to your Oasis
+
+An Oasis works exactly the same way the official NOMAD works. It is open and everybody
+can access published data. Everybody with an account can upload data. This might not be
+what you want.
+
+Currently there are two ways to restrict access to your Oasis. First, you do not
+expose the Oasis to the public internet, e.g. you only make it available on an intra-net or
+through a VPN.
+
+Second, we offer a simple white-list mechanism. As the Oasis administrator your provide a
+list of accounts as part of your Oasis configuration. To use the Oasis, all users have to
+be logged in and be on your white list of allowed users. To enable white-listing, you
+can provide a list of NOMAD account email addresses in your `nomad.yaml` like this:
+
+```
+oasis:
+    allowed_users:
+        - user1@gmail.com
+        - user2@gmail.com
+```
+
 ## NOMAD Oasis FAQ
 
 ### Why use an Oasis?

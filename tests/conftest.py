@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List
 import pytest
 import logging
 from collections import namedtuple
@@ -274,17 +274,18 @@ class KeycloakMock:
         self.id_counter = 2
         self.users = dict(**test_users)
 
-    def tokenauth(self, access_token: str) -> Dict[str, Any]:
+    def tokenauth(self, access_token: str):
         if access_token in self.users:
-            return self.users[access_token]
+            return User(**self.users[access_token])
         else:
             raise infrastructure.KeycloakError('user does not exist')
 
-    def authorize_flask(self, *args, **kwargs):
-        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
+    def auth(self, headers, **kwargs):
+        if 'Authorization' in headers and headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            g.oidc_access_token = user_id
-            g.user = User(**self.users[user_id])
+            return User(**self.users[user_id]), user_id
+
+        return None, None
 
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1

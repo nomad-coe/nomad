@@ -16,11 +16,12 @@
 # limitations under the License.
 #
 
+from typing import cast
 from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from nomad import infrastructure
+from nomad import infrastructure, config, datamodel
 from nomad.utils import get_logger, strip
 
 from ..common import root_path
@@ -46,14 +47,29 @@ async def get_optional_user(access_token: str = Depends(oauth2_scheme)) -> User:
     A dependency that provides the authenticated (if credentials are available) or None.
     '''
     if access_token is None:
-        return None
+        user: datamodel.User = None
+    else:
+        try:
+            user = cast(datamodel.User, infrastructure.keycloak.tokenauth(access_token))
+        except infrastructure.KeycloakError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
 
-    try:
-        return User(**infrastructure.keycloak.tokenauth(access_token))
-    except infrastructure.KeycloakError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
+    if config.oasis.allowed_users is not None:
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Authentication is required for this Oasis',
+                headers={'WWW-Authenticate': 'Bearer'})
+
+        if user.email not in config.oasis.allowed_users:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='You are not authorized to access this Oasis',
+                headers={'WWW-Authenticate': 'Bearer'})
+
+    return user
 
 
 async def get_required_user(user: User = Depends(get_optional_user)) -> User:
