@@ -1317,9 +1317,9 @@ class Upload(Proc):
                 # the join was already done due to a prior call
                 pass
 
-    def reset(self):
+    def reset(self, force=False):
         self.joined = False
-        super().reset()
+        super().reset(force=force)
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):

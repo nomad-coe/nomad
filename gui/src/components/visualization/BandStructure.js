@@ -27,7 +27,7 @@ import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
 
-function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
+function BandStructure({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
@@ -246,11 +246,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, onRelayou
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
-        onRelayout={onRelayout}
-        onAfterPlot={onAfterPlot}
-        onRedraw={onRedraw}
-        onRelayouting={onRelayouting}
-        onReset={onReset}
+        {...other}
       >
       </Plot>
     </Box>
@@ -263,11 +259,6 @@ BandStructure.propTypes = {
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  onAfterPlot: PropTypes.func,
-  onRedraw: PropTypes.func,
-  onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func,
-  onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
 

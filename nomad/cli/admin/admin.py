@@ -91,7 +91,7 @@ def __run_processing(
                 current_task=upload.current_task, upload_id=upload.upload_id)
             return False
         else:
-            upload.reset()
+            upload.reset(force=True)
             process(upload)
             upload.block_until_complete(interval=.5)
 

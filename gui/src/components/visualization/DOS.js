@@ -27,7 +27,7 @@ import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
 
-function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onReset, unitsState}) {
+function DOS({data, layout, resetLayout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -128,11 +128,7 @@ function DOS({data, layout, resetLayout, aspectRatio, className, classes, onRela
         resetLayout={resetLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
-        onRelayout={onRelayout}
-        onAfterPlot={onAfterPlot}
-        onRedraw={onRedraw}
-        onRelayouting={onRelayouting}
-        onReset={onReset}
+        {...other}
       >
       </Plot>
     </Box>
@@ -146,11 +142,6 @@ DOS.propTypes = {
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  onAfterPlot: PropTypes.func,
-  onRedraw: PropTypes.func,
-  onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func,
-  onReset: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
 

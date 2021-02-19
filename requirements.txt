@@ -64,6 +64,7 @@ bagit
 bcrypt
 filelock
 pyjwt[crypto]==1.7.1
+cryptography==3.3.2
 jsonschema[format]
 runstats
 pyyaml

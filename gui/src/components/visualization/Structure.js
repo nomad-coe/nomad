@@ -17,7 +17,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, fade } from '@material-ui/core/styles'
 import {
   Box,
   Checkbox,
@@ -47,7 +47,20 @@ import clsx from 'clsx'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-export const Structure = withErrorHandler(({className, classes, system, systems, options, viewer, captureName, aspectRatio, positionsOnly, sizeLimit}) => {
+export const Structure = withErrorHandler(({
+  className,
+  classes,
+  system,
+  systems,
+  options,
+  materialType,
+  viewer,
+  captureName,
+  aspectRatio,
+  positionsOnly,
+  sizeLimit,
+  positionsSubject}
+) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -86,6 +99,14 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
       toggles: {
         marginBottom: theme.spacing(1),
         height: '2rem'
+      },
+      toggle: {
+        color: fade(theme.palette.action.active, 0.87)
+      },
+      selected: {
+        '&$selected': {
+          color: fade(theme.palette.action.active, 0.87)
+        }
       },
       title: {
         marginBottom: theme.spacing(1)
@@ -173,8 +194,13 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     if (refCanvas.current) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
     }
+    if (positionsSubject && refViewer.current) {
+      positionsSubject.subscribe((positions) => {
+        refViewer.current.setPositions(positions)
+      })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
     // If the cell all zeroes, positions are assumed to be cartesian.
@@ -185,10 +211,9 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     }
     // Systems with non-empty cell are centered on the cell center and
     // orientation is defined by the cell vectors.
+    const opts = {}
     if (system.cell !== undefined) {
-      refViewer.current.setOptions({layout: {
-        viewCenter: 'COC',
-        periodicity: 'wrap',
+      opts.layout = {
         viewRotation: {
           alignments: [
             ['up', 'c'],
@@ -199,25 +224,31 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
             [1, 0, 0, 30]
           ]
         }
-      }}, false, false)
-    // Systems without cell are centered on the center of positions
+      }
     } else {
-      refViewer.current.setOptions({layout: {
-        viewCenter: 'COP',
+      opts.layout = {
         viewRotation: {
           rotations: [
             [0, 1, 0, 60],
             [1, 0, 0, 30]
           ]
         }
-      }}, false, false)
+      }
     }
+    if (system.cell !== undefined && materialType === 'bulk') {
+      opts.layout.viewCenter = 'COC'
+      opts.layout.periodicity = 'wrap'
+    // Systems without cell are centered on the center of positions
+    } else {
+      opts.layout.viewCenter = 'COP'
+    }
+    refViewer.current.setOptions(opts, false, false)
     refViewer.current.load(system)
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
     setLoading(false)
-  }, [])
+  }, [materialType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
@@ -288,12 +319,17 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
     if (systems) {
       const toggles = []
       for (let key in systems) {
-        toggles.push(<ToggleButton key={key} value={key} aria-label={key}>{key}</ToggleButton>)
+        toggles.push(<ToggleButton
+          key={key}
+          value={key}
+          aria-label={key}
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >{key}</ToggleButton>)
       }
       return toggles
     }
     return null
-  }, [systems])
+  }, [systems, styles])
 
   // Enforce at least one structure view option
   const handleStructureChange = (event, value) => {
@@ -399,7 +435,6 @@ export const Structure = withErrorHandler(({className, classes, system, systems,
       </Menu>
     </div>
   </Box>
-
   return <Box className={clsx(styles.root, className)} >
     <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
       {content}
@@ -414,10 +449,17 @@ Structure.propTypes = {
   system: PropTypes.object, // The system to display in the native materia-format
   systems: PropTypes.object, // Set of systems that can be switched
   options: PropTypes.object, // Viewer options
+  materialType: PropTypes.string, // The material type, affects the visualization layout.
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
-  sizeLimit: PropTypes.number // Maximum system size before a prompt is shown
+  sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
+  /**
+   * A RxJS Subject for efficient, non-persistent, position changes that bypass
+   * rendering of the component. Should send messages that contain the new
+   * atomic positions as a list.
+  */
+  positionsSubject: PropTypes.any
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,

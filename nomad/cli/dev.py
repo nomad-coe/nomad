@@ -41,7 +41,7 @@ def qa(skip_tests: bool, exitfirst: bool):
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701,E731 nomad tests')
     click.echo('Run linter ...')
-    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin nomad tests')
+    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests')
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
 

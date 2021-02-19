@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
+import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -28,7 +29,8 @@ import { Structure } from '../visualization/Structure'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 
 function GeoOptOverview({data, className, classes}) {
-  const [step, setStep] = useState(0)
+  // RxJS subject for efficiently propagating changes in structure information
+  const positionsSubject = useMemo(() => new Subject(), [])
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -129,8 +131,8 @@ function GeoOptOverview({data, className, classes}) {
 
   // Handles hover event on the plot to update the currently shown structure
   const handleHover = useCallback((event) => {
-    setStep(event.points[0].x)
-  }, [])
+    positionsSubject.next(data.structures[event.points[0].x].positions)
+  }, [data, positionsSubject])
 
   return (
     <Box className={style.root}>
@@ -150,10 +152,10 @@ function GeoOptOverview({data, className, classes}) {
       <Box className={style.structure}>
         <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
         <Structure
-          system={data.structures[step]}
+          system={data.structures[0]}
           aspectRatio={0.75}
           options={{view: {fitMargin: 0.75}}}
-          positionsOnly={true}
+          positionsSubject={positionsSubject}
         ></Structure>
       </Box>
     </Box>
