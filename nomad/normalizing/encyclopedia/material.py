@@ -389,7 +389,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
-        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+        try:
+            wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+        except Exception:
+            self.logger.error('Error resolving Wyckoff sets.')
+            wyckoff_sets = []
         names, counts = atomutils.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         context.greatest_common_divisor = greatest_common_divisor
@@ -509,7 +513,12 @@ class Material2DNormalizer(MaterialNormalizer):
         sec_enc = self.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
-        symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        try:
+            symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        except Exception:
+            self.logger.error('Error setting up symmetry analyzer.')
+            return
+
         spg_number = symmetry_analyzer.get_space_group_number()
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
         std_atoms = symmetry_analyzer.get_conventional_system()
