@@ -401,3 +401,15 @@ class TestEncyclopedia():
             assert rv.status_code == code
 
         # Test that invalid query parameters raise code 400
+
+    def test_complex_search(self, enc_upload, elastic_infra, api, test_user_auth):
+
+        # Test that completely private materials only become visible after
+        # authentication
+        query = json.dumps({"query": 'elements HAS ALL "B"'}})
+        rv = api.post('/materials/', data=query, content_type='application/json')
+        results = rv.json['results']
+        assert len(results) == 0
+        rv = api.post('/materials/', data=query, content_type='application/json', headers=test_user_auth)
+        results = rv.json['results']
+        assert len(results) == 1

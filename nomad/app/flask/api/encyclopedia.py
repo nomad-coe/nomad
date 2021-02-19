@@ -102,16 +102,30 @@ class MaterialSearch():
         self._extra = extra
 
     def s(self):
+        # Wrap in bool query
         if self._q is None:
-            query = Q(
-                "bool",
-                filter=self._filters,
-            )
+            query = Q("bool", filter=self._filters)
         else:
             query = self._q
+        if not isinstance(query, Bool):
+            query = Q("bool", filter=[query])
+
+        # Split the query into material specific part and calculation specific
+        # part. For now the queries are "separable", but this may not be the
+        # case in the future...
+        m_query = Q("bool")
+        c_query = Q("bool")
+        for q in query.must:
+            c_query.must.append(q) if isinstance(q, Nested) else m_query.must.append(q)
+        for q in query.filter:
+            c_query.filter.append(q) if isinstance(q, Nested) else m_query.filter.append(q)
+        for q in query.must_not:
+            c_query.must_not.append(q) if isinstance(q, Nested) else m_query.must_not.append(q)
+        for q in query.should:
+            c_query.should.append(q) if isinstance(q, Nested) else m_query.should.append(q)
 
         # If restricted search is enabled, the order of nested/boolean queries
-        # will be reversed depth-first.
+        # will be reversed depth-first in the calculation specific part.
         if self.restricted:
             def restrict(query):
                 if isinstance(query, Bool):
@@ -140,11 +154,18 @@ class MaterialSearch():
                     return outer_q
                 else:
                     return query
-            query = restrict(query)
+            c_query = restrict(c_query)
 
-        # Wrap the query in a boolean query if it is not already one.
-        if not isinstance(query, Bool):
-            query = Q("bool", filter=[query])
+        # Wrap in a boolean query if it is not already one.
+        if not isinstance(c_query, Bool):
+            c_query = Q("bool", filter=[c_query])
+
+        # Merge calculation and material specific parts
+        query = Q("bool")
+        query.filter = c_query.filter + m_query.filter
+        query.must = c_query.must + m_query.must
+        query.must_not = c_query.must_not + m_query.must_not
+        query.should = c_query.should + m_query.should
 
         # Add authentication filters on top of the query. This will make sure
         # that materials with only private calculations are excluded and that
