@@ -36,6 +36,7 @@ from crystalparser import CrystalParser
 from fhiaimsparser import FHIAimsParser
 from excitingparser import ExcitingParser
 from abinitparser import AbinitParser
+from quantumespressoparser import QuantumEspressoParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -217,17 +218,7 @@ parsers = [
             r'\s*Cite this work as:'
             r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
     ),
-    LegacyParser(
-        name='parsers/quantumespresso', code_name='Quantum Espresso', code_homepage='https://www.quantum-espresso.org/',
-        parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=(
-            r'(Program PWSCF.*starts)|'
-            r'(Current dimensions of program PWSCF are)')
-        #    r'^(.*\n)*'
-        #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
-        #    r'(\d+)\s*\))?\s+starts[^\n]+'
-        #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
-    ),
+    QuantumEspressoParser(),
     AbinitParser(),
     LegacyParser(
         name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
