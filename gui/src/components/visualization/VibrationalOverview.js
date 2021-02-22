@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Subject } from 'rxjs'
 import {
@@ -47,13 +47,11 @@ export default function VibrationalOverview({data, className, classes, raiseErro
     return convertSI([min, max], 'joule', units, false)
   }, [data, units])
 
-  // States
-  const [dosLayout, setDosLayout] = useState({yaxis: {range: range}})
-  const [bsLayout, setBsLayout] = useState({yaxis: {range: range}})
-
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
   const dosYSubject = useMemo(() => new Subject(), [])
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -101,7 +99,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const heatCapacityData = useMemo(() => {
     return [{
       x: data.temperature,
-      y: data.heat_capacity,
+      y: data.heat_capacity.thermodynamical_property_heat_capacity_C_v,
       type: 'scatter',
       mode: 'lines',
       line: {
@@ -114,12 +112,15 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const heatCapacityLayout = useMemo(() => {
     return {
       xaxis: {
-        title: 'Temperature (K)',
+        title: {
+          text: 'Temperature (K)'
+        },
         zeroline: false
       },
       yaxis: {
-        autorange: true,
-        title: 'Heat capacity (J/K)',
+        title: {
+          text: 'Heat capacity (J/K)'
+        },
         zeroline: false
       }
     }
@@ -127,7 +128,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const freeEnergyData = useMemo(() => {
     return [{
       x: data.temperature,
-      y: data.free_energy,
+      y: data.free_energy.vibrational_free_energy_at_constant_volume,
       type: 'scatter',
       mode: 'lines',
       line: {
@@ -140,12 +141,15 @@ export default function VibrationalOverview({data, className, classes, raiseErro
   const freeEnergyLayout = useMemo(() => {
     return {
       xaxis: {
-        title: 'Temperature (K)',
+        title: {
+          text: 'Temperature (K)'
+        },
         zeroline: false
       },
       yaxis: {
-        autorange: true,
-        title: 'Helmholtz free energy (J)',
+        title: {
+          text: 'Helmholtz free energy (J)'
+        },
         zeroline: false
       }
     }
@@ -164,8 +168,9 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 aspectRatio={1.2}
                 unitsState={unitsState}
                 onRelayouting={handleBSRelayouting}
-                onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+                onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
                 layoutSubject={dosYSubject}
+                metaInfoLink={data.bs.path}
               ></BandStructure>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
@@ -181,9 +186,10 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 layout={dosLayout}
                 aspectRatio={0.6}
                 onRelayouting={handleDOSRelayouting}
-                onReset={() => { setBsLayout({yaxis: {range: range}}) }}
+                onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
                 unitsState={unitsState}
                 layoutSubject={bsYSubject}
+                metaInfoLink={data.dos.path}
               ></DOS>
               : <Placeholder className={null} aspectRatio={1.1} variant="rect"></Placeholder>
             }
@@ -199,6 +205,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 layout={heatCapacityLayout}
                 aspectRatio={1}
                 floatTitle="Heat capacity"
+                metaInfoLink={data.heat_capacity.path}
               >
               </Plot>
             </ErrorHandler>
@@ -214,6 +221,7 @@ export default function VibrationalOverview({data, className, classes, raiseErro
                 layout={freeEnergyLayout}
                 aspectRatio={1}
                 floatTitle="Helmholtz free energy"
+                metaInfoLink={data.free_energy.path}
               >
               </Plot>
             </ErrorHandler>

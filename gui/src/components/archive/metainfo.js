@@ -126,6 +126,25 @@ export function resolveRef(ref, data) {
   }
 }
 
+/**
+ * Converts a reference given in the /section/<index>/subsection format (used
+ * in the metainfo) to the /section:<index>/subsection format (used by the
+ * archive browser).
+ * @param {*} ref The reference to convert.
+ */
+export function refPath(ref) {
+  try {
+    const segments = ref.split('/').filter(segment => segment !== '')
+    const reducer = (current, segment) => {
+      return isNaN(segment) ? `${current}/${segment}` : `${current}:${segment}`
+    }
+    return segments.reduce(reducer)
+  } catch (e) {
+    console.log('could not convert the path: ' + ref)
+    throw e
+  }
+}
+
 export function metainfoDef(name) {
   return packageDefs['nomad.metainfo.metainfo']._sections[name]
 }

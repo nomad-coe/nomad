@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
+import { useHistory } from 'react-router-dom'
 
 import {
   Typography,
@@ -28,7 +29,8 @@ import {
   Fullscreen,
   FullscreenExit,
   CameraAlt,
-  Replay
+  Replay,
+  ViewList
 } from '@material-ui/icons'
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
@@ -37,14 +39,34 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({data, layout, config, floatTitle, capture, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, onHover, onReset, layoutSubject}) {
+export default function Plot({
+  data,
+  layout,
+  config,
+  floatTitle,
+  metaInfoLink,
+  capture,
+  aspectRatio,
+  fixedMargins,
+  className,
+  classes,
+  onRelayout,
+  onRedraw,
+  onRelayouting,
+  onHover,
+  onReset,
+  layoutSubject
+}) {
   // States
   const [float, setFloat] = useState(false)
-  const [captureSettings, setCaptureSettings] = useState()
-  const firstUpdate = useRef(true)
+  const firstRender = useRef(true)
+  const [canvasNode, setCanvasNode] = useState()
+  const [margins, setMargins] = useState()
+  const attach = useRef()
   const [loading, setLoading] = useState(true)
+  const history = useHistory()
 
-  useEffect(() => {
+  const captureSettings = useMemo(() => {
     let defaultCapture = {
       format: 'png',
       width: 1024,
@@ -52,7 +74,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       filename: 'plot'
     }
     let settings = mergeObjects(capture, defaultCapture)
-    setCaptureSettings(settings)
+    return settings
   }, [capture, aspectRatio])
 
   // Styles
@@ -65,6 +87,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         zIndex: 1
       },
       root: {
+
       },
       placeHolder: {
         left: 0,
@@ -83,8 +106,7 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       }
     }
   })
-
-  const styles = useStyles(classes)
+  const styles = useStyles({classes: classes})
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -93,8 +115,10 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       hovermode: false,
       showlegend: false,
       autosize: true,
+      // There is extra space reserved for the top and bottom margins so that
+      // automargin does not make the plot jump around too much.
       margin: {
-        l: 60,
+        l: 30,
         r: 20,
         t: 20,
         b: 50
@@ -105,14 +129,16 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         }
       },
       xaxis: {
+        automargin: false,
+        autorange: true,
         linecolor: '#333',
         linewidth: 1,
         mirror: true,
         ticks: 'outside',
         showline: true,
-        autorange: true,
         fixedrange: true,
         title: {
+          standoff: 10,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -127,12 +153,14 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
       },
       yaxis: {
         automargin: true,
+        autorange: true,
         linecolor: '#333',
         linewidth: 1,
         mirror: true,
         ticks: 'outside',
         showline: true,
         title: {
+          standoff: 10,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -146,14 +174,22 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
         }
       }
     }
-    return mergeObjects(layout, defaultLayout)
+    const finalLayoutResult = mergeObjects(layout, defaultLayout)
+    return finalLayoutResult
   }, [layout])
 
   // Save the initial layout as reset
   const finalResetLayout = useMemo(() => {
-    return cloneDeep(finalLayout)
+    const resLayout = cloneDeep(finalLayout)
+    if (margins) {
+      resLayout.yaxis.automargin = false
+      resLayout.xaxis.automargin = false
+      resLayout.margin.l = margins.l
+      resLayout.margin.t = margins.t
+    }
+    return resLayout
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [margins])
 
   // Set the final config
   const finalConfig = useMemo(() => {
@@ -171,70 +207,76 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const canvasRef = useCallback(node => {
-    // Do nothing if the canvas has not actually changed or data is not ready
-    if (node === null || canvasRef.current === node || !data) {
-      return
+    if (node && !firstRender.current) {
+      attach.current = true
+      // We use a dummy state to request a redraw on the new canvas
+      setCanvasNode(node)
     }
+    canvasRef.current = node
+  }, [])
 
-    // When the canvas reference is instantiated for the first time, create a
-    // new plot.
-    if (canvasRef.current === undefined) {
-      Plotly.newPlot(node, data, finalLayout, finalConfig)
-      if (firstUpdate.current) {
-        firstUpdate.current = false
+  // Update plots when data, config or rendering canvas is updated.
+  // useLayoutEffect is used so that React rendering and Plotly rendering are
+  // synced.
+  useLayoutEffect(() => {
+    if (firstRender.current) {
+      Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
+      attach.current = true
+      firstRender.current = false
+
+      // Subscribe to the layout change publisher if one is given
+      if (layoutSubject) {
+        layoutSubject.subscribe(layout => {
+          let oldLayout = canvasRef.current.layout
+          Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+        })
       }
       setLoading(false)
-    // When the reference changes for the second time, react instead to save
-    // some time
     } else {
-      let oldLayout = canvasRef.current.layout
-      let oldData = canvasRef.current.data
-      Plotly.react(node, oldData, oldLayout, finalConfig)
-    }
-
-    // (Re-)attach events whenever the canvas changes
-    if (onRelayouting) {
-      node.on('plotly_relayouting', onRelayouting)
-    }
-    if (onRedraw) {
-      node.on('plotly_redraw', onRedraw)
-    }
-    if (onRelayout) {
-      node.on('plotly_relayout', onRelayout)
-    }
-    if (onHover) {
-      node.on('plotly_hover', onHover)
-    }
-
-    // Subscribe to the layout change publisher if one is given
-    if (layoutSubject) {
-      layoutSubject.subscribe(layout => {
-        let oldLayout = canvasRef.current.layout
-        Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
-      })
-    }
-
-    // Update canvas element
-    canvasRef.current = node
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, onHover, onRedraw, onRelayout, onRelayouting])
-
-  // Update plots when data or config is updated. useLayoutEffect is used so
-  // that React rendering and Plotly rendering are synced.
-  useLayoutEffect(() => {
-    if (!firstUpdate.current) {
       Plotly.react(canvasRef.current, data, finalLayout, finalConfig)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasRef, data, finalConfig])
+    // Upon first render or changing the plot DOM element the events are (re-)attached.
+    if (attach.current === true) {
+      if (onRelayouting) {
+        canvasRef.current.on('plotly_relayouting', onRelayouting)
+      }
+      if (onRedraw) {
+        canvasRef.current.on('plotly_redraw', onRedraw)
+      }
+      if (onRelayout) {
+        canvasRef.current.on('plotly_relayout', onRelayout)
+      }
+      if (onHover) {
+        canvasRef.current.on('plotly_hover', onHover)
+      }
 
-  // Relayout plots when layout updated. useLayoutEffect is used so that React
-  // rendering and Plotly rendering are synced.
-  useLayoutEffect(() => {
-    if (!firstUpdate.current && canvasRef?.current && finalLayout) {
-      Plotly.relayout(canvasRef.current, finalLayout)
+      attach.current = false
     }
-  }, [canvasRef, finalLayout])
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutSubject, canvasNode, firstRender, data, finalConfig])
+
+  // Captures the first margin value from the plot and performs
+  useLayoutEffect(() => {
+    if (fixedMargins && canvasRef.current) {
+      try {
+        // Get the element which explicitly stores the computed margin and
+        // perform a relayout with these values.
+        const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
+        const currentLayout = canvasRef.current.layout
+        currentLayout.yaxis.automargin = false
+        currentLayout.xaxis.automargin = false
+        currentLayout.margin.l = parseInt(group.getAttribute('x'))
+        currentLayout.margin.t = parseInt(group.getAttribute('y'))
+        Plotly.relayout(canvasRef.current, currentLayout)
+
+        // Save the margins so that they can also be updated on the reset config
+        setMargins({l: currentLayout.margin.l, t: currentLayout.margin.t})
+      } catch (e) {
+        console.log('Could not determine the margin values.')
+      }
+    }
+  }, [canvasRef, data, fixedMargins])
 
   // For resetting the view.
   const handleReset = useCallback(() => {
@@ -257,6 +299,9 @@ export default function Plot({data, layout, config, floatTitle, capture, aspectR
     {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
     {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
   ]
+  if (metaInfoLink) {
+    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(metaInfoLink) }, content: <ViewList/>})
+  }
 
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
@@ -280,11 +325,12 @@ Plot.propTypes = {
   config: PropTypes.object, // Plotly.js config object
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
+  fixedMargins: PropTypes.bool, // Whether to automatically update margins beyond the first render.
   className: PropTypes.string,
   classes: PropTypes.string,
   floatTitle: PropTypes.string, // The title of the plot shown in floating mode
+  metaInfoLink: PropTypes.string, // A link to the metainfo definition
   onRelayout: PropTypes.func,
-  onAfterPlot: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayouting: PropTypes.func,
   onHover: PropTypes.func,
@@ -298,5 +344,6 @@ Plot.propTypes = {
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,
-  floatTitle: ''
+  floatTitle: '',
+  fixedMargins: true
 }

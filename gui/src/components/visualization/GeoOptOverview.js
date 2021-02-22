@@ -28,27 +28,29 @@ import Plot from '../visualization/Plot'
 import { Structure } from '../visualization/Structure'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 
+const useStyles = makeStyles((theme) => {
+  return {
+    root: {
+      display: 'flex',
+      width: '100%'
+    },
+    energies: {
+      flex: '1 1 66.6%'
+    },
+    structure: {
+      flex: '1 1 33.3%'
+    }
+  }
+})
+
 function GeoOptOverview({data, className, classes}) {
   // RxJS subject for efficiently propagating changes in structure information
   const positionsSubject = useMemo(() => new Subject(), [])
 
   // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      root: {
-        display: 'flex',
-        width: '100%'
-      },
-      energies: {
-        flex: '1 1 66.6%'
-      },
-      structure: {
-        flex: '1 1 33.3%'
-      }
-    }
-  })
   const style = useStyles(classes)
   const theme = useTheme()
+
   const plotData = useMemo(() => {
     let steps = [...Array(data.structures.length).keys()]
     let energies = data.energies
@@ -104,13 +106,16 @@ function GeoOptOverview({data, className, classes}) {
       spikedistance: 1000,
       showlegend: true,
       legend: {
-        x: 1,
-        xanchor: 'right',
-        y: 0.5
+        x: 0,
+        xanchor: 'left',
+        y: 1,
+        bgcolor: 'rgba(255, 255, 255, 0.9)'
       },
       xaxis: {
         showexponent: 'first',
-        title: 'Step number',
+        title: {
+          text: 'Step number'
+        },
         tickmode: 'auto',
         tickformat: ',d',
         autorange: false,
@@ -122,7 +127,9 @@ function GeoOptOverview({data, className, classes}) {
         spikecolor: '#999999',
         spikemode: 'across' },
       yaxis: {
-        title: 'Energy (eV)',
+        title: {
+          text: 'Energy (eV)'
+        },
         autorange: true,
         zeroline: false
       }

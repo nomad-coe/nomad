@@ -28,55 +28,61 @@ import clsx from 'clsx'
  * Notice that this is different from invalid data (this should display an
  * ErrorCard) or from a placeholder!
  */
+
+// These styles do not depend on any props: they can be created once and are
+// shared by each instance.
+const useStaticStyles = makeStyles(theme => ({
+  root: {
+  },
+  innerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%'
+  },
+  box: {
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+    padding: theme.spacing(2)
+  },
+  background: {
+    backgroundColor: '#f3f3f3',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  message: {
+    color: theme.palette.primary.main,
+    fontStyle: 'italic',
+    opacity: 0.5,
+    userSelect: 'none'
+  }
+}))
 export default function NoData({aspectRatio, className, classes}) {
-  const useStyles = makeStyles(theme => {
-    return {
-      root: {
-      },
-      outerContainer: {
-        height: 0,
-        overflow: 'hidden',
-        paddingBottom: `${100 / aspectRatio}%`,
-        position: 'relative'
-      },
-      innerContainer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%'
-      },
-      box: {
-        width: '100%',
-        height: '100%',
-        boxSizing: 'border-box',
-        padding: theme.spacing(2)
-      },
-      background: {
-        backgroundColor: '#f3f3f3',
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      },
-      message: {
-        color: theme.palette.primary.main,
-        opacity: 0.5,
-        userSelect: 'none'
-      }
+  // These styles change for each component individually
+  const useStyles = makeStyles(theme => ({
+    outerContainer: {
+      height: 0,
+      overflow: 'hidden',
+      paddingBottom: `${100 / aspectRatio}%`,
+      position: 'relative'
     }
-  })
-  const styles = useStyles(classes)
-  const content = <Box className={styles.box}>
-    <Box className={styles.background}>
-      <div className={styles.message}>NO DATA</div>
+  }))
+  const staticStyles = useStaticStyles({classes: classes})
+  const styles = useStyles()
+  const content = <Box className={staticStyles.box}>
+    <Box className={staticStyles.background}>
+      <div className={staticStyles.message}>no data</div>
     </Box>
   </Box>
   return aspectRatio
-    ? <div className={clsx(className, styles.root)}>
+    ? <div className={clsx(className, staticStyles.root)}>
       <div className={styles.outerContainer}>
-        <div className={styles.innerContainer}>
+        <div className={staticStyles.innerContainer}>
           {content}
         </div>
       </div>
@@ -87,5 +93,5 @@ export default function NoData({aspectRatio, className, classes}) {
 NoData.propTypes = {
   aspectRatio: PropTypes.number,
   className: PropTypes.string,
-  classes: PropTypes.string
+  classes: PropTypes.object
 }

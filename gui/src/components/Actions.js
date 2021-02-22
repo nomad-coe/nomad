@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { Tooltip, IconButton, Button, Box, makeStyles } from '@material-ui/core'
 import clsx from 'clsx'
 
-export default function Actions({actions, variant, size, justifyContent, className, classes}) {
+export default function Actions({actions, color, variant, size, justifyContent, className, classes}) {
   const actionsStyles = makeStyles((theme) => ({
     root: {
       display: 'flex',
@@ -28,7 +28,6 @@ export default function Actions({actions, variant, size, justifyContent, classNa
       justifyContent: justifyContent
     },
     iconButton: {
-      backgroundColor: 'white',
       marginRight: theme.spacing(1)
     }
   }))
@@ -37,6 +36,7 @@ export default function Actions({actions, variant, size, justifyContent, classNa
     return <Tooltip key={idx} title={value.tooltip}>
       {variant === 'icon'
         ? <IconButton
+          color={color}
           size={size}
           className={styles.iconButton}
           onClick={value.onClick}
@@ -45,6 +45,7 @@ export default function Actions({actions, variant, size, justifyContent, classNa
           {value.content}
         </IconButton>
         : <Button
+          color={color}
           variant={variant}
           size={size}
           className={styles.iconButton}
@@ -63,6 +64,7 @@ export default function Actions({actions, variant, size, justifyContent, classNa
 
 Actions.propTypes = {
   actions: PropTypes.array,
+  color: PropTypes.string,
   variant: PropTypes.string,
   size: PropTypes.string,
   justifyContent: PropTypes.string,

@@ -20,8 +20,6 @@ import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Box,
-  IconButton,
-  Tooltip,
   Typography
 } from '@material-ui/core'
 import {
@@ -35,6 +33,7 @@ import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
+import Actions from '../Actions'
 import clsx from 'clsx'
 
 /**
@@ -104,7 +103,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
 
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
-  // https://lauri-codes.github.io/materia/viewers/brillouinzoneviewer
+  // https://nomad-coe.github.io/materia/viewers/brillouinzoneviewer
   const theme = useTheme()
   useEffect(() => {
     let viewerOptions
@@ -238,27 +237,18 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
   }
 
+  // List of actionable buttons for the viewer
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
+  ]
+
   const content = <Box className={style.container}>
     {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
     <div className={style.viewerCanvas} ref={refCanvas}></div>
     <div className={style.header}>
-      <div className={style.spacer}></div>
-      <Tooltip title="Reset view">
-        <IconButton className={style.iconButton} onClick={handleReset}>
-          <Replay />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title="Toggle fullscreen">
-        <IconButton className={style.iconButton} onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Capture image">
-        <IconButton className={style.iconButton} onClick={takeScreencapture}>
-          <CameraAlt />
-        </IconButton>
-      </Tooltip>
+      <Actions actions={actions}></Actions>
     </div>
   </Box>
 

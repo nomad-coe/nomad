@@ -15,59 +15,67 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
 import {
   Box,
   Typography
 } from '@material-ui/core'
+import { useRecoilValue, RecoilRoot } from 'recoil'
+import { convertSI } from '../../utils'
 import DOS from './DOS'
 import NoData from './NoData'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import { RecoilRoot } from 'recoil'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
+import { electronicRange } from '../../config'
 
-function ElectronicStructureOverview({data, range, className, classes, raiseError}) {
-  const [dosLayout, setDosLayout] = useState({
-    autorange: false,
-    yaxis: {range: range}
-  })
-  const [bsLayout, setBsLayout] = useState({
-    autorange: false,
-    yaxis: {range: range}
-  })
+// Styles
+const useStyles = makeStyles((theme) => {
+  return {
+    row: {
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      width: '100%',
+      height: '100%',
+      flexWrap: 'wrap'
+    },
+    bz: {
+      flex: '0 0 66.6%'
+    },
+    bs: {
+      flex: '0 0 66.6%'
+    },
+    dos: {
+      flex: '0 0 33.3%'
+    },
+    boxBs: {
+      padding: '1.45rem',
+      paddingBottom: '2.4rem'
+    },
+    boxDos: {
+      padding: '1.45rem',
+      paddingBottom: '3.55rem'
+    }
+  }
+})
+
+function ElectronicStructureOverview({data, className, classes, raiseError}) {
+  const units = useRecoilValue(unitsState)
+  const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
   const dosYSubject = useMemo(() => new Subject(), [])
 
   // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      row: {
-        display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        width: '100%',
-        height: '100%',
-        flexWrap: 'wrap'
-      },
-      bz: {
-        flex: '0 0 66.6%'
-      },
-      bs: {
-        flex: '0 0 66.6%'
-      },
-      dos: {
-        flex: '0 0 33.3%'
-      }
-    }
-  })
-  const style = useStyles(classes)
+  const styles = useStyles({classes: classes})
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
@@ -85,8 +93,8 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
 
   return (
     <RecoilRoot>
-      <Box className={style.row}>
-        <Box className={style.bs}>
+      <Box className={styles.row}>
+        <Box className={styles.bs}>
           <Typography variant="subtitle1" align='center'>Band structure</Typography>
           {data.bs
             ? <BandStructure
@@ -95,13 +103,14 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               aspectRatio={1.2}
               unitsState={unitsState}
               onRelayouting={handleBSRelayouting}
-              onReset={() => { setDosLayout({yaxis: {range: range}}) }}
+              onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
               layoutSubject={dosYSubject}
+              metaInfoLink={data?.bs?.path}
             ></BandStructure>
-            : <NoData aspectRatio={1.2}/>
+            : <NoData aspectRatio={1.2} classes={{box: styles.boxBs}}/>
           }
         </Box>
-        <Box className={style.dos}>
+        <Box className={styles.dos}>
           <Typography variant="subtitle1" align='center'>Density of states</Typography>
           {data.dos
             ? <DOS
@@ -109,15 +118,16 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
               layout={dosLayout}
               aspectRatio={0.6}
               onRelayouting={handleDOSRelayouting}
-              onReset={() => { setBsLayout({yaxis: {range: range}}) }}
+              onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
               unitsState={unitsState}
               layoutSubject={bsYSubject}
+              metaInfoLink={data?.dos?.path}
             ></DOS>
-            : <NoData aspectRatio={0.6}/>
+            : <NoData aspectRatio={0.6} classes={{box: styles.boxDos}}/>
           }
         </Box>
         {data.bs
-          ? <Box className={style.bz}>
+          ? <Box className={styles.bz}>
             <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
             <BrillouinZone
               data={data.bs.section_k_band}
@@ -133,13 +143,9 @@ function ElectronicStructureOverview({data, range, className, classes, raiseErro
 
 ElectronicStructureOverview.propTypes = {
   data: PropTypes.object,
-  range: PropTypes.array,
   className: PropTypes.string,
   classes: PropTypes.object,
   raiseError: PropTypes.func
-}
-ElectronicStructureOverview.defaultProps = {
-  range: [-10, 20]
 }
 
 export default ElectronicStructureOverview
