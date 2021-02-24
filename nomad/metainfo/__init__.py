@@ -323,6 +323,11 @@ A more complex example
 .. literalinclude:: ../nomad/metainfo/example.py
     :language: python
 
+
+The Elasticsearch extension
+---------------------------
+
+.. automodule:: nomad.metainfo.elasticsearch_extension
 '''
 
 
