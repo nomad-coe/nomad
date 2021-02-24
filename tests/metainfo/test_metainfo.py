@@ -22,12 +22,11 @@
 import pytest
 import numpy as np
 import pint.quantity
-import datetime
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Datetime, Annotation, SectionAnnotation,
-    DefinitionAnnotation, Reference, MProxy, derived, SectionProxy, JSON)
+    MetainfoError, Environment, MResource, Annotation, SectionAnnotation,
+    DefinitionAnnotation, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
 from nomad.units import ureg
@@ -445,7 +444,7 @@ class TestM1:
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
         assert isinstance(system.lattice_vectors, pint.quantity._Quantity)
         assert isinstance(system.unit_cell, pint.quantity._Quantity)
-        assert np.array_equal(system.unit_cell.magnitude, system.lattice_vectors.magnitude)
+        assert np.array_equal(system.unit_cell.magnitude, system.lattice_vectors.magnitude)  # pylint: disable=no-member
 
     @pytest.fixture(scope='function')
     def example_data(self):
@@ -620,8 +619,8 @@ class TestM1:
         system = System()
         value = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
         system.lattice_vectors = value
-        assert isinstance(system.lattice_vectors.m, np.ndarray)
-        assert system.lattice_vectors.m[1][2] == 1.0
+        assert isinstance(system.lattice_vectors.m, np.ndarray)  # pylint: disable=no-member
+        assert system.lattice_vectors.m[1][2] == 1.0  # pylint: disable=no-member
         assert system.m_to_dict()['lattice_vectors'] == value
 
         class TestSection(MSection):
