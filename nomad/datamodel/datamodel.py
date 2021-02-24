@@ -39,6 +39,7 @@ from .qcms import QCMSMetadata
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = metainfo.Package()
 
+from .results import Results  # noqa
 from .encyclopedia import EncyclopediaMetadata  # noqa
 from .metainfo.common_dft import Run, Workflow  # noqa
 from .metainfo.common_experimental import Experiment  # noqa
@@ -618,6 +619,8 @@ class EntryArchive(metainfo.MSection):
     section_metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],
         a_elasticsearch=Elasticsearch())
+
+    section_results = metainfo.SubSection(sub_section=Results)
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],
