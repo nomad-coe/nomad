@@ -164,16 +164,16 @@ def pprint(root, indent=None):
     if len(indent) == 0:
         indent_str = ''
     else:
-        indent_str = ''.join(['   ' if last else ' │ ' for last in indent[:-1]])
-        indent_str += ' └╴' if indent[-1] else ' ├╴'
+        indent_str = ''.join(['   ' if last else '   ' for last in indent[:-1]])
+        indent_str += '   ' if indent[-1] else '   '
     msg = indent_str + str(root.m_def.name)
     if hasattr(root.m_def, "repeats") and root.m_def.repeats:
         msg += " (repeats)"
     print(msg)
 
     for i, q in enumerate(quantities):
-        istr = ''.join(['   ' if last else ' │ ' for last in indent])
-        istr += ' └╴' if i == n_q - 1 and n_sub == 0 else ' ├╴'
+        istr = ''.join(['   ' if last else '   ' for last in indent])
+        istr += '   ' if i == n_q - 1 and n_sub == 0 else '   '
         try:
             dtype = q.type.__name__
         except Exception:

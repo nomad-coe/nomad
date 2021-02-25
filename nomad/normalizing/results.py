@@ -253,6 +253,8 @@ class ResultsNormalizer(Normalizer):
         """Given a list of species labels, returns the
         corresponding Species instance.
         """
+        if labels is None:
+            return
         unique_labels = sorted(list(set(labels)))
         for label in unique_labels:
             i_species = struct.m_create(Species)
