@@ -20,11 +20,12 @@ import functools
 import itertools
 import math
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union, cast
+from typing import List, Dict, Tuple, Any, Union, Iterable, cast
 from nptyping import NDArray
 
 from ase.utils import pbc2pbc
 import ase.geometry
+import ase.data
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -122,6 +123,18 @@ def wrap_positions(
         return np.dot(fractional, cell)
     else:
         return fractional
+
+
+def chemical_symbols(atomic_numbers: Iterable[int]) -> List[str]:
+    """Converts atomic numbers to chemical_symbols.
+
+    Args:
+        atomic_numbers: The atomic numbers to convert.
+
+    Returns:
+        Array of chemical symbols.
+    """
+    return [ase.data.chemical_symbols[x] for x in atomic_numbers]
 
 
 def to_scaled(

@@ -21,6 +21,7 @@ from elasticsearch_dsl import Text, Keyword, Integer
 
 from ase.data import chemical_symbols
 
+from nomad.datamodel.optimade import Species
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
 from nomad.metainfo.search_extension import Search
 
@@ -40,7 +41,8 @@ class WyckoffSet(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         description="""
-        Section for storing Wyckoff set information.
+        Section for storing Wyckoff set information. Only available for
+        conventional cells that have undergone symmetry analysis.
         """
     )
     wyckoff_letter = Quantity(
@@ -211,6 +213,7 @@ class Structure(MSection):
         """,
         a_search=Search()
     )
+    species = SubSection(sub_section=Species.m_def, repeats=True)
     lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
@@ -280,17 +283,17 @@ class Symmetry(MSection):
         space group of this system.
         """,
     )
-    prototype = Quantity(
+    prototype_formula = Quantity(
         type=str,
         description="""
-        The prototypical material for this crystal structure.
+        The formula of the prototypical material for this structure.
         """,
         a_search=Search()
     )
-    prototype_aflow_label = Quantity(
+    prototype_aflow_id = Quantity(
         type=str,
         description="""
-        The label of this structure in the AFLOW encyclopedia of
+        The identifier of this structure in the AFLOW encyclopedia of
         crystallographic prototypes:
         http://www.aflowlib.org/prototype-encyclopedia/index.html
         """,
@@ -299,14 +302,15 @@ class Symmetry(MSection):
     structure_name = Quantity(
         type=str,
         description="""
-        A common name for this structure.
+        A common name for this structure, e.g. fcc, bcc.
         """,
         a_search=Search()
     )
     strukturbericht_designation = Quantity(
         type=str,
         description="""
-        Classification of the material according to the historically grown "strukturbericht".
+        Classification of the material according to the historically grown
+        "strukturbericht".
         """,
         a_search=Search()
     )
@@ -327,14 +331,21 @@ class Material(MSection):
         """,
         a_search=Search()
     )
-    structural_type = Quantity(
+    material_name = Quantity(
+        type=str,
+        description="""
+        Meaningful names for this a material if any can be assigned.
+        """,
+        a_search=Search()
+    )
+    type_structural = Quantity(
         type=MEnum(structure_classes), default="not processed",
         description="""
         Classification based on structural features.
         """,
         a_search=Search(statistic_values=structure_classes)
     )
-    functional_type = Quantity(
+    type_functional = Quantity(
         type=str,
         shape=["*"],
         description="""
@@ -342,18 +353,11 @@ class Material(MSection):
         """,
         a_search=Search()
     )
-    compound_type = Quantity(
+    type_compound = Quantity(
         type=str,
         shape=["*"],
         description="""
         Classification based on the chemical formula.
-        """,
-        a_search=Search()
-    )
-    material_name = Quantity(
-        type=str,
-        description="""
-        Meaningful names for this a material if any can be assigned.
         """,
         a_search=Search()
     )

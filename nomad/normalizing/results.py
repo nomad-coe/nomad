@@ -18,10 +18,13 @@
 
 import json
 import numpy as np
-from typing import Dict
+from typing import Dict, List
 
 from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
+from nomad.datamodel.encyclopedia import EncyclopediaMetadata
+from nomad.datamodel.optimade import OptimadeEntry, Species
+from nomad.datamodel.metainfo.common_dft import section_symmetry, section_system
 from nomad.datamodel.results import (
     Results,
     Material,
@@ -64,13 +67,18 @@ class ResultsNormalizer(Normalizer):
         results.material = self.material(repr_sys, encyclopedia, optimade)
         self.entry_archive.results = results
 
-    def material(self, repr_sys, encyclopedia, optimade) -> Material:
+    def material(
+            self,
+            repr_sys: section_system,
+            encyclopedia: EncyclopediaMetadata,
+            optimade: OptimadeEntry) -> Material:
+        """Returns a populated Material subsection."""
         material = Material()
         symm = repr_sys.section_symmetry if repr_sys else None
         symm = symm[0] if symm else None
 
         if repr_sys:
-            material.structural_type = repr_sys.system_type
+            material.type_structural = repr_sys.system_type
             names, counts = atomutils.get_hill_decomposition(repr_sys.atom_labels, reduced=True)
             material.chemical_formula_reduced_fragments = [
                 "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(names, counts)
@@ -83,8 +91,8 @@ class ResultsNormalizer(Normalizer):
             classes = encyclopedia.material.material_classification
             if classes:
                 classifications = json.loads(classes)
-                material.functional_type = classifications.get("material_class_springer")
-                material.compound_type = classifications.get("compound_class_springer")
+                material.type_functional = classifications.get("material_class_springer")
+                material.type_compound = classifications.get("compound_class_springer")
             material.material_name = encyclopedia.material.material_name
         if optimade:
             material.elements = optimade.elements
@@ -107,7 +115,12 @@ class ResultsNormalizer(Normalizer):
 
         return material
 
-    def symmetry(self, repr_sys, symmetry, encyclopedia) -> Symmetry:
+    def symmetry(
+            self,
+            repr_sys: section_system,
+            symmetry: section_symmetry,
+            encyclopedia: EncyclopediaMetadata) -> Symmetry:
+        """Returns a populated Symmetry subsection."""
         result = Symmetry()
         filled = False
 
@@ -116,31 +129,36 @@ class ResultsNormalizer(Normalizer):
             result.hall_symbol = symmetry.hall_symbol
             result.bravais_lattice = symmetry.bravais_lattice
             result.crystal_system = symmetry.crystal_system
-            result.international_short_symbol = symmetry.international_short_symbol
-            result.point_group = symmetry.point_group
             result.space_group_number = symmetry.space_group_number
+            result.space_group_symbol = symmetry.international_short_symbol
+            result.point_group = symmetry.point_group
             filled = True
 
         if encyclopedia and encyclopedia.material.bulk:
             result.strukturbericht_designation = encyclopedia.material.bulk.strukturbericht_designation
             result.structure_name = encyclopedia.material.bulk.structure_type
-            result.prototype = encyclopedia.material.bulk.structure_prototype
+            result.prototype_formula = encyclopedia.material.bulk.structure_prototype
             filled = True
 
         proto = repr_sys.section_prototype if repr_sys else None
         proto = proto[0] if proto else None
         if proto:
-            result.aflow_prototype_label = proto.prototype_aflow_id
+            result.prototype_aflow_id = proto.prototype_aflow_id
             filled = True
 
         if filled:
             return result
         return None
 
-    def structure_original(self, repr_sys) -> Structure:
+    def structure_original(self, repr_sys: section_system) -> Structure:
+        """Returns a populated Structure subsection for the original
+        structure.
+        """
         if repr_sys:
             struct = Structure()
             struct.cartesian_site_positions = repr_sys.atom_positions
+            struct.species_at_sites = repr_sys.atom_labels
+            self.species(struct.species_at_sites, struct)
             if atomutils.is_valid_basis(repr_sys.lattice_vectors):
                 struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
                 struct.lattice_vectors = repr_sys.lattice_vectors
@@ -158,11 +176,16 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def structure_primitive(self, symmetry) -> Structure:
+    def structure_primitive(self, symmetry: section_symmetry) -> Structure:
+        """Returns a populated Structure subsection for the primitive
+        structure.
+        """
         if symmetry:
             struct = Structure()
             prim_sys = symmetry.section_primitive_system[0]
             struct.cartesian_site_positions = prim_sys.atom_positions_primitive
+            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers_primitive)
+            self.species(struct.species_at_sites, struct)
             if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = prim_sys.lattice_vectors_primitive
@@ -180,11 +203,16 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def structure_conventional(self, symmetry) -> Structure:
+    def structure_conventional(self, symmetry: section_symmetry) -> Structure:
+        """Returns a populated Structure subsection for the conventional
+        structure.
+        """
         if symmetry:
             struct = Structure()
             conv_sys = symmetry.section_std_system[0]
             struct.cartesian_site_positions = conv_sys.atom_positions_std
+            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers_std)
+            self.species(struct.species_at_sites, struct)
             if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = conv_sys.lattice_vectors_std
@@ -205,7 +233,9 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def wyckoff_sets(self, struct, wyckoff_sets: Dict) -> None:
+    def wyckoff_sets(self, struct: Structure, wyckoff_sets: Dict) -> None:
+        """Populates the Wyckoff sets in the given structure.
+        """
         for group in wyckoff_sets:
             wset = struct.m_create(WyckoffSet)
             if group.x is not None or group.y is not None or group.z is not None:
@@ -218,3 +248,14 @@ class ResultsNormalizer(Normalizer):
             wset.indices = group.indices
             wset.element = group.element
             wset.wyckoff_letter = group.wyckoff_letter
+
+    def species(self, labels: List[str], struct: Structure) -> None:
+        """Given a list of species labels, returns the
+        corresponding Species instance.
+        """
+        unique_labels = sorted(list(set(labels)))
+        for label in unique_labels:
+            i_species = struct.m_create(Species)
+            i_species.name = label
+            i_species.chemical_elements = [label]
+            i_species.concentration = [1.0]
