@@ -23,7 +23,6 @@ from ase.data import chemical_symbols
 
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
 from nomad.metainfo.search_extension import Search
-from nomad import atomutils
 
 structure_classes = [
     "1D",
@@ -204,7 +203,6 @@ class Structure(MSection):
     )
     cell_volume = Quantity(
         type=np.dtype(np.float64),
-        derived=lambda a: atomutils.get_volume(a.lattice_vectors.magnitude),
         unit="m ** 3",
         description="""
         Volume of the cell. The cell volume can only be reported consistently

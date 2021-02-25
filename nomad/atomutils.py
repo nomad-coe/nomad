@@ -60,6 +60,24 @@ def get_volume(basis: NDArray[Any]) -> float:
     return np.abs(np.linalg.det(basis))
 
 
+def is_valid_basis(basis: NDArray[Any]) -> bool:
+    """Checks if the given set of basis vectors are valid. Currently does not
+    check for linear independence, only for empty rows.
+
+    Args:
+        basis: 3x3 matrix with basis vectors as rows.
+
+    Returns:
+        True if the basis is valid, False otherwise.
+    """
+    if basis is None:
+        return False
+    for row in np.asarray(basis):
+        if not np.any(row):
+            return False
+    return True
+
+
 def wrap_positions(
         positions: NDArray[Any],
         cell: NDArray[Any] = None,

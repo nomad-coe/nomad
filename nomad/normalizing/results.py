@@ -140,18 +140,20 @@ class ResultsNormalizer(Normalizer):
     def structure_original(self, repr_sys) -> Structure:
         if repr_sys:
             struct = Structure()
-            struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
-            struct.lattice_vectors = repr_sys.lattice_vectors
             struct.cartesian_site_positions = repr_sys.atom_positions
-            param_values = atomutils.cell_to_cellpar(repr_sys.lattice_vectors.magnitude)
-            params = LatticeParameters()
-            params.a = float(param_values[0])
-            params.b = float(param_values[1])
-            params.c = float(param_values[2])
-            params.alpha = float(param_values[3])
-            params.beta = float(param_values[4])
-            params.gamma = float(param_values[5])
-            struct.lattice_parameters = params
+            if atomutils.is_valid_basis(repr_sys.lattice_vectors):
+                struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
+                struct.lattice_vectors = repr_sys.lattice_vectors
+                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude),
+                param_values = atomutils.cell_to_cellpar(repr_sys.lattice_vectors.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
             return struct
 
         return None
@@ -160,18 +162,20 @@ class ResultsNormalizer(Normalizer):
         if symmetry:
             struct = Structure()
             prim_sys = symmetry.section_primitive_system[0]
-            struct.dimension_types = [1, 1, 1]
-            struct.lattice_vectors = prim_sys.lattice_vectors_primitive
             struct.cartesian_site_positions = prim_sys.atom_positions_primitive
-            param_values = atomutils.cell_to_cellpar(prim_sys.lattice_vectors_primitive.magnitude)
-            params = LatticeParameters()
-            params.a = float(param_values[0])
-            params.b = float(param_values[1])
-            params.c = float(param_values[2])
-            params.alpha = float(param_values[3])
-            params.beta = float(param_values[4])
-            params.gamma = float(param_values[5])
-            struct.lattice_parameters = params
+            if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
+                struct.dimension_types = [1, 1, 1]
+                struct.lattice_vectors = prim_sys.lattice_vectors_primitive
+                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude),
+                param_values = atomutils.cell_to_cellpar(prim_sys.lattice_vectors_primitive.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
             return struct
 
         return None
@@ -180,21 +184,23 @@ class ResultsNormalizer(Normalizer):
         if symmetry:
             struct = Structure()
             conv_sys = symmetry.section_std_system[0]
-            struct.dimension_types = [1, 1, 1]
-            struct.lattice_vectors = conv_sys.lattice_vectors_std
             struct.cartesian_site_positions = conv_sys.atom_positions_std
-            param_values = atomutils.cell_to_cellpar(conv_sys.lattice_vectors_std.magnitude)
-            params = LatticeParameters()
-            params.a = float(param_values[0])
-            params.b = float(param_values[1])
-            params.c = float(param_values[2])
-            params.alpha = float(param_values[3])
-            params.beta = float(param_values[4])
-            params.gamma = float(param_values[5])
-            struct.lattice_parameters = params
-            analyzer = symmetry.m_cache["symmetry_analyzer"]
-            sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
-            self.wyckoff_sets(struct, sets)
+            if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
+                struct.dimension_types = [1, 1, 1]
+                struct.lattice_vectors = conv_sys.lattice_vectors_std
+                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude),
+                param_values = atomutils.cell_to_cellpar(conv_sys.lattice_vectors_std.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
+                analyzer = symmetry.m_cache["symmetry_analyzer"]
+                sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+                self.wyckoff_sets(struct, sets)
             return struct
 
         return None
