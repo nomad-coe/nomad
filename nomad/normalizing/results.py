@@ -28,8 +28,13 @@ from nomad.datamodel.metainfo.common_dft import section_symmetry, section_system
 from nomad.datamodel.results import (
     Results,
     Material,
+    Method,
+    Properties,
     Symmetry,
     Structure,
+    StructureOriginal,
+    StructurePrimitive,
+    StructureConventional,
     LatticeParameters,
     WyckoffSet,
 )
@@ -62,20 +67,24 @@ class ResultsNormalizer(Normalizer):
         except Exception:
             optimade = None
 
+        symmetry = None
+        if repr_sys and repr_sys.section_symmetry:
+            symmetry = repr_sys.section_symmetry[0]
+
         # Create the section and populate the subsections
         results = Results()
-        results.material = self.material(repr_sys, encyclopedia, optimade)
+        results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
+        results.properties = self.properties(repr_sys, symmetry, encyclopedia)
         self.entry_archive.results = results
 
     def material(
             self,
             repr_sys: section_system,
+            symmetry: section_symmetry,
             encyclopedia: EncyclopediaMetadata,
             optimade: OptimadeEntry) -> Material:
         """Returns a populated Material subsection."""
         material = Material()
-        symm = repr_sys.section_symmetry if repr_sys else None
-        symm = symm[0] if symm else None
 
         if repr_sys:
             material.type_structural = repr_sys.system_type
@@ -83,9 +92,6 @@ class ResultsNormalizer(Normalizer):
             material.chemical_formula_reduced_fragments = [
                 "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(names, counts)
             ]
-            struct_orig = self.structure_original(repr_sys)
-            if struct_orig:
-                material.structure_original = struct_orig
         if encyclopedia:
             material.material_id = encyclopedia.material.material_id
             classes = encyclopedia.material.material_classification
@@ -102,16 +108,10 @@ class ResultsNormalizer(Normalizer):
             material.chemical_formula_hill = optimade.chemical_formula_hill
             material.chemical_formula_anonymous = optimade.chemical_formula_anonymous
 
-        if symm:
-            symmetry = self.symmetry(repr_sys, symm, encyclopedia)
-            if symmetry:
-                material.symmetry = symmetry
-            struct_prim = self.structure_primitive(symm)
-            if struct_prim:
-                material.structure_primitive = struct_prim
-            struct_conv = self.structure_conventional(symm)
-            if struct_conv:
-                material.structure_conventional = struct_conv
+        if symmetry:
+            symm = self.symmetry(repr_sys, symmetry, encyclopedia)
+            if symm:
+                material.symmetry = symm
 
         return material
 
@@ -150,90 +150,7 @@ class ResultsNormalizer(Normalizer):
             return result
         return None
 
-    def structure_original(self, repr_sys: section_system) -> Structure:
-        """Returns a populated Structure subsection for the original
-        structure.
-        """
-        if repr_sys:
-            struct = Structure()
-            struct.cartesian_site_positions = repr_sys.atom_positions
-            struct.species_at_sites = repr_sys.atom_labels
-            self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(repr_sys.lattice_vectors):
-                struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
-                struct.lattice_vectors = repr_sys.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude),
-                param_values = atomutils.cell_to_cellpar(repr_sys.lattice_vectors.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
-            return struct
-
-        return None
-
-    def structure_primitive(self, symmetry: section_symmetry) -> Structure:
-        """Returns a populated Structure subsection for the primitive
-        structure.
-        """
-        if symmetry:
-            struct = Structure()
-            prim_sys = symmetry.section_primitive_system[0]
-            struct.cartesian_site_positions = prim_sys.atom_positions_primitive
-            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers_primitive)
-            self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
-                struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = prim_sys.lattice_vectors_primitive
-                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude),
-                param_values = atomutils.cell_to_cellpar(prim_sys.lattice_vectors_primitive.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
-            return struct
-
-        return None
-
-    def structure_conventional(self, symmetry: section_symmetry) -> Structure:
-        """Returns a populated Structure subsection for the conventional
-        structure.
-        """
-        if symmetry:
-            struct = Structure()
-            conv_sys = symmetry.section_std_system[0]
-            struct.cartesian_site_positions = conv_sys.atom_positions_std
-            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers_std)
-            self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
-                struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = conv_sys.lattice_vectors_std
-                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude),
-                param_values = atomutils.cell_to_cellpar(conv_sys.lattice_vectors_std.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
-                analyzer = symmetry.m_cache["symmetry_analyzer"]
-                sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
-                self.wyckoff_sets(struct, sets)
-            return struct
-
-        return None
-
-    def wyckoff_sets(self, struct: Structure, wyckoff_sets: Dict) -> None:
+    def wyckoff_sets(self, struct: StructureConventional, wyckoff_sets: Dict) -> None:
         """Populates the Wyckoff sets in the given structure.
         """
         for group in wyckoff_sets:
@@ -261,3 +178,114 @@ class ResultsNormalizer(Normalizer):
             i_species.name = label
             i_species.chemical_elements = [label]
             i_species.concentration = [1.0]
+
+    def method(
+            self,
+            repr_sys: section_system,
+            symmetry: section_symmetry,
+            encyclopedia: EncyclopediaMetadata) -> Method:
+        """Returns a populated Method subsection."""
+        method = Method()
+        return method
+
+    def properties(
+            self,
+            repr_sys: section_system,
+            symmetry: section_symmetry,
+            encyclopedia: EncyclopediaMetadata) -> Properties:
+        """Returns a populated Properties subsection."""
+        properties = Properties()
+        struct_orig = self.structure_original(repr_sys)
+        if struct_orig:
+            properties.structure_original = struct_orig
+        struct_prim = self.structure_primitive(symmetry)
+        if struct_prim:
+            properties.structure_primitive = struct_prim
+        struct_conv = self.structure_conventional(symmetry)
+        if struct_conv:
+            properties.structure_conventional = struct_conv
+
+        return properties
+
+    def structure_original(self, repr_sys: section_system) -> StructureOriginal:
+        """Returns a populated Structure subsection for the original
+        structure.
+        """
+        if repr_sys:
+            struct = StructureOriginal()
+            struct.cartesian_site_positions = repr_sys.atom_positions
+            struct.species_at_sites = repr_sys.atom_labels
+            self.species(struct.species_at_sites, struct)
+            if atomutils.is_valid_basis(repr_sys.lattice_vectors):
+                struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
+                struct.lattice_vectors = repr_sys.lattice_vectors
+                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude),
+                param_values = atomutils.cell_to_cellpar(repr_sys.lattice_vectors.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
+            return struct
+
+        return None
+
+    def structure_primitive(self, symmetry: section_symmetry) -> StructurePrimitive:
+        """Returns a populated Structure subsection for the primitive
+        structure.
+        """
+        if symmetry:
+            struct = StructurePrimitive()
+            prim_sys = symmetry.section_primitive_system[0]
+            struct.cartesian_site_positions = prim_sys.atom_positions_primitive
+            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers_primitive)
+            self.species(struct.species_at_sites, struct)
+            if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
+                struct.dimension_types = [1, 1, 1]
+                struct.lattice_vectors = prim_sys.lattice_vectors_primitive
+                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude),
+                param_values = atomutils.cell_to_cellpar(prim_sys.lattice_vectors_primitive.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
+            return struct
+
+        return None
+
+    def structure_conventional(self, symmetry: section_symmetry) -> StructureConventional:
+        """Returns a populated Structure subsection for the conventional
+        structure.
+        """
+        if symmetry:
+            struct = StructureConventional()
+            conv_sys = symmetry.section_std_system[0]
+            struct.cartesian_site_positions = conv_sys.atom_positions_std
+            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers_std)
+            self.species(struct.species_at_sites, struct)
+            if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
+                struct.dimension_types = [1, 1, 1]
+                struct.lattice_vectors = conv_sys.lattice_vectors_std
+                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude),
+                param_values = atomutils.cell_to_cellpar(conv_sys.lattice_vectors_std.magnitude)
+                params = LatticeParameters()
+                params.a = float(param_values[0])
+                params.b = float(param_values[1])
+                params.c = float(param_values[2])
+                params.alpha = float(param_values[3])
+                params.beta = float(param_values[4])
+                params.gamma = float(param_values[5])
+                struct.lattice_parameters = params
+                analyzer = symmetry.m_cache["symmetry_analyzer"]
+                sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+                self.wyckoff_sets(struct, sets)
+            return struct
+
+        return None

@@ -140,8 +140,7 @@ class Structure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         description="""
-        Section containing information about the symmetry properties of the
-        system.
+        Describes an atomistic structure.
         """
     )
     dimension_types = Quantity(
@@ -215,6 +214,38 @@ class Structure(MSection):
     )
     species = SubSection(sub_section=Species.m_def, repeats=True)
     lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
+
+
+class StructureOriginal(Structure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains a selected representative structure from the the original
+        data.
+        """
+    )
+
+
+class StructurePrimitive(Structure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the primitive structure that is derived from
+        structure_original. This primitive stucture has been idealized and the
+        conventions employed by spglib are used.
+        """
+    )
+
+
+class StructureConventional(Structure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the conventional structure that is derived from
+        structure_original. This conventional stucture has been idealized and
+        the conventions employed by spglib are used.
+        """
+    )
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
 
@@ -222,8 +253,11 @@ class Symmetry(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         description="""
-        Section containing information about the symmetry/crystallography
-        related properties of the system.
+        Section containing information about the symmetry of the material. All
+        of these properties are derived by running a symmetry analysis on a
+        representative geometry from the original data. This original geometry
+        is stored in results.properties together with the primitive and
+        conventional structures.
         """
     )
     bravais_lattice = Quantity(
@@ -420,9 +454,90 @@ class Material(MSection):
         a_search=Search(mapping=Text(multi=True))
     )
     symmetry = SubSection(sub_section=Symmetry.m_def, repeats=False, a_search="symmetry")
-    structure_original = SubSection(sub_section=Structure.m_def, repeats=False, a_search="structure_original")
-    structure_conventional = SubSection(sub_section=Structure.m_def, repeats=False, a_search="structure_conventional")
-    structure_primitive = SubSection(sub_section=Structure.m_def, repeats=False, a_search="structure_primitive")
+
+
+class DFT(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains method details for a DFT entry.
+        """
+    )
+
+
+class Simulation(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains method details for a simulation entry.
+        """
+    )
+    dft = SubSection(sub_section=DFT.m_def, repeats=False, a_search="dft")
+
+
+class Method(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains a summary of the methodology that has been used in this entry.
+        This methodology applies to all of the reported properties, but the
+        individual properties may be further methodological details that are
+        then reported under properties.
+        """
+    )
+    method_id = Quantity(
+        type=str,
+        description="""
+        Identifier for the used method. Only available if the method could be
+        identified precisely.
+        """,
+        a_search=Search()
+    )
+    method_name = Quantity(
+        type=MEnum(["dft"]),
+        description="""
+        Common name for the used method.
+        """,
+        a_search=Search()
+    )
+    simulation = SubSection(sub_section=Simulation.m_def, repeats=False, a_search="simulation")
+
+
+class Properties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the physical properties that have been calculated or used in
+        this entry.
+        """
+    )
+    structure_original = SubSection(
+        sub_section=StructureOriginal.m_def,
+        repeats=False,
+        a_search="structure_original"
+    )
+    structure_conventional = SubSection(
+        sub_section=StructureConventional.m_def,
+        repeats=False,
+        a_search="structure_conventional"
+    )
+    structure_primitive = SubSection(
+        sub_section=StructurePrimitive.m_def,
+        repeats=False,
+        a_search="structure_primitive"
+    )
+    # geometry_optimization = SubSection(sub_section=GeometryOptimization.m_def, repeats=True, a_search="geometry_optimization")
+    # molecular_dynamics = SubSection(sub_section=MolecularDynamics.m_def, repeats=True, a_search="molecular_dynamics")
+    # dos_electronic = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="dos_electronic")
+    # dos_vibrational = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="dos_vibrational")
+    # band_structure_electronic = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="band_structure_electronic")
+    # band_structure_vibrational = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="band_structure_vibrational")
+    # charges = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="charges")
+    # forces = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="forces")
+    # energies = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="energies")
+    # heat_capacity = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="heat_capacity")
+    # helmholtz_free_energy = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="helmholtz_free_energy")
+    # elastic_properties = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="charges")
 
 
 class Results(MSection):

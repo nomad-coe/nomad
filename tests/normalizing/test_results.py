@@ -85,7 +85,9 @@ def test_material_atom(atom):
     assert material.type_compound is None
     assert material.material_name is None
     assert material.symmetry is None
-    assert_structure(material.structure_original, has_cell=False)
+
+    properties = atom.results.properties
+    assert_structure(properties.structure_original, has_cell=False)
 
 
 def test_material_molecule(molecule):
@@ -97,7 +99,9 @@ def test_material_molecule(molecule):
     assert material.type_compound is None
     assert material.material_name is None
     assert material.symmetry is None
-    assert_structure(material.structure_original, has_cell=False)
+
+    properties = molecule.results.properties
+    assert_structure(properties.structure_original)
 
 
 def test_material_1d(one_d):
@@ -109,7 +113,9 @@ def test_material_1d(one_d):
     assert material.type_compound is None
     assert material.material_name is None
     assert material.symmetry is None
-    assert_structure(material.structure_original)
+
+    properties = one_d.results.properties
+    assert_structure(properties.structure_original)
 
 
 def test_material_2d(two_d):
@@ -121,7 +127,9 @@ def test_material_2d(two_d):
     assert material.type_compound is None
     assert material.material_name is None
     assert material.symmetry is None
-    assert_structure(material.structure_original)
+
+    properties = two_d.results.properties
+    assert_structure(properties.structure_original)
 
 
 def test_material_surface(surface):
@@ -133,7 +141,9 @@ def test_material_surface(surface):
     assert material.type_compound is None
     assert material.material_name is None
     assert material.symmetry is None
-    assert_structure(material.structure_original)
+
+    properties = surface.results.properties
+    assert_structure(properties.structure_original)
 
 
 def test_material_bulk(bulk):
@@ -145,9 +155,11 @@ def test_material_bulk(bulk):
     assert material.type_compound
     assert isinstance(material.material_name, str)
     assert_symmetry(material.symmetry)
-    assert_structure(material.structure_original)
-    assert_structure(material.structure_primitive)
-    assert_structure(material.structure_conventional, has_wyckoff=True)
+
+    properties = bulk.results.properties
+    assert_structure(properties.structure_original)
+    assert_structure(properties.structure_primitive)
+    assert_structure(properties.structure_conventional, has_wyckoff=True)
 
     # pprint(bulk.results.material)
 
