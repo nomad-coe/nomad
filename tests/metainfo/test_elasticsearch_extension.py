@@ -40,6 +40,10 @@ class Material(MSection):
             Elasticsearch(material_type),
             Elasticsearch(material_type, field='text', mapping='text')])
 
+    springer_labels = Quantity(
+        type=str, shape=['*'],
+        a_elasticsearch=(Elasticsearch(material_type)))
+
 
 class Properties(MSection):
 
@@ -122,6 +126,18 @@ def assert_entries_indexed(entries: List[Entry]):
 
     assert material_docs_based_entry_specs == entry_specs
 
+    for material_doc in material_docs:
+        material = next(
+            entry.results.material
+            for entry in entries
+            if entry.results.material.material_id == material_doc['material_id'])
+
+        for quantity in Material.m_def.quantities:
+            if material.m_is_set(quantity):
+                assert material_doc[quantity.name] == getattr(material, quantity.name)
+            else:
+                quantity.name not in material_doc
+
 
 @pytest.fixture
 def example_entry():
@@ -190,13 +206,19 @@ def test_index_entry(elastic_client, indices, example_entry):
     pytest.param('1-1', '2-2', '1-1, 2-2', id='added-new-material'),
     pytest.param('1-1', '2-1', '1-1, 2-1', id='added-entry-to-material'),
     pytest.param('1-1', '1-2', '1-2', id='moved-entry-between-materials-empty'),
-    pytest.param('1-1, 2-1', '1-2', '2-1, 1-2', id='moved-entry-between-materials-remaining')
+    pytest.param('1-1, 2-1', '1-2', '2-1, 1-2', id='moved-entry-between-materials-remaining'),
+    pytest.param('1-1', '1-1*', '1-1*', id='update-material-property')
 ])
 def test_index_entries(elastic_client, indices, before, to_index, after):
-    def create_entry(spec: str):
+    def create_entry(spec: str, material_kwargs: dict = None):
         entry_id, material_id = spec.split('-')
+        changed = material_id.endswith('*')
+        if changed:
+            material_id = material_id[:-1]
         entry = Entry(entry_id=entry_id)
-        entry.m_create(Results).m_create(Material, material_id=material_id)
+        entry.m_create(Results).m_create(
+            Material, material_id=material_id,
+            springer_labels=['A', 'B'] if changed else ['A'])
         return entry
 
     def create_entries(spec: str):

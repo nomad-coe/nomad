@@ -480,6 +480,12 @@ def index_entries(entries: List, update_materials: bool = True):
             if entry is None:
                 # The entry was not changed.
                 continue
+            else:
+                # Update the material, there might be slight changes even if it is made
+                # from entry properties that are "material defining", e.g. changed external
+                # material quantities like new AFLOW prototypes
+                material_doc.update(**material_type.create_index_doc(entry.results.material))
+
             if entry.results.material.material_id != material_id:
                 # Remove the entry, it moved to another material. But the material cannot
                 # run empty, because another entry had this material id.
