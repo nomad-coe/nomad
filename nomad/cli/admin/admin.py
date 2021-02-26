@@ -69,6 +69,10 @@ def __run_parallel(
             cv.notify()
 
     for upload in uploads:
+        logger.info(
+            'cli schedules parallel %s processing for upload' % label,
+            current_process=upload.current_process,
+            current_task=upload.current_task, upload_id=upload.upload_id)
         with cv:
             cv.wait_for(lambda: state['available_threads_count'] > 0)
             state['available_threads_count'] -= 1
@@ -84,6 +88,10 @@ def __run_processing(
         uploads, parallel: int, process, label: str, reprocess_running: bool = False):
 
     def run_process(upload, logger):
+        logger.info(
+            'cli calls %s processing' % label,
+            current_process=upload.current_process,
+            current_task=upload.current_task, upload_id=upload.upload_id)
         if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
