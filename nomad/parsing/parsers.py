@@ -37,6 +37,7 @@ from fhiaimsparser import FHIAimsParser
 from excitingparser import ExcitingParser
 from abinitparser import AbinitParser
 from quantumespressoparser import QuantumEspressoParser
+from gaussianparser import GaussianParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -210,15 +211,8 @@ parsers = [
         name='parsers/band', code_name='BAND', code_homepage='https://www.scm.com/product/band_periodicdft/',
         parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
-    LegacyParser(
-        name='parsers/gaussian', code_name='Gaussian', code_homepage='http://gaussian.com/',
-        parser_class_name='gaussianparser.GaussianParser',
-        mainfile_mime_re=r'.*',
-        mainfile_contents_re=(
-            r'\s*Cite this work as:'
-            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
-    ),
     QuantumEspressoParser(),
+    GaussianParser(),
     AbinitParser(),
     LegacyParser(
         name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
