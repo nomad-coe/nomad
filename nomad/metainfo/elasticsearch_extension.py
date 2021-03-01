@@ -59,13 +59,13 @@ Here is a small metainfo example:
             type=Datetime,
             a_elasticsearch=Elasticsearch())
 
-        results = SubSection(sub_section=Results.m_def)
+        results = SubSection(sub_section=Results.m_def, a_elasticsearch=Elasticsearch())
 
 
     class Results(MSection):
 
-        material = SubSection(sub_section=Material.m_def)
-        properties = SubSection(sub_section=Properties.m_def)
+        material = SubSection(sub_section=Material.m_def, a_elasticsearch=Elasticsearch())
+        properties = SubSection(sub_section=Properties.m_def, a_elasticsearch=Elasticsearch())
 
 
     class Material(MSection):
@@ -143,6 +143,8 @@ required from the metainfo are:
 - the ``results.material`` sub-section has a ``material_id``
 - the ``results.material`` sub-section has no property called ``entries``
 
+This extension resolves references during indexing and basically treats referenced
+sub-sections as if they were direct sub-sections.
 
 .. autofunction:: index_entry
 .. autofunction:: index_entries
@@ -162,7 +164,7 @@ from nomad import config
 
 from .metainfo import (
     Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
-    Definition)
+    Definition, MetainfoError, QuantityReference)
 
 
 class DocumentType():
@@ -183,6 +185,7 @@ class DocumentType():
         '''
         return root.m_to_dict(
             with_meta=False, include_defaults=True, include_derived=True,
+            resolve_references=True,
             partial=lambda property_, section: property_ in self.indexed_properties)
 
     def create_mapping(self, section_def: Section):
@@ -193,23 +196,36 @@ class DocumentType():
         '''
         mappings: Dict[str, Any] = {}
 
-        for quanity_def in section_def.all_quantities.values():
-            elasticsearch_annotations = quanity_def.m_get_annotations(Elasticsearch, as_list=True)
+        for quantity_def in section_def.all_quantities.values():
+            elasticsearch_annotations = quantity_def.m_get_annotations(Elasticsearch, as_list=True)
             for elasticsearch_annotation in elasticsearch_annotations:
-                if self != entry_type and elasticsearch_annotation.doc_type != self:
+                is_section_reference = isinstance(quantity_def.type, Reference) and not isinstance(quantity_def.type, QuantityReference)
+                if not is_section_reference and self != entry_type and elasticsearch_annotation.doc_type != self:
                     continue
 
-                mapping = mappings.setdefault(elasticsearch_annotation.property_name, {})
-                fields = elasticsearch_annotation.fields
-                if len(fields) > 0:
-                    mapping.setdefault('fields', {}).update(**fields)
+                if is_section_reference:
+                    # Treat referenced sections as sub-sections
+                    assert quantity_def.type.target_section_def is not None
+                    assert quantity_def.is_scalar
 
+                    reference_mapping = self.create_mapping(cast(Section, quantity_def.type.target_section_def))
+                    if len(reference_mapping['properties']) > 0:
+                        mappings[quantity_def.name] = reference_mapping
                 else:
-                    mapping.update(**elasticsearch_annotation.mapping)
+                    mapping = mappings.setdefault(elasticsearch_annotation.property_name, {})
+                    fields = elasticsearch_annotation.fields
+                    if len(fields) > 0:
+                        mapping.setdefault('fields', {}).update(**fields)
 
-                self.indexed_properties.add(quanity_def)
+                    else:
+                        mapping.update(**elasticsearch_annotation.mapping)
+
+                self.indexed_properties.add(quantity_def)
 
         for sub_section_def in section_def.all_sub_sections.values():
+            if sub_section_def.m_get_annotations(Elasticsearch) is None:
+                continue
+
             assert not sub_section_def.repeats, 'elasticsearch fields in repeating sub sections are not supported'
             sub_section_mapping = self.create_mapping(sub_section_def.sub_section)
             if len(sub_section_mapping['properties']) > 0:
@@ -313,13 +329,7 @@ class Elasticsearch(DefinitionAnnotation):
         self._field = field
         self.doc_type = doc_type
 
-    @property
-    def mapping(self):
-        if self._mapping is not None:
-            return self._mapping
-
-        quantity = cast(Quantity, self.definition)
-
+    def _compute_mapping(self, quantity: Quantity):
         if quantity.type == str:
             return dict(type='keyword')
         elif quantity.type in [float, np.float64] and quantity.is_scalar:
@@ -334,13 +344,22 @@ class Elasticsearch(DefinitionAnnotation):
             return dict(type='boolean')
         elif quantity.type == Datetime:
             return dict(type='date')
+        elif isinstance(quantity.type, QuantityReference):
+            return self._compute_mapping(quantity.type.target_quantity_def)
         elif isinstance(quantity.type, Reference):
-            raise NotImplementedError('References are not yet implemented')
+            raise MetainfoError('References cannot be indexed.')
         elif isinstance(quantity.type, MEnum):
             return dict(type='keyword')
         else:
             raise NotImplementedError(
                 'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+
+    @property
+    def mapping(self):
+        if self._mapping is not None:
+            return self._mapping
+
+        return self._compute_mapping(cast(Quantity, self.definition))
 
     @property
     def fields(self):

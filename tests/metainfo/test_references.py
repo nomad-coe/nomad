@@ -90,6 +90,10 @@ def assert_data(example_data):
         assert example_data.referencing.quantity_reference == 'test_value'
         assert example_data.referencing.m_to_dict()['quantity_reference'] == '/referenced/str_quantity'
 
+        assert example_data.referencing.m_is_set(Referencing.section_reference)
+        assert example_data.referencing.m_is_set(Referencing.section_reference_list)
+        assert example_data.referencing.m_is_set(Referencing.quantity_reference)
+
     assert_properties(example_data)
 
     example_data_serialized = example_data.m_to_dict(with_meta=True)
@@ -132,3 +136,33 @@ def test_quantity_proxy(example_data):
     assert example_data.referencing.quantity_reference == 'test_value'
 
     assert_data(example_data)
+
+
+def test_resolve_references(example_data):
+    assert example_data.m_to_dict(resolve_references=True) == {
+        'referenced': {
+            'str_quantity': 'test_value'
+        },
+        'referenceds': [
+            {
+                'str_quantity': 'test_value'
+            },
+            {
+                'str_quantity': 'test_value'
+            }
+        ],
+        'referencing': {
+            'section_reference': {
+                'str_quantity': 'test_value'
+            },
+            'section_reference_list': [
+                {
+                    'str_quantity': 'test_value'
+                },
+                {
+                    'str_quantity': 'test_value'
+                }
+            ],
+            'quantity_reference': 'test_value'
+        }
+    }

@@ -1185,6 +1185,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self, with_meta: bool = False,
             include_defaults: bool = False,
             include_derived: bool = False,
+            resolve_references: bool = False,
             categories: List[Union['Category', Type['MCategory']]] = None,
             partial: TypingCallable[['Definition', 'MSection'], bool] = None) -> Dict[str, Any]:
         '''
@@ -1245,10 +1246,22 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             quantity_type = quantity.type
 
             serialize: TypingCallable[[Any], Any] = str
-            if isinstance(quantity_type, Reference):
+            if resolve_references and isinstance(quantity_type, QuantityReference):
+                quantity_type = quantity_type.target_quantity_def.type
 
+            if isinstance(quantity_type, Reference):
                 def reference_serialize(value):
-                    if isinstance(value, MProxy):
+                    if resolve_references:
+                        assert not isinstance(quantity_type, QuantityReference)
+                        value = value.m_resolved()
+                        return value.m_to_dict(
+                            with_meta=with_meta,
+                            include_defaults=include_defaults,
+                            include_derived=include_derived,
+                            resolve_references=resolve_references,
+                            partial=child_partial)
+
+                    elif isinstance(value, MProxy):
                         if value.m_proxy_resolved is not None:
                             return quantity_type.serialize(self, quantity, value)
                         else:
@@ -1304,6 +1317,17 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 raise MetainfoError(
                     'Do not know how to serialize data with type %s for quantity %s' %
                     (quantity_type, quantity))
+
+            quantity_type = quantity.type
+            if resolve_references and isinstance(quantity_type, QuantityReference):
+                serialize_value = serialize
+
+                def _serialize(value: Any):
+                    value = getattr(value.m_resolved(), quantity_type.target_quantity_def.name)
+
+                    return serialize_value(value)
+
+                serialize = _serialize
 
             if is_set:
                 value = self.__dict__[quantity.name]
@@ -1374,6 +1398,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                             with_meta=with_meta,
                             include_defaults=include_defaults,
                             include_derived=include_derived,
+                            resolve_references=resolve_references,
                             partial=child_partial)
 
         return {key: value for key, value in items()}

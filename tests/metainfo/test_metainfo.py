@@ -491,6 +491,13 @@ class TestM1:
         assert 'nomad_version' in dct['parsing']
         assert 'n_atoms' not in dct['systems'][0]
 
+    def test_to_dict_resolve_references(self, example_data):
+        scc = example_data.m_create(SCC)
+        scc.system = example_data.systems[0]
+
+        data = scc.m_to_dict(resolve_references=True)
+        assert data['system'] == example_data.systems[0].m_to_dict()
+
     def test_derived(self):
         system = System()
 

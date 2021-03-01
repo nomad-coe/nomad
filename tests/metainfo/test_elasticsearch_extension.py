@@ -18,6 +18,7 @@
 
 from typing import List
 import pytest
+import numpy as np
 
 from nomad import config
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime
@@ -45,6 +46,21 @@ class Material(MSection):
         a_elasticsearch=(Elasticsearch(material_type)))
 
 
+class Data(MSection):
+    n_points = Quantity(
+        type=int,
+        derived=lambda data: len(data.points[0]) if data.points is not None else 0,
+        a_elasticseach=Elasticsearch(material_entry_type))
+
+    points = Quantity(type=np.dtype(np.float64), shape=['*', '*'])
+
+    n_series = Quantity(
+        type=int,
+        derived=lambda data: len(data.series) if data.series is not None else 0)
+
+    series = Quantity(type=np.dtype(np.float64), shape=['*', '*'])
+
+
 class Properties(MSection):
 
     available_properties = Quantity(
@@ -55,11 +71,15 @@ class Properties(MSection):
         type=float, unit='J',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    data = Quantity(type=Data, a_elasticsearch=Elasticsearch())
+
+    n_series = Quantity(type=Data.n_series, a_elasticsearch=Elasticsearch())
+
 
 class Results(MSection):
 
-    material = SubSection(sub_section=Material.m_def)
-    properties = SubSection(sub_section=Properties.m_def)
+    material = SubSection(sub_section=Material.m_def, a_eleasticsearch=Elasticsearch())
+    properties = SubSection(sub_section=Properties.m_def, a_eleasticsearch=Elasticsearch())
 
 
 class Entry(MSection):
@@ -72,7 +92,8 @@ class Entry(MSection):
         type=Datetime,
         a_elasticsearch=Elasticsearch())
 
-    results = SubSection(sub_section=Results.m_def)
+    results = SubSection(sub_section=Results.m_def, a_eleasticsearch=Elasticsearch())
+    data = SubSection(sub_section=Data.m_def)
 
 
 def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None):
@@ -181,6 +202,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'results.material.formula', 'text', 'text')
     assert_mapping(entry_mapping, 'results.properties.available_properties', 'keyword')
     assert_mapping(entry_mapping, 'results.properties.band_gap', 'double')
+    assert_mapping(entry_mapping, 'results.properties.data.n_points', 'integer')
+    assert_mapping(entry_mapping, 'results.properties.n_series', 'integer')
 
     assert_mapping(material_mapping, 'material_id', 'keyword')
     assert_mapping(material_mapping, 'formula', 'keyword')
@@ -189,6 +212,55 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'entries.entry_id', 'keyword')
     assert_mapping(material_mapping, 'entries.upload_time', None)
     assert_mapping(material_mapping, 'entries.results.properties.available_properties', 'keyword')
+    assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
+
+
+def test_index_docs(indices):
+    entry = Entry(entry_id='test_entry_id')
+    data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
+    results = entry.m_create(Results)
+    results.m_create(
+        Material,
+        material_id='test_material_id',
+        formula='H20', springer_labels=['water'])
+    results.m_create(
+        Properties,
+        data=data, n_series=data, band_gap=1e-12, available_properties=['data', 'band_grap'])
+
+    entry_doc = entry_type.create_index_doc(entry)
+    material_entry_doc = material_entry_type.create_index_doc(entry)
+
+    assert entry_doc == {
+        'entry_id': 'test_entry_id',
+        'results': {
+            'material': {
+                'material_id': 'test_material_id',
+                'formula': 'H20',
+                'springer_labels': ['water']
+            },
+            'properties': {
+                'available_properties': ['data', 'band_grap'],
+                'band_gap': 1e-12,
+                'data': {
+                    'n_points': 2
+                },
+                'n_series': 0
+            }
+        }
+    }
+
+    assert material_entry_doc == {
+        'entry_id': 'test_entry_id',
+        'results': {
+            'properties': {
+                'available_properties': ['data', 'band_grap'],
+                'band_gap': 1e-12,
+                'data': {
+                    'n_points': 2
+                },
+            }
+        }
+    }
 
 
 def test_index_entry(elastic_client, indices, example_entry):
