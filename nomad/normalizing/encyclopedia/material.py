@@ -569,6 +569,8 @@ class Material1DNormalizer(MaterialNormalizer):
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: NDArray) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
+        if len(periodic_indices) == 0:
+            return
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
         params = ideal.m_create(LatticeParameters)
