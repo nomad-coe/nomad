@@ -99,7 +99,7 @@ def rabbitmq_url():
 celery = NomadConfig(
     max_memory=64e6,  # 64 GB
     timeout=1800,  # 1/2 h
-    acks_late=True,
+    acks_late=False,
     routing=CELERY_QUEUE_ROUTING,
     priorities={
         'Upload.process_upload': 5,
