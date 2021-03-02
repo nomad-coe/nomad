@@ -179,10 +179,13 @@ def test_dataset(client, data, dataset_id, result, status_code):
     pytest.param('another test dataset', 'foreign', None, None, None, 401, id='no-user'),
     pytest.param('test dataset 1', 'foreign', None, None, 'test_user', 400, id='exists'),
     pytest.param('another test dataset', 'owned', None, None, 'test_user', 200, id='owned'),
-    pytest.param('another test dataset', 'foreign', {}, None, 'test_user', 200, id='query'),
-    pytest.param('another test dataset', 'foreign', None, ['id_01', 'id_02'], 'test_user', 200, id='entries')
+    pytest.param('another test dataset', 'foreign', {}, None, 'test_user', 200, id='foreign-query-owner'),
+    pytest.param('another test dataset', 'foreign', {}, None, 'other_test_user', 200, id='foreign-query'),
+    pytest.param('another test dataset', 'foreign', None, ['id_01', 'id_02'], 'test_user', 200, id='foreign-entries')
 ])
-def test_post_datasets(client, data, example_entries, test_user, test_user_auth, name, dataset_type, query, entries, user, status_code):
+def test_post_datasets(
+        client, data, example_entries, test_user, test_user_auth, other_test_user,
+        other_test_user_auth, name, dataset_type, query, entries, user, status_code):
     dataset = {'name': name, 'dataset_type': dataset_type}
     if query is not None:
         dataset['query'] = query
@@ -191,6 +194,10 @@ def test_post_datasets(client, data, example_entries, test_user, test_user_auth,
     auth = None
     if user == 'test_user':
         auth = test_user_auth
+        user = test_user
+    elif user == 'other_test_user':
+        auth = other_test_user_auth
+        user = other_test_user
     response = client.post(
         'datasets/', headers=auth, json=dataset)
 
@@ -202,7 +209,7 @@ def test_post_datasets(client, data, example_entries, test_user, test_user_auth,
     dataset = json_response['data']
     assert_dataset(
         dataset, query=query, entries=entries,
-        user_id=test_user.user_id, name=name, dataset_type=dataset_type)
+        user_id=user.user_id, name=name, dataset_type=dataset_type)
     assert Dataset.m_def.a_mongo.objects().count() == 5
 
 
