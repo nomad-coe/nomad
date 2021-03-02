@@ -342,7 +342,13 @@ def _apply(key, value, raise_error: bool = True) -> None:
     leading to ``config.fs.staging``.
     '''
     full_key = key
-    group_key, config_key = full_key.split('_', 1)
+    try:
+        group_key, config_key = full_key.split('_', 1)
+    except Exception:
+        if raise_error:
+            logger.error(f'config key does not exist: {full_key}')
+        return
+
     current = globals()
 
     if group_key not in current:
