@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 import datetime
 import requests
 from requests.auth import HTTPBasicAuth
-from mongoengine import Document, StringField, DateTimeField, BinaryField
+from mongoengine import Document, StringField, DateTimeField
 from mongoengine.errors import NotUniqueError
 
 from nomad.datamodel import User
@@ -70,7 +70,7 @@ class DOI(Document):
     doi_url = StringField()
     state = StringField()
     create_time = DateTimeField()
-    matadata_xml = BinaryField()
+    metadata_xml = StringField()
 
     @staticmethod
     def create(title: str, user: User) -> 'DOI':
@@ -124,7 +124,7 @@ class DOI(Document):
         _xml(mds_resource, 'publisher', 'NOMAD Repository')
         _xml(mds_resource, 'publicationYear', str(datetime.datetime.now().year))
 
-        doi.metadata_xml = ET.tostring(mds_resource, encoding='UTF-8', method='xml')
+        doi.metadata_xml = ET.tostring(mds_resource, encoding='UTF-8', method='xml').decode('utf-8')
         doi.save()
 
         return doi
@@ -146,7 +146,7 @@ class DOI(Document):
             response = requests.post(
                 self.metadata_url,
                 headers={'Content-Type': 'application/xml;charset=UTF-8'},
-                data=self.metadata_xml, **_requests_args())
+                data=self.metadata_xml.encode('utf-8'), **_requests_args())
 
             if self.__handle_datacite_errors(response, 'create draft DOI'):
                 self.state = 'draft'
