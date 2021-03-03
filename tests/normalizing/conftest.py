@@ -19,6 +19,7 @@
 import pytest
 
 from ase import Atoms
+import ase.build
 
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
@@ -64,6 +65,7 @@ def parse_template() -> EntryArchive:
 
 def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
     template = parse_template()
+    template.section_run[0].section_single_configuration_calculation[0].single_configuration_calculation_to_system_ref = None
     template.section_run[0].section_system = None
 
     # Fill structural information
@@ -90,8 +92,10 @@ def dft() -> EntryArchive:
     method_dft.relativity_method = "scalar_relativistic"
     C = method_dft.m_create(XCFunctionals)
     C.XC_functional_name = "GGA_C_PBE"
+    C.XC_functional_weight = 1.0
     X = method_dft.m_create(XCFunctionals)
     X.XC_functional_name = "GGA_X_PBE"
+    X.XC_functional_weight = 1.0
     return run_normalize(archive)
 
 
@@ -102,6 +106,18 @@ def gw() -> EntryArchive:
     run = archive.section_run[0]
     method_dft = run.m_create(Method)
     method_dft.electronic_structure_method = "DFT"
+    method_dft.smearing_kind = "gaussian"
+    method_dft.smearing_width = 1e-20
+    method_dft.scf_threshold_energy_change = 1e-24
+    method_dft.number_of_spin_channels = 2
+    method_dft.van_der_Waals_method = "G06"
+    method_dft.relativity_method = "scalar_relativistic"
+    C = method_dft.m_create(XCFunctionals)
+    C.XC_functional_name = "GGA_C_PBE"
+    C.XC_functional_weight = 1.0
+    X = method_dft.m_create(XCFunctionals)
+    X.XC_functional_name = "GGA_X_PBE"
+    X.XC_functional_weight = 1.0
     method_gw = run.m_create(Method)
     method_gw.electronic_structure_method = "G0W0"
     method_gw.gw_type = "G0W0"

@@ -453,7 +453,7 @@ def test_method_dft_metainfo(single_point):
 def test_method_gw_metainfo(gw):
     enc = gw.section_metadata.encyclopedia
     assert enc.method.gw_type == "G0W0"
-    assert enc.method.gw_starting_point == "GGA_C_PBE+0.75*GGA_X_PBE+0.25*HF_X"
+    assert enc.method.gw_starting_point == "1.0*GGA_C_PBE+1.0*GGA_X_PBE"
 
 
 def test_hashes_exciting(hash_exciting):

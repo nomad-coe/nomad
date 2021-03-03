@@ -251,7 +251,7 @@ class ResultsNormalizer(Normalizer):
                 electronic_structure_method = sec_method.electronic_structure_method
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
-                    method_name = "GW"
+                    method_name = electronic_structure_method
                     break
 
                 # Methods linked to each other through references. Get all
@@ -275,13 +275,14 @@ class ResultsNormalizer(Normalizer):
                             repr_method = sec_method
                             method_name = electronic_structure_method
 
-        method.method_name = method_name
-        if method_name == "GW":
+        if method_name in {"G0W0", "scGW"}:
+            method.method_name = "GW"
             gw = GW()
             gw.gw_type = repr_method.gw_type
             gw.starting_point = repr_method.gw_starting_point.split()
             simulation.gw = gw
-        elif method_name == "DFT":
+        elif method_name in {"DFT", "DFT+U"}:
+            method.method_name = "DFT"
             dft = DFT()
             dft.basis_set_type = self.basis_set_type()
             dft.core_electron_treatment = self.core_electron_treatment()
