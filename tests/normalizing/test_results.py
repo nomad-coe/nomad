@@ -26,6 +26,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     surface,
     bulk,
     dft,
+    dft_plus_u,
     gw,
 )
 
@@ -167,6 +168,21 @@ def test_material_bulk(bulk):
 
 def test_method_dft(dft):
     method = dft.results.method
+    assert method.method_name == "DFT"
+    assert method.simulation.dft.basis_set_type == "plane waves"
+    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
+    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
+    assert method.simulation.dft.xc_functional_type == "GGA"
+    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.simulation.dft.smearing_width == 1e-20
+    assert method.simulation.dft.spin_polarized is True
+    assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
+    assert method.simulation.dft.van_der_Waals_method == "G06"
+    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+
+
+def test_method_dft_plus_u(dft_plus_u):
+    method = dft_plus_u.results.method
     assert method.method_name == "DFT"
     assert method.simulation.dft.basis_set_type == "plane waves"
     assert method.simulation.dft.core_electron_treatment == "pseudopotential"
