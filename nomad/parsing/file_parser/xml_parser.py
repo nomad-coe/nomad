@@ -17,6 +17,7 @@ import os
 import re
 import numpy as np
 from xml.etree import ElementTree
+from lxml import etree
 
 from nomad.parsing.file_parser import FileParser
 
@@ -53,6 +54,13 @@ class XMLParser(FileParser):
                 self._file_handler = ElementTree.parse(self.open(self.mainfile)).getroot()
             except Exception:
                 self.logger.error('failed to load xml file')
+                try:
+                    # I cannot use the lxml XMLParser directly because it is not compatible with
+                    # the ElementTree implementation.
+                    xml = etree.parse(self.open(self.mainfile), parser=etree.XMLParser(recover=True))
+                    self._file_handler = ElementTree.fromstring(etree.tostring(xml))
+                except Exception:
+                    pass
             self.init_parameters()
 
         return self._file_handler

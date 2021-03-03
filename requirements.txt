@@ -39,6 +39,7 @@ mdtraj
 mdanalysis
 nomadcore
 nomad_dos_fingerprints
+lxml
 
 # [infrastructure]
 optimade==0.8.1
