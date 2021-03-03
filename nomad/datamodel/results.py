@@ -20,10 +20,15 @@ import numpy as np
 from elasticsearch_dsl import Text, Keyword, Integer
 
 from ase.data import chemical_symbols
-
-from nomad.datamodel.optimade import Species
-from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Package
 from nomad.metainfo.search_extension import Search
+
+# This is usally defined automatically when the first metainfo definition is evaluated, but
+# due to the next imports requireing the m_package already, this would be too late.
+m_package = Package()
+
+from nomad.datamodel.optimade import Species  # noqa
+from nomad.datamodel.metainfo.common_dft import Method as section_method  # noqa
 
 structure_classes = [
     "1D",
@@ -34,6 +39,31 @@ structure_classes = [
     "surface",
     "unavailable",
     "not processed",
+]
+xc_treatments = {
+    'gga': 'GGA',
+    'hf_': 'HF',
+    'oep': 'OEP',
+    'hyb': 'hybrid',
+    'mgg': 'meta-GGA',
+    'vdw': 'vdW',
+    'lda': 'LDA',
+}
+basis_set_types = [
+    '(L)APW+lo',
+    'gaussians',
+    'numeric AOs',
+    'plane waves',
+    'psinc functions',
+    'real-space grid',
+    'unavailable',
+    'not processed',
+]
+core_electron_treatments = [
+    "full all electron",
+    "all electron frozen core",
+    "pseudopotential",
+    "unavailable",
 ]
 
 
@@ -460,8 +490,61 @@ class DFT(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         description="""
-        Contains method details for a DFT entry.
+        Methodology for a DFT calculation.
         """
+    )
+    basis_set_type = Quantity(
+        type=MEnum(basis_set_types), default='not processed',
+        description='The used basis set functions.',
+        a_search=Search(statistic_values=basis_set_types)
+    )
+    basis_set_name = section_method.basis_set.m_copy()
+    core_electron_treatment = Quantity(
+        type=MEnum(core_electron_treatments),
+        description="""
+        How the core electrons are described.
+        """,
+        a_search=Search()
+    )
+    spin_polarized = Quantity(
+        type=bool,
+        description="""
+        Whether the calculation is spin-polarized.
+        """,
+        a_search=Search()
+    )
+    scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
+    van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
+    relativity_method = section_method.relativity_method.m_copy()
+    smearing_kind = section_method.smearing_kind.m_copy()
+    smearing_width = section_method.smearing_width.m_copy()
+    xc_functional_type = Quantity(
+        type=str, default='not processed',
+        description='The libXC based xc functional classification used in the simulation.',
+        a_search=Search(
+            statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed'],
+            statistic_size=100
+        )
+    )
+    xc_functional_names = Quantity(
+        type=str, default=[], shape=['*'],
+        description='The list of libXC functional names that where used in this entry.',
+        a_search=Search(many_and='append')
+    )
+
+
+class GW(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Methodology for a GW calculation.
+        """
+    )
+    gw_type = section_method.gw_type.m_copy()
+    starting_point = Quantity(
+        type=str, default=[], shape=['*'],
+        description='The list of libXC functional names that were used for the ground state calculation.',
+        a_search=Search(many_and='append')
     )
 
 
@@ -472,7 +555,18 @@ class Simulation(MSection):
         Contains method details for a simulation entry.
         """
     )
+    program_name = Quantity(
+        type=str, default='not processed',
+        description='The name of the used program.',
+        a_search=Search()
+    )
+    program_version = Quantity(
+        type=str, default='not processed',
+        description='The version of the used program.',
+        a_search=Search()
+    )
     dft = SubSection(sub_section=DFT.m_def, repeats=False, a_search="dft")
+    gw = SubSection(sub_section=GW.m_def, repeats=False, a_search="gw")
 
 
 class Method(MSection):
@@ -494,7 +588,7 @@ class Method(MSection):
         a_search=Search()
     )
     method_name = Quantity(
-        type=MEnum(["dft"]),
+        type=MEnum(["DFT", "GW"]),
         description="""
         Common name for the used method.
         """,

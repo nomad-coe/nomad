@@ -23,6 +23,7 @@ from ase import Atoms
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import section_system as System
+from nomad.datamodel.metainfo.common_dft import Method, MethodToMethodRefs, XCFunctionals
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -62,21 +63,53 @@ def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
     system.atom_labels = atoms.get_chemical_symbols()
     system.simulation_cell = atoms.get_cell() * 1E-10
     system.configuration_periodic_dimensions = atoms.get_pbc()
-
     return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft() -> EntryArchive:
+    parser_name = "parsers/template"
+    filepath = "tests/data/templates/template.json"
+    archive = parse_file((parser_name, filepath))
+    archive.section_run[0].section_method = None
+    run = archive.section_run[0]
+    method_dft = run.m_create(Method)
+    method_dft.electronic_structure_method = "DFT"
+    method_dft.smearing_kind = "gaussian"
+    method_dft.smearing_width = 1e-20
+    method_dft.scf_threshold_energy_change = 1e-24
+    method_dft.number_of_spin_channels = 2
+    method_dft.van_der_Waals_method = "G06"
+    method_dft.relativity_method = "scalar_relativistic"
+    C = method_dft.m_create(XCFunctionals)
+    C.XC_functional_name = "GGA_C_PBE"
+    X = method_dft.m_create(XCFunctionals)
+    X.XC_functional_name = "GGA_X_PBE"
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def gw() -> EntryArchive:
+    parser_name = "parsers/template"
+    filepath = "tests/data/templates/template.json"
+    archive = parse_file((parser_name, filepath))
+    archive.section_run[0].section_method = None
+    run = archive.section_run[0]
+    method_dft = run.m_create(Method)
+    method_dft.electronic_structure_method = "DFT"
+    method_gw = run.m_create(Method)
+    method_gw.electronic_structure_method = "G0W0"
+    method_gw.gw_type = "G0W0"
+    method_gw.gw_starting_point = "GGA_C_PBE GGA_X_PBE"
+    ref = method_gw.m_create(MethodToMethodRefs)
+    ref.method_to_method_kind = "starting_point"
+    ref.method_to_method_ref = run.section_method[0]
+    return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def single_point(two_d) -> EntryArchive:
     return two_d
-
-
-@pytest.fixture(scope='session')
-def gw(two_d) -> EntryArchive:
-    parser_name = "parsers/template"
-    filepath = "tests/data/normalizers/gw.json"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')

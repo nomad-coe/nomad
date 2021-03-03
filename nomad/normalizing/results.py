@@ -18,8 +18,9 @@
 
 import json
 import numpy as np
-from typing import Dict, List
+from typing import Dict, List, Union
 
+from nomad import config
 from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -37,6 +38,10 @@ from nomad.datamodel.results import (
     StructureConventional,
     LatticeParameters,
     WyckoffSet,
+    Simulation,
+    DFT,
+    GW,
+    xc_treatments,
 )
 
 
@@ -74,6 +79,7 @@ class ResultsNormalizer(Normalizer):
         # Create the section and populate the subsections
         results = Results()
         results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
+        results.method = self.method(encyclopedia)
         results.properties = self.properties(repr_sys, symmetry, encyclopedia)
         self.entry_archive.results = results
 
@@ -167,8 +173,8 @@ class ResultsNormalizer(Normalizer):
             wset.wyckoff_letter = group.wyckoff_letter
 
     def species(self, labels: List[str], struct: Structure) -> None:
-        """Given a list of species labels, returns the
-        corresponding Species instance.
+        """Given a list of species labels, creates the corresponding Species
+        sections in the given structure.
         """
         if labels is None:
             return
@@ -179,13 +185,123 @@ class ResultsNormalizer(Normalizer):
             i_species.chemical_elements = [label]
             i_species.concentration = [1.0]
 
+    def basis_set_type(self) -> Union[str, None]:
+        name = self.section_run.program_basis_set_type
+        if name:
+            key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
+            name_mapping = {
+                'gaussians': 'gaussians',
+                'realspacegrid': 'real-space grid',
+                'planewaves': 'plane waves'
+            }
+            name = name_mapping.get(key, name)
+        return name
+
+    def core_electron_treatment(self) -> str:
+        treatment = config.services.unavailable_value
+        code_name = self.section_run.program_name
+        if code_name is not None:
+            core_electron_treatments = {
+                'VASP': 'pseudopotential',
+                'FHI-aims': 'full all electron',
+                'exciting': 'full all electron',
+                'quantum espresso': 'pseudopotential'
+            }
+            treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
+        return treatment
+
+    def xc_functional_names(self, repr_method) -> Union[List[str], None]:
+        if repr_method:
+            functionals = repr_method.section_XC_functionals
+            if functionals:
+                names = []
+                for functional in functionals:
+                    name = functional.XC_functional_name
+                    if name:
+                        names.append(name)
+                return sorted(names)
+        return None
+
+    def xc_functional_type(self, xc_functionals) -> str:
+        if xc_functionals:
+            name = xc_functionals[0]
+            return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
+        else:
+            return config.services.unavailable_value
+
     def method(
             self,
-            repr_sys: section_system,
-            symmetry: section_symmetry,
             encyclopedia: EncyclopediaMetadata) -> Method:
         """Returns a populated Method subsection."""
         method = Method()
+        simulation = Simulation()
+        repr_method = None
+        method_name = config.services.unavailable_value
+        methods = self.section_run.section_method
+        n_methods = len(methods)
+
+        if n_methods == 1:
+            repr_method = methods[0]
+            method_name = repr_method.electronic_structure_method
+            if method_name is None:
+                method_name = config.services.unavailable_value
+        elif n_methods > 1:
+            for sec_method in methods:
+                # GW
+                electronic_structure_method = sec_method.electronic_structure_method
+                if electronic_structure_method in {"G0W0", "scGW"}:
+                    repr_method = sec_method
+                    method_name = "GW"
+                    break
+
+                # Methods linked to each other through references. Get all
+                # linked methods, try to get electronic_structure_method from
+                # each.
+                try:
+                    refs = sec_method.section_method_to_method_refs
+                except KeyError:
+                    pass
+                else:
+                    linked_methods = [sec_method]
+                    for ref in refs:
+                        method_to_method_kind = ref.method_to_method_kind
+                        method_to_method_ref = ref.method_to_method_ref
+                        if method_to_method_kind == "core_settings":
+                            linked_methods.append(method_to_method_ref)
+
+                    for i_method in linked_methods:
+                        electronic_structure_method = i_method.electronic_structure_method
+                        if electronic_structure_method is not None:
+                            repr_method = sec_method
+                            method_name = electronic_structure_method
+
+        method.method_name = method_name
+        if method_name == "GW":
+            gw = GW()
+            gw.gw_type = repr_method.gw_type
+            gw.starting_point = repr_method.gw_starting_point.split()
+            simulation.gw = gw
+        elif method_name == "DFT":
+            dft = DFT()
+            dft.basis_set_type = self.basis_set_type()
+            dft.core_electron_treatment = self.core_electron_treatment()
+            dft.smearing_kind = repr_method.smearing_kind
+            dft.smearing_width = repr_method.smearing_width
+            if repr_method.number_of_spin_channels:
+                dft.spin_polarized = repr_method.number_of_spin_channels > 1
+            dft.xc_functional_names = self.xc_functional_names(repr_method)
+            dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
+            dft.scf_threshold_energy_change = repr_method.scf_threshold_energy_change
+            dft.van_der_Waals_method = repr_method.van_der_Waals_method
+            dft.relativity_method = repr_method.relativity_method
+            simulation.dft = dft
+
+        if encyclopedia and encyclopedia.method:
+            method.method_id = encyclopedia.method.method_id
+        simulation.program_name = self.section_run.program_name
+        simulation.program_version = self.section_run.program_version
+        method.simulation = simulation
+
         return method
 
     def properties(

@@ -17,6 +17,7 @@
 #
 
 import numpy as np
+from nomad.units import ureg
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
     atom,
     molecule,
@@ -24,6 +25,8 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     two_d,
     surface,
     bulk,
+    dft,
+    gw,
 )
 
 
@@ -76,18 +79,18 @@ def assert_structure(structure, has_cell=True, has_wyckoff=False):
             assert wset.element
 
 
-def test_material_atom(atom):
-    material = atom.results.material
-    assert_material(material)
-    assert material.material_id is None
-    assert material.type_structural == "atom"
-    assert material.type_functional is None
-    assert material.type_compound is None
-    assert material.material_name is None
-    assert material.symmetry is None
+# def test_material_atom(atom):
+    # material = atom.results.material
+    # assert_material(material)
+    # assert material.material_id is None
+    # assert material.type_structural == "atom"
+    # assert material.type_functional is None
+    # assert material.type_compound is None
+    # assert material.material_name is None
+    # assert material.symmetry is None
 
-    properties = atom.results.properties
-    assert_structure(properties.structure_original, has_cell=False)
+    # properties = atom.results.properties
+    # assert_structure(properties.structure_original, has_cell=False)
 
 
 def test_material_molecule(molecule):
@@ -161,7 +164,27 @@ def test_material_bulk(bulk):
     assert_structure(properties.structure_primitive)
     assert_structure(properties.structure_conventional, has_wyckoff=True)
 
-    # pprint(bulk.results.material)
+
+def test_method_dft(dft):
+    method = dft.results.method
+    assert method.method_name == "DFT"
+    assert method.simulation.dft.basis_set_type == "plane waves"
+    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
+    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
+    assert method.simulation.dft.xc_functional_type == "GGA"
+    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.simulation.dft.smearing_width == 1e-20
+    assert method.simulation.dft.spin_polarized is True
+    assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
+    assert method.simulation.dft.van_der_Waals_method == "G06"
+    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+
+
+def test_method_gw(gw):
+    method = gw.results.method
+    assert method.method_name == "GW"
+    assert method.simulation.gw.gw_type == "G0W0"
+    assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
 
 def pprint(root, indent=None):

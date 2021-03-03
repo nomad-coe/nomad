@@ -2350,12 +2350,11 @@ class SubSection(Property):
         if obj is None:
             raise NotImplementedError()
 
-        if self.repeats:
-            raise NotImplementedError('Cannot set a repeating sub section use m_create or m_add_sub_section.')
-
         if value is None:
             obj.m_remove_sub_section(self, -1)
         else:
+            if self.repeats:
+                raise NotImplementedError('Cannot set a repeating sub section use m_create or m_add_sub_section.')
             obj.m_add_sub_section(self, value)
 
     def __delete__(self, obj):

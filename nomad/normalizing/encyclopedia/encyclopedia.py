@@ -159,6 +159,8 @@ class EncyclopediaNormalizer(Normalizer):
             method_id = repr_method.electronic_structure_method
             if method_id is None:
                 method_id = config.services.unavailable_value
+            elif method_id in {"G0W0", "scGW"}:
+                method_id = "GW"
         elif n_methods > 1:
             for sec_method in methods:
                 # GW
