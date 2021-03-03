@@ -64,7 +64,7 @@ def parse_template() -> EntryArchive:
 
 def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
     template = parse_template()
-    # template.section_run[0].section_single_configuration_calculation[0].single_configuration_calculation_to_system_ref = None
+    template.section_run[0].section_single_configuration_calculation[0].single_configuration_calculation_to_system_ref = None
     template.section_run[0].section_system = None
 
     # Fill structural information
