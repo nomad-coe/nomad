@@ -519,7 +519,7 @@ def mails(smtpd, monkeypatch):
 
 @pytest.fixture(scope='session')
 def example_mainfile() -> Tuple[str, str]:
-    return ('parsers/template', 'tests/data/parsers/template.json')
+    return ('parsers/template', 'tests/data/templates/template.json')
 
 
 @pytest.fixture(scope='session', params=example_files)

@@ -29,7 +29,6 @@ from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=un
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
-from tests.parsing.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 
 
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
@@ -54,8 +53,18 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
     return run_normalize(parsed_template_example)
 
 
+def parse_template() -> EntryArchive:
+    """Returns the basic archive template.
+    """
+    parser_name = "parsers/template"
+    filepath = "tests/data/templates/template.json"
+    archive = parse_file((parser_name, filepath))
+    return archive
+
+
 def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
-    template = parsed_template_no_system()
+    template = parse_template()
+    template.section_run[0].section_system = None
 
     # Fill structural information
     system = template.section_run[0].m_create(System)
@@ -68,9 +77,7 @@ def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft() -> EntryArchive:
-    parser_name = "parsers/template"
-    filepath = "tests/data/templates/template.json"
-    archive = parse_file((parser_name, filepath))
+    archive = parse_template()
     archive.section_run[0].section_method = None
     run = archive.section_run[0]
     method_dft = run.m_create(Method)
@@ -90,9 +97,7 @@ def dft() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
-    parser_name = "parsers/template"
-    filepath = "tests/data/templates/template.json"
-    archive = parse_file((parser_name, filepath))
+    archive = parse_template()
     archive.section_run[0].section_method = None
     run = archive.section_run[0]
     method_dft = run.m_create(Method)
@@ -143,6 +148,7 @@ def elastic() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def bulk() -> EntryArchive:
+    archive = parse_template()
     parser_name = "parsers/cp2k"
     filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
     archive = parse_file((parser_name, filepath))

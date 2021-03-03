@@ -31,7 +31,7 @@ from nomad.app.flask import dump_json
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
-    ('parsers/template', 'tests/data/parsers/template.json'),
+    ('parsers/template', 'tests/data/templates/template.json'),
     ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
@@ -281,13 +281,7 @@ def parsed_vasp_example() -> EntryArchive:
 @pytest.fixture
 def parsed_template_example() -> EntryArchive:
     return run_parser(
-        'parsers/template', 'tests/data/parsers/template.json')
-
-
-@pytest.fixture(scope="session")
-def parsed_template_no_system() -> EntryArchive:
-    return run_parser(
-        'parsers/template', 'tests/data/parsers/template_no_system.json')
+        'parsers/template', 'tests/data/templates/template.json')
 
 
 def parse_file(parser_name_and_mainfile) -> EntryArchive:

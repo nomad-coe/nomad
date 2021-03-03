@@ -20,6 +20,8 @@ import numpy as np
 from elasticsearch_dsl import Text, Keyword, Integer
 
 from ase.data import chemical_symbols
+
+from nomad import config
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Package
 from nomad.metainfo.search_extension import Search
 
@@ -588,7 +590,7 @@ class Method(MSection):
         a_search=Search()
     )
     method_name = Quantity(
-        type=MEnum(["DFT", "GW"]),
+        type=MEnum(["DFT", "GW", config.services.unavailable_value]),
         description="""
         Common name for the used method.
         """,

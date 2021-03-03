@@ -79,18 +79,18 @@ def assert_structure(structure, has_cell=True, has_wyckoff=False):
             assert wset.element
 
 
-# def test_material_atom(atom):
-    # material = atom.results.material
-    # assert_material(material)
-    # assert material.material_id is None
-    # assert material.type_structural == "atom"
-    # assert material.type_functional is None
-    # assert material.type_compound is None
-    # assert material.material_name is None
-    # assert material.symmetry is None
+def test_material_atom(atom):
+    material = atom.results.material
+    assert_material(material)
+    assert material.material_id is None
+    assert material.type_structural == "atom"
+    assert material.type_functional is None
+    assert material.type_compound is None
+    assert material.material_name is None
+    assert material.symmetry is None
 
-    # properties = atom.results.properties
-    # assert_structure(properties.structure_original, has_cell=False)
+    properties = atom.results.properties
+    assert_structure(properties.structure_original, has_cell=False)
 
 
 def test_material_molecule(molecule):

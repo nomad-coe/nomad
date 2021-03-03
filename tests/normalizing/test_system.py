@@ -26,7 +26,6 @@ from nomad.datamodel.metainfo.public import section_springer_material as Springe
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
-from tests.parsing.test_parsing import parsed_template_no_system  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
 from tests.normalizing.conftest import run_normalize, run_normalize_for_structure   # pylint: disable=unused-import
 from tests.utils import assert_log
