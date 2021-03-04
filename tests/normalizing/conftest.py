@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+import numpy as np
+
 import pytest
 
 from ase import Atoms
@@ -23,7 +25,12 @@ import ase.build
 
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.public import section_system as System
+from nomad.datamodel.metainfo.public import (
+    section_system as System,
+    Run,
+    SingleConfigurationCalculation,
+    XCFunctionals
+)
 from nomad.datamodel.metainfo.common_dft import (
     Method,
     MethodToMethodRefs,
@@ -61,11 +68,42 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
 
 
 def get_template() -> EntryArchive:
-    """Returns the basic archive template.
+    """Returns a basic archive template.
     """
-    parser_name = "parsers/template"
-    filepath = "tests/data/templates/template.json"
-    template = parse_file((parser_name, filepath))
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program_name = "VASP"
+    run.program_version = "4.6.35  3Apr08 complex  parallel LinuxIFC"
+    run.program_basis_set_type = "plane waves"
+    method = run.m_create(Method)
+    method.electronic_structure_method = "DFT"
+    functional = method.m_create(XCFunctionals)
+    functional.XC_functional_name = "GGA_X_PBE"
+    system = run.m_create(System)
+    system.simulation_cell = [
+        [5.76372622e-10, 0.0, 0.0],
+        [0.0, 5.76372622e-10, 0.0],
+        [0.0, 0.0, 4.0755698899999997e-10]
+    ]
+    system.atom_positions = [
+        [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+        [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+        [0.0, 0.0, 0.0],
+        [2.88186311e-10, 2.88186311e-10, 0.0],
+    ]
+    system.atom_labels = ["Br", "K", "Si", "Si"]
+    system.configuration_periodic_dimensions = [True, True, True]
+    scc = run.m_create(SingleConfigurationCalculation)
+    scc.single_configuration_calculation_to_system_ref = system
+    scc.single_configuration_to_calculation_method_ref = method
+    scc.energy_free = -1.5936767191492225e-18
+    scc.energy_total = -1.5935696296699573e-18
+    scc.energy_total_T0 = -3.2126683561907e-22
+    sampling_method = run.m_create(SamplingMethod)
+    sampling_method.sampling_method = "geometry_optimization"
+    frame_sequence = run.m_create(FrameSequence)
+    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
+    frame_sequence.frame_sequence_local_frames_ref = [scc]
     return template
 
 
@@ -168,47 +206,59 @@ def bulk() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def two_d() -> EntryArchive:
-    parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/fhiaims_2d_singlepoint/aims.out"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = Atoms(
+        symbols=["C", "C"],
+        scaled_positions=[
+            [0, 0, 0.5],
+            [1 / 3, 1 / 3, 0.5],
+        ],
+        cell=[
+            [2.461, 0, 0],
+            [np.cos(np.pi / 3) * 2.461, np.sin(np.pi / 3) * 2.461, 0],
+            [0, 0, 20]
+        ],
+        pbc=True
+    )
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
 def surface() -> EntryArchive:
-    parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = ase.build.fcc111('Al', size=(2, 2, 3), vacuum=10.0)
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
 def molecule() -> EntryArchive:
-    parser_name = "parsers/fhi-aims"
-    filepath = "tests/data/normalizers/fhiaims_molecule_singlepoint/aims.out"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = ase.build.molecule("CO2")
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
 def atom() -> EntryArchive:
-    parser_name = "parsers/gaussian"
-    filepath = "tests/data/normalizers/gaussian_atom_singlepoint/m9b7.out"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = Atoms(
+        symbols=["H"],
+        scaled_positions=[[0.5, 0.5, 0.5]],
+        cell=[10, 10, 10],
+        pbc=True,
+    )
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
 def one_d() -> EntryArchive:
-    parser_name = "parsers/exciting"
-    filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = ase.build.graphene_nanoribbon(1, 1, type='zigzag', vacuum=10, saturated=True)
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
-def single_point(two_d) -> EntryArchive:
-    return two_d
+def single_point() -> EntryArchive:
+    """Single point calculation."""
+    template = get_template()
+    template.section_run[0].section_frame_sequence = None
+    template.section_run[0].section_sampling_method = None
+
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
@@ -221,7 +271,7 @@ def geometry_optimization() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def molecular_dynamics() -> EntryArchive:
-    """Simple molecular dynamics calculation."""
+    """Molecular dynamics calculation."""
     template = get_template()
     template.section_run[0].section_frame_sequence = None
     template.section_run[0].section_sampling_method = None
@@ -229,7 +279,7 @@ def molecular_dynamics() -> EntryArchive:
     sampling_method = run.m_create(SamplingMethod)
     sampling_method.sampling_method = "molecular_dynamics"
     frame_sequence = run.m_create(FrameSequence)
-    frame_sequence.frame_sequence_local_frames_ref = run.section_single_configuration_calculation[0]
+    frame_sequence.frame_sequence_local_frames_ref = [run.section_single_configuration_calculation[0]]
     frame_sequence.frame_sequence_to_sampling_ref = sampling_method
     frame_sequence.number_of_frames_in_sequence = 1
 

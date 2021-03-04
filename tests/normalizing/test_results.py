@@ -91,7 +91,7 @@ def test_material_atom(atom):
     assert material.symmetry is None
 
     properties = atom.results.properties
-    assert_structure(properties.structure_original, has_cell=False)
+    assert_structure(properties.structure_original)
 
 
 def test_material_molecule(molecule):
@@ -105,7 +105,7 @@ def test_material_molecule(molecule):
     assert material.symmetry is None
 
     properties = molecule.results.properties
-    assert_structure(properties.structure_original)
+    assert_structure(properties.structure_original, has_cell=False)
 
 
 def test_material_1d(one_d):

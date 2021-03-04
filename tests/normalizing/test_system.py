@@ -27,7 +27,7 @@ from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=un
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
-from tests.normalizing.conftest import run_normalize, run_normalize_for_structure   # pylint: disable=unused-import
+from tests.normalizing.conftest import run_normalize, get_template_for_structure
 from tests.utils import assert_log
 
 
@@ -249,7 +249,7 @@ def test_aflow_prototypes():
     '''Tests that some basis structures are matched with the correct AFLOW prototypes
     '''
     def get_proto(atoms):
-        archive = run_normalize_for_structure(atoms)
+        archive = get_template_for_structure(atoms)
         try:
             sec_proto = archive.section_run[0].section_system[0].section_prototype[0]
             prototype_aflow_id = sec_proto.prototype_aflow_id

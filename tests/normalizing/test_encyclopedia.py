@@ -31,22 +31,7 @@ from nomad.datamodel.encyclopedia import (
     EncyclopediaMetadata,
 )
 from tests.processing.test_data import run_processing
-from tests.normalizing.conftest import (  # pylint: disable=unused-import
-    get_template_for_structure,
-    geometry_optimization,
-    molecular_dynamics,
-    phonon,
-    elastic,
-    two_d,
-    bulk,
-    dos_unpolarized_vasp,
-    dos_polarized_vasp,
-    bands_unpolarized_no_gap,
-    bands_polarized_no_gap,
-    band_path_cF_nonstandard,
-    hash_exciting,
-    hash_vasp,
-)
+from tests.normalizing.conftest import get_template_for_structure
 
 
 def test_geometry_optimization(geometry_optimization: EntryArchive):
@@ -72,17 +57,17 @@ def test_1d_metainfo(one_d: EntryArchive):
     # Material
     material = enc.material
     assert material.material_type == "1D"
-    assert material.formula == "C6H4"
-    assert material.formula_reduced == "C3H2"
+    assert material.formula == "C2H2"
+    assert material.formula_reduced == "CH"
 
     # Idealized structure
     ideal = enc.material.idealized_structure
-    assert ideal.number_of_atoms == 10
-    assert ideal.atom_labels == ["C", "C", "C", "C", "C", "C", "H", "H", "H", "H"]
+    assert ideal.number_of_atoms == 4
+    assert ideal.atom_labels == ["C", "C", "H", "H"]
     assert ideal.atom_positions is not None
     assert ideal.lattice_vectors is not None
     assert np.array_equal(ideal.periodicity, [True, False, False])
-    assert ideal.lattice_parameters.a == pytest.approx(4.33793652e-10)
+    assert ideal.lattice_parameters.a == pytest.approx(2.45951214e-10)
 
 
 def test_2d_metainfo(two_d: EntryArchive):
@@ -103,8 +88,8 @@ def test_2d_metainfo(two_d: EntryArchive):
     assert ideal.lattice_vectors is not None
     assert ideal.lattice_vectors_primitive is not None
     assert np.array_equal(ideal.periodicity, [True, True, False])
-    assert ideal.lattice_parameters.a == pytest.approx(2.46559821e-10)
-    assert ideal.lattice_parameters.b == pytest.approx(2.46559821e-10)
+    assert ideal.lattice_parameters.a == pytest.approx(2.461e-10)
+    assert ideal.lattice_parameters.b == pytest.approx(2.461e-10)
     assert ideal.lattice_parameters.c is None
     assert ideal.lattice_parameters.alpha is None
     assert ideal.lattice_parameters.beta is None
@@ -443,10 +428,10 @@ def test_2d_idealized_structure():
     assert np.allclose(ideal.lattice_vectors, expected_cell)
 
 
-def test_method_dft_metainfo(single_point):
-    enc = single_point.section_metadata.encyclopedia
-    assert enc.method.core_electron_treatment == "full all electron"
-    assert enc.method.functional_long_name == "GGA_C_PBE+GGA_X_PBE"
+def test_method_dft_metainfo(dft):
+    enc = dft.section_metadata.encyclopedia
+    assert enc.method.core_electron_treatment == "pseudopotential"
+    assert enc.method.functional_long_name == "1.0*GGA_C_PBE+1.0*GGA_X_PBE"
     assert enc.method.functional_type == "GGA"
 
 
