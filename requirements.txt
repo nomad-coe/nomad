@@ -41,7 +41,7 @@ nomadcore
 nomad_dos_fingerprints
 
 # [infrastructure]
-optimade==0.8.1
+optimade
 structlog==20.1.0
 elasticsearch==6.4.0
 msgpack<0.6.0
@@ -63,6 +63,7 @@ zipstream-new==1.1.5
 bagit
 bcrypt
 filelock
+cryptography==3.3.2
 pyjwt[crypto]==1.7.1
 cryptography==3.3.2
 jsonschema[format]
