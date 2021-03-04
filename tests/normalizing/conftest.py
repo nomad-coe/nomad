@@ -19,11 +19,18 @@
 import pytest
 
 from ase import Atoms
+import ase.build
 
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import section_system as System
-from nomad.datamodel.metainfo.common_dft import Method, MethodToMethodRefs, XCFunctionals
+from nomad.datamodel.metainfo.common_dft import (
+    Method,
+    MethodToMethodRefs,
+    XCFunctionals,
+    FrameSequence,
+    SamplingMethod
+)
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -53,17 +60,17 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
     return run_normalize(parsed_template_example)
 
 
-def parse_template() -> EntryArchive:
+def get_template() -> EntryArchive:
     """Returns the basic archive template.
     """
     parser_name = "parsers/template"
     filepath = "tests/data/templates/template.json"
-    archive = parse_file((parser_name, filepath))
-    return archive
+    template = parse_file((parser_name, filepath))
+    return template
 
 
-def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
-    template = parse_template()
+def get_template_for_structure(atoms: Atoms) -> EntryArchive:
+    template = get_template()
     template.section_run[0].section_single_configuration_calculation[0].single_configuration_calculation_to_system_ref = None
     template.section_run[0].section_system = None
 
@@ -73,14 +80,16 @@ def run_normalize_for_structure(atoms: Atoms) -> EntryArchive:
     system.atom_labels = atoms.get_chemical_symbols()
     system.simulation_cell = atoms.get_cell() * 1E-10
     system.configuration_periodic_dimensions = atoms.get_pbc()
+
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft() -> EntryArchive:
-    archive = parse_template()
-    archive.section_run[0].section_method = None
-    run = archive.section_run[0]
+    """DFT calculation."""
+    template = get_template()
+    template.section_run[0].section_method = None
+    run = template.section_run[0]
     method_dft = run.m_create(Method)
     method_dft.electronic_structure_method = "DFT"
     method_dft.smearing_kind = "gaussian"
@@ -95,14 +104,15 @@ def dft() -> EntryArchive:
     X = method_dft.m_create(XCFunctionals)
     X.XC_functional_name = "GGA_X_PBE"
     X.XC_functional_weight = 1.0
-    return run_normalize(archive)
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_plus_u() -> EntryArchive:
-    archive = parse_template()
-    archive.section_run[0].section_method = None
-    run = archive.section_run[0]
+    """DFT+U calculation."""
+    template = get_template()
+    template.section_run[0].section_method = None
+    run = template.section_run[0]
     method_dft = run.m_create(Method)
     method_dft.electronic_structure_method = "DFT+U"
     method_dft.smearing_kind = "gaussian"
@@ -117,14 +127,15 @@ def dft_plus_u() -> EntryArchive:
     X = method_dft.m_create(XCFunctionals)
     X.XC_functional_name = "GGA_X_PBE"
     X.XC_functional_weight = 1.0
-    return run_normalize(archive)
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
-    archive = parse_template()
-    archive.section_run[0].section_method = None
-    run = archive.section_run[0]
+    """GW calculation."""
+    template = get_template()
+    template.section_run[0].section_method = None
+    run = template.section_run[0]
     method_dft = run.m_create(Method)
     method_dft.electronic_structure_method = "DFT"
     method_dft.smearing_kind = "gaussian"
@@ -146,50 +157,13 @@ def gw() -> EntryArchive:
     ref = method_gw.m_create(MethodToMethodRefs)
     ref.method_to_method_kind = "starting_point"
     ref.method_to_method_ref = run.section_method[0]
-    return run_normalize(archive)
-
-
-@pytest.fixture(scope='session')
-def single_point(two_d) -> EntryArchive:
-    return two_d
-
-
-@pytest.fixture(scope='session')
-def geometry_optimization() -> EntryArchive:
-    parser_name = "parsers/template"
-    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
-
-
-@pytest.fixture(scope='session')
-def molecular_dynamics(bulk) -> EntryArchive:
-    return bulk
-
-
-@pytest.fixture(scope='session')
-def phonon() -> EntryArchive:
-    parser_name = "parsers/phonopy"
-    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
-
-
-@pytest.fixture(scope='session')
-def elastic() -> EntryArchive:
-    parser_name = "parsers/elastic"
-    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def bulk() -> EntryArchive:
-    archive = parse_template()
-    parser_name = "parsers/cp2k"
-    filepath = "tests/data/normalizers/cp2k_bulk_md/si_md.out"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    atoms = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
+    return get_template_for_structure(atoms)
 
 
 @pytest.fixture(scope='session')
@@ -228,6 +202,52 @@ def atom() -> EntryArchive:
 def one_d() -> EntryArchive:
     parser_name = "parsers/exciting"
     filepath = "tests/data/normalizers/exciting_1d_singlepoint/INFO.OUT"
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def single_point(two_d) -> EntryArchive:
+    return two_d
+
+
+@pytest.fixture(scope='session')
+def geometry_optimization() -> EntryArchive:
+    parser_name = "parsers/template"
+    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def molecular_dynamics() -> EntryArchive:
+    """Simple molecular dynamics calculation."""
+    template = get_template()
+    template.section_run[0].section_frame_sequence = None
+    template.section_run[0].section_sampling_method = None
+    run = template.section_run[0]
+    sampling_method = run.m_create(SamplingMethod)
+    sampling_method.sampling_method = "molecular_dynamics"
+    frame_sequence = run.m_create(FrameSequence)
+    frame_sequence.frame_sequence_local_frames_ref = run.section_single_configuration_calculation[0]
+    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
+    frame_sequence.number_of_frames_in_sequence = 1
+
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def phonon() -> EntryArchive:
+    parser_name = "parsers/phonopy"
+    filepath = "tests/data/parsers/phonopy/phonopy-FHI-aims-displacement-01/control.in"
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
+
+
+@pytest.fixture(scope='session')
+def elastic() -> EntryArchive:
+    parser_name = "parsers/elastic"
+    filepath = "tests/data/parsers/elastic/diamond/INFO_ElaStic"
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 

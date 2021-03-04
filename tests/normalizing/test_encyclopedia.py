@@ -32,7 +32,7 @@ from nomad.datamodel.encyclopedia import (
 )
 from tests.processing.test_data import run_processing
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
-    run_normalize_for_structure,
+    get_template_for_structure,
     geometry_optimization,
     molecular_dynamics,
     phonon,
@@ -58,7 +58,7 @@ def test_geometry_optimization(geometry_optimization: EntryArchive):
 
 
 def test_molecular_dynamics(molecular_dynamics: EntryArchive):
-    """Tests that geometry optimizations are correctly processed."
+    """Tests that molecular dynamics are correctly processed."
     """
     enc = molecular_dynamics.section_metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
@@ -144,7 +144,7 @@ def test_bulk_metainfo(bulk: EntryArchive):
     assert ideal.lattice_vectors_primitive is not None
     assert np.array_equal(ideal.periodicity, [True, True, True])
     assert ideal.lattice_parameters is not None
-    assert ideal.cell_volume.magnitude == pytest.approx(5.431**3 * 1e-30)
+    assert ideal.cell_volume.magnitude == 5.431**3 * 1e-30
 
     # Properties
     prop = enc.properties
@@ -155,20 +155,20 @@ def test_bulk_metainfo(bulk: EntryArchive):
 def test_1d_material_identification():
     # Original nanotube
     nanotube1 = ase.build.nanotube(4, 4, vacuum=4)
-    enc = run_normalize_for_structure(nanotube1).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube1).section_metadata.encyclopedia
     hash1 = enc.material.material_id
 
     # Rotated copy
     nanotube2 = nanotube1.copy()
     nanotube2.rotate(90, "z", rotate_cell=True)
-    enc = run_normalize_for_structure(nanotube2).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube2).section_metadata.encyclopedia
     hash2 = enc.material.material_id
     assert hash2 == hash1
 
     # Longer copy
     nanotube3 = nanotube1.copy()
     nanotube3 *= [1, 1, 2]
-    enc = run_normalize_for_structure(nanotube3).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube3).section_metadata.encyclopedia
     hash3 = enc.material.material_id
     assert hash3 == hash1
 
@@ -179,7 +179,7 @@ def test_1d_material_identification():
         pos = nanotube4.get_positions()
         pos += 0.2 * np.random.rand(pos.shape[0], pos.shape[1])
         nanotube4.set_positions(pos)
-        enc = run_normalize_for_structure(nanotube4).section_metadata.encyclopedia
+        enc = get_template_for_structure(nanotube4).section_metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == hash1
 
@@ -189,7 +189,7 @@ def test_1d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     nanotube5.set_positions(pos)
-    enc = run_normalize_for_structure(nanotube5).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube5).section_metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != hash1
 
@@ -222,13 +222,13 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    enc = run_normalize_for_structure(graphene).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene).section_metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Graphene orthogonal supercell
     graphene2 = graphene.copy()
     graphene2 *= [2, 1, 2]
-    enc = run_normalize_for_structure(graphene2).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene2).section_metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Graphene primitive cell
@@ -245,7 +245,7 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    enc = run_normalize_for_structure(graphene3).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene3).section_metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Slightly distorted system should match
@@ -255,7 +255,7 @@ def test_2d_material_identification():
         pos = graphene4.get_positions()
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         graphene4.set_positions(pos)
-        entry_archive = run_normalize_for_structure(graphene4)
+        entry_archive = get_template_for_structure(graphene4)
         enc = entry_archive.section_metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == graphene_material_id
@@ -266,7 +266,7 @@ def test_2d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     graphene5.set_positions(pos)
-    enc = run_normalize_for_structure(graphene5).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene5).section_metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != graphene_material_id
 
@@ -312,33 +312,33 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    entry_archive = run_normalize_for_structure(atoms)
+    entry_archive = get_template_for_structure(atoms)
     enc = entry_archive.section_metadata.encyclopedia
     assert enc.material.material_id == mos2_material_id
 
     # MoS2 orthogonal supercell
     atoms *= [2, 3, 1]
-    enc = run_normalize_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
     assert enc.material.material_id == mos2_material_id
 
 
 def test_bulk_material_identification():
     # Original system
     wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
-    enc = run_normalize_for_structure(wurtzite).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite).section_metadata.encyclopedia
     hash1 = enc.material.material_id
 
     # Rotated
     wurtzite2 = wurtzite.copy()
     wurtzite2.rotate(90, "z", rotate_cell=True)
-    enc = run_normalize_for_structure(wurtzite2).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite2).section_metadata.encyclopedia
     hash2 = enc.material.material_id
     assert hash2 == hash1
 
     # Supercell
     wurtzite3 = wurtzite.copy()
     wurtzite3 *= [2, 3, 1]
-    enc = run_normalize_for_structure(wurtzite3).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite3).section_metadata.encyclopedia
     hash3 = enc.material.material_id
     assert hash3 == hash1
 
@@ -349,7 +349,7 @@ def test_bulk_material_identification():
         pos = wurtzite4.get_positions()
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         wurtzite4.set_positions(pos)
-        enc = run_normalize_for_structure(wurtzite4).section_metadata.encyclopedia
+        enc = get_template_for_structure(wurtzite4).section_metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == hash1
 
@@ -359,7 +359,7 @@ def test_bulk_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     wurtzite5.set_positions(pos)
-    enc = run_normalize_for_structure(wurtzite5).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite5).section_metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != hash1
 
@@ -381,7 +381,7 @@ def test_1d_idealized_structure():
         ],
         pbc=True
     )
-    enc = run_normalize_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
 
     expected_cell = [
         [0, 0, 0],
@@ -421,7 +421,7 @@ def test_2d_idealized_structure():
         ],
         pbc=True
     )
-    enc = run_normalize_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
 
     expected_cell = [
         [2e-10, 0, 0],
