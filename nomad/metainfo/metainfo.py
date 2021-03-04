@@ -1187,15 +1187,25 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             include_derived: bool = False,
             resolve_references: bool = False,
             categories: List[Union['Category', Type['MCategory']]] = None,
-            partial: TypingCallable[['Definition', 'MSection'], bool] = None) -> Dict[str, Any]:
+            include: TypingCallable[['Definition', 'MSection'], bool] = None,
+            exclude: TypingCallable[['Definition', 'MSection'], bool] = None,
+            transform: TypingCallable[['Definition', 'MSection', Any], Any] = None) -> Dict[str, Any]:
         '''
-        Returns the data of this section as a json serializeable dictionary.
+        Returns the data of this section as a (json serializeable) dictionary.
+
+        With its default configuration, it is the opposite to :func:`MSection.m_from_dict`.
+
+        There are a lot of ways to customize the behavior, e.g. to generate JSON for
+        databases, searchengines, etc.
 
         Arguments:
             with_meta: Include information about the section definition and the sections
                 position in its parent.
             include_defaults: Include default values of unset quantities.
             include_derived: Include values of derived quantities.
+            resolve_references:
+                Treat references as the sections and values they represent. References
+                must not create circles; there is no check and danger of endless looping.
             categories: A list of category classes or category definitions that is used
                 to filter the included quantities and sub sections. Only applied to
                 properties of this section, not on sub-sections. Is overwritten
@@ -1212,35 +1222,60 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                 Partial is applied recursively on sub-sections. Overrides
                 categories.
+            include: A function that determines if a property (quantity or sub-section) will
+                be included in the results. It takes the property definition and the current
+                section as arguments. The function returns true for including and false for
+                excluding the property. Include is applied recursively on sub-sections.
+                Overrides categories.
+            exclude: A function that determines if a property (quantity or sub-section) will
+                be excluded from the results. It takes the property definition and the current
+                section as arguments. The function returns true for excluding and false for
+                including the property. Exclude is applied recursively on sub-sections.
+                Overrides categories.
+            transform: A function that determines serialized quantity values. It takes the
+                quantity definition, current section, and the default serialized
+                value as arguments. Depending where this is used, you might have to ensure
+                that the result is JSON-serializable. By default values are serialized to
+                JSON according to the quantity type.
         '''
-        # determine partial for sub-sections and partial based on categories
-        if partial is not None:
-            if partial == "es":
-                partial = lambda d, s: hasattr(d, "a_search") or hasattr(d, "a_search")
-            if partial == "mongo":
-                partial = lambda d, s: hasattr(d, "a_mongo")
-            child_partial = partial
-        else:
+
+        kwargs: Dict[str, Any] = dict(
+            with_meta=with_meta,
+            include_defaults=include_defaults,
+            include_derived=include_derived,
+            resolve_references=resolve_references,
+            exclude=exclude,
+            transform=transform)
+
+        assert not (include is not None and exclude is not None), 'You can only include or exclude, not both.'
+
+        if include is not None:
+            def exclude(*args, **kwargs):  # pylint: disable=function-redefined
+                return not include(*args, **kwargs)
+
+            kwargs['exclude'] = exclude
+
+        elif exclude is None:
             if categories is None:
-                partial = lambda *args, **kwargs: True
-                child_partial = lambda *args, **kwargs: True
+                def exclude(prop, section):  # pylint: disable=function-redefined
+                    return False
+
+                kwargs['exclude'] = exclude
 
             else:
-                category_defs: List[Category] = None
-                if categories is not None:
-                    category_defs = []
-                    for category in categories:
-                        if issubclass(category, MCategory):  # type: ignore
-                            category_defs.append(category.m_def)  # type: ignore
-                        elif isinstance(category, Category):
-                            category_defs.append(category)
-                        else:
-                            raise TypeError('%s is not a category' % category)
+                category_defs: List[Category] = []
+                for category in categories:
+                    if issubclass(category, MCategory):  # type: ignore
+                        category_defs.append(category.m_def)  # type: ignore
+                    elif isinstance(category, Category):
+                        category_defs.append(category)
+                    else:
+                        raise TypeError('%s is not a category' % category)
 
-                partial = lambda definition, *args, **kwargs: any(
-                    definition in category.get_all_definitions()
-                    for category in category_defs)
-                child_partial = lambda *args, **kwargs: True
+                def exclude(prop, section):  # pylint: disable=function-redefined
+                    return not any(
+                        prop in category.get_all_definitions()
+                        for category in category_defs)
 
         def serialize_quantity(quantity, is_set, is_derived):
             quantity_type = quantity.type
@@ -1254,12 +1289,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     if resolve_references:
                         assert not isinstance(quantity_type, QuantityReference)
                         value = value.m_resolved()
-                        return value.m_to_dict(
-                            with_meta=with_meta,
-                            include_defaults=include_defaults,
-                            include_derived=include_derived,
-                            resolve_references=resolve_references,
-                            partial=child_partial)
+                        return value.m_to_dict(**kwargs)
 
                     elif isinstance(value, MProxy):
                         if value.m_proxy_resolved is not None:
@@ -1318,16 +1348,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     'Do not know how to serialize data with type %s for quantity %s' %
                     (quantity_type, quantity))
 
+            serialize_value = serialize
+
             quantity_type = quantity.type
             if resolve_references and isinstance(quantity_type, QuantityReference):
-                serialize_value = serialize
-
-                def _serialize(value: Any):
+                def serialize_reference(value: Any):
                     value = getattr(value.m_resolved(), quantity_type.target_quantity_def.name)
 
                     return serialize_value(value)
 
-                serialize = _serialize
+                serialize = serialize_reference
 
             if is_set:
                 value = self.__dict__[quantity.name]
@@ -1335,6 +1365,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 value = quantity.derived(self)
             else:
                 value = quantity.default
+
+            if transform is not None:
+                def serialize_and_transform(value: Any):
+                    return transform(quantity, self, serialize_value(value))
+
+                serialize = serialize_and_transform
 
             if isinstance(quantity_type, np.dtype):
                 return serialize(value)
@@ -1356,7 +1392,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # quantities
             for name, quantity in self.m_def.all_quantities.items():
-                if not partial(quantity, self):
+                if exclude(quantity, self):
                     continue
 
                 try:
@@ -1379,27 +1415,18 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
-                if not partial(sub_section_def, self):
+                if exclude(sub_section_def, self):
                     continue
 
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
-                            None if item is None else item.m_to_dict(
-                                with_meta=with_meta,
-                                include_defaults=include_defaults,
-                                include_derived=include_derived,
-                                partial=child_partial)
+                            None if item is None else item.m_to_dict(**kwargs)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
-                        yield name, sub_section.m_to_dict(
-                            with_meta=with_meta,
-                            include_defaults=include_defaults,
-                            include_derived=include_derived,
-                            resolve_references=resolve_references,
-                            partial=child_partial)
+                        yield name, sub_section.m_to_dict(**kwargs)
 
         return {key: value for key, value in items()}
 

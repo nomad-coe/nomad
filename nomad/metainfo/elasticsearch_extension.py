@@ -186,7 +186,7 @@ class DocumentType():
         return root.m_to_dict(
             with_meta=False, include_defaults=True, include_derived=True,
             resolve_references=True,
-            partial=lambda property_, section: property_ in self.indexed_properties)
+            exclude=lambda property_, section: property_ not in self.indexed_properties)
 
     def create_mapping(self, section_def: Section):
         '''

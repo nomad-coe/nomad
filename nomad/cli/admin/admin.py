@@ -234,6 +234,9 @@ def index_materials(threads, code, dry, in_place, n, source):
     from nomad.search import material_document
     from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
 
+    def include_es(quantity, section):
+        return hasattr(quantity, 'a_search') or hasattr(quantity, 'a_elastic')
+
     def create_entry(material, calc, in_place):
         """Creates an ES update operation that inserts the full material info
         if entry does not exists, otherwise only adds the calculation into the
@@ -245,11 +248,11 @@ def index_materials(threads, code, dry, in_place, n, source):
         entry['_id'] = material.material_id
         entry['_type'] = 'doc'
         entry['_source'] = {
-            "upsert": material.m_to_dict(include_defaults=False, partial="es"),
+            "upsert": material.m_to_dict(include_defaults=False, include=include_es),
             "doc_as_upsert": False,
             "script": {
                 "params": {
-                    "calc": calc.m_to_dict(include_defaults=False, partial="es")
+                    "calc": calc.m_to_dict(include_defaults=False, include=include_es)
                 },
             }
         }

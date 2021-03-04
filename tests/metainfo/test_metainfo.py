@@ -468,36 +468,6 @@ class TestM1:
         assert system.atom_labels == ['H', 'H', 'O']
         assert isinstance(system.atom_positions, pint.quantity._Quantity)
 
-    def test_to_dict(self, example_data):
-        dct = example_data.m_to_dict()
-        new_example_data = Run.m_from_dict(dct)
-
-        self.assert_example_data(new_example_data)
-
-    def test_to_dict_category_filter(self, example_data: Run):
-        system = example_data.systems[0]
-        system.system_type = 'bulk'
-        dct = system.m_to_dict(categories=[SystemHash])
-        assert 'atom_labels' in dct
-        assert 'n_atoms' not in dct  # derived
-        assert 'system_type' not in dct  # not system hash
-
-    def test_to_dict_defaults(self, example_data):
-        dct = example_data.m_to_dict()
-        assert 'nomad_version' not in dct['parsing']
-        assert 'n_atoms' not in dct['systems'][0]
-
-        dct = example_data.m_to_dict(include_defaults=True)
-        assert 'nomad_version' in dct['parsing']
-        assert 'n_atoms' not in dct['systems'][0]
-
-    def test_to_dict_resolve_references(self, example_data):
-        scc = example_data.m_create(SCC)
-        scc.system = example_data.systems[0]
-
-        data = scc.m_to_dict(resolve_references=True)
-        assert data['system'] == example_data.systems[0].m_to_dict()
-
     def test_derived(self):
         system = System()
 
