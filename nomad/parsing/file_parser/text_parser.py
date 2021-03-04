@@ -15,6 +15,7 @@
 
 import logging
 import mmap
+import io
 import re
 import numpy as np
 import pint
@@ -103,7 +104,7 @@ class Quantity:
             self.shape = None
         elif isinstance(quantity, mQuantity):
             self.name = quantity.name
-            self.dtype = quantity.type
+            self.dtype = quantity.type.type if isinstance(quantity.type, np.dtype) else quantity.type
             self.unit = quantity.unit
             # check if metainfo shape has dependencies
             self.shape = quantity.shape
@@ -177,7 +178,6 @@ class Quantity:
                         except Exception:
                             pass
 
-                    self.shape = [] if self.shape is None else self.shape
                     return val
 
                 elif type(val) in [np.ndarray, list]:
@@ -187,7 +187,6 @@ class Quantity:
                         if self.dtype is None:
                             if np.all(np.mod(val_test, 1) == 0):
                                 val_test = np.array(val_test, dtype=int)
-                        self.shape = list(np.shape(val)) if self.shape is None else self.shape
                         val = val_test
 
                     except Exception:
@@ -197,13 +196,10 @@ class Quantity:
 
                 elif isinstance(val, dict):
                     for k, v in val.items():
-                        self.dtype = None
                         val[k] = _convert(v)
                     return val
 
                 else:
-                    self.dtype = type(val)
-                    self.shape = [] if self.shape is None else self.shape
                     return val
 
             if self.convert:
@@ -342,12 +338,15 @@ class TextParser(FileParser):
         Memory mapped representation of the file.
         '''
         if self._file_handler is None:
-            with open(self.mainfile) as f:
-                self._file_handler = mmap.mmap(
-                    f.fileno(), self._file_length, access=mmap.ACCESS_COPY,
-                    offset=self._file_offset)
-                # set the extra chunk loaded before the intended offset to empty
-                self._file_handler[:self._file_pad] = b' ' * self._file_pad
+            with self.open(self.mainfile) as f:
+                if isinstance(f, io.TextIOWrapper):
+                    self._file_handler = mmap.mmap(
+                        f.fileno(), self._file_length, access=mmap.ACCESS_COPY,
+                        offset=self._file_offset)
+                    # set the extra chunk loaded before the intended offset to empty
+                    self._file_handler[:self._file_pad] = b' ' * self._file_pad
+                else:
+                    self._file_handler = f.read()
             self._file_pad = 0
         return self._file_handler
 
@@ -416,7 +415,7 @@ class TextParser(FileParser):
                 self._results[quantities[i].name] = value_processed
 
             except Exception:
-                self.logger.warn('Error setting value for %s ' % quantities[i].name)
+                self.logger.warn('Error setting value', data=dict(quantity=quantities[i].name))
                 pass
 
     def _parse_quantity(self, quantity):
@@ -430,6 +429,7 @@ class TextParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
+                    sub_parser.logger = self.logger
                     if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
@@ -452,6 +452,7 @@ class TextParser(FileParser):
                     span = np.array(res.span()) + self.file_offset
                     sub_parser = quantity._sub_parser.copy()
                     sub_parser.mainfile = self.mainfile
+                    sub_parser.logger = self.logger
                     if (span[1] - span[0]) < mmap.PAGESIZE or True:
                         # self.logger.warn(
                         #     'Cannot use sub parser on quantity %s with blocks with size <'
@@ -488,7 +489,7 @@ class TextParser(FileParser):
 
                 self._results[quantity.name] = value_processed
             except Exception:
-                self.logger.warn('Error setting value for %s ' % quantity.name)
+                self.logger.warn('Error setting value', data=dict(quantity=quantity.name))
                 pass
 
     def parse(self, key=None):
