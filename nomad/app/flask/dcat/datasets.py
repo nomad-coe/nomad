@@ -19,6 +19,7 @@ from flask_restplus import Resource, abort
 from elasticsearch.exceptions import NotFoundError
 
 from nomad import search
+from nomad.app.flask.api.auth import authenticate
 
 from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping
@@ -35,6 +36,7 @@ class Dataset(Resource):
     @api.response(404, 'There is no entry with the given id.')
     @api.response(401, 'This entry is not publically accessible.')
     @api.response(200, 'Data send', headers={'Content-Type': 'application/xml'})
+    @authenticate()
     def get(self, entry_id):
         ''' Returns a DCAT dataset for a given NOMAD entry id. '''
         try:

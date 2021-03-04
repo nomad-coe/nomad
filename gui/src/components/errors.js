@@ -69,6 +69,8 @@ class ErrorSnacksUnstyled extends React.Component {
     if (error instanceof Error) {
       if (error.name === 'CannotReachApi') {
         errorStr = 'Cannot reach NOMAD, please try again later.'
+      } else if (error.name === 'NotAuthorized') {
+        errorStr = error.message
       } else if (error.name === 'DoesNotExist') {
         errorStr = 'You are trying to access information that does not exist. Please try again and let us know, if this error keeps happening.'
       } else if (error.name === 'VersionMismatch') {

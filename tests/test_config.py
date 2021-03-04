@@ -51,6 +51,9 @@ def test_apply(with_config, caplog):
     config._apply('max_entry_download', 'not_a_number')
     assert_log(caplog, 'ERROR', 'cannot set')
 
+    config._apply('nounderscore', 'test_value')
+    assert_log(caplog, 'ERROR', 'nounderscore does not exist')
+
 
 def test_env(with_config, monkeypatch):
     monkeypatch.setattr('os.environ', dict(NOMAD_FS_PUBLIC='test_value'))

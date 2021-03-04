@@ -166,7 +166,8 @@ services = NomadConfig(
 
 oasis = NomadConfig(
     central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/rae'
+    central_nomad_deployment_id='nomad-lab.eu/prod/rae',
+    allowed_users=None  # a list of usernames or user account emails
 )
 
 tests = NomadConfig(
@@ -341,7 +342,13 @@ def _apply(key, value, raise_error: bool = True) -> None:
     leading to ``config.fs.staging``.
     '''
     full_key = key
-    group_key, config_key = full_key.split('_', 1)
+    try:
+        group_key, config_key = full_key.split('_', 1)
+    except Exception:
+        if raise_error:
+            logger.error(f'config key does not exist: {full_key}')
+        return
+
     current = globals()
 
     if group_key not in current:

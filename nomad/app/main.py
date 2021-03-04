@@ -16,17 +16,42 @@
 # limitations under the License.
 #
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status, Response
 from fastapi.middleware.wsgi import WSGIMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from nomad import config
+from nomad import config, infrastructure
 
 from .optimade import optimade_app
 from .flask import app as flask_app
 from .v1.main import app as v1_app
 
 
+class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if 'extensions' in path or 'info' in path or 'versions' in path:
+            return await call_next(request)
+
+        if 'Authorization' not in request.headers:
+            return Response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content='You have to authenticate to use this Oasis endpoint.')
+
+        else:
+            user, _ = infrastructure.keycloak.auth(request.headers)
+            if user is None or user.email not in config.oasis.allowed_users:
+                return Response(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content='You are not authorized to access this Oasis endpoint.')
+
+        return await call_next(request)
+
+
 app = FastAPI()
+
+if config.oasis.allowed_users is not None:
+    optimade_app.add_middleware(OasisAuthenticationMiddleware)
 
 app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
