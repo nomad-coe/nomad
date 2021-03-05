@@ -6350,7 +6350,7 @@ class ThermodynamicalProperties(MSection):
     @derived(
         type=np.dtype(np.float64),
         shape=['number_of_thermodynamical_property_values'],
-        unit='joule / kelvin * kilogram',
+        unit='joule / (kelvin * kilogram)',
         description='''
         Stores the specific heat capacity at constant volume.
         ''',

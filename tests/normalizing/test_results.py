@@ -18,17 +18,6 @@
 
 import numpy as np
 from nomad.units import ureg
-from tests.normalizing.conftest import (  # pylint: disable=unused-import
-    atom,
-    molecule,
-    one_d,
-    two_d,
-    surface,
-    bulk,
-    dft,
-    dft_plus_u,
-    gw,
-)
 
 
 def assert_material(material):
@@ -201,6 +190,11 @@ def test_method_gw(gw):
     assert method.method_name == "GW"
     assert method.simulation.gw.gw_type == "G0W0"
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
+
+
+def test_geometry_optimization(geometry_optimization):
+    geo_opt = geometry_optimization.results.properties.geometry_optimization
+    assert geo_opt.method_name == "GW"
 
 
 def pprint(root, indent=None):

@@ -25,7 +25,7 @@ from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.datamodel.optimade import OptimadeEntry, Species
-from nomad.datamodel.metainfo.common_dft import section_symmetry, section_system
+from nomad.datamodel.metainfo.common_dft import section_symmetry, section_system, GeometryOptimization
 from nomad.datamodel.results import (
     Results,
     Material,
@@ -305,6 +305,16 @@ class ResultsNormalizer(Normalizer):
 
         return method
 
+    def geometry_optimization(self) -> Union[GeometryOptimization, None]:
+        """Returns a reference to a workflow result for geometry optimization.
+        """
+        workflow = self.entry_archive.section_workflow
+        if workflow is not None:
+            geo_opt = workflow.section_geometry_optimization
+            if geo_opt:
+                return geo_opt
+        return None
+
     def properties(
             self,
             repr_sys: section_system,
@@ -312,6 +322,8 @@ class ResultsNormalizer(Normalizer):
             encyclopedia: EncyclopediaMetadata) -> Properties:
         """Returns a populated Properties subsection."""
         properties = Properties()
+
+        # Structures
         struct_orig = self.structure_original(repr_sys)
         if struct_orig:
             properties.structure_original = struct_orig
@@ -321,6 +333,10 @@ class ResultsNormalizer(Normalizer):
         struct_conv = self.structure_conventional(symmetry)
         if struct_conv:
             properties.structure_conventional = struct_conv
+
+        geo_opt = self.geometry_optimization()
+        if geo_opt:
+            properties.geometry_optimization
 
         return properties
 

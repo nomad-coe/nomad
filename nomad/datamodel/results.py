@@ -22,7 +22,7 @@ from elasticsearch_dsl import Text, Keyword, Integer
 from ase.data import chemical_symbols
 
 from nomad import config
-from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Package
+from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Package, Reference, SectionProxy, QuantityReference
 from nomad.metainfo.search_extension import Search
 
 # This is usally defined automatically when the first metainfo definition is evaluated, but
@@ -30,7 +30,10 @@ from nomad.metainfo.search_extension import Search
 m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
-from nomad.datamodel.metainfo.common_dft import Method as section_method  # noqa
+from nomad.datamodel.metainfo.common_dft import (  # noqa
+    Method as section_method,
+    ThermodynamicalProperties,
+)
 
 structure_classes = [
     "1D",
@@ -279,6 +282,15 @@ class StructureConventional(Structure):
         """
     )
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
+
+
+class StructureOptimized(Structure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains a structure that is the result of a geometry optimization.
+        """
+    )
 
 
 class Symmetry(MSection):
@@ -569,6 +581,30 @@ class Simulation(MSection):
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False, a_search="dft")
     gw = SubSection(sub_section=GW.m_def, repeats=False, a_search="gw")
+    phonon = Quantity(
+        type=Reference(SectionProxy('Phonon')),
+        shape=[],
+        description='''
+        Reference to phonon calculation methodology.
+        ''',
+        a_search="dos_electronic",
+    )
+    geometry_optimization = Quantity(
+        type=Reference(SectionProxy('GeometryOptimization')),
+        shape=[],
+        description='''
+        Reference to geometry optimization methodology.
+        ''',
+        a_search="geometry_optimization",
+    )
+    molecular_dynamics = Quantity(
+        type=Reference(SectionProxy('MolecularDynamics')),
+        shape=[],
+        description='''
+        Reference to molecular dynamics methodology.
+        ''',
+        a_search="molecular_dynamics",
+    )
 
 
 class Method(MSection):
@@ -576,9 +612,10 @@ class Method(MSection):
         a_flask=dict(skip_none=True),
         description="""
         Contains a summary of the methodology that has been used in this entry.
-        This methodology applies to all of the reported properties, but the
-        individual properties may be further methodological details that are
-        then reported under properties.
+        This methodology applies to all of the reported properties and
+        determines the result of a single energy evalution. The individual
+        properties may be further methodological details affect e.g. the
+        sampling.
         """
     )
     method_id = Quantity(
@@ -597,6 +634,53 @@ class Method(MSection):
         a_search=Search()
     )
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False, a_search="simulation")
+
+
+class HeatCapacityConstantVolume(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the values of the specific (per mass) and isochoric (constant
+        volume) heat capacity at different temperatures.
+        """
+    )
+    # values = Quantity(
+        # type=np.dtype("float64"),
+        # shape=["*"],
+        # unit='joule / (kelvin * kilogram)',
+        # description="""
+        # Heat capacity values.
+        # """,
+    # )
+    temperature = Quantity(
+        type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
+        description='''
+        Reference to the temperature values.
+        ''',
+    )
+
+
+class HelmholtzFreeEnergy(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the values of the specific (per mass) Helmholtz free energy at
+        different temperatures.
+        """
+    )
+    # values = Quantity(
+        # type=QuantityReference(SectionProxy('section_dos')),
+        # shape=[],
+        # description='''
+        # Reference to the values of Helmholtz free energy.
+        # ''',
+    # )
+    temperature = Quantity(
+        type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
+        description='''
+        Reference to the temperature values.
+        ''',
+    )
 
 
 class Properties(MSection):
@@ -622,18 +706,45 @@ class Properties(MSection):
         repeats=False,
         a_search="structure_primitive"
     )
-    # geometry_optimization = SubSection(sub_section=GeometryOptimization.m_def, repeats=True, a_search="geometry_optimization")
-    # molecular_dynamics = SubSection(sub_section=MolecularDynamics.m_def, repeats=True, a_search="molecular_dynamics")
-    # dos_electronic = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="dos_electronic")
-    # dos_vibrational = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="dos_vibrational")
-    # band_structure_electronic = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="band_structure_electronic")
-    # band_structure_vibrational = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="band_structure_vibrational")
-    # charges = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="charges")
-    # forces = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="forces")
-    # energies = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="energies")
-    # heat_capacity = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="heat_capacity")
-    # helmholtz_free_energy = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="helmholtz_free_energy")
-    # elastic_properties = SubSection(sub_section=Phonon.m_def, repeats=True, a_search="charges")
+    structure_optimized = SubSection(
+        sub_section=StructureOptimized.m_def,
+        repeats=False,
+        a_search="structure_optimized"
+    )
+    dos_electronic = Quantity(
+        type=Reference(SectionProxy('section_dos')),
+        shape=[],
+        description='''
+        Reference to an electronic density of states result.
+        ''',
+        a_search="dos_electronic",
+    )
+    band_structure_electronic = Quantity(
+        type=Reference(SectionProxy('section_dos')),
+        shape=[],
+        description='''
+        Reference to an electronic density of states result.
+        ''',
+        a_search="band_structure_electronic",
+    )
+    dos_vibrational = Quantity(
+        type=Reference(SectionProxy('section_dos')),
+        shape=[],
+        description='''
+        Reference to a vibrational density of states result.
+        ''',
+        a_search="dos_vibrational",
+    )
+    band_structure_vibrational = Quantity(
+        type=Reference(SectionProxy('section_dos')),
+        shape=[],
+        description='''
+        Reference to a vibrational density of states result.
+        ''',
+        a_search="band_structure_vibrational",
+    )
+    heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
+    helmholtz_free_energy = SubSection(sub_section=HelmholtzFreeEnergy.m_def, repeats=False, a_search="helmholtz_free_energy")
 
 
 class Results(MSection):
