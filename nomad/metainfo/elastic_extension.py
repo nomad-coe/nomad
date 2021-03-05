@@ -259,6 +259,8 @@ class Elastic(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
+
+    Attributes:
         aggregateable:
             A boolean that determines, if this quantity can be used in aggregations
     '''

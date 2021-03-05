@@ -1348,14 +1348,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     'Do not know how to serialize data with type %s for quantity %s' %
                     (quantity_type, quantity))
 
-            serialize_value = serialize
-
             quantity_type = quantity.type
             if resolve_references and isinstance(quantity_type, QuantityReference):
+                serialize_before_reference_resolution = serialize
+
                 def serialize_reference(value: Any):
                     value = getattr(value.m_resolved(), quantity_type.target_quantity_def.name)
 
-                    return serialize_value(value)
+                    return serialize_before_reference_resolution(value)
 
                 serialize = serialize_reference
 
@@ -1367,8 +1367,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 value = quantity.default
 
             if transform is not None:
+                serialize_before_transform = serialize
+
                 def serialize_and_transform(value: Any):
-                    return transform(quantity, self, serialize_value(value))
+                    return transform(quantity, self, serialize_before_transform(value))
 
                 serialize = serialize_and_transform
 

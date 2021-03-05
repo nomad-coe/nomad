@@ -157,7 +157,7 @@ sub-sections as if they were direct sub-sections.
 '''
 
 
-from typing import Union, Any, Dict, cast, Set, List
+from typing import Union, Any, Dict, cast, Set, List, Callable
 import numpy as np
 
 from nomad import config
@@ -179,6 +179,16 @@ class DocumentType():
         self.mapping: Dict[str, Any] = None
         self.indexed_properties: Set[Definition] = set()
 
+    def _transform(self, quantity, section, value):
+        elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
+        for elasticsearch_annotation in elasticsearch_annotations:
+            if elasticsearch_annotation.field is None:
+                transform_function = elasticsearch_annotation.value
+                if transform_function is not None:
+                    return transform_function(section)
+
+        return value
+
     def create_index_doc(self, root: MSection):
         '''
         Creates an indexable document from the given archive.
@@ -186,9 +196,10 @@ class DocumentType():
         return root.m_to_dict(
             with_meta=False, include_defaults=True, include_derived=True,
             resolve_references=True,
-            exclude=lambda property_, section: property_ not in self.indexed_properties)
+            exclude=lambda property_, section: property_ not in self.indexed_properties,
+            transform=self._transform)
 
-    def create_mapping(self, section_def: Section):
+    def create_mapping(self, section_def: Section, prefix: str = None):
         '''
         Creates an Elasticsearch mapping for the given root section. It traverses all
         sub-sections to create the mapping. It will not create the mapping for nested
@@ -221,15 +232,21 @@ class DocumentType():
                         mapping.update(**elasticsearch_annotation.mapping)
 
                 self.indexed_properties.add(quantity_def)
+                elasticsearch_annotation._register(self, prefix)
 
         for sub_section_def in section_def.all_sub_sections.values():
             if sub_section_def.m_get_annotations(Elasticsearch) is None:
                 continue
 
             assert not sub_section_def.repeats, 'elasticsearch fields in repeating sub sections are not supported'
-            sub_section_mapping = self.create_mapping(sub_section_def.sub_section)
+            if prefix is None:
+                qualified_name = sub_section_def.name
+            else:
+                qualified_name = f'{prefix}.{sub_section_def.name}'
+            sub_section_mapping = self.create_mapping(sub_section_def.sub_section, prefix=qualified_name)
             if len(sub_section_mapping['properties']) > 0:
                 mappings[sub_section_def.name] = sub_section_mapping
+
                 self.indexed_properties.add(sub_section_def)
 
         self.mapping = dict(properties=mappings)
@@ -305,74 +322,159 @@ class Elasticsearch(DefinitionAnnotation):
     '''
     A metainfo annotation for quantity definitions. This annotation can be used multiple
     times on the same quantity (e.g. to define Elasticsearch fields with differrent mapping
-    types).
+    types). Each annotation will create a field in the respective elasticsearch document type.
+
+    This annotation has to be used on all sub sections that lead to quantities that should
+    be included. On sub sections an inner document mapping is applied and all other
+    arguments are ignored.
 
     Arguments:
         doc_type: An additional document type: ``material_type`` or ``material_entry_type``.
             All quantities with this annotation are automatically placed in ``entry_type``.
-        mapping: The Elasticsearch mapping type or full dictionary for this mapping. The
-            default depends on the quantity type.
-        field: Allows to specify a field name. There has to be another annotation on the
-            same quantity without a field.
+        mapping: The Elasticsearch mapping for the underlying elasticsearch field. The
+            default depends on the quantity type. You can provide the elasticsearch type
+            name, a full dictionary with additional elasticsearch mapping parameters, or
+            an elasticsearch_dsl mapping object.
+        field: Allows to specify custom field name. There has to be another annotation on the
+            same quantity with the default field name. The custom field name is concatenated
+            to the default. This will create an additional mapping for this
+            quantity. In queries this can be used like an additional field, but the
+            quantity is only stored once (under the quantity name) in the source document.
+        value:
+            A callable that is applied to the containering section to get a value for
+            this quantity when saving the section in the elastic search index. By default
+            this will be the serialized quantity value.
+        index:
+            A boolean that indicates if this quantity should be indexed or merely be
+            part of the elastic document ``_source`` without being indexed for search.
+
+    Attributes:
+        aggregateable:
+            A boolean that determines, if this quantity can be used in aggregations.
+        qualified_field:
+            The full qualified name of the resulting elasticsearch field in the entry
+            document type. This will be the quantity name (plus additional field if set)
+            with subsection names up to the root of the metainfo data.
     '''
+
     def __init__(
             self,
             doc_type: DocumentType = entry_type,
             mapping: Union[str, Dict[str, Any]] = None,
-            field: str = None):
+            field: str = None,
+            value: Callable[[MSection], Any] = None,
+            index: bool = True):
 
-        if isinstance(mapping, str):
-            self._mapping = dict(type=mapping)
-        else:
-            self._mapping = mapping
-
-        self._field = field
+        self._custom_mapping = mapping
+        self.field = field
         self.doc_type = doc_type
-
-    def _compute_mapping(self, quantity: Quantity):
-        if quantity.type == str:
-            return dict(type='keyword')
-        elif quantity.type in [float, np.float64] and quantity.is_scalar:
-            return dict(type='double')
-        elif quantity.type == np.float32 and quantity.is_scalar:
-            return dict(type='float')
-        elif quantity.type in [int, np.int32] and quantity.is_scalar:
-            return dict(type='integer')
-        elif quantity.type == np.int64 and quantity.is_scalar:
-            return dict(type='long')
-        elif quantity.type == bool:
-            return dict(type='boolean')
-        elif quantity.type == Datetime:
-            return dict(type='date')
-        elif isinstance(quantity.type, QuantityReference):
-            return self._compute_mapping(quantity.type.target_quantity_def)
-        elif isinstance(quantity.type, Reference):
-            raise MetainfoError('References cannot be indexed.')
-        elif isinstance(quantity.type, MEnum):
-            return dict(type='keyword')
-        else:
-            raise NotImplementedError(
-                'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+        self.value = value
+        self.index = index
+        self._qualified_fields: Dict[DocumentType, str] = {}
+        self._mapping: Dict[str, Any] = None
 
     @property
-    def mapping(self):
+    def mapping(self) -> Dict[str, Any]:
         if self._mapping is not None:
             return self._mapping
 
-        return self._compute_mapping(cast(Quantity, self.definition))
+        if self._custom_mapping is not None:
+            from elasticsearch_dsl import Field
+
+            if isinstance(self._custom_mapping, Field):
+                self._mapping = self._custom_mapping.to_dict()
+            elif isinstance(self._custom_mapping, str):
+                self._mapping = dict(type=self._custom_mapping)
+            else:
+                self._mapping = self._custom_mapping
+
+            return self._mapping
+
+        def compute_mapping(quantity: Quantity) -> Dict[str, Any]:
+            if quantity.type == str:
+                return dict(type='keyword')
+            elif quantity.type in [float, np.float64] and quantity.is_scalar:
+                return dict(type='double')
+            elif quantity.type == np.float32 and quantity.is_scalar:
+                return dict(type='float')
+            elif quantity.type in [int, np.int32] and quantity.is_scalar:
+                return dict(type='integer')
+            elif quantity.type == np.int64 and quantity.is_scalar:
+                return dict(type='long')
+            elif quantity.type == bool:
+                return dict(type='boolean')
+            elif quantity.type == Datetime:
+                return dict(type='date')
+            elif isinstance(quantity.type, QuantityReference):
+                return compute_mapping(quantity.type.target_quantity_def)
+            elif isinstance(quantity.type, Reference):
+                raise MetainfoError('References cannot be indexed.')
+            elif isinstance(quantity.type, MEnum):
+                return dict(type='keyword')
+            else:
+                raise NotImplementedError(
+                    'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+
+        self._mapping = compute_mapping(cast(Quantity, self.definition))
+
+        if not self.index:
+            self._mapping['index'] = False
+
+        return self._mapping
+
+    def _register(self, doc_type: DocumentType, prefix: str):
+        qualified_field = self.definition.name
+
+        if prefix is not None:
+            qualified_field = f'{prefix}.{qualified_field}'
+
+        if self.field is not None:
+            qualified_field = f'{qualified_field}.{self.field}'
+
+        existing_qualified_field = self._qualified_fields.get(doc_type, qualified_field)
+        assert existing_qualified_field == qualified_field, (
+            'Each elasticsearch field must have a unique qualified name. '
+            'This means that a quantity must no be "reacheable" via multiple '
+            'sub-section paths, because this would lead to different qualified names for '
+            'the same field. The elastic quantity %s is already registered for doc_type %s. '
+            'There registered qualified name is %s, the other name is %s.'
+            % (self, doc_type.name, self._qualified_fields[doc_type], qualified_field))
+
+        self._qualified_fields[doc_type] = qualified_field
 
     @property
-    def fields(self):
-        if self._field is None:
+    def fields(self) -> Dict[str, Any]:
+        if self.field is None:
             return {}
 
         return {
-            self._field: self.mapping
+            self.field: self.mapping
         }
 
     @property
-    def property_name(self):
+    def property_name(self) -> str:
         return self.definition.name
+
+    @property
+    def qualified_field(self) -> str:
+        return self._qualified_fields.get(entry_type)
+
+    def get_qualified_field(self, doc_type: DocumentType) -> str:
+        '''
+        The full qualified name of the resulting elasticsearch field in the given
+        document type.
+        '''
+        return self._qualified_fields.get(doc_type)
+
+    @property
+    def aggregateable(self):
+        return self.mapping['type'] == 'Keyword'
+
+    def __repr__(self):
+        if self.definition is None:
+            return super().__repr__()
+
+        return f'Elasticsearch({self.definition}, {self.qualified_field})'
 
 
 def create_indices(entry_section_def: Section = None, material_section_def: Section = None):
@@ -390,7 +492,7 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
 
     entry_type.create_mapping(entry_section_def)
     material_type.create_mapping(material_section_def)
-    material_entry_type.create_mapping(entry_section_def)
+    material_entry_type.create_mapping(entry_section_def, prefix='entries')
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
 

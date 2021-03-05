@@ -19,6 +19,7 @@
 from typing import List
 import pytest
 import numpy as np
+from elasticsearch_dsl import Keyword
 
 from nomad import config
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime
@@ -43,7 +44,7 @@ class Material(MSection):
 
     springer_labels = Quantity(
         type=str, shape=['*'],
-        a_elasticsearch=(Elasticsearch(material_type)))
+        a_elasticsearch=(Elasticsearch(material_type, mapping=Keyword())))
 
 
 class Data(MSection):
@@ -58,7 +59,7 @@ class Data(MSection):
         type=int,
         derived=lambda data: len(data.series) if data.series is not None else 0)
 
-    series = Quantity(type=np.dtype(np.float64), shape=['*', '*'])
+    series = Quantity(type=np.dtype(np.float64), shape=['*'])
 
 
 class Properties(MSection):
@@ -88,6 +89,10 @@ class Entry(MSection):
         type=str,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    mainfile = Quantity(
+        type=str,
+        a_elasticsearch=Elasticsearch(index=False, value=lambda _: 'other_mainfile'))
+
     upload_time = Quantity(
         type=Datetime,
         a_elasticsearch=Elasticsearch())
@@ -96,7 +101,7 @@ class Entry(MSection):
     data = SubSection(sub_section=Data.m_def)
 
 
-def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None):
+def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None, **kwargs):
     for segment in path.split('.'):
         assert 'properties' in mapping
 
@@ -106,10 +111,12 @@ def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None):
         assert mapping is None
     else:
         assert mapping is not None
-        if field is None:
-            assert mapping.get('type') == es_type
-        else:
-            assert mapping['fields'][field].get('type') == es_type
+        if field is not None:
+            mapping = mapping['fields'][field]
+
+        assert mapping.get('type') == es_type
+        for key, value in kwargs.items():
+            assert mapping.get(key) == value
 
 
 def assert_entry_indexed(entry: Entry):
@@ -196,6 +203,7 @@ def test_mappings(indices):
     entry_mapping, material_mapping = entry_type.mapping, material_type.mapping
 
     assert_mapping(entry_mapping, 'entry_id', 'keyword')
+    assert_mapping(entry_mapping, 'mainfile', 'keyword', index=False)
     assert_mapping(entry_mapping, 'upload_time', 'date')
     assert_mapping(entry_mapping, 'results.material.material_id', 'keyword')
     assert_mapping(entry_mapping, 'results.material.formula', 'keyword')
@@ -214,9 +222,16 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'entries.results.properties.available_properties', 'keyword')
     assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
 
+    formula_annotations = Material.formula.m_get_annotations(Elasticsearch)
+    assert formula_annotations[0].qualified_field == 'results.material.formula'
+    assert formula_annotations[1].qualified_field == 'results.material.formula.text'
+    assert formula_annotations[1].get_qualified_field(material_type) == 'formula.text'
+    assert formula_annotations[1].get_qualified_field(material_entry_type) is None
+    assert Properties.available_properties.a_elasticsearch.get_qualified_field(material_entry_type) == 'entries.results.properties.available_properties'
+
 
 def test_index_docs(indices):
-    entry = Entry(entry_id='test_entry_id')
+    entry = Entry(entry_id='test_entry_id', mainfile='test_mainfile')
     data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
     results = entry.m_create(Results)
     results.m_create(
@@ -232,6 +247,7 @@ def test_index_docs(indices):
 
     assert entry_doc == {
         'entry_id': 'test_entry_id',
+        'mainfile': 'other_mainfile',
         'results': {
             'material': {
                 'material_id': 'test_material_id',
