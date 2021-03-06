@@ -20,27 +20,38 @@ from typing import Any, Dict
 import gzip
 import bz2
 import lzma
+import tarfile
 
 
 class FileParser:
     '''
-    Base class for parsers. The parse method implemented here simply sets the parsed
-    quantities as attributes of the class. The parse method specific to a file type
+    Base class for parsers. The parse method specific to a file type
     should be implemented in the corresponding child class. The parsed quantities are
-    stored in results. One can access a quantity by using the get method.
+    stored in results. One can access a quantity by using the get method or as attribute.
 
     Arguments:
         mainfile: the file to be parsed
         logger: optional logger
     '''
-    def __init__(self, mainfile: str, logger=None):
-        self._mainfile: str = os.path.abspath(mainfile) if mainfile else mainfile
-        self.logger = logger if logger else logging
+    def __init__(self, mainfile=None, logger=None, open=None):
+        self._mainfile: Any = None
+        self._mainfile_obj: Any = None
+        if isinstance(mainfile, str):
+            self._mainfile = os.path.abspath(mainfile)
+            self._mainfile_obj = None
+        elif hasattr(mainfile, 'name'):
+            self._mainfile = mainfile.name
+            self._mainfile_obj = mainfile
+        self._open = open
+        self.logger = logger if logger is not None else logging
         self._results: Dict[str, Any] = None
         # a key is necessary for xml parsers, where parsing is done dynamically
         self._key: str = None
         self._kwargs: Dict[str, Any] = None
         self._file_handler: Any = None
+
+    def init_parameters(self):
+        pass
 
     @property
     def results(self):
@@ -56,11 +67,21 @@ class FileParser:
         return os.path.dirname(self._mainfile)
 
     @property
+    def mainfile_obj(self):
+        if self._mainfile_obj is None:
+            try:
+                self._mainfile_obj = self.open(self._mainfile)
+            except Exception:
+                pass
+
+        return self._mainfile_obj
+
+    @property
     def mainfile(self):
         if self._mainfile is None:
             return
 
-        if not os.path.isfile(self._mainfile):
+        if self._mainfile_obj is None and not os.path.isfile(self._mainfile):
             return
         return self._mainfile
 
@@ -68,19 +89,29 @@ class FileParser:
     def mainfile(self, val):
         self._results = None
         self._file_handler = None
-        self._mainfile = os.path.abspath(val) if val is not None else val
+        self._mainfile = None
+        if isinstance(val, str):
+            self._mainfile = os.path.abspath(val)
+            self._mainfile_obj = None
+        elif hasattr(val, 'name'):
+            self._mainfile = val.name
+            self._mainfile_obj = val
+        self.init_parameters()
 
-    @property
-    def open(self):
-        if self.mainfile.endswith('.gz'):
-            open_file = gzip.open
-        elif self.mainfile.endswith('.bz2'):
-            open_file = bz2.open
-        elif self.mainfile.endswith('.xz'):
-            open_file = lzma.open
-        else:
-            open_file = open
-        return open_file
+    def open(self, mainfile):
+        open_file = self._open
+        if open_file is None:
+            if mainfile.endswith('.gz'):
+                open_file = gzip.open
+            elif mainfile.endswith('.bz2'):
+                open_file = bz2.open
+            elif mainfile.endswith('.xz'):
+                open_file = lzma.open
+            elif mainfile.endswith('.tar'):
+                open_file = tarfile.open
+            else:
+                open_file = open
+        return open_file(mainfile)
 
     def get(self, key: str, default: Any = None, unit: str = None, **kwargs):
         '''
@@ -118,13 +149,10 @@ class FileParser:
         elif isinstance(key, int):
             return self[int]
 
-    def parse(self, quantity_key: str = None):
-        '''
-        Sets quantities in result as class attributes.
-        '''
-        for key, val in self._results.items():
-            try:
-                setattr(self, key, val)
-            except Exception:
-                pass
-        return self
+    def __getattr__(self, key):
+        if key not in self._results:
+            self.parse(key)
+        return self._results.get(key)
+
+    def parse(self, quantity_key: str = None, **kwargs):
+        pass
