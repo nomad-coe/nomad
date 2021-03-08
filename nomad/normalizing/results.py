@@ -25,7 +25,11 @@ from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.datamodel.optimade import OptimadeEntry, Species
-from nomad.datamodel.metainfo.common_dft import section_symmetry, section_system, GeometryOptimization
+from nomad.datamodel.metainfo.common_dft import (
+    section_symmetry,
+    section_system,
+    section_dos,
+)
 from nomad.datamodel.results import (
     Results,
     Material,
@@ -305,15 +309,34 @@ class ResultsNormalizer(Normalizer):
 
         return method
 
-    def geometry_optimization(self) -> Union[GeometryOptimization, None]:
-        """Returns a reference to a workflow result for geometry optimization.
+    def dos_electronic(self) -> Union[section_dos, None]:
+        """Returns a reference to the section containing an electronic dos.
+
+       DOS is reported only under the following conditions:
+          - There is a non-empty array of dos_values.
+          - There is a non-empty array of dos_energies.
+          - The reported dos_kind is not "vibrational".
         """
-        workflow = self.entry_archive.section_workflow
-        if workflow is not None:
-            geo_opt = workflow.section_geometry_optimization
-            if geo_opt:
-                return geo_opt
-        return None
+        representative_dos = None
+        try:
+            for scc in self.section_run.section_single_configuration_calculation:
+                doses = scc.section_dos
+                if doses:
+                    for dos in reversed(doses):
+                        kind = dos.dos_kind
+                        energies = dos.dos_energies
+                        values = dos.dos_values
+                        if kind != "vibrational" and \
+                           energies is not None and \
+                           values is not None and \
+                           len(energies) > 0 and \
+                           len(values) > 0:
+                            representative_dos = dos
+                            break
+        except Exception:
+            pass
+
+        return representative_dos
 
     def properties(
             self,
@@ -333,10 +356,7 @@ class ResultsNormalizer(Normalizer):
         struct_conv = self.structure_conventional(symmetry)
         if struct_conv:
             properties.structure_conventional = struct_conv
-
-        geo_opt = self.geometry_optimization()
-        if geo_opt:
-            properties.geometry_optimization
+        properties.dos_electronic = self.dos_electronic()
 
         return properties
 

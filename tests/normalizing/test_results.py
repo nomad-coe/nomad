@@ -192,9 +192,11 @@ def test_method_gw(gw):
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
 
-def test_geometry_optimization(geometry_optimization):
-    geo_opt = geometry_optimization.results.properties.geometry_optimization
-    assert geo_opt.method_name == "GW"
+# def test_dos_electronic(dos_electronic):
+    # dos = dos_electronic.results.properties.dos_electronic
+    # assert dos.dos_values.shape == (1, 100)
+    # assert dos.dos_energies.shape == (100)
+    # assert dos.dos_kind != "vibrational"
 
 
 def pprint(root, indent=None):
