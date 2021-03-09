@@ -225,32 +225,44 @@ export default function DFTEntryOverview({data}) {
         // Gather energies, trajectory and energy change threshold from geometry
         // optimization
         if (wfType === 'geometry_optimization') {
-          const calculations = section_wf.calculations_ref
+          let failed = false
           let energies = []
           const trajectory = []
-          let initialEnergy = null
-
-          let failed = false
-          for (let i = 0; i < calculations.length; ++i) {
-            let ref = calculations[i]
-            const calc = resolveRef(ref, archive)
-            const e = calc?.energy_total
-            if (e === undefined) {
-              failed = true
-              break
+          try {
+            const calculations = section_wf.calculations_ref
+            let initialEnergy = null
+            if (!calculations) {
+              throw Error('no calculations')
             }
-            if (i === 0) {
-              initialEnergy = e
+            for (let i = 0; i < calculations.length; ++i) {
+              let ref = calculations[i]
+              const calc = resolveRef(ref, archive)
+              let e = calc.energy_total
+              if (e === undefined) {
+                if (i === calculations.length - 1) {
+                  break
+                } else {
+                  throw Error('invalid energy value')
+                }
+              }
+              if (i === 0) {
+                initialEnergy = e
+              }
+              energies.push(e - initialEnergy)
+              let sys = calc.single_configuration_calculation_to_system_ref
+              sys = resolveRef(sys, archive)
+              if (sys === undefined) {
+                throw Error('invalid system reference')
+              }
+              trajectory.push({
+                species: sys.atom_species,
+                cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+                positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+                pbc: sys.configuration_periodic_dimensions
+              })
             }
-            energies.push(e - initialEnergy)
-            let sys = calc?.single_configuration_calculation_to_system_ref
-            sys = resolveRef(sys, archive)
-            trajectory.push({
-              species: sys.atom_species,
-              cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-              positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-              pbc: sys.configuration_periodic_dimensions
-            })
+          } catch (err) {
+            failed = true
           }
           if (!failed) {
             energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
@@ -259,6 +271,8 @@ export default function DFTEntryOverview({data}) {
             const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
             const e_criteria = e_criteria_wf || e_criteria_fs
             setGeoOpt({energies: energies, structures: trajectory, energy_change_criteria: e_criteria})
+          } else {
+            setGeoOpt({})
           }
         } else if (wfType === 'phonon') {
           // Find phonon dos and dispersion

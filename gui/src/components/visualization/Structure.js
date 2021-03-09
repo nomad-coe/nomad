@@ -21,12 +21,13 @@ import { makeStyles, fade } from '@material-ui/core/styles'
 import {
   Box,
   Checkbox,
+  Button,
   Menu,
   MenuItem,
   Typography,
   FormControlLabel
 } from '@material-ui/core'
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
+import { ToggleButton, ToggleButtonGroup, Alert } from '@material-ui/lab'
 import {
   MoreVert,
   Fullscreen,
@@ -40,7 +41,7 @@ import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
-import { withErrorHandler, ErrorCard } from '../ErrorHandler'
+import { withErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
 import clsx from 'clsx'
@@ -160,7 +161,7 @@ export const Structure = withErrorHandler(({
     if (options === undefined) {
       viewerOptions = {
         view: {
-          autoResize: true,
+          autoResize: false,
           autoFit: true,
           fitMargin: 0.6
         },
@@ -207,9 +208,9 @@ export const Structure = withErrorHandler(({
   }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
-    // If the cell all zeroes, positions are assumed to be cartesian.
+    // If the cell is all zeroes, positions are assumed to be cartesian.
     if (system.cell !== undefined) {
-      if (_.sum(_.flattenDeep(system.cell)) === 0) {
+      if (_.flattenDeep(system.cell).every(v => v === 0)) {
         system.cell = undefined
       }
     }
@@ -245,6 +246,7 @@ export const Structure = withErrorHandler(({
     // Systems without cell are centered on the center of positions
     } else {
       opts.layout.viewCenter = 'COP'
+      opts.layout.periodicity = 'none'
     }
     refViewer.current.setOptions(opts, false, false)
     refViewer.current.load(system)
@@ -289,8 +291,10 @@ export const Structure = withErrorHandler(({
   }, [showLatticeConstants])
 
   useEffect(() => {
-    refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
-  }, [wrap])
+    if (finalSystem?.cell) {
+      refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
+    }
+  }, [wrap, finalSystem])
 
   useEffect(() => {
     refViewer.current.setOptions({cell: {enabled: showCell}})
@@ -344,12 +348,20 @@ export const Structure = withErrorHandler(({
   }
 
   if (showPrompt) {
-    return <ErrorCard
-      message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-      className={styles.error}
-      actions={[{label: 'Yes', onClick: e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}]}
+    return <Alert
+      severity="info"
+      action={
+        <Button
+          color="inherit"
+          size="small"
+          onClick={e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}
+        >
+            YES
+        </Button>
+      }
     >
-    </ErrorCard>
+      {`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
+    </Alert>
   }
   if (loading) {
     return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
@@ -403,42 +415,46 @@ export const Structure = withErrorHandler(({
             label='Show bonds'
           />
         </MenuItem>
-        <MenuItem key='show-axis'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showLatticeConstants}
-                onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
-                color='primary'
+        {finalSystem?.cell &&
+          <>
+            <MenuItem key='show-axis'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showLatticeConstants}
+                    onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
+                    color='primary'
+                  />
+                }
+                label='Show lattice constants'
               />
-            }
-            label='Show lattice constants'
-          />
-        </MenuItem>
-        <MenuItem key='show-cell'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showCell}
-                onChange={(event) => { setShowCell(!showCell) }}
-                color='primary'
+            </MenuItem>
+            <MenuItem key='show-cell'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showCell}
+                    onChange={(event) => { setShowCell(!showCell) }}
+                    color='primary'
+                  />
+                }
+                label='Show simulation cell'
               />
-            }
-            label='Show simulation cell'
-          />
-        </MenuItem>
-        <MenuItem key='wrap'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={wrap}
-                onChange={(event) => { setWrap(!wrap) }}
-                color='primary'
+            </MenuItem>
+            <MenuItem key='wrap'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={wrap}
+                    onChange={(event) => { setWrap(!wrap) }}
+                    color='primary'
+                  />
+                }
+                label='Wrap positions'
               />
-            }
-            label='Wrap positions'
-          />
-        </MenuItem>
+            </MenuItem>
+          </>
+        }
       </Menu>
     </div>
   </Box>
