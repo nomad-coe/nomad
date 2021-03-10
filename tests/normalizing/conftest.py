@@ -18,6 +18,8 @@
 
 import numpy as np
 
+from typing import List
+
 import pytest
 
 from ase import Atoms
@@ -25,18 +27,18 @@ import ase.build
 
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.public import (
-    section_system as System,
-    Run,
-    SingleConfigurationCalculation,
-    XCFunctionals
-)
 from nomad.datamodel.metainfo.common_dft import (
     Method,
     MethodToMethodRefs,
     XCFunctionals,
     FrameSequence,
-    SamplingMethod
+    SamplingMethod,
+    SingleConfigurationCalculation,
+    Run,
+    System,
+    Dos,
+    KBand,
+    KBandSegment,
 )
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -120,6 +122,99 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     system.configuration_periodic_dimensions = atoms.get_pbc()
 
     return run_normalize(template)
+
+
+def get_template_dos_electronic(normalize: bool = True) -> EntryArchive:
+    """Used to create a test data for DOS.
+
+    Args:
+        normalize: Whether the returned value is already normalized or not.
+    """
+    template = get_template()
+    scc = template.section_run[0].section_single_configuration_calculation[0]
+    dos = scc.m_create(Dos)
+    n_values = 100
+    dos.dos_energies = np.linspace(-5, 20, n_values)
+    dos.dos_values = np.zeros((1, n_values))
+
+    if normalize:
+        template = run_normalize(template)
+    return template
+
+
+def get_template_band_structure_electronic(band_gaps: List, normalize: bool = True) -> EntryArchive:
+    """Used to create a test data for band structures.
+
+    Args:
+        band_gaps: List containing the band gap value and band gap type as a
+            tuple, e.g. [(1, "direct"), (0.5, "indirect)]. Band gap values are
+            in eV. Use a list of Nones if you don't want a gap for a specific
+            channel.
+        normalize: Whether the returned value is already normalized or not.
+    """
+    template = get_template()
+    scc = template.section_run[0].section_single_configuration_calculation[0]
+    bs = scc.m_create(KBand)
+    n_spin_channels = len(band_gaps)
+    fermi: List[float] = []
+    highest: List[float] = []
+    lowest: List[float] = []
+    for gap in band_gaps:
+        if gap is None:
+            highest.append(0)
+            lowest.append(0)
+            fermi.append(0)
+        else:
+            fermi.append(1 * 1.60218e-19)
+
+    scc.energy_reference_fermi = fermi
+    if len(highest) > 0:
+        scc.energy_reference_highest_occupied = highest
+    if len(lowest) > 0:
+        scc.energy_reference_lowest_unoccupied = lowest
+    n_segments = 2
+    space = np.linspace(0, 2 * np.pi, 200)
+    k, m = divmod(len(space), n_segments)
+    space = list((space[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n_segments)))
+    for i_seg in range(n_segments):
+        krange = space[i_seg]
+        n_points = len(krange)
+        seg = bs.m_create(KBandSegment)
+        energies = np.zeros((n_spin_channels, n_points, 2))
+        k_points = np.zeros((n_points, 3))
+        k_points[:, 0] = np.linspace(0, 1, n_points)
+        for i_spin in range(n_spin_channels):
+            if band_gaps[i_spin] is not None:
+                if band_gaps[i_spin][1] == "direct":
+                    energies[i_spin, :, 0] = -np.cos(krange)
+                    energies[i_spin, :, 1] = np.cos(krange)
+                elif band_gaps[i_spin][1] == "indirect":
+                    energies[i_spin, :, 0] = -np.cos(krange)
+                    energies[i_spin, :, 1] = np.sin(krange)
+                else:
+                    raise ValueError("Invalid band gap type")
+                energies[i_spin, :, 1] += 2 + band_gaps[i_spin][0]
+            else:
+                energies[i_spin, :, 0] = -np.cos(krange)
+                energies[i_spin, :, 1] = np.cos(krange)
+        seg.band_energies = energies * 1.60218e-19
+        seg.band_k_points = k_points
+
+    # For plotting
+    # e = []
+    # for i_seg in range(n_segments):
+        # seg = bs.section_k_band_segment[i_seg]
+        # e.append(seg.band_energies)
+    # e = np.concatenate(e, axis=1)
+    # import matplotlib.pyplot as mpl
+    # mpl.plot(e[0], color="blue")
+    # if n_spin_channels == 2:
+        # mpl.plot(e[1], color="orange")
+    # mpl.show()
+
+    if normalize:
+        template = run_normalize(template)
+    return template
 
 
 @pytest.fixture(scope='session')
@@ -303,35 +398,29 @@ def elastic() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
+def dos_electronic() -> EntryArchive:
+    template = get_template_dos_electronic()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
 def bands_unpolarized_gap_indirect() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/unpolarized_gap/vasprun.xml.bands.xz"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    return get_template_band_structure_electronic([(1, "indirect")])
 
 
 @pytest.fixture(scope='session')
 def bands_polarized_no_gap() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/polarized_no_gap/vasprun.xml.bands.xz"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    return get_template_band_structure_electronic([None, None])
 
 
 @pytest.fixture(scope='session')
 def bands_unpolarized_no_gap() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/unpolarized_no_gap/vasprun.xml.bands.xz"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    return get_template_band_structure_electronic([None])
 
 
 @pytest.fixture(scope='session')
 def bands_polarized_gap_indirect() -> EntryArchive:
-    parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/polarized_gap/vasprun.xml.bands.xz"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    return get_template_band_structure_electronic([(1, "indirect"), (0.8, "indirect")])
 
 
 @pytest.fixture(scope='session')
@@ -388,10 +477,13 @@ def hash_vasp(bands_unpolarized_gap_indirect) -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def band_path_cF(bands_unpolarized_gap_indirect) -> EntryArchive:
+def band_path_cF() -> EntryArchive:
     """Band structure calculation for a cP Bravais lattice.
     """
-    return bands_unpolarized_gap_indirect
+    parser_name = "parsers/vasp"
+    filepath = "tests/data/normalizers/band_structure/unpolarized_gap/vasprun.xml.bands.xz"
+    archive = parse_file((parser_name, filepath))
+    return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')

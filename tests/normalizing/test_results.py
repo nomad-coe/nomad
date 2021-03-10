@@ -17,7 +17,16 @@
 #
 
 import numpy as np
+
+import pytest
+
 from nomad.units import ureg
+
+from .conftest import (
+    get_template_dos_electronic,
+    get_template_band_structure_electronic,
+    run_normalize
+)
 
 
 def assert_material(material):
@@ -192,11 +201,120 @@ def test_method_gw(gw):
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
 
-# def test_dos_electronic(dos_electronic):
-    # dos = dos_electronic.results.properties.dos_electronic
-    # assert dos.dos_values.shape == (1, 100)
-    # assert dos.dos_energies.shape == (100)
-    # assert dos.dos_kind != "vibrational"
+def test_dos_electronic():
+    # DOS with all correct metainfo
+    archive = get_template_dos_electronic(normalize=False)
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_electronic
+    assert dos.dos_values.shape == (1, 100)
+    assert dos.dos_energies.shape == (100, )
+    assert dos.dos_kind != "vibrational"
+
+    # Vibrational instead of electronic
+    archive = get_template_dos_electronic(normalize=False)
+    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_kind = "vibrational"
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_electronic
+    assert dos is None
+
+    # Empty values
+    archive = get_template_dos_electronic(normalize=False)
+    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_values = []
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_electronic
+    assert dos is None
+
+    # Empty energies
+    archive = get_template_dos_electronic(normalize=False)
+    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_energies = []
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_electronic
+    assert dos is None
+
+
+def test_band_structure_electronic():
+    # Unpolarized band structure with no gap
+    archive = get_template_band_structure_electronic([None])
+    bs = archive.results.properties.band_structure_electronic
+    assert bs.band_gap.magnitude == [0]
+    assert bs.band_gap_type == ["no_gap"]
+    assert bs.spin_polarized is False
+    assert bs.energy_highest_occupied.shape == (1,)
+    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert bs.segments[0].band_energies.shape == (1, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Polarized band structure with no gap
+    archive = get_template_band_structure_electronic([None, None])
+    bs = archive.results.properties.band_structure_electronic
+    assert np.allclose(bs.band_gap.magnitude, [0, 0])
+    assert bs.band_gap_type == ["no_gap", "no_gap"]
+    assert bs.spin_polarized is True
+    assert bs.energy_highest_occupied.shape == (2,)
+    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert bs.segments[0].band_energies.shape == (2, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Unpolarized band structure with direct gap
+    gap = 1  # eV
+    gap_type = "direct"
+    archive = get_template_band_structure_electronic([(gap, gap_type)])
+    bs = archive.results.properties.band_structure_electronic
+    assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
+    assert bs.band_gap_type == [gap_type]
+    assert bs.spin_polarized is False
+    assert bs.energy_fermi.shape == (1,)
+    assert bs.energy_highest_occupied.shape == (1,)
+    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert bs.segments[0].band_energies.shape == (1, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Unpolarized band structure with indirect gap
+    gap = 1   # eV
+    gap_type = "indirect"
+    archive = get_template_band_structure_electronic([(gap, gap_type)])
+    bs = archive.results.properties.band_structure_electronic
+    assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
+    assert bs.band_gap_type == [gap_type]
+    assert bs.spin_polarized is False
+    assert bs.energy_fermi.shape == (1,)
+    assert bs.energy_highest_occupied.shape == (1,)
+    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert bs.segments[0].band_energies.shape == (1, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Polarized band structure with direct gap
+    gap1 = 1  # eV
+    gap2 = 2  # eV
+    gap_type = "direct"
+    archive = get_template_band_structure_electronic([(gap1, gap_type), (gap2, gap_type)])
+    bs = archive.results.properties.band_structure_electronic
+    gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    assert np.allclose(bs.band_gap.magnitude, gaps_joule)
+    assert bs.band_gap_type == [gap_type, gap_type]
+    assert bs.spin_polarized is True
+    assert bs.energy_fermi.shape == (2,)
+    assert bs.energy_highest_occupied.shape == (2,)
+    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert bs.segments[0].band_energies.shape == (2, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Polarized band structure with indirect gap
+    gap1 = 1  # eV
+    gap2 = 2  # eV
+    gap1_type = "indirect"
+    gap2_type = "indirect"
+    archive = get_template_band_structure_electronic([(gap1, gap1_type), (gap2, gap2_type)])
+    bs = archive.results.properties.band_structure_electronic
+    gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    assert np.allclose(bs.band_gap.magnitude, gaps_joule)
+    assert bs.band_gap_type == [gap1_type, gap2_type]
+    assert bs.spin_polarized is True
+    assert bs.energy_fermi.shape == (2,)
+    assert bs.energy_highest_occupied.shape == (2,)
+    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert bs.segments[0].band_energies.shape == (2, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
 
 
 def pprint(root, indent=None):

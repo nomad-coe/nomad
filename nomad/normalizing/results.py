@@ -28,7 +28,7 @@ from nomad.datamodel.optimade import OptimadeEntry, Species
 from nomad.datamodel.metainfo.common_dft import (
     section_symmetry,
     section_system,
-    section_dos,
+    Dos,
 )
 from nomad.datamodel.results import (
     Results,
@@ -46,6 +46,7 @@ from nomad.datamodel.results import (
     DFT,
     GW,
     xc_treatments,
+    BandStructureElectronic,
 )
 
 
@@ -82,10 +83,10 @@ class ResultsNormalizer(Normalizer):
 
         # Create the section and populate the subsections
         results = Results()
+        self.entry_archive.results = results
         results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
         results.method = self.method(encyclopedia)
         results.properties = self.properties(repr_sys, symmetry, encyclopedia)
-        self.entry_archive.results = results
 
     def material(
             self,
@@ -309,17 +310,83 @@ class ResultsNormalizer(Normalizer):
 
         return method
 
-    def dos_electronic(self) -> Union[section_dos, None]:
-        """Returns a reference to the section containing an electronic dos.
+    def band_structure_electronic(self) -> Union[BandStructureElectronic, None]:
+        """Returns a new section containing an electronic band structure. In
+        the case of multiple valid band structures, only the latest one is
+        considered.
+
+       Band structure is reported only under the following conditions:
+          - There is a non-empty array of dos_values.
+          - There is a non-empty array of dos_energies.
+          - The reported band_structure_kind is not "vibrational".
+        """
+        try:
+            # Try to find the first valid band structure
+            def get_valid_band():
+                for scc in reversed(self.section_run.section_single_configuration_calculation):
+                    bands = scc.section_k_band
+                    for band in reversed(bands):
+                        kind = band.band_structure_kind
+                        if kind != "vibrational":
+                            valid = True
+                            if not band.section_k_band_segment:
+                                valid = False
+                                break
+                            for segment in band.section_k_band_segment:
+                                energies = segment.band_energies
+                                k_points = segment.band_k_points
+                                if energies is None or k_points is None:
+                                    valid = False
+                                    break
+                            if valid:
+                                return band, scc
+                return [None, None]
+            repr_band, repr_scc = get_valid_band()
+
+            # Fill band structure data to the newer, improved data layout
+            if repr_band is not None:
+                bs = BandStructureElectronic()
+                bs.reciprocal_cell = repr_band
+                bs.segments = repr_band.section_k_band_segment
+                bs.spin_polarized = bs.segments[0].band_energies.shape[0] > 1
+                bs.energy_fermi = repr_scc.energy_reference_fermi
+                if repr_band.section_band_gap:
+                    energy_highest_occupied = []
+                    energy_lowest_unoccupied = []
+                    band_gap = []
+                    band_gap_type = []
+                    for gap in repr_band.section_band_gap:
+                        band_gap.append(gap.value)
+                        band_gap_type.append("no_gap" if gap.type is None else gap.type)
+                        energy_highest_occupied.append(gap.valence_band_max_energy)
+                        energy_lowest_unoccupied.append(gap.conduction_band_min_energy)
+                    bs.band_gap = band_gap
+                    bs.band_gap_type = band_gap_type
+                    if repr_scc.energy_reference_highest_occupied is not None:
+                        bs.energy_highest_occupied = repr_scc.energy_reference_highest_occupied
+                    else:
+                        bs.energy_highest_occupied = energy_highest_occupied
+                    if repr_scc.energy_reference_lowest_unoccupied is not None:
+                        bs.energy_lowest_unoccupied = repr_scc.energy_reference_lowest_unoccupied
+                    else:
+                        bs.energy_lowest_unoccupied = energy_lowest_unoccupied
+                return bs
+        except Exception:
+            raise
+
+        return None
+
+    def dos_electronic(self) -> Union[Dos, None]:
+        """Returns a reference to the section containing an electronic dos. In
+        the case of multiple valid DOSes, only the latest one is reported.
 
        DOS is reported only under the following conditions:
           - There is a non-empty array of dos_values.
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is not "vibrational".
         """
-        representative_dos = None
         try:
-            for scc in self.section_run.section_single_configuration_calculation:
+            for scc in reversed(self.section_run.section_single_configuration_calculation):
                 doses = scc.section_dos
                 if doses:
                     for dos in reversed(doses):
@@ -332,11 +399,11 @@ class ResultsNormalizer(Normalizer):
                            len(energies) > 0 and \
                            len(values) > 0:
                             representative_dos = dos
-                            break
+                            return representative_dos
         except Exception:
             pass
 
-        return representative_dos
+        return None
 
     def properties(
             self,
@@ -356,7 +423,12 @@ class ResultsNormalizer(Normalizer):
         struct_conv = self.structure_conventional(symmetry)
         if struct_conv:
             properties.structure_conventional = struct_conv
-        properties.dos_electronic = self.dos_electronic()
+        bs = self.band_structure_electronic()
+        if bs:
+            properties.band_structure_electronic = bs
+        dos = self.dos_electronic()
+        if dos:
+            properties.dos_electronic = dos
 
         return properties
 

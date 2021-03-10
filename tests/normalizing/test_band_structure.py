@@ -62,7 +62,7 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     assert len(bs.section_band_gap) == 1
     gap = bs.section_band_gap[0]
     gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_ev == pytest.approx(0.62, 0.01)
+    assert gap_ev == pytest.approx(1, 0.001)
     assert gap.type == "indirect"
 
     # TODO: AL I cannot find a polarized example with band gap! Previous parser got the band gap wrong.
@@ -139,7 +139,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
 def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
     """Tests for lattice that do not follow the Setyawan/Curtarolo standard.
     """
-    # The ordering of the lattice does not follow the standard: a, b <= c. Not labels defined.
+    # The ordering of the lattice does not follow the standard: a, b <= c. No labels defined.
     bs = band_path_mP_nonstandard.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
     for segment in bs.section_k_band_segment:
         labels = segment.band_segm_labels

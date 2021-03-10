@@ -17,12 +17,22 @@
 #
 
 import numpy as np
-from elasticsearch_dsl import Text, Keyword, Integer
+from elasticsearch_dsl import Text, Keyword, Integer, Boolean, Double
 
 from ase.data import chemical_symbols
 
 from nomad import config
-from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum, Package, Reference, SectionProxy, QuantityReference
+from nomad.metainfo import (
+    MSection,
+    Section,
+    SubSection,
+    Quantity,
+    MEnum,
+    Package,
+    Reference,
+    SectionProxy,
+    QuantityReference,
+)
 from nomad.metainfo.search_extension import Search
 
 # This is usally defined automatically when the first metainfo definition is evaluated, but
@@ -32,6 +42,9 @@ m_package = Package()
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
     Method as section_method,
+    Dos,
+    KBand,
+    KBandSegment,
     ThermodynamicalProperties,
 )
 
@@ -525,7 +538,7 @@ class DFT(MSection):
         description="""
         Whether the calculation is spin-polarized.
         """,
-        a_search=Search()
+        a_search=Search(mapping=Boolean()),
     )
     scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
     van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
@@ -587,7 +600,7 @@ class Simulation(MSection):
         description='''
         Reference to phonon calculation methodology.
         ''',
-        a_search="dos_electronic",
+        a_search="phonon",
     )
     geometry_optimization = Quantity(
         type=Reference(SectionProxy('GeometryOptimization')),
@@ -645,12 +658,12 @@ class HeatCapacityConstantVolume(MSection):
         """
     )
     # values = Quantity(
-        # type=np.dtype("float64"),
-        # shape=["*"],
-        # unit='joule / (kelvin * kilogram)',
-        # description="""
-        # Heat capacity values.
-        # """,
+    #     type=np.dtype("float64"),
+    #     shape=["*"],
+    #     unit='joule / (kelvin * kilogram)',
+    #     description="""
+    #     Heat capacity values.
+    #     """,
     # )
     temperature = Quantity(
         type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
@@ -669,17 +682,119 @@ class HelmholtzFreeEnergy(MSection):
         """
     )
     # values = Quantity(
-        # type=QuantityReference(SectionProxy('section_dos')),
-        # shape=[],
-        # description='''
-        # Reference to the values of Helmholtz free energy.
-        # ''',
+    #     type=QuantityReference(SectionProxy('section_dos')),
+    #     shape=[],
+    #     description='''
+    #     Reference to the values of Helmholtz free energy.
+    #     ''',
     # )
     temperature = Quantity(
         type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
         description='''
         Reference to the temperature values.
         ''',
+    )
+
+
+class BandStructure(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Base class for band structure information.
+        """,
+    )
+    reciprocal_cell = Quantity(
+        type=KBand.reciprocal_cell,
+        description="""
+        The reciprocal cell within which the band structure is calculated.
+        """,
+    )
+    segments = Quantity(
+        type=KBandSegment,
+        shape=["*"],
+        description="""
+        Collection of linear path segments in the reciprocal space. The
+        segments are represented as third-order tensors: one dimension for the
+        spin channels, one for the sequence of reciprocal space points for the
+        segment, and one for the sequence of eigenvalues at a given point.
+        """,
+    )
+    path_standard = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        String that identifies the possible standard used in sampling the
+        reciprocal space.
+        """,
+    )
+
+
+class BandStructurePhonon(BandStructure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        This section stores information on a vibrational band structure
+        evaluation along one-dimensional pathways in the reciprocal space.
+        """
+    )
+
+
+class BandStructureElectronic(BandStructure):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        This section stores information on a electonic band structure
+        evaluation along one-dimensional pathways in the reciprocal space.
+        """
+    )
+    spin_polarized = Quantity(
+        type=bool,
+        description="""
+        Whether the band structure is spin-polarized.
+        """,
+        a_search=Search(mapping=Boolean()),
+    )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        Fermi energy for each spin channel.
+        """,
+    )
+    energy_highest_occupied = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        The highest occupied energy for each spin channel.
+        """,
+    )
+    energy_lowest_unoccupied = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        The lowest unoccupied energy for each spin channel.
+        """,
+    )
+    band_gap = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        Band gap value for each spin channel. If no gap is found, the band gap
+        is reported as zero.
+        """,
+        a_search=Search(mapping=Double),
+    )
+    band_gap_type = Quantity(
+        type=MEnum("direct", "indirect", "no_gap"),
+        shape=["n_spin_channels"],
+        description="""
+        Band gap type for each spin channel.
+        """,
+        a_search=Search(),
     )
 
 
@@ -712,39 +827,16 @@ class Properties(MSection):
         a_search="structure_optimized"
     )
     dos_electronic = Quantity(
-        type=Reference(SectionProxy('section_dos')),
+        type=Dos,
         shape=[],
         description='''
         Reference to an electronic density of states result.
         ''',
         a_search="dos_electronic",
     )
-    band_structure_electronic = Quantity(
-        type=Reference(SectionProxy('section_dos')),
-        shape=[],
-        description='''
-        Reference to an electronic density of states result.
-        ''',
-        a_search="band_structure_electronic",
-    )
-    dos_vibrational = Quantity(
-        type=Reference(SectionProxy('section_dos')),
-        shape=[],
-        description='''
-        Reference to a vibrational density of states result.
-        ''',
-        a_search="dos_vibrational",
-    )
-    band_structure_vibrational = Quantity(
-        type=Reference(SectionProxy('section_dos')),
-        shape=[],
-        description='''
-        Reference to a vibrational density of states result.
-        ''',
-        a_search="band_structure_vibrational",
-    )
-    heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
-    helmholtz_free_energy = SubSection(sub_section=HelmholtzFreeEnergy.m_def, repeats=False, a_search="helmholtz_free_energy")
+    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False, a_search="band_structure_electronic")
+    # heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
+    # helmholtz_free_energy = SubSection(sub_section=HelmholtzFreeEnergy.m_def, repeats=False, a_search="helmholtz_free_energy")
 
 
 class Results(MSection):
@@ -756,3 +848,5 @@ class Results(MSection):
         """
     )
     material = SubSection(sub_section=Material.m_def, repeats=False, a_search="material")
+    method = SubSection(sub_section=Method.m_def, repeats=False, a_search="method")
+    properties = SubSection(sub_section=Properties.m_def, repeats=False, a_search="properties")
