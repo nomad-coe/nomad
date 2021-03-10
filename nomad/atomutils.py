@@ -66,7 +66,7 @@ def wrap_positions(
         cell: NDArray[Any] = None,
         pbc: Union[bool, NDArray[Any]] = True,
         center: NDArray[Any] = [0.5, 0.5, 0.5],
-        eps: float = 1e-7) -> NDArray[Any]:
+        eps: float = 1e-12) -> NDArray[Any]:
     """Wraps the given position so that they are within the unit cell. If no
     cell is given, scaled positions are assumed. For wrapping cartesian
     positions you also need to provide the cell.
@@ -94,13 +94,14 @@ def wrap_positions(
     if cell is None:
         fractional = positions
     else:
-        fractional = to_scaled(positions) - shift
+        fractional = to_scaled(positions, cell)
+    fractional -= shift
 
     for i, periodic in enumerate(pbc):
         if periodic:
             fractional[:, i] %= 1.0
-            fractional[:, i] += shift[i]
-    if cell:
+        fractional[:, i] += shift[i]
+    if cell is not None:
         return np.dot(fractional, cell)
     else:
         return fractional

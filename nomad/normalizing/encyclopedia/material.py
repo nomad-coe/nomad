@@ -389,7 +389,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
-        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+        try:
+            wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+        except Exception:
+            self.logger.error('Error resolving Wyckoff sets.')
+            wyckoff_sets = []
         names, counts = atomutils.get_hill_decomposition(prim_atoms.get_chemical_symbols(), reduced=False)
         greatest_common_divisor = reduce(gcd, counts)
         context.greatest_common_divisor = greatest_common_divisor
@@ -509,7 +513,12 @@ class Material2DNormalizer(MaterialNormalizer):
         sec_enc = self.entry_archive.section_metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
-        symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        try:
+            symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
+        except Exception:
+            self.logger.error('Error setting up symmetry analyzer.')
+            return
+
         spg_number = symmetry_analyzer.get_space_group_number()
         wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
         std_atoms = symmetry_analyzer.get_conventional_system()
@@ -560,6 +569,8 @@ class Material1DNormalizer(MaterialNormalizer):
     def lattice_parameters(self, ideal: IdealizedStructure, std_atoms: Atoms, periodicity: NDArray) -> None:
         # 1D systems only have one lattice parameter: length in periodic dimension
         periodic_indices = np.where(np.array(periodicity) == True)[0]  # noqa: E712
+        if len(periodic_indices) == 0:
+            return
         cell = std_atoms.get_cell()
         a = np.linalg.norm(cell[periodic_indices[0], :]) * 1e-10
         params = ideal.m_create(LatticeParameters)
@@ -575,7 +586,7 @@ class Material1DNormalizer(MaterialNormalizer):
         # If one axis is not periodic, return. This only happens if the vacuum
         # gap is not aligned with a cell vector.
         if sum(periodicity) != 1:
-            raise ValueError("Could not detect the periodic dimensions in a 1D system.")
+            self.logger.error("Could not detect the periodic dimensions in a 1D system.")
 
         ideal.periodicity = periodicity
 

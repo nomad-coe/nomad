@@ -93,22 +93,34 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         system = None
         scc = None
 
+        # Try to find workflow information and select the representative system
+        # based on it
+        workflow = self.entry_archive.section_workflow
+        if workflow:
+            try:
+                iscc = workflow.calculation_result_ref
+                system = scc.single_configuration_calculation_to_system_ref
+                if system is not None:
+                    scc = iscc
+            except Exception:
+                pass
         # Try to find a frame sequence, only first found is considered
-        try:
-            frame_seqs = self.section_run.section_frame_sequence
-            frame_seq = frame_seqs[0]
-            sec_sampling_method = frame_seq.frame_sequence_to_sampling_ref
-            sampling_method = sec_sampling_method.sampling_method
-            frames = frame_seq.frame_sequence_local_frames_ref
-            if sampling_method == "molecular_dynamics":
-                iscc = frames[0]
-            else:
-                iscc = frames[-1]
-            system = iscc.single_configuration_calculation_to_system_ref
-            if system is not None:
-                scc = iscc
-        except Exception:
-            pass
+        else:
+            try:
+                frame_seqs = self.section_run.section_frame_sequence
+                frame_seq = frame_seqs[0]
+                sec_sampling_method = frame_seq.frame_sequence_to_sampling_ref
+                sampling_method = sec_sampling_method.sampling_method
+                frames = frame_seq.frame_sequence_local_frames_ref
+                if sampling_method == "molecular_dynamics":
+                    iscc = frames[0]
+                else:
+                    iscc = frames[-1]
+                system = iscc.single_configuration_calculation_to_system_ref
+                if system is not None:
+                    scc = iscc
+            except Exception:
+                pass
 
         # If no frame sequences detected, try to find valid scc by looping all
         # available in reverse order until a valid one is found.

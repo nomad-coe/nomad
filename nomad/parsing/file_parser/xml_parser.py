@@ -17,6 +17,7 @@ import os
 import re
 import numpy as np
 from xml.etree import ElementTree
+from lxml import etree
 
 from nomad.parsing.file_parser import FileParser
 
@@ -49,7 +50,17 @@ class XMLParser(FileParser):
         if self._file_handler is None:
             if self.mainfile is None:
                 return
-            self._file_handler = ElementTree.parse(self.mainfile).getroot()
+            try:
+                self._file_handler = ElementTree.parse(self.open(self.mainfile)).getroot()
+            except Exception:
+                self.logger.error('failed to load xml file')
+                try:
+                    # I cannot use the lxml XMLParser directly because it is not compatible with
+                    # the ElementTree implementation.
+                    xml = etree.parse(self.open(self.mainfile), parser=etree.XMLParser(recover=True))
+                    self._file_handler = ElementTree.fromstring(etree.tostring(xml))
+                except Exception:
+                    pass
             self.init_parameters()
 
         return self._file_handler
@@ -69,12 +80,13 @@ class XMLParser(FileParser):
         Parse a quantity identified by key or an xpath-style path. Automatic conversion
         can be switch off by setting convert to False.
         '''
-        _convert = convert if convert is not None else self.convert
+        _convert = convert if convert is not None else self._kwargs.get('convert', None)
+        _convert = _convert if _convert is not None else self.convert
         if self._results is None:
             self._results = dict()
 
         if not self.root:
-            return
+            return self
 
         key_in = key
         key = key.lstrip('/')
@@ -100,7 +112,7 @@ class XMLParser(FileParser):
                 val.append(element.attrib)
 
         if not val:
-            return
+            return self
 
         def convert_value(val_in):
             if isinstance(val_in, dict):
@@ -146,3 +158,4 @@ class XMLParser(FileParser):
         val = val[0] if len(val) == 1 else val
 
         self._results[key_in] = val
+        return self
