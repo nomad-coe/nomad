@@ -173,9 +173,9 @@ def get_template_band_structure_electronic(band_gaps: List, normalize: bool = Tr
     if len(lowest) > 0:
         scc.energy_reference_lowest_unoccupied = lowest
     n_segments = 2
-    space = np.linspace(0, 2 * np.pi, 200)
+    full_space = np.linspace(0, 2 * np.pi, 200)
     k, m = divmod(len(space), n_segments)
-    space = list((space[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n_segments)))
+    space = list((full_space[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n_segments)))
     for i_seg in range(n_segments):
         krange = space[i_seg]
         n_points = len(krange)
