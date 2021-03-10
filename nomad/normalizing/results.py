@@ -28,7 +28,6 @@ from nomad.datamodel.optimade import OptimadeEntry, Species
 from nomad.datamodel.metainfo.common_dft import (
     section_symmetry,
     section_system,
-    Dos,
 )
 from nomad.datamodel.results import (
     Results,
@@ -47,6 +46,9 @@ from nomad.datamodel.results import (
     GW,
     xc_treatments,
     BandStructureElectronic,
+    BandStructurePhonon,
+    DOSElectronic,
+    DOSPhonon,
 )
 
 
@@ -316,8 +318,8 @@ class ResultsNormalizer(Normalizer):
         considered.
 
        Band structure is reported only under the following conditions:
-          - There is a non-empty array of dos_values.
-          - There is a non-empty array of dos_energies.
+          - There is a non-empty array of band_k_points.
+          - There is a non-empty array of band_energies.
           - The reported band_structure_kind is not "vibrational".
         """
         try:
@@ -372,36 +374,133 @@ class ResultsNormalizer(Normalizer):
                         bs.energy_lowest_unoccupied = energy_lowest_unoccupied
                 return bs
         except Exception:
-            raise
+            pass
 
         return None
 
-    def dos_electronic(self) -> Union[Dos, None]:
+    def dos_electronic(self) -> Union[DOSElectronic, None]:
         """Returns a reference to the section containing an electronic dos. In
         the case of multiple valid DOSes, only the latest one is reported.
 
        DOS is reported only under the following conditions:
-          - There is a non-empty array of dos_values.
+          - There is a non-empty array of dos_values_normalized.
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is not "vibrational".
         """
         try:
-            for scc in reversed(self.section_run.section_single_configuration_calculation):
-                doses = scc.section_dos
-                if doses:
-                    for dos in reversed(doses):
-                        kind = dos.dos_kind
-                        energies = dos.dos_energies
-                        values = dos.dos_values
-                        if kind != "vibrational" and \
-                           energies is not None and \
-                           values is not None and \
-                           len(energies) > 0 and \
-                           len(values) > 0:
-                            representative_dos = dos
-                            return representative_dos
+            # Try to find the first valid DOS
+            def get_valid_dos():
+                for scc in reversed(self.section_run.section_single_configuration_calculation):
+                    doses = scc.section_dos
+                    if doses:
+                        for dos in reversed(doses):
+                            kind = dos.dos_kind
+                            energies = dos.dos_energies
+                            values = dos.dos_values_normalized
+                            if kind != "vibrational" and \
+                               energies is not None and \
+                               values is not None and \
+                               len(energies) > 0 and \
+                               len(values) > 0:
+                                return dos, scc
+                return [None, None]
+            repr_dos, repr_scc = get_valid_dos()
+
+            # Fill dos data to the newer, improved data layout
+            if repr_dos is not None:
+                dos = DOSElectronic()
+                dos.energies = repr_dos
+                dos.densities = repr_dos
+                dos.spin_polarized = dos.densities.shape[0] > 1
+                dos.energy_fermi = repr_scc.energy_reference_fermi
+                dos.energy_highest_occupied = repr_scc.energy_reference_highest_occupied
+                dos.energy_lowest_unoccupied = repr_scc.energy_reference_lowest_unoccupied
+                return dos
+
         except Exception:
-            pass
+            raise
+
+        return None
+
+    def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
+        """Returns a new section containing a phonon band structure. In
+        the case of multiple valid band structures, only the latest one is
+        considered.
+
+       Band structure is reported only under the following conditions:
+          - There is a non-empty array of band_k_points.
+          - There is a non-empty array of band_energies.
+          - The reported band_structure_kind is "vibrational".
+        """
+        try:
+            # Try to find the first valid band structure
+            def get_valid_band():
+                for scc in reversed(self.section_run.section_single_configuration_calculation):
+                    bands = scc.section_k_band
+                    for band in reversed(bands):
+                        kind = band.band_structure_kind
+                        if kind == "vibrational":
+                            valid = True
+                            if not band.section_k_band_segment:
+                                valid = False
+                                break
+                            for segment in band.section_k_band_segment:
+                                energies = segment.band_energies
+                                k_points = segment.band_k_points
+                                if energies is None or k_points is None:
+                                    valid = False
+                                    break
+                            if valid:
+                                return band
+            repr_band = get_valid_band()
+
+            # Fill band structure data to the newer, improved data layout
+            if repr_band is not None:
+                bs = BandStructurePhonon()
+                bs.segments = repr_band.section_k_band_segment
+                return bs
+
+        except Exception:
+            raise
+
+        return None
+
+    def dos_phonon(self) -> Union[DOSPhonon, None]:
+        """Returns a reference to the section containing a phonon dos. In
+        the case of multiple valid DOSes, only the latest one is reported.
+
+       DOS is reported only under the following conditions:
+          - There is a non-empty array of dos_values_normalized.
+          - There is a non-empty array of dos_energies.
+          - The reported dos_kind is "vibrational".
+        """
+        try:
+            # Try to find the first valid DOS
+            def get_valid_dos():
+                for scc in reversed(self.section_run.section_single_configuration_calculation):
+                    doses = scc.section_dos
+                    if doses:
+                        for dos in reversed(doses):
+                            kind = dos.dos_kind
+                            energies = dos.dos_energies
+                            values = dos.dos_values_normalized
+                            if kind == "vibrational" and \
+                               energies is not None and \
+                               values is not None and \
+                               len(energies) > 0 and \
+                               len(values) > 0:
+                                return dos
+            repr_dos = get_valid_dos()
+
+            # Fill dos data to the newer, improved data layout
+            if repr_dos is not None:
+                dos = DOSPhonon()
+                dos.energies = repr_dos
+                dos.densities = repr_dos
+                return dos
+
+        except Exception:
+            raise
 
         return None
 
@@ -423,12 +522,18 @@ class ResultsNormalizer(Normalizer):
         struct_conv = self.structure_conventional(symmetry)
         if struct_conv:
             properties.structure_conventional = struct_conv
-        bs = self.band_structure_electronic()
-        if bs:
-            properties.band_structure_electronic = bs
-        dos = self.dos_electronic()
-        if dos:
-            properties.dos_electronic = dos
+        bs_electronic = self.band_structure_electronic()
+        if bs_electronic:
+            properties.band_structure_electronic = bs_electronic
+        dos_electronic = self.dos_electronic()
+        if dos_electronic:
+            properties.dos_electronic = dos_electronic
+        bs_phonon = self.band_structure_phonon()
+        if bs_phonon:
+            properties.band_structure_phonon = bs_phonon
+        dos_phonon = self.dos_phonon()
+        if dos_phonon:
+            properties.dos_phonon = dos_phonon
 
         return properties
 

@@ -124,25 +124,62 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     return run_normalize(template)
 
 
-def get_template_dos_electronic(normalize: bool = True) -> EntryArchive:
+def get_template_dos(
+        spin_polarized: bool = False,
+        type: str = "electronic",
+        has_references: bool = True,
+        normalize: bool = True) -> EntryArchive:
     """Used to create a test data for DOS.
 
     Args:
+        spin_polarized: Whether the DOS is spin-polarized or not.
+        type: "electronic" or "vibrational"
+        has_references: Whether the DOS has energy references or not.
         normalize: Whether the returned value is already normalized or not.
     """
+    if spin_polarized and type != "electronic":
+        raise ValueError("Cannot create spin polarized DOS for non-electronic data.")
     template = get_template()
     scc = template.section_run[0].section_single_configuration_calculation[0]
+    idx_valence = 20
+    idx_conduction = 150
+    n_values = 200
     dos = scc.m_create(Dos)
-    n_values = 100
-    dos.dos_energies = np.linspace(-5, 20, n_values)
-    dos.dos_values = np.zeros((1, n_values))
+    dos.dos_kind = type
+    energies = np.linspace(-5, 20, n_values)
+    if spin_polarized:
+        dos.dos_values = np.zeros((2, n_values))
+    else:
+        dos.dos_values = np.zeros((1, n_values))
+    dos.dos_values[:, 0:idx_valence] = 1
+    dos.dos_values[:, idx_conduction:] = 1
+    dos.dos_energies = energies
+
+    if has_references:
+        n_spin_channels = 2 if spin_polarized else 1
+        scc.energy_reference_highest_occupied = [energies[idx_valence]] * n_spin_channels
+        scc.energy_reference_lowest_unoccupied = [energies[idx_conduction]] * n_spin_channels
+        scc.energy_reference_fermi = [energies[idx_valence + 1]] * n_spin_channels
+
+    # import matplotlib.pyplot as mpl
+    # if spin_polarized:
+        # mpl.plot(dos.dos_energies, dos.dos_values[0, :])
+        # mpl.plot(dos.dos_energies, dos.dos_values[1, :])
+    # else:
+        # mpl.plot(dos.dos_energies, dos.dos_values[0, :])
+    # mpl.show()
+    # raise
 
     if normalize:
         template = run_normalize(template)
     return template
 
 
-def get_template_band_structure_electronic(band_gaps: List, normalize: bool = True) -> EntryArchive:
+def get_template_band_structure(
+        band_gaps: List = None,
+        type: str = "electronic",
+        has_references: bool = True,
+        normalize: bool = True) -> EntryArchive:
     """Used to create a test data for band structures.
 
     Args:
@@ -150,28 +187,37 @@ def get_template_band_structure_electronic(band_gaps: List, normalize: bool = Tr
             tuple, e.g. [(1, "direct"), (0.5, "indirect)]. Band gap values are
             in eV. Use a list of Nones if you don't want a gap for a specific
             channel.
+        type: "electronic" or "vibrational"
+        has_references: Whether the band structure has energy references or not.
         normalize: Whether the returned value is already normalized or not.
     """
+    if band_gaps is None:
+        band_gaps = [None]
     template = get_template()
     scc = template.section_run[0].section_single_configuration_calculation[0]
     bs = scc.m_create(KBand)
-    n_spin_channels = len(band_gaps)
-    fermi: List[float] = []
-    highest: List[float] = []
-    lowest: List[float] = []
-    for gap in band_gaps:
-        if gap is None:
-            highest.append(0)
-            lowest.append(0)
-            fermi.append(0)
-        else:
-            fermi.append(1 * 1.60218e-19)
+    bs.band_structure_kind = type
+    if type == "electronic":
+        n_spin_channels = len(band_gaps)
+        fermi: List[float] = []
+        highest: List[float] = []
+        lowest: List[float] = []
+        for gap in band_gaps:
+            if gap is None:
+                highest.append(0)
+                lowest.append(0)
+                fermi.append(0)
+            else:
+                fermi.append(1 * 1.60218e-19)
 
-    scc.energy_reference_fermi = fermi
-    if len(highest) > 0:
-        scc.energy_reference_highest_occupied = highest
-    if len(lowest) > 0:
-        scc.energy_reference_lowest_unoccupied = lowest
+        if has_references:
+            scc.energy_reference_fermi = fermi
+            if len(highest) > 0:
+                scc.energy_reference_highest_occupied = highest
+            if len(lowest) > 0:
+                scc.energy_reference_lowest_unoccupied = lowest
+    else:
+        n_spin_channels = 1
     n_segments = 2
     full_space = np.linspace(0, 2 * np.pi, 200)
     k, m = divmod(len(full_space), n_segments)
@@ -183,20 +229,24 @@ def get_template_band_structure_electronic(band_gaps: List, normalize: bool = Tr
         energies = np.zeros((n_spin_channels, n_points, 2))
         k_points = np.zeros((n_points, 3))
         k_points[:, 0] = np.linspace(0, 1, n_points)
-        for i_spin in range(n_spin_channels):
-            if band_gaps[i_spin] is not None:
-                if band_gaps[i_spin][1] == "direct":
+        if type == "electronic":
+            for i_spin in range(n_spin_channels):
+                if band_gaps[i_spin] is not None:
+                    if band_gaps[i_spin][1] == "direct":
+                        energies[i_spin, :, 0] = -np.cos(krange)
+                        energies[i_spin, :, 1] = np.cos(krange)
+                    elif band_gaps[i_spin][1] == "indirect":
+                        energies[i_spin, :, 0] = -np.cos(krange)
+                        energies[i_spin, :, 1] = np.sin(krange)
+                    else:
+                        raise ValueError("Invalid band gap type")
+                    energies[i_spin, :, 1] += 2 + band_gaps[i_spin][0]
+                else:
                     energies[i_spin, :, 0] = -np.cos(krange)
                     energies[i_spin, :, 1] = np.cos(krange)
-                elif band_gaps[i_spin][1] == "indirect":
-                    energies[i_spin, :, 0] = -np.cos(krange)
-                    energies[i_spin, :, 1] = np.sin(krange)
-                else:
-                    raise ValueError("Invalid band gap type")
-                energies[i_spin, :, 1] += 2 + band_gaps[i_spin][0]
-            else:
-                energies[i_spin, :, 0] = -np.cos(krange)
-                energies[i_spin, :, 1] = np.cos(krange)
+        else:
+            energies[0, :, 0] = -np.cos(krange)
+            energies[0, :, 1] = np.cos(krange)
         seg.band_energies = energies * 1.60218e-19
         seg.band_k_points = k_points
 
@@ -399,28 +449,28 @@ def elastic() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dos_electronic() -> EntryArchive:
-    template = get_template_dos_electronic()
+    template = get_template_dos()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def bands_unpolarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure_electronic([(1, "indirect")])
+    return get_template_band_structure([(1, "indirect")])
 
 
 @pytest.fixture(scope='session')
 def bands_polarized_no_gap() -> EntryArchive:
-    return get_template_band_structure_electronic([None, None])
+    return get_template_band_structure([None, None])
 
 
 @pytest.fixture(scope='session')
 def bands_unpolarized_no_gap() -> EntryArchive:
-    return get_template_band_structure_electronic([None])
+    return get_template_band_structure([None])
 
 
 @pytest.fixture(scope='session')
 def bands_polarized_gap_indirect() -> EntryArchive:
-    return get_template_band_structure_electronic([(1, "indirect"), (0.8, "indirect")])
+    return get_template_band_structure([(1, "indirect"), (0.8, "indirect")])
 
 
 @pytest.fixture(scope='session')
@@ -481,7 +531,7 @@ def band_path_cF() -> EntryArchive:
     """Band structure calculation for a cP Bravais lattice.
     """
     parser_name = "parsers/vasp"
-    filepath = "tests/data/normalizers/band_structure/unpolarized_gap/vasprun.xml.bands.xz"
+    filepath = "tests/data/normalizers/band_structure/cF/vasprun.xml.bands.xz"
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 

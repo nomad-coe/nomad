@@ -52,25 +52,28 @@ class DosNormalizer(Normalizer):
                 dos_energies = dos.dos_energies
                 energy_reference_fermi = scc.energy_reference_fermi
                 energy_reference_highest_occupied = scc.energy_reference_highest_occupied
-                if dos_energies is None or dos_values is None or (energy_reference_fermi is None and energy_reference_highest_occupied is None):
-                    continue
 
                 # Normalize DOS values to be 1/J/atom/m^3
-                system = scc.single_configuration_calculation_to_system_ref
-                if system is None:
-                    self.logger.error('referenced system for dos calculation could not be found')
+                if dos_values is not None:
+                    system = scc.single_configuration_calculation_to_system_ref
+                    if system is None:
+                        self.logger.error('referenced system for dos calculation could not be found')
+                        continue
+                    atom_positions = system.atom_positions
+                    lattice_vectors = system.lattice_vectors
+                    if atom_positions is None:
+                        self.logger.error('required quantity atom_positions is not available')
+                        return
+                    if lattice_vectors is None:
+                        self.logger.error('required quantity lattice_vectors is not available')
+                        return
+                    number_of_atoms = np.shape(atom_positions)[0]
+                    unit_cell_volume = get_volume(lattice_vectors.magnitude)
+                    dos_values_normalized = dos_values / (number_of_atoms * unit_cell_volume)
+                    dos.dos_values_normalized = dos_values_normalized
+
+                if dos_energies is None or dos_values is None or (energy_reference_fermi is None and energy_reference_highest_occupied is None):
                     continue
-                atom_positions = system.atom_positions
-                lattice_vectors = system.lattice_vectors
-                if atom_positions is None:
-                    self.logger.error('required quantity atom_positions is not available')
-                    return
-                if lattice_vectors is None:
-                    self.logger.error('required quantity lattice_vectors is not available')
-                    return
-                number_of_atoms = np.shape(atom_positions)[0]
-                unit_cell_volume = get_volume(lattice_vectors.magnitude)
-                dos_values_normalized = dos_values / (number_of_atoms * unit_cell_volume)
 
                 # Normalize energies so that they are normalized to HOMO.
                 dos_energies_normalized = None
@@ -134,9 +137,6 @@ class DosNormalizer(Normalizer):
                                     energy_reference = dos_energies[idx]
                                     break
                                 idx += 1
-
-                # Add quantities to NOMAD's Metainfo
-                dos.dos_values_normalized = dos_values_normalized
 
                 # Data for DOS fingerprint
                 if energy_reference is not None:

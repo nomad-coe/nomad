@@ -22,23 +22,17 @@ from elasticsearch_dsl import Text, Keyword, Integer, Boolean, Double
 from ase.data import chemical_symbols
 
 from nomad import config
+from nomad.metainfo.search_extension import Search
 from nomad.metainfo import (
     MSection,
     Section,
     SubSection,
     Quantity,
     MEnum,
-    Package,
     Reference,
     SectionProxy,
     QuantityReference,
 )
-from nomad.metainfo.search_extension import Search
-
-# This is usally defined automatically when the first metainfo definition is evaluated, but
-# due to the next imports requireing the m_package already, this would be too late.
-m_package = Package()
-
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
     Method as section_method,
@@ -696,6 +690,79 @@ class HelmholtzFreeEnergy(MSection):
     )
 
 
+class DOS(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Base class for density of states information.
+        """,
+    )
+    energies = Quantity(
+        type=Dos.dos_energies,
+        description="""
+        Array containing the set of discrete energy values for the density of
+        states (DOS).
+        """,
+    )
+    densities = Quantity(
+        type=Dos.dos_values_normalized,
+        description="""
+        Density of states (DOS) values normalized with unit cell volume and
+        number of atoms.
+        """,
+    )
+
+
+class DOSPhonon(DOS):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the total phonon density of states.
+        """,
+    )
+
+
+class DOSElectronic(DOS):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the total electronic density of states.
+        """,
+    )
+    spin_polarized = Quantity(
+        type=bool,
+        description="""
+        Whether the DOS is spin-polarized, i.e. is contains channels for both
+        spin values.
+        """,
+        a_search=Search(mapping=Boolean()),
+    )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        Fermi energy for each spin channel.
+        """,
+    )
+    energy_highest_occupied = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        The highest occupied energy for each spin channel.
+        """,
+    )
+    energy_lowest_unoccupied = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["n_spin_channels"],
+        description="""
+        The lowest unoccupied energy for each spin channel.
+        """,
+    )
+
+
 class BandStructure(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -750,7 +817,8 @@ class BandStructureElectronic(BandStructure):
     spin_polarized = Quantity(
         type=bool,
         description="""
-        Whether the band structure is spin-polarized.
+        Whether the band structure is spin-polarized, i.e. is contains channels
+        for both spin values.
         """,
         a_search=Search(mapping=Boolean()),
     )
@@ -826,15 +894,10 @@ class Properties(MSection):
         repeats=False,
         a_search="structure_optimized"
     )
-    dos_electronic = Quantity(
-        type=Dos,
-        shape=[],
-        description='''
-        Reference to an electronic density of states result.
-        ''',
-        a_search="dos_electronic",
-    )
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False, a_search="band_structure_electronic")
+    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False, a_search="dos_electronic")
+    band_structure_phonon = SubSection(sub_section=BandStructurePhonon.m_def, repeats=False, a_search="band_structure_phonon")
+    dos_phonon = SubSection(sub_section=DOSPhonon.m_def, repeats=False, a_search="dos_phonon")
     # heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
     # helmholtz_free_energy = SubSection(sub_section=HelmholtzFreeEnergy.m_def, repeats=False, a_search="helmholtz_free_energy")
 

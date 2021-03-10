@@ -23,8 +23,8 @@ import pytest
 from nomad.units import ureg
 
 from .conftest import (
-    get_template_dos_electronic,
-    get_template_band_structure_electronic,
+    get_template_dos,
+    get_template_band_structure,
     run_normalize
 )
 
@@ -202,30 +202,41 @@ def test_method_gw(gw):
 
 
 def test_dos_electronic():
-    # DOS with all correct metainfo
-    archive = get_template_dos_electronic(normalize=False)
-    archive = run_normalize(archive)
+    # DOS without energy references
+    archive = get_template_dos(has_references=False)
     dos = archive.results.properties.dos_electronic
-    assert dos.dos_values.shape == (1, 100)
-    assert dos.dos_energies.shape == (100, )
-    assert dos.dos_kind != "vibrational"
+    assert dos.spin_polarized is False
+    assert dos.densities.shape == (1, 200)
+    assert dos.energies.shape == (200, )
+
+    # Unpolarized DOS
+    archive = get_template_dos(spin_polarized=False)
+    dos = archive.results.properties.dos_electronic
+    assert dos.spin_polarized is False
+    assert dos.densities.shape == (1, 200)
+    assert dos.energies.shape == (200, )
+
+    # Polarized DOS
+    archive = get_template_dos(spin_polarized=True)
+    dos = archive.results.properties.dos_electronic
+    assert dos.spin_polarized is True
+    assert dos.densities.shape == (2, 200)
+    assert dos.energies.shape == (200, )
 
     # Vibrational instead of electronic
-    archive = get_template_dos_electronic(normalize=False)
-    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_kind = "vibrational"
-    archive = run_normalize(archive)
+    archive = get_template_dos(type="vibrational")
     dos = archive.results.properties.dos_electronic
     assert dos is None
 
     # Empty values
-    archive = get_template_dos_electronic(normalize=False)
+    archive = get_template_dos(normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_values = []
     archive = run_normalize(archive)
     dos = archive.results.properties.dos_electronic
     assert dos is None
 
     # Empty energies
-    archive = get_template_dos_electronic(normalize=False)
+    archive = get_template_dos(normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_energies = []
     archive = run_normalize(archive)
     dos = archive.results.properties.dos_electronic
@@ -233,9 +244,22 @@ def test_dos_electronic():
 
 
 def test_band_structure_electronic():
-    # Unpolarized band structure with no gap
-    archive = get_template_band_structure_electronic([None])
+    # Band structure without energy reference
+    archive = get_template_band_structure([(1, "direct")], has_references=False)
     bs = archive.results.properties.band_structure_electronic
+    assert bs.reciprocal_cell.shape == (3, 3)
+    assert bs.band_gap is None
+    assert bs.band_gap_type is None
+    assert bs.spin_polarized is False
+    assert bs.energy_highest_occupied is None
+    assert bs.energy_lowest_unoccupied is None
+    assert bs.segments[0].band_energies.shape == (1, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+    # Unpolarized band structure with no gap
+    archive = get_template_band_structure([None])
+    bs = archive.results.properties.band_structure_electronic
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [0]
     assert bs.band_gap_type == ["no_gap"]
     assert bs.spin_polarized is False
@@ -245,8 +269,9 @@ def test_band_structure_electronic():
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Polarized band structure with no gap
-    archive = get_template_band_structure_electronic([None, None])
+    archive = get_template_band_structure([None, None])
     bs = archive.results.properties.band_structure_electronic
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, [0, 0])
     assert bs.band_gap_type == ["no_gap", "no_gap"]
     assert bs.spin_polarized is True
@@ -258,8 +283,9 @@ def test_band_structure_electronic():
     # Unpolarized band structure with direct gap
     gap = 1  # eV
     gap_type = "direct"
-    archive = get_template_band_structure_electronic([(gap, gap_type)])
+    archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.band_structure_electronic
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
@@ -272,8 +298,9 @@ def test_band_structure_electronic():
     # Unpolarized band structure with indirect gap
     gap = 1   # eV
     gap_type = "indirect"
-    archive = get_template_band_structure_electronic([(gap, gap_type)])
+    archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.band_structure_electronic
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
@@ -287,9 +314,10 @@ def test_band_structure_electronic():
     gap1 = 1  # eV
     gap2 = 2  # eV
     gap_type = "direct"
-    archive = get_template_band_structure_electronic([(gap1, gap_type), (gap2, gap_type)])
+    archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
     bs = archive.results.properties.band_structure_electronic
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
     assert bs.band_gap_type == [gap_type, gap_type]
     assert bs.spin_polarized is True
@@ -304,9 +332,10 @@ def test_band_structure_electronic():
     gap2 = 2  # eV
     gap1_type = "indirect"
     gap2_type = "indirect"
-    archive = get_template_band_structure_electronic([(gap1, gap1_type), (gap2, gap2_type)])
+    archive = get_template_band_structure([(gap1, gap1_type), (gap2, gap2_type)])
     bs = archive.results.properties.band_structure_electronic
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
     assert bs.band_gap_type == [gap1_type, gap2_type]
     assert bs.spin_polarized is True
@@ -314,6 +343,41 @@ def test_band_structure_electronic():
     assert bs.energy_highest_occupied.shape == (2,)
     assert bs.energy_lowest_unoccupied.shape == (2,)
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
+    assert bs.segments[0].band_k_points.shape == (100, 3)
+
+
+def test_dos_phonon():
+    # DOS with all correct metainfo
+    archive = get_template_dos(type="vibrational")
+    dos = archive.results.properties.dos_phonon
+    assert dos.densities.shape == (1, 200)
+    assert dos.energies.shape == (200, )
+
+    # Electronic instead of vibrational
+    archive = get_template_dos(type="electronic")
+    dos = archive.results.properties.dos_phonon
+    assert dos is None
+
+    # Empty values
+    archive = get_template_dos(type="vibrational", normalize=False)
+    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_values = []
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_phonon
+    assert dos is None
+
+    # Empty energies
+    archive = get_template_dos(type="vibrational", normalize=False)
+    archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_energies = []
+    archive = run_normalize(archive)
+    dos = archive.results.properties.dos_phonon
+    assert dos is None
+
+
+def test_band_structure_phonon():
+    # Valid phonon band structure
+    archive = get_template_band_structure(type="vibrational")
+    bs = archive.results.properties.band_structure_phonon
+    assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
 
