@@ -31,7 +31,6 @@ from nomad.metainfo import (
     MEnum,
     Reference,
     SectionProxy,
-    QuantityReference,
 )
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
@@ -643,53 +642,6 @@ class Method(MSection):
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False, a_search="simulation")
 
 
-class HeatCapacityConstantVolume(MSection):
-    m_def = Section(
-        a_flask=dict(skip_none=True),
-        description="""
-        Contains the values of the specific (per mass) and isochoric (constant
-        volume) heat capacity at different temperatures.
-        """
-    )
-    # values = Quantity(
-    #     type=np.dtype("float64"),
-    #     shape=["*"],
-    #     unit='joule / (kelvin * kilogram)',
-    #     description="""
-    #     Heat capacity values.
-    #     """,
-    # )
-    temperature = Quantity(
-        type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
-        description='''
-        Reference to the temperature values.
-        ''',
-    )
-
-
-class HelmholtzFreeEnergy(MSection):
-    m_def = Section(
-        a_flask=dict(skip_none=True),
-        description="""
-        Contains the values of the specific (per mass) Helmholtz free energy at
-        different temperatures.
-        """
-    )
-    # values = Quantity(
-    #     type=QuantityReference(SectionProxy('section_dos')),
-    #     shape=[],
-    #     description='''
-    #     Reference to the values of Helmholtz free energy.
-    #     ''',
-    # )
-    temperature = Quantity(
-        type=QuantityReference(ThermodynamicalProperties.thermodynamical_property_temperature),
-        description='''
-        Reference to the temperature values.
-        ''',
-    )
-
-
 class DOS(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -866,6 +818,52 @@ class BandStructureElectronic(BandStructure):
     )
 
 
+class HeatCapacityConstantVolume(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the values of the specific (per mass) and isochoric (constant
+        volume) heat capacity at different temperatures.
+        """
+    )
+    heat_capacities = Quantity(
+        type=ThermodynamicalProperties.specific_heat_capacity,
+        shape=[],
+        description='''
+        Specific heat capacity values at constant volume.
+        ''',
+    )
+    temperatures = Quantity(
+        type=ThermodynamicalProperties.thermodynamical_property_temperature,
+        description='''
+        The temperatures at which heat capacities are calculated.
+        ''',
+    )
+
+
+class EnergyFreeHelmholtz(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains the values of the Helmholtz free energy per atom at constant
+        volume and at different temperatures.
+        """
+    )
+    energies = Quantity(
+        type=ThermodynamicalProperties.vibrational_free_energy_at_constant_volume,
+        shape=[],
+        description="""
+        The Helmholtz free energies per atom at constant volume.
+        """,
+    )
+    temperatures = Quantity(
+        type=ThermodynamicalProperties.thermodynamical_property_temperature,
+        description='''
+        The temperatures at which Helmholtz free energies are calculated.
+        ''',
+    )
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -898,8 +896,8 @@ class Properties(MSection):
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False, a_search="dos_electronic")
     band_structure_phonon = SubSection(sub_section=BandStructurePhonon.m_def, repeats=False, a_search="band_structure_phonon")
     dos_phonon = SubSection(sub_section=DOSPhonon.m_def, repeats=False, a_search="dos_phonon")
-    # heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
-    # helmholtz_free_energy = SubSection(sub_section=HelmholtzFreeEnergy.m_def, repeats=False, a_search="helmholtz_free_energy")
+    heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
+    energy_free_helmholtz = SubSection(sub_section=EnergyFreeHelmholtz.m_def, repeats=False, a_search="energy_free_helmholtz")
 
 
 class Results(MSection):

@@ -381,6 +381,18 @@ def test_band_structure_phonon():
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
 
+def test_energy_free_helmholtz(phonon):
+    energy_free = phonon.results.properties.energy_free_helmholtz
+    assert energy_free.temperatures.shape == (11, )
+    assert energy_free.energies.shape == (11, )
+
+
+def test_heat_capacity_constant_volume(phonon):
+    heat_cap = phonon.results.properties.heat_capacity_constant_volume
+    assert heat_cap.temperatures.shape == (11, )
+    assert heat_cap.heat_capacities.shape == (11, )
+
+
 def pprint(root, indent=None):
     ''' Pretty prints the containment hierarchy '''
     contents = list(root.m_contents())
