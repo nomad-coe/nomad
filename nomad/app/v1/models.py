@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Optional, Union, Any, Mapping
+from typing import cast, List, Dict, Optional, Union, Any, Mapping, DefaultDict
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
 import pydantic
@@ -29,7 +29,7 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.metainfo.search_extension import metrics, search_quantities, search_sub_sections
+from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .utils import parameter_dependency_from_model, update_url_query_arguments
 
@@ -38,10 +38,10 @@ User = datamodel.User.m_def.a_pydantic.model
 
 
 calc_id = 'calc_id'
-Metric = enum.Enum('Metric', {name: name for name in metrics})  # type: ignore
+Metric = enum.Enum('Metric', entry_type.metrics.keys())  # type: ignore
 AggregateableQuantity = enum.Enum('AggregateableQuantity', {  # type: ignore
-    name: name for name in search_quantities
-    if search_quantities[name].aggregateable})
+    name: name for name in entry_type.quantities
+    if entry_type.quantities[name].aggregateable})
 
 AggregateableQuantity.__doc__ = '''
     Statistics and aggregations can only be computed for those search quantities that have
@@ -258,7 +258,7 @@ class WithQuery(BaseModel):
             in the NOMAD Metainfo. The most common quantities are: %s.
         ''' % ', '.join(reversed([
             '`%s`' % name
-            for name in search_quantities
+            for name in entry_type.quantities
             if (name.startswith('dft') or '.' not in name) and len(name) < 20
         ]))),
         example={
@@ -285,7 +285,7 @@ def _validate_query(query: Query):
             else:
                 quantity, qualifier = key, None
 
-            assert quantity in search_quantities, '%s is not a searchable quantity' % key
+            assert quantity in entry_type.quantities, '%s is not a searchable quantity' % key
             if qualifier is not None:
                 assert quantity not in query, 'a quantity can only appear once in a query'
                 assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
@@ -324,7 +324,7 @@ def query_parameters(
         name_op, value = '__'.join(fragments[:-1]), fragments[-1]
         quantity_name = name_op.split('__')[0]
 
-        if quantity_name not in search_quantities:
+        if quantity_name not in entry_type.quantities:
             raise HTTPException(422, detail=[{
                 'loc': ['query', parameter],
                 'msg': '%s is not a search quantity' % quantity_name}])
@@ -340,10 +340,10 @@ def query_parameters(
         else:
             quantity_name = key
 
-        if quantity_name not in search_quantities:
+        if quantity_name not in entry_type.quantities:
             continue
 
-        quantity = search_quantities[quantity_name]
+        quantity = entry_type.quantities[quantity_name]
         type_ = quantity.definition.type
         if type_ is Datetime:
             type_ = datetime.datetime.fromisoformat
@@ -418,8 +418,10 @@ class MetadataRequired(BaseModel):
             return None
 
         for item in value:
-            assert item in search_quantities or item in search_sub_sections or item[-1] == '*', \
+            assert item in entry_type.quantities or '*' in item, \
                 f'required fields ({item}) must be valid search quantities or contain wildcards'
+
+        # TODO resolve wildcards?
 
         if field.name == 'include' and 'calc_id' not in value:
             value.append('calc_id')
@@ -637,8 +639,8 @@ class EntryBasedPagination(Pagination):
         if order_by is None:
             return order_by
 
-        assert order_by in search_quantities, 'order_by must be a valid search quantity'
-        quantity = search_quantities[order_by]
+        assert order_by in entry_type.quantities, 'order_by must be a valid search quantity'
+        quantity = entry_type.quantities[order_by]
         assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
         return order_by
 
@@ -770,7 +772,7 @@ class Statistic(BaseModel):
     @root_validator(skip_on_failure=True)
     def fill_default_size(cls, values):  # pylint: disable=no-self-argument
         if 'size' not in values or values['size'] is None:
-            values['size'] = search_quantities[values['quantity'].value].statistic_size
+            values['size'] = entry_type.quantities[values['quantity'].value].statistic_size
 
         return values
 

@@ -120,8 +120,12 @@ fs = NomadConfig(
 elastic = NomadConfig(
     host='localhost',
     port=9200,
+    # the old v0 indices
     index_name='nomad_fairdi_calcs',
-    materials_index_name='nomad_fairdi_materials'
+    materials_index_name='nomad_fairdi_materials',
+    # the new v1 indices
+    entries_index='nomad_entries_v1',
+    materials_index='nomad_materials_v1',
 )
 
 keycloak = NomadConfig(

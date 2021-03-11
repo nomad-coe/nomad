@@ -48,8 +48,16 @@ from tests.test_files import example_file, empty_file
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
 
+# the old v0 indices
 elastic_test_calc_index = 'nomad_fairdi_calcs_test'
 elastic_test_material_index = 'nomad_fairdi_materials_test'
+# the new v1 indices
+elastic_test_entries_index = 'nomad_entries_v1_test'
+elastic_test_materials_index = 'nomad_materials_v1_test'
+
+indices = [
+    elastic_test_calc_index, elastic_test_material_index, elastic_test_entries_index,
+    elastic_test_materials_index]
 
 warnings.simplefilter("ignore")
 
@@ -194,8 +202,14 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
+    # the old v0 indices
     monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
     monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
+    # the new v1 indices
+    monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
+    monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
+
+    clear_elastic_infra()
     try:
         return infrastructure.setup_elastic()
     except Exception:
@@ -208,27 +222,21 @@ def clear_elastic_infra():
     connection = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
 
-    try:
-        connection.indices.delete(index=elastic_test_calc_index)
-    except Exception:
-        pass
-
-    try:
-        connection.indices.delete(index=elastic_test_material_index)
-    except Exception:
-        pass
+    for index in indices:
+        try:
+            connection.indices.delete(index=index)
+        except Exception as e:
+            pass
 
     return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic_infra):
     try:
-        elastic_infra.delete_by_query(
-            index=elastic_test_calc_index, body=dict(query=dict(match_all={})),
-            wait_for_completion=True, refresh=True)
-        elastic_infra.delete_by_query(
-            index=elastic_test_material_index, body=dict(query=dict(match_all={})),
-            wait_for_completion=True, refresh=True)
+        for index in indices:
+            elastic_infra.delete_by_query(
+                index=index, body=dict(query=dict(match_all={})),
+                wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests
         # are executed

@@ -131,6 +131,10 @@ def setup_elastic(create_mappings=True):
         logger.info('initialized elastic index for calculations', index_name=config.elastic.index_name)
         logger.info('initialized elastic index for materials', index_name=config.elastic.materials_index_name)
 
+        from nomad.metainfo.elasticsearch_extension import create_indices
+        create_indices()
+        logger.info('initialized v1 elastic indices')
+
     return elastic_client
 
 

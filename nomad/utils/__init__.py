@@ -441,3 +441,24 @@ class RestrictedDict(OrderedDict):
 def strip(docstring):
     ''' Removes any unnecessary whitespaces from a multiline doc string or description. '''
     return inspect.cleandoc(docstring)
+
+
+def flat(obj, prefix=None):
+    '''
+    Helper that translates nested dict objects into flattened dicts with
+    ``key.key....`` as keys.
+    '''
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if isinstance(value, dict):
+                value = flat(value)
+                for child_key, child_value in value.items():
+                    result['%s.%s' % (key, child_key)] = child_value
+
+            else:
+                result[key] = value
+
+        return result
+    else:
+        return obj

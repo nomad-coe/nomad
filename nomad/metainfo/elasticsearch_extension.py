@@ -157,7 +157,7 @@ sub-sections as if they were direct sub-sections.
 '''
 
 
-from typing import Union, Any, Dict, cast, Set, List, Callable
+from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple
 import numpy as np
 
 from nomad import config
@@ -172,12 +172,31 @@ class DocumentType():
     DocumentType allows to create Elasticsearch index mappings and documents based on
     Metainfo definitions and instances. Genrally this class should not be used outside
     the elasticsearch_extension module.
+
+    Attributes:
+        root_section_def: The section definition that serves as the root for all documents.
+        mapping: The elasticsearch mapping definition.
+        indexed_properties: All definitions (quantities and sub sections) that are covered
+            by documents of this type.
+        quantities: All elasticsearch quantities that in documents of this type. A dictionary
+            with full qualified name as key and :class:`Elasticsearch` annotations as
+            values.
+        metrics: All metrics in this document type. A dictionary with metric names as
+            keys and tuples of elasticsearch metric aggregation and respective
+            :class:`Elasticsearch` metainfo annotation as values.
     '''
     def __init__(self, name: str):
         self.name = name
         self.root_section_def = None
         self.mapping: Dict[str, Any] = None
         self.indexed_properties: Set[Definition] = set()
+        self.quantities: Dict[str, Elasticsearch] = {}
+        self.metrics: Dict[str, Tuple[str, Elasticsearch]] = {}
+
+    def _reset(self):
+        self.indexed_properties.clear()
+        self.quantities.clear()
+        self.metrics.clear()
 
     def _transform(self, quantity, section, value):
         elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
@@ -204,6 +223,7 @@ class DocumentType():
         Creates an Elasticsearch mapping for the given root section. It traverses all
         sub-sections to create the mapping. It will not create the mapping for nested
         documents. These have to be created manually (e.g. by :func:`create_indices`).
+        Will override the existing mapping.
         '''
         mappings: Dict[str, Any] = {}
 
@@ -232,7 +252,7 @@ class DocumentType():
                         mapping.update(**elasticsearch_annotation.mapping)
 
                 self.indexed_properties.add(quantity_def)
-                elasticsearch_annotation._register(self, prefix)
+                self._register(elasticsearch_annotation, prefix)
 
         for sub_section_def in section_def.all_sub_sections.values():
             if sub_section_def.m_get_annotations(Elasticsearch) is None:
@@ -243,6 +263,11 @@ class DocumentType():
                 qualified_name = sub_section_def.name
             else:
                 qualified_name = f'{prefix}.{sub_section_def.name}'
+
+            # TODO
+            if qualified_name == 'section_metadata':
+                qualified_name = None
+
             sub_section_mapping = self.create_mapping(sub_section_def.sub_section, prefix=qualified_name)
             if len(sub_section_mapping['properties']) > 0:
                 mappings[sub_section_def.name] = sub_section_mapping
@@ -251,6 +276,20 @@ class DocumentType():
 
         self.mapping = dict(properties=mappings)
         return self.mapping
+
+    def _register(self, annotation, prefix):
+        annotation._register(self, prefix)
+        name = annotation.qualified_name
+
+        assert name not in self.quantities or self.quantities[name] == annotation, \
+            'Search quantity names must be unique: %s' % name
+        self.quantities[name] = annotation
+
+        if annotation.metrics is not None:
+            for name, metric in annotation.metrics.items():
+                assert name not in self.metrics or self.metrics[name] == (metric, annotation), \
+                    'Metric names must be unique: %s' % name
+                self.metrics[name] = (metric, annotation)
 
 
 class Index():
@@ -314,8 +353,8 @@ entry_type = DocumentType('entry')
 material_type = DocumentType('material')
 material_entry_type = DocumentType('material_entry')
 
-entry_index = Index(entry_type, index_config_key='index_name')
-material_index = Index(material_type, index_config_key='materials_index_name')
+entry_index = Index(entry_type, index_config_key='entries_index')
+material_index = Index(material_type, index_config_key='materials_index')
 
 
 class Elasticsearch(DefinitionAnnotation):
@@ -347,14 +386,38 @@ class Elasticsearch(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
+        values:
+            If the quantity is used to aggregate statistics for a fixed set of values,
+            use this parameter to preset these values. On aggregation, elasticsearch
+            will only return values that exist in the search results. This allows to
+            create 0 statistic values and return consistent statistics. If the underlying
+            quantity is an Enum, the values are determined automatically.
+        metrics:
+            If the quantity is used as a metric for aggregating statistics, this has to
+            be used to define a valid elasticsearch metrics aggregations, e.g.
+            'sum' or 'cardinality'. It is a dictionary with metric name as key,
+            and elasticsearch aggregation name as values.
+        many_and:
+            If true and multiple values are provided in a search, by default a logical
+            and will be used in the search.
+        many_or:
+            If true and multiple values are provided in a search, by default a logical
+            or will be used in the search.
 
     Attributes:
-        aggregateable:
-            A boolean that determines, if this quantity can be used in aggregations.
         qualified_field:
             The full qualified name of the resulting elasticsearch field in the entry
             document type. This will be the quantity name (plus additional field if set)
             with subsection names up to the root of the metainfo data.
+        search_field:
+            An alias for qualified_field.
+        name:
+            The name of the quantity (plus additional field if set).
+        qualified_name:
+            Same name as qualified_field. This will be used to address the search
+            property in our APIs.
+        aggregateable:
+            A boolean that determines, if this quantity can be used in aggregations.
     '''
 
     def __init__(
@@ -363,7 +426,9 @@ class Elasticsearch(DefinitionAnnotation):
             mapping: Union[str, Dict[str, Any]] = None,
             field: str = None,
             value: Callable[[MSection], Any] = None,
-            index: bool = True):
+            index: bool = True,
+            values: List[str] = None, metrics: Dict[str, str] = None,
+            many_and: bool = False, many_or: bool = False):
 
         self._custom_mapping = mapping
         self.field = field
@@ -372,6 +437,11 @@ class Elasticsearch(DefinitionAnnotation):
         self.index = index
         self._qualified_fields: Dict[DocumentType, str] = {}
         self._mapping: Dict[str, Any] = None
+
+        self.values = values
+        self.metrics = metrics
+        self.many_and = many_and
+        self.many_or = many_or
 
     @property
     def mapping(self) -> Dict[str, Any]:
@@ -456,6 +526,13 @@ class Elasticsearch(DefinitionAnnotation):
         return self.definition.name
 
     @property
+    def name(self) -> str:
+        if self.field is not None:
+            return f'{self.property_name}.{self.field}'
+        else:
+            return self.property_name
+
+    @property
     def qualified_field(self) -> str:
         return self._qualified_fields.get(entry_type)
 
@@ -465,6 +542,14 @@ class Elasticsearch(DefinitionAnnotation):
         document type.
         '''
         return self._qualified_fields.get(doc_type)
+
+    @property
+    def search_field(self) -> str:
+        return self.qualified_field
+
+    @property
+    def qualified_name(self) -> str:
+        return self.qualified_field
 
     @property
     def aggregateable(self):
@@ -489,6 +574,10 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     if material_section_def is None:
         from nomad.datamodel.encyclopedia import Material
         material_section_def = Material.m_def
+
+    entry_type._reset()
+    material_type._reset()
+    material_entry_type._reset()
 
     entry_type.create_mapping(entry_section_def)
     material_type.create_mapping(material_section_def)

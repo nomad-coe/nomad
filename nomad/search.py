@@ -215,7 +215,6 @@ class SearchRequest:
         self._domain = domain
         self._query = query
         self._search = Search(index=config.elastic.index_name)
-        self._required = None
 
     def domain(self, domain: str = None):
         '''
@@ -542,7 +541,6 @@ class SearchRequest:
     def exclude(self, *args):
         ''' Exclude certain elastic fields from the search results. '''
         self._search = self._search.source(excludes=args)
-        self._required = MetadataRequired(exclude=args)
         return self
 
     def include(self, *args):
@@ -577,7 +575,7 @@ class SearchRequest:
             search = search.params(preserve_order=True)
 
         for hit in search.params(**kwargs).scan():
-            yield _es_to_entry_dict(hit, self._required)
+            yield hit
 
     def execute_paginated(
             self,
@@ -759,7 +757,7 @@ class SearchRequest:
 
         # hits
         if len(response.hits) > 0 or with_hits:
-            result.update(results=[_es_to_entry_dict(hit, self._required) for hit in response.hits])
+            result.update(results=[hit for hit in response.hits])
 
         # statistics
         def get_metrics(bucket, code_runs):

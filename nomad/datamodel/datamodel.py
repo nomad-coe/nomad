@@ -29,6 +29,7 @@ from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common_dft import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
+from nomad.metainfo.elasticsearch_extension import Elasticsearch
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -330,13 +331,22 @@ class EntryMetadata(metainfo.MSection):
         type=str,
         description='The persistent and globally unique identifier for the upload of the entry',
         a_search=Search(
-            many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'))
+            many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'),
+        a_elasticsearch=Elasticsearch(metrics=dict(uploads='cardinality'), many_or=True))
 
     calc_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[OasisMetadata],
-        a_search=Search(many_or='append'))
+        a_search=Search(many_or='append'),
+        a_elasticsearch=Elasticsearch(many_or=True))
+
+    entry_id = metainfo.Quantity(
+        type=str,
+        description='A persistent and globally unique identifier for the entry',
+        categories=[OasisMetadata],
+        derived=lambda section: section.calc_id,
+        a_elasticsearch=Elasticsearch(many_or=True))
 
     calc_hash = metainfo.Quantity(
         type=str,
@@ -605,7 +615,9 @@ class EntryArchive(metainfo.MSection):
     section_experiment = metainfo.SubSection(sub_section=Experiment)
     section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
     section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[FastAccess])
-    section_metadata = metainfo.SubSection(sub_section=EntryMetadata, categories=[FastAccess])
+    section_metadata = metainfo.SubSection(
+        sub_section=EntryMetadata, categories=[FastAccess],
+        a_elasticsearch=Elasticsearch())
 
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],

@@ -89,6 +89,10 @@ class Entry(MSection):
         type=str,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    upload_id = Quantity(
+        type=str,
+        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(uploads='cardinality')))
+
     mainfile = Quantity(
         type=str,
         a_elasticsearch=Elasticsearch(index=False, value=lambda _: 'other_mainfile'))
@@ -181,20 +185,14 @@ def elastic_client(elastic_function):
     yield elastic_function
 
 
-@pytest.fixture(scope='module', autouse=True)
-def local_elastic_infra(elastic_infra):
-    # We apply a new different mapping to the test indices, we have to clear this
-    # once the tests of this module have completed.
-    yield
-    clear_elastic_infra()
-
-
 @pytest.fixture
 def indices(elastic_client):
-    # remove whatever the "old" infrastructure created
-    elastic_client.indices.delete(index=config.elastic.index_name)
-    for index in elastic_client.indices.get_alias(config.elastic.materials_index_name):
-        elastic_client.indices.delete(index=index)
+    # remove whatever the infrastructure created by default
+    try:
+        elastic_client.indices.delete(index=config.elastic.entries_index)
+        elastic_client.indices.delete(index=config.elastic.materials_index)
+    except Exception:
+        pass
 
     return create_indices(Entry.m_def, Material.m_def)
 
@@ -228,6 +226,11 @@ def test_mappings(indices):
     assert formula_annotations[1].get_qualified_field(material_type) == 'formula.text'
     assert formula_annotations[1].get_qualified_field(material_entry_type) is None
     assert Properties.available_properties.a_elasticsearch.get_qualified_field(material_entry_type) == 'entries.results.properties.available_properties'
+
+    assert entry_type.quantities.get('results.material.formula') == formula_annotations[0]
+    assert entry_type.quantities.get('results.material.formula.text') == formula_annotations[1]
+
+    assert entry_type.metrics['uploads'] == ('cardinality', entry_type.quantities['upload_id'])
 
 
 def test_index_docs(indices):
