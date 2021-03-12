@@ -34,3 +34,4 @@ parser.osio.log
 gui/src/metainfo.json
 gui/src/searchQuantities.json
 examples/workdir/
+*/node_modules/
