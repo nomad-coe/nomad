@@ -25,6 +25,7 @@ import pytest
 from ase import Atoms
 import ase.build
 
+from nomad.units import ureg
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.common_dft import (
@@ -115,13 +116,24 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     template.section_run[0].section_system = None
 
     # Fill structural information
-    system = template.section_run[0].m_create(System)
+    # system = template.section_run[0].m_create(System)
+    # system.atom_positions = atoms.get_positions() * 1E-10
+    # system.atom_labels = atoms.get_chemical_symbols()
+    # system.simulation_cell = atoms.get_cell() * 1E-10
+    # system.configuration_periodic_dimensions = atoms.get_pbc()
+    system = get_section_system(atoms)
+    template.section_run[0].m_add_sub_section(Run.section_system, system)
+
+    return run_normalize(template)
+
+
+def get_section_system(atoms: Atoms):
+    system = System()
     system.atom_positions = atoms.get_positions() * 1E-10
     system.atom_labels = atoms.get_chemical_symbols()
     system.simulation_cell = atoms.get_cell() * 1E-10
     system.configuration_periodic_dimensions = atoms.get_pbc()
-
-    return run_normalize(template)
+    return system
 
 
 def get_template_dos(
@@ -408,10 +420,38 @@ def single_point() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def geometry_optimization() -> EntryArchive:
-    parser_name = "parsers/template"
-    filepath = "tests/data/normalizers/fcc_crystal_structure.json"
-    archive = parse_file((parser_name, filepath))
-    return run_normalize(archive)
+    template = get_template()
+    template.section_run[0].section_frame_sequence = None
+    template.section_run[0].section_sampling_method = None
+    template.section_run[0].section_system = None
+    template.section_run[0].section_single_configuration_calculation = None
+    run = template.section_run[0]
+    atoms1 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
+    atoms2 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
+    atoms2.translate([0.01, 0, 0])
+    sys1 = get_section_system(atoms1)
+    sys2 = get_section_system(atoms2)
+    scc1 = run.m_create(SingleConfigurationCalculation)
+    scc2 = run.m_create(SingleConfigurationCalculation)
+    scc1.energy_total_T0 = 1e-19
+    scc2.energy_total_T0 = 0.5e-19
+    scc1.single_configuration_calculation_to_system_ref = sys1
+    scc2.single_configuration_calculation_to_system_ref = sys2
+    scc1.single_configuration_to_calculation_method_ref = run.section_method[0]
+    scc2.single_configuration_to_calculation_method_ref = run.section_method[0]
+    run.m_add_sub_section(Run.section_system, sys1)
+    run.m_add_sub_section(Run.section_system, sys2)
+    sampling_method = run.m_create(SamplingMethod)
+    sampling_method.sampling_method = "geometry_optimization"
+    sampling_method.geometry_optimization_energy_change = 1e-3 * ureg.electron_volt
+    sampling_method.geometry_optimization_threshold_force = 1e-11 * ureg.newton
+    sampling_method.geometry_optimization_geometry_change = 1e-3 * ureg.angstrom
+    sampling_method.geometry_optimization_method = "bfgs"
+    frame_sequence = run.m_create(FrameSequence)
+    frame_sequence.frame_sequence_local_frames_ref = [scc1, scc2]
+    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
+    frame_sequence.number_of_frames_in_sequence = 1
+    return run_normalize(template)
 
 
 @pytest.fixture(scope='session')

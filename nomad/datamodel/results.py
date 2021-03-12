@@ -29,13 +29,15 @@ from nomad.metainfo import (
     SubSection,
     Quantity,
     MEnum,
-    Reference,
-    SectionProxy,
 )
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
     Method as section_method,
     Dos,
+    Phonon,
+    SingleConfigurationCalculation,
+    GeometryOptimization,
+    Elastic,
     KBand,
     KBandSegment,
     ThermodynamicalProperties,
@@ -52,23 +54,23 @@ structure_classes = [
     "not processed",
 ]
 xc_treatments = {
-    'gga': 'GGA',
-    'hf_': 'HF',
-    'oep': 'OEP',
-    'hyb': 'hybrid',
-    'mgg': 'meta-GGA',
-    'vdw': 'vdW',
-    'lda': 'LDA',
+    "gga": "GGA",
+    "hf_": "HF",
+    "oep": "OEP",
+    "hyb": "hybrid",
+    "mgg": "meta-GGA",
+    "vdw": "vdW",
+    "lda": "LDA",
 }
 basis_set_types = [
-    '(L)APW+lo',
-    'gaussians',
-    'numeric AOs',
-    'plane waves',
-    'psinc functions',
-    'real-space grid',
-    'unavailable',
-    'not processed',
+    "(L)APW+lo",
+    "gaussians",
+    "numeric AOs",
+    "plane waves",
+    "psinc functions",
+    "real-space grid",
+    "unavailable",
+    "not processed",
 ]
 core_electron_treatments = [
     "full all electron",
@@ -446,7 +448,7 @@ class Material(MSection):
         a_search=Search()
     )
     elements = Quantity(
-        type=MEnum(chemical_symbols), shape=['1..*'],
+        type=MEnum(chemical_symbols), shape=["1..*"],
         description="""
         Names of the different elements present in the structure.
         """,
@@ -514,8 +516,8 @@ class DFT(MSection):
         """
     )
     basis_set_type = Quantity(
-        type=MEnum(basis_set_types), default='not processed',
-        description='The used basis set functions.',
+        type=MEnum(basis_set_types), default="not processed",
+        description="The used basis set functions.",
         a_search=Search(statistic_values=basis_set_types)
     )
     basis_set_name = section_method.basis_set.m_copy()
@@ -539,17 +541,17 @@ class DFT(MSection):
     smearing_kind = section_method.smearing_kind.m_copy()
     smearing_width = section_method.smearing_width.m_copy()
     xc_functional_type = Quantity(
-        type=str, default='not processed',
-        description='The libXC based xc functional classification used in the simulation.',
+        type=str, default="not processed",
+        description="The libXC based xc functional classification used in the simulation.",
         a_search=Search(
-            statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed'],
+            statistic_values=list(xc_treatments.values()) + ["unavailable", "not processed"],
             statistic_size=100
         )
     )
     xc_functional_names = Quantity(
-        type=str, default=[], shape=['*'],
-        description='The list of libXC functional names that where used in this entry.',
-        a_search=Search(many_and='append')
+        type=str, default=[], shape=["*"],
+        description="The list of libXC functional names that where used in this entry.",
+        a_search=Search(many_and="append")
     )
 
 
@@ -562,10 +564,62 @@ class GW(MSection):
     )
     gw_type = section_method.gw_type.m_copy()
     starting_point = Quantity(
-        type=str, default=[], shape=['*'],
-        description='The list of libXC functional names that were used for the ground state calculation.',
-        a_search=Search(many_and='append')
+        type=str, default=[], shape=["*"],
+        description="The list of libXC functional names that were used for the ground state calculation.",
+        a_search=Search(many_and="append")
     )
+
+
+class GeometryOptimizationMethod(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Geometry optimization methodology. This methodology applies to the
+        properties presented in results.properties.geometry_optimization.
+        """,
+    )
+    geometry_optimization_type = GeometryOptimization.geometry_optimization_type.m_copy()
+    input_energy_difference_tolerance = GeometryOptimization.input_energy_difference_tolerance.m_copy()
+    input_force_maximum_tolerance = GeometryOptimization.input_force_maximum_tolerance.m_copy()
+
+
+class MolecularDynamicsMethod(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Molecular dynamics methodology. This methodology applies to the
+        properties presented in results.properties.molecular_dynamics.
+        """,
+    )
+
+
+class VibrationalMethod(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Vibrational properties methodology. This methodology applies to the
+        properties presented in results.properties.vibrational.
+        """,
+    )
+    force_calculator = Phonon.force_calculator.m_copy()
+    mesh_density = Phonon.mesh_density.m_copy()
+    random_displacements = Phonon.random_displacements.m_copy()
+    with_non_analytic_correction = Phonon.with_non_analytic_correction.m_copy()
+
+
+class ElasticMethod(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Elastic properties methodology. This methodology applies to the
+        properties presented in results.properties.elastic.
+        """,
+    )
+    energy_stress_calculator = Elastic.energy_stress_calculator.m_copy()
+    elastic_calculation_method = Elastic.elastic_calculation_method.m_copy()
+    elastic_constants_order = Elastic.elastic_constants_order.m_copy()
+    fitting_error_maximum = Elastic.fitting_error_maximum.m_copy()
+    strain_maximum = Elastic.strain_maximum.m_copy()
 
 
 class Simulation(MSection):
@@ -576,41 +630,21 @@ class Simulation(MSection):
         """
     )
     program_name = Quantity(
-        type=str, default='not processed',
-        description='The name of the used program.',
+        type=str, default="not processed",
+        description="The name of the used program.",
         a_search=Search()
     )
     program_version = Quantity(
-        type=str, default='not processed',
-        description='The version of the used program.',
+        type=str, default="not processed",
+        description="The version of the used program.",
         a_search=Search()
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False, a_search="dft")
     gw = SubSection(sub_section=GW.m_def, repeats=False, a_search="gw")
-    phonon = Quantity(
-        type=Reference(SectionProxy('Phonon')),
-        shape=[],
-        description='''
-        Reference to phonon calculation methodology.
-        ''',
-        a_search="phonon",
-    )
-    geometry_optimization = Quantity(
-        type=Reference(SectionProxy('GeometryOptimization')),
-        shape=[],
-        description='''
-        Reference to geometry optimization methodology.
-        ''',
-        a_search="geometry_optimization",
-    )
-    molecular_dynamics = Quantity(
-        type=Reference(SectionProxy('MolecularDynamics')),
-        shape=[],
-        description='''
-        Reference to molecular dynamics methodology.
-        ''',
-        a_search="molecular_dynamics",
-    )
+    geometry_optimization = SubSection(sub_section=GeometryOptimizationMethod.m_def, repeats=False, a_search="geometry_optimization")
+    molecular_dynamics = SubSection(sub_section=MolecularDynamicsMethod.m_def, repeats=False, a_search="molecular_dynamics")
+    vibrational = SubSection(sub_section=VibrationalMethod.m_def, repeats=False, a_search="phonon")
+    elastic = SubSection(sub_section=ElasticMethod.m_def, repeats=False, a_search="elastic")
 
 
 class Method(MSection):
@@ -691,7 +725,7 @@ class DOSElectronic(DOS):
     )
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         Fermi energy for each spin channel.
@@ -699,7 +733,7 @@ class DOSElectronic(DOS):
     )
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         The highest occupied energy for each spin channel.
@@ -707,7 +741,7 @@ class DOSElectronic(DOS):
     )
     energy_lowest_unoccupied = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         The lowest unoccupied energy for each spin channel.
@@ -776,7 +810,7 @@ class BandStructureElectronic(BandStructure):
     )
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         Fermi energy for each spin channel.
@@ -784,7 +818,7 @@ class BandStructureElectronic(BandStructure):
     )
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         The highest occupied energy for each spin channel.
@@ -792,7 +826,7 @@ class BandStructureElectronic(BandStructure):
     )
     energy_lowest_unoccupied = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         The lowest unoccupied energy for each spin channel.
@@ -800,7 +834,7 @@ class BandStructureElectronic(BandStructure):
     )
     band_gap = Quantity(
         type=np.dtype(np.float64),
-        unit='joule',
+        unit="joule",
         shape=["n_spin_channels"],
         description="""
         Band gap value for each spin channel. If no gap is found, the band gap
@@ -829,15 +863,15 @@ class HeatCapacityConstantVolume(MSection):
     heat_capacities = Quantity(
         type=ThermodynamicalProperties.specific_heat_capacity,
         shape=[],
-        description='''
+        description="""
         Specific heat capacity values at constant volume.
-        ''',
+        """,
     )
     temperatures = Quantity(
         type=ThermodynamicalProperties.thermodynamical_property_temperature,
-        description='''
+        description="""
         The temperatures at which heat capacities are calculated.
-        ''',
+        """,
     )
 
 
@@ -858,9 +892,83 @@ class EnergyFreeHelmholtz(MSection):
     )
     temperatures = Quantity(
         type=ThermodynamicalProperties.thermodynamical_property_temperature,
-        description='''
+        description="""
         The temperatures at which Helmholtz free energies are calculated.
-        ''',
+        """,
+    )
+
+
+class GeometryOptimizationProperties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Properties from a geometry optimization.
+        """,
+    )
+    trajectory = Quantity(
+        type=SingleConfigurationCalculation,
+        shape=["*"],
+        description="""
+        List of references to each section_single_configuration_calculation in
+        the optimization trajectory.
+        """,
+    )
+    structure_optimized = SubSection(
+        sub_section=StructureOptimized.m_def,
+        repeats=False,
+        a_search="structure_optimized"
+    )
+    final_force_maximum = GeometryOptimization.final_force_maximum.m_copy()
+    final_energy_difference = GeometryOptimization.final_energy_difference.m_copy()
+
+
+class MolecularDynamicsProperties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Properties from molecular_dynamics.
+        """,
+    )
+    trajectory = Quantity(
+        type=SingleConfigurationCalculation,
+        shape=["*"],
+        description="""
+        List of references to each section_single_configuration_calculation in
+        the molecular dynamics trajectory.
+        """,
+    )
+
+
+class VibrationalProperties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Vibrational properties.
+        """,
+    )
+    band_structure_phonon = SubSection(sub_section=BandStructurePhonon.m_def, repeats=False, a_search="band_structure_phonon")
+    dos_phonon = SubSection(sub_section=DOSPhonon.m_def, repeats=False, a_search="dos_phonon")
+    heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
+    energy_free_helmholtz = SubSection(sub_section=EnergyFreeHelmholtz.m_def, repeats=False, a_search="energy_free_helmholtz")
+
+
+class ElectronicProperties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Electronic properties.
+        """,
+    )
+    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False, a_search="band_structure_electronic")
+    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False, a_search="dos_electronic")
+
+
+class ElasticProperties(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Elastic properties.
+        """,
     )
 
 
@@ -887,17 +995,11 @@ class Properties(MSection):
         repeats=False,
         a_search="structure_primitive"
     )
-    structure_optimized = SubSection(
-        sub_section=StructureOptimized.m_def,
-        repeats=False,
-        a_search="structure_optimized"
-    )
-    band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False, a_search="band_structure_electronic")
-    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False, a_search="dos_electronic")
-    band_structure_phonon = SubSection(sub_section=BandStructurePhonon.m_def, repeats=False, a_search="band_structure_phonon")
-    dos_phonon = SubSection(sub_section=DOSPhonon.m_def, repeats=False, a_search="dos_phonon")
-    heat_capacity_constant_volume = SubSection(sub_section=HeatCapacityConstantVolume.m_def, repeats=False, a_search="heat_capacity_constant_volume")
-    energy_free_helmholtz = SubSection(sub_section=EnergyFreeHelmholtz.m_def, repeats=False, a_search="energy_free_helmholtz")
+    geometry_optimization = SubSection(sub_section=GeometryOptimizationProperties.m_def, repeats=False, a_search="geometry_optimization")
+    molecular_dynamics = SubSection(sub_section=MolecularDynamicsProperties.m_def, repeats=False, a_search="molecular_dynamics")
+    vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False, a_search="vibrational")
+    electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False, a_search="electronic")
+    elastic = SubSection(sub_section=ElasticProperties.m_def, repeats=False, a_search="elastic")
 
 
 class Results(MSection):

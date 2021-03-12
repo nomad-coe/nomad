@@ -204,49 +204,49 @@ def test_method_gw(gw):
 def test_dos_electronic():
     # DOS without energy references
     archive = get_template_dos(has_references=False)
-    dos = archive.results.properties.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 200)
     assert dos.energies.shape == (200, )
 
     # Unpolarized DOS
     archive = get_template_dos(spin_polarized=False)
-    dos = archive.results.properties.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 200)
     assert dos.energies.shape == (200, )
 
     # Polarized DOS
     archive = get_template_dos(spin_polarized=True)
-    dos = archive.results.properties.dos_electronic
+    dos = archive.results.properties.electronic.dos_electronic
     assert dos.spin_polarized is True
     assert dos.densities.shape == (2, 200)
     assert dos.energies.shape == (200, )
 
     # Vibrational instead of electronic
     archive = get_template_dos(type="vibrational")
-    dos = archive.results.properties.dos_electronic
-    assert dos is None
+    electronic = archive.results.properties.electronic
+    assert electronic is None
 
     # Empty values
     archive = get_template_dos(normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_values = []
     archive = run_normalize(archive)
-    dos = archive.results.properties.dos_electronic
-    assert dos is None
+    electronic = archive.results.properties.electronic
+    assert electronic is None
 
     # Empty energies
     archive = get_template_dos(normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_energies = []
     archive = run_normalize(archive)
-    dos = archive.results.properties.dos_electronic
-    assert dos is None
+    electronic = archive.results.properties.electronic
+    assert electronic is None
 
 
 def test_band_structure_electronic():
     # Band structure without energy reference
     archive = get_template_band_structure([(1, "direct")], has_references=False)
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap is None
     assert bs.band_gap_type is None
@@ -258,7 +258,7 @@ def test_band_structure_electronic():
 
     # Unpolarized band structure with no gap
     archive = get_template_band_structure([None])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [0]
     assert bs.band_gap_type == ["no_gap"]
@@ -270,7 +270,7 @@ def test_band_structure_electronic():
 
     # Polarized band structure with no gap
     archive = get_template_band_structure([None, None])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, [0, 0])
     assert bs.band_gap_type == ["no_gap", "no_gap"]
@@ -284,7 +284,7 @@ def test_band_structure_electronic():
     gap = 1  # eV
     gap_type = "direct"
     archive = get_template_band_structure([(gap, gap_type)])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
@@ -299,7 +299,7 @@ def test_band_structure_electronic():
     gap = 1   # eV
     gap_type = "indirect"
     archive = get_template_band_structure([(gap, gap_type)])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
@@ -315,7 +315,7 @@ def test_band_structure_electronic():
     gap2 = 2  # eV
     gap_type = "direct"
     archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
@@ -333,7 +333,7 @@ def test_band_structure_electronic():
     gap1_type = "indirect"
     gap2_type = "indirect"
     archive = get_template_band_structure([(gap1, gap1_type), (gap2, gap2_type)])
-    bs = archive.results.properties.band_structure_electronic
+    bs = archive.results.properties.electronic.band_structure_electronic
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
@@ -349,48 +349,57 @@ def test_band_structure_electronic():
 def test_dos_phonon():
     # DOS with all correct metainfo
     archive = get_template_dos(type="vibrational")
-    dos = archive.results.properties.dos_phonon
+    dos = archive.results.properties.vibrational.dos_phonon
     assert dos.densities.shape == (1, 200)
     assert dos.energies.shape == (200, )
 
     # Electronic instead of vibrational
     archive = get_template_dos(type="electronic")
-    dos = archive.results.properties.dos_phonon
-    assert dos is None
+    vibrational = archive.results.properties.vibrational
+    assert vibrational is None
 
     # Empty values
     archive = get_template_dos(type="vibrational", normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_values = []
     archive = run_normalize(archive)
-    dos = archive.results.properties.dos_phonon
-    assert dos is None
+    vibrational = archive.results.properties.vibrational
+    assert vibrational is None
 
     # Empty energies
     archive = get_template_dos(type="vibrational", normalize=False)
     archive.section_run[0].section_single_configuration_calculation[0].section_dos[0].dos_energies = []
     archive = run_normalize(archive)
-    dos = archive.results.properties.dos_phonon
-    assert dos is None
+    vibrational = archive.results.properties.vibrational
+    assert vibrational is None
 
 
 def test_band_structure_phonon():
     # Valid phonon band structure
     archive = get_template_band_structure(type="vibrational")
-    bs = archive.results.properties.band_structure_phonon
+    bs = archive.results.properties.vibrational.band_structure_phonon
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
 
 def test_energy_free_helmholtz(phonon):
-    energy_free = phonon.results.properties.energy_free_helmholtz
+    energy_free = phonon.results.properties.vibrational.energy_free_helmholtz
     assert energy_free.temperatures.shape == (11, )
     assert energy_free.energies.shape == (11, )
 
 
 def test_heat_capacity_constant_volume(phonon):
-    heat_cap = phonon.results.properties.heat_capacity_constant_volume
+    heat_cap = phonon.results.properties.vibrational.heat_capacity_constant_volume
     assert heat_cap.temperatures.shape == (11, )
     assert heat_cap.heat_capacities.shape == (11, )
+
+
+def test_geometry_optimization(geometry_optimization):
+    geo_opt_prop = geometry_optimization.results.properties.geometry_optimization
+    assert_structure(geo_opt_prop.structure_optimized)
+    assert len(geo_opt_prop.trajectory) > 0
+    assert geo_opt_prop.final_energy_difference > 0
+    geo_opt_meth = geometry_optimization.results.method.simulation.geometry_optimization
+    assert geo_opt_meth.geometry_optimization_type == "ionic"
 
 
 def pprint(root, indent=None):

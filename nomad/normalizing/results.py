@@ -33,18 +33,23 @@ from nomad.datamodel.results import (
     Results,
     Material,
     Method,
+    GeometryOptimizationProperties,
+    GeometryOptimizationMethod,
     Properties,
     Symmetry,
     Structure,
     StructureOriginal,
     StructurePrimitive,
     StructureConventional,
+    StructureOptimized,
     LatticeParameters,
     WyckoffSet,
     Simulation,
     DFT,
     GW,
     xc_treatments,
+    ElectronicProperties,
+    VibrationalProperties,
     BandStructureElectronic,
     BandStructurePhonon,
     DOSElectronic,
@@ -95,6 +100,7 @@ class ResultsNormalizer(Normalizer):
         results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
         results.method = self.method(encyclopedia)
         results.properties = self.properties(repr_sys, symmetry, encyclopedia)
+        self.geometry_optimization(results.method, results.properties)
 
     def material(
             self,
@@ -490,6 +496,37 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
+    def geometry_optimization(self, method: Method, properties: Properties) -> None:
+        """Populates both geometry optimization methodology and calculated
+        properties based on the first found geometry optimization workflow.
+        """
+        path = ["section_workflow"]
+        for workflow in self.traverse_reversed(path):
+            # Check validity
+            if workflow.workflow_type == "geometry_optimization" and workflow.calculations_ref:
+
+                # Method
+                geo_opt_wf = workflow.section_geometry_optimization
+                if geo_opt_wf is not None:
+                    geo_opt_meth = GeometryOptimizationMethod()
+                    geo_opt_meth.geometry_optimization_type = geo_opt_wf.geometry_optimization_type
+                    method.simulation.geometry_optimization = geo_opt_meth
+
+                # Properties
+                geo_opt_prop = GeometryOptimizationProperties()
+                geo_opt_prop.trajectory = workflow.calculations_ref
+                structure_optimized = self.structure_optimized(
+                    workflow.calculation_result_ref.single_configuration_calculation_to_system_ref
+                )
+                if structure_optimized:
+                    geo_opt_prop.structure_optimized = structure_optimized
+                if geo_opt_wf is not None:
+                    geo_opt_prop.final_energy_difference = geo_opt_wf.final_energy_difference
+                    geo_opt_prop.final_force_maximum = geo_opt_wf.final_force_maximum
+                properties.geometry_optimization = geo_opt_prop
+
+                return
+
     def properties(
             self,
             repr_sys: section_system,
@@ -508,24 +545,34 @@ class ResultsNormalizer(Normalizer):
         struct_conv = self.structure_conventional(symmetry)
         if struct_conv:
             properties.structure_conventional = struct_conv
+
+        # Electronic
         bs_electronic = self.band_structure_electronic()
-        if bs_electronic:
-            properties.band_structure_electronic = bs_electronic
         dos_electronic = self.dos_electronic()
-        if dos_electronic:
-            properties.dos_electronic = dos_electronic
+        if bs_electronic or dos_electronic:
+            electronic = ElectronicProperties()
+            if bs_electronic:
+                electronic.band_structure_electronic = bs_electronic
+            if dos_electronic:
+                electronic.dos_electronic = dos_electronic
+            properties.electronic = electronic
+
+        # Vibrational
         bs_phonon = self.band_structure_phonon()
-        if bs_phonon:
-            properties.band_structure_phonon = bs_phonon
         dos_phonon = self.dos_phonon()
-        if dos_phonon:
-            properties.dos_phonon = dos_phonon
         energy_free = self.energy_free_helmholtz()
-        if energy_free:
-            properties.energy_free_helmholtz = energy_free
         heat_cap = self.heat_capacity_constant_volume()
-        if heat_cap:
-            properties.heat_capacity_constant_volume = heat_cap
+        if bs_phonon or dos_phonon or energy_free or heat_cap:
+            vibrational = VibrationalProperties()
+            if dos_phonon:
+                vibrational.dos_phonon = dos_phonon
+            if bs_phonon:
+                vibrational.band_structure_phonon = bs_phonon
+            if energy_free:
+                vibrational.energy_free_helmholtz = energy_free
+            if heat_cap:
+                vibrational.heat_capacity_constant_volume = heat_cap
+            properties.vibrational = vibrational
 
         return properties
 
@@ -542,15 +589,7 @@ class ResultsNormalizer(Normalizer):
                 struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
                 struct.lattice_vectors = repr_sys.lattice_vectors
                 struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude),
-                param_values = atomutils.cell_to_cellpar(repr_sys.lattice_vectors.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
+                struct.lattice_parameters = self.lattice_parameters(repr_sys.lattice_vectors)
             return struct
 
         return None
@@ -569,15 +608,7 @@ class ResultsNormalizer(Normalizer):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = prim_sys.lattice_vectors_primitive
                 struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude),
-                param_values = atomutils.cell_to_cellpar(prim_sys.lattice_vectors_primitive.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
+                struct.lattice_parameters = self.lattice_parameters(prim_sys.lattice_vectors_primitive)
             return struct
 
         return None
@@ -596,21 +627,43 @@ class ResultsNormalizer(Normalizer):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = conv_sys.lattice_vectors_std
                 struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude),
-                param_values = atomutils.cell_to_cellpar(conv_sys.lattice_vectors_std.magnitude)
-                params = LatticeParameters()
-                params.a = float(param_values[0])
-                params.b = float(param_values[1])
-                params.c = float(param_values[2])
-                params.alpha = float(param_values[3])
-                params.beta = float(param_values[4])
-                params.gamma = float(param_values[5])
-                struct.lattice_parameters = params
+                struct.lattice_parameters = self.lattice_parameters(conv_sys.lattice_vectors_std)
                 analyzer = symmetry.m_cache["symmetry_analyzer"]
                 sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
                 self.wyckoff_sets(struct, sets)
             return struct
 
         return None
+
+    def structure_optimized(self, system: section_system) -> Structure:
+        """Returns a populated Structure subsection for the optimized
+        structure.
+        """
+        if system:
+            struct = StructureOptimized()
+            struct.cartesian_site_positions = system.atom_positions
+            struct.species_at_sites = system.atom_labels
+            self.species(struct.species_at_sites, struct)
+            if atomutils.is_valid_basis(system.lattice_vectors):
+                struct.dimension_types = np.array(system.configuration_periodic_dimensions).astype(int)
+                struct.lattice_vectors = system.lattice_vectors
+                struct.cell_volume = atomutils.get_volume(system.lattice_vectors.magnitude),
+                struct.lattice_parameters = self.lattice_parameters(system.lattice_vectors)
+            return struct
+
+        return None
+
+    def lattice_parameters(self, lattice_vectors) -> LatticeParameters:
+        """Converts the given cell into LatticeParameters"""
+        param_values = atomutils.cell_to_cellpar(lattice_vectors.magnitude)
+        params = LatticeParameters()
+        params.a = float(param_values[0])
+        params.b = float(param_values[1])
+        params.c = float(param_values[2])
+        params.alpha = float(param_values[3])
+        params.beta = float(param_values[4])
+        params.gamma = float(param_values[5])
+        return params
 
     def traverse_reversed(self, path: List[str]) -> Any:
         """Traverses the given metainfo path in reverse order. Useful in
