@@ -17,6 +17,9 @@ import os
 import logging
 import pint
 from typing import Any, Dict
+import gzip
+import bz2
+import lzma
 
 
 class FileParser:
@@ -67,12 +70,27 @@ class FileParser:
         self._file_handler = None
         self._mainfile = os.path.abspath(val) if val is not None else val
 
+    @property
+    def open(self):
+        if self.mainfile.endswith('.gz'):
+            open_file = gzip.open
+        elif self.mainfile.endswith('.bz2'):
+            open_file = bz2.open
+        elif self.mainfile.endswith('.xz'):
+            open_file = lzma.open
+        else:
+            open_file = open
+        return open_file
+
     def get(self, key: str, default: Any = None, unit: str = None, **kwargs):
         '''
         Returns the parsed result for quantity with name key. If quantity is not in
         results default will be returned. A pint unit can be provided which is attached
         to the returned value.
         '''
+        if self.mainfile is None:
+            return default
+
         self._key = key
         self._kwargs = kwargs
         val = self.results.get(key, None)
