@@ -323,6 +323,7 @@ class Symmetry(MSection):
         (primitive), S (face centred), I (body centred), R (rhombohedral centring) or F
         (all faces centred).
         """,
+        a_search=Search(),
     )
     crystal_system = Quantity(
         type=str,
@@ -331,6 +332,7 @@ class Symmetry(MSection):
         Name of the crystal system. Can be one of the following: triclinic, monoclinic,
         orthorhombic, tetragonal, trigonal, hexagonal or cubic.
         """,
+        a_search=Search(),
     )
     hall_number = Quantity(
         type=np.dtype(np.int32),
@@ -338,6 +340,7 @@ class Symmetry(MSection):
         description="""
         The Hall number for this system.
         """,
+        a_search=Search(mapping=Integer()),
     )
     hall_symbol = Quantity(
         type=str,
@@ -345,6 +348,7 @@ class Symmetry(MSection):
         description="""
         The Hall symbol for this system.
         """,
+        a_search=Search(),
     )
     point_group = Quantity(
         type=str,
@@ -352,6 +356,7 @@ class Symmetry(MSection):
         description="""
         Symbol of the crystallographic point group in the Hermann-Mauguin notation.
         """,
+        a_search=Search(),
     )
     space_group_number = Quantity(
         type=np.dtype(np.int32),
@@ -360,6 +365,7 @@ class Symmetry(MSection):
         Specifies the International Union of Crystallography (IUC) number of the 3D space
         group of this system.
         """,
+        a_search=Search(mapping=Integer()),
     )
     space_group_symbol = Quantity(
         type=str,
@@ -368,6 +374,7 @@ class Symmetry(MSection):
         The International Union of Crystallography (IUC) short symbol of the 3D
         space group of this system.
         """,
+        a_search=Search(),
     )
     prototype_formula = Quantity(
         type=str,
@@ -437,7 +444,10 @@ class Material(MSection):
         description="""
         Classification based on the functional properties.
         """,
-        a_search=Search()
+        a_search=Search(
+            many_and='append', statistic_size=20,
+            statistic_order='_count'
+        )
     )
     type_compound = Quantity(
         type=str,
@@ -445,7 +455,10 @@ class Material(MSection):
         description="""
         Classification based on the chemical formula.
         """,
-        a_search=Search()
+        a_search=Search(
+            many_and='append', statistic_size=20,
+            statistic_order='_count'
+        )
     )
     elements = Quantity(
         type=MEnum(chemical_symbols), shape=["1..*"],
@@ -464,37 +477,37 @@ class Material(MSection):
     )
     chemical_formula_descriptive = Quantity(
         type=str,
-        a_search=Search(),
         description="""
             The chemical formula for a structure as a string in a form chosen by the API
             implementation.
-        """
+        """,
+        a_search=Search(),
     )
     chemical_formula_reduced = Quantity(
         type=str,
-        a_search=Search(),
         description="""
             The reduced chemical formula for a structure as a string with element symbols and
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
-        """
+        """,
+        a_search=Search(),
     )
     chemical_formula_hill = Quantity(
         type=str,
-        a_search=Search(),
         description="""
             The chemical formula for a structure in Hill form with element symbols followed by
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
-        """
+        """,
+        a_search=Search(),
     )
     chemical_formula_anonymous = Quantity(
         type=str,
-        a_search=Search(),
         description="""
             The anonymous formula is the chemical_formula_reduced, but where the elements are
             instead first ordered by their chemical proportion number, and then, in order left to
             right, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and
             so on.
-        """
+        """,
+        a_search=Search(),
     )
     chemical_formula_reduced_fragments = Quantity(
         type=str,
