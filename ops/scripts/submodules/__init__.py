@@ -74,7 +74,7 @@ def move_submodule_to_github(path: str):
 
     origin = re.split(r'\t| ', origin)[1]
     if 'github.com/nomad-coe' in origin:
-        print(f'Skip {path}. It already has GitHUB origin {origin}.')
+        # print(f'Skip {path}. It already has GitHUB origin {origin}.')
         return
 
     print(f'Moving {path} now.')
@@ -171,13 +171,14 @@ def move_submodule_to_github(path: str):
 
 
 def run_move_submodules_to_github():
-    working_dir = os.curdir
+    working_dir = os.path.abspath(os.curdir)
 
     parser_submodules = sys.argv[1:]
 
-    # if len(parser_submodules) == 0:
-    #     parser_submodules = collect_submodules(filter=r'parsers')
+    if len(parser_submodules) == 0:
+        parser_submodules = [path for path, _ in collect_submodules(filter=r'parsers')]
 
+    print(parser_submodules)
     for submodule in parser_submodules:
         path = submodule
         os.chdir(path)

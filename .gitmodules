@@ -4,24 +4,24 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/vasp"]
 	path = dependencies/parsers/vasp
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-vasp.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-vasp.git
+	branch = master
 [submodule "dependencies/parsers/exciting"]
 	path = dependencies/parsers/exciting
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-exciting-fairdi.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-exciting.git
+	branch = master
 [submodule "dependencies/parsers/fhi-aims"]
 	path = dependencies/parsers/fhi-aims
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-fhi-aims.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-fhi-aims.git
+	branch = master
 [submodule "dependencies/parsers/cp2k"]
 	path = dependencies/parsers/cp2k
 	url = https://github.com/nomad-coe/nomad-parser-cp2k.git
 	branch = master
 [submodule "dependencies/parsers/crystal"]
 	path = dependencies/parsers/crystal
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-crystal.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-crystal.git
+	branch = master
 [submodule "dependencies/parsers/cpmd"]
 	path = dependencies/parsers/cpmd
 	url = https://github.com/nomad-coe/nomad-parser-cpmd.git
@@ -52,8 +52,8 @@
 	branch = nomad-fair
 [submodule "dependencies/parsers/abinit"]
 	path = dependencies/parsers/abinit
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-abinit.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-abinit.git
+	branch = master
 [submodule "dependencies/parsers/orca"]
 	path = dependencies/parsers/orca
 	url = https://github.com/nomad-coe/nomad-parser-orca.git
@@ -100,8 +100,8 @@
 	branch = master
 [submodule "dependencies/parsers/elastic"]
 	path = dependencies/parsers/elastic
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-elastic.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-elastic.git
+	branch = master
 [submodule "dependencies/parsers/gamess"]
 	path = dependencies/parsers/gamess
 	url = https://github.com/nomad-coe/nomad-parser-gamess.git
@@ -175,14 +175,16 @@
 	branch = master
 [submodule "dependencies/parsers/gromacs"]
     path = dependencies/parsers/gromacs
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-gromacs.git
+	url = https://github.com/nomad-coe/nomad-parser-gromacs.git
+	branch = master
 [submodule "dependencies/parsers/gromos"]
     path = dependencies/parsers/gromos
 	url = https://github.com/nomad-coe/nomad-parser-gromos.git
 	branch = master
 [submodule "dependencies/parsers/lammps"]
     path = dependencies/parsers/lammps
-    url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-lammps.git
+	url = https://github.com/nomad-coe/nomad-parser-lammps.git
+	branch = master
 [submodule "dependencies/parsers/openkim"]
     path = dependencies/parsers/openkim
 	url = https://github.com/nomad-coe/nomad-parser-openkim.git
