@@ -339,7 +339,7 @@ def assert_search_upload(
 
 
 if __name__ == '__main__':
-    from test_datamodel import generate_calc  # pylint: disable=import-error
+    from .test_datamodel import generate_calc
     from elasticsearch.helpers import bulk
     import sys
     print('Generate index with random example calculation data. First arg is number of items')

@@ -183,6 +183,7 @@ client:
   url: 'http://<your-host>/nomad-oasis/api'
 
 services:
+  api_host: '<your-host>'
   api_prefix: '/nomad-oasis'
   admin_user_id: '<your admin user id>'
 

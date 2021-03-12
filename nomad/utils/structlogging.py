@@ -47,7 +47,7 @@ from contextlib import contextmanager
 import json
 import re
 
-from nomad import config
+from nomad import config, utils
 
 
 def sanitize_logevent(event: str) -> str:
@@ -143,7 +143,10 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
             # Nomad specific
             'nomad.service': config.meta.service,
-            'nomad.release': config.meta.release
+            'nomad.release': config.meta.release,
+            'nomad.version': config.meta.version,
+            'nomad.commit': config.meta.commit,
+            'nomad.deployment': config.meta.deployment
         }
 
         if record.name.startswith('nomad'):
@@ -151,7 +154,12 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                 if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key == 'exception':
+                    exception_trace = value.strip('\n')
                     message['digest'] = str(value)[-256:]
+                    # exclude the last line, which is the exception message and might
+                    # vary for different instances of the same exception
+                    message['exception_hash'] = utils.hash(
+                        exception_trace[:exception_trace.rfind('\n')])
                 elif key in ['upload_id', 'calc_id', 'mainfile']:
                     key = 'nomad.%s' % key
                 else:

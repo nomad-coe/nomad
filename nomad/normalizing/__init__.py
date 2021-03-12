@@ -54,6 +54,6 @@ normalizers: Iterable[Type[Normalizer]] = [
     # FhiAimsBaseNormalizer,
     DosNormalizer,
     BandStructureNormalizer,
-    EncyclopediaNormalizer,
     WorkflowNormalizer,
+    EncyclopediaNormalizer,
 ]

@@ -70,6 +70,7 @@ worker:
   storage: "disk"
   nomadNodeType: "worker"
   timeout: 7200
+  acks_late: false
 
 ## Everthing concerning the nomad gui
 gui:

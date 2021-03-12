@@ -99,7 +99,7 @@ def rabbitmq_url():
 celery = NomadConfig(
     max_memory=64e6,  # 64 GB
     timeout=1800,  # 1/2 h
-    acks_late=True,
+    acks_late=False,
     routing=CELERY_QUEUE_ROUTING,
     priorities={
         'Upload.process_upload': 5,
@@ -288,6 +288,7 @@ meta = NomadConfig(
     version='0.10.0',
     commit=gitinfo.commit,
     release='devel',
+    deployment='standard',
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
@@ -310,6 +311,8 @@ raw_file_strip_cutoff = 1000
 max_entry_download = 500000
 use_empty_parsers = False
 reprocess_unmatched = True
+reprocess_rematch = True
+process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
 
