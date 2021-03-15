@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import Alert from '@material-ui/lab/Alert'
+import { hasWebGLSupport } from '../utils'
 
 export class ErrorHandler extends React.Component {
   state = {
@@ -60,6 +61,25 @@ export const withErrorHandler = (WrappedComponent, message) => props => (
   <ErrorHandler message={message}>
     <WrappedComponent {...props}></WrappedComponent>
   </ErrorHandler>)
+withErrorHandler.propTypes = ({
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
+})
+
+export const withWebGLErrorHandler = WrappedComponent => props => {
+  const hasWebGL = useState(hasWebGLSupport())[0]
+
+  // If WebGL is not available, the content cannot be shown.
+  if (hasWebGL) {
+    return WrappedComponent({...props})
+  } else {
+    return <Alert
+      severity="info"
+    >
+      Could not display the visualization as your browser does not support WebGL content.
+    </Alert>
+  }
+}
+
 withErrorHandler.propTypes = ({
   message: PropTypes.oneOfType([PropTypes.string, PropTypes.func]) // Provide either a fixed error message or a callback that will receive the error details.
 })

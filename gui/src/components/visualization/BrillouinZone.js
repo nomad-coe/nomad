@@ -32,7 +32,7 @@ import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
-import { withErrorHandler } from '../ErrorHandler'
+import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import Actions from '../Actions'
 import clsx from 'clsx'
 
@@ -273,4 +273,4 @@ BrillouinZone.defaultProps = {
   captureName: 'brillouin_zone'
 }
 
-export default withErrorHandler(BrillouinZone, 'Could not load Brillouin zone.')
+export default withWebGLErrorHandler(withErrorHandler(BrillouinZone, 'Could not load Brillouin zone.'))
