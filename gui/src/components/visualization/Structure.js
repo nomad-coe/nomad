@@ -41,7 +41,7 @@ import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
-import { withErrorHandler } from '../ErrorHandler'
+import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
 import clsx from 'clsx'
@@ -50,7 +50,7 @@ import clsx from 'clsx'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-export const Structure = withErrorHandler(({
+function Structure({
   className,
   classes,
   system,
@@ -63,7 +63,7 @@ export const Structure = withErrorHandler(({
   positionsOnly,
   sizeLimit,
   positionsSubject}
-) => {
+) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -378,6 +378,61 @@ export const Structure = withErrorHandler(({
   }
   actions.push({tooltip: 'Options', onClick: openMenu, content: <MoreVert/>})
 
+  const menuItems = [
+    <MenuItem key='show-bonds'>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showBonds}
+            onChange={(event) => { setShowBonds(!showBonds) }}
+            color='primary'
+          />
+        }
+        label='Show bonds'
+      />
+    </MenuItem>
+  ]
+  if (finalSystem?.cell) {
+    menuItems.push(...[
+      <MenuItem key='show-axis'>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showLatticeConstants}
+              onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
+              color='primary'
+            />
+          }
+          label='Show lattice constants'
+        />
+      </MenuItem>,
+      <MenuItem key='show-cell'>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showCell}
+              onChange={(event) => { setShowCell(!showCell) }}
+              color='primary'
+            />
+          }
+          label='Show simulation cell'
+        />
+      </MenuItem>,
+      <MenuItem key='wrap'>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={wrap}
+              onChange={(event) => { setWrap(!wrap) }}
+              color='primary'
+            />
+          }
+          label='Wrap positions'
+        />
+      </MenuItem>
+    ])
+  }
+
   const content = <Box className={styles.container}>
     {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
     {systems && <ToggleButtonGroup
@@ -403,58 +458,7 @@ export const Structure = withErrorHandler(({
         open={open}
         onClose={closeMenu}
       >
-        <MenuItem key='show-bonds'>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showBonds}
-                onChange={(event) => { setShowBonds(!showBonds) }}
-                color='primary'
-              />
-            }
-            label='Show bonds'
-          />
-        </MenuItem>
-        {finalSystem?.cell &&
-          <>
-            <MenuItem key='show-axis'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showLatticeConstants}
-                    onChange={(event) => { setShowLatticeConstants(!showLatticeConstants) }}
-                    color='primary'
-                  />
-                }
-                label='Show lattice constants'
-              />
-            </MenuItem>
-            <MenuItem key='show-cell'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showCell}
-                    onChange={(event) => { setShowCell(!showCell) }}
-                    color='primary'
-                  />
-                }
-                label='Show simulation cell'
-              />
-            </MenuItem>
-            <MenuItem key='wrap'>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={wrap}
-                    onChange={(event) => { setWrap(!wrap) }}
-                    color='primary'
-                  />
-                }
-                label='Wrap positions'
-              />
-            </MenuItem>
-          </>
-        }
+        {menuItems}
       </Menu>
     </div>
   </Box>
@@ -463,7 +467,7 @@ export const Structure = withErrorHandler(({
       {content}
     </Floatable>
   </Box>
-}, 'Could not load structure.')
+}
 
 Structure.propTypes = {
   className: PropTypes.string,
@@ -490,3 +494,5 @@ Structure.defaultProps = {
   captureName: 'structure',
   sizeLimit: 300
 }
+
+export default withWebGLErrorHandler(withErrorHandler(Structure, 'Could not load structure.'))

@@ -25,12 +25,11 @@ import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
-import { Structure } from '../visualization/Structure'
+import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import { ErrorHandler } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
-import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
 import { UnitSelector } from './UnitSelector'
 import { convertSI } from '../../utils'
@@ -62,10 +61,6 @@ export const unitsState = atom({
   key: 'units',
   default: defaults
 })
-
-// Shared instance of the StructureViewer
-const viewer = new StructureViewer(undefined, {view: {autoResize: false}})
-const bzViewer = new BrillouinZoneViewer(undefined, {view: {autoResize: false}})
 
 // Contains details about the currently visualized system. Used to detect if a
 // reload is needed for the StructureViewer.
@@ -439,7 +434,6 @@ function Overview({section, def}) {
     return <Structure
       aspectRatio={1}
       className={style.structure}
-      viewer={viewer}
       system={system}
     ></Structure>
   // Structure visualization for idealized_structure
@@ -458,7 +452,6 @@ function Overview({section, def}) {
     return <Structure
       system={system}
       className={style.structure}
-      viewer={viewer}
       aspectRatio={1}>
     </Structure>
   // Band structure plot for section_k_band
@@ -476,7 +469,6 @@ function Overview({section, def}) {
             ></BandStructure>
           </Box>
           : <BrillouinZone
-            viewer={bzViewer}
             className={style.bands}
             data={section}
             aspectRatio={1}

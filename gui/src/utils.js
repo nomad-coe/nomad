@@ -335,3 +335,20 @@ export function authorList(entry, expanded) {
     return nameList(entry.authors || [], expanded)
   }
 }
+
+/**
+ * Returns whether the used browser supports WebGL.
+ * @return {boolean} Is WebGL supported.
+ */
+export function hasWebGLSupport() {
+  let w = window
+  try {
+    let canvas = document.createElement('canvas')
+    return !!(w.WebGLRenderingContext && (
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl'))
+    )
+  } catch (e) {
+    return false
+  }
+}
