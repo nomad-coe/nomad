@@ -40,6 +40,7 @@ from quantumespressoparser import QuantumEspressoParser
 from gaussianparser import GaussianParser
 from gpawparser import GPAWParser
 from octopusparser import OctopusParser
+from orcaparser import OrcaParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -216,16 +217,7 @@ parsers = [
     QuantumEspressoParser(),
     GaussianParser(),
     AbinitParser(),
-    LegacyParser(
-        name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
-        parser_class_name='orcaparser.OrcaParser',
-        mainfile_contents_re=(
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s+\* O   R   C   A \*\s*'
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*'
-            r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
-    ),
+    OrcaParser(),
     LegacyParser(
         name='parsers/castep', code_name='CASTEP', code_homepage='http://www.castep.org/',
         parser_class_name='castepparser.CastepParser',

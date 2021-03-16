@@ -139,6 +139,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         def get_value(quantity_def, default: Any = None, numpy: bool = False, unit=None) -> Any:
             try:
                 value = self.section_run.section_system[-1].m_get(quantity_def)
+                if value is None:
+                    return
                 if type(value) == np.ndarray and not numpy:
                     return value.tolist()
                 if isinstance(value, list) and numpy:
