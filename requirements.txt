@@ -21,6 +21,7 @@ aniso8601<=7
 ase==3.19.0
 python-keycloak
 elasticsearch-dsl==6.4.0
+pydantic
 jmespath
 
 # [parsing]
@@ -38,6 +39,7 @@ mdtraj
 mdanalysis
 nomadcore
 nomad_dos_fingerprints
+lxml
 
 # [infrastructure]
 optimade
@@ -64,6 +66,7 @@ bcrypt
 filelock
 cryptography==3.3.2
 pyjwt[crypto]==1.7.1
+cryptography==3.3.2
 jsonschema[format]
 runstats
 pyyaml
@@ -78,6 +81,9 @@ python-json-logger
 recommonmark
 jinja2
 rdflib
+fastapi
+uvicorn[standard]
+python-multipart
 
 # [dev]
 setuptools
@@ -100,3 +106,4 @@ names
 essential_generators
 twine
 python-gitlab
+devtools

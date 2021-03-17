@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.9.11"
+  label: "0.10.0"
   isTest: false
   isBeta: false
   usesBetaData: false
@@ -44,10 +44,6 @@ app:
   replicas: 1
   ## Number of gunicorn worker.
   worker: 10
-  ## Number of threads per gunicorn worker (for async workerClass)
-  threads: 4
-  ## Gunircon worker class (http://docs.gunicorn.org/en/stable/settings.html#worker-class)
-  workerClass: 'gthread'
   console_loglevel: INFO
   logstash_loglevel: INFO
   nomadNodeType: "public"
@@ -74,6 +70,7 @@ worker:
   storage: "disk"
   nomadNodeType: "worker"
   timeout: 7200
+  acks_late: false
 
 ## Everthing concerning the nomad gui
 gui:
@@ -144,7 +141,7 @@ kibana:
   host: nomad-flink-01.esc
 
 mail:
-  enabled: "false"
+  enabled: false
   host: 'localhost'
   port: 25
   from: 'support@nomad-lab.eu'

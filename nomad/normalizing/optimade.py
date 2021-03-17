@@ -23,6 +23,7 @@ import ase.data
 import ase.formula
 from string import ascii_uppercase
 import pint.quantity
+from collections import OrderedDict
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
@@ -30,6 +31,32 @@ from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
 from nomad.datamodel.metainfo.public import section_system
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
+
+
+def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
+    '''
+    Transformation function to use during re-indexing of entries with outdated optimade
+    format. Fixes formulas and periodic dimensions, removed entries with X in formula.
+    '''
+    optimade = entry.dft.optimade if entry.dft is not None else None
+    if optimade is None:
+        return entry
+
+    if optimade.chemical_formula_reduced is None or 'X' in optimade.chemical_formula_reduced:
+        entry.dft.m_remove_sub_section(DFTMetadata.optimade, -1)
+        return entry
+
+    optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(optimade.chemical_formula_reduced)
+    optimade.chemical_formula_anonymous = optimade_chemical_formula_anonymous(optimade.chemical_formula_reduced)
+    optimade.chemical_formula_hill = optimade_chemical_formula_hill(optimade.chemical_formula_hill)
+    optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
+    dimension_types = optimade.dimension_types
+    if dimension_types is None:
+        optimade.dimension_types = [0, 0, 0]
+    elif isinstance(dimension_types, int):
+        optimade.dimension_types = [1] * dimension_types + [0] * (3 - dimension_types)
+
+    return entry
 
 
 def optimade_chemical_formula_reduced(formula: str):
@@ -46,6 +73,43 @@ def optimade_chemical_formula_reduced(formula: str):
                 result_formula += str(element_count)
 
         return result_formula
+    except Exception:
+        return formula
+
+
+def optimade_chemical_formula_anonymous(formula: str):
+    if formula is None:
+        return formula
+
+    try:
+        ase_formula = ase.formula.Formula(formula).count()
+        result_formula = ''
+        for index, element_count in enumerate(reversed(sorted(ase_formula.values()))):
+            result_formula += ascii_uppercase[index]
+            if element_count > 1:
+                result_formula += str(element_count)
+
+        return result_formula
+    except Exception:
+        return formula
+
+
+def optimade_chemical_formula_hill(formula: str):
+    if formula is None:
+        return formula
+
+    try:
+        ase_formula = ase.formula.Formula(formula).count()
+        result: Dict[str, int] = OrderedDict()
+        if 'C' in ase_formula:
+            for symbol in 'CH':
+                if symbol in ase_formula:
+                    result[symbol] = ase_formula.pop(symbol)
+        for symbol, n in sorted(ase_formula.items()):
+            result[symbol] = n
+        return ''.join([
+            symbol + (str(n) if n > 1 else '')
+            for symbol, n in result.items()])
     except Exception:
         return formula
 
@@ -113,14 +177,11 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         # formulas
         optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(
             get_value(section_system.chemical_composition_reduced))
-        optimade.chemical_formula_hill = get_value(section_system.chemical_composition_bulk_reduced)
+        optimade.chemical_formula_hill = optimade_chemical_formula_hill(
+            get_value(section_system.chemical_composition))
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
-        optimade.chemical_formula_anonymous = ''
-        for i in range(len(optimade.elements)):
-            part = '%s' % ascii_uppercase[i % len(ascii_uppercase)]
-            if atom_counts[optimade.elements[i]] > 1:
-                part += str(atom_counts[optimade.elements[i]])
-            optimade.chemical_formula_anonymous += part
+        optimade.chemical_formula_anonymous = optimade_chemical_formula_anonymous(
+            optimade.chemical_formula_reduced)
 
         # sites
         optimade.nsites = len(nomad_species)

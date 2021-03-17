@@ -99,7 +99,7 @@ def rabbitmq_url():
 celery = NomadConfig(
     max_memory=64e6,  # 64 GB
     timeout=1800,  # 1/2 h
-    acks_late=True,
+    acks_late=False,
     routing=CELERY_QUEUE_ROUTING,
     priorities={
         'Upload.process_upload': 5,
@@ -114,6 +114,7 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     local_tmp='/tmp',
     prefix_size=2,
+    archive_version_suffix=None,
     working_directory=os.getcwd()
 )
 
@@ -165,7 +166,8 @@ services = NomadConfig(
 
 oasis = NomadConfig(
     central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/rae'
+    central_nomad_deployment_id='nomad-lab.eu/prod/rae',
+    allowed_users=None  # a list of usernames or user account emails
 )
 
 tests = NomadConfig(
@@ -193,7 +195,7 @@ def gui_url(page: str = None):
     return '%s/gui' % base
 
 
-def check_config():
+def _check_config():
     """Used to check that the current configuration is valid. Should only be
     called once after the final config is loaded.
 
@@ -283,9 +285,10 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.9.11',
+    version='0.10.0',
     commit=gitinfo.commit,
     release='devel',
+    deployment='standard',
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
@@ -305,8 +308,11 @@ parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
+max_entry_download = 500000
 use_empty_parsers = False
 reprocess_unmatched = True
+reprocess_rematch = True
+process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
 
@@ -322,7 +328,7 @@ def normalize_loglevel(value, default_level=logging.INFO):
             return getattr(logging, plain_value)
 
 
-transformations = {
+_transformations = {
     'console_log_level': normalize_loglevel,
     'logstash_level': normalize_loglevel
 }
@@ -332,113 +338,91 @@ transformations = {
 logger = logging.getLogger(__name__)
 
 
-def apply(key, value) -> None:
+def _apply(key, value, raise_error: bool = True) -> None:
     '''
-    Changes the config according to given key and value. The keys are interpreted as paths
-    to config values with ``_`` as a separator. E.g. ``fs_staging`` leading to
-    ``config.fs.staging``
+    Changes the config according to given key and value. The first part of a key
+    (with ``_`` as a separator) is interpreted as a group of settings. E.g. ``fs_staging``
+    leading to ``config.fs.staging``.
     '''
-    path = list(reversed(key.split('_')))
-    child_segment = None
-    current_value = None
-    child_config = globals()
-    child_key = None
-
+    full_key = key
     try:
-        while len(path) > 0:
-            if child_segment is None:
-                child_segment = path.pop()
-            else:
-                child_segment += '_' + path.pop()
-
-            if child_segment in child_config:
-                current_value = child_config[child_segment]
-
-            if current_value is None:
-                if len(path) == 0:
-                    raise KeyError
-
-                continue
-            if isinstance(current_value, NomadConfig):
-                child_config = current_value
-                current_value = None
-                child_segment = None
-            else:
-                if len(path) > 0:
-                    raise KeyError()
-
-                child_key = child_segment
-                break
-
-        if child_key is None or current_value is None:
-            raise KeyError()
-    except KeyError:
+        group_key, config_key = full_key.split('_', 1)
+    except Exception:
+        if raise_error:
+            logger.error(f'config key does not exist: {full_key}')
         return
 
-    if not isinstance(value, type(current_value)):
-        try:
-            value = transformations.get(key, type(current_value))(value)
-        except Exception as e:
-            logger.error(
-                'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
+    current = globals()
 
-    child_config[child_key] = value
+    if group_key not in current:
+        if key not in current:
+            if raise_error:
+                logger.error(f'config key does not exist: {full_key}')
+            return
+    else:
+        current = current[group_key]
+        if not isinstance(current, NomadConfig):
+            if raise_error:
+                logger.error(f'config key does not exist: {full_key}')
+            return
+
+        if config_key not in current:
+            if raise_error:
+                logger.error(f'config key does not exist: {full_key}')
+            return
+
+        key = config_key
+
+    try:
+        current_value = current[key]
+        if current_value is not None and not isinstance(value, type(current_value)):
+            value = _transformations.get(full_key, type(current_value))(value)
+
+        current[key] = value
+        logger.info(f'set config setting {full_key}={value}')
+    except Exception as e:
+        logger.error(f'cannot set config setting {full_key}={value}: {e}')
 
 
-def load_config(config_file: str = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')) -> None:
-    '''
-    Loads the configuration from the ``config_file`` and environment.
-
-    Arguments:
-        config_file: Override the configfile, default is file stored in env variable
-            NOMAD_CONFIG or ``nomad.yaml``.
-    '''
-    # load yaml and override defaults (only when not in test)
-    if os.path.exists(config_file):
-        with open(config_file, 'r') as stream:
-            try:
-                config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
-            except yaml.YAMLError as e:
-                logger.error('cannot read nomad config', exc_info=e)
-
-        def adapt(config, new_config, child_key=None):
-            for key, value in new_config.items():
-                if key in config:
-                    if child_key is None:
-                        qualified_key = key
-                    else:
-                        qualified_key = '%s_%s' % (child_key, key)
-
-                    current_value = config[key]
-                    if isinstance(value, dict) and isinstance(current_value, NomadConfig):
-                        adapt(current_value, value, qualified_key)
-                    else:
-                        if not isinstance(value, type(current_value)):
-                            try:
-                                value = transformations.get(qualified_key, type(current_value))(value)
-                            except Exception as e:
-                                logger.error(
-                                    'config key %s value %s has wrong type: %s' % (key, str(value), str(e)))
-                        else:
-                            config[key] = value
-                            logger.debug('override config key %s with value %s' % (key, str(value)))
-                else:
-                    logger.error('config key %s does not exist' % key)
-
-        if config_data is not None:
-            adapt(globals(), config_data)
-
-    # load env and override yaml and defaults
+def _apply_env_variables():
     kwargs = {
         key[len('NOMAD_'):].lower(): value
         for key, value in os.environ.items()
-        if key.startswith('NOMAD_')
-    }
+        if key.startswith('NOMAD_') and key != 'NOMAD_CONFIG'}
 
     for key, value in kwargs.items():
-        apply(key, value)
+        _apply(key, value, raise_error=False)
 
-    check_config()
+
+def _apply_nomad_yaml():
+    config_file = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')
+
+    if not os.path.exists(config_file):
+        return
+
+    with open(config_file, 'r') as stream:
+        try:
+            config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
+        except yaml.YAMLError as e:
+            logger.error(f'cannot read nomad config: {e}')
+            return
+
+    for key, value in config_data.items():
+        if isinstance(value, dict):
+            group_key = key
+            for key, value in value.items():
+                _apply(f'{group_key}_{key}', value)
+        else:
+            _apply(key, value)
+
+
+def load_config():
+    '''
+    Loads the configuration from nomad.yaml and environment.
+    '''
+    _apply_nomad_yaml()
+    _apply_env_variables()
+    _check_config()
 
 
 load_config()

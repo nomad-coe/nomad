@@ -104,12 +104,14 @@ export class EntryListUnstyled extends React.Component {
       overflow: 'auto'
     },
     entryDetails: {
-      paddingTop: theme.spacing(3),
-      paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3)
+      paddingTop: theme.spacing(2),
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2)
     },
     entryDetailsContents: {
-      display: 'flex'
+      display: 'flex',
+      maxWidth: 1024,
+      margin: 'auto'
     },
     entryDetailsRow: {
       paddingRight: theme.spacing(3)
@@ -121,9 +123,7 @@ export class EntryListUnstyled extends React.Component {
       flexShrink: 0,
       justifyContent: 'flex-end',
       marginBottom: theme.spacing(1),
-      marginLeft: theme.spacing(0.5),
-      marginRight: theme.spacing(0.5),
-      marginTop: theme.spacing(1)
+      marginTop: theme.spacing(2)
     }
   })
 
@@ -247,17 +247,6 @@ export class EntryListUnstyled extends React.Component {
     }
   }
 
-  selectionQuery() {
-    const { selected } = this.state
-    if (selected) {
-      return {
-        'calc_id': selected.join(',')
-      }
-    } else {
-      return this.props.query
-    }
-  }
-
   renderEntryDetails(row) {
     const { classes } = this.props
     const domain = (row.domain && domains[row.domain]) || domains.dft
@@ -265,7 +254,7 @@ export class EntryListUnstyled extends React.Component {
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <domain.EntryOverview data={row} />
+          <domain.EntryDetails data={row} />
         </div>
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
@@ -375,7 +364,7 @@ export class EntryListUnstyled extends React.Component {
     />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
-    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected} : query
+    const selectQuery = (selected && selected.length > 0) ? {calc_id: selected, owner: query['owner']} : query
     const createActions = (props, moreActions) => <React.Fragment>
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}

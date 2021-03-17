@@ -183,7 +183,8 @@ client:
   url: 'http://<your-host>/nomad-oasis/api'
 
 services:
-  api_base_path: '/nomad-oasis'
+  api_host: '<your-host>'
+  api_prefix: '/nomad-oasis'
   admin_user_id: '<your admin user id>'
 
 keycloak:
@@ -214,7 +215,7 @@ proxy is an nginx server and needs a configuration similar to this:
 ```none
 server {
     listen        80;
-    server_name   <your-host>;
+    server_name   www.example.com;
     proxy_set_header Host $host;
 
     location / {
@@ -259,6 +260,17 @@ server {
     location ~ \/api\/mirror {
         proxy_buffering off;
         proxy_read_timeout 600;
+        proxy_pass http://app:8000;
+    }
+
+    location ~ \/encyclopedia\/ {
+        proxy_intercept_errors on;
+        error_page 404 = @redirect_to_encyclopedia_index;
+        proxy_pass http://app:8000;
+    }
+
+    location @redirect_to_encyclopedia_index {
+        rewrite ^ /nomad-oasis/encyclopedia/index.html break;
         proxy_pass http://app:8000;
     }
 }
@@ -491,6 +503,28 @@ old index and database:
 ```sh
 docker exec nomad_oasis_elastic bash -c 'curl -X DELETE http://elastic:9200/nomad_fairdi'
 docker exec nomad_oasis_mongo bash -c 'mongo nomad_fairdi --eval "printjson(db.dropDatabase())"'
+```
+
+## Restricting access to your Oasis
+
+An Oasis works exactly the same way the official NOMAD works. It is open and everybody
+can access published data. Everybody with an account can upload data. This might not be
+what you want.
+
+Currently there are two ways to restrict access to your Oasis. First, you do not
+expose the Oasis to the public internet, e.g. you only make it available on an intra-net or
+through a VPN.
+
+Second, we offer a simple white-list mechanism. As the Oasis administrator your provide a
+list of accounts as part of your Oasis configuration. To use the Oasis, all users have to
+be logged in and be on your white list of allowed users. To enable white-listing, you
+can provide a list of NOMAD account email addresses in your `nomad.yaml` like this:
+
+```
+oasis:
+    allowed_users:
+        - user1@gmail.com
+        - user2@gmail.com
 ```
 
 ## NOMAD Oasis FAQ

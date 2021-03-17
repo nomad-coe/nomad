@@ -212,9 +212,9 @@ class Proc(Document, metaclass=ProcMetaclass):
 
         return self
 
-    def reset(self, worker_hostname: str = None):
+    def reset(self, worker_hostname: str = None, force: bool = False):
         ''' Resets the task chain. Assumes there no current running process. '''
-        assert not self.process_running
+        assert not self.process_running or force
 
         self.current_task = None
         self.process_status = None
@@ -337,7 +337,7 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.get_logger().info('started process')
         else:
             self.current_task = task
-            self.get_logger().info('successfully completed task')
+            self.get_logger().info('task completed successfully')
 
         self.save()
         return True
@@ -528,8 +528,8 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
         try:
             self = cls.get(self_id)
         except KeyError as e:
-            from nomad import app
-            if app.app.config['TESTING']:
+            from nomad.app import flask
+            if flask.app.config['TESTING']:
                 # This only happens in tests, where it is not always avoidable that
                 # tasks from old test-cases bleed over.
                 raise ProcObjectDoesNotExist()
@@ -586,7 +586,8 @@ def proc_task(task, cls_name, self_id, func_attr):
     try:
         self.process_status = PROCESS_RUNNING
         os.chdir(config.fs.working_directory)
-        deleted = func(self)
+        with utils.timer(logger, 'process executed on worker'):
+            deleted = func(self)
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
         self.fail(e)

@@ -1,0 +1,15 @@
+{
+    "debug": false,
+    "root_path": "/optimade",
+    "implementation": {
+        "name": "NOMAD's Optimade implementation",
+        "source_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR",
+        "maintainer": {"email": "markus.scheidgen@physik.hu-berlin.de"}
+    },
+    "provider": {
+        "name": "novel materials discovery (NOMAD)",
+        "description": "A FAIR data sharing platform for materials science data",
+        "prefix": "nmd",
+        "homepage": "https://nomad-lab.eu"
+    }
+}

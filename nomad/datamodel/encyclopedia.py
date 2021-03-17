@@ -593,7 +593,7 @@ class Properties(MSection):
         """,
         a_search=Search()
     )
-    energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[FastAccess], a_search='energies')
+    energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[FastAccess], a_search=Search())
     electronic_band_structure = Quantity(
         type=Reference(section_k_band.m_def),
         shape=[],
@@ -639,15 +639,15 @@ class Properties(MSection):
 class EncyclopediaMetadata(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
-        a_search='encyclopedia',
+        a_search=Search(),
         description="""
         Section which stores information for the NOMAD Encyclopedia.
         """
     )
-    material = SubSection(sub_section=Material.m_def, repeats=False, categories=[FastAccess], a_search='material')
-    method = SubSection(sub_section=Method.m_def, repeats=False, categories=[FastAccess], a_search='method')
-    properties = SubSection(sub_section=Properties.m_def, repeats=False, categories=[FastAccess], a_search='properties')
-    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, categories=[FastAccess], a_search='calculation')
+    material = SubSection(sub_section=Material.m_def, repeats=False, categories=[FastAccess], a_search=Search())
+    method = SubSection(sub_section=Method.m_def, repeats=False, categories=[FastAccess], a_search=Search())
+    properties = SubSection(sub_section=Properties.m_def, repeats=False, categories=[FastAccess], a_search=Search())
+    calculation = SubSection(sub_section=Calculation.m_def, repeats=False, categories=[FastAccess], a_search=Search())
     status = Quantity(
         type=MEnum("success", "unsupported_material_type", "unsupported_method_type", "unsupported_calculation_type", "invalid_metainfo", "failure"),
         description="""

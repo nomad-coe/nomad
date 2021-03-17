@@ -46,10 +46,6 @@ class ArchiveEntryView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-      paddingTop: theme.spacing(2),
-      paddingBottom: theme.spacing(2)
-    },
     archiveBrowser: {
       marginTop: theme.spacing(2)
     },
@@ -130,7 +126,7 @@ class ArchiveEntryView extends React.Component {
     }
 
     return (
-      <EntryPageContent className={classes.root}>
+      <EntryPageContent width={'100%'} maxWidth={'undefined'}>
         {
           data && typeof data !== 'string'
             ? <div className={classes.archiveBrowser}>

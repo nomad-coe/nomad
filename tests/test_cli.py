@@ -21,7 +21,6 @@ import pytest
 import click.testing
 import json
 import datetime
-import zipfile
 import time
 
 from nomad import search, processing as proc, files
@@ -29,7 +28,10 @@ from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
 
-from tests.app.test_app import BlueprintClient
+from tests.app.flask.test_app import BlueprintClient
+from tests.app.flask.conftest import (  # pylint: disable=unused-import
+    test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
+from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
 
 # TODO there is much more to test
 
@@ -65,13 +67,6 @@ class TestAdmin:
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
-
-    # def test_remove(self, reset_infra):
-    #     result = click.testing.CliRunner().invoke(
-    #         cli, ['admin', 'reset', '--remove', '--i-am-really-sure'], catch_exceptions=False)
-    #     assert result.exit_code == 0
-    #     # allow other test to re-establish a connection
-    #     mongoengine.disconnect_all()
 
     def test_clean(self, published):
         upload_id = published.upload_id
@@ -117,21 +112,6 @@ class TestAdmin:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
                 assert calc.calc_id in archive
 
-    def test_index(self, published):
-        upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
-        calc.metadata['comment'] = 'specific'
-        calc.save()
-
-        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 0
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'index', '--threads', '2'], catch_exceptions=False)
-        assert result.exit_code == 0
-        assert 'index' in result.stdout
-
-        assert search.SearchRequest().search_parameter('comment', 'specific').execute()['total'] == 1
-
     def test_delete_entry(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -143,6 +123,11 @@ class TestAdmin:
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
         assert Calc.objects(calc_id=calc.calc_id).first() is None
+
+
+def transform_for_index_test(calc):
+    calc.comment = 'specific'
+    return calc
 
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
@@ -203,24 +188,6 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
-    def test_msgpack(self, published):
-        upload_id = published.upload_id
-        upload_files = files.UploadFiles.get(upload_id=upload_id)
-        for access in ['public', 'restricted']:
-            zip_path = upload_files._file_object('archive', access, 'json', 'zip').os_path
-            with zipfile.ZipFile(zip_path, mode='w') as zf:
-                for i in range(0, 2):
-                    with zf.open('%d_%s.json' % (i, access), 'w') as f:
-                        f.write(json.dumps(dict(archive='test')).encode())
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'msgpack', upload_id], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert 'wrote msgpack archive' in result.stdout
-        with upload_files.read_archive('0_public') as archive:
-            assert archive['0_public'].to_dict() == dict(archive='test')
-
     def test_index(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -231,6 +198,21 @@ class TestAdminUploads:
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert 'index' in result.stdout
+
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+
+    def test_index_with_transform(self, published):
+        upload_id = published.upload_id
+        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+
+        result = click.testing.CliRunner().invoke(
+            cli, [
+                'admin', 'uploads', 'index',
+                '--transformer', 'tests.test_cli.transform_for_index_test',
+                upload_id],
+            catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 

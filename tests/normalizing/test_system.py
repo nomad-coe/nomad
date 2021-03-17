@@ -20,7 +20,7 @@ import ase.build
 
 from nomad import datamodel, config
 from nomad.datamodel import EntryArchive
-from nomad.app import dump_json
+from nomad.app.flask import dump_json
 from nomad.datamodel.metainfo.public import section_springer_material as SpringerMaterial
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
@@ -241,7 +241,7 @@ def test_vasp_incar_system():
     archive = run_normalize(archive)
     expected_value = 'SrTiO3'  # material's formula in vasp.xml
 
-    backend_value = archive.section_run[0].section_method[0].x_vasp_incar_SYSTEM
+    backend_value = archive.section_run[0].section_method[0].x_vasp_incar_in['SYSTEM']
 
     assert expected_value == backend_value
 

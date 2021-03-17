@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Generator, Any, Dict, Tuple, Iterable
+from typing import Generator, Any, Dict, Tuple, Iterable, List
 import os
 import os.path
 import shutil
@@ -25,7 +25,7 @@ import itertools
 import zipfile
 import re
 
-from nomad import config, datamodel
+from nomad import config, datamodel, utils
 from nomad.files import DirectoryObject, PathObject
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
     ArchiveBasedStagingUploadFiles
@@ -445,6 +445,25 @@ class TestPublicUploadFiles(UploadFilesContract):
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
+    def test_archive_version_suffix(self, monkeypatch, test_upload_id):
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', 'test_suffix')
+        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs='rp')
+        upload_files.pack(entries)
+        upload_files.delete()
+
+        public_upload_files = PublicUploadFiles(test_upload_id, is_authorized=lambda: False)
+
+        assert os.path.exists(public_upload_files.join_file('raw-public.plain.zip').os_path)
+        assert os.path.exists(public_upload_files.join_file('raw-restricted.plain.zip').os_path)
+        assert not os.path.exists(public_upload_files.join_file('raw-public-test_suffix.plain.zip').os_path)
+        assert not os.path.exists(public_upload_files.join_file('raw-restricted-test_suffix.plain.zip').os_path)
+        assert os.path.exists(public_upload_files.join_file('archive-public-test_suffix.msg.msg').os_path)
+        assert os.path.exists(public_upload_files.join_file('archive-restricted-test_suffix.msg.msg').os_path)
+        assert not os.path.exists(public_upload_files.join_file('archive-public-test.msg.msg').os_path)
+        assert not os.path.exists(public_upload_files.join_file('archive-restricted.msg.msg').os_path)
+
+        assert_upload_files(test_upload_id, entries, PublicUploadFiles)
+
 
 def assert_upload_files(
         upload_id: str, entries: Iterable[datamodel.EntryMetadata], cls,
@@ -480,3 +499,88 @@ def assert_upload_files(
             assert calc.with_embargo or isinstance(upload_files, StagingUploadFiles)
 
     upload_files.close()
+
+
+def create_test_upload_files(
+        upload_id: str,
+        archives: List[datamodel.EntryArchive],
+        published: bool = True,
+        template_files: str = example_file,
+        template_mainfile: str = example_file_mainfile) -> UploadFiles:
+    '''
+    Creates an upload_files object and the underlying files for test/mock purposes.
+
+    Arguments:
+        upload_id: The upload id for the upload. Will generate a random UUID if None.
+        archives: A list of class:`datamodel.EntryArchive` metainfo objects. This will
+            be used to determine the mainfiles. Will create respective directories and
+            copy the template calculation to create raw files for each archive.
+            Will also be used to fill the archives in the create upload.
+        published: Creates a :class:`PublicUploadFiles` object with published files
+            instead of a :class:`StagingUploadFiles` object with staging files. Default
+            is published.
+        template_files: A zip file with example files in it. One directory will be used
+            as a template. It will be copied for each given archive.
+        template_mainfile: Path of the template mainfile within the given template_files.
+    '''
+    if upload_id is None: upload_id = utils.create_uuid()
+    if archives is None: archives = []
+
+    upload_files = ArchiveBasedStagingUploadFiles(
+        upload_id, upload_path=template_files, create=True)
+
+    upload_files.extract()
+
+    upload_raw_files = upload_files.join_dir('raw')
+    source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path
+
+    for archive in archives:
+        # create a copy of the given template files for each archive
+        mainfile = archive.section_metadata.mainfile
+        assert mainfile is not None, 'Archives to create test upload must have a mainfile'
+        target = upload_raw_files.join_file(os.path.dirname(mainfile)).os_path
+        if os.path.exists(target):
+            for file_ in os.listdir(source):
+                shutil.copy(os.path.join(source, file_), target)
+        else:
+            shutil.copytree(source, target)
+        os.rename(
+            os.path.join(target, os.path.basename(template_mainfile)),
+            os.path.join(target, os.path.basename(mainfile)))
+
+        # create an archive "file" for each archive
+        calc_id = archive.section_metadata.calc_id
+        assert calc_id is not None, 'Archives to create test upload must have a calc id'
+        upload_files.write_archive(calc_id, archive.m_to_dict())
+
+    # remove the template
+    shutil.rmtree(source)
+
+    if published:
+        upload_files.pack([archive.section_metadata for archive in archives])
+        upload_files.delete()
+        return UploadFiles.get(upload_id)
+
+    return upload_files
+
+
+def test_test_upload_files(raw_files_infra):
+    upload_id = utils.create_uuid()
+    archives: datamodel.EntryArchive = []
+    for index in range(0, 3):
+        archive = datamodel.EntryArchive()
+        metadata = archive.m_create(datamodel.EntryMetadata)
+        metadata.calc_id = 'example_calc_id_%d' % index
+        metadata.mainfile = 'test/test/calc_%d/mainfile_%d.json' % (index, index)
+        archives.append(archive)
+
+    upload_files = create_test_upload_files(upload_id, archives)
+
+    try:
+        assert_upload_files(
+            upload_id,
+            [archive.section_metadata for archive in archives],
+            PublicUploadFiles)
+    finally:
+        if upload_files.exists():
+            upload_files.delete()

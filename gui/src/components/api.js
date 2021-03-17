@@ -513,7 +513,7 @@ class Api {
     this.onStartLoading()
     return this.swagger()
       .then(client => client.apis.repo.search({
-        exclude: ['atoms', 'only_atoms', 'dft.files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
+        exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
         ...search}))
       .catch(handleApiError)
       .then(response => response.body)

@@ -28,13 +28,13 @@ import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
-import { ErrorHandler, ErrorCard } from '../ErrorHandler'
+import { ErrorHandler } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
-import { StructureViewer, BrillouinZoneViewer } from '@lauri-codes/materia'
 import Markdown from '../Markdown'
 import { UnitSelector } from './UnitSelector'
 import { convertSI } from '../../utils'
 import { conversionMap } from '../../units'
+import { electronicRange } from '../../config'
 
 export const configState = atom({
   key: 'config',
@@ -61,10 +61,6 @@ export const unitsState = atom({
   key: 'units',
   default: defaults
 })
-
-// Shared instance of the StructureViewer
-const viewer = new StructureViewer(undefined, {view: {autoResize: false}})
-const bzViewer = new BrillouinZoneViewer(undefined, {view: {autoResize: false}})
 
 // Contains details about the currently visualized system. Used to detect if a
 // reload is needed for the StructureViewer.
@@ -378,20 +374,25 @@ QuantityValue.propTypes = ({
 function Overview({section, def}) {
   // States
   const [mode, setMode] = useState('bs')
-  const [warningIgnored, setWarningIgnored] = useState(false)
+  const units = useRecoilValue(unitsState)
 
   // Styles
   const useStyles = makeStyles(
     {
       bands: {
         width: '30rem',
-        height: '30rem'
+        height: '30rem',
+        margin: 'auto'
+      },
+      structure: {
+        width: '20rem',
+        height: '20rem',
+        margin: 'auto'
       },
       dos: {
         width: '20rem',
-        height: '40rem'
-      },
-      error: {
+        height: '40rem',
+        margin: 'auto'
       },
       radio: {
         display: 'flex',
@@ -415,118 +416,98 @@ function Overview({section, def}) {
     let tmpIndex = tmp.indexOf('/')
     let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
 
-    let system
-    let positionsOnly = false
-
-    // Do not attempt to perform visualization if size is too big
+    // The section is incomplete, we leave the overview empty
     if (!section.atom_species) {
-      // the section is incomplete, we leave the overview empty
-      return ''
+      return null
     }
     const nAtoms = section.atom_species.length
-    // Loading exact same system, no need to reload visualizer
-    if (sectionPath === visualizedSystem.sectionPath && index === visualizedSystem.index) {
-    // Loading same system with different positions
-    } else if (sectionPath === visualizedSystem.sectionPath && nAtoms === visualizedSystem.nAtoms) {
-      positionsOnly = true
-      system = {
-        positions: convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false)
-      }
-    // Loading a completely new system. When trying to visualize the system for
-    // the first time, check the system size and for large systems ask the user
-    // for permission.
-    } else {
-      const sizeLimit = 300
-      if (nAtoms >= sizeLimit && !warningIgnored) {
-        return <ErrorCard
-          message={`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
-          className={style.error}
-          actions={[{label: 'Yes', onClick: e => setWarningIgnored(true)}]}
-        >
-        </ErrorCard>
-      }
-      system = {
-        'species': section.atom_species,
-        'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-        'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
-        'pbc': section.configuration_periodic_dimensions
-      }
+    let system = {
+      'species': section.atom_species,
+      'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+      'pbc': section.configuration_periodic_dimensions
     }
     visualizedSystem.sectionPath = sectionPath
     visualizedSystem.index = index
     visualizedSystem.nAtoms = nAtoms
 
-    return <ErrorHandler
-      message='Could not load structure viewer.'
-      className={style.error}
-    >
-      <Structure
-        viewer={viewer}
-        system={system}
-        positionsOnly={positionsOnly}
-      ></Structure>
-    </ErrorHandler>
+    return <Structure
+      aspectRatio={1}
+      className={style.structure}
+      system={system}
+    ></Structure>
+  // Structure visualization for idealized_structure
+  } else if (def.name === 'IdealizedStructure') {
+    // The section is incomplete, we leave the overview empty
+    if (!section.atom_labels) {
+      return null
+    }
+    const system = {
+      species: section.atom_labels,
+      cell: section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      positions: section.atom_positions,
+      fractional: true,
+      pbc: section.periodicity
+    }
+    return <Structure
+      system={system}
+      className={style.structure}
+      aspectRatio={1}>
+    </Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
-    return <>
-      {mode === 'bs'
-        ? <Box>
-          <ErrorHandler
-            message="Could not load the band structure."
-            className={style.error}
-          >
+    return section.band_structure_kind !== 'vibrational'
+      ? <>
+        {mode === 'bs'
+          ? <Box>
             <BandStructure
               className={style.bands}
               data={section}
+              layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
               aspectRatio={1}
               unitsState={unitsState}
             ></BandStructure>
-          </ErrorHandler>
-        </Box>
-        : <>
-          <ErrorHandler
-            message="Could not load the Brillouin zone."
-            className={style.error}
-          >
-            <BrillouinZone
-              viewer={bzViewer}
-              className={style.bands}
-              data={section}
-              aspectRatio={1}
-            ></BrillouinZone>
-          </ErrorHandler>
-        </>
-      }
-      <FormControl component="fieldset" className={style.radio}>
-        <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
-          <FormControlLabel
-            value="bs"
-            control={<Radio color="primary" />}
-            label="Band structure"
-            labelPlacement="end"
-          />
-          <FormControlLabel
-            value="bz"
-            control={<Radio color="primary" />}
-            label="Brillouin zone"
-            labelPlacement="end"
-          />
-        </RadioGroup>
-      </FormControl>
-    </>
+          </Box>
+          : <BrillouinZone
+            className={style.bands}
+            data={section}
+            aspectRatio={1}
+          ></BrillouinZone>
+        }
+        <FormControl component="fieldset" className={style.radio}>
+          <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
+            <FormControlLabel
+              value="bs"
+              control={<Radio color="primary" />}
+              label="Band structure"
+              labelPlacement="end"
+            />
+            <FormControlLabel
+              value="bz"
+              control={<Radio color="primary" />}
+              label="Brillouin zone"
+              labelPlacement="end"
+            />
+          </RadioGroup>
+        </FormControl>
+      </>
+      : <Box>
+        <BandStructure
+          className={style.bands}
+          data={section}
+          aspectRatio={1}
+          unitsState={unitsState}
+        ></BandStructure>
+      </Box>
   // DOS plot for section_dos
   } else if (def.name === 'Dos') {
-    return <ErrorHandler
-      message="Could not load the density of states"
-      className={style.error}
-    >
-      <DOS
-        className={style.dos}
-        data={section}
-        aspectRatio={1 / 2}
-        unitsState={unitsState}
-      ></DOS>
-    </ErrorHandler>
+    return <DOS
+      className={style.dos}
+      layout={section.dos_kind === 'vibrational' ? undefined : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+      data={section}
+      aspectRatio={1 / 2}
+      unitsState={unitsState}
+    ></DOS>
   }
   return null
 }

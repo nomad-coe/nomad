@@ -27,7 +27,6 @@ import time
 import shutil
 import os.path
 import datetime
-from bravado.client import SwaggerClient
 from flask import request, g
 import elasticsearch.exceptions
 from typing import List
@@ -36,7 +35,7 @@ import logging
 import warnings
 import zipfile
 
-from nomad import config, infrastructure, processing, app, utils
+from nomad import config, infrastructure, processing, utils
 from nomad.datamodel import EntryArchive
 from nomad.utils import structlogging
 from nomad.datamodel import User
@@ -45,10 +44,12 @@ from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import example_file, empty_file
-from tests.bravado_flask import FlaskTestHttpClient
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
+
+elastic_test_calc_index = 'nomad_fairdi_calcs_test'
+elastic_test_material_index = 'nomad_fairdi_materials_test'
 
 warnings.simplefilter("ignore")
 
@@ -78,19 +79,25 @@ def raw_files_infra():
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
     config.fs.prefix_size = 2
+    clear_raw_files()
+
+
+@pytest.fixture(scope='module')
+def raw_files_module(raw_files_infra):
+    ''' Provides cleaned out files directory structure per module. Clears files before test. '''
+    clear_raw_files()
+
+
+@pytest.fixture(scope='function')
+def raw_files_function(raw_files_infra):
+    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    clear_raw_files()
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
-    ''' Provides cleaned out files directory structure per function. Clears files after test. '''
-    directories = [config.fs.staging, config.fs.public, config.fs.tmp]
-    for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-    try:
-        yield
-    finally:
-        clear_raw_files()
+    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    clear_raw_files()
 
 
 def clear_raw_files():
@@ -101,21 +108,7 @@ def clear_raw_files():
         except FileNotFoundError:
             pass
 
-
-@pytest.fixture(scope='session')
-def session_client():
-    app.app.config['TESTING'] = True
-    client = app.app.test_client()
-
-    yield client
-
-
-@pytest.fixture(scope='function')
-def client(mongo, session_client):
-    app.app.config['TESTING'] = True
-    client = app.app.test_client()
-
-    yield client
+        os.makedirs(directory)
 
 
 @pytest.fixture(scope='session')
@@ -174,57 +167,100 @@ def mongo_infra(monkeysession):
     return infrastructure.setup_mongo()
 
 
+def clear_mongo(mongo_infra):
+    # Some test cases need to reset the database connection
+    infrastructure.mongo_client.drop_database('test_db')
+    return infrastructure.mongo_client
+
+
+@pytest.fixture(scope='module')
+def mongo_module(mongo_infra):
+    ''' Provides a cleaned mocked mongo per module. '''
+    return clear_mongo(mongo_infra)
+
+
+@pytest.fixture(scope='function')
+def mongo_function(mongo_infra):
+    ''' Provides a cleaned mocked mongo per function. '''
+    return clear_mongo(mongo_infra)
+
+
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
     ''' Provides a cleaned mocked mongo per function. '''
-    # Some test cases need to reset the database connection
-    if infrastructure.mongo_client != mongo_infra:
-        mongo_infra = infrastructure.mongo_client
-    mongo_infra.drop_database('test_db')
-    return mongo_infra
+    return clear_mongo(mongo_infra)
 
 
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    monkeysession.setattr('nomad.config.elastic.index_name', 'nomad_fairdi_calcs_test')
-    monkeysession.setattr('nomad.config.elastic.materials_index_name', 'nomad_fairdi_materials_test')
+    monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
+    monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
     try:
         return infrastructure.setup_elastic()
     except Exception:
         # try to delete index, error might be caused by changed mapping
-        from elasticsearch_dsl import connections
-        connections.create_connection(hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]) \
-            .indices.delete(index='nomad_fairdi_calcs_test')
-        return infrastructure.setup_elastic()
+        return clear_elastic_infra()
 
 
-def clear_elastic(elastic):
+def clear_elastic_infra():
+    from elasticsearch_dsl import connections
+    connection = connections.create_connection(
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
+
     try:
-        elastic.delete_by_query(
-            index='nomad_fairdi_calcs_test', body=dict(query=dict(match_all={})),
+        connection.indices.delete(index=elastic_test_calc_index)
+    except Exception:
+        pass
+
+    try:
+        connection.indices.delete(index=elastic_test_material_index)
+    except Exception:
+        pass
+
+    return infrastructure.setup_elastic()
+
+
+def clear_elastic(elastic_infra):
+    try:
+        elastic_infra.delete_by_query(
+            index=elastic_test_calc_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
-        elastic.delete_by_query(
-            index='nomad_fairdi_materials_test', body=dict(query=dict(match_all={})),
+        elastic_infra.delete_by_query(
+            index=elastic_test_material_index, body=dict(query=dict(match_all={})),
             wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
         # it is unclear why this happens, but it happens at least once, when all tests
         # are executed
-        infrastructure.setup_elastic()
-
-
-@pytest.fixture(scope='function')
-def elastic(elastic_infra):
-    ''' Provides a clean elastic per function. Clears elastic before test. '''
-    clear_elastic(elastic_infra)
+        clear_elastic_infra()
 
     assert infrastructure.elastic_client is not None
     return elastic_infra
 
 
+@pytest.fixture(scope='module')
+def elastic_module(elastic_infra):
+    ''' Provides a clean elastic per module. Clears elastic before test. '''
+    return clear_elastic(elastic_infra)
+
+
+@pytest.fixture(scope='function')
+def elastic_function(elastic_infra):
+    ''' Provides a clean elastic per function. Clears elastic before test. '''
+    return clear_elastic(elastic_infra)
+
+
+@pytest.fixture(scope='function')
+def elastic(elastic_infra):
+    ''' Provides a clean elastic per function. Clears elastic before test. '''
+    return clear_elastic(elastic_infra)
+
+
 def test_user_uuid(handle):
     return '00000000-0000-0000-0000-00000000000%d' % handle
 
+
+admin_user_id = test_user_uuid(0)
 
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
@@ -238,11 +274,18 @@ class KeycloakMock:
         self.id_counter = 2
         self.users = dict(**test_users)
 
-    def authorize_flask(self, *args, **kwargs):
-        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
+    def tokenauth(self, access_token: str):
+        if access_token in self.users:
+            return User(**self.users[access_token])
+        else:
+            raise infrastructure.KeycloakError('user does not exist')
+
+    def auth(self, headers, **kwargs):
+        if 'Authorization' in headers and headers['Authorization'].startswith('Bearer '):
             user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            g.oidc_access_token = user_id
-            g.user = User(**self.users[user_id])
+            return User(**self.users[user_id]), user_id
+
+        return None, None
 
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
@@ -268,6 +311,13 @@ class KeycloakMock:
         return [
             User(**test_user) for test_user in self.users.values()
             if query in ' '.join([str(value) for value in test_user.values()])]
+
+    def basicauth(self, username: str, password: str) -> str:
+        for user in self.users.values():
+            if user['username'] == username:
+                return user['user_id']
+
+        raise infrastructure.KeycloakError()
 
     @property
     def access_token(self):
@@ -314,60 +364,6 @@ def other_test_user():
 @pytest.fixture(scope='module')
 def admin_user():
     return User(**test_users[test_user_uuid(0)])
-
-
-def create_auth_headers(user: User):
-    return {
-        'Authorization': 'Bearer %s' % user.user_id
-    }
-
-
-@pytest.fixture(scope='module')
-def test_user_auth(test_user: User):
-    return create_auth_headers(test_user)
-
-
-@pytest.fixture(scope='module')
-def other_test_user_auth(other_test_user: User):
-    return create_auth_headers(other_test_user)
-
-
-@pytest.fixture(scope='module')
-def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user)
-
-
-@pytest.fixture(scope='function')
-def bravado(client, test_user_auth):
-    http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-    return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-
-@pytest.fixture(scope='function')
-def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def test_user_bravado_client(client, test_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def oasis_central_nomad_client(client, test_user_auth, monkeypatch):
-    def create_client(*args, **kwargs):
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)
 
 
 @pytest.fixture(scope='function')

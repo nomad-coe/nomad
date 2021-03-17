@@ -25,8 +25,13 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function DOS({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+const useStyles = makeStyles({
+  root: {}
+})
+
+function DOS({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
@@ -37,18 +42,15 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
         title: {
           text: `Energy (${convertSILabel('joule', units)})`
         }
+      },
+      xaxis: {
+        showexponent: 'first'
       }
     }
     return mergeObjects(layout, defaultLayout)
   }, [layout, units])
 
   // Styles
-  const useStyles = makeStyles(
-    {
-      root: {
-      }
-    }
-  )
   const style = useStyles(classes)
   const theme = useTheme()
 
@@ -123,10 +125,7 @@ export default function DOS({data, layout, aspectRatio, className, classes, onRe
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
-        onRelayout={onRelayout}
-        onAfterPlot={onAfterPlot}
-        onRedraw={onRedraw}
-        onRelayouting={onRelayouting}
+        {...other}
       >
       </Plot>
     </Box>
@@ -139,9 +138,7 @@ DOS.propTypes = {
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  onAfterPlot: PropTypes.func,
-  onRedraw: PropTypes.func,
-  onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
+
+export default withErrorHandler(DOS, 'Could not load density of states.')

@@ -41,7 +41,7 @@ def qa(skip_tests: bool, exitfirst: bool):
     click.echo('Run code style checks ...')
     ret_code += os.system('python -m pycodestyle --ignore=E501,E701,E731 nomad tests')
     click.echo('Run linter ...')
-    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin nomad tests')
+    ret_code += os.system('python -m pylint --load-plugins=pylint_mongoengine,nomad.metainfo.pylint_plugin nomad tests')
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy --ignore-missing-imports --follow-imports=silent --no-strict-optional nomad tests')
 
@@ -223,6 +223,10 @@ def update_parser_readmes(parser):
         local_mdata = ddir + 'metadata.yaml'
         with open(local_mdata, 'r') as mdata_f:
             mdata = yaml.load(mdata_f, Loader=yaml.FullLoader)
+            if mdata.get('codeName', '').strip() == '':
+                mdata['codeName'] = os.path.basename(os.path.dirname(ddir))
+            if 'preamble' not in mdata:
+                mdata['preamble'] = ''
 
         # Find & Replace Parser`s metadata on its README file
         local_readme = ddir + local_fn
@@ -232,9 +236,9 @@ def update_parser_readmes(parser):
                 if key in ignore:
                     continue
 
-                print('\tReplacing', key)
                 find = r'\$' + key + r'\$'
-                replace = mdata.get(key, '')
+                replace = mdata[key]
+                print(f'\tReplacing {key} with {replace}')
 
                 if key == 'parserSpecific':
                     if mdata[key] != '':
@@ -261,7 +265,7 @@ def update_parser_readmes(parser):
 
             # save file
             local.seek(0)  # go to the top
-            local.write(body)
+            local.write(body.strip())
             local.truncate()
 
 

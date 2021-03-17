@@ -25,26 +25,26 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { convertSI, distance, mergeObjects } from '../../utils'
+import { withErrorHandler } from '../ErrorHandler'
 
-export default function BandStructure({data, layout, aspectRatio, className, classes, onRelayout, onAfterPlot, onRedraw, onRelayouting, unitsState}) {
+const useStyles = makeStyles({
+  root: {
+  }
+})
+
+function BandStructure({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const units = useRecoilValue(unitsState)
 
   // Styles
-  const useStyles = makeStyles(
-    {
-      root: {
-      }
-    }
-  )
   const style = useStyles(classes)
   const theme = useTheme()
 
   // Determine the final plotted data based on the received data. Will work with
   // normalized and unnormalized data.
   useEffect(() => {
-    if (data === undefined) {
+    if (!data) {
       return
     }
 
@@ -157,7 +157,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
     }
 
     setFinalData(plotData)
-  }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
+  }, [data, theme, units])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -172,10 +172,14 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
         title: {
           text: 'Energy (eV)'
         }
+      },
+      title: {
+        text: {
+          text: 'Band structure'
+        }
       }
     }
-    mergeObjects(layout, defaultLayout)
-    return defaultLayout
+    return mergeObjects(layout, defaultLayout)
   }, [layout])
 
   // Compute layout that depends on data.
@@ -231,7 +235,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
 
   // Merge the given layout and layout computed from data
   const finalLayout = useMemo(() => {
-    return mergeObjects(computedLayout, tmpLayout, 'shallow')
+    return mergeObjects(computedLayout, tmpLayout)
   }, [computedLayout, tmpLayout])
 
   return (
@@ -241,10 +245,7 @@ export default function BandStructure({data, layout, aspectRatio, className, cla
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
-        onRelayout={onRelayout}
-        onAfterPlot={onAfterPlot}
-        onRedraw={onRedraw}
-        onRelayouting={onRelayouting}
+        {...other}
       >
       </Plot>
     </Box>
@@ -257,9 +258,7 @@ BandStructure.propTypes = {
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  onAfterPlot: PropTypes.func,
-  onRedraw: PropTypes.func,
-  onRelayout: PropTypes.func,
-  onRelayouting: PropTypes.func,
   unitsState: PropTypes.object // Recoil atom containing the unit configuration
 }
+
+export default withErrorHandler(BandStructure, 'Could not load band structure.')

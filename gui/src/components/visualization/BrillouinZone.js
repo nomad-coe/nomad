@@ -16,13 +16,10 @@
  * limitations under the License.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Box,
-  IconButton,
-  Tooltip,
   Typography
 } from '@material-ui/core'
 import {
@@ -33,15 +30,22 @@ import {
 } from '@material-ui/icons'
 import { BrillouinZoneViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
+import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
+import Actions from '../Actions'
+import clsx from 'clsx'
 
-export default function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
+/**
+ * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
+ */
+function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
   // States
   const [fullscreen, setFullscreen] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Variables
+  // Refs
   const refViewer = useRef(null)
-  const refCanvas = useRef(null)
 
   // Styles
   const useStyles = makeStyles((theme) => {
@@ -86,8 +90,7 @@ export default function BrillouinZone({className, classes, options, viewer, data
   // used. This is the recommended way to monitor reference changes as a simple
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
-  const measuredRef = useCallback(node => {
-    refCanvas.current = node
+  const refCanvas = useCallback(node => {
     if (node === null) {
       return
     }
@@ -95,11 +98,12 @@ export default function BrillouinZone({className, classes, options, viewer, data
       return
     }
     refViewer.current.changeHostElement(node, true, true)
+    refCanvas.current = node
   }, [])
 
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
-  // https://lauri-codes.github.io/materia/viewers/brillouinzoneviewer
+  // https://nomad-coe.github.io/materia/viewers/brillouinzoneviewer
   const theme = useTheme()
   useEffect(() => {
     let viewerOptions
@@ -166,7 +170,7 @@ export default function BrillouinZone({className, classes, options, viewer, data
 
   // Called only on first render to load the given structure.
   useEffect(() => {
-    if (data === undefined) {
+    if (!data) {
       return
     }
 
@@ -211,7 +215,7 @@ export default function BrillouinZone({className, classes, options, viewer, data
     refViewer.current.fitToCanvas()
     refViewer.current.saveReset()
     refViewer.current.reset()
-
+    setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -229,37 +233,30 @@ export default function BrillouinZone({className, classes, options, viewer, data
     refViewer.current.render()
   }, [])
 
+  if (loading) {
+    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+  }
+
+  // List of actionable buttons for the viewer
+  const actions = [
+    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
+    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
+    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
+  ]
+
   const content = <Box className={style.container}>
+    {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
+    <div className={style.viewerCanvas} ref={refCanvas}></div>
     <div className={style.header}>
-      {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
-      <div className={style.spacer}></div>
-      <Tooltip title="Reset view">
-        <IconButton className={style.iconButton} onClick={handleReset}>
-          <Replay />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title="Toggle fullscreen">
-        <IconButton className={style.iconButton} onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Capture image">
-        <IconButton className={style.iconButton} onClick={takeScreencapture}>
-          <CameraAlt />
-        </IconButton>
-      </Tooltip>
+      <Actions actions={actions}></Actions>
     </div>
-    <div className={style.viewerCanvas} ref={measuredRef}></div>
   </Box>
 
-  return (
-    <Box className={clsx(style.root, className)} >
-      <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-        {content}
-      </Floatable>
-    </Box>
-  )
+  return <Box className={clsx(style.root, className)} >
+    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
+      {content}
+    </Floatable>
+  </Box>
 }
 
 BrillouinZone.propTypes = {
@@ -275,3 +272,5 @@ BrillouinZone.defaultProps = {
   aspectRatio: 4 / 3,
   captureName: 'brillouin_zone'
 }
+
+export default withWebGLErrorHandler(withErrorHandler(BrillouinZone, 'Could not load Brillouin zone.'))

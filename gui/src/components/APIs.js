@@ -17,7 +17,7 @@
  */
 import { makeStyles } from '@material-ui/core'
 import React from 'react'
-import { apiBase, appBase, optimadeBase } from '../config'
+import { apiBase, appBase } from '../config'
 import Markdown from './Markdown'
 
 const useStyles = makeStyles(theme => ({
@@ -37,9 +37,20 @@ export default function About() {
       # APIs
 
       NOMAD's Application Programming Interface (API) allows you to access NOMAD data
-      and functions programatically.
+      and functions programatically. For all APIs, we offer dashboards that let you use
+      each API interactively, right in your browser.
 
-      ## NOMAD's main API
+      ## NOMAD's new (Version 1) API
+
+      - [API dashboard](${apiBase}/v1/extensions/docs)
+      - [API documentation](${apiBase}/v1/extensions/redoc)
+
+      We started to implement a more consise and easier to use API for access NOMAD
+      data. This will step-by-step reimplement all functions of NOMAD's old main API.
+      At some point, it will replace it entirely. For new users, we recommend to start
+      using this API. API Dashboard and documentation contain a tutorial on how to get started.
+
+      ## NOMAD's main (Version 0) API
 
       - [API dashboard](${apiBase}/)
 
@@ -54,7 +65,9 @@ export default function About() {
 
       ## OPTIMADE
 
-      - [OPTIMADE API dashboard](${optimadeBase}/)
+      - [OPTIMADE API overview page](${appBase}/optimade/)
+      - [OPTIMADE API dashboard](${appBase}/optimade/v1/extensions/docs)
+      - [OPTIMADE API documentation](${appBase}/optimade/v1/extensions/redoc)
 
       [OPTIMADE](https://www.optimade.org/) is an
       open API standard for materials science databases. This API can be used to search

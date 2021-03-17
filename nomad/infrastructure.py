@@ -23,6 +23,7 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 '''
 
+from typing import Tuple, Dict
 import os.path
 import os
 import shutil
@@ -36,7 +37,6 @@ from keycloak import KeycloakOpenID, KeycloakAdmin
 from keycloak.exceptions import KeycloakAuthenticationError, KeycloakGetError
 import json
 import jwt
-from flask import g, request
 import basicauth
 from datetime import datetime
 import re
@@ -134,6 +134,9 @@ def setup_elastic(create_mappings=True):
     return elastic_client
 
 
+class KeycloakError(Exception): pass
+
+
 class Keycloak():
     '''
     A class that encapsulates all keycloak related functions for easier mocking and
@@ -171,73 +174,89 @@ class Keycloak():
 
         return self.__public_keys
 
-    def authorize_flask(self, basic: bool = True) -> str:
+    def auth(self, headers: Dict[str, str], allow_basic: bool = False) -> Tuple[object, str]:
         '''
-        Authorizes the current flask request with keycloak. Uses either Bearer or Basic
-        authentication, depending on available headers in the request. Bearer auth is
-        basically offline (besides retrieving and caching keycloaks public key for signature
-        validation). Basic auth causes authentication agains keycloak with each request.
+        Performs authentication based on the provided headers. Either basic or bearer.
 
-        Will set ``g.user``, either with None or user data from the respective OIDC token.
+        Returns:
+            The user and its access_token
 
-        Returns: An error message or None
+        Raises:
+            KeycloakError
         '''
-        g.oidc_access_token = None
-        if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
-            g.oidc_access_token = request.headers['Authorization'].split(None, 1)[1].strip()
-        elif 'Authorization' in request.headers and request.headers['Authorization'].startswith('Basic '):
-            if not basic:
-                return 'Basic authentication not allowed, use Bearer token instead'
 
-            try:
-                auth = request.headers['Authorization'].split(None, 1)[1].strip()
-                username, password = basicauth.decode(auth)
-                token_info = self._oidc_client.token(username=username, password=password)
-                g.oidc_access_token = token_info['access_token']
-            except KeycloakAuthenticationError:
-                return 'Could not authenticate, wrong credentials'
-            except Exception as e:
-                logger.error('Could not authenticate Basic auth', exc_info=e)
-                return 'Could not authenticate Basic auth: %s' % str(e)
+        if headers.get('Authorization', '').startswith('Bearer '):
+            access_token = headers['Authorization'].split(None, 1)[1].strip()
+            return self.tokenauth(access_token), access_token
 
-        if g.oidc_access_token is not None:
-            auth_error: str = None
-            try:
-                kid = jwt.get_unverified_header(g.oidc_access_token)['kid']
-                key = self._public_keys.get(kid)
-                if key is None:
-                    logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
-                    auth_error = 'Could not verify JWT token: public key does not exist'
-                else:
-                    options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
-                    payload = jwt.decode(
-                        g.oidc_access_token, key=key, algorithms=['RS256'], options=options,
-                        issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+        if allow_basic and headers.get('Authorization', '').startswith('Basic '):
+            auth = headers['Authorization'].split(None, 1)[1].strip()
+            username, password = basicauth.decode(auth)
+            access_token = self.basicauth(username, password)
+            return self.tokenauth(access_token), access_token
 
-            except jwt.InvalidTokenError as e:
-                auth_error = str(e)
-            except Exception as e:
-                logger.error('Could not verify JWT token', exc_info=e)
-                raise e
+        return None, None
 
-            if auth_error is not None:
-                g.user = None
-                return auth_error
+    def basicauth(self, username: str, password: str) -> str:
+        '''
+        Performs basic authentication and returns an access token.
 
-            else:
-                from nomad import datamodel
-                g.user = datamodel.User(
-                    user_id=payload.get('sub', None),
-                    email=payload.get('email', None),
-                    first_name=payload.get('given_name', None),
-                    last_name=payload.get('family_name', None))
+        Raises:
+            KeycloakError
+        '''
+        try:
+            token_info = self._oidc_client.token(username=username, password=password)
+        except KeycloakAuthenticationError as e:
+            raise KeycloakError(e)
+        except Exception as e:
+            logger.error('cannot perform basicauth', exc_info=e)
+            raise e
 
-                return None
+        return token_info['access_token']
 
-        else:
-            g.user = None
-            # Do not return an error. This is the case were there are no credentials
-            return None
+    def tokenauth(self, access_token: str) -> object:
+        '''
+        Authenticates the given access_token
+
+        Returns:
+            The user
+
+        Raises:
+            KeycloakError
+        '''
+        try:
+            kid = jwt.get_unverified_header(access_token)['kid']
+            key = keycloak._public_keys.get(kid)
+            if key is None:
+                logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
+                raise KeycloakError(utils.strip('''
+                    Could not validate credentials.
+                    The user provided keycloak public key does not exist.
+                    Does the UI use the right realm?'''))
+
+            options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
+            payload = jwt.decode(
+                access_token, key=key, algorithms=['RS256'], options=options,
+                issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+
+            user_id: str = payload.get('sub')
+            if user_id is None:
+                raise KeycloakError(utils.strip('''
+                    Could not validate credentials.
+                    The given token does not contain a user_id.'''))
+
+            from nomad import datamodel
+            return datamodel.User(
+                user_id=user_id,
+                email=payload.get('email', None),
+                first_name=payload.get('given_name', None),
+                last_name=payload.get('family_name', None))
+
+        except jwt.InvalidTokenError:
+            raise KeycloakError('Could not validate credentials. The given token is invalid.')
+        except Exception as e:
+            logger.error('cannot perform tokenauth', exc_info=e)
+            raise e
 
     def __create_username(self, user):
         if user.first_name is not None and user.last_name is not None:
@@ -366,8 +385,7 @@ class Keycloak():
         '''
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
-        the info solely gathered from tokens (i.e. for the authenticated user ``g.user``)
-        is generally incomplete.
+        the info solely gathered from tokens is generally incomplete.
         '''
 
         if user is not None and user_id is None:
@@ -406,10 +424,6 @@ class Keycloak():
             self.__admin_client.realm_name = config.keycloak.realm_name
 
         return self.__admin_client
-
-    @property
-    def access_token(self):
-        return getattr(g, 'oidc_access_token', None)
 
 
 keycloak = Keycloak()

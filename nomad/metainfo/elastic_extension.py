@@ -162,14 +162,17 @@ class ElasticDocument(SectionAnnotation):
             inner_document = ElasticDocument.create_document(
                 sub_section.sub_section, prefix=sub_section_prefix, index_name=index_name, root=False)
             if inner_document is not None:
-                try:
-                    if sub_section.a_search.nested:
+                for annotation in sub_section.m_get_annotations(Elastic, as_list=True):
+                    if annotation.nested:
                         assert sub_section.repeats, (
                             "Nested fields should be repeatable. If the subsection cannot be repeated, "
                             "define it as unnested instead."
                         )
                         attrs[sub_section.name] = Nested(inner_document)
-                except AttributeError:
+
+                    annotation.register(prefix, annotation.field, index_name)
+
+                if sub_section.name not in attrs:
                     attrs[sub_section.name] = Object(inner_document)
 
         # create an field for each quantity
@@ -256,6 +259,8 @@ class Elastic(DefinitionAnnotation):
         index:
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
+        aggregateable:
+            A boolean that determines, if this quantity can be used in aggregations
     '''
     def __init__(
             self,
@@ -287,3 +292,7 @@ class Elastic(DefinitionAnnotation):
             self.qualified_field = field
         else:
             self.qualified_field = '%s.%s' % (prefix, field)
+
+    @property
+    def aggregateable(self):
+        return self.mapping is None or self.mapping.__class__.__name__ == 'Keyword'

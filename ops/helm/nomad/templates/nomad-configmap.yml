@@ -15,11 +15,19 @@ data:
       homepage: "{{ .Values.meta.homepage }}"
       source_url: "{{ .Values.meta.source_url }}"
       maintainer_email: "{{ .Values.meta.maintainer_email }}"
+      {{ if .Values.meta.deployment }}
+      deployment: "{{ .Values.meta.deployment }}"
+      {{ end }}
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
+    reprocess_rematch: {{ .Values.reprocess_rematch }}
+    process_reuse_parser: {{ .Values.process_reuse_parser }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
+      {{ if .Values.volumes.archiveVersionSuffix }}
+      archive_version_suffix: "{{ .Values.volumes.archiveVersionSuffix }}"
+      {{ end }}
     logstash:
       enabled: {{ .Values.logstash.enabled }}
       host: "{{ .Values.logstash.host }}"
@@ -59,6 +67,7 @@ data:
     celery:
       routing: "{{ .Values.worker.routing }}"
       timeout: {{ .Values.worker.timeout }}
+      acks_late: {{ .Values.worker.acks_late }}
     client:
       user: "{{ .Values.client.username }}"
     keycloak:

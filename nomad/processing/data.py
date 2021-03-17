@@ -45,7 +45,7 @@ from functools import lru_cache
 import urllib.parse
 import requests
 
-from nomad import utils, config, infrastructure, search, datamodel, metainfo
+from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
     PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
     PublicUploadFiles, StagingUploadFiles)
@@ -55,7 +55,7 @@ from nomad.normalizing import normalizers
 from nomad.datamodel import (
     EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
 from nomad.archive import (
-    query_archive, write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
+    write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
@@ -268,6 +268,11 @@ class Calc(Proc):
                 dump_dict.update(level=method_name.upper())
                 self._calc_proc_logs.append(dump_dict)
 
+                if method_name == 'error':
+                    error = event_dict.get('event', None)
+                    if error is not None:
+                        self._entry_metadata.processing_errors.append(error)
+
             except Exception:
                 # Exceptions here will cause indefinite loop
                 pass
@@ -283,27 +288,34 @@ class Calc(Proc):
         instead of creating it initially, we are just updating the existing
         records.
         '''
-        parser = match_parser(self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
         logger = self.get_logger()
 
-        if parser is None and not config.reprocess_unmatched:
-            self.errors = ['no parser matches during re-process, will not re-process this calc']
+        if config.reprocess_rematch:
+            with utils.timer(logger, 'parser matching executed'):
+                parser = match_parser(
+                    self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
 
-            try:
-                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                with upload_files.read_archive(self.calc_id) as archive:
-                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
+            if parser is None and not config.reprocess_unmatched:
+                self.errors = ['no parser matches during re-process, will not re-process this calc']
 
-            except Exception as e:
-                logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
-                raise e
+                try:
+                    upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                    with upload_files.read_archive(self.calc_id) as archive:
+                        self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
 
-            # mock the steps of actual processing
-            self._continue_with('parsing')
-            self._continue_with('normalizing')
-            self._continue_with('archiving')
-            self._complete()
-            return
+                except Exception as e:
+                    logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
+                    raise e
+
+                # mock the steps of actual processing
+                self._continue_with('parsing')
+                self._continue_with('normalizing')
+                self._continue_with('archiving')
+                self._complete()
+                return
+
+        else:
+            parser = parser_dict.get(self.parser)
 
         if parser is None:
             self.get_logger().warn('no parser matches during re-process, use the old parser')
@@ -326,6 +338,7 @@ class Calc(Proc):
             self._entry_metadata.nomad_version = config.meta.version
             self._entry_metadata.nomad_commit = config.meta.commit
             self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.processing_errors = []
             self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
             self.parsing()
@@ -344,6 +357,7 @@ class Calc(Proc):
         self._entry_metadata = self.create_metadata()
         self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         self._entry_metadata.last_processing = datetime.utcnow()
+        self._entry_metadata.processing_errors = []
         self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
         self._entry_metadata.parser_name = self.parser
 
@@ -428,6 +442,15 @@ class Calc(Proc):
         self._entry_metadata.parser_name = self.parser
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
+            if not config.process_reuse_parser:
+                if isinstance(parser, parsing.FairdiParser):
+                    try:
+                        parser = parser.__class__()
+                    except Exception as e:
+                        self.fail(
+                            'could not re-create parser instance',
+                            exc_info=e, error=str(e), **context)
+                        return
             try:
                 self._parser_results = EntryArchive()
                 # allow parsers to read/write metadata
@@ -458,8 +481,8 @@ class Calc(Proc):
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
             with upload_files.read_archive(self.calc_id) as archive:
-                arch = query_archive(archive, {self.calc_id: self.calc_id})[self.calc_id]
-                phonon_archive = EntryArchive.m_from_dict(arch)
+                arch = archive[self.calc_id]
+                phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
             self._entry_metadata = phonon_archive.section_metadata
             self._calc_proc_logs = phonon_archive.processing_logs
 
@@ -470,16 +493,23 @@ class Calc(Proc):
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
             scc = self._parser_results.section_run[0].section_single_configuration_calculation[0]
+            calculation_refs = scc.section_calculation_to_calculation_refs
+            if calculation_refs is None:
+                logger.error("No calculation_to_calculation references found")
+                return
+
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
             ref_id = upload_files.calc_id(relative_ref)
             with upload_files.read_archive(ref_id) as archive:
-                arch = query_archive(archive, {ref_id: ref_id})[ref_id]
-                ref_archive = EntryArchive.m_from_dict(arch)
+                arch = archive[ref_id]
+                ref_archive = EntryArchive.m_from_dict(arch.to_dict())
 
             # Get encyclopedia method information directly from the referenced calculation.
             ref_enc_method = ref_archive.section_metadata.encyclopedia.method
             if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
-                raise ValueError("No method information available in referenced calculation.")
+                logger.error("No method information available in referenced calculation.")
+                return
+
             self._parser_results.section_metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
@@ -505,16 +535,16 @@ class Calc(Proc):
 
         finally:
             # persist the calc metadata
-            with utils.timer(logger, 'saved calc metadata', step='metadata'):
+            with utils.timer(logger, 'calc metadata saved'):
                 self.apply_entry_metadata(self._entry_metadata)
 
             # index in search
-            with utils.timer(logger, 'indexed', step='index'):
+            with utils.timer(logger, 'calc metadata indexed'):
                 self._entry_metadata.a_elastic.index()
 
             # persist the archive
             with utils.timer(
-                    logger, 'archived', step='archive',
+                    logger, 'calc archived',
                     input_size=self.mainfile_file.size) as log_data:
 
                 archive_size = self.write_archive(self._parser_results)
@@ -540,7 +570,7 @@ class Calc(Proc):
             with utils.timer(logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 try:
                     normalizer(self._parser_results).normalize(logger=logger)
-                    logger.info('processor completed successfull', **context)
+                    logger.info('normalizer completed successfull', **context)
                 except Exception as e:
                     self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
@@ -617,16 +647,16 @@ class Calc(Proc):
         self._read_metadata_from_file(logger)
 
         # persist the calc metadata
-        with utils.timer(logger, 'saved calc metadata', step='metadata'):
+        with utils.timer(logger, 'calc metadata saved'):
             self.apply_entry_metadata(self._entry_metadata)
 
         # index in search
-        with utils.timer(logger, 'indexed', step='index'):
+        with utils.timer(logger, 'calc metadata indexed'):
             self._entry_metadata.a_elastic.index()
 
         # persist the archive
         with utils.timer(
-                logger, 'archived', step='archive',
+                logger, 'calc archived',
                 input_size=self.mainfile_file.size) as log_data:
 
             archive_size = self.write_archive(self._parser_results)
@@ -829,24 +859,17 @@ class Upload(Proc):
         Deletes the upload, including its processing state and
         staging files. Local version without celery processing.
         '''
-        logger = self.get_logger()
+        logger = self.get_logger(upload_size=self.upload_files.size)
 
         with utils.lnr(logger, 'upload delete failed'):
-            with utils.timer(
-                    logger, 'upload deleted from index', step='index',
-                    upload_size=self.upload_files.size):
+            with utils.timer(logger, 'upload deleted from index'):
                 search.delete_upload(self.upload_id)
 
-            with utils.timer(
-                    logger, 'upload partial archives', step='files',
-                    upload_size=self.upload_files.size):
-
+            with utils.timer(logger, 'upload partial archives deleted'):
                 calc_ids = [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
                 delete_partial_archives_from_mongo(calc_ids)
 
-            with utils.timer(
-                    logger, 'upload deleted', step='files',
-                    upload_size=self.upload_files.size):
+            with utils.timer(logger, 'upload files deleted'):
                 self.upload_files.delete()
 
             self.delete()
@@ -869,16 +892,13 @@ class Upload(Proc):
         '''
         assert self.processed_calcs > 0
 
-        logger = self.get_logger()
+        logger = self.get_logger(upload_size=self.upload_files.size)
         logger.info('started to publish')
 
         with utils.lnr(logger, 'publish failed'):
             with self.entries_metadata(self.metadata) as calcs:
 
-                with utils.timer(
-                        logger, 'upload metadata updated', step='metadata',
-                        upload_size=self.upload_files.size):
-
+                with utils.timer(logger, 'upload metadata updated'):
                     def create_update(calc):
                         calc.published = True
                         calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
@@ -890,20 +910,14 @@ class Upload(Proc):
                     Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
 
                 if isinstance(self.upload_files, StagingUploadFiles):
-                    with utils.timer(
-                            logger, 'staged upload files packed', step='pack',
-                            upload_size=self.upload_files.size):
+                    with utils.timer(logger, 'staged upload files packed'):
                         self.upload_files.pack(calcs)
 
-                with utils.timer(
-                        logger, 'index updated', step='index',
-                        upload_size=self.upload_files.size):
+                with utils.timer(logger, 'index updated'):
                     search.publish(calcs)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
-                    with utils.timer(
-                            logger, 'staged upload deleted', step='delete staged',
-                            upload_size=self.upload_files.size):
+                    with utils.timer(logger, 'upload staging files deleted'):
                         self.upload_files.delete()
                         self.published = True
                         self.publish_time = datetime.utcnow()
@@ -1022,37 +1036,42 @@ class Upload(Proc):
                 staging_upload_files = StagingUploadFiles(self.upload_id)
                 # public files exist and there is a staging directory, it is probably old
                 # and we delete it first
-                staging_upload_files.delete()
-                logger.warn('deleted old staging files')
+                with utils.timer(logger, 'upload staging files deleted'):
+                    staging_upload_files.delete()
+                    logger.warn('deleted old staging files')
 
             except KeyError as e:
                 logger.info('reprocessing published files')
         else:
             logger.info('reprocessing staging files')
 
-        staging_upload_files = self.upload_files.to_staging_upload_files(create=True)
+        with utils.timer(logger, 'upload extracted'):
+            staging_upload_files = self.upload_files.to_staging_upload_files(create=True)
 
         self._continue_with('parse_all')
         try:
-            # check if a calc is already/still processing
-            processing = Calc.objects(
-                upload_id=self.upload_id,
-                **Calc.process_running_mongoengine_query()).count()
+            with utils.timer(logger, 'calcs resetted'):
+                # check if a calc is already/still processing
+                processing = Calc.objects(
+                    upload_id=self.upload_id,
+                    **Calc.process_running_mongoengine_query()).count()
 
-            if processing > 0:
-                logger.warn(
-                    'processes are still/already running on calc, they will be resetted',
-                    count=processing)
+                if processing > 0:
+                    logger.warn(
+                        'processes are still/already running on calc, they will be resetted',
+                        count=processing)
 
-            # reset all calcs
-            Calc._get_collection().update_many(
-                dict(upload_id=self.upload_id),
-                {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
+                # reset all calcs
+                Calc._get_collection().update_many(
+                    dict(upload_id=self.upload_id),
+                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-            # process call calcs
-            Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+            with utils.timer(logger, 'calcs re-processing called'):
+                # process call calcs
+                Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
 
-            logger.info('completed to trigger re-process of all calcs')
+                logger.info('completed to trigger re-process of all calcs')
+
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to trigger re-process of all calcs', exc_info=e)
@@ -1154,9 +1173,7 @@ class Upload(Proc):
 
         logger = self.get_logger()
         try:
-            with utils.timer(
-                    logger, 'upload extracted', step='extracting',
-                    upload_size=self.upload_files.size):
+            with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
                 self.upload_files.extract()
 
             if self.temporary:
@@ -1241,9 +1258,7 @@ class Upload(Proc):
             oasis_metadata = self.metadata_file_cached(
                 os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name)).get('entries', {})
 
-        with utils.timer(
-                logger, 'upload extracted', step='matching',
-                upload_size=self.upload_files.size):
+        with utils.timer(logger, 'calcs processing called'):
             for filename, parser in self.match_mainfiles():
                 oasis_entry_metadata = oasis_metadata.get(filename)
                 if oasis_entry_metadata is not None:
@@ -1302,9 +1317,9 @@ class Upload(Proc):
                 # the join was already done due to a prior call
                 pass
 
-    def reset(self):
+    def reset(self, force=False):
         self.joined = False
-        super().reset()
+        super().reset(force=force)
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):
@@ -1339,7 +1354,7 @@ class Upload(Proc):
         if not self.publish_directly or self.processed_calcs == 0:
             return
 
-        logger = self.get_logger()
+        logger = self.get_logger(upload_size=self.upload_files.size)
         logger.info('started to publish upload directly')
 
         with utils.lnr(logger, 'publish failed'):
@@ -1347,14 +1362,10 @@ class Upload(Proc):
                 os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
 
             with self.entries_metadata(self.metadata) as calcs:
-                with utils.timer(
-                        logger, 'staged upload files packed', step='pack',
-                        upload_size=self.upload_files.size):
+                with utils.timer(logger, 'upload staging files packed'):
                     self.upload_files.pack(calcs)
 
-            with utils.timer(
-                    logger, 'staged upload deleted', step='delete staged',
-                    upload_size=self.upload_files.size):
+            with utils.timer(logger, 'upload staging files deleted'):
                 self.upload_files.delete()
 
             if self.from_oasis:
@@ -1371,21 +1382,15 @@ class Upload(Proc):
             self.save()
 
     def _cleanup_after_re_processing(self):
-        logger = self.get_logger()
+        logger = self.get_logger(upload_size=self.upload_files.size)
         if self.published:
             staging_upload_files = self.upload_files.to_staging_upload_files()
             logger.info('started to repack re-processed upload')
 
-            with utils.timer(
-                    logger, 'reprocessed staged upload packed', step='repack staged',
-                    upload_size=self.upload_files.size):
-
+            with utils.timer(logger, 'staged upload files re-packed'):
                 staging_upload_files.pack(self.user_metadata(), skip_raw=True)
 
-            with utils.timer(
-                    logger, 'reprocessed staged upload deleted', step='delete staged',
-                    upload_size=self.upload_files.size):
-
+            with utils.timer(logger, 'staged upload files deleted'):
                 staging_upload_files.delete()
                 self.last_update = datetime.utcnow()
                 self.save()

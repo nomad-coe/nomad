@@ -22,6 +22,9 @@ gui:
   encyclopediaEnabled: true
   aitoolkitEnabled: true
 
+app:
+  replicas: 2
+
 worker:
   replicas: 1
   routing: "queue"

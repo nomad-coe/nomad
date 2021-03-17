@@ -1,31 +1,63 @@
-#
-# Copyright The NOMAD Authors.
-#
-# This file is part of NOMAD. See https://nomad-lab.eu for further info.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
-'''
-The optimade implementation of NOMAD.
-'''
+import os
+import sys
+import importlib
 
-from flask import Blueprint
-from flask_restplus import Api
+# patch optimade python tools config (patched module most be outside this module to force import before optimade)
+os.environ['OPTIMADE_CONFIG_FILE'] = os.path.join(os.path.dirname(__file__), 'optimade_config.json')
 
-from .api import blueprint, url, api
-from .structures import Structure, StructuresInfo, StructureList
-from .calculations import CalculationList, Calculation, CalculationInfo
-from .infolinks import Info, Links
-from .index import Info
-from .filterparser import parse_filter
+# patch optimade logger (patched module most be outside this module to force import before optimade)
+sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app.optimade_logger')
+
+# patch optimade base path
+from nomad import config, utils  # nopep8
+from optimade.server.config import CONFIG  # nopep8
+CONFIG.root_path = '%s/optimade' % config.services.api_base_path
+
+from optimade.server import main as optimade  # nopep8
+from optimade.server.routers import structures  # nopep8
+
+# remove all the test data
+from optimade.server.routers import ENTRY_COLLECTIONS  # nopep8
+
+for name, collection in ENTRY_COLLECTIONS.items():
+    if name == 'links':
+        collection.collection.drop()
+        collection.collection.insert_one({
+            "id": "index",
+            "type": "links",
+            "name": "Index meta-database",
+            "description": "Index for NOMAD databases",
+            "base_url": "http://providers.optimade.org/index-metadbs/nmd",
+            "homepage": "https://nomad-lab.eu",
+            "link_type": "root"
+        })
+    else:
+        collection.collection.drop()
+
+# patch the structure collection with out elasticsearch implementation
+from .elasticsearch import ElasticsearchStructureCollection  # nopep8
+from .filterparser import parse_filter  # nopep8
+
+structures.structures_coll = ElasticsearchStructureCollection()
+optimade.add_major_version_base_url(optimade.app)
+
+# patch exception handlers
+logger = utils.get_logger(__name__)
+exception_handlers = sys.modules['optimade.server.exception_handlers']
+original_handler = getattr(exception_handlers, 'general_exception')
+
+
+def general_exception(request, exc, status_code=500, **kwargs):
+    if getattr(exc, 'status_code', status_code) >= 500:
+        logger.error(
+            'unexpected exception in optimade implementation',
+            status_code=status_code, exc_info=exc, url=request.url)
+
+    return original_handler(request, exc, status_code, **kwargs)
+
+
+setattr(exception_handlers, 'general_exception', general_exception)
+
+# "export" the app object
+optimade_app = optimade.app

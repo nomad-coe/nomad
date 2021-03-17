@@ -41,10 +41,30 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
     record = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
-            if (event_part in json.loads(record.msg)['event']):
+            try:
+                event_data = json.loads(record.msg)
+                present = event_part in event_data['event']
+            except Exception:
+                present = event_part in record.msg
+
+            if present:
                 record = record
                 # No need to look for more matches since we aren't counting matches.
                 break
     assert record is not None
 
     return record
+
+
+def assert_at_least(source, target):
+    '''
+    Compares two dicts recursively and asserts that all information in source equals
+    the same information in target. Additional information in target is ignored.
+    '''
+    for key, value in source.items():
+        assert key in target, '%s with value %s in %s is not in %s' % (key, source[key], source, target)
+        if isinstance(value, dict):
+            assert_at_least(value, target[key])
+        else:
+            assert value == target[key], '%s with value %s in %s is not equal the target value %s in %s' % (
+                key, source[key], source, target[key], target)

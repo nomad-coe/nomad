@@ -19,11 +19,15 @@
 from typing import Callable, Any, Dict, List, DefaultDict
 from collections import defaultdict
 
+from nomad import config, metainfo
 from nomad.metainfo.elastic_extension import Elastic
 
 
 search_quantities_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 ''' All available search quantities by their full qualified name. '''
+
+search_sub_sections_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
+''' All available sub sections in the search index with full qualified name. '''
 
 metrics_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 '''
@@ -39,6 +43,13 @@ is the metric name. '''
 
 order_default_quantities_by_index: DefaultDict[str, Dict[str, 'Search']] = defaultdict(dict)
 ''' The quantity for each domain (key) that is the default quantity to order search results by. '''
+
+
+search_quantities = search_quantities_by_index[config.elastic.index_name]
+search_sub_sections = search_sub_sections_by_index[config.elastic.index_name]
+groups = groups_by_index[config.elastic.index_name]
+metrics = metrics_by_index[config.elastic.index_name]
+order_default_quantities = order_default_quantities_by_index[config.elastic.index_name]
 
 
 # TODO multi, split are more flask related
@@ -146,6 +157,11 @@ class Search(Elastic):
             self.search_field = prefix_and_dot + self.search_field
         else:
             self.search_field = self.qualified_name
+
+        if self.definition.m_def == metainfo.SubSection.m_def:
+            if not self.nested:
+                search_sub_sections_by_index[index][self.qualified_name] = self
+                return
 
         assert self.qualified_name not in search_quantities_by_index[index], 'Search quantities must have a unique name: %s' % self.name
         search_quantities_by_index[index][self.qualified_name] = self

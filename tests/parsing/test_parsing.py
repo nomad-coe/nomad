@@ -27,7 +27,7 @@ from nomad import utils, files, datamodel
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.parsing import BrokenParser, Backend
 from nomad.parsing.parsers import parser_dict, match_parser
-from nomad.app import dump_json
+from nomad.app.flask import dump_json
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
@@ -41,7 +41,7 @@ parser_examples = [
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_carbon'),
     ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'),
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
-    ('parsers/vaspoutcar', 'tests/data/parsers/vasp_outcar/OUTCAR'),
+    ('parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
@@ -85,7 +85,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 115
+correct_num_output_files = 116
 
 
 class TestBackend(object):

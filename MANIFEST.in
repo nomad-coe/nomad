@@ -1,4 +1,4 @@
-recursive-include dependencies/optimade-python-tools *.txt *.g *.py *.ini
+recursive-include dependencies/optimade-python-tools *.txt *.g *.py *.ini *.json
 recursive-include nomad *.json *.j2 *.md *.yaml
 include nomad/units/*.txt
 include README.md

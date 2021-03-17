@@ -76,6 +76,10 @@ everything into your virtual environment:
 ./dependencies.sh -e
 ```
 
+If one of the Python packages that are installed during this process, fails because it
+cannot be compiled on your platform, you can try `pip install --prefer-binary <packagename>`
+to install set package manually.
+
 The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
 to change the downloaded dependency code without having to reinstall after.
 
@@ -134,11 +138,20 @@ via your preferred tools. Just make sure to use the right ports.
 ## Running NOMAD
 
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
-the NOMAD cli:
+the NOMAD cli. These commands will run the services and show their logout put. You should open
+them in separate shells as they run continuously. They will not watch code changes and
+you have to restart manually.
 
 ```sh
 nomad admin run app
+```
+
+```sh
 nomad admin run worker
+```
+
+Or both together in once process:
+```
 nomad admin run appworker
 ```
 
@@ -150,7 +163,9 @@ celery -A nomad.processing worker -l info
 ```
 
 When you run the gui on its own (e.g. with react dev server below), you have to have
-the app manually also.
+the app manually also. The gui and its dependencies run on [node](https://nodejs.org) and
+the [yarn](https://yarnpkg.com/) dependency manager. Read their documentation on how to
+install them for your platform.
 ```sh
 cd gui
 yarn
@@ -213,7 +228,6 @@ line size ruler, etc.
 {
     "python.venvPath": "${workspaceFolder}/.pyenv",
     "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
-    "git.ignoreLimitWarning": true,
     "editor.rulers": [90],
     "editor.renderWhitespace": "all",
     "editor.tabSize": 4,
@@ -221,29 +235,20 @@ line size ruler, etc.
         "editor.tabSize": 2
     },
     "files.trimTrailingWhitespace": true,
-    "git.enableSmartCommit": true,
-    "eslint.autoFixOnSave": true,
+    "editor.codeActionsOnSave": ["source.fixAll.eslint"],
+    "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
         "--load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin",
     ],
-    "python.linting.pep8Path": "pycodestyle",
-    "python.linting.pep8Enabled": true,
-    "python.linting.pep8Args": ["--ignore=E501,E701"],
+    "python.linting.pycodestylePath": "pycodestyle",
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pycodestyleArgs": ["--ignore=E501,E701,E731"],
     "python.linting.mypyEnabled": true,
     "python.linting.mypyArgs": [
         "--ignore-missing-imports",
         "--follow-imports=silent",
         "--no-strict-optional"
     ],
-    "workbench.colorCustomizations": {
-        "editorError.foreground": "#FF2222",
-        "editorOverviewRuler.errorForeground": "#FF2222",
-        "editorWarning.foreground": "#FF5500",
-        "editorOverviewRuler.warningForeground": "#FF5500",
-        "activityBar.background": "#4D2111",
-        "titleBar.activeBackground": "#6B2E18",
-        "titleBar.activeForeground": "#FDF9F7"
-    },
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,

@@ -1,3 +1,4 @@
+
 #
 # Copyright The NOMAD Authors.
 #
@@ -24,7 +25,7 @@ import elasticsearch
 import sys
 import threading
 
-from nomad import processing as proc, search, datamodel, infrastructure, utils, config
+from nomad import processing as proc, search, infrastructure, utils, config
 from nomad.cli.cli import cli
 
 
@@ -68,6 +69,10 @@ def __run_parallel(
             cv.notify()
 
     for upload in uploads:
+        logger.info(
+            'cli schedules parallel %s processing for upload' % label,
+            current_process=upload.current_process,
+            current_task=upload.current_task, upload_id=upload.upload_id)
         with cv:
             cv.wait_for(lambda: state['available_threads_count'] > 0)
             state['available_threads_count'] -= 1
@@ -83,6 +88,10 @@ def __run_processing(
         uploads, parallel: int, process, label: str, reprocess_running: bool = False):
 
     def run_process(upload, logger):
+        logger.info(
+            'cli calls %s processing' % label,
+            current_process=upload.current_process,
+            current_task=upload.current_task, upload_id=upload.upload_id)
         if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
@@ -90,7 +99,7 @@ def __run_processing(
                 current_task=upload.current_task, upload_id=upload.upload_id)
             return False
         else:
-            upload.reset()
+            upload.reset(force=True)
             process(upload)
             upload.block_until_complete(interval=.5)
 
@@ -190,44 +199,6 @@ def lift_embargo(dry, parallel):
 
     if not dry:
         __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
-
-
-@admin.command(help='(Re-)index all calcs.')
-@click.option('--threads', type=int, default=1, help='Number of threads to use.')
-@click.option('--dry', is_flag=True, help='Do not index, just compute entries.')
-def index(threads, dry):
-    infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-
-    all_calcs = proc.Calc.objects().count()
-    print('indexing %d ...' % all_calcs)
-
-    def elastic_updates():
-        with utils.ETA(all_calcs, '   index %10d or %10d calcs, ETA %s') as eta:
-            for calc in proc.Calc.objects():
-                eta.add()
-                entry_metadata = datamodel.EntryMetadata.m_from_dict(calc.metadata)
-                entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
-                entry['_op_type'] = 'index'
-                yield entry
-
-    if dry:
-        for _ in elastic_updates():
-            pass
-    else:
-        if threads > 1:
-            print('  use %d threads' % threads)
-            for _ in elasticsearch.helpers.parallel_bulk(
-                    infrastructure.elastic_client, elastic_updates(), chunk_size=500,
-                    thread_count=threads):
-                pass
-        else:
-            elasticsearch.helpers.bulk(
-                infrastructure.elastic_client, elastic_updates())
-        search.refresh()
-
-    print('')
-    print('indexing completed')
 
 
 @admin.command()
@@ -732,7 +703,7 @@ def gui_config():
     import glob
     import shutil
 
-    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
+    gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/flask/static/gui'))
     run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 
     # copy
@@ -777,7 +748,7 @@ window.nomadEnv = {
                 f.write(file_data)
 
     gui_folder = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../../app/static/encyclopedia'))
+        os.path.dirname(__file__), '../../app/flask/static/encyclopedia'))
 
     # setup the env
     conf_js_file = os.path.join(gui_folder, 'conf.js')

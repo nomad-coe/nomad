@@ -28,6 +28,7 @@ from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common_dft import FastAccess
+from nomad.metainfo.pydantic_extension import PydanticModel
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -90,6 +91,8 @@ class User(Author):
         repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
         is_admin: Bool that indicated, iff the user the use admin user
     '''
+
+    m_def = metainfo.Section(a_pydantic=PydanticModel())
 
     user_id = metainfo.Quantity(
         type=str,
@@ -183,8 +186,14 @@ class Dataset(metainfo.MSection):
         pid: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
             datasets based on this id. Is not used for new datasets.
         created: The date when the dataset was first created.
+        modified: The date when the dataset was last modified. An owned dataset can only
+            be extended after a DOI was assigned. A foreign dataset cannot be changed
+            once a DOI was assigned.
+        dataset_type: The type determined if a dataset is owned, i.e. was created by
+            the uploader/owner of the contained entries; or if a dataset is foreign,
+            i.e. it was created by someone not necessarily related to the entries.
     '''
-    m_def = metainfo.Section(a_mongo=MongoDocument())
+    m_def = metainfo.Section(a_mongo=MongoDocument(), a_pydantic=PydanticModel())
 
     dataset_id = metainfo.Quantity(
         type=str,
@@ -206,6 +215,14 @@ class Dataset(metainfo.MSection):
         a_mongo=Mongo(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
+        a_mongo=Mongo(index=True),
+        a_search=Search())
+    modified = metainfo.Quantity(
+        type=metainfo.Datetime,
+        a_mongo=Mongo(index=True),
+        a_search=Search())
+    dataset_type = metainfo.Quantity(
+        type=metainfo.MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
         a_search=Search())
 
@@ -398,6 +415,10 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoMetadata],
         a_search=Search())
 
+    processing_errors = metainfo.Quantity(
+        type=str, shape=['*'], description='Errors that occured during processing',
+        a_search=Search(many_and='append'))
+
     nomad_version = metainfo.Quantity(
         type=str,
         description='The NOMAD version used for the last processing',
@@ -480,6 +501,15 @@ class EntryMetadata(metainfo.MSection):
             description='The full name of the owners for exact searches',
             many_or='append', search_field='owners.name.keyword'))
 
+    license = metainfo.Quantity(
+        type=str,
+        description='''
+            A short license description (e.g. CC BY 4.0), that refers to the
+            license of this entry.
+        ''',
+        default='CC BY 4.0',
+        categories=[MongoMetadata, EditableUserMetadata])
+
     with_embargo = metainfo.Quantity(
         type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',
@@ -545,10 +575,10 @@ class EntryMetadata(metainfo.MSection):
         description='The number of atoms in the entry\'s material',
         a_search=Search())
 
-    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search='ems')
-    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search='dft', categories=[FastAccess])
-    qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search='qcms')
-    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess], a_search='encyclopedia')
+    ems = metainfo.SubSection(sub_section=EMSMetadata, a_search=Search())
+    dft = metainfo.SubSection(sub_section=DFTMetadata, a_search=Search(), categories=[FastAccess])
+    qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search=Search())
+    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess], a_search=Search())
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''
@@ -580,3 +610,8 @@ class EntryArchive(metainfo.MSection):
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],
         description='The processing logs for this entry as a list of structlog entries.')
+
+
+# preemptively create the elasticsearch document definition, which populates metrics and
+# search quantities in the search_extension
+EntryMetadata.m_def.a_elastic.document

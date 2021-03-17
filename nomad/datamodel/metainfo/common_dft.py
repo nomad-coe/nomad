@@ -1523,7 +1523,6 @@ class Dos(MSection):
     dos_values_lm = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_dos_lms', 'number_of_spin_channels', 'number_of_atoms', 'number_of_dos_values'],
-        unit='joule',
         description='''
         Array containing the density (electronic-energy) of states values projected on the
         various spherical harmonics (integrated on all atoms), see
@@ -4482,6 +4481,11 @@ class ScfIteration(MSection):
         ''',
         categories=[EnergyTypeReference, EnergyValue, Unused],
         a_legacy=LegacyDefinition(name='energy_reference_lowest_unoccupied_iteration'))
+
+    section_eigenvalues_scf_iteration = SubSection(
+        sub_section=SectionProxy('Eigenvalues'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_eigenvalues_scf_iteration'))
 
 
 class SingleConfigurationCalculation(MSection):

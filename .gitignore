@@ -5,6 +5,7 @@
 .python-version
 .ipynb_checkpoints/
 .python-version
+.coverage_html/
 __pycache__
 .mypy_cache
 *.pyc
@@ -12,7 +13,8 @@ __pycache__
 /data/
 .volumes/
 .pytest_cache/
-.coverage
+.coverage*
+htmlcov
 try.http
 project/
 test_*/
@@ -23,8 +25,8 @@ target/
 .vscode/
 vscode/
 nomad.yaml
-./gunicorn.log.conf
-./gunicorn.conf
+gunicorn.log.conf
+gunicorn.conf
 build/
 dist/
 setup.json
@@ -34,3 +36,4 @@ gui/src/searchQuantities.json
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
+*/node_modules/

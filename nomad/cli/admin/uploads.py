@@ -24,7 +24,7 @@ import pymongo
 import elasticsearch_dsl as es
 import json
 
-from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel, archive
+from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
 
 from .admin import admin, __run_processing, __run_parallel
 
@@ -247,19 +247,32 @@ def reset(ctx, uploads, with_calcs):
 @uploads.command(help='(Re-)index all calcs of the given uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
+@click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
 @click.pass_context
-def index(ctx, uploads, parallel):
+def index(ctx, uploads, parallel, transformer):
+    transformer_func = None
+    if transformer is not None:
+        import importlib
+        module_name, func_name = transformer.rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        transformer_func = getattr(module, func_name)
+
     _, uploads = query_uploads(ctx, uploads)
+
+    def transform(calcs):
+        for calc in calcs:
+            try:
+                calc = transformer_func(calc)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f'   ERROR failed to transform calc (stop transforming for upload): {str(e)}')
+                break
 
     def index_upload(upload, logger):
         with upload.entries_metadata() as calcs:
-            # This is just a temporary fix to update the group hash without re-processing
-            try:
-                for calc in calcs:
-                    if calc.dft is not None:
-                        calc.dft.update_group_hash()
-            except Exception:
-                pass
+            if transformer is not None:
+                transform(calcs)
             failed = search.index_all(calcs)
             if failed > 0:
                 print('    WARNING failed to index %d entries' % failed)
@@ -307,30 +320,6 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 
     for upload in uploads:
         delete_upload(upload, skip_es=skip_es, skip_mongo=skip_mongo, skip_files=skip_files)
-
-
-@uploads.command(help='Create msgpack file for upload')
-@click.argument('UPLOADS', nargs=-1)
-@click.pass_context
-def msgpack(ctx, uploads):
-    _, uploads = query_uploads(ctx, uploads)
-
-    for upload in uploads:
-        upload_files = files.UploadFiles.get(upload_id=upload.upload_id)
-
-        if isinstance(upload_files, files.PublicUploadFiles):
-            def iterator(zf, names):
-                for name in names:
-                    calc_id = name.strip('.json')
-                    with zf.open(name) as f:
-                        yield (calc_id, json.load(f))
-
-            for access in ['public', 'restricted']:
-                with upload_files._open_zip_file('archive', access, 'json') as zf:
-                    archive_path = upload_files._file_object('archive', access, 'msg', 'msg').os_path
-                    names = [name for name in zf.namelist() if name.endswith('json')]
-                    archive.write_archive(archive_path, len(names), iterator(zf, names))
-                print('wrote msgpack archive %s' % archive_path)
 
 
 @uploads.command(help='Reprocess selected uploads.')

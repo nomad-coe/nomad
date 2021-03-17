@@ -98,13 +98,9 @@ class POPO(dict):
                      It uses a sub-command structure similar to the git command.''')
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
-@click.option('--config', help='the config file to use')
 @click.pass_context
-def cli(ctx, verbose: bool, debug: bool, config: str):
+def cli(ctx, verbose: bool, debug: bool):
     nomad_config.meta.service = os.environ.get('NOMAD_SERVICE', 'cli')
-
-    if config is not None:
-        nomad_config.load_config(config_file=config)
 
     if debug:
         utils.set_console_log_level(logging.DEBUG)

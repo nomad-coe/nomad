@@ -22,7 +22,6 @@ export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 // export const apiBase = 'http://nomad-lab.eu/prod/rae/api'
 export const apiBase = `${appBase}/api`
-export const optimadeBase = `${appBase}/optimade`
 export const guiBase = process.env.PUBLIC_URL
 export const matomoUrl = window.nomadEnv.matomoUrl
 export const matomoSiteId = window.nomadEnv.matomoSiteId
@@ -105,3 +104,5 @@ export function normalizeDisplayValue(value) {
   }
   return value
 }
+
+export const electronicRange = [-10, 20]

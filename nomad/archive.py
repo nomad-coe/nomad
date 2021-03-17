@@ -595,7 +595,7 @@ def query_archive(
 
 
 def filter_archive(
-        required: Dict[str, Any], archive_item: Union[Dict, ArchiveObject],
+        required: Union[str, Dict[str, Any]], archive_item: Union[Dict, ArchiveObject],
         transform: Callable) -> Dict:
 
     def _fix_index(index, length):
@@ -812,7 +812,7 @@ def delete_partial_archives_from_mongo(entry_ids: List[str]):
 
 def read_partial_archives_from_mongo(entry_ids: List[str], as_dict=False) -> Dict[str, Union[EntryArchive, Dict]]:
     '''
-    Reads the partial archives for a set of entries of the same upload.
+    Reads the partial archives for a set of entries.
 
     Arguments:
         entry_ids: A list of entry ids.
@@ -866,7 +866,7 @@ def compute_required_with_referenced(required):
     # TODO this function should be based on the metainfo
 
     if not isinstance(required, dict):
-        return required
+        return None
 
     if any(key.startswith('section_run') for key in required):
         return None
@@ -893,6 +893,7 @@ def compute_required_with_referenced(required):
         if isinstance(current, str):
             return
 
+        current_updates = {}
         for key, value in current.items():
             prop = key.split('[')[0]
             prop_definition = parent.all_properties[prop]
@@ -902,13 +903,14 @@ def compute_required_with_referenced(required):
 
                 traverse(value, prop_definition.sub_section)
             if isinstance(prop_definition, Quantity) and isinstance(prop_definition.type, Reference):
-                current[prop] = '*'
+                current_updates[prop] = '*'
                 if FastAccess.m_def not in prop_definition.categories:
                     continue
 
                 target_section_def = prop_definition.type.target_section_def.m_resolved()
                 add_parent_section(target_section_def, value)
                 traverse(value, target_section_def)
+        current.update(**current_updates)
 
     try:
         traverse(dict(**required))

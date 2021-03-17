@@ -31,6 +31,8 @@ from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
+from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
+from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
 
 
 def test_send_mail(mails, monkeypatch):
@@ -119,6 +121,7 @@ def assert_processing(upload: Upload, published: bool = False):
         # check some domain metadata
         assert entry_metadata.n_atoms > 0
         assert len(entry_metadata.atoms) > 0
+        assert len(entry_metadata.processing_errors) == 0
 
         assert upload.get_calc(calc.calc_id) is not None
 
@@ -530,6 +533,8 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
             assert 'section_metadata' in calc_archive
             assert calc_archive['section_metadata']['dft']['code_name'] not in [
                 config.services.unavailable_value, config.services.not_processed_value]
+            if task != 'cleanup':
+                assert len(calc_archive['section_metadata']['processing_errors']) > 0
             assert 'processing_logs' in calc_archive
             if task != 'parsing':
                 assert 'section_run' in calc_archive

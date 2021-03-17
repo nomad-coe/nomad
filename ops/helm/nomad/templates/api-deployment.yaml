@@ -10,50 +10,54 @@ metadata:
 data:
   gunicorn.log.conf: |
     [loggers]
-    keys=root, gunicorn.error, gunicorn.access
+    keys=root, gunicorn, gunicorn.error, gunicorn.access, uvicorn.access
 
     [handlers]
-    keys=console, access, error
+    keys=console, logstash
 
     [formatters]
-    keys=generic, json
+    keys=generic, logstash
 
     [logger_root]
     level=INFO
-    handlers=console
+    handlers=console, logstash
+
+    [logger_gunicorn]
+    level=INFO
+    handlers=console, logstash
+    qualname=gunicorn
 
     [logger_gunicorn.error]
     level=INFO
-    handlers=error
+    handlers=console, logstash
     qualname=gunicorn.error
 
     [logger_gunicorn.access]
     level=INFO
-    handlers=access
+    handlers=console, logstash
     qualname=gunicorn.access
+
+    [logger_uvicorn.access]
+    level=INFO
+    handlers=console, logstash
+    qualname=uvicorn.access
 
     [handler_console]
     class=StreamHandler
     formatter=generic
     args=(sys.stdout, )
 
-    [handler_access]
-    class=StreamHandler
-    formatter=json
-    args=(sys.stdout, )
-
-    [handler_error]
-    class=StreamHandler
-    formatter=json
-    args=(sys.stdout, )
+    [handler_logstash]
+    class=nomad.utils.structlogging.LogstashHandler
+    formatter=logstash
 
     [formatter_generic]
     format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
     datefmt=%Y-%m-%d %H:%M:%S
     class=logging.Formatter
 
-    [formatter_json]
-    class=pythonjsonlogger.jsonlogger.JsonFormatter
+    [formatter_logstash]
+    class=nomad.utils.structlogging.LogstashFormatter
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -67,10 +71,6 @@ metadata:
 data:
   gunicorn.conf: |
     secure_scheme_headers = {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
-    {{ if ne .Values.app.workerClass "sync" }}
-    worker_class = '{{ .Values.app.workerClass }}'
-    threads = {{ .Values.app.threads }}
-    {{ end }}
     worker_connections = 1000
     workers = {{ .Values.app.worker }}
 ---

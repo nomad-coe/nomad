@@ -84,9 +84,6 @@ class ArchiveLogView extends React.Component {
   }
 
   static styles = theme => ({
-    root: {
-      marginTop: theme.spacing(2)
-    },
     moreLogs: {
       marginTop: theme.spacing(2)
     },
@@ -158,9 +155,8 @@ class ArchiveLogView extends React.Component {
     }
 
     return (
-      <EntryPageContent className={classes.root} fixed>
+      <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
         {content}
-
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
           component={Fab} className={classes.downloadFab} size="medium"
