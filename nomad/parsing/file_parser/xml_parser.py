@@ -31,9 +31,9 @@ class XMLParser(FileParser):
         logger: logger
         convert: specifies if quantities are converted automatically
     '''
-    def __init__(self, mainfile: str = None, logger=None, convert: bool = True):
-        super().__init__(mainfile, logger=logger)
-        self.convert = convert
+    def __init__(self, mainfile: str = None, logger=None, **kwargs):
+        super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
+        self.convert = kwargs.get('convert', True)
         self.init_parameters()
 
     def init_parameters(self):
@@ -51,8 +51,16 @@ class XMLParser(FileParser):
             if self.mainfile is None:
                 return
             try:
-                self._file_handler = ElementTree.parse(self.open(self.mainfile)).getroot()
+                self._file_handler = ElementTree.parse(self.mainfile_obj).getroot()
             except Exception:
+                try:
+                    # I cannot use the lxml XMLParser directly because it is not compatible with
+                    # the ElementTree implementation.
+                    xml = etree.parse(self.mainfile_mainfile_obj, parser=etree.XMLParser(recover=True))
+                    self._file_handler = ElementTree.fromstring(etree.tostring(xml))
+                except Exception:
+                    pass
+
                 self.logger.error('failed to load xml file')
                 try:
                     # I cannot use the lxml XMLParser directly because it is not compatible with

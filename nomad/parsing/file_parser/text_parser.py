@@ -232,9 +232,10 @@ class DataTextParser(FileParser):
     def __init__(self, **kwargs):
         self._dtype: Type = kwargs.get('dtype', float)
         mainfile: str = kwargs.get('mainfile', None)
+        self._mainfile_contents: str = kwargs.get('mainfile_contents', None)
         logger = kwargs.get('logger', None)
         logger = logger if logger is not None else logging
-        super().__init__(mainfile, logger=logger)
+        super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
         self.init_parameters()
 
     def init_parameters(self):
@@ -249,11 +250,13 @@ class DataTextParser(FileParser):
         Returns the loaded data
         '''
         if self._file_handler is None:
-            if self.mainfile is None:
-                return
-
             try:
-                self._file_handler = np.loadtxt(self.mainfile, dtype=self._dtype)
+                if self.mainfile is not None:
+                    self._file_handler = np.loadtxt(self.mainfile)
+                else:
+                    if self._mainfile_contents is None:
+                        self._mainfile_contents = self.mainfile_obj.read()
+                    self._file_handler = np.fromstring(self._mainfile_contents, dtype=self._dtype)
             except Exception:
                 return
 
@@ -278,7 +281,7 @@ class TextParser(FileParser):
         file_length: length of the chunk to be read from the file
     '''
     def __init__(self, mainfile=None, quantities=None, logger=None, findall=True, **kwargs):
-        super().__init__(mainfile, logger)
+        super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
         self._quantities: List[Quantity] = quantities
         self.findall: bool = findall
         self._kwargs = kwargs
@@ -530,5 +533,4 @@ class TextParser(FileParser):
                     if quantity.name not in self._results:
                         self._parse_quantity(quantity)
 
-        super().parse()
         return self
