@@ -23,7 +23,7 @@ import json
 import datetime
 import time
 
-from nomad import search, processing as proc, files
+from nomad import search, utils, processing as proc, files
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
@@ -325,7 +325,7 @@ class TestClient:
 
     @pytest.mark.parametrize('move, link', [(True, False), (False, True), (False, False)])
     def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move, link):
-        ref_search_results = search.flat(
+        ref_search_results = utils.flat(
             search.SearchRequest().search_parameters(
                 upload_id=published.upload_id).execute_paginated()['results'][0])
 
@@ -350,7 +350,7 @@ class TestClient:
         calcs_in_search = new_search['pagination']['total']
         assert calcs_in_search == 1
 
-        new_search_results = search.flat(new_search['results'][0])
+        new_search_results = utils.flat(new_search['results'][0])
         for key in new_search_results.keys():
             if key not in ['upload_time', 'last_processing', 'dft.labels.label', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
                 # There is a sub second change due to date conversions (?).
@@ -361,7 +361,7 @@ class TestClient:
         proc.Upload.objects(upload_id=published.upload_id).first().upload_files.exists
 
     def test_mirror_staging(self, non_empty_processed, admin_user_bravado_client, monkeypatch):
-        ref_search_results = search.flat(
+        ref_search_results = utils.flat(
             search.SearchRequest().search_parameters(
                 upload_id=non_empty_processed.upload_id).execute_paginated()['results'][0])
 
@@ -379,7 +379,7 @@ class TestClient:
         calcs_in_search = new_search['pagination']['total']
         assert calcs_in_search == 1
 
-        new_search_results = search.flat(new_search['results'][0])
+        new_search_results = utils.flat(new_search['results'][0])
         for key in new_search_results.keys():
             if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])

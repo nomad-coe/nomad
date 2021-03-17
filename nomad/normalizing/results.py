@@ -588,7 +588,7 @@ class ResultsNormalizer(Normalizer):
             if atomutils.is_valid_basis(repr_sys.lattice_vectors):
                 struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
                 struct.lattice_vectors = repr_sys.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude),
+                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude)
                 struct.lattice_parameters = self.lattice_parameters(repr_sys.lattice_vectors)
             return struct
 
@@ -607,7 +607,7 @@ class ResultsNormalizer(Normalizer):
             if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = prim_sys.lattice_vectors_primitive
-                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude),
+                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude)
                 struct.lattice_parameters = self.lattice_parameters(prim_sys.lattice_vectors_primitive)
             return struct
 
@@ -626,7 +626,7 @@ class ResultsNormalizer(Normalizer):
             if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = conv_sys.lattice_vectors_std
-                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude),
+                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude)
                 struct.lattice_parameters = self.lattice_parameters(conv_sys.lattice_vectors_std)
                 analyzer = symmetry.m_cache["symmetry_analyzer"]
                 sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
@@ -647,7 +647,7 @@ class ResultsNormalizer(Normalizer):
             if atomutils.is_valid_basis(system.lattice_vectors):
                 struct.dimension_types = np.array(system.configuration_periodic_dimensions).astype(int)
                 struct.lattice_vectors = system.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(system.lattice_vectors.magnitude),
+                struct.cell_volume = atomutils.get_volume(system.lattice_vectors.magnitude)
                 struct.lattice_parameters = self.lattice_parameters(system.lattice_vectors)
             return struct
 

@@ -27,8 +27,6 @@ from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entry, index_entries,
     entry_type, material_type, material_entry_type, entry_index, material_index)
 
-from ..conftest import clear_elastic_infra
-
 
 class Material(MSection):
 
@@ -72,15 +70,20 @@ class Properties(MSection):
         type=float, unit='J',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    data = Quantity(type=Data, a_elasticsearch=Elasticsearch())
+    data = Quantity(type=Data, a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_series = Quantity(type=Data.n_series, a_elasticsearch=Elasticsearch())
 
 
 class Results(MSection):
 
-    material = SubSection(sub_section=Material.m_def, a_eleasticsearch=Elasticsearch())
-    properties = SubSection(sub_section=Properties.m_def, a_eleasticsearch=Elasticsearch())
+    material = SubSection(sub_section=Material.m_def)
+    properties = SubSection(sub_section=Properties.m_def)
+
+
+class User(MSection):
+    user_id = Quantity(type=str, a_elasticsearch=Elasticsearch())
+    name = Quantity(type=str, a_elasticsearch=Elasticsearch())
 
 
 class Entry(MSection):
@@ -101,14 +104,18 @@ class Entry(MSection):
         type=Datetime,
         a_elasticsearch=Elasticsearch())
 
-    results = SubSection(sub_section=Results.m_def, a_eleasticsearch=Elasticsearch())
+    results = SubSection(
+        sub_section=Results.m_def,
+        a_eleasticsearch=Elasticsearch(auto_include_subsections=True))
     data = SubSection(sub_section=Data.m_def)
+
+    owners = Quantity(
+        type=User, shape=['*'], a_elasticsearch=Elasticsearch())
 
 
 def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None, **kwargs):
     for segment in path.split('.'):
         assert 'properties' in mapping
-
         mapping = mapping['properties'].get(segment)
 
     if es_type is None:
@@ -210,6 +217,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'results.properties.band_gap', 'double')
     assert_mapping(entry_mapping, 'results.properties.data.n_points', 'integer')
     assert_mapping(entry_mapping, 'results.properties.n_series', 'integer')
+    assert_mapping(entry_mapping, 'owners.user_id', 'keyword')
+    assert_mapping(entry_mapping, 'owners.name', 'keyword')
 
     assert_mapping(material_mapping, 'material_id', 'keyword')
     assert_mapping(material_mapping, 'formula', 'keyword')
@@ -221,20 +230,21 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
 
     formula_annotations = Material.formula.m_get_annotations(Elasticsearch)
-    assert formula_annotations[0].qualified_field == 'results.material.formula'
-    assert formula_annotations[1].qualified_field == 'results.material.formula.text'
-    assert formula_annotations[1].get_qualified_field(material_type) == 'formula.text'
-    assert formula_annotations[1].get_qualified_field(material_entry_type) is None
-    assert Properties.available_properties.a_elasticsearch.get_qualified_field(material_entry_type) == 'entries.results.properties.available_properties'
-
-    assert entry_type.quantities.get('results.material.formula') == formula_annotations[0]
-    assert entry_type.quantities.get('results.material.formula.text') == formula_annotations[1]
+    assert entry_type.quantities.get('results.material.formula').annotation == formula_annotations[0]
+    assert entry_type.quantities.get('results.material.formula.text').annotation == formula_annotations[1]
 
     assert entry_type.metrics['uploads'] == ('cardinality', entry_type.quantities['upload_id'])
 
+    assert 'owners.user_id' in entry_type.quantities
+    assert Entry.owners in entry_type.indexed_properties
+    assert User.user_id in entry_type.indexed_properties
+    assert Entry.owners not in material_entry_type.indexed_properties
+    assert User.user_id not in material_entry_type.indexed_properties
+
 
 def test_index_docs(indices):
-    entry = Entry(entry_id='test_entry_id', mainfile='test_mainfile')
+    user = User(user_id='test_user_id', name='Test User')
+    entry = Entry(entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user])
     data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
     results = entry.m_create(Results)
     results.m_create(
@@ -251,6 +261,16 @@ def test_index_docs(indices):
     assert entry_doc == {
         'entry_id': 'test_entry_id',
         'mainfile': 'other_mainfile',
+        'owners': [
+            {
+                'user_id': 'test_user_id',
+                'name': 'Test User'
+            },
+            {
+                'user_id': 'test_user_id',
+                'name': 'Test User'
+            }
+        ],
         'results': {
             'material': {
                 'material_id': 'test_material_id',

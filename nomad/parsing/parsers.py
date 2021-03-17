@@ -19,6 +19,7 @@
 import os.path
 
 from nomad import config, datamodel
+from nomad.datamodel import results
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .legacy import LegacyParser
@@ -430,3 +431,7 @@ for parser in parsers:
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
 datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
+results.Simulation.program_name.a_elasticsearch.values = code_names + [
+    config.services.unavailable_value, config.services.not_processed_value]
+results.Simulation.program_name.a_elasticsearch.statistics_size = len(
+    results.Simulation.program_name.a_elasticsearch.values)

@@ -24,11 +24,12 @@ from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel, search, processing
+from nomad import utils, datamodel, processing
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
+from nomad.app.v1.search import update_by_query
 
 from .auth import get_required_user
 from .entries import _do_exaustive_search
@@ -220,15 +221,15 @@ async def post_datasets(
     # add dataset to entries in mongo and elastic
     # TODO this should be part of a new edit API
     if create.entries is not None:
-        es_query = cast(Query, {'calc_id': Any_(any=create.entries)})
+        es_query = cast(Query, {'entry_id': Any_(any=create.entries)})
         mongo_query = {'_id': {'$in': create.entries}}
         empty = len(create.entries) == 0
     elif create.query is not None:
         es_query = create.query
         entries = _do_exaustive_search(
             owner=Owner.public, query=create.query, user=user,
-            include=['calc_id'])
-        entry_ids = [entry['calc_id'] for entry in entries]
+            include=['entry_id'])
+        entry_ids = [entry['entry_id'] for entry in entries]
         mongo_query = {'_id': {'$in': entry_ids}}
         empty = len(entry_ids) == 0
     else:
@@ -237,7 +238,7 @@ async def post_datasets(
     if not empty:
         processing.Calc._get_collection().update_many(
             mongo_query, {'$push': {'metadata.datasets': dataset.dataset_id}})
-        search.update_by_query(
+        update_by_query(
             '''
                 if (ctx._source.datasets == null) {
                     ctx._source.datasets = new ArrayList();
@@ -245,8 +246,8 @@ async def post_datasets(
                 ctx._source.datasets.add(params.dataset);
             ''',
             params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
-            query=es_query, user_id=user.user_id)
-        search.refresh()
+            query=es_query, user_id=user.user_id,
+            refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -287,17 +288,17 @@ async def delete_dataset(
 
     # delete dataset from entries in mongo and elastic
     # TODO this should be part of a new edit API
-    es_query = cast(Query, {'dataset_id': dataset_id})
+    es_query = cast(Query, {'datasets.dataset_id': dataset_id})
     entries = _do_exaustive_search(
         owner=Owner.public, query=es_query, user=user,
-        include=['calc_id'])
-    entry_ids = [entry['calc_id'] for entry in entries]
+        include=['entry_id'])
+    entry_ids = [entry['entry_id'] for entry in entries]
     mongo_query = {'_id': {'$in': entry_ids}}
 
     if len(entry_ids) > 0:
         processing.Calc._get_collection().update_many(
             mongo_query, {'$pull': {'metadata.datasets': dataset.dataset_id}})
-        search.update_by_query(
+        update_by_query(
             '''
                 int index = -1;
                 for (int i = 0; i < ctx._source.datasets.length; i++) {
@@ -310,8 +311,8 @@ async def delete_dataset(
                 }
             ''',
             params=dict(dataset_id=dataset_id),
-            query=es_query, user_id=user.user_id)
-        search.refresh()
+            query=es_query, user_id=user.user_id,
+            refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,

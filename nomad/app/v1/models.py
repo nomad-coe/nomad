@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import cast, List, Dict, Optional, Union, Any, Mapping, DefaultDict
+from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
 import pydantic
@@ -37,17 +37,7 @@ from .utils import parameter_dependency_from_model, update_url_query_arguments
 User = datamodel.User.m_def.a_pydantic.model
 
 
-calc_id = 'calc_id'
-Metric = enum.Enum('Metric', entry_type.metrics.keys())  # type: ignore
-AggregateableQuantity = enum.Enum('AggregateableQuantity', {  # type: ignore
-    name: name for name in entry_type.quantities
-    if entry_type.quantities[name].aggregateable})
-
-AggregateableQuantity.__doc__ = '''
-    Statistics and aggregations can only be computed for those search quantities that have
-    discrete values. For example a statistics aggregates a certain metric (e.g. the number of entries)
-    over all entries were this quantity has the same value (bucket aggregation, think historgam here).
-'''
+entry_id = 'entry_id'
 
 Value = Union[str, int, float, bool, datetime.datetime]
 ComparableValue = Union[str, int, float, datetime.datetime]
@@ -357,21 +347,9 @@ def query_parameters(
         values = [type_(value) for value in values]
 
         if op is None:
-            if quantity.many_and:
-                op = 'all'
-            if quantity.many_or:
-                op = 'any'
+            op = 'all' if quantity.many_all else 'any'
 
-        if op is None:
-            if len(values) > 1:
-                raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        'loc': ['query', key],
-                        'msg':'search parameter %s does not support multiple values' % key}])
-            query[quantity_name] = values[0]
-
-        elif op == 'all':
+        if op == 'all':
             query[quantity_name] = All(all=values)
         elif op == 'any':
             query[quantity_name] = Any_(any=values)
@@ -404,12 +382,12 @@ class MetadataRequired(BaseModel):
     include: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to include for each result. Only those quantities will be
-            returned. The entry id quantity `calc_id` will always be included.
+            returned. The entry id quantity `entry_id` will always be included.
         '''))
     exclude: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to exclude for each result. Only all other quantities will
-            be returned. The quantity `calc_id` cannot be excluded.
+            be returned. The quantity `entry_id` cannot be excluded.
         '''))
 
     @validator('include', 'exclude')
@@ -423,12 +401,12 @@ class MetadataRequired(BaseModel):
 
         # TODO resolve wildcards?
 
-        if field.name == 'include' and 'calc_id' not in value:
-            value.append('calc_id')
+        if field.name == 'include' and 'entry_id' not in value:
+            value.append('entry_id')
 
         if field.name == 'exclude':
-            if 'calc_id' in value:
-                value.remove('calc_id')
+            if 'entry_id' in value:
+                value.remove('entry_id')
 
         return value
 
@@ -446,7 +424,7 @@ class Pagination(BaseModel):
             A `page_size` of 0 will return no results.
         '''))
     order_by: Optional[str] = Field(
-        None,  # type: ignore
+        entry_id,  # type: ignore
         description=strip('''
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
@@ -628,7 +606,7 @@ class PaginationResponse(Pagination):
 
 class EntryBasedPagination(Pagination):
     order_by: Optional[str] = Field(
-        calc_id,  # type: ignore
+        entry_id,  # type: ignore
         description=strip('''
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
@@ -646,8 +624,8 @@ class EntryBasedPagination(Pagination):
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
-        order_by = values.get('order_by', calc_id)
-        if page_after_value is not None and order_by is not None and order_by != calc_id:
+        order_by = values.get('order_by', entry_id)
+        if page_after_value is not None and order_by is not None and order_by != entry_id:
             if ':' not in page_after_value:
                 page_after_value = '%s:' % page_after_value
         return page_after_value
@@ -704,7 +682,7 @@ class AggregatedEntities(BaseModel):
 
 
 class Aggregation(BaseModel):
-    quantity: AggregateableQuantity = Field(
+    quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity for the aggregation. Aggregations
         can only be computed for those search metadata that have discrete values;
@@ -719,6 +697,12 @@ class Aggregation(BaseModel):
         Optionally, a set of entries can be returned for each value.
         '''))
 
+    @validator('quantity')
+    def validate_quantity(cls, quantity):  # pylint: disable=no-self-argument
+        assert quantity in entry_type.quantities and entry_type.quantities[quantity].aggregateable, \
+            'aggregation quantities must be search quantities suitable for aggregation'
+        return quantity
+
 
 class StatisticsOrder(BaseModel):
     type_: Optional[AggregationOrderType] = Field(AggregationOrderType.entries, alias='type')
@@ -726,7 +710,7 @@ class StatisticsOrder(BaseModel):
 
 
 class Statistic(BaseModel):
-    quantity: AggregateableQuantity = Field(
+    quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity that the statistic is calculated for. Statistics
         can only be computed for those search metadata that have discrete values; a statistics
@@ -736,7 +720,7 @@ class Statistic(BaseModel):
         There is one except and these are date/time values quantities (most notably `upload_time`).
         Here each statistic value represents an time interval. The interval can
         be determined via `datetime_interval`.'''))
-    metrics: Optional[List[Metric]] = Field(
+    metrics: Optional[List[str]] = Field(
         [], description=strip('''
         By default the returned statistics will provide the number of entries for each
         value. You can add more metrics. For each metric an additional number will be
@@ -769,11 +753,25 @@ class Statistic(BaseModel):
         natural ordering of the values.
         '''))
 
+    @validator('metrics')
+    def validate_metric(cls, metrics):  # pylint: disable=no-self-argument
+        for metric in metrics:
+            assert metric in entry_type.metrics, \
+                'metric must be the qualified name of a suitable search quantity'
+        return metrics
+
+    @validator('quantity')
+    def validate_quantity(cls, quantity):  # pylint: disable=no-self-argument
+        assert quantity in entry_type.quantities, f'{quantity} is not a search quantity'
+        assert entry_type.quantities[quantity].aggregateable, (
+            f"{quantity}'s mapping type {entry_type.quantities[quantity].mapping['type']} "
+            "is not suitable for aggregation")
+        return quantity
+
     @root_validator(skip_on_failure=True)
     def fill_default_size(cls, values):  # pylint: disable=no-self-argument
         if 'size' not in values or values['size'] is None:
-            values['size'] = entry_type.quantities[values['quantity'].value].statistic_size
-
+            values['size'] = entry_type.quantities[values['quantity']].statistics_size
         return values
 
 
@@ -790,7 +788,7 @@ class EntriesMetadata(WithQueryAndPagination):
     required: Optional[MetadataRequired] = Body(
         None,
         example={
-            'include': ['calc_id', 'mainfile', 'upload_id', 'authors', 'upload_time']
+            'include': ['entry_id', 'mainfile', 'upload_id', 'authors', 'upload_time']
         })
     statistics: Optional[Dict[str, Statistic]] = Body(
         {},
@@ -1055,7 +1053,7 @@ class EntryRawFile(BaseModel):
 
 
 class EntryRaw(BaseModel):
-    calc_id: str = Field(None)
+    entry_id: str = Field(None)
     upload_id: str = Field(None)
     mainfile: str = Field(None)
     files: List[EntryRawFile] = Field(None)
@@ -1079,7 +1077,7 @@ class EntryRawResponse(BaseModel):
 
 
 class EntryArchive(BaseModel):
-    calc_id: str = Field(None)
+    entry_id: str = Field(None)
     upload_id: str = Field(None)
     parser_name: str = Field(None)
     archive: Dict[str, Any] = Field(None)

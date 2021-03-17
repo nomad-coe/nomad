@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO
+from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO, cast
 from fastapi import APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter
 from fastapi.responses import StreamingResponse
 import os.path
@@ -27,9 +27,13 @@ import magic
 import gzip
 import lzma
 
-from nomad import search, files, config, utils
+from nomad import files, config, utils
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
+from nomad.archive import (
+    ArchiveQueryError, compute_required_with_referenced,
+    read_partial_archives_from_mongo, filter_archive)
+from nomad.search import AuthenticationRequiredError
 
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
@@ -40,6 +44,7 @@ from ..models import (
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
     ArchiveRequired, EntryArchiveRequest)
+from ..search import search, SearchError
 
 
 router = APIRouter()
@@ -97,10 +102,10 @@ _bad_archive_required_response = status.HTTP_400_BAD_REQUEST, {
 
 def perform_search(*args, **kwargs):
     try:
-        return search.search(*args, **kwargs)
-    except search.AuthenticationRequiredError as e:
+        return search(*args, **kwargs)
+    except AuthenticationRequiredError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except search.ElasticSearchError as e:
+    except SearchError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Elasticsearch could not process your query: %s' % str(e))
@@ -219,7 +224,7 @@ class _Uploads():
 
 
 def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
-    calc_id = entry_metadata['calc_id']
+    entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
     mainfile = entry_metadata['mainfile']
 
@@ -231,7 +236,7 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
         path = os.path.join(mainfile_dir, file_name)
         files.append(EntryRawFile(path=path, size=file_size))
 
-    return EntryRaw(calc_id=calc_id, upload_id=upload_id, mainfile=mainfile, files=files)
+    return EntryRaw(entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, files=files)
 
 
 def _answer_entries_raw_request(
@@ -246,7 +251,7 @@ def _answer_entries_raw_request(
     search_response = perform_search(
         owner=owner, query=query,
         pagination=pagination,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
         user_id=user.user_id if user is not None else None)
 
     uploads = _Uploads()
@@ -286,7 +291,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
     uploads = _Uploads()
     files_params = Files() if files is None else files
     manifest = []
-    search_includes = ['calc_id', 'upload_id', 'mainfile']
+    search_includes = ['entry_id', 'upload_id', 'mainfile']
     streamed_paths: Set[str] = set()
 
     try:
@@ -410,7 +415,7 @@ _entries_raw_download_query_docstring = strip('''
     main and auxiliary files. The files will be organized in the same directory structure
     that they were uploaded in. The respective upload root directories are further prefixed
     with the `upload_id` of the respective uploads. The .zip-file will further contain
-    a `manifest.json` with `upload_id`, `calc_id`, and `mainfile` of each entry.
+    a `manifest.json` with `upload_id`, `entry_id`, and `mainfile` of each entry.
     ''')
 
 
@@ -445,17 +450,16 @@ async def get_entries_raw_download(
 
 
 def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
-    calc_id = entry_metadata['calc_id']
+    entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
     upload_files = uploads.get_upload_files(upload_id)
 
     try:
-        with upload_files.read_archive(calc_id) as archive:
+        with upload_files.read_archive(entry_id) as archive:
             return {
-                'calc_id': calc_id,
-                'upload_id': upload_id,
+                'entry_id': entry_id,
                 'parser_name': entry_metadata['parser_name'],
-                'archive': required_reader.read(archive, calc_id)
+                'archive': required_reader.read(archive, entry_id)
             }
     except ArchiveQueryError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -482,28 +486,52 @@ def _answer_entries_archive_request(
     if required is None:
         required = '*'
 
+    try:
+        required_with_references = compute_required_with_referenced(required)
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
+            'The required specification contains an unknown quantity or section: %s' % str(e)))
+
     required_reader = _validate_required(required)
 
     search_response = perform_search(
         owner=owner, query=query,
         pagination=pagination,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
+
+    if required_with_references is not None:
+        # We can produce all the required archive data from the partial archives stored
+        # in mongodb.
+        entry_ids = [entry['entry_id'] for entry in search_response.data]
+        partial_archives = cast(dict, read_partial_archives_from_mongo(entry_ids, as_dict=True))
 
     uploads = _Uploads()
     response_data = {}
     for entry_metadata in search_response.data:
-        calc_id, upload_id = entry_metadata['calc_id'], entry_metadata['upload_id']
+        entry_id, upload_id = entry_metadata['entry_id'], entry_metadata['upload_id']
 
         archive_data = None
-        try:
-            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
-        except KeyError as e:
-            logger.error('missing archive', exc_info=e, calc_id=calc_id)
-            continue
+        if required_with_references is not None:
+            try:
+                partial_archive = partial_archives[entry_id]
+                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
+            except KeyError:
+                # the partial archive might not exist, e.g. due to processing problems
+                pass
+            except ArchiveQueryError as e:
+                detail = 'The required specification could not be understood: %s' % str(e)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
-        response_data[calc_id] = {
-            'calc_id': calc_id,
+        if archive_data is None:
+            try:
+                archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
+            except KeyError as e:
+                logger.error('missing archive', exc_info=e, entry_id=entry_id)
+                continue
+
+        response_data[entry_id] = {
+            'entry_id': entry_id,
             'upload_id': upload_id,
             'parser_name': entry_metadata['parser_name'],
             'archive': archive_data}
@@ -591,7 +619,7 @@ def _answer_entries_archive_download_request(
 
     uploads = _Uploads()
     manifest = []
-    search_includes = ['calc_id', 'upload_id', 'parser_name']
+    search_includes = ['entry_id', 'upload_id', 'parser_name']
 
     required_reader = RequiredReader('*')
 
@@ -599,7 +627,7 @@ def _answer_entries_archive_download_request(
     def file_generator():
         # go through all entries that match the query
         for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
-            path = os.path.join(entry_metadata['upload_id'], '%s.json' % entry_metadata['calc_id'])
+            path = os.path.join(entry_metadata['upload_id'], '%s.json' % entry_metadata['entry_id'])
             try:
                 archive_data = _read_archive(entry_metadata, uploads, required_reader)
 
@@ -608,7 +636,7 @@ def _answer_entries_archive_download_request(
 
                 yield File(path=path, f=f, size=f.getbuffer().nbytes)
             except KeyError as e:
-                logger.error('missing archive', calc_id=entry_metadata['calc_id'], exc_info=e)
+                logger.error('missing archive', entry_id=entry_metadata['entry_id'], exc_info=e)
 
             entry_metadata['path'] = path
             manifest.append(entry_metadata)
@@ -679,7 +707,7 @@ async def get_entry_metadata(
     Retrives the entry metadata for the given id.
     '''
 
-    query = {'calc_id': entry_id}
+    query = {'entry_id': entry_id}
     response = perform_search(owner=Owner.all_, query=query, required=required, user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:
@@ -710,10 +738,10 @@ async def get_entry_raw(
     Returns the file metadata for all input and output files (including auxiliary files)
     of the given `entry_id`. The first file will be the *mainfile*.
     '''
-    query = dict(calc_id=entry_id)
+    query = dict(entry_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
         user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:
@@ -741,10 +769,10 @@ async def get_entry_raw_download(
     '''
     Streams a .zip file with the raw files from the requested entry.
     '''
-    query = dict(calc_id=entry_id)
+    query = dict(entry_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id']),
+        required=MetadataRequired(include=['entry_id']),
         user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:
@@ -813,7 +841,7 @@ async def get_entry_raw_download_file(
     '''
     Streams the contents of an individual file from the requested entry.
     '''
-    query = dict(calc_id=entry_id)
+    query = dict(entry_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
         required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
@@ -872,7 +900,7 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
     query = dict(calc_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:

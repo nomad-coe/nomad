@@ -20,7 +20,7 @@ import json
 import pytest
 
 from nomad.processing import Upload
-from nomad import search
+from nomad import search, utils
 from nomad.app.optimade import parse_filter
 
 from tests.conftest import clear_elastic, clear_raw_files
@@ -33,7 +33,7 @@ def test_get_entry(published: Upload):
         assert data['section_metadata']['dft']['optimade'] is not None
 
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
+    assert 'dft.optimade.chemical_formula_hill' in utils.flat(search_result)
 
 
 def test_no_optimade(mongo, elastic, raw_files, client):

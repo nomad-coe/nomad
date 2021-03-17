@@ -22,14 +22,15 @@ from urllib.parse import urlencode
 from datetime import datetime
 
 from nomad.datamodel import Dataset
-from nomad import search, processing
+from nomad import processing
+from nomad.app.v1.search import search
 from nomad.app.v1.models import Query
 
-from tests.app.conftest import ExampleData
 from tests.conftest import admin_user_id
 
 from .test_entries import data as example_entries  # pylint: disable=unused-import
 from .common import assert_response
+from ..conftest import ExampleData
 
 '''
 These are the tests for all API operations below ``datasets``. The tests are organized
@@ -129,15 +130,15 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
     if entries is not None:
         n_entries = len(entries)
     if query is not None:
-        search_results = search.search(
+        search_results = search(
             owner='public', query=query, user_id=dataset['user_id'])
         n_entries = search_results.pagination.total
 
     if n_entries == -1:
         return
 
-    search_results = search.search(
-        owner='public', query=dict(dataset_id=dataset_id), user_id=dataset['user_id'])
+    search_results = search(
+        owner='public', query={'datasets.dataset_id': dataset_id}, user_id=dataset['user_id'])
     assert search_results.pagination.total == n_entries
     assert processing.Calc.objects(metadata__datasets=dataset_id).count() == n_entries
 
@@ -146,8 +147,8 @@ def assert_dataset_deleted(dataset_id):
     mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     assert mongo_dataset is None
 
-    search_results = search.search(
-        owner='admin', query=dict(dataset_id=dataset_id), user_id=admin_user_id)
+    search_results = search(
+        owner='admin', query={'datasets.dataset_id': dataset_id}, user_id=admin_user_id)
     assert search_results.pagination.total == 0
     assert processing.Calc.objects(metadata__datasets=dataset_id).count() == 0
 

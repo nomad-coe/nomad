@@ -16,14 +16,14 @@
 # limitations under the License.
 #
 
-from typing import cast, Any, Dict
+from typing import cast, Any, Dict, Union
 from elasticsearch.exceptions import RequestError, TransportError
-from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
+from elasticsearch_dsl import Search, Q, A
 import json
 
-from nomad import config, infrastructure, utils, datamodel
+from nomad import infrastructure, utils, datamodel
 from nomad.search import _owner_es_query
-from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, Index
 
 from . import models as api_models
 from .models import (
@@ -139,7 +139,7 @@ def _api_to_es_statistic(es_search: Search, name: str, statistic: Statistic) -> 
     Creates an ES aggregation based on the API's statistic model.
     '''
 
-    quantity = entry_type.quantities[statistic.quantity.value]
+    quantity = entry_type.quantities[statistic.quantity]
     if quantity.values is not None:
         statistic.size = len(quantity.values)
 
@@ -155,8 +155,7 @@ def _api_to_es_statistic(es_search: Search, name: str, statistic: Statistic) -> 
         order={order_type: statistic.order.direction.value},
         **terms_kwargs))
 
-    for metric in statistic.metrics:
-        metric_name = metric.value
+    for metric_name in statistic.metrics:
         metric_aggregation, metric_quantity = entry_type.metrics[metric_name]
         statistic_agg.metric('metric:%s' % metric_name, A(
             metric_aggregation,
@@ -168,21 +167,21 @@ def _es_to_api_statistics(es_response, name: str, statistic: Statistic) -> Stati
     Creates a StatisticResponse from elasticsearch response on a request executed with
     the given statistics.
     '''
-    quantity = entry_type.quantities[statistic.quantity.value]
+    quantity = entry_type.quantities[statistic.quantity]
 
     es_statistic = es_response.aggs['statistic:' + name]
     statistic_data = {}
     for bucket in es_statistic.buckets:
         value_data = dict(entries=bucket.doc_count)
         for metric in statistic.metrics:
-            value_data[metric.value] = bucket['metric:' + metric.value].value
+            value_data[metric] = bucket['metric:' + metric].value
         statistic_data[bucket.key] = value_data
 
     if quantity.values is not None:
         for value in quantity.values:
             if value not in statistic_data:
                 statistic_data[value] = dict(entries=0, **{
-                    metric.value: 0 for metric in statistic.metrics})
+                    metric: 0 for metric in statistic.metrics})
 
     return StatisticResponse(data=statistic_data, **statistic.dict(by_alias=True))
 
@@ -191,7 +190,7 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     '''
     Creates an ES aggregation based on the API's aggregation model.
     '''
-    quantity = entry_type.quantities[agg.quantity.value]
+    quantity = entry_type.quantities[agg.quantity]
     terms = A('terms', field=quantity.search_field, order=agg.pagination.order.value)
 
     # We are using elastic searchs 'composite aggregations' here. We do not really
@@ -203,14 +202,14 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     else:
         order_quantity = entry_type.quantities[order_by]
         sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = dict(sources=[{order_by: sort_terms}, {quantity.name: terms}], size=agg.pagination.size)
+        composite = dict(sources=[{order_by: sort_terms}, {quantity.search_field: terms}], size=agg.pagination.size)
 
     if agg.pagination.after is not None:
         if order_by is None:
             composite['after'] = {name: agg.pagination.after}
         else:
             order_value, quantity_value = agg.pagination.after.split(':')
-            composite['after'] = {quantity.name: quantity_value, order_quantity.name: order_value}
+            composite['after'] = {quantity.search_field: quantity_value, order_quantity.search_field: order_value}
 
     composite_agg = es_search.aggs.bucket('agg:%s' % name, 'composite', **composite)
 
@@ -234,7 +233,7 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
     the given aggregation.
     '''
     order_by = agg.pagination.order_by
-    quantity = entry_type.quantities[agg.quantity.value]
+    quantity = entry_type.quantities[agg.quantity]
     es_agg = es_response.aggs['agg:' + name]
 
     def get_entries(agg):
@@ -275,7 +274,8 @@ def search(
         required: MetadataRequired = None,
         aggregations: Dict[str, Aggregation] = {},
         statistics: Dict[str, Statistic] = {},
-        user_id: str = None) -> SearchResponse:
+        user_id: str = None,
+        index: Union[Index, str] = entry_index) -> SearchResponse:
 
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a SearchResponse.
@@ -290,13 +290,15 @@ def search(
     if pagination is None:
         pagination = Pagination()
 
-    search = Search(index=config.elastic.index_name)
+    if isinstance(index, Index):
+        index = index.index_name
+    search = Search(index=index)
 
     search = search.query(es_query)
     order_field = entry_type.quantities[pagination.order_by].search_field
     sort = {order_field: pagination.order.value}
-    if order_field != 'calc_id':
-        sort['calc_id'] = pagination.order.value
+    if order_field != 'entry_id':
+        sort['entry_id'] = pagination.order.value
     search = search.sort(sort)
     search = search.extra(size=pagination.size)
     if pagination.after:
@@ -330,13 +332,13 @@ def search(
     next_after = None
     if 0 < len(es_response.hits) < es_response.hits.total:
         last = es_response.hits[-1]
-        if order_field == 'calc_id':
-            next_after = last['calc_id']
+        if order_field == 'entry_id':
+            next_after = last['entry_id']
         else:
             after_value = last
             for order_field_segment in order_field.split('.'):
                 after_value = after_value[order_field_segment]
-            next_after = '%s:%s' % (after_value, last['calc_id'])
+            next_after = '%s:%s' % (after_value, last['entry_id'])
     pagination_response = PaginationResponse(
         total=es_response.hits.total,
         next_after=next_after,
@@ -356,7 +358,7 @@ def search(
 
     more_response_data['es_query'] = es_query.to_dict()
 
-    return SearchResponse(
+    result = SearchResponse(
         owner=owner,
         query=query,
         pagination=pagination_response,
@@ -364,8 +366,17 @@ def search(
         data=[_es_to_entry_dict(hit, required) for hit in es_response.hits],
         **more_response_data)
 
+    return result
 
-def update_by_query(update_script: str, owner: str = 'public', query: Query = None, user_id: str = None, **kwargs):
+
+def update_by_query(
+        update_script: str,
+        owner: str = 'public',
+        query: Query = None,
+        user_id: str = None,
+        index: Union[Index, str] = entry_index,
+        refresh: bool = False,
+        **kwargs):
     '''
     Uses the given painless script to update the entries by given query.
 
@@ -373,9 +384,14 @@ def update_by_query(update_script: str, owner: str = 'public', query: Query = No
     you should run `index_all` instead and fully replace documents from mongodb and
     archive files.
 
-    This method provides a faster direct method to update individual fiels, e.g. to quickly
+    This method provides a faster direct method to update individual fields, e.g. to quickly
     update fields for editing operations.
     '''
+
+    if isinstance(index, Index):
+        index_name = index.index_name
+    else:
+        index_name = index
 
     if query is None:
         query = {}
@@ -394,11 +410,14 @@ def update_by_query(update_script: str, owner: str = 'public', query: Query = No
 
     try:
         result = infrastructure.elastic_client.update_by_query(
-            body=body, index=config.elastic.index_name)
+            body=body, index=index_name)
     except TransportError as e:
         utils.get_logger(__name__).error(
             'es update_by_query script error', exc_info=e,
             es_info=json.dumps(e.info, indent=2))
         raise SearchError(e)
+
+    if refresh:
+        infrastructure.elastic_client.indices.refresh(index=index_name)
 
     return result

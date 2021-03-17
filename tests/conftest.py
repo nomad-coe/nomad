@@ -225,7 +225,7 @@ def clear_elastic_infra():
     for index in indices:
         try:
             connection.indices.delete(index=index)
-        except Exception as e:
+        except Exception:
             pass
 
     return infrastructure.setup_elastic()
@@ -383,7 +383,10 @@ def no_warn(caplog):
     yield caplog
     for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
+            try:
+                msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
+            except Exception:
+                msg = record.msg
             assert False, msg
 
 

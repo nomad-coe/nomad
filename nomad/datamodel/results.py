@@ -23,6 +23,7 @@ from ase.data import chemical_symbols
 
 from nomad import config
 from nomad.metainfo.search_extension import Search
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type
 from nomad.metainfo import (
     MSection,
     Section,
@@ -422,7 +423,8 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_search=Search()
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_type)
     )
     material_name = Quantity(
         type=str,
@@ -465,7 +467,8 @@ class Material(MSection):
         description="""
         Names of the different elements present in the structure.
         """,
-        a_search=Search(mapping=Text(multi=True, fields={"keyword": Keyword()}))
+        a_search=Search(mapping=Text(multi=True, fields={"keyword": Keyword()})),
+        a_elasticsearch=Elasticsearch(material_type, many_all=True)
     )
     nelements = Quantity(
         type=int,
@@ -473,7 +476,8 @@ class Material(MSection):
         a_search=Search(mapping=Integer()),
         description="""
         Number of different elements in the structure as an integer.
-        """
+        """,
+        a_elasticsearch=Elasticsearch(material_type)
     )
     chemical_formula_descriptive = Quantity(
         type=str,
@@ -520,6 +524,17 @@ class Material(MSection):
     )
     symmetry = SubSection(sub_section=Symmetry.m_def, repeats=False, a_search="symmetry")
 
+    labels_springer_compound_class = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer compund classification.',
+        a_elasticsearch=Elasticsearch()
+    )
+    labels_springer_classification = Quantity(
+        type=str, shape=['0..*'],
+        description='Springer classification by property.',
+        a_elasticsearch=Elasticsearch()
+    )
+
 
 class DFT(MSection):
     m_def = Section(
@@ -559,7 +574,9 @@ class DFT(MSection):
         a_search=Search(
             statistic_values=list(xc_treatments.values()) + ["unavailable", "not processed"],
             statistic_size=100
-        )
+        ),
+        a_elasticsearch=Elasticsearch(
+            values=list(xc_treatments.values()) + ["unavailable", "not processed"])
     )
     xc_functional_names = Quantity(
         type=str, default=[], shape=["*"],
@@ -645,7 +662,8 @@ class Simulation(MSection):
     program_name = Quantity(
         type=str, default="not processed",
         description="The name of the used program.",
-        a_search=Search()
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch()
     )
     program_version = Quantity(
         type=str, default="not processed",
@@ -1013,6 +1031,13 @@ class Properties(MSection):
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False, a_search="vibrational")
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False, a_search="electronic")
     elastic = SubSection(sub_section=ElasticProperties.m_def, repeats=False, a_search="elastic")
+
+    n_calculations = Quantity(
+        type=int,
+        description='''
+        The number of performed single configuration calculations.'
+        ''',
+        a_elasticsearch=Elasticsearch())
 
 
 class Results(MSection):

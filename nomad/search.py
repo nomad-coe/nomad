@@ -20,10 +20,10 @@
 This module represents calculations in elastic search.
 '''
 
-from typing import cast, Iterable, Dict, List, Any
+from typing import Iterable, Dict, List, Any
 from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
-from elasticsearch.exceptions import NotFoundError, RequestError, TransportError
+from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
 
@@ -82,6 +82,27 @@ class ScrollIdNotFound(Exception): pass
 
 
 class InvalidQuery(Exception): pass
+
+
+_entry_metadata_defaults = {
+    quantity.name: quantity.default
+    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
+    if quantity.default not in [None, [], False, 0]
+}
+
+
+def _es_to_entry_dict(hit) -> Dict[str, Any]:
+    '''
+    Elasticsearch entry metadata does not contain default values, if a metadata is not
+    set. This will add default values to entry metadata in dict form obtained from
+    elasticsearch.
+    '''
+    entry_dict = hit.to_dict()
+    for key, value in _entry_metadata_defaults.items():
+        if key not in entry_dict:
+            entry_dict[key] = value
+
+    return entry_dict
 
 
 entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
@@ -575,7 +596,7 @@ class SearchRequest:
             search = search.params(preserve_order=True)
 
         for hit in search.params(**kwargs).scan():
-            yield hit
+            yield _es_to_entry_dict(hit)
 
     def execute_paginated(
             self,
@@ -757,7 +778,7 @@ class SearchRequest:
 
         # hits
         if len(response.hits) > 0 or with_hits:
-            result.update(results=[hit for hit in response.hits])
+            result.update(results=[_es_to_entry_dict(hit) for hit in response.hits])
 
         # statistics
         def get_metrics(bucket, code_runs):

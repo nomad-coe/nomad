@@ -23,14 +23,14 @@ import io
 import json
 
 from nomad import files
-from nomad.metainfo.search_extension import search_quantities
-from nomad.app.v1.models import AggregateableQuantity, Metric
+from nomad.datamodel import results
+from nomad.metainfo.elasticsearch_extension import entry_type
 
 from tests.utils import assert_at_least, assert_url_query_args
 from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import assert_response
-from tests.app.conftest import example_data as data  # pylint: disable=unused-import
+from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -257,7 +257,7 @@ def assert_statistic(response_json, name, statistic, size=-1):
 
     assert_at_least(statistic, statistic_response)
 
-    default_size = search_quantities[statistic['quantity']].statistic_size
+    default_size = entry_type.quantities[statistic['quantity']].statistics_size
     assert statistic.get('size', default_size) >= len(statistic_response['data'])
 
     if size != -1:
@@ -291,10 +291,10 @@ def assert_statistic(response_json, name, statistic, size=-1):
 def assert_required(data, required):
     if 'include' in required:
         for key in data:
-            assert key in required['include'] or '%s.*' % key in required['include'] or key == 'calc_id'
+            assert key in required['include'] or '%s.*' % key in required['include'] or key == 'entry_id'
     if 'exclude' in required:
         for key in required['exclude']:
-            assert key not in data or key == 'calc_id'
+            assert key not in data or key == 'entry_id'
 
 
 def assert_aggregations(response_json, name, agg, total: int, size: int):
@@ -380,15 +380,15 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
 def assert_raw_zip_file(
         response, files: int = -1, manifest_entries: int = -1, compressed: bool = False):
 
-    manifest_keys = ['calc_id', 'upload_id', 'mainfile']
+    manifest_keys = ['entry_id', 'upload_id', 'mainfile']
 
     assert len(response.content) > 0
     with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
         with zip_file.open('manifest.json', 'r') as f:
             manifest = json.load(f)
 
-        with_missing_files = any(entry['calc_id'] == 'id_02' for entry in manifest)
-        with_overlapping_files = any(entry['calc_id'] == 'id_11' for entry in manifest)
+        with_missing_files = any(entry['entry_id'] == 'id_02' for entry in manifest)
+        with_overlapping_files = any(entry['entry_id'] == 'id_11' for entry in manifest)
 
         assert zip_file.testzip() is None
         zip_files = set(zip_file.namelist())
@@ -425,14 +425,14 @@ def assert_entry_raw_response(response_json, files_per_entry: int = -1):
 
 
 def assert_entry_raw(data, files_per_entry: int = -1):
-    for key in ['upload_id', 'calc_id', 'files']:
+    for key in ['upload_id', 'entry_id', 'files']:
         assert key in data
     files = data['files']
     if files_per_entry >= 0:
-        if data['calc_id'] == 'id_02':
+        if data['entry_id'] == 'id_02':
             # missing files
             assert len(files) == 0
-        elif data['calc_id'] in ['id_10', 'id_11']:
+        elif data['entry_id'] in ['id_10', 'id_11']:
             # overlapping files
             assert len(files) == files_per_entry + 1
         else:
@@ -443,7 +443,7 @@ def assert_entry_raw(data, files_per_entry: int = -1):
 
 
 def assert_archive_zip_file(response, entries: int = -1, compressed: bool = False):
-    manifest_keys = ['calc_id', 'upload_id', 'path', 'parser_name']
+    manifest_keys = ['entry_id', 'upload_id', 'path', 'parser_name']
 
     assert len(response.content) > 0
     with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
@@ -451,7 +451,7 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
         with zip_file.open('manifest.json', 'r') as f:
             manifest = json.load(f)
 
-        with_missing_files = any(entry['calc_id'] == 'id_02' for entry in manifest)
+        with_missing_files = any(entry['entry_id'] == 'id_02' for entry in manifest)
 
         zip_files = set(zip_file.namelist())
         if entries >= 0:
@@ -463,7 +463,7 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
             with zip_file.open(path, 'r') as f:
                 data = json.load(f)
                 if path != 'manifest.json':
-                    for key in ['calc_id', 'archive']:
+                    for key in ['entry_id', 'archive']:
                         assert key in data
                     assert_archive(data['archive'])
 
@@ -492,20 +492,21 @@ def assert_archive(archive, required=None):
         assert key in archive
 
 
-n_code_names = search_quantities['dft.code_name'].statistic_size
+n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
+program_name = 'results.method.simulation.program_name'
 
 
 @pytest.mark.parametrize('statistic, size, status_code, user', [
-    pytest.param({'quantity': 'dft.code_name'}, n_code_names, 200, None, id='fixed-values'),
-    pytest.param({'quantity': 'dft.code_name', 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
-    pytest.param({'quantity': 'dft.code_name', 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
-    pytest.param({'quantity': 'calc_id', 'size': 1000}, 23, 200, None, id='size-to-large'),
-    pytest.param({'quantity': 'calc_id', 'size': 10}, 10, 200, None, id='size'),
-    pytest.param({'quantity': 'calc_id', 'size': -1}, -1, 422, None, id='bad-size-1'),
-    pytest.param({'quantity': 'calc_id', 'size': 0}, -1, 422, None, id='bad-size-2'),
-    pytest.param({'quantity': 'calc_id'}, 20, 200, None, id='size-default'),
-    pytest.param({'quantity': 'calc_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
-    pytest.param({'quantity': 'calc_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter'),
+    pytest.param({'quantity': program_name}, n_code_names, 200, None, id='fixed-values'),
+    pytest.param({'quantity': program_name, 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
+    pytest.param({'quantity': program_name, 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
+    pytest.param({'quantity': 'entry_id', 'size': 1000}, 23, 200, None, id='size-to-large'),
+    pytest.param({'quantity': 'entry_id', 'size': 10}, 10, 200, None, id='size'),
+    pytest.param({'quantity': 'entry_id', 'size': -1}, -1, 422, None, id='bad-size-1'),
+    pytest.param({'quantity': 'entry_id', 'size': 0}, -1, 422, None, id='bad-size-2'),
+    pytest.param({'quantity': 'entry_id'}, 10, 200, None, id='size-default'),
+    pytest.param({'quantity': 'entry_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
+    pytest.param({'quantity': 'entry_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter'),
     pytest.param({'quantity': 'upload_id', 'order': {'type': 'values'}}, 3, 200, 'test_user', id='order-type'),
     pytest.param({'quantity': 'upload_id', 'order': {'direction': 'asc'}}, 3, 200, 'test_user', id='order-direction'),
     pytest.param({'quantity': 'does not exist'}, -1, 422, None, id='bad-quantity')])
@@ -526,7 +527,7 @@ def test_entries_statistics(client, data, test_user_auth, statistic, size, statu
 
 
 def test_entries_statistics_ignore_size(client, data):
-    statistic = {'quantity': 'dft.code_name', 'size': 10}
+    statistic = {'quantity': program_name, 'size': 10}
     statistics = {'test_statistic': statistic}
     response_json = perform_entries_metadata_test(
         client, statistics=statistics, status_code=200, http_method='post')
@@ -536,8 +537,8 @@ def test_entries_statistics_ignore_size(client, data):
 
 def test_entries_all_statistics(client, data):
     statistics = {
-        quantity.value: {'quantity': quantity.value, 'metrics': [metric.value for metric in Metric]}
-        for quantity in AggregateableQuantity}
+        quantity: {'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]}
+        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregateable}
     response_json = perform_entries_metadata_test(
         client, statistics=statistics, status_code=200, http_method='post')
     for name, statistic in statistics.items():
@@ -545,16 +546,16 @@ def test_entries_all_statistics(client, data):
 
 
 @pytest.mark.parametrize('aggregation, total, size, status_code', [
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader'}}, 3, 3, 200, id='order-str'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.user_id'}}, 3, 3, 200, id='order-str'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'dft.n_calculations'}}, 3, 3, 200, id='order-int'),
-    pytest.param({'quantity': 'dft.labels_springer_classification'}, 0, 0, 200, id='no-results'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
+    pytest.param({'quantity': 'results.material.labels_springer_classification'}, 0, 0, 200, id='no-results'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'include': ['calc_id', 'uploader']}}}, 3, 3, 200, id='entries-include'),
+    pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'include': ['entry_id', 'uploader.*']}}}, 3, 3, 200, id='entries-include'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile']}}}, 3, 3, 200, id='entries-exclude')
 ])
 def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
@@ -572,13 +573,13 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
 
 
 @pytest.mark.parametrize('required, status_code', [
-    pytest.param({'include': ['calc_id', 'upload_id']}, 200, id='include'),
-    pytest.param({'include': ['dft.*', 'upload_id']}, 200, id='include-section'),
+    pytest.param({'include': ['entry_id', 'upload_id']}, 200, id='include'),
+    pytest.param({'include': ['results.*', 'upload_id']}, 200, id='include-section'),
     pytest.param({'exclude': ['upload_id']}, 200, id='exclude'),
     pytest.param({'exclude': ['missspelled', 'upload_id']}, 422, id='bad-quantitiy'),
-    pytest.param({'exclude': ['calc_id']}, 200, id='exclude-id'),
-    pytest.param({'exclude': ['dft.optimade']}, 200, id='exclude-sub-section'),
-    pytest.param({'exclude': ['files', 'dft.optimade', 'dft.quantities']}, 200, id='exclude-multiple'),
+    pytest.param({'exclude': ['entry_id']}, 200, id='exclude-id'),
+    pytest.param({'exclude': ['results.material.*']}, 200, id='exclude-sub-section'),
+    pytest.param({'exclude': ['files', 'results.material.*', 'results.method.*']}, 200, id='exclude-multiple'),
     pytest.param({'include': ['upload_id']}, 200, id='include-id')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
@@ -595,9 +596,9 @@ def test_entries_required(client, data, required, status_code, http_method):
 @pytest.mark.parametrize('entry_id, required, status_code', [
     pytest.param('id_01', {}, 200, id='id'),
     pytest.param('doesnotexist', {}, 404, id='404'),
-    pytest.param('id_01', {'include': ['calc_id', 'upload_id']}, 200, id='include'),
+    pytest.param('id_01', {'include': ['entry_id', 'upload_id']}, 200, id='include'),
     pytest.param('id_01', {'exclude': ['upload_id']}, 200, id='exclude'),
-    pytest.param('id_01', {'exclude': ['calc_id', 'upload_id']}, 200, id='exclude-calc-id')
+    pytest.param('id_01', {'exclude': ['entry_id', 'upload_id']}, 200, id='exclude-entry-id')
 ])
 def test_entry_metadata(client, data, entry_id, required, status_code):
     response = client.get('entries/%s?%s' % (entry_id, urlencode(required, doseq=True)))
@@ -611,8 +612,8 @@ def test_entry_metadata(client, data, entry_id, required, status_code):
 
 @pytest.mark.parametrize('query, files, entries, files_per_entry, status_code', [
     pytest.param({}, {}, 23, 5, 200, id='all'),
-    pytest.param({'calc_id': 'id_01'}, {}, 1, 5, 200, id='all'),
-    pytest.param({'dft.code_name': 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
+    pytest.param({'entry_id': 'id_01'}, {}, 1, 5, 200, id='all'),
+    pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_raw(client, data, query, files, entries, files_per_entry, status_code, http_method):
@@ -623,7 +624,7 @@ def test_entries_raw(client, data, query, files, entries, files_per_entry, statu
 
 @pytest.mark.parametrize('query, files, entries, files_per_entry, status_code', [
     pytest.param({}, {}, 23, 5, 200, id='all'),
-    pytest.param({'dft.code_name': 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty'),
+    pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty'),
     pytest.param({}, {'glob_pattern': '*.json'}, 23, 1, 200, id='glob'),
     pytest.param({}, {'re_pattern': '[a-z]*\\.aux'}, 23, 4, 200, id='re'),
     pytest.param({}, {'re_pattern': 'test_entry_02'}, 1, 5, 200, id='re-filter-entries'),
@@ -737,7 +738,7 @@ def test_entry_raw_download_file(
 
 @pytest.mark.parametrize('query, files, entries, status_code', [
     pytest.param({}, {}, 23, 200, id='all'),
-    pytest.param({'dft.code_name': 'DOESNOTEXIST'}, {}, -1, 200, id='empty'),
+    pytest.param({program_name: 'DOESNOTEXIST'}, {}, -1, 200, id='empty'),
     pytest.param({}, {'compress': True}, 23, 200, id='compress')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
@@ -808,32 +809,36 @@ def perform_entries_owner_test(
         http_method=http_method)
 
 
+elements = 'results.material.elements'
+n_elements = 'results.material.nelements'
+
+
 @pytest.mark.parametrize('query, status_code, total', [
     pytest.param({}, 200, 23, id='empty'),
     pytest.param('str', 422, -1, id='not-dict'),
-    pytest.param({'calc_id': 'id_01'}, 200, 1, id='match'),
+    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
     pytest.param({'mispelled': 'id_01'}, 422, -1, id='not-quantity'),
-    pytest.param({'calc_id': ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
-    pytest.param({'calc_id': 'id_01', 'atoms': ['H', 'O']}, 200, 1, id='match-list-1'),
-    pytest.param({'calc_id:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
-    pytest.param({'calc_id': {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
-    pytest.param({'calc_id': {'any': 'id_01'}}, 422, -1, id='any-not-list'),
-    pytest.param({'calc_id:any': 'id_01'}, 422, -1, id='any-short-not-list'),
-    pytest.param({'calc_id:gt': 'id_01'}, 200, 22, id='gt-short'),
-    pytest.param({'calc_id': {'gt': 'id_01'}}, 200, 22, id='gt'),
-    pytest.param({'calc_id': {'gt': ['id_01']}}, 422, 22, id='gt-list'),
-    pytest.param({'calc_id': {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
-    pytest.param({'calc_id:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
-    pytest.param({'calc_id:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
-    pytest.param({'or': [{'calc_id': 'id_01'}, {'calc_id': 'id_02'}]}, 200, 2, id='or'),
-    pytest.param({'or': {'calc_id': 'id_01', 'dft.code_name': 'VASP'}}, 422, -1, id='or-not-list'),
-    pytest.param({'and': [{'calc_id': 'id_01'}, {'calc_id': 'id_02'}]}, 200, 0, id='and'),
-    pytest.param({'not': {'calc_id': 'id_01'}}, 200, 22, id='not'),
-    pytest.param({'not': [{'calc_id': 'id_01'}]}, 422, -1, id='not-list'),
-    pytest.param({'not': {'not': {'calc_id': 'id_01'}}}, 200, 1, id='not-nested-not'),
-    pytest.param({'not': {'calc_id:any': ['id_01', 'id_02']}}, 200, 21, id='not-nested-any'),
-    pytest.param({'and': [{'calc_id:any': ['id_01', 'id_02']}, {'calc_id:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
-    pytest.param({'and': [{'not': {'calc_id': 'id_01'}}, {'not': {'calc_id': 'id_02'}}]}, 200, 21, id='not-nested-not')
+    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
+    pytest.param({'entry_id': 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'),
+    pytest.param({'entry_id:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
+    pytest.param({'entry_id': {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
+    pytest.param({'entry_id': {'any': 'id_01'}}, 422, -1, id='any-not-list'),
+    pytest.param({'entry_id:any': 'id_01'}, 422, -1, id='any-short-not-list'),
+    pytest.param({'entry_id:gt': 'id_01'}, 200, 22, id='gt-short'),
+    pytest.param({'entry_id': {'gt': 'id_01'}}, 200, 22, id='gt'),
+    pytest.param({'entry_id': {'gt': ['id_01']}}, 422, 22, id='gt-list'),
+    pytest.param({'entry_id': {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
+    pytest.param({'entry_id:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
+    pytest.param({'entry_id:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
+    pytest.param({'or': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 2, id='or'),
+    pytest.param({'or': {'entry_id': 'id_01', program_name: 'VASP'}}, 422, -1, id='or-not-list'),
+    pytest.param({'and': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 0, id='and'),
+    pytest.param({'not': {'entry_id': 'id_01'}}, 200, 22, id='not'),
+    pytest.param({'not': [{'entry_id': 'id_01'}]}, 422, -1, id='not-list'),
+    pytest.param({'not': {'not': {'entry_id': 'id_01'}}}, 200, 1, id='not-nested-not'),
+    pytest.param({'not': {'entry_id:any': ['id_01', 'id_02']}}, 200, 21, id='not-nested-any'),
+    pytest.param({'and': [{'entry_id:any': ['id_01', 'id_02']}, {'entry_id:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
+    pytest.param({'and': [{'not': {'entry_id': 'id_01'}}, {'not': {'entry_id': 'id_02'}}]}, 200, 21, id='not-nested-not')
 ])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -856,36 +861,36 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     pagination = response_json['pagination']
     assert pagination['total'] == total
     assert pagination['page_size'] == 10
-    assert pagination['order_by'] == 'calc_id'
+    assert pagination['order_by'] == 'entry_id'
     assert pagination['order'] == 'asc'
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
 @pytest.mark.parametrize('query, status_code, total', [
     pytest.param({}, 200, 23, id='empty'),
-    pytest.param({'calc_id': 'id_01'}, 200, 1, id='match'),
+    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
     pytest.param({'mispelled': 'id_01'}, 200, 23, id='not-quantity'),
-    pytest.param({'calc_id': ['id_01', 'id_02']}, 200, 2, id='match-many-or'),
-    pytest.param({'atoms': ['H', 'O']}, 200, 23, id='match-list-many-and-1'),
-    pytest.param({'atoms': ['H', 'O', 'Zn']}, 200, 0, id='match-list-many-and-2'),
-    pytest.param({'n_atoms': 2}, 200, 23, id='match-int'),
-    pytest.param({'n_atoms__gt': 2}, 200, 0, id='gt-int'),
+    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 2, id='match-many-or'),
+    pytest.param({elements: ['H', 'O']}, 200, 23, id='match-list-many-and-1'),
+    pytest.param({elements: ['H', 'O', 'Zn']}, 200, 0, id='match-list-many-and-2'),
+    pytest.param({n_elements: 2}, 200, 23, id='match-int'),
+    pytest.param({n_elements + '__gt': 2}, 200, 0, id='gt-int'),
     pytest.param({'calc_id__any': ['id_01', 'id_02']}, 200, 2, id='any'),
     pytest.param({'calc_id__any': 'id_01'}, 200, 1, id='any-not-list'),
-    pytest.param({'domain': ['dft', 'ems']}, 422, -1, id='list-not-op'),
     pytest.param({'calc_id__gt': 'id_01'}, 200, 22, id='gt'),
     pytest.param({'calc_id__gt': ['id_01', 'id_02']}, 422, -1, id='gt-list'),
     pytest.param({'calc_id__missspelled': 'id_01'}, 422, -1, id='not-op'),
     pytest.param({'q': 'calc_id__id_01'}, 200, 1, id='q-match'),
     pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
     pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
-    pytest.param({'q': 'n_atoms__2'}, 200, 23, id='q-match-int'),
-    pytest.param({'q': 'n_atoms__gt__2'}, 200, 0, id='q-gt'),
-    pytest.param({'q': 'dft.workflow.section_geometry_optimization.final_energy_difference__1e-24'}, 200, 0, id='foat'),
+    pytest.param({'q': n_elements + '__2'}, 200, 23, id='q-match-int'),
+    pytest.param({'q': n_elements + '__gt__2'}, 200, 0, id='q-gt'),
+    # TODO
+    # pytest.param({'q': 'dft.workflow.section_geometry_optimization.final_energy_difference__1e-24'}, 200, 0, id='foat'),
     pytest.param({'q': 'domain__dft'}, 200, 23, id='enum'),
     pytest.param({'q': 'upload_time__gt__2014-01-01'}, 200, 23, id='datetime'),
-    pytest.param({'q': ['atoms__all__H', 'atoms__all__O']}, 200, 23, id='q-all'),
-    pytest.param({'q': ['atoms__all__H', 'atoms__all__X']}, 200, 0, id='q-all')
+    pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, 23, id='q-all'),
+    pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all')
 ])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -913,7 +918,7 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     pagination = response_json['pagination']
     assert pagination['total'] == total
     assert pagination['page_size'] == 10
-    assert pagination['order_by'] == 'calc_id'
+    assert pagination['order_by'] == 'entry_id'
     assert pagination['order'] == 'asc'
     assert ('next_page_after_value' in pagination) == (total > 10)
 
@@ -968,13 +973,13 @@ def test_entries_owner(
     pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
     pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
     pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
-    pytest.param({'page_size': 1, 'order_by': 'n_atoms'}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
-    pytest.param({'page_size': 1, 'order_by': 'dft.code_name'}, {'next_page_after_value': 'VASP:id_01'}, 200, id='order-by-after-nested'),
+    pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
+    pytest.param({'page_size': 1, 'order_by': program_name}, {'next_page_after_value': 'VASP:id_01'}, 200, id='order-by-after-nested'),
     pytest.param({'page_size': -1}, None, 422, id='bad-size'),
     pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
     pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
-    pytest.param({'order_by': 'atoms', 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': 'n_atoms', 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
+    pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
+    pytest.param({'order_by': 'n_elements', 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
     pytest.param({'page': 1, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
     pytest.param({'page': 2, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
     pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),

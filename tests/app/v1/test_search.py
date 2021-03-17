@@ -21,9 +21,23 @@ import json
 
 from nomad.app.v1.models import WithQuery
 from nomad.app.v1.search import update_by_query, search
-from nomad.metainfo.elasticsearch_extension import create_indices, entry_type
+from nomad.metainfo.elasticsearch_extension import entry_type, entry_index
 
-from tests.test_search import example_search_data
+from .conftest import ExampleData
+
+
+@pytest.fixture()
+def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user):
+    data = ExampleData(uploader=test_user)
+
+    data._create_entry(
+        upload_id='test_upload_id',
+        calc_id='test_upload_id',
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+        shared_with=[],
+        with_embargo=True)
+
+    data.save()
 
 
 @pytest.fixture()
@@ -38,34 +52,34 @@ def test_indices(indices):
 
 @pytest.mark.parametrize('api_query, total', [
     pytest.param('{}', 1, id='empty'),
-    pytest.param('{"dft.code_name": "VASP"}', 1, id="match"),
-    pytest.param('{"dft.code_name": "VASP", "dft.xc_functional": "dne"}', 0, id="match_all"),
-    pytest.param('{"and": [{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 0, id="and"),
-    pytest.param('{"or":[{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 1, id="or"),
-    pytest.param('{"not":{"dft.code_name": "VASP"}}', 0, id="not"),
-    pytest.param('{"dft.code_name": {"all": ["VASP", "dne"]}}', 0, id="all"),
-    pytest.param('{"dft.code_name": {"any": ["VASP", "dne"]}}', 1, id="any"),
-    pytest.param('{"dft.code_name": {"none": ["VASP", "dne"]}}', 0, id="none"),
-    pytest.param('{"dft.code_name": {"gte": "VASP"}}', 1, id="gte"),
-    pytest.param('{"dft.code_name": {"gt": "A"}}', 1, id="gt"),
-    pytest.param('{"dft.code_name": {"lte": "VASP"}}', 1, id="lte"),
-    pytest.param('{"dft.code_name": {"lt": "A"}}', 0, id="lt"),
+    pytest.param('{"results.method.simulation.program_name": "VASP"}', 1, id="match"),
+    pytest.param('{"results.method.simulation.program_name": "VASP", "results.method.simulation.dft.xc_functional_type": "dne"}', 0, id="match_all"),
+    pytest.param('{"and": [{"results.method.simulation.program_name": "VASP"}, {"results.method.simulation.dft.xc_functional_type": "dne"}]}', 0, id="and"),
+    pytest.param('{"or":[{"results.method.simulation.program_name": "VASP"}, {"results.method.simulation.dft.xc_functional_type": "dne"}]}', 1, id="or"),
+    pytest.param('{"not":{"results.method.simulation.program_name": "VASP"}}', 0, id="not"),
+    pytest.param('{"results.method.simulation.program_name": {"all": ["VASP", "dne"]}}', 0, id="all"),
+    pytest.param('{"results.method.simulation.program_name": {"any": ["VASP", "dne"]}}', 1, id="any"),
+    pytest.param('{"results.method.simulation.program_name": {"none": ["VASP", "dne"]}}', 0, id="none"),
+    pytest.param('{"results.method.simulation.program_name": {"gte": "VASP"}}', 1, id="gte"),
+    pytest.param('{"results.method.simulation.program_name": {"gt": "A"}}', 1, id="gt"),
+    pytest.param('{"results.method.simulation.program_name": {"lte": "VASP"}}', 1, id="lte"),
+    pytest.param('{"results.method.simulation.program_name": {"lt": "A"}}', 0, id="lt"),
 ])
-def test_search_query(indices, example_search_data, api_query, total):
+def test_search_query(indices, example_data, api_query, total):
     api_query = json.loads(api_query)
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
 
 
-def test_update_by_query(indices, example_search_data):
+def test_update_by_query(indices, example_data):
     result = update_by_query(
         update_script='''
-            ctx._source.calc_id = "other test id";
+            ctx._source.entry_id = "other test id";
         ''',
         owner='all', query={})
 
-    refresh()
+    entry_index.refresh()
 
     assert result['updated'] == 1
-    results = search(owner='all', query=dict(calc_id='other test id'))
+    results = search(owner='all', query=dict(entry_id='other test id'))
     assert results.pagination.total == 1

@@ -20,7 +20,6 @@ from typing import List, Iterable
 from elasticsearch_dsl import Q
 import pytest
 from datetime import datetime
-import json
 
 from nomad import datamodel, processing, infrastructure, config
 from nomad.utils import flat

@@ -1107,7 +1107,7 @@ class TestRepo():
         data = self.assert_search(rv, calcs)
         if calcs > 0:
             results = data.get('results', None)
-            result = search.flat(results[0])
+            result = utils.flat(results[0])
             for key in ['uploader.name', 'calc_id', 'formula', 'upload_id']:
                 assert key in result
 
@@ -1178,7 +1178,7 @@ class TestRepo():
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
         rv = api.get('/repo/?exclude=atoms,only_atoms,dft.optimade,dft.quantities')
         assert rv.status_code == 200
-        result = search.flat(json.loads(rv.data)['results'][0])
+        result = utils.flat(json.loads(rv.data)['results'][0])
         assert 'atoms' not in result
         assert 'only_atoms' not in result
         assert 'dft.basis_set' in result

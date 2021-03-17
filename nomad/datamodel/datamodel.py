@@ -29,7 +29,7 @@ from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common_dft import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -62,7 +62,8 @@ class Author(metainfo.MSection):
     name = metainfo.Quantity(
         type=str,
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
-        a_search=Search(mapping=Text(fields={'keyword': Keyword()})))
+        a_search=Search(mapping=Text(fields={'keyword': Keyword()})),
+        a_elasticsearch=Elasticsearch())
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
     last_name = metainfo.Quantity(type=metainfo.Capitalized)
@@ -98,7 +99,7 @@ class User(Author):
 
     user_id = metainfo.Quantity(
         type=str,
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
 
     username = metainfo.Quantity(type=str)
 
@@ -200,7 +201,8 @@ class Dataset(metainfo.MSection):
     dataset_id = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(primary_key=True),
-        a_search=Search())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
     name = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
@@ -333,21 +335,14 @@ class EntryMetadata(metainfo.MSection):
         description='The persistent and globally unique identifier for the upload of the entry',
         a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'),
-        a_elasticsearch=Elasticsearch(metrics=dict(uploads='cardinality'), many_or=True))
+        a_elasticsearch=Elasticsearch(metrics=dict(uploads='cardinality')))
 
     calc_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[OasisMetadata],
         a_search=Search(many_or='append'),
-        a_elasticsearch=Elasticsearch(many_or=True))
-
-    entry_id = metainfo.Quantity(
-        type=str,
-        description='A persistent and globally unique identifier for the entry',
-        categories=[OasisMetadata],
-        derived=lambda section: section.calc_id,
-        a_elasticsearch=Elasticsearch(many_or=True))
+        a_elasticsearch=Elasticsearch())
 
     calc_hash = metainfo.Quantity(
         type=str,
@@ -366,7 +361,8 @@ class EntryMetadata(metainfo.MSection):
                 many_or='append', search_field='mainfile.keyword'),
             Search(
                 description='Search for the exact mainfile.',
-                many_and='append', name='mainfile_path', search_field='mainfile.keyword')])
+                many_and='append', name='mainfile_path', search_field='mainfile.keyword')],
+        a_elasticsearch=Elasticsearch())
 
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
@@ -383,7 +379,8 @@ class EntryMetadata(metainfo.MSection):
             ),
             Search(
                 description='Search for exact paths.',
-                many_or='append', name='files', search_field='files.keyword')])
+                many_or='append', name='files', search_field='files.keyword')],
+        a_elasticseach=Elasticsearch())
 
     pid = metainfo.Quantity(
         type=str,
@@ -406,13 +403,13 @@ class EntryMetadata(metainfo.MSection):
         type=metainfo.MEnum('dft', 'ems', 'qcms'),
         description='The material science domain',
         categories=[MongoMetadata, UserProvidableMetadata],
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
         categories=[MongoMetadata, OasisMetadata],
-        a_search=Search())
+        a_search=Search(), a_eleasticsearch=Elasticsearch(material_entry_type))
 
     processed = metainfo.Quantity(
         type=bool, default=False,
@@ -443,7 +440,8 @@ class EntryMetadata(metainfo.MSection):
     parser_name = metainfo.Quantity(
         type=str,
         description='The NOMAD parser used for the last processing',
-        a_search=Search(many_or='append'))
+        a_search=Search(many_or='append'),
+        a_elasticsearch=Elasticsearch())
 
     comment = metainfo.Quantity(
         type=str, categories=[MongoMetadata, EditableUserMetadata],
@@ -474,7 +472,8 @@ class EntryMetadata(metainfo.MSection):
             Search(
                 name='uploader_id', search_field='uploader.user_id',
                 description='The full name of the authors',)
-        ])
+        ],
+        a_elasticsearch=Elasticsearch())
 
     origin = metainfo.Quantity(
         type=str,
@@ -510,7 +509,8 @@ class EntryMetadata(metainfo.MSection):
         derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.shared_with,
         a_search=Search(
             description='The full name of the owners for exact searches',
-            many_or='append', search_field='owners.name.keyword'))
+            many_or='append', search_field='owners.name.keyword'),
+        a_elasticsearch=Elasticsearch())
 
     license = metainfo.Quantity(
         type=str,
@@ -524,13 +524,14 @@ class EntryMetadata(metainfo.MSection):
     with_embargo = metainfo.Quantity(
         type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',
-        a_search=Search())
+        a_search=Search(), a_eleasticsearch=Elasticsearch(material_entry_type))
 
     upload_time = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
         description='The date and time this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
-        a_search=Search(order_default=True))
+        a_search=Search(order_default=True),
+        a_elasticsearch=Elasticsearch())
 
     upload_name = metainfo.Quantity(
         type=str, categories=[MongoMetadata],
@@ -550,7 +551,8 @@ class EntryMetadata(metainfo.MSection):
                 name='dataset_id', search_field='datasets.dataset_id', many_or='append',
                 group='datasets_grouped',
                 metric='cardinality', metric_name='datasets',
-                description='A list of user curated datasets this entry belongs to for exact name search')])
+                description='A list of user curated datasets this entry belongs to for exact name search')],
+        a_elasticsearch=Elasticsearch())
 
     external_id = metainfo.Quantity(
         type=str, categories=[MongoMetadata, UserProvidableMetadata],
@@ -611,6 +613,10 @@ class EntryMetadata(metainfo.MSection):
 
 
 class EntryArchive(metainfo.MSection):
+    entry_id = metainfo.Quantity(
+        type=str, description='The unique primary id for this entry.',
+        derived=lambda entry: entry.section_metadata.calc_id,
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     section_run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_experiment = metainfo.SubSection(sub_section=Experiment)
@@ -620,11 +626,13 @@ class EntryArchive(metainfo.MSection):
         sub_section=EntryMetadata, categories=[FastAccess],
         a_elasticsearch=Elasticsearch())
 
-    section_results = metainfo.SubSection(sub_section=Results)
-
     processing_logs = metainfo.Quantity(
         type=Any, shape=['0..*'],
         description='The processing logs for this entry as a list of structlog entries.')
+
+    results = metainfo.SubSection(
+        sub_section=Results,
+        a_elasticsearch=Elasticsearch(auto_include_subsections=True))
 
 
 # preemptively create the elasticsearch document definition, which populates metrics and
