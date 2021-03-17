@@ -285,7 +285,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.0',
+    version='0.10.1',
     commit=gitinfo.commit,
     release='devel',
     deployment='standard',
