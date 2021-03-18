@@ -84,7 +84,7 @@ def setup_mongo(client=False):
     return mongo_client
 
 
-def setup_elastic(create_mappings=True):
+def setup_elastic(create_indices=True):
     ''' Creates connection to elastic search. '''
     from nomad.search import entry_document, material_document
     from elasticsearch_dsl import Index
@@ -99,7 +99,7 @@ def setup_elastic(create_mappings=True):
     # materials with zero downtime. First see to which index the alias points
     # to. If alias is not set, create it. Update the mapping in the index
     # pointed to by the alias.
-    if create_mappings:
+    if create_indices:
         try:
             if elastic_client.indices.exists_alias(config.elastic.materials_index_name):
                 index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
@@ -131,8 +131,8 @@ def setup_elastic(create_mappings=True):
         logger.info('initialized elastic index for calculations', index_name=config.elastic.index_name)
         logger.info('initialized elastic index for materials', index_name=config.elastic.materials_index_name)
 
-        from nomad.metainfo.elasticsearch_extension import create_indices
-        create_indices()
+        from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
+        create_v1_indices()
         logger.info('initialized v1 elastic indices')
 
     return elastic_client
@@ -461,6 +461,12 @@ def reset(remove: bool):
         if not remove:
             entry_document.init(index=config.elastic.index_name)
             material_document.init(index=material_index_name)
+
+        from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
+        delete_indices()
+        if not remove:
+            create_indices()
+
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)

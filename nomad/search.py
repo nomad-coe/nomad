@@ -112,18 +112,25 @@ for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
 
 
+# Used by:
+# - processing to delete upload
+# - cli client mirror to delete uploads while testing
+# - cli admin uploads rm
 def delete_upload(upload_id):
     ''' Delete all entries with given ``upload_id`` from the index. '''
     index = entry_document._default_index()
     Search(index=index).query('match', upload_id=upload_id).delete()
 
 
+# Used by:
+# - cli admin entry delete
 def delete_entry(calc_id):
     ''' Delete the entry with the given ``calc_id`` from the index. '''
     index = entry_document._default_index()
     Search(index=index).query('match', calc_id=calc_id).delete()
 
 
+# Only used by processing when publishing uploads
 def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     ''' Update all given calcs with their metadata and set ``publish = True``. '''
     def elastic_updates():
@@ -140,6 +147,10 @@ def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     refresh()
 
 
+# Used by:
+# - cli admin uploads [chown, index]
+# - cli admin lift embargo
+# - cli client mirror
 def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None:
     '''
     Adds all given calcs with their metadata to the index.
@@ -162,6 +173,7 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
     return failed
 
 
+# Used in a lot of places
 def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
@@ -194,6 +206,8 @@ def _owner_es_query(owner: str, user_id: str = None):
     elif owner == 'admin':
         if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
             raise AuthenticationRequiredError('This can only be used by the admin user.')
+        q = None
+    elif owner is None:
         q = None
     else:
         raise KeyError('Unsupported owner value')

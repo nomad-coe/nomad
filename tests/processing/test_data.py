@@ -28,6 +28,7 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
+from nomad.app.v1.search import search
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
@@ -126,6 +127,12 @@ def assert_processing(upload: Upload, published: bool = False):
         assert upload.get_calc(calc.calc_id) is not None
 
         upload_files.close()
+
+    search_results = search(owner=None, query={'upload_id': upload.upload_id})
+    assert search_results.pagination.total == Calc.objects(upload_id=upload.upload_id).count()
+    for entry in search_results.data:
+        assert entry['published'] == published
+        assert entry['upload_id'] == upload.upload_id
 
 
 def test_processing(processed, no_warn, mails, monkeypatch):

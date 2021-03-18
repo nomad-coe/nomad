@@ -27,6 +27,8 @@ from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entry, index_entries,
     entry_type, material_type, material_entry_type, entry_index, material_index)
 
+from tests.conftest import clear_elastic_infra
+
 
 class Material(MSection):
 
@@ -187,21 +189,20 @@ def example_entry():
     return entry
 
 
-@pytest.fixture
-def elastic_client(elastic_function):
-    yield elastic_function
-
-
-@pytest.fixture
-def indices(elastic_client):
+@pytest.fixture(scope='module')
+def indices(elastic_infra):
     # remove whatever the infrastructure created by default
+    from nomad.infrastructure import elastic_client
     try:
         elastic_client.indices.delete(index=config.elastic.entries_index)
         elastic_client.indices.delete(index=config.elastic.materials_index)
     except Exception:
         pass
 
-    return create_indices(Entry.m_def, Material.m_def)
+    yield create_indices(Entry.m_def, Material.m_def)
+
+    # re-establish the default elasticsearch setup.
+    clear_elastic_infra()
 
 
 def test_mappings(indices):
@@ -302,7 +303,7 @@ def test_index_docs(indices):
     }
 
 
-def test_index_entry(elastic_client, indices, example_entry):
+def test_index_entry(elastic, indices, example_entry):
     index_entry(example_entry, update_material=True)
     assert_entry_indexed(example_entry)
 
@@ -320,7 +321,7 @@ def test_index_entry(elastic_client, indices, example_entry):
     pytest.param('1-1, 2-1', '1-2', '2-1, 1-2', id='moved-entry-between-materials-remaining'),
     pytest.param('1-1', '1-1*', '1-1*', id='update-material-property')
 ])
-def test_index_entries(elastic_client, indices, before, to_index, after):
+def test_index_entries(elastic, indices, before, to_index, after):
     def create_entry(spec: str, material_kwargs: dict = None):
         entry_id, material_id = spec.split('-')
         changed = material_id.endswith('*')

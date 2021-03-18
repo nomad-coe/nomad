@@ -209,15 +209,14 @@ def elastic_infra(monkeysession):
     monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
     monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
 
-    clear_elastic_infra()
-    try:
-        return infrastructure.setup_elastic()
-    except Exception:
-        # try to delete index, error might be caused by changed mapping
-        return clear_elastic_infra()
+    # attempt to remove and recreate all indices
+    return clear_elastic_infra()
 
 
 def clear_elastic_infra():
+    '''
+    Removes and re-creates all indices and mappings.
+    '''
     from elasticsearch_dsl import connections
     connection = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
@@ -228,18 +227,20 @@ def clear_elastic_infra():
         except Exception:
             pass
 
-    return infrastructure.setup_elastic()
+    return infrastructure.setup_elastic(create_indices=True)
 
 
 def clear_elastic(elastic_infra):
+    '''
+    Removes all contents from the existing indices.
+    '''
     try:
         for index in indices:
             elastic_infra.delete_by_query(
                 index=index, body=dict(query=dict(match_all={})),
                 wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
-        # it is unclear why this happens, but it happens at least once, when all tests
-        # are executed
+        # Happens if a test removed indices without recreating them.
         clear_elastic_infra()
 
     assert infrastructure.elastic_client is not None

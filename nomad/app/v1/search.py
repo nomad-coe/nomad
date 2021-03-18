@@ -359,7 +359,7 @@ def search(
     more_response_data['es_query'] = es_query.to_dict()
 
     result = SearchResponse(
-        owner=owner,
+        owner='all' if owner is None else owner,
         query=query,
         pagination=pagination_response,
         required=required,
@@ -396,7 +396,8 @@ def update_by_query(
     if query is None:
         query = {}
     es_query = _api_to_es_query(query)
-    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+    if owner is not None:
+        es_query &= _owner_es_query(owner=owner, user_id=user_id)
 
     body = {
         'script': {
@@ -414,6 +415,45 @@ def update_by_query(
     except TransportError as e:
         utils.get_logger(__name__).error(
             'es update_by_query script error', exc_info=e,
+            es_info=json.dumps(e.info, indent=2))
+        raise SearchError(e)
+
+    if refresh:
+        infrastructure.elastic_client.indices.refresh(index=index_name)
+
+    return result
+
+
+def delete_by_query(
+        owner: str = 'public',
+        query: Query = None,
+        user_id: str = None,
+        index: Union[Index, str] = entry_index,
+        refresh: bool = False):
+    '''
+    Deletes all entries that match the given query.
+    '''
+
+    if isinstance(index, Index):
+        index_name = index.index_name
+    else:
+        index_name = index
+
+    if query is None:
+        query = {}
+    es_query = _api_to_es_query(query)
+    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    body = {
+        'query': es_query.to_dict()
+    }
+
+    try:
+        result = infrastructure.elastic_client.delete_by_query(
+            body=body, index=index_name)
+    except TransportError as e:
+        utils.get_logger(__name__).error(
+            'es delete_by_query error', exc_info=e,
             es_info=json.dumps(e.info, indent=2))
         raise SearchError(e)
 

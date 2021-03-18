@@ -68,13 +68,19 @@ class TestAdmin:
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
+    # TODO this has somekind of raise condition in it and the test fails every other time
+    # on the CI/CD
     # def test_clean(self, published):
     #     upload_id = published.upload_id
 
     #     Upload.objects(upload_id=upload_id).delete()
     #     assert published.upload_files.exists()
     #     assert Calc.objects(upload_id=upload_id).first() is not None
+    #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
+    #     # TODO test new index pair
+    #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
+    #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
     #     result = click.testing.CliRunner().invoke(
     #         cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
@@ -82,7 +88,10 @@ class TestAdmin:
     #     assert result.exit_code == 0
     #     assert not published.upload_files.exists()
     #     assert Calc.objects(upload_id=upload_id).first() is None
+    #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
+    #     # TODO test new index pair
+    #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
     @pytest.mark.parametrize('upload_time,dry,lifted', [
         (datetime.datetime.now(), False, False),

@@ -392,6 +392,10 @@ class Index():
         else:
             logger.info('elasticsearch index exists')
 
+    def delete(self):
+        if self.elastic_client.indices.exists(index=self.index_name):
+            self.elastic_client.indices.delete(index=self.index_name)
+
     def refresh(self):
         self.elastic_client.indices.refresh(index=self.index_name)
 
@@ -636,8 +640,8 @@ class SearchQuantity():
 
 def create_indices(entry_section_def: Section = None, material_section_def: Section = None):
     '''
-    Initially creates the mapping for all document types and creates the indices in Elasticsearch.
-    The indices must not exist already.
+    Creates the mapping for all document types and creates the indices in Elasticsearch.
+    The indices must not exist already. Prior created mappings will be replaced.
     '''
     if entry_section_def is None:
         from nomad.datamodel import EntryArchive
@@ -659,6 +663,11 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
 
     entry_index.create_index()
     material_index.create_index()
+
+
+def delete_indices():
+    entry_index.delete()
+    material_index.delete()
 
 
 def index_entry(entry: MSection, update_material: bool = False):

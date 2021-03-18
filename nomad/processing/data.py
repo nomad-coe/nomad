@@ -57,6 +57,8 @@ from nomad.datamodel import (
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
+from nomad.metainfo.elasticsearch_extension import index_entry
+from nomad.app.v1.search import update_by_query, delete_by_query
 
 
 section_metadata = datamodel.EntryArchive.section_metadata.name
@@ -93,6 +95,22 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
+
+
+def _es_publish_upload(upload_id: str):
+    # TODO does this belong in this module
+    # TODO what about the materials index
+    update_by_query(
+        'ctx._source.published = true;',
+        query=dict(upload_id=upload_id),
+        owner=None, refresh=True)
+
+
+def _es_delete_upload(upload_id: str):
+    # TODO does this belong in this module
+    # TODO what about the materials index
+    # TODO implement
+    delete_by_query(owner=None, query=dict(upload_id=upload_id), refresh=True)
 
 
 def _normalize_oasis_upload_metadata(upload_id, metadata):
@@ -415,6 +433,8 @@ class Calc(Proc):
                     'could not apply domain metadata to entry', exc_info=e)
 
             self._entry_metadata.a_elastic.index()
+            assert self._parser_results.section_metadata == self._entry_metadata
+            index_entry(self._parser_results)
         except Exception as e:
             self.get_logger().error(
                 'could not index after processing failure', exc_info=e)
@@ -541,6 +561,8 @@ class Calc(Proc):
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
                 self._entry_metadata.a_elastic.index()
+                assert self._parser_results.section_metadata == self._entry_metadata
+                index_entry(self._parser_results)
 
             # persist the archive
             with utils.timer(
@@ -656,6 +678,8 @@ class Calc(Proc):
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
             self._entry_metadata.a_elastic.index()
+            assert self._parser_results.section_metadata == self._entry_metadata
+            index_entry(self._parser_results)
 
         # persist the archive
         with utils.timer(
@@ -867,6 +891,7 @@ class Upload(Proc):
         with utils.lnr(logger, 'upload delete failed'):
             with utils.timer(logger, 'upload deleted from index'):
                 search.delete_upload(self.upload_id)
+                _es_delete_upload(self.upload_id)
 
             with utils.timer(logger, 'upload partial archives deleted'):
                 calc_ids = [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
@@ -918,6 +943,7 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'index updated'):
                     search.publish(calcs)
+                    _es_publish_upload(self.upload_id)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
