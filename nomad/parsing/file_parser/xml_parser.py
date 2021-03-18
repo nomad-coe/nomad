@@ -112,7 +112,7 @@ class XMLParser(FileParser):
                 v = element.attrib.get(child, None)
                 if v is None:
                     v = element.findall(child)
-                    v = [e.text for e in v]
+                    v = [e.text if e.text is not None else '' for e in v]
                 if v:
                     val.append(v)
 
@@ -127,7 +127,6 @@ class XMLParser(FileParser):
                 val = dict()
                 for k, v in val_in.items():
                     val[k] = convert_value(v)
-                val = val_in
 
             elif isinstance(val_in, str):
                 # exponential formatting

@@ -290,6 +290,20 @@ class TextParser(FileParser):
         self._file_pad: int = 0
         if quantities is None:
             self.init_quantities()
+        # check quantity patterns are valid
+        re_has_group = re.compile(r'\(.+\)')
+        for i in range(len(self.quantities) - 1, -1, -1):
+            valid = True
+            try:
+                if re_has_group.search(self.quantities[i].re_pattern.pattern.decode()) is None:
+                    valid = False
+            except Exception:
+                valid = False
+            if not valid:
+                self.logger.error(
+                    'Invalid quantity pattern', data=dict(quantity=self.quantities[i].name))
+                self.quantities.pop(i)
+        self._re_findall = None
 
     def copy(self):
         '''
@@ -367,11 +381,17 @@ class TextParser(FileParser):
             yield key, self.get(key)
 
     def _parse_quantities(self, quantities):
-        re_findall = '|'.join([q.re_pattern.pattern.decode() for q in quantities])
-        if len(quantities) == 1:
-            # necessary to add a dummy variable to make multiple matches
-            re_findall = '%s|(__dummy__)' % re_findall
-        re_findall = re_findall.encode()
+        if len(self._results) == 0 and self._re_findall is not None:
+            # maybe an opt
+            re_findall = self._re_findall
+        else:
+            re_findall = '|'.join([q.re_pattern.pattern.decode() for q in quantities])
+            if len(quantities) == 1:
+                # necessary to add a dummy variable to make multiple matches
+                re_findall = '%s|(__dummy__)' % re_findall
+            re_findall = re_findall.encode()
+            if self._re_findall is None:
+                self._re_findall = re.compile(re_findall)
 
         # map matches to quantities
         matches = re.findall(re_findall, self.file_mmap)
