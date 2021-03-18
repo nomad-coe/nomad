@@ -16,190 +16,150 @@
 # limitations under the License.
 #
 
-from types import ModuleType
+'''
+Functionality for "lazy loading". A lazy loaded module is registered in sys.modules as
+loaded, but is not actually run intil needed, i.e. when an attribute which requires the
+module to be imported is accessed. This is useful for optimization purposes, but needs to
+be used with caution.
+
+Since the actual import of a lazy loaded module is postponend until it is actually needed,
+exceptions occuring during the actual import can happen in a location where you may not
+have anticipated it. Threfore, exceptions raised during the lazy import are wrapped in a
+dedicated exception class, LazyImportError, to avoid potential import exceptions being
+misclassified.
+'''
+
 import sys
+from types import ModuleType
+from typing import Set
 from importlib._bootstrap import _ImportLockContext
-from six import raise_from
-from importlib import reload as reload_module
+import importlib
+from nomad import config
 
 
-__all__ = ['lazy_module', 'LazyModule', '_MSG']
+_not_yet_imported_lazy_module_names: Set[str] = set()
 
 
-_CLS_ATTRS = (
-    '_lazy_import_error_strings', '_lazy_import_error_msgs', '_lazy_import_callables',
-    '_lazy_import_submodules', '__repr__'
-)
-
-_DICT_DELETION = ('_lazy_import_submodules',)
-
-_MSG = ("{caller} attempted to use a functionality that requires module "
-        "{module}, but it couldn't be loaded. Please install {install_name} "
-        "and retry.")
+class LazyImportError(Exception):
+    pass
 
 
-class LazyModule(ModuleType):
+class _LazyModule(ModuleType):
+    '''
+    Base class for lazy modules.
+    '''
     def __getattribute__(self, attr):
-        if attr not in ('__name__', '__class__', '__spec__'):
+        '''
+        Overrides the standard method, to trigger the actual import of the lazy module
+        when a non-trivial attribute is accessed.
+
+        Note: when we actually import the module, we will replace this method with the
+        standard method, thereby reverting to standard behaviour.
+        '''
+        if attr not in ('__name__', '__class__', '__spec__', '__repr__', '__file__'):
             try:
+                # In case the attribute we are trying to access is actually another
+                # lazy-loaded module, just return it.
                 name = '%s.%s' % (self.__name__, attr)
                 return sys.modules[name]
             except KeyError:
                 pass
-
-            try:
-                return type(self)._lazy_import_callables[attr]
-            except (AttributeError, KeyError):
-                _load_module(self)
-        return super(LazyModule, self).__getattribute__(attr)
+            # No, we have to actually load the module now!
+            _actually_import(self.__name__)
+        return ModuleType.__getattribute__(self, attr)  # Standard functionality
 
     def __setattr__(self, attr, value):
-        _load_module(self)
-        return super(LazyModule, self).__setattr__(attr, value)
+        '''
+        Overrides the standard method, to trigger the actual import of the lazy module
+        when any attribute is set on the module.
+
+        Note: when we actually import the module, we will replace this method with the
+        standard method, thereby reverting to standard behaviour.
+        '''
+        _actually_import(self.__name__)
+        return ModuleType.__setattr__(self, attr, value)  # Standard functionality
 
 
-def _clean_lazy_submodule_refs(module):
-    module_class = type(module)
-    for entry in _DICT_DELETION:
-        try:
-            names = getattr(module_class, entry)
-        except AttributeError:
-            continue
-        for name in names:
-            try:
-                super(LazyModule, module).__delattr__(name)
-            except AttributeError:
-                pass
-
-
-def _clean_lazymodule(module):
-    module_class = type(module)
-    _clean_lazy_submodule_refs(module)
-
-    module_class.__getattribute__ = ModuleType.__getattribute__
-    module_class.__setattr__ = ModuleType.__setattr__
-    class_attrs = {}
-    for attr in _CLS_ATTRS:
-        try:
-            class_attrs[attr] = getattr(module_class, attr)
-            delattr(module_class, attr)
-        except AttributeError:
-            pass
-    return class_attrs
-
-
-def _reset_lazy_submodule_refs(module):
-    module_class = type(module)
-    for entry in _DICT_DELETION:
-        try:
-            names = getattr(module_class, entry)
-        except AttributeError:
-            continue
-        for name, submodule in names.items():
-            super(LazyModule, module).__setattr__(name, submodule)
-
-
-def _reset_lazymodule(module, class_attrs):
-    module_class = type(module)
-    del module_class.__getattribute__
-    del module_class.__setattr__
-    try:
-        del module_class._LOADING
-    except AttributeError:
-        pass
-
-    for attr in _CLS_ATTRS:
-        try:
-            setattr(module_class, attr, class_attrs[attr])
-        except KeyError:
-            pass
-
-    _reset_lazy_submodule_refs(module)
-
-
-def _load_module(module):
-    module_class = type(module)
-    if not issubclass(module_class, LazyModule):
-        raise TypeError('Not an instance of LazyModule')
+def _actually_import(module_name):
+    '''
+    Actually import the lazy module. Also make sure that all its parent modules are
+    imported if needed - and they need to be imported in the right order.
+    '''
     with _ImportLockContext():
-        parent, _, module_name = module.__name__.rpartition('.')
-        if not hasattr(module_class, '_lazy_import_error_msgs'):
-            return
-        module_class._LOADING = True
-        try:
-            if parent:
-                setattr(sys.modules[parent], module_name, module)
-            if not hasattr(module_class, '_LOADING'):
-                return
-            cached_data = _clean_lazymodule(module)
-            try:
-                reload_module(module)
-            except Exception:
-                _reset_lazymodule(module, cached_data)
-                raise
-            else:
-                delattr(module_class, '_LOADING')
-                _reset_lazy_submodule_refs(module)
-        except (AttributeError, ImportError):
-            msg = module_class._lazy_import_error_msgs['msg']
-            raise_from(ImportError(msg.format(**module_class._lazy_import_error_strings)), None)
+        parts = module_name.split('.')
+        base_name = ''
+        for part in parts:
+            if base_name:
+                base_name += '.'
+            base_name += part
+            if base_name in _not_yet_imported_lazy_module_names:
+                # This level is a lazy module, and it has not yet been loaded. Load it!
+                _not_yet_imported_lazy_module_names.remove(base_name)
+                module = sys.modules[base_name]
+                # Restore __getattribute__ and __setattr__ to original functionality
+                module_class = type(module)
+                module_class.__getattribute__ = ModuleType.__getattribute__
+                module_class.__setattr__ = ModuleType.__setattr__
+                # Remove the fake __file__ attribute we set initially
+                ModuleType.__delattr__(module, '__file__')
+                # Actually import the module
+                try:
+                    importlib.reload(module)
+                except Exception as e:
+                    # Wrap the exception, to avoid potential exception misclassification.
+                    err_msg = f'Error occured during loading of lazy module {base_name}: {e}'
+                    raise LazyImportError(err_msg)
 
 
-def _lazy_module(module_name, error_strings):
-    with _ImportLockContext():
-        full_module_name = module_name
-        full_submodule_name = None
-        submodule_name = ''
-        while module_name:
-            try:
-                module = sys.modules[module_name]
-                module_name = ''
-            except KeyError:
-                err_strs = error_strings.copy()
-                err_strs.setdefault('module', module_name)
-
-                class _LazyModule(LazyModule):
-                    _lazy_import_error_msgs = {'msg': err_strs.pop('msg')}
-                    msg_callable = err_strs.pop('msg_callable', None)
-                    if msg_callable:
-                        _lazy_import_error_msgs['msg_callable'] = msg_callable
-                    _lazy_import_error_strings = err_strs
-                    _lazy_import_callables = {}
-                    _lazy_import_submodules = {}
-
-                    def __repr__(self):
-                        return 'Lazily-loaded module %s' % self.__name__
-
-                _LazyModule.__name__ = 'module'
-                module = sys.modules[module_name] = _LazyModule(module_name)
-
-            if full_submodule_name:
-                submodule = sys.modules[full_submodule_name]
-                ModuleType.__setattr__(module, submodule_name, submodule)
-                _LazyModule._lazy_import_submodules[submodule_name] = submodule
-
-            full_submodule_name = module_name
-            module_name, _, submodule_name = module_name.rpartition('.')
-
-        return sys.modules[full_module_name]
+def _create_lazy_module(module_name):
+    '''
+    Create a dedicated class and instantiate it, and adds it to sys.modules
+    '''
+    class _LazyModuleSubclass(_LazyModule):
+        def __repr__(self):
+            return 'Lazily-loaded module %s' % self.__name__
+    module = _LazyModuleSubclass(module_name)
+    ModuleType.__setattr__(module, '__file__', None)
+    sys.modules[module_name] = module
+    _not_yet_imported_lazy_module_names.add(module_name)
+    return module
 
 
-def lazy_module(module_name, level='leaf'):
-    module_base_name = module_name.partition('.')[0]
-    error_strings = {}
-    try:
-        caller = sys._getframe(3).f_globals['__name__']
-    except AttributeError:
-        caller = 'Python'
-    error_strings.setdefault('caller', caller)
-    error_strings.setdefault('install_name', module_base_name)
-    error_strings.setdefault('msg', _MSG)
+def lazy_module(module_name):
+    '''
+    Call this to "lazily" import a module. Subsequent calls to import will succeed
+    immediately, without the module actually being imported. The module is imported
+    first when it is actually used (by accessing an attribute which requires the
+    module to really be imported).
 
-    module = _lazy_module(module_name, error_strings)
+    The lazy import functionality can also be disabled using the setting
+        nomad.config.enable_lazy_import = False
+    When disabled, this method does nothing, and modules are imported "as usual".
+    '''
+    if not config.enable_lazy_import:
+        return
 
-    if level == 'base':
-        return sys.modules[module_base_name]
-    elif level == 'leaf':
-        return module
-    else:
-        raise ValueError('Must be base or leaf')
+    if module_name not in sys.modules:
+        # Create a lazy module object and add it, without really loading it.
+        # Also add a lazy module object for all parent modules, if needed.
+        with _ImportLockContext():
+            module = _create_lazy_module(module_name)
+            while True:
+                parent_module_name, _, submodule_name = module_name.rpartition('.')
+                if not parent_module_name:
+                    break
+                # Fetch or create parent_module
+                if parent_module_name in sys.modules:
+                    parent_module = sys.modules[parent_module_name]
+                    parent_was_already_created = True
+                else:
+                    parent_module = _create_lazy_module(parent_module_name)
+                    parent_was_already_created = False
+                # Set module as an attribute on the parent_module
+                ModuleType.__setattr__(parent_module, submodule_name, module)
+                if parent_was_already_created:
+                    break
+                # Parent had to be lazy loaded too -> we need to also check parent's parent.
+                module = parent_module
+                module_name = parent_module_name
+    return
