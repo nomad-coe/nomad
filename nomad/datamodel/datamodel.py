@@ -415,7 +415,7 @@ class EntryMetadata(metainfo.MSection):
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
         categories=[MongoMetadata],
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
 
     last_processing = metainfo.Quantity(
         type=metainfo.Datetime,
@@ -559,7 +559,7 @@ class EntryMetadata(metainfo.MSection):
         description='''
         A user provided external id. Usually the id for an entry in an external database
         where the data was imported from.''',
-        a_search=Search(many_or='split'))
+        a_search=Search(many_or='split'), a_elasticsearch=Elasticsearch())
 
     last_edit = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],

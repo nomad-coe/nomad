@@ -20,7 +20,8 @@ import json
 import pytest
 
 from nomad.processing import Upload
-from nomad import search, utils
+from nomad import utils
+from nomad.search import v0 as search
 from nomad.app.optimade import parse_filter
 
 from tests.conftest import clear_elastic, clear_raw_files

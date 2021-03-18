@@ -63,6 +63,9 @@ def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
 
     return entry_dict
 
+from .common import _es_to_entry_dict, _owner_es_query
+from .common import SearchError, AuthenticationRequiredError  # pylint: disable=unused-import
+
 
 path_analyzer = analyzer(
     'path_analyzer',
@@ -75,34 +78,10 @@ class AlreadyExists(Exception): pass
 class ElasticSearchError(Exception): pass
 
 
-class AuthenticationRequiredError(Exception): pass
-
-
 class ScrollIdNotFound(Exception): pass
 
 
 class InvalidQuery(Exception): pass
-
-
-_entry_metadata_defaults = {
-    quantity.name: quantity.default
-    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
-    if quantity.default not in [None, [], False, 0]
-}
-
-
-def _es_to_entry_dict(hit) -> Dict[str, Any]:
-    '''
-    Elasticsearch entry metadata does not contain default values, if a metadata is not
-    set. This will add default values to entry metadata in dict form obtained from
-    elasticsearch.
-    '''
-    entry_dict = hit.to_dict()
-    for key, value in _entry_metadata_defaults.items():
-        if key not in entry_dict:
-            entry_dict[key] = value
-
-    return entry_dict
 
 
 entry_document = datamodel.EntryMetadata.m_def.a_elastic.document
@@ -130,7 +109,6 @@ def delete_entry(calc_id):
     Search(index=index).query('match', calc_id=calc_id).delete()
 
 
-# Only used by processing when publishing uploads
 def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     ''' Update all given calcs with their metadata and set ``publish = True``. '''
     def elastic_updates():
@@ -176,45 +154,6 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
 # Used in a lot of places
 def refresh():
     infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
-
-
-def _owner_es_query(owner: str, user_id: str = None):
-    if owner == 'all':
-        q = Q('term', published=True)
-        if user_id is not None:
-            q = q | Q('term', owners__user_id=user_id)
-    elif owner == 'public':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-    elif owner == 'visible':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
-        if user_id is not None:
-            q = q | Q('term', owners__user_id=user_id)
-    elif owner == 'shared':
-        if user_id is None:
-            raise AuthenticationRequiredError('Authentication required for owner value shared.')
-
-        q = Q('term', owners__user_id=user_id)
-    elif owner == 'user':
-        if user_id is None:
-            raise AuthenticationRequiredError('Authentication required for owner value user.')
-
-        q = Q('term', uploader__user_id=user_id)
-    elif owner == 'staging':
-        if user_id is None:
-            raise AuthenticationRequiredError('Authentication required for owner value user')
-        q = Q('term', published=False) & Q('term', owners__user_id=user_id)
-    elif owner == 'admin':
-        if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
-            raise AuthenticationRequiredError('This can only be used by the admin user.')
-        q = None
-    elif owner is None:
-        q = None
-    else:
-        raise KeyError('Unsupported owner value')
-
-    if q is not None:
-        return q
-    return Q()
 
 
 class SearchRequest:

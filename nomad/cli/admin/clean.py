@@ -23,7 +23,7 @@ import tabulate
 import elasticsearch_dsl
 
 from nomad import config as nomad_config, infrastructure, processing
-from nomad import search as nomad_search
+from nomad.search import v0 as nomad_search
 
 from .admin import admin
 

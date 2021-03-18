@@ -34,7 +34,8 @@ from elasticsearch_dsl.utils import AttrDict
 import ase.data
 from lark import Lark
 
-from nomad import config, infrastructure, search
+from nomad import config, infrastructure
+from nomad.search import v0 as search
 from nomad.files import UploadFiles
 from nomad.units import ureg
 from nomad.atomutils import get_hill_decomposition

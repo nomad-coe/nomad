@@ -9,7 +9,8 @@ from optimade.server.exceptions import BadRequest
 from optimade.server.mappers import StructureMapper
 from optimade.models import StructureResource
 
-from nomad import datamodel, files, search, utils
+from nomad import datamodel, files, utils
+from nomad.search import v0 as search
 from nomad.normalizing.optimade import (
     optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)

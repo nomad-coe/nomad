@@ -86,7 +86,7 @@ def setup_mongo(client=False):
 
 def setup_elastic(create_indices=True):
     ''' Creates connection to elastic search. '''
-    from nomad.search import entry_document, material_document
+    from nomad.search.v0 import entry_document, material_document
     from elasticsearch_dsl import Index
 
     global elastic_client
@@ -457,7 +457,7 @@ def reset(remove: bool):
         elastic_client.indices.delete(index=config.elastic.index_name)
         material_index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
         elastic_client.indices.delete(index=material_index_name)
-        from nomad.search import entry_document, material_document
+        from nomad.search.v0 import entry_document, material_document
         if not remove:
             entry_document.init(index=config.elastic.index_name)
             material_document.init(index=material_index_name)

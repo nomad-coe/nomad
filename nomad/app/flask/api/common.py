@@ -34,9 +34,10 @@ import os.path
 import gzip
 from functools import wraps
 
-from nomad import search, config, datamodel, utils
+from nomad import config, datamodel, utils
 from nomad.app.optimade import filterparser
 from nomad.files import Restricted
+from nomad.search import v0 as search
 
 from ..common import RFC3339DateTime, rfc3339DateTime
 from .api import api

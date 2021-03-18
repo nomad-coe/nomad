@@ -103,7 +103,7 @@ def metainfo_undecorated():
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
-    from nomad import search
+    from nomad.search import v0 as search
     # Due to this import, the parsing module will register all code_names based on parser
     # implementations.
     from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import

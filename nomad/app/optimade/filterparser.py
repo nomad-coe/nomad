@@ -25,7 +25,7 @@ from optimade.filtertransformers.elasticsearch import (
     Quantity, ElasticTransformer as OPTElasticTransformer)
 from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 
-from nomad.search import search_quantities
+from nomad.search.v0 import search_quantities
 
 
 _parser = LarkParser(version=(0, 10, 1))

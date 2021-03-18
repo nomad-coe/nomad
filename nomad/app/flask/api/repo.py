@@ -29,8 +29,9 @@ from elasticsearch.exceptions import NotFoundError
 import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import search, utils, datamodel, processing as proc, infrastructure, files, metainfo
+from nomad import utils, datamodel, processing as proc, infrastructure, files, metainfo
 from nomad.datamodel import Dataset, User, EditableUserMetadata
+from nomad.search import v0 as search
 
 from .. import common
 from ..common import RFC3339DateTime, DotKeyNested
@@ -496,6 +497,7 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
                 common.logger.error('edit repo did not update all entries', payload=mongo_update)
 
     # re-index the affected entries in elastic search
+    # TODO do this on the v1 index as well
     with utils.timer(common.logger, 'edit elastic update executed', size=len(calc_ids)):
         if re_index:
             def elastic_updates():

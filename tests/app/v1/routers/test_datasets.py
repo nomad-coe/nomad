@@ -23,7 +23,7 @@ from datetime import datetime
 
 from nomad.datamodel import Dataset
 from nomad import processing
-from nomad.app.v1.search import search
+from nomad.search.v1 import search
 from nomad.app.v1.models import Query
 
 from tests.conftest import admin_user_id

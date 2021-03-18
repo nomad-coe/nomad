@@ -57,8 +57,6 @@ from nomad.datamodel import (
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-from nomad.metainfo.elasticsearch_extension import index_entry
-from nomad.app.v1.search import update_by_query, delete_by_query
 
 
 section_metadata = datamodel.EntryArchive.section_metadata.name
@@ -95,22 +93,6 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
-
-
-def _es_publish_upload(upload_id: str):
-    # TODO does this belong in this module
-    # TODO what about the materials index
-    update_by_query(
-        'ctx._source.published = true;',
-        query=dict(upload_id=upload_id),
-        owner=None, refresh=True)
-
-
-def _es_delete_upload(upload_id: str):
-    # TODO does this belong in this module
-    # TODO what about the materials index
-    # TODO implement
-    delete_by_query(owner=None, query=dict(upload_id=upload_id), refresh=True)
 
 
 def _normalize_oasis_upload_metadata(upload_id, metadata):
@@ -359,6 +341,8 @@ class Calc(Proc):
             self._entry_metadata.processing_errors = []
             self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
 
+            self._setup_fallback_metadata()
+
             self.parsing()
             self.normalizing()
             self.archiving()
@@ -371,13 +355,19 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not unload processing results', exc_info=e)
 
-    def _setup_fallback_metadata(self):
-        self._entry_metadata = self.create_metadata()
-        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-        self._entry_metadata.last_processing = datetime.utcnow()
-        self._entry_metadata.processing_errors = []
-        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        self._entry_metadata.parser_name = self.parser
+    def _setup_fallback_metadata(self, overwrite: bool = False):
+        if self._entry_metadata is None or overwrite:
+            self._entry_metadata = self.create_metadata()
+            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.processing_errors = []
+            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+            self._entry_metadata.parser_name = self.parser
+
+        if self._parser_results is None or overwrite:
+            self._parser_results = EntryArchive()
+        if self._parser_results.section_metadata != self._entry_metadata:
+            self._parser_results.section_metadata = self._entry_metadata
 
     @process
     def process_calc(self):
@@ -392,7 +382,7 @@ class Calc(Proc):
         try:
             # save preliminary minimum calc metadata in case processing fails
             # successful processing will replace it with the actual metadata
-            self._setup_fallback_metadata()
+            self._setup_fallback_metadata(overwrite=True)
 
             if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
@@ -415,8 +405,7 @@ class Calc(Proc):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            if self._entry_metadata is None:
-                self._setup_fallback_metadata()
+            self._setup_fallback_metadata()
 
             self._entry_metadata.processed = False
 
@@ -432,9 +421,7 @@ class Calc(Proc):
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
 
-            self._entry_metadata.a_elastic.index()
-            assert self._parser_results.section_metadata == self._entry_metadata
-            index_entry(self._parser_results)
+            search.index(self._parser_results)
         except Exception as e:
             self.get_logger().error(
                 'could not index after processing failure', exc_info=e)
@@ -472,9 +459,6 @@ class Calc(Proc):
                             exc_info=e, error=str(e), **context)
                         return
             try:
-                self._parser_results = EntryArchive()
-                # allow parsers to read/write metadata
-                self._parser_results.m_add_sub_section(EntryArchive.section_metadata, self._entry_metadata)
                 parser.parse(
                     self.upload_files.raw_file_object(self.mainfile).os_path,
                     self._parser_results, logger=logger)
@@ -542,9 +526,8 @@ class Calc(Proc):
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
-            if self._entry_metadata is None:
-                self._setup_fallback_metadata()
-                self._entry_metadata.processed = False
+            self._setup_fallback_metadata()
+            self._entry_metadata.processed = False
 
             try:
                 if self._entry_metadata.encyclopedia is None:
@@ -560,9 +543,8 @@ class Calc(Proc):
 
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
-                self._entry_metadata.a_elastic.index()
                 assert self._parser_results.section_metadata == self._entry_metadata
-                index_entry(self._parser_results)
+                search.index(self._parser_results)
 
             # persist the archive
             with utils.timer(
@@ -677,9 +659,8 @@ class Calc(Proc):
 
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
-            self._entry_metadata.a_elastic.index()
             assert self._parser_results.section_metadata == self._entry_metadata
-            index_entry(self._parser_results)
+            search.index(self._parser_results)
 
         # persist the archive
         with utils.timer(
@@ -890,8 +871,7 @@ class Upload(Proc):
 
         with utils.lnr(logger, 'upload delete failed'):
             with utils.timer(logger, 'upload deleted from index'):
-                search.delete_upload(self.upload_id)
-                _es_delete_upload(self.upload_id)
+                search.delete_upload(self.upload_id, refresh=True)
 
             with utils.timer(logger, 'upload partial archives deleted'):
                 calc_ids = [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
@@ -943,7 +923,6 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'index updated'):
                     search.publish(calcs)
-                    _es_publish_upload(self.upload_id)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):

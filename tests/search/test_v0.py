@@ -16,15 +16,14 @@
 # limitations under the License.
 #
 
-from typing import List, Iterable
 from elasticsearch_dsl import Q
 import pytest
 from datetime import datetime
 
-from nomad import datamodel, processing, infrastructure, config
+from nomad import datamodel, processing, infrastructure
 from nomad.utils import flat
 from nomad.metainfo import search_extension
-from nomad.search import entry_document, SearchRequest, refresh
+from nomad.search.v0 import entry_document, SearchRequest, refresh
 
 
 def test_init_mapping(elastic):
@@ -309,36 +308,8 @@ def assert_entry(calc_id):
     assert results[0]['calc_id'] == calc_id
 
 
-def assert_search_upload(
-        upload_entries: Iterable[datamodel.EntryMetadata],
-        additional_keys: List[str] = [], **kwargs):
-    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
-    refresh()
-    search_results = entry_document.search().query('match_all')[0:10]
-    assert search_results.count() == len(list(upload_entries))
-    if search_results.count() > 0:
-        for hit in search_results:
-            hit = flat(hit.to_dict())
-
-            for key, value in kwargs.items():
-                assert hit.get(key, None) == value
-
-            if 'pid' in hit:
-                assert int(hit.get('pid')) > 0
-
-            for key in keys:
-                assert key in hit
-
-            for key in additional_keys:
-                assert key in hit
-                assert hit[key] != config.services.unavailable_value
-
-            for coauthor in hit.get('coauthors', []):
-                assert coauthor.get('name', None) is not None
-
-
 if __name__ == '__main__':
-    from .test_datamodel import generate_calc
+    from tests.test_datamodel import generate_calc
     from elasticsearch.helpers import bulk
     import sys
     print('Generate index with random example calculation data. First arg is number of items')

@@ -18,7 +18,7 @@
 from flask_restplus import Resource, abort
 from elasticsearch.exceptions import NotFoundError
 
-from nomad import search
+from nomad.search import v0 as search
 from nomad.app.flask.api.auth import authenticate
 
 from .api import api, arg_parser, rdf_respose, response_types

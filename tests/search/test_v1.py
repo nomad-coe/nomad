@@ -20,10 +20,11 @@ import pytest
 import json
 
 from nomad.app.v1.models import WithQuery
-from nomad.app.v1.search import update_by_query, search
+from nomad.search import update_by_query
+from nomad.search.v1 import search
 from nomad.metainfo.elasticsearch_extension import entry_type, entry_index
 
-from .conftest import ExampleData
+from tests.app.v1.conftest import ExampleData
 
 
 @pytest.fixture()
@@ -76,7 +77,7 @@ def test_update_by_query(indices, example_data):
         update_script='''
             ctx._source.entry_id = "other test id";
         ''',
-        owner='all', query={})
+        owner='all', query={}, index='v1')
 
     entry_index.refresh()
 

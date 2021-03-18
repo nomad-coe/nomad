@@ -28,9 +28,9 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc
 from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
-from nomad.app.v1.search import search
+from nomad.search.v1 import search
 
-from tests.test_search import assert_search_upload
+from tests.search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
@@ -579,7 +579,8 @@ def test_ems_data(proc_infra, test_user):
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
-        assert_search_upload(entries, additional_keys, published=False)
+        # TODO test this also for v1, when ems is added to results
+        assert_search_upload(entries, additional_keys, published=False, index='v0')
 
 
 def test_qcms_data(proc_infra, test_user):
@@ -591,7 +592,8 @@ def test_qcms_data(proc_infra, test_user):
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
-        assert_search_upload(entries, additional_keys, published=False)
+        # TODO test this also for v1, when qcms is added to results
+        assert_search_upload(entries, additional_keys, published=False, index='v0')
 
 
 def test_read_metadata_from_file(proc_infra, test_user, other_test_user):

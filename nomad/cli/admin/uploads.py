@@ -24,7 +24,8 @@ import pymongo
 import elasticsearch_dsl as es
 import json
 
-from nomad import processing as proc, config, infrastructure, utils, search, files, datamodel
+from nomad import processing as proc, config, infrastructure, utils, files, datamodel
+from nomad.search import v0 as search
 
 from .admin import admin, __run_processing, __run_parallel
 
@@ -133,7 +134,8 @@ def query_uploads(ctx, uploads):
             request = search.SearchRequest()
             request.q = es.Q(json_query)
             request.quantity('upload_id', size=10000)
-            uploads = list(request.execute()['quantities']['upload_id']['values'])
+            search_results = request.execute()
+            uploads = list(search_results['quantities']['upload_id']['values'])
     except Exception:
         pass
 

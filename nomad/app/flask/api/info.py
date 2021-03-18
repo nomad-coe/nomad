@@ -24,7 +24,8 @@ from typing import Dict, Any
 from flask_restplus import Resource, fields
 from datetime import datetime
 
-from nomad import config, normalizing, datamodel, gitinfo, search
+from nomad import config, normalizing, datamodel, gitinfo
+from nomad.search import v0 as search
 from nomad.parsing import parsers, MatchingParser
 
 from .api import api

@@ -25,7 +25,8 @@ import bravado.exception
 import datetime
 import traceback
 
-from nomad import utils, processing as proc, search, config, files, infrastructure
+from nomad import utils, processing as proc, config, files, infrastructure
+from nomad.search import v0 as search
 from nomad import datamodel
 from nomad import doi as nomad_doi
 from nomad.cli.admin import uploads as admin_uploads

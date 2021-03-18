@@ -33,7 +33,8 @@ from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryE
 from nomad.archive import (
     ArchiveQueryError, compute_required_with_referenced,
     read_partial_archives_from_mongo, filter_archive)
-from nomad.search import AuthenticationRequiredError
+from nomad.search import AuthenticationRequiredError, SearchError
+from nomad.search.v1 import search
 
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
@@ -44,7 +45,6 @@ from ..models import (
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
     ArchiveRequired, EntryArchiveRequest)
-from ..search import search, SearchError
 
 
 router = APIRouter()

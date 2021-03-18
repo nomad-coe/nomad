@@ -29,7 +29,7 @@ from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
-from nomad.app.v1.search import update_by_query
+from nomad.search import update_by_query
 
 from .auth import get_required_user
 from .entries import _do_exaustive_search
@@ -247,7 +247,7 @@ async def post_datasets(
             ''',
             params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
             query=es_query, user_id=user.user_id,
-            refresh=True)
+            refresh=True, index='v1')
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -312,7 +312,7 @@ async def delete_dataset(
             ''',
             params=dict(dataset_id=dataset_id),
             query=es_query, user_id=user.user_id,
-            refresh=True)
+            refresh=True, index='v1')
 
     return {
         'dataset_id': dataset.dataset_id,

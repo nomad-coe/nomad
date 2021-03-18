@@ -16,122 +16,36 @@
 # limitations under the License.
 #
 
-from typing import cast, Any, Dict, Union
-from elasticsearch.exceptions import RequestError, TransportError
-from elasticsearch_dsl import Search, Q, A
-import json
+from typing import cast, Any, Dict, Union, Iterable
+import elasticsearch
+from elasticsearch.exceptions import RequestError
+from elasticsearch_dsl import Search, A
 
-from nomad import infrastructure, utils, datamodel
-from nomad.search import _owner_es_query
-from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, Index
-
-from . import models as api_models
-from .models import (
+from nomad import infrastructure, datamodel
+from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, Index, index_entries
+from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, SearchResponse, Aggregation,
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem)
 
-
-class SearchError(Exception): pass
-
-
-_entry_metadata_defaults = {
-    quantity.name: quantity.default
-    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
-    if quantity.default not in [None, [], False, 0]
-}
+from .common import SearchError, _api_to_es_query, _es_to_entry_dict, _owner_es_query
 
 
-def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
-    '''
-    Elasticsearch entry metadata does not contain default values, if a metadata is not
-    set. This will add default values to entry metadata in dict form obtained from
-    elasticsearch.
-    '''
-    entry_dict = hit.to_dict()
-    for key, value in _entry_metadata_defaults.items():
-        if key not in entry_dict:
-            if required is not None:
-                if required.exclude and key in required.exclude:
-                    continue
-                if required.include and key not in required.include:
-                    continue
+def publish(entries: Iterable[datamodel.EntryMetadata]) -> None:
+    ''' Update all given calcs with their metadata and set ``publish = True``. '''
+    def elastic_updates():
+        for entry in entries:
+            entry_doc = entry_type.create_index_doc(datamodel.EntryArchive(section_metadata=entry))
+            entry_doc['published'] = True
 
-            entry_dict[key] = value
+            yield dict(
+                doc=entry_doc,
+                _id=entry_doc['entry_id'],
+                _type=entry_index.doc_type.name,
+                _index=entry_index.index_name,
+                _op_type='update')
 
-    return entry_dict
-
-
-def _api_to_es_query(query: api_models.Query) -> Q:
-    '''
-    Creates an ES query based on the API's query model. This needs to be a normalized
-    query expression with explicit objects for logical, set, and comparison operators.
-    Shorthand notations ala ``quantity:operator`` are not supported here; this
-    needs to be resolved via the respective pydantic validator. There is also no
-    validation of quantities and types.
-    '''
-    def quantity_to_es(name: str, value: api_models.Value) -> Q:
-        # TODO depends on keyword or not, value might need normalization, etc.
-        quantity = entry_type.quantities[name]
-        return Q('match', **{quantity.search_field: value})
-
-    def parameter_to_es(name: str, value: api_models.QueryParameterValue) -> Q:
-
-        if isinstance(value, api_models.All):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, api_models.Any_):
-            return Q('bool', should=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, api_models.None_):
-            return Q('bool', must_not=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, api_models.ComparisonOperator):
-            quantity = entry_type.quantities[name]
-            return Q('range', **{quantity.search_field: {
-                type(value).__name__.lower(): value.op}})
-
-        # list of values is treated as an "all" over the items
-        if isinstance(value, list):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
-                for item in value])
-
-        return quantity_to_es(name, value)
-
-    def query_to_es(query: api_models.Query) -> Q:
-        if isinstance(query, api_models.LogicalOperator):
-            if isinstance(query, api_models.And):
-                return Q('bool', must=[query_to_es(operand) for operand in query.op])
-
-            if isinstance(query, api_models.Or):
-                return Q('bool', should=[query_to_es(operand) for operand in query.op])
-
-            if isinstance(query, api_models.Not):
-                return Q('bool', must_not=query_to_es(query.op))
-
-            raise NotImplementedError()
-
-        if not isinstance(query, dict):
-            raise NotImplementedError()
-
-        # dictionary is like an "and" of all items in the dict
-        if len(query) == 0:
-            return Q()
-
-        if len(query) == 1:
-            key = next(iter(query))
-            return parameter_to_es(key, query[key])
-
-        return Q('bool', must=[
-            parameter_to_es(name, value) for name, value in query.items()])
-
-    return query_to_es(query)
+    elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    entry_index.refresh()
 
 
 def _api_to_es_statistic(es_search: Search, name: str, statistic: Statistic) -> A:
@@ -369,95 +283,5 @@ def search(
     return result
 
 
-def update_by_query(
-        update_script: str,
-        owner: str = 'public',
-        query: Query = None,
-        user_id: str = None,
-        index: Union[Index, str] = entry_index,
-        refresh: bool = False,
-        **kwargs):
-    '''
-    Uses the given painless script to update the entries by given query.
-
-    In most cases, the elasticsearch entry index should not be updated field by field;
-    you should run `index_all` instead and fully replace documents from mongodb and
-    archive files.
-
-    This method provides a faster direct method to update individual fields, e.g. to quickly
-    update fields for editing operations.
-    '''
-
-    if isinstance(index, Index):
-        index_name = index.index_name
-    else:
-        index_name = index
-
-    if query is None:
-        query = {}
-    es_query = _api_to_es_query(query)
-    if owner is not None:
-        es_query &= _owner_es_query(owner=owner, user_id=user_id)
-
-    body = {
-        'script': {
-            'source': update_script,
-            'lang': 'painless'
-        },
-        'query': es_query.to_dict()
-    }
-
-    body['script'].update(**kwargs)
-
-    try:
-        result = infrastructure.elastic_client.update_by_query(
-            body=body, index=index_name)
-    except TransportError as e:
-        utils.get_logger(__name__).error(
-            'es update_by_query script error', exc_info=e,
-            es_info=json.dumps(e.info, indent=2))
-        raise SearchError(e)
-
-    if refresh:
-        infrastructure.elastic_client.indices.refresh(index=index_name)
-
-    return result
-
-
-def delete_by_query(
-        owner: str = 'public',
-        query: Query = None,
-        user_id: str = None,
-        index: Union[Index, str] = entry_index,
-        refresh: bool = False):
-    '''
-    Deletes all entries that match the given query.
-    '''
-
-    if isinstance(index, Index):
-        index_name = index.index_name
-    else:
-        index_name = index
-
-    if query is None:
-        query = {}
-    es_query = _api_to_es_query(query)
-    es_query &= _owner_es_query(owner=owner, user_id=user_id)
-
-    body = {
-        'query': es_query.to_dict()
-    }
-
-    try:
-        result = infrastructure.elastic_client.delete_by_query(
-            body=body, index=index_name)
-    except TransportError as e:
-        utils.get_logger(__name__).error(
-            'es delete_by_query error', exc_info=e,
-            es_info=json.dumps(e.info, indent=2))
-        raise SearchError(e)
-
-    if refresh:
-        infrastructure.elastic_client.indices.refresh(index=index_name)
-
-    return result
+def index(entries, **kwargs):
+    index_entries(entries, **kwargs)

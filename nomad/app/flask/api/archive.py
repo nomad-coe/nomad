@@ -32,7 +32,8 @@ from nomad.files import UploadFiles, Restricted
 from nomad.archive import (
     query_archive, ArchiveQueryError, filter_archive, read_partial_archives_from_mongo,
     compute_required_with_referenced)
-from nomad import search, config
+from nomad import config
+from nomad.search import v0 as search
 
 from .. import common
 from .auth import authenticate, create_authorization_predicate

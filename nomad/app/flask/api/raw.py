@@ -30,7 +30,8 @@ import gzip
 import lzma
 import urllib.parse
 
-from nomad import search, utils, config
+from nomad import utils, config
+from nomad.search import v0 as search
 from nomad.files import UploadFiles, Restricted
 from nomad.processing import Calc
 

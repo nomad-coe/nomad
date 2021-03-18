@@ -33,6 +33,7 @@ from hashlib import md5
 from nomad.app.flask.common import rfc3339DateTime
 from nomad.app.flask.api.auth import generate_upload_token
 from nomad import search, files, config, utils, infrastructure
+from nomad.search.v0 import SearchRequest
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -40,7 +41,7 @@ from nomad.datamodel import EntryMetadata, User, Dataset
 
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
 from tests.test_files import create_staging_upload, create_public_upload, assert_upload_files
-from tests.test_search import assert_search_upload
+from tests.search import assert_search_upload
 from tests.processing import test_data as test_processing
 from tests.processing.test_data import oasis_publishable_upload  # pylint: disable=unused-import
 from tests.conftest import clear_elastic, clear_raw_files
@@ -1598,8 +1599,9 @@ class TestEditRepo():
         return True
 
     def elastic(self, *args, **kwargs):
+        # TODO test and use v1 index as well
         for calc_id in args:
-            for calc in search.SearchRequest().search_parameters(calc_id='test_calc_id_%d' % calc_id).execute_scan():
+            for calc in SearchRequest().search_parameters(calc_id='test_calc_id_%d' % calc_id).execute_scan():
                 for key, value in kwargs.items():
                     if key in ['authors', 'owners']:
                         ids = [user['user_id'] for user in calc.get(key)]

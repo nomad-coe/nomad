@@ -22,7 +22,7 @@ from nomad.processing import SUCCESS
 from nomad.datamodel import EntryMetadata
 
 from tests.test_files import example_file
-from tests.test_search import create_entry
+from tests.search.test_v0 import create_entry
 
 
 def test_get_upload_command(bravado, no_warn):

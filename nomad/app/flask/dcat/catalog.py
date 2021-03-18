@@ -19,7 +19,7 @@
 from flask_restplus import Resource, fields
 from elasticsearch_dsl import Q
 
-from nomad import search
+from nomad.search import v0 as search
 from nomad.app.flask.api.auth import authenticate
 
 from .api import api, arg_parser, rdf_respose, response_types

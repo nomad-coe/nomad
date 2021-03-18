@@ -23,7 +23,8 @@ import json
 import datetime
 import time
 
-from nomad import search, utils, processing as proc, files
+from nomad import utils, processing as proc, files
+from nomad.search import v0 as search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
@@ -182,7 +183,6 @@ class TestAdminUploads:
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False)
-
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 

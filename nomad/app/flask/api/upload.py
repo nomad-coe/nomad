@@ -31,7 +31,8 @@ import os
 import io
 from functools import wraps
 
-from nomad import config, utils, files, search, datamodel
+from nomad import config, utils, files, datamodel
+from nomad.search import v0 as search
 from nomad.processing import Upload, FAILURE
 from nomad.processing import ProcessAlreadyRunning
 

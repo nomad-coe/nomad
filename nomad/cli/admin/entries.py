@@ -37,7 +37,7 @@ def rm(entries, skip_es, skip_mongo):
 
     if not skip_es:
         for entry in entries:
-            search.delete_entry(calc_id=entry)
+            search.delete_entry(entry_id=entry)
 
     if not skip_mongo:
         proc.Calc.objects(calc_id__in=entries).delete()

@@ -25,7 +25,8 @@ import elasticsearch
 import sys
 import threading
 
-from nomad import processing as proc, search, infrastructure, utils, config
+from nomad import processing as proc, infrastructure, utils, config
+from nomad.search import v0 as search
 from nomad.cli.cli import cli
 
 
@@ -231,7 +232,7 @@ def index_materials(threads, code, dry, in_place, n, source):
 
     from nomad.datamodel.material import Material, Calculation
     from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-    from nomad.search import material_document
+    from nomad.search.v0 import material_document
     from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
 
     def include_es(quantity, section):
