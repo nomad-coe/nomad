@@ -207,10 +207,22 @@ export default function Plot({
   // useRef is not guaranteed to update:
   // https://reactjs.org/docs/hooks-faq.html#how-can-i-measure-a-dom-node
   const canvasRef = useCallback(node => {
-    if (node && !firstRender.current) {
-      attach.current = true
-      // We use a dummy state to request a redraw on the new canvas
-      setCanvasNode(node)
+    if (node) {
+      if (!firstRender.current) {
+        attach.current = true
+        // We use a dummy state to request a redraw on the new canvas
+        setCanvasNode(node)
+      }
+      // We add a NATIVE wheel event handler that prevents the wheel events sent
+      // by Plotly from bubbling up. Notice that the SyntheticEvents added by
+      // React cannot be used, since they do not play well with the original
+      // native events created by Plotly (in particular: SyntheticEvents are all
+      // passive, so calling preventDefault on them will cause problems on
+      // browsers that support passive events.)
+      node.addEventListener('wheel', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      })
     }
     canvasRef.current = node
   }, [])

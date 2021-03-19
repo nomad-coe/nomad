@@ -3,7 +3,9 @@
   "version": "0.10.1",
   "commit": "e98694e",
   "private": true,
-  "workspaces": ["../dependencies/materia"],
+  "workspaces": [
+    "../dependencies/materia"
+  ],
   "dependencies": {
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",

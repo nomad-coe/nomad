@@ -10044,7 +10044,7 @@ node-releases@^1.1.52, node-releases@^1.1.69:
   integrity sha512-DGIjo79VDEyAnRlfSqYTsy+yoHd2IOjJiKUozD2MV2D85Vso6Bug56mb9tT/fY5Urt0iqk01H7x+llAruDR2zA==
 
 "nomad-fair-gui@file:.":
-  version "0.10.0"
+  version "0.10.1"
   dependencies:
     "@material-ui/core" "^4.0.0"
     "@material-ui/icons" "^4.0.0"
@@ -10066,7 +10066,7 @@ node-releases@^1.1.52, node-releases@^1.1.69:
     material-ui-chip-input "^1.0.0-beta.14"
     material-ui-flat-pagination "^4.0.0"
     mathjs "^7.1.0"
-    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.0-bce7a520-a7fc-428b-91ff-ee32db4b481e-1611659156761/node_modules/nomad-fair-gui"
+    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.1-f8e02023-90bb-473d-8c51-03dddb2be5c9-1616096663867/node_modules/nomad-fair-gui"
     object-hash "^2.0.3"
     pace "^0.0.4"
     pace-js "^1.0.2"
