@@ -109,20 +109,33 @@ def delete_entry(calc_id):
     Search(index=index).query('match', calc_id=calc_id).delete()
 
 
-def publish(calcs: Iterable[datamodel.EntryMetadata]) -> None:
-    ''' Update all given calcs with their metadata and set ``publish = True``. '''
+def _include_empty(quantity):
+    return quantity in [
+        datamodel.EntryMetadata.datasets, datamodel.EntryMetadata.authors,
+        datamodel.EntryMetadata.shared_with, datamodel.EntryMetadata.comment,
+        datamodel.EntryMetadata.references]
+
+
+def update_metadata(calcs: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
+    '''
+    Update all given entries with their given metadata. Additionally apply kwargs.
+    Returns the number of failed updates.
+    '''
+
     def elastic_updates():
         for calc in calcs:
-            entry = calc.a_elastic.create_index_entry()
-            entry.published = True
-            entry = entry.to_dict(include_meta=True)
+            entry = calc.a_elastic.create_index_entry(include_empty=_include_empty)
+            entry = entry.to_dict(include_meta=True, skip_empty=False)
             source = entry.pop('_source')
+            source.update(**kwargs)
             entry['doc'] = source
+            entry['_id'] = calc.calc_id
             entry['_op_type'] = 'update'
             yield entry
 
-    elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
     refresh()
+    return failed
 
 
 # Used by:

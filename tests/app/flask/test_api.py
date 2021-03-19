@@ -32,8 +32,9 @@ from hashlib import md5
 
 from nomad.app.flask.common import rfc3339DateTime
 from nomad.app.flask.api.auth import generate_upload_token
-from nomad import search, files, config, utils, infrastructure
+from nomad import files, config, utils, infrastructure
 from nomad.search.v0 import SearchRequest
+from nomad.search.v1 import search
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, SUCCESS
@@ -45,6 +46,7 @@ from tests.search import assert_search_upload
 from tests.processing import test_data as test_processing
 from tests.processing.test_data import oasis_publishable_upload  # pylint: disable=unused-import
 from tests.conftest import clear_elastic, clear_raw_files
+from tests.utils import ExampleData
 
 from ..conftest import create_auth_headers
 from .test_app import BlueprintClient
@@ -352,7 +354,7 @@ class TestUploads:
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
     @pytest.mark.parametrize('name', [None, 'test_name'])
-    def test_put(self, api, test_user_auth, proc_infra, example_upload, mode, name, no_warn):
+    def test_put(self, api, test_user_auth, proc_infra, example_upload, mode, name):
         file = example_upload
         if name:
             url = '/uploads/?name=%s' % name
@@ -1521,31 +1523,30 @@ class TestEditRepo():
 
     @pytest.fixture(autouse=True)
     def example_data(self, class_api, test_user, other_test_user, raw_files):
-        from .utils import Upload
+        # TODO
+        example_data = ExampleData()
 
-        uploads = {}
-        for i in range(1, 4):
-            upload_id = 'upload_%d' % i
-            upload = Upload()
-            upload.upload_id = upload_id
-            uploads[upload_id] = upload
+        example_data.create_entry(
+            upload_id='upload_1', uploader=test_user, published=True, with_embargo=False)
+        example_data.create_entry(
+            upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
+        example_data.create_entry(
+            upload_id='upload_2', uploader=test_user, published=False, with_embargo=False)
+        example_data.create_entry(
+            upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
 
-        entries = [
-            dict(upload_id='upload_1', user=test_user, published=True, with_embargo=False),
-            dict(upload_id='upload_2', user=test_user, published=True, with_embargo=True),
-            dict(upload_id='upload_2', user=test_user, published=False, with_embargo=False),
-            dict(upload_id='upload_3', user=other_test_user, published=True, with_embargo=False)]
+        example_data.save()
 
-        for i, entry in enumerate(entries):
-            upload = uploads[entry.pop('upload_id')]
-            user = entry.pop('user')
-            metadata = dict(uploader=user.user_id, **entry)
-            upload.create_test_structure(i + 1, 2, 1, [], 0, metadata=metadata)
+        # for i, entry in enumerate(entries):
+        #     upload = uploads[entry.pop('upload_id')]
+        #     user = entry.pop('user')
+        #     metadata = dict(uploader=user.user_id, **entry)
+        #     upload.create_test_structure(i + 1, 2, 1, [], 0, metadata=metadata)
 
-        for upload in uploads.values():
-            upload.create_upload_files()
+        # for upload in uploads.values():
+        #     upload.create_upload_files()
 
-        search.refresh()
+        # search_refresh()
 
     @pytest.fixture(autouse=True)
     def auth(self, test_user_auth):
@@ -1588,7 +1589,7 @@ class TestEditRepo():
 
     def mongo(self, *args, edited: bool = True, **kwargs):
         for calc_id in args:
-            calc = Calc.objects(calc_id='test_calc_id_%d' % calc_id).first()
+            calc = Calc.objects(calc_id='test_entry_id_%d' % calc_id).first()
             assert calc is not None
             metadata = calc.metadata
             if edited:
@@ -1598,19 +1599,31 @@ class TestEditRepo():
                     return False
         return True
 
-    def elastic(self, *args, **kwargs):
-        # TODO test and use v1 index as well
-        for calc_id in args:
-            for calc in SearchRequest().search_parameters(calc_id='test_calc_id_%d' % calc_id).execute_scan():
-                for key, value in kwargs.items():
-                    if key in ['authors', 'owners']:
-                        ids = [user['user_id'] for user in calc.get(key)]
-                        if ids != value:
-                            return False
-                    else:
-                        if calc.get(key) != value:
-                            return False
-        return True
+    def assert_elastic(self, *args, invert: bool = False, **kwargs):
+        def assert_entry(get_entries):
+            for arg in args:
+                entry_id = 'test_entry_id_%d' % arg
+                entries = list(get_entries(entry_id))
+                assert len(entries) > 0, entry_id
+                for entry in entries:
+                    for key, value in kwargs.items():
+                        if key in ['authors', 'owners']:
+                            ids = [user['user_id'] for user in entry.get(key)]
+                            if ids != value:
+                                return False
+                        else:
+                            if entry.get(key) != value:
+                                return False
+
+            return True
+
+        # test v0 data
+        assert invert != assert_entry(
+            lambda id: SearchRequest().search_parameters(calc_id=id).execute_scan())
+
+        # test v1 data
+        assert invert != assert_entry(
+            lambda id: search(owner=None, query=dict(entry_id=id)).data)
 
     def test_edit_all_properties(self, test_user, other_test_user):
         edit_data = dict(
@@ -1635,34 +1648,61 @@ class TestEditRepo():
         assert self.mongo(1, coauthors=[other_test_user.user_id])
         assert self.mongo(1, shared_with=[other_test_user.user_id])
 
-        assert self.elastic(1, comment='test_edit_props')
-        assert self.elastic(1, references=['http://test', 'http://test2'])
-        assert self.elastic(1, authors=[test_user.user_id, other_test_user.user_id])
-        assert self.elastic(1, owners=[test_user.user_id, other_test_user.user_id])
+        self.assert_elastic(1, comment='test_edit_props')
+        self.assert_elastic(1, references=['http://test', 'http://test2'])
+        self.assert_elastic(1, authors=[test_user.user_id, other_test_user.user_id])
+        self.assert_elastic(1, owners=[test_user.user_id, other_test_user.user_id])
+
+        edit_data = dict(
+            comment='',
+            references=[],
+            coauthors=[],
+            shared_with=[])
+        rv = self.perform_edit(**edit_data, query=dict(upload_id=['upload_1']))
+        result = json.loads(rv.data)
+        assert rv.status_code == 200
+        actions = result.get('actions')
+        for key in edit_data:
+            assert key in actions
+            quantity_actions = actions.get(key)
+            if not isinstance(quantity_actions, list):
+                quantity_actions = [quantity_actions]
+            for quantity_action in quantity_actions:
+                assert quantity_action['success']
+
+        assert self.mongo(1, comment=None)
+        assert self.mongo(1, references=[])
+        assert self.mongo(1, coauthors=[])
+        assert self.mongo(1, shared_with=[])
+
+        self.assert_elastic(1, comment=None)
+        self.assert_elastic(1, references=[])
+        self.assert_elastic(1, authors=[test_user.user_id])
+        self.assert_elastic(1, owners=[test_user.user_id])
 
     def test_edit_all(self):
         rv = self.perform_edit(comment='test_edit_all')
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_all')
-        assert self.elastic(1, 2, 3, comment='test_edit_all')
+        self.assert_elastic(1, 2, 3, comment='test_edit_all')
         assert not self.mongo(4, comment='test_edit_all', edited=False)
-        assert not self.elastic(4, comment='test_edit_all', edited=False)
+        self.assert_elastic(4, comment='test_edit_all', edited=False, invert=True)
 
     def test_edit_multi(self):
         rv = self.perform_edit(comment='test_edit_multi', query=dict(upload_id=['upload_1', 'upload_2']))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_multi')
-        assert self.elastic(1, 2, 3, comment='test_edit_multi')
+        self.assert_elastic(1, 2, 3, comment='test_edit_multi')
         assert not self.mongo(4, comment='test_edit_multi', edited=False)
-        assert not self.elastic(4, comment='test_edit_multi', edited=False)
+        self.assert_elastic(4, comment='test_edit_multi', edited=False, invert=True)
 
     def test_edit_some(self):
         rv = self.perform_edit(comment='test_edit_some', query=dict(upload_id=['upload_1']))
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, comment='test_edit_some')
-        assert self.elastic(1, comment='test_edit_some')
+        self.assert_elastic(1, comment='test_edit_some')
         assert not self.mongo(2, 3, 4, comment='test_edit_some', edited=False)
-        assert not self.elastic(2, 3, 4, comment='test_edit_some', edited=False)
+        self.assert_elastic(2, 3, 4, comment='test_edit_some', edited=False, invert=True)
 
     def test_edit_verify(self):
         rv = self.perform_edit(
@@ -2207,16 +2247,27 @@ class TestDataset:
 
     @pytest.fixture()
     def example_dataset_with_entry(self, mongo, elastic, raw_files, example_datasets):
-        entry_metadata = EntryMetadata(
-            domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
+        example_data = ExampleData()
+        example_entry = example_data.create_entry(
+            calc_id='1', upload_id='1', published=True, with_embargo=False,
             datasets=['1'])
-        Calc(
-            calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=entry_metadata.m_to_dict()).save()
-        upload_files = files.StagingUploadFiles(upload_id='1', create=True)
-        upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
-        upload_files.close()
-        entry_metadata.a_elastic.index(refresh=True)
+        example_data.save()
+        from nomad import files
+        assert files.UploadFiles.get('1') is not None
+        assert example_entry.section_metadata.datasets[0].dataset_id == '1'
+
+        # entry_archive = EntryArchive()
+        # entry_metadata = entry_archive.m_create(
+        #     EntryMetadata,
+        #     domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
+        #     datasets=['1'])
+        # Calc(
+        #     calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
+        #     metadata=entry_metadata.m_to_dict()).save()
+        # upload_files = files.StagingUploadFiles(upload_id='1', create=True)
+        # upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
+        # upload_files.close()
+        # index(entry_archive)
 
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)

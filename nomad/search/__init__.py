@@ -76,7 +76,7 @@ def run_on_both_indexes(func):
             else:
                 index_name = index
 
-            return func(index_name, *args, **kwargs)
+            return func(*args, index=index_name, **kwargs)
 
     return wrapper
 
@@ -198,22 +198,34 @@ def index(
         entries = [entries]
 
     if v0_index in indices:
-        assert not update_materials, 'update materials not supported for v0 index'
         v0.index_all([entry.section_metadata for entry in entries], do_refresh=refresh)
 
     if v1_index in indices:
         v1.index(entries=entries, update_materials=update_materials, refresh=refresh)
 
 
-def publish(entries: Iterable[EntryMetadata], index: str = None):
+def publish(entries: List[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
-    and updates most user provided metadata with a partial update.
+    and updates most user provided metadata with a partial update. Returns the number
+    of failed updates.
     '''
+    return update_metadata(entries, index=index, published=True)
+
+
+def update_metadata(entries: List[EntryMetadata], index: str = None, **kwargs) -> int:
+    '''
+    Update all given entries with their given metadata. Additionally apply kwargs.
+    Returns the number of failed updates.
+    '''
+
+    failed = 0
     if index == v0_index or index is None:
-        v0.publish(entries)
+        failed += v0.update_metadata(entries, **kwargs)
     if index == v1_index or index is None:
-        v1.publish(entries)
+        failed += v1.update_metadata(entries, **kwargs)
+
+    return failed
 
 
 def lift_embargo(query: dict, **kwargs):

@@ -565,7 +565,7 @@ def create_test_upload_files(
 
     if published:
         upload_files.pack([archive.section_metadata for archive in archives])
-        upload_files.delete()
+        upload_files.delete(include_public=False)
         return UploadFiles.get(upload_id)
 
     return upload_files

@@ -446,12 +446,12 @@ class EntryMetadata(metainfo.MSection):
     comment = metainfo.Quantity(
         type=str, categories=[MongoMetadata, EditableUserMetadata],
         description='A user provided comment for this entry',
-        a_search=Search(mapping=Text()))
+        a_search=Search(mapping=Text()), a_elasticsearch=Elasticsearch(mapping='text'))
 
     references = metainfo.Quantity(
         type=str, shape=['0..*'], categories=[MongoMetadata, EditableUserMetadata],
         description='User provided references (URLs) for this entry',
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoMetadata, UserProvidableMetadata],
@@ -496,7 +496,8 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(
             description='The full name of the authors for exact searches',
             metric='cardinality',
-            many_or='append', search_field='authors.name.keyword'))
+            many_or='append', search_field='authors.name.keyword'),
+        a_elasticsearch=Elasticsearch())
 
     shared_with = metainfo.Quantity(
         type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],

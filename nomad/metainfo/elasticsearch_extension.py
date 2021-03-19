@@ -212,10 +212,16 @@ class DocumentType():
         '''
         Creates an indexable document from the given archive.
         '''
+        def exclude(property_, section):
+            if property_ not in self.indexed_properties:
+                return True
+
+            return False
+
         result = root.m_to_dict(
             with_meta=False, include_defaults=True, include_derived=True,
             resolve_references=True,
-            exclude=lambda property_, section: property_ not in self.indexed_properties,
+            exclude=exclude,
             transform=self._transform)
 
         # TODO deal with section_metadata

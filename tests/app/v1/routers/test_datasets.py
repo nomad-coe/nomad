@@ -27,10 +27,10 @@ from nomad.search.v1 import search
 from nomad.app.v1.models import Query
 
 from tests.conftest import admin_user_id
+from tests.utils import ExampleData
 
 from .test_entries import data as example_entries  # pylint: disable=unused-import
 from .common import assert_response
-from ..conftest import ExampleData
 
 '''
 These are the tests for all API operations below ``datasets``. The tests are organized
@@ -51,7 +51,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
         return dataset
 
     data = ExampleData(uploader=test_user)
-    data._create_entry(
+    data.create_entry(
         upload_id='upload_1',
         calc_id='entry_1',
         mainfile='test_content/1/mainfile.json',
@@ -68,7 +68,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
                 dataset_type='owned')
         ])
 
-    data._create_entry(
+    data.create_entry(
         upload_id='upload_1',
         calc_id='entry_2',
         mainfile='test_content/2/mainfile.json',
@@ -87,7 +87,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
         ])
 
     for i in range(1, 4):
-        data._create_entry(
+        data.create_entry(
             upload_id='other_data',
             calc_id='id_%02d' % i,
             mainfile='test_content/%02d/mainfile.json' % i)

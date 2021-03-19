@@ -95,6 +95,7 @@ from .datamodel import (
     MongoMetadata, EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
+from .results import Results
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.dft'].m_package)  # type: ignore

@@ -637,9 +637,9 @@ class StagingUploadFiles(UploadFiles):
 
         return utils.make_websave(hash)
 
-    def delete(self) -> None:
+    def delete(self, include_public=True) -> None:
         super().delete()
-        if self._shared.exists():
+        if self._shared.exists() and include_public:
             self._shared.delete()
 
 

@@ -24,14 +24,14 @@ from nomad.search import update_by_query
 from nomad.search.v1 import search
 from nomad.metainfo.elasticsearch_extension import entry_type, entry_index
 
-from tests.app.v1.conftest import ExampleData
+from tests.utils import ExampleData
 
 
 @pytest.fixture()
 def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user):
     data = ExampleData(uploader=test_user)
 
-    data._create_entry(
+    data.create_entry(
         upload_id='test_upload_id',
         calc_id='test_upload_id',
         mainfile='test_content/test_embargo_entry/mainfile.json',

@@ -30,22 +30,37 @@ from nomad.app.v1.models import (
 from .common import SearchError, _api_to_es_query, _es_to_entry_dict, _owner_es_query
 
 
-def publish(entries: Iterable[datamodel.EntryMetadata]) -> None:
-    ''' Update all given calcs with their metadata and set ``publish = True``. '''
+def update_metadata(entries: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
+    '''
+    Update all given entries with their given metadata. Additionally apply kwargs.
+    Returns the number of failed updates.
+    '''
+
     def elastic_updates():
         for entry in entries:
-            entry_doc = entry_type.create_index_doc(datamodel.EntryArchive(section_metadata=entry))
-            entry_doc['published'] = True
+            entry_doc = entry_type.create_index_doc(
+                datamodel.EntryArchive(section_metadata=entry))
+
+            entry_doc.update(**kwargs)
+            # TODO this a exception that should be treated differently. None values are
+            # not included in elasticsearch docs. However, when a user removes his comment
+            # (the only case where a value is unset in an update?), the None value needs
+            # to be transported.
+            if 'comment' not in entry_doc:
+                entry_doc['comment'] = None
 
             yield dict(
                 doc=entry_doc,
-                _id=entry_doc['entry_id'],
+                _id=entry.calc_id,
                 _type=entry_index.doc_type.name,
                 _index=entry_index.index_name,
                 _op_type='update')
 
-    elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates())
+    updates = list(elastic_updates())
+    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, updates, stats_only=True)
     entry_index.refresh()
+
+    return failed
 
 
 def _api_to_es_statistic(es_search: Search, name: str, statistic: Statistic) -> A:

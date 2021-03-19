@@ -26,12 +26,12 @@ from flask_restplus import Resource, abort, fields
 from flask import request, g
 from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
-import elasticsearch.helpers
 from datetime import datetime
 
-from nomad import utils, datamodel, processing as proc, infrastructure, files, metainfo
+from nomad import utils, datamodel, processing as proc, metainfo
 from nomad.datamodel import Dataset, User, EditableUserMetadata
 from nomad.search import v0 as search
+from nomad.search import update_metadata as es_update_metadata
 
 from .. import common
 from ..common import RFC3339DateTime, DotKeyNested
@@ -497,35 +497,19 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
                 common.logger.error('edit repo did not update all entries', payload=mongo_update)
 
     # re-index the affected entries in elastic search
-    # TODO do this on the v1 index as well
     with utils.timer(common.logger, 'edit elastic update executed', size=len(calc_ids)):
         if re_index:
-            def elastic_updates():
-                upload_files_cache: Dict[str, files.UploadFiles] = dict()
+            updated_metadata: List[datamodel.EntryMetadata] = []
+            for calc in proc.Calc.objects(calc_id__in=calc_ids):
+                updated_metadata.append(
+                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata))
 
-                for calc in proc.Calc.objects(calc_id__in=calc_ids):
-                    upload_id = calc.upload_id
-                    upload_files = upload_files_cache.get(upload_id)
-                    if upload_files is None:
-                        upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
-                        upload_files_cache[upload_id] = upload_files
+            failed = es_update_metadata(updated_metadata)
 
-                    entry_metadata = calc.entry_metadata(upload_files)
-                    entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
-                    entry['_op_type'] = 'index'
-
-                    yield entry
-
-                for upload_files in upload_files_cache.values():
-                    upload_files.close()
-
-            _, failed = elasticsearch.helpers.bulk(
-                infrastructure.elastic_client, elastic_updates(), stats_only=True)
-            search.refresh()
             if failed > 0:
                 common.logger.error(
                     'edit repo with failed elastic updates',
-                    payload=mongo_update, nfailed=len(failed))
+                    payload=mongo_update, nfailed=failed)
 
     return list(upload_ids)
 

@@ -364,7 +364,7 @@ class TestClient:
             if key not in ['upload_time', 'last_processing', 'dft.labels.label', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
                 # There is a sub second change due to date conversions (?).
                 # Labels have arbitrary order.
-                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
+                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key]), key
 
         published.upload_files.exists
         proc.Upload.objects(upload_id=published.upload_id).first().upload_files.exists

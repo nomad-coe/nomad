@@ -25,6 +25,7 @@ from nomad.search import v0 as search
 from nomad.app.optimade import parse_filter
 
 from tests.conftest import clear_elastic, clear_raw_files
+from tests.utils import ExampleData
 
 
 def test_get_entry(published: Upload):
@@ -38,12 +39,10 @@ def test_get_entry(published: Upload):
 
 
 def test_no_optimade(mongo, elastic, raw_files, client):
-    from tests.app.flask.utils import Upload
-    upload = Upload()
-    upload.create_test_structure(1, 2, 1, [], 0)
-    upload.create_test_structure(2, 2, 1, [], 0, optimade=False)
-    upload.create_upload_files()
-    search.refresh()
+    example_data = ExampleData()
+    example_data.create_structure(1, 2, 1, [], 0)
+    example_data.create_structure(2, 2, 1, [], 0, optimade=False)
+    example_data.save()
 
     rv = client.get('/optimade/structures')
     assert rv.status_code == 200
@@ -56,14 +55,12 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    from tests.app.flask.utils import Upload
-    upload = Upload()
-    upload.create_test_structure(1, 2, 1, [], 0)
-    upload.create_test_structure(2, 2, 1, ['C'], 0)
-    upload.create_test_structure(3, 2, 1, [], 1)
-    upload.create_test_structure(4, 1, 1, [], 0, metadata=dict(upload_time='1978-04-08T10:10:00Z'))
-    upload.create_upload_files()
-    search.refresh()
+    example_data = ExampleData()
+    example_data.create_structure(1, 2, 1, [], 0)
+    example_data.create_structure(2, 2, 1, ['C'], 0)
+    example_data.create_structure(3, 2, 1, [], 1)
+    example_data.create_structure(4, 1, 1, [], 0)
+    example_data.save()
 
     yield
     clear_elastic(elastic_infra)
