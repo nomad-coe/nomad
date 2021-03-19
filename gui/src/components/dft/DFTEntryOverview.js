@@ -456,7 +456,7 @@ export default function DFTEntryOverview({data}) {
                   {data.datasets.map(ds => (
                     <Typography key={ds.dataset_id}>
                       <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                      {ds.doi ? <span>&nbsp; (<DOI doi={ds.doi}/>)</span> : ''}
+                      {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
                     </Typography>))}
                 </div>}
               </Quantity>
