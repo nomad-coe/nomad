@@ -256,7 +256,7 @@ class DataTextParser(FileParser):
                 else:
                     if self._mainfile_contents is None:
                         self._mainfile_contents = self.mainfile_obj.read()
-                    self._file_handler = np.fromstring(self._mainfile_contents, dtype=self._dtype)
+                    self._file_handler = np.frombuffer(self._mainfile_contents, dtype=self._dtype)
             except Exception:
                 return
 
