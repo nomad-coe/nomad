@@ -32,7 +32,6 @@ and .yaml files. This is done automatically on import. The precedence is env ove
 over defaults.
 
 .. autoclass:: nomad.config.NomadConfig
-.. autofunction:: nomad.config.apply
 .. autofunction:: nomad.config.load_config
 '''
 
@@ -285,7 +284,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.0',
+    version='0.10.1',
     commit=gitinfo.commit,
     release='devel',
     deployment='standard',
@@ -315,6 +314,7 @@ reprocess_rematch = True
 process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
+enable_lazy_import = True
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

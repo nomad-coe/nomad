@@ -36,6 +36,11 @@ from crystalparser import CrystalParser
 from fhiaimsparser import FHIAimsParser
 from excitingparser import ExcitingParser
 from abinitparser import AbinitParser
+from quantumespressoparser import QuantumEspressoParser
+from gaussianparser import GaussianParser
+from gpawparser import GPAWParser
+from octopusparser import OctopusParser
+from orcaparser import OrcaParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -209,36 +214,10 @@ parsers = [
         name='parsers/band', code_name='BAND', code_homepage='https://www.scm.com/product/band_periodicdft/',
         parser_class_name='bandparser.BANDParser',
         mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
-    LegacyParser(
-        name='parsers/gaussian', code_name='Gaussian', code_homepage='http://gaussian.com/',
-        parser_class_name='gaussianparser.GaussianParser',
-        mainfile_mime_re=r'.*',
-        mainfile_contents_re=(
-            r'\s*Cite this work as:'
-            r'\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,')
-    ),
-    LegacyParser(
-        name='parsers/quantumespresso', code_name='Quantum Espresso', code_homepage='https://www.quantum-espresso.org/',
-        parser_class_name='quantumespressoparser.QuantumEspressoParserPWSCF',
-        mainfile_contents_re=(
-            r'(Program PWSCF.*starts)|'
-            r'(Current dimensions of program PWSCF are)')
-        #    r'^(.*\n)*'
-        #    r'\s*Program (\S+)\s+v\.(\S+)(?:\s+\(svn\s+rev\.\s+'
-        #    r'(\d+)\s*\))?\s+starts[^\n]+'
-        #    r'(?:\s*\n?)*This program is part of the open-source Quantum')
-    ),
+    QuantumEspressoParser(),
+    GaussianParser(),
     AbinitParser(),
-    LegacyParser(
-        name='parsers/orca', code_name='ORCA', code_homepage='https://orcaforum.kofo.mpg.de/',
-        parser_class_name='orcaparser.OrcaParser',
-        mainfile_contents_re=(
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s+\* O   R   C   A \*\s*'
-            r'\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*'
-            r'\s*--- An Ab Initio, DFT and Semiempirical electronic structure package ---\s*')
-    ),
+    OrcaParser(),
     LegacyParser(
         name='parsers/castep', code_name='CASTEP', code_homepage='http://www.castep.org/',
         parser_class_name='castepparser.CastepParser',
@@ -254,27 +233,22 @@ parsers = [
         parser_class_name='libatomsparser.LibAtomsParserWrapper',
         mainfile_contents_re=(r'\s*<GAP_params\s')
     ),
-    LegacyParser(
-        name='parsers/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
-        parser_class_name='octopusparser.OctopusParserWrapper',
-        mainfile_contents_re=(r'\|0\) ~ \(0\) \|')
-        # We decided to use the octopus eyes instead of
-        # r'\*{32} Grid \*{32}Simulation Box:' since it was so far down in the file.
-    ),
+    OctopusParser(),
     # match gpaw2 first, other .gpw files are then considered to be "gpaw1"
-    LegacyParser(
-        name='parsers/gpaw2', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
-        parser_class_name='gpawparser.GPAWParser2Wrapper',
-        mainfile_binary_header=b'GPAW',
-        mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
-        mainfile_mime_re=r'application/(x-tar|octet-stream)'
-    ),
-    LegacyParser(
-        name='parsers/gpaw', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
-        parser_class_name='gpawparser.GPAWParserWrapper',
-        mainfile_name_re=(r'^.*\.gpw$'),
-        mainfile_mime_re=r'application/(x-tar|octet-stream)'
-    ),
+    # LegacyParser(
+    #     name='parsers/gpaw2', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
+    #     parser_class_name='gpawparser.GPAWParser2Wrapper',
+    #     mainfile_binary_header=b'GPAW',
+    #     mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
+    #     mainfile_mime_re=r'application/(x-tar|octet-stream)'
+    # ),
+    # LegacyParser(
+    #     name='parsers/gpaw', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
+    #     parser_class_name='gpawparser.GPAWParserWrapper',
+    #     mainfile_name_re=(r'^.*\.gpw$'),
+    #     mainfile_mime_re=r'application/(x-tar|octet-stream)'
+    # ),
+    GPAWParser(),
     LegacyParser(
         name='parsers/atk', code_name='AtomistixToolKit', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
         parser_class_name='atkparser.ATKParserWrapper',

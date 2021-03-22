@@ -38,7 +38,12 @@ import { authorList } from '../../utils'
 class DOIUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    doi: PropTypes.string.isRequired
+    doi: PropTypes.string.isRequired,
+    parentheses: PropTypes.bool
+  }
+
+  static defaultProps = {
+    parentheses: false
   }
 
   static styles = theme => ({
@@ -51,9 +56,10 @@ class DOIUnstyled extends React.Component {
   })
 
   render() {
-    const {classes, doi} = this.props
+    const {classes, doi, parentheses} = this.props
     const url = `https://dx.doi.org/${doi}`
     return <span className={classes.root}>
+      {parentheses && <div style={{marginRight: 0}}>(</div>}
       <Link href={url}>{doi}</Link>
       <CopyToClipboard
         text={url} onCopy={() => null}
@@ -64,6 +70,7 @@ class DOIUnstyled extends React.Component {
           </IconButton>
         </Tooltip>
       </CopyToClipboard>
+      {parentheses && <div style={{marginRight: 0}}>)</div>}
     </span>
   }
 }

@@ -139,6 +139,8 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         def get_value(quantity_def, default: Any = None, numpy: bool = False, unit=None) -> Any:
             try:
                 value = self.section_run.section_system[-1].m_get(quantity_def)
+                if value is None:
+                    return
                 if type(value) == np.ndarray and not numpy:
                     return value.tolist()
                 if isinstance(value, list) and numpy:
@@ -147,7 +149,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
                 if numpy and unit is not None:
                     if isinstance(value, pint.quantity._Quantity):
                         value = value.to(unit)
-                    else:
+                    elif value is not None:
                         value = value * unit
 
                 return value
@@ -157,6 +159,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         from nomad.normalizing.system import normalized_atom_labels
 
         nomad_species = get_value(section_system.atom_labels)
+        nomad_species = [] if nomad_species is None else nomad_species
 
         # elements
         atoms = normalized_atom_labels(nomad_species)
@@ -196,7 +199,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         for species_label in set(nomad_species):
             match = re.match(species_re, species_label)
 
-            element_label = match.group(1)
+            element_label = match.group(1) if match else species_label
 
             species = optimade.m_create(Species)
             species.name = species_label

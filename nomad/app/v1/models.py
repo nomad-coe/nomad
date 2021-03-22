@@ -277,7 +277,9 @@ class WithQuery(BaseModel):
 
 def _validate_query(query: Query):
     if isinstance(query, dict):
-        for key, value in query.items():
+        for key, value in list(query.items()):
+            # Note, we loop over a list of items, not query.items(). This is because we
+            # may modify the query in the loop.
             if ':' in key:
                 quantity, qualifier = key.split(':')
             else:
