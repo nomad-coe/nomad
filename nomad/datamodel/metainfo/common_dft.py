@@ -6320,19 +6320,31 @@ class ThermodynamicalProperties(MSection):
         shape=['number_of_thermodynamical_property_values'],
         unit='joule',
         description='''
-        Holds the vibrational free energy per atom at constant volume.
+        Holds the vibrational free energy per cell unit at constant volume.
         ''',
         a_legacy=LegacyDefinition(name='vibrational_free_energy_at_constant_volume'))
 
-    specific_vibrational_free_energy_at_constant_volume = Quantity(
+    @derived(
         type=np.dtype(np.float64),
         shape=['number_of_thermodynamical_property_values'],
         unit='joule / kilogram',
         description='''
         Stores the specific vibrational free energy at constant volume.
         ''',
-        categories=[Unused],
-        a_legacy=LegacyDefinition(name='specific_vibrational_free_energy_at_constant_volume'))
+        a_legacy=LegacyDefinition(name='specific_vibrational_free_energy_at_constant_volume'),
+        cached=True
+    )
+    def specific_vibrational_free_energy_at_constant_volume(self) -> NDArray:
+        import nomad.atomutils
+        s_frame_sequence = self.m_parent
+        first_frame = s_frame_sequence.frame_sequence_local_frames_ref[0]
+        system = first_frame.single_configuration_calculation_to_system_ref
+        atomic_numbers = system.atom_species
+        mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
+        free_energy = self.vibrational_free_energy_at_constant_volume
+        specific_free_energy = free_energy / mass_per_unit_cell
+
+        return specific_free_energy
 
 
 class VolumetricData(MSection):
