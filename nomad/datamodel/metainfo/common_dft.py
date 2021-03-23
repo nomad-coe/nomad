@@ -1810,13 +1810,13 @@ class EnergyContribution(MSection):
         validate=False,
         a_legacy=LegacyDefinition(name='section_energy_contribution'))
 
-    energy_contibution_kind = Quantity(
+    energy_contribution_kind = Quantity(
         type=str,
         shape=[],
         description='''
         The kind of the energy contribution. Can be one of bond, pair, coulomb, etc.
         ''',
-        a_legacy=LegacyDefinition(name='energy_contibution_kind'))
+        a_legacy=LegacyDefinition(name='energy_contribution_kind'))
 
     energy_contribution_value = Quantity(
         type=np.dtype(np.float64),
