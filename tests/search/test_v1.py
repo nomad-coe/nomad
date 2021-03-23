@@ -73,7 +73,7 @@ def test_search_query(indices, example_data, api_query, total):
 
 
 def test_update_by_query(indices, example_data):
-    result = update_by_query(
+    update_by_query(
         update_script='''
             ctx._source.entry_id = "other test id";
         ''',
@@ -81,6 +81,5 @@ def test_update_by_query(indices, example_data):
 
     entry_index.refresh()
 
-    assert result['updated'] == 1
     results = search(owner='all', query=dict(entry_id='other test id'))
     assert results.pagination.total == 1

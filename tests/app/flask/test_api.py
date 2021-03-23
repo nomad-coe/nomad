@@ -253,7 +253,7 @@ class TestUploads:
 
         entries = get_upload_entries_metadata(upload)
         assert_upload_files(upload_id, entries, files.StagingUploadFiles)
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+        assert_search_upload(entries, index='v0', additional_keys=['atoms', 'dft.system'])
 
     def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
@@ -557,7 +557,7 @@ class TestUploads:
 
         entries = get_upload_entries_metadata(upload)
         assert_upload_files(upload_id, entries, files.PublicUploadFiles)
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+        assert_search_upload(entries, index='v0', additional_keys=['atoms', 'dft.system'])
 
     def test_post_from_oasis_admin(self, api, non_empty_uploaded, other_test_user_auth, test_user, no_warn):
         url = '/uploads/?%s' % urlencode(dict(
@@ -613,7 +613,7 @@ class TestUploads:
 
         entries = get_upload_entries_metadata(upload)
         assert_upload_files(upload_id, entries, files.PublicUploadFiles)
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+        assert_search_upload(entries, index='v0', additional_keys=['atoms', 'dft.system'])
 
     def test_post_publish_from_oasis(
             self, api, oasis_publishable_upload, other_test_user_auth, monkeypatch, no_warn):

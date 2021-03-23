@@ -25,8 +25,7 @@ import elasticsearch
 import sys
 import threading
 
-from nomad import processing as proc, infrastructure, utils, config
-from nomad.search import v0 as search
+from nomad import processing as proc, infrastructure, utils, config, datamodel
 from nomad.cli.cli import cli
 
 
@@ -172,10 +171,13 @@ def reset_processing(zero_complete_time):
 @click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def lift_embargo(dry, parallel):
+    from nomad.search.v0 import SearchRequest
+    from nomad.search import update_metadata
+
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    request = search.SearchRequest()
+    request = SearchRequest()
     request.q = elasticsearch_dsl.Q('term', with_embargo=True) & elasticsearch_dsl.Q('term', published=True)
     request.quantity('upload_id', 1000)
     result = request.execute()
@@ -199,8 +201,10 @@ def lift_embargo(dry, parallel):
                 uploads_to_repack.append(upload)
                 upload.save()
 
-                with upload.entries_metadata() as entries:
-                    search.index_all(entries)
+                entries = [
+                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata)
+                    for calc in proc.Calc.objects(upload_id=upload_id)]
+                update_metadata(entries, with_embargo=False, update_materials=True, refresh=True)
 
     if not dry:
         __run_processing(
@@ -228,6 +232,8 @@ def index_materials(threads, code, dry, in_place, n, source):
     can be done on a "live" system because a new temporary index is used. If
     you use the --in-place option, the indexing will be run on the same index
     that is currently in use.
+
+    This will only update the v0 materials index.
     """
 
     from nomad.datamodel.material import Material, Calculation
@@ -553,7 +559,7 @@ def index_materials(threads, code, dry, in_place, n, source):
         else:
             elasticsearch.helpers.bulk(
                 infrastructure.elastic_client, elastic_updates())
-            search.refresh()
+            infrastructure.elastic_client.indices.refresh(index=target_index_name)
 
         # Changes materials index alias to point to the new index and remove the
         # old index.

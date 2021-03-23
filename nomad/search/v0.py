@@ -91,24 +91,6 @@ for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
 
 
-# Used by:
-# - processing to delete upload
-# - cli client mirror to delete uploads while testing
-# - cli admin uploads rm
-def delete_upload(upload_id):
-    ''' Delete all entries with given ``upload_id`` from the index. '''
-    index = entry_document._default_index()
-    Search(index=index).query('match', upload_id=upload_id).delete()
-
-
-# Used by:
-# - cli admin entry delete
-def delete_entry(calc_id):
-    ''' Delete the entry with the given ``calc_id`` from the index. '''
-    index = entry_document._default_index()
-    Search(index=index).query('match', calc_id=calc_id).delete()
-
-
 def _include_empty(quantity):
     return quantity in [
         datamodel.EntryMetadata.datasets, datamodel.EntryMetadata.authors,
@@ -116,12 +98,7 @@ def _include_empty(quantity):
         datamodel.EntryMetadata.references]
 
 
-def update_metadata(calcs: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
-    '''
-    Update all given entries with their given metadata. Additionally apply kwargs.
-    Returns the number of failed updates.
-    '''
-
+def _update_metadata(calcs: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
     def elastic_updates():
         for calc in calcs:
             entry = calc.a_elastic.create_index_entry(include_empty=_include_empty)
@@ -133,16 +110,11 @@ def update_metadata(calcs: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
             entry['_op_type'] = 'update'
             yield entry
 
-    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
-    refresh()
+    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True, refresh=True)
     return failed
 
 
-# Used by:
-# - cli admin uploads [chown, index]
-# - cli admin lift embargo
-# - cli client mirror
-def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None:
+def _index(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     '''
     Adds all given calcs with their metadata to the index.
 
@@ -158,15 +130,7 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
 
     _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
 
-    if do_refresh:
-        refresh()
-
     return failed
-
-
-# Used in a lot of places
-def refresh():
-    infrastructure.elastic_client.indices.refresh(config.elastic.index_name)
 
 
 class SearchRequest:

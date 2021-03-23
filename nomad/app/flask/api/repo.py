@@ -504,7 +504,7 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
                 updated_metadata.append(
                     datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata))
 
-            failed = es_update_metadata(updated_metadata)
+            failed = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
 
             if failed > 0:
                 common.logger.error(

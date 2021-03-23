@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from typing import cast
 import click
 import sys
 import shutil
@@ -25,8 +26,7 @@ import bravado.exception
 import datetime
 import traceback
 
-from nomad import utils, processing as proc, config, files, infrastructure
-from nomad.search import v0 as search
+from nomad import utils, processing as proc, config, files, infrastructure, search
 from nomad import datamodel
 from nomad import doi as nomad_doi
 from nomad.cli.admin import uploads as admin_uploads
@@ -246,7 +246,7 @@ def mirror(
                 proc.Upload.objects(upload_id=upload_id).delete()
                 _Dataset.objects().delete()
                 nomad_doi.DOI.objects().delete()
-                search.delete_upload(upload_id)
+                search.delete_upload(upload_id, update_materials=True, refresh=True)
         else:
             n_calcs = 0
 
@@ -338,7 +338,9 @@ def mirror(
             # index es
             if not skip_es:
                 with upload.entries_metadata() as entries:
-                    search.index_all(entries)
+                    search.index(
+                        [cast(datamodel.EntryArchive, entry.m_parent) for entry in entries],
+                        update_materials=True, refresh=True)
 
         print(
             'Mirrored %s with %d calcs at %s' %

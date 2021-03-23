@@ -23,7 +23,8 @@ from datetime import datetime
 from nomad import datamodel, processing, infrastructure
 from nomad.utils import flat
 from nomad.metainfo import search_extension
-from nomad.search.v0 import entry_document, SearchRequest, refresh
+from nomad.search.v0 import entry_document, SearchRequest
+from nomad.search import refresh
 
 
 def test_init_mapping(elastic):
@@ -91,7 +92,7 @@ def example_search_data(elastic, normalized: datamodel.EntryArchive):
         upload_time=datetime.now())
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
-    refresh()
+    refresh(index='v0')
 
     return normalized
 
@@ -103,7 +104,7 @@ def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)
     create_entry(entry_metadata)
-    refresh()
+    refresh(index='v0')
 
     return parsed_ems
 
@@ -276,7 +277,7 @@ def test_search_quantity(
     entry_metadata.calc_id = 'other test id'
     entry_metadata.uploader = other_test_user.user_id
     create_entry(entry_metadata)
-    refresh()
+    refresh(index='v0')
 
     request = SearchRequest(domain='dft').quantity(
         name='authors', size=1, examples=1, order_by=order_by)
@@ -298,7 +299,7 @@ def create_entry(entry_metadata: datamodel.EntryMetadata):
 
 
 def assert_entry(calc_id):
-    refresh()
+    refresh(index='v0')
     calc = entry_document.get(calc_id)
     assert calc is not None
 

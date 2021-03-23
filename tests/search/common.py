@@ -50,7 +50,6 @@ def assert_search_upload(
     if search_results['total'] > 0:
         for hit in search_results['hits']:
             hit = utils.flat(hit['_source'])
-
             for key, value in kwargs.items():
                 assert hit.get(key, None) == value
 

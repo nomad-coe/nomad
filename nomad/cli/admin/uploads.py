@@ -21,11 +21,11 @@ import click
 import tabulate
 import mongoengine
 import pymongo
-import elasticsearch_dsl as es
 import json
+import elasticsearch_dsl as es
 
-from nomad import processing as proc, config, infrastructure, utils, files, datamodel
-from nomad.search import v0 as search
+from nomad import processing as proc, config, infrastructure, utils, files, datamodel, search
+from nomad.search.v0 import SearchRequest
 
 from .admin import admin, __run_processing, __run_parallel
 
@@ -50,9 +50,11 @@ from .admin import admin, __run_processing, __run_parallel
 def uploads(
         ctx, user: str, unpublished: bool, published: bool, processing: bool, outdated: bool,
         code: typing.List[str], query_mongo: bool,
-        processing_failure_uploads: bool, processing_failure_calcs: bool, processing_failure: bool,
-        processing_incomplete_uploads: bool, processing_incomplete_calcs: bool, processing_incomplete: bool,
+        processing_failure_uploads: bool, processing_failure_calcs: bool,
+        processing_failure: bool, processing_incomplete_uploads: bool,
+        processing_incomplete_calcs: bool, processing_incomplete: bool,
         processing_necessary: bool, unindexed: bool):
+
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -101,13 +103,8 @@ def uploads(
         query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
 
     if unindexed:
-        search_request = search.Search(index=config.elastic.index_name)
-        search_request.aggs.bucket('uploads', es.A('terms', field='upload_id', size=12000))
-        response = search_request.execute()
-
-        uploads_in_es = set(
-            bucket.key
-            for bucket in response.aggregations.uploads.buckets)
+        uploads_search = SearchRequest().quantity('upload_id', size=10000).execute()
+        uploads_in_es = uploads_search['quantities']['upload_id']['values'].keys()
 
         uploads_in_mongo = mongo_client[config.mongo.db_name]['calc'].distinct('upload_id')
 
@@ -131,7 +128,7 @@ def query_uploads(ctx, uploads):
         if ctx.obj.query_mongo:
             uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
         else:
-            request = search.SearchRequest()
+            request = SearchRequest()
             request.q = es.Q(json_query)
             request.quantity('upload_id', size=10000)
             search_results = request.execute()
@@ -207,7 +204,6 @@ def chown(ctx, username, uploads):
 
     for upload in uploads:
         upload.user_id = user.user_id
-        calcs = upload.entries_metadata()
 
         def create_update(calc_id):
             return pymongo.UpdateOne(
@@ -218,9 +214,10 @@ def chown(ctx, username, uploads):
             [create_update(calc_id) for calc_id in upload.entry_ids()])
         upload.save()
 
-        with upload.entries_metadata() as calcs:
-            search.index_all(calcs, do_refresh=False)
-        search.refresh()
+        entries = [
+            datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata)
+            for calc in proc.Calc.objects(upload_id=upload.upload_id)]
+        search.update_metadata(entries, update_materials=True, refresh=True)
 
 
 @uploads.command(help='Reset the processing state.')
@@ -261,10 +258,10 @@ def index(ctx, uploads, parallel, transformer):
 
     _, uploads = query_uploads(ctx, uploads)
 
-    def transform(calcs):
-        for calc in calcs:
+    def transform(entries):
+        for entry in entries:
             try:
-                calc = transformer_func(calc)
+                entry = transformer_func(entry)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -272,12 +269,10 @@ def index(ctx, uploads, parallel, transformer):
                 break
 
     def index_upload(upload, logger):
-        with upload.entries_metadata() as calcs:
+        with upload.entries_metadata() as entries:
             if transformer is not None:
-                transform(calcs)
-            failed = search.index_all(calcs)
-            if failed > 0:
-                print('    WARNING failed to index %d entries' % failed)
+                transform(entries)
+            search.index([entry.m_parent for entry in entries], update_materials=True, refresh=True)
 
         return True
 
@@ -287,7 +282,7 @@ def index(ctx, uploads, parallel, transformer):
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
     # delete elastic
     if not skip_es:
-        search.delete_upload(upload_id=upload.upload_id)
+        search.delete_upload(upload_id=upload.upload_id, update_materials=True, refresh=True)
 
     # delete files
     if not skip_files:

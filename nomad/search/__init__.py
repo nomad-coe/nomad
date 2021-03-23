@@ -76,7 +76,7 @@ def run_on_both_indexes(func):
             else:
                 index_name = index
 
-            return func(*args, index=index_name, **kwargs)
+            func(*args, index=index_name, **kwargs)
 
     return wrapper
 
@@ -94,7 +94,7 @@ def update_by_query(
     Uses the given painless script to update the entries by given query.
 
     In most cases, the elasticsearch entry index should not be updated field by field;
-    you should run `index_all` instead and fully replace documents from mongodb and
+    you should run `index` instead and fully replace documents from mongodb and
     archive files.
 
     This method provides a faster direct method to update individual fields, e.g. to quickly
@@ -126,7 +126,7 @@ def update_by_query(
         raise SearchError(e)
 
     if refresh:
-        infrastructure.elastic_client.indices.refresh(index=index)
+        _refresh(index=index)
 
     return result
 
@@ -137,6 +137,7 @@ def delete_by_query(
         owner: str = None,
         user_id: str = None,
         index: str = None,
+        update_materials: bool = False,
         refresh: bool = False):
     '''
     Deletes all entries that match the given query.
@@ -160,7 +161,11 @@ def delete_by_query(
         raise SearchError(e)
 
     if refresh:
-        infrastructure.elastic_client.indices.refresh(index=index)
+        _refresh(index=index)
+
+    if update_materials:
+        # TODO update the matrials index at least for v1
+        pass
 
     return result
 
@@ -180,14 +185,18 @@ def refresh(index: str = None):
         raise SearchError(e)
 
 
+_refresh = refresh
+
+
 def index(
         entries: Union[EntryArchive, List[EntryArchive]],
         index: str = None,
         update_materials: bool = False,
-        refresh: bool = False):
+        refresh: bool = True):
     '''
     Index the given entries based on their archive. Either creates or updates the underlying
-    elasticsearch documents.
+    elasticsearch documents. If an underlying elasticsearch document already exists it
+    will be fully replaced.
     '''
     if index is None:
         indices = [v0_index, v1_index]
@@ -198,10 +207,13 @@ def index(
         entries = [entries]
 
     if v0_index in indices:
-        v0.index_all([entry.section_metadata for entry in entries], do_refresh=refresh)
+        v0._index([entry.section_metadata for entry in entries])
 
     if v1_index in indices:
-        v1.index(entries=entries, update_materials=update_materials, refresh=refresh)
+        v1._index(entries=entries, update_materials=update_materials)
+
+    if refresh:
+        _refresh(index=None)
 
 
 def publish(entries: List[EntryMetadata], index: str = None) -> int:
@@ -210,25 +222,32 @@ def publish(entries: List[EntryMetadata], index: str = None) -> int:
     and updates most user provided metadata with a partial update. Returns the number
     of failed updates.
     '''
-    return update_metadata(entries, index=index, published=True)
+    return update_metadata(
+        entries, index=index, published=True, update_materials=True, refresh=True)
 
 
-def update_metadata(entries: List[EntryMetadata], index: str = None, **kwargs) -> int:
+def update_metadata(
+        entries: List[EntryMetadata], index: str = None,
+        update_materials: bool = False, refresh: bool = False,
+        **kwargs) -> int:
     '''
     Update all given entries with their given metadata. Additionally apply kwargs.
-    Returns the number of failed updates.
+    Returns the number of failed updates. This is doing a partial update on the underlying
+    elasticsearch documents.
     '''
-
     failed = 0
     if index == v0_index or index is None:
-        failed += v0.update_metadata(entries, **kwargs)
+        failed += v0._update_metadata(entries, **kwargs)
     if index == v1_index or index is None:
-        failed += v1.update_metadata(entries, **kwargs)
+        failed += v1._update_metadata(entries, update_materials=update_materials, **kwargs)
+
+    if refresh:
+        _refresh(index=None)
 
     return failed
 
 
-def lift_embargo(query: dict, **kwargs):
+def lift_embargo(query: dict, refresh=True, **kwargs):
     '''
     Removes the embargo flag based on a query.
     '''
@@ -238,15 +257,21 @@ def lift_embargo(query: dict, **kwargs):
         query=query,
         **kwargs)
 
+    if refresh:
+        _refresh(index=None)
 
-def delete_upload(upload_id: str, **kwargs):
+
+def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
     '''
     Deletes the given upload.
     '''
     delete_by_query(index=None, query=dict(upload_id=upload_id), **kwargs)
 
+    if refresh:
+        _refresh(index=None)
 
-def delete_entry(entry_id: str, index: str = None, **kwargs):
+
+def delete_entry(entry_id: str, index: str = None, refresh: bool = False, **kwargs):
     '''
     Deletes the given entry.
     '''
@@ -254,3 +279,6 @@ def delete_entry(entry_id: str, index: str = None, **kwargs):
         delete_by_query(index=v0_index, query=dict(calc_id=entry_id), **kwargs)
     if index == v1_index or index is None:
         delete_by_query(index=v1_index, query=dict(entry_id=entry_id), **kwargs)
+
+    if refresh:
+        _refresh(index=None)

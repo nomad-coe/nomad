@@ -30,11 +30,9 @@ from nomad.app.v1.models import (
 from .common import SearchError, _api_to_es_query, _es_to_entry_dict, _owner_es_query
 
 
-def update_metadata(entries: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
-    '''
-    Update all given entries with their given metadata. Additionally apply kwargs.
-    Returns the number of failed updates.
-    '''
+def _update_metadata(
+        entries: Iterable[datamodel.EntryMetadata], update_materials: bool = False,
+        **kwargs) -> int:
 
     def elastic_updates():
         for entry in entries:
@@ -58,7 +56,6 @@ def update_metadata(entries: Iterable[datamodel.EntryMetadata], **kwargs) -> int
 
     updates = list(elastic_updates())
     _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, updates, stats_only=True)
-    entry_index.refresh()
 
     return failed
 
@@ -298,5 +295,5 @@ def search(
     return result
 
 
-def index(entries, **kwargs):
+def _index(entries, **kwargs):
     index_entries(entries, **kwargs)
