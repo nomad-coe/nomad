@@ -66,6 +66,13 @@ class Parser(metaclass=ABCMeta):
         '''
         pass
 
+    @classmethod
+    def main(cls, mainfile):
+        archive = EntryArchive()
+        archive.m_create(EntryMetadata)
+        cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
+        return archive
+
 
 class BrokenParser(Parser):
     '''
@@ -99,7 +106,7 @@ class BrokenParser(Parser):
 
 class MatchingParser(Parser):
     '''
-    A parser implementation that used regular experessions to match mainfiles.
+    A parser implementation that uses regular expressions to match mainfiles.
 
     Arguments:
         code_name: The name of the code or input format
@@ -177,32 +184,26 @@ class MatchingParser(Parser):
 
         return True
 
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        raise NotImplementedError()
+
     def __repr__(self):
         return self.name
 
 
-class FairdiParser(MatchingParser):
-
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
-        raise NotImplementedError()
-
-    @classmethod
-    def main(cls, mainfile):
-        archive = EntryArchive()
-        archive.m_create(EntryMetadata)
-        cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
-        return archive
+# For backward compatibility
+FairdiParser = MatchingParser
 
 
-class ArchiveParser(FairdiParser):
+class ArchiveParser(MatchingParser):
     def __init__(self):
         super().__init__(
             name='parsers/archive',
             code_name=config.services.unavailable_value,
             domain=None,
             mainfile_mime_re=r'application/json',
-            mainfile_name_re=r'.*archive\.json',
-            mainfile_contents_re=r'section_')
+            mainfile_name_re=r'.*(archive|metainfo)\.json',
+            mainfile_contents_re=r'section_metadata|results')
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None):
         import json
