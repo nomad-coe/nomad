@@ -31,7 +31,7 @@ from .conftest import (
 
 def assert_material(material):
     assert material.elements
-    assert material.nelements
+    assert material.n_elements
     assert material.chemical_formula_descriptive
     assert material.chemical_formula_reduced
     assert material.chemical_formula_hill
@@ -53,8 +53,8 @@ def assert_symmetry(symmetry):
 
 
 def assert_structure(structure, has_cell=True, has_wyckoff=False):
-    assert len(structure.cartesian_site_positions) == structure.nsites
-    assert len(structure.species_at_sites) == structure.nsites
+    assert len(structure.cartesian_site_positions) == structure.n_sites
+    assert len(structure.species_at_sites) == structure.n_sites
     assert len(structure.species) > 0
     assert structure.species[0].name
     assert structure.species[0].concentration
@@ -167,6 +167,8 @@ def test_material_bulk(bulk):
 def test_method_dft(dft):
     method = dft.results.method
     assert method.method_name == "DFT"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
     assert method.simulation.dft.basis_set_type == "plane waves"
     assert method.simulation.dft.core_electron_treatment == "pseudopotential"
     assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
@@ -182,6 +184,8 @@ def test_method_dft(dft):
 def test_method_dft_plus_u(dft_plus_u):
     method = dft_plus_u.results.method
     assert method.method_name == "DFT"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
     assert method.simulation.dft.basis_set_type == "plane waves"
     assert method.simulation.dft.core_electron_treatment == "pseudopotential"
     assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
@@ -197,6 +201,8 @@ def test_method_dft_plus_u(dft_plus_u):
 def test_method_gw(gw):
     method = gw.results.method
     assert method.method_name == "GW"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
     assert method.simulation.gw.gw_type == "G0W0"
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
@@ -400,6 +406,10 @@ def test_geometry_optimization(geometry_optimization):
     assert geo_opt_prop.final_energy_difference > 0
     geo_opt_meth = geometry_optimization.results.method.simulation.geometry_optimization
     assert geo_opt_meth.geometry_optimization_type == "ionic"
+
+
+def test_n_calculations(geometry_optimization):
+    assert geometry_optimization.results.properties.n_calculations == 2
 
 
 def pprint(root, indent=None):

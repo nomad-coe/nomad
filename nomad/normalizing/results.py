@@ -127,7 +127,6 @@ class ResultsNormalizer(Normalizer):
             material.material_name = encyclopedia.material.material_name
         if optimade:
             material.elements = optimade.elements
-            material.nelements = optimade.nelements
             material.chemical_formula_descriptive = optimade.chemical_formula_descriptive
             material.chemical_formula_reduced = optimade.chemical_formula_reduced
             material.chemical_formula_hill = optimade.chemical_formula_hill
@@ -395,7 +394,7 @@ class ResultsNormalizer(Normalizer):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
                 dos_new.densities = dos
-                dos_new.spin_polarized = dos_new.densities.shape[0] > 1
+                dos_new.spin_polarized = values.shape[0] > 1
                 dos_new.energy_fermi = dos.m_parent.energy_reference_fermi
                 dos_new.energy_highest_occupied = dos.m_parent.energy_reference_highest_occupied
                 dos_new.energy_lowest_unoccupied = dos.m_parent.energy_reference_lowest_unoccupied
@@ -574,6 +573,12 @@ class ResultsNormalizer(Normalizer):
                 vibrational.heat_capacity_constant_volume = heat_cap
             properties.vibrational = vibrational
 
+        try:
+            n_calc = len(self.section_run.section_single_configuration_calculation)
+        except Exception:
+            n_calc = 0
+        properties.n_calculations = n_calc
+
         return properties
 
     def structure_original(self, repr_sys: section_system) -> StructureOriginal:
@@ -601,14 +606,15 @@ class ResultsNormalizer(Normalizer):
         if symmetry:
             struct = StructurePrimitive()
             prim_sys = symmetry.section_primitive_system[0]
-            struct.cartesian_site_positions = prim_sys.atom_positions_primitive
             struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers_primitive)
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(prim_sys.lattice_vectors_primitive):
+            lattice_vectors = prim_sys.lattice_vectors_primitive
+            if atomutils.is_valid_basis(lattice_vectors):
+                struct.cartesian_site_positions = atomutils.to_cartesian(prim_sys.atom_positions_primitive, lattice_vectors)
                 struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = prim_sys.lattice_vectors_primitive
-                struct.cell_volume = atomutils.get_volume(prim_sys.lattice_vectors_primitive.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(prim_sys.lattice_vectors_primitive)
+                struct.lattice_vectors = lattice_vectors
+                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
+                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
             return struct
 
         return None
@@ -620,14 +626,15 @@ class ResultsNormalizer(Normalizer):
         if symmetry:
             struct = StructureConventional()
             conv_sys = symmetry.section_std_system[0]
-            struct.cartesian_site_positions = conv_sys.atom_positions_std
             struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers_std)
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(conv_sys.lattice_vectors_std):
+            lattice_vectors = conv_sys.lattice_vectors_std
+            if atomutils.is_valid_basis(lattice_vectors):
+                struct.cartesian_site_positions = atomutils.to_cartesian(conv_sys.atom_positions_std, lattice_vectors)
                 struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = conv_sys.lattice_vectors_std
-                struct.cell_volume = atomutils.get_volume(conv_sys.lattice_vectors_std.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(conv_sys.lattice_vectors_std)
+                struct.lattice_vectors = lattice_vectors
+                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
+                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
                 analyzer = symmetry.m_cache["symmetry_analyzer"]
                 sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
                 self.wyckoff_sets(struct, sets)

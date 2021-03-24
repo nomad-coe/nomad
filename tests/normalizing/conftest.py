@@ -76,7 +76,7 @@ def get_template() -> EntryArchive:
     template = EntryArchive()
     run = template.m_create(Run)
     run.program_name = "VASP"
-    run.program_version = "4.6.35  3Apr08 complex  parallel LinuxIFC"
+    run.program_version = "4.6.35"
     run.program_basis_set_type = "plane waves"
     method = run.m_create(Method)
     method.electronic_structure_method = "DFT"

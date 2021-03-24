@@ -525,13 +525,13 @@ class Elasticsearch(DefinitionAnnotation):
         def compute_mapping(quantity: Quantity) -> Dict[str, Any]:
             if quantity.type == str:
                 return dict(type='keyword')
-            elif quantity.type in [float, np.float64] and quantity.is_scalar:
+            elif quantity.type in [float, np.float64]:
                 return dict(type='double')
-            elif quantity.type == np.float32 and quantity.is_scalar:
+            elif quantity.type == np.float32:
                 return dict(type='float')
-            elif quantity.type in [int, np.int32] and quantity.is_scalar:
+            elif quantity.type in [int, np.int32]:
                 return dict(type='integer')
-            elif quantity.type == np.int64 and quantity.is_scalar:
+            elif quantity.type == np.int64:
                 return dict(type='long')
             elif quantity.type == bool:
                 return dict(type='boolean')

@@ -28,6 +28,7 @@ from matid import SymmetryAnalyzer, Classifier
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D
 
 from nomad import atomutils, archive
+from nomad.units import ureg
 from nomad import utils, config
 from nomad.datamodel.metainfo.public import section_symmetry, section_std_system, \
     section_primitive_system, section_original_system, section_springer_material, \
@@ -353,14 +354,14 @@ class SystemNormalizer(SystemBasedNormalizer):
         sec_symmetry.transformation_matrix = transform
 
         sec_std = sec_symmetry.m_create(section_std_system)
-        sec_std.lattice_vectors_std = conv_cell
+        sec_std.lattice_vectors_std = conv_cell * ureg.angstrom
         sec_std.atom_positions_std = conv_pos
         sec_std.atomic_numbers_std = conv_num
         sec_std.wyckoff_letters_std = conv_wyckoff
         sec_std.equivalent_atoms_std = conv_equivalent_atoms
 
         sec_prim = sec_symmetry.m_create(section_primitive_system)
-        sec_prim.lattice_vectors_primitive = prim_cell
+        sec_prim.lattice_vectors_primitive = prim_cell * ureg.angstrom
         sec_prim.atom_positions_primitive = prim_pos
         sec_prim.atomic_numbers_primitive = prim_num
         sec_prim.wyckoff_letters_primitive = prim_wyckoff
