@@ -83,6 +83,7 @@ jinja2
 rdflib
 fastapi
 uvicorn[standard]
+a2wsgi==1.4.0
 python-multipart
 
 # [dev]

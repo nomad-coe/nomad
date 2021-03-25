@@ -18,7 +18,9 @@
 
 from fastapi import FastAPI, status, Response
 from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.middleware.wsgi import WSGIMiddleware
+# We use a2wsgi. It is an alternative to the fastapi provided WSGIMiddleware that manages
+# to stream requests instead of buffering them.
+from a2wsgi import WSGIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
