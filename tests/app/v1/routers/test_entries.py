@@ -870,7 +870,11 @@ def test_entries_owner(
     pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
     pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
     pytest.param({'order_by': 'atoms', 'after': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': 'n_atoms', 'after': 'some'}, None, 400, id='order-by-bad-after')
+    pytest.param({'order_by': 'n_atoms', 'after': 'some'}, None, 400, id='order-by-bad-after'),
+    pytest.param({'page': 1, 'size': 1}, {'total': 23, 'size': 1, 'next_after': 'id_02', 'page': 1}, 200, id='page-1'),
+    pytest.param({'page': 2, 'size': 1}, {'total': 23, 'size': 1, 'next_after': 'id_03', 'page': 2}, 200, id='page-2'),
+    pytest.param({'page': 1000, 'size': 10}, None, 422, id='page-too-large'),
+    pytest.param({'page': 9999, 'size': 1}, None, 200, id='page-just-small-enough'),
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [

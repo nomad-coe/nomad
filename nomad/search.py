@@ -1098,6 +1098,9 @@ def search(
     if pagination.after:
         search = search.extra(search_after=pagination.after.rsplit(':', 1))
 
+    if pagination.page:
+        search = search[(pagination.page - 1) * pagination.size: pagination.page * pagination.size]
+
     # required
     if required:
         if required.include is not None and pagination.order_by not in required.include:

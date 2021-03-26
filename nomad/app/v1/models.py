@@ -463,7 +463,7 @@ class Pagination(BaseModel):
             the value is omitted when making a request, the response will just give the
             first page of results.
 
-            The response should also contain an attribute `next_after`, which similarly
+            The response will also contain an attribute `next_after`, which similarly
             defines the starting position of the next page. Thus, one would normally start
             with a request where `after` is omitted, then use the `next_after` value from
             the responses as the `after` in the next request, to get the next page of
@@ -475,15 +475,8 @@ class Pagination(BaseModel):
             It might contain an id as *tie breaker*, if `order_by` is not a field with
             unique values.
             The *tie breaker* will be `:` separated, e.g. `<value>:<id>`.
-            For simple, index-based pagination, àfter` will be the zero-based index of the
+            For simple, index-based pagination, after` will be the zero-based index of the
             first result in the response.
-        '''))
-    page: Optional[int] = Field(
-        None, description=strip('''
-            For simple, index-based pagination, this should contain the number of the
-            requested page (1-based). When provided in a request, this attribute can be
-            used instead of `after` to jump to a particular results page. However, if you
-            specify both `after` *and* `page` in your request, they need to be consistent.
         '''))
 
     @validator('size')
@@ -507,16 +500,16 @@ class Pagination(BaseModel):
         '''
         raise NotImplementedError('Validation of `after` not implemented!')
 
-    @validator('page')
-    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
-        if page is not None:
-            # This attribute is not expected unless we are using an IndexBasedPagination
-            # or in the PaginationResponse of an index-based paginated request.
-            raise AssertionError('Value for `page` not permitted')
-        return page
-
 
 class IndexBasedPagination(Pagination):
+    page: Optional[int] = Field(
+        None, description=strip('''
+            For simple, index-based pagination, this should contain the number of the
+            requested page (1-based). When provided in a request, this attribute can be
+            used instead of `after` to jump to a particular results page. However, if you
+            specify both `after` *and* `page` in your request, they need to be consistent.
+        '''))
+
     @validator('after')
     def validate_after(cls, after, values):  # pylint: disable=no-self-argument
         # This is validated in the root validator instead
@@ -581,6 +574,10 @@ class PaginationResponse(Pagination):
         None, description=strip('''
         The url to get the next page.
         '''))
+    page: Optional[int] = Field(
+        None, description=strip('''
+            The returned page number. The availability depends on the API method.
+        '''))
 
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
@@ -603,7 +600,7 @@ class PaginationResponse(Pagination):
         return next_after
 
 
-class EntryPagination(Pagination):
+class EntryBasedPagination(Pagination):
     order_by: Optional[str] = Field(
         calc_id,  # type: ignore
         description=strip('''
@@ -629,11 +626,32 @@ class EntryPagination(Pagination):
         return after
 
 
+class EntryPagination(EntryBasedPagination):
+    page: Optional[int] = Field(
+        None, description=strip('''
+            For simple, index-based pagination, this should contain the number of the
+            requested page (1-based). When provided in a request, this attribute can be
+            used instead of `after` to jump to a particular results page.
+
+            However, you can only retreive up to the 10.000th entry with a page number.
+            Only one, `after` *or* `page` must be provided.
+        '''))
+
+    @validator('page')
+    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
+        if page is not None:
+            assert values['after'] is None, 'There can only be one, a page number or an after value.'
+            assert page > 0, 'Page has to be larger than 1.'
+            assert page * values.get('size', 10) < 10000, 'Pagination by page is limited to 10.000 entries.'
+
+        return page
+
+
 entry_pagination_parameters = parameter_dependency_from_model(
     'entry_pagination_parameters', EntryPagination)
 
 
-class AggregationPagination(EntryPagination):
+class AggregationPagination(EntryBasedPagination):
     order_by: Optional[str] = Field(
         None,  # type: ignore
         description=strip('''
