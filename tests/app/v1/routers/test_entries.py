@@ -456,9 +456,13 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
 
 
 def assert_archive_response(response_json, required=None):
-    for key in ['entry_id', 'data']:
+    for key in ['entry_id', 'required', 'data']:
         assert key in response_json
-    assert_archive(response_json['data'], required=required)
+    if required is not None:
+        assert required == response_json['required']
+    for key in ['calc_id', 'upload_id', 'parser_name', 'archive']:
+        assert key in response_json['data']
+    assert_archive(response_json['data']['archive'], required=required)
 
 
 def assert_archive(archive, required=None):
@@ -676,13 +680,30 @@ def test_entries_archive(client, data, required, status_code):
 
 @pytest.mark.parametrize('entry_id, status_code', [
     pytest.param('id_01', 200, id='id'),
-    pytest.param('id_02', 404, id='404'),
-    pytest.param('doesnotexist', 404, id='404')])
+    pytest.param('id_02', 404, id='404-not-visible'),
+    pytest.param('doesnotexist', 404, id='404-does-not-exist')])
 def test_entry_archive(client, data, entry_id, status_code):
     response = client.get('entries/%s/archive' % entry_id)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
+
+
+@pytest.mark.parametrize('entry_id, required, status_code', [
+    pytest.param('id_01', '*', 200, id='full'),
+    pytest.param('id_02', '*', 404, id='404'),
+    pytest.param('id_01', {'section_metadata': '*'}, 200, id='partial'),
+    pytest.param('id_01', {'section_run': {'section_system[NOTANINT]': '*'}}, 400, id='bad-required-1'),
+    pytest.param('id_01', {'section_metadata': {'owners[NOTANINT]': '*'}}, 400, id='bad-required-2'),
+    pytest.param('id_01', {'DOESNOTEXIST': '*'}, 400, id='bad-required-3')
+])
+def test_entry_archive_query(client, data, entry_id, required, status_code):
+    response = client.post('entries/%s/archive/query' % entry_id, json={
+        'required': required
+    })
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json(), required=required)
 
 
 def perform_entries_owner_test(
