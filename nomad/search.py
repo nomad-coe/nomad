@@ -33,7 +33,7 @@ from nomad.metainfo.search_extension import (  # pylint: disable=unused-import
     search_quantities, metrics, order_default_quantities, groups)
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
-    Pagination, PaginationResponse, Query, MetadataRequired, SearchResponse, Aggregation,
+    EntryPagination, PaginationResponse, Query, MetadataRequired, SearchResponse, Aggregation,
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem)
 
 
@@ -1067,7 +1067,7 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
 def search(
         owner: str = 'public',
         query: Query = None,
-        pagination: Pagination = None,
+        pagination: EntryPagination = None,
         required: MetadataRequired = None,
         aggregations: Dict[str, Aggregation] = {},
         statistics: Dict[str, Statistic] = {},
@@ -1084,7 +1084,7 @@ def search(
 
     # pagination
     if pagination is None:
-        pagination = Pagination()
+        pagination = EntryPagination()
 
     search = Search(index=config.elastic.index_name)
 

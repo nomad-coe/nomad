@@ -33,9 +33,9 @@ from nomad.archive import (
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
 from ..models import (
-    Pagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
+    EntryPagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
     EntryMetadataResponse, query_parameters, metadata_required_parameters, Files, Query,
-    pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
+    entry_pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
     ArchiveRequired)
@@ -140,7 +140,7 @@ async def post_entries_metadata_query(
     response_model_exclude_none=True)
 async def get_entries_metadata(
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         required: MetadataRequired = Depends(metadata_required_parameters),
         user: User = Depends(get_optional_user)):
     '''
@@ -166,7 +166,7 @@ def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: U
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=Pagination(size=100, after=after, order_by='upload_id'),
+            pagination=EntryPagination(size=100, after=after, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
@@ -218,7 +218,7 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
 
 
 def _answer_entries_raw_request(
-        owner: Owner, query: Query, pagination: Pagination, user: User):
+        owner: Owner, query: Query, pagination: EntryPagination, user: User):
 
     if owner == Owner.all_:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
@@ -256,7 +256,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -366,7 +366,7 @@ async def post_entries_raw_query(data: EntriesRaw, user: User = Depends(get_opti
     responses=create_responses(_bad_owner_response))
 async def get_entries_raw(
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
     return _answer_entries_raw_request(
@@ -440,7 +440,7 @@ def _read_archive(entry_metadata, uploads, required):
 
 
 def _answer_entries_archive_request(
-        owner: Owner, query: Query, pagination: Pagination, required: ArchiveRequired,
+        owner: Owner, query: Query, pagination: EntryPagination, required: ArchiveRequired,
         user: User):
 
     if owner == Owner.all_:
@@ -545,7 +545,7 @@ async def post_entries_archive_query(
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def get_entries_archive_query(
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
     return _answer_entries_archive_request(
@@ -566,7 +566,7 @@ def _answer_entries_archive_download_request(
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 

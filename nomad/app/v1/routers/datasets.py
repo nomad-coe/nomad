@@ -32,7 +32,7 @@ from .auth import get_required_user
 from .entries import _do_exaustive_search
 from ..utils import create_responses
 from ..models import (
-    pagination_parameters, Pagination, PaginationResponse, Query, HTTPExceptionModel,
+    dataset_pagination_parameters, DatasetPagination, PaginationResponse, Query, HTTPExceptionModel,
     User, Direction, Owner, Any_)
 
 
@@ -110,7 +110,7 @@ async def get_datasets(
         name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
-        pagination: Pagination = Depends(pagination_parameters)):
+        pagination: DatasetPagination = Depends(dataset_pagination_parameters)):
     '''
     Retrieves all datasets that match the given criteria.
     '''
@@ -125,14 +125,12 @@ async def get_datasets(
 
     mongodb_query = mongodb_query.order_by(order_by)
 
-    start = 0
-    if pagination.after is not None:
-        start = int(pagination.after)
+    start = int(pagination.after)
     end = start + pagination.size
 
     pagination_response = PaginationResponse(
         total=mongodb_query.count(),
-        next_after=str(end),
+        next_after=str(end) if end < mongodb_query.count() else None,
         **pagination.dict())  # type: ignore
 
     return {

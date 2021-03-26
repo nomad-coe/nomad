@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import re
 from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
@@ -441,31 +442,173 @@ class Pagination(BaseModel):
     size: Optional[int] = Field(
         10, description=strip('''
             The page size, e.g. the maximum number of items contained in one response.
-            A `size` of 0 will omit any results.
+            A `size` of 0 will return no results.
         '''))
     order_by: Optional[str] = Field(
-        calc_id,  # type: ignore
+        None,  # type: ignore
         description=strip('''
-            The results are ordered by the values of this field. The response
-            either contains the first `size` value or the next `size` values after `after`.
+            The results are ordered by the values of this field. If omitted, default
+            ordering is applied.
         '''))
     order: Optional[Direction] = Field(
         Direction.asc, description=strip('''
-            The order direction of the results based on `order_by`. Its either
-            ascending `asc` or decending `desc`.
+            The ordering direction of the results based on `order_by`. Its either
+            ascending `asc` or decending `desc`. Default is `asc`.
         '''))
     after: Optional[str] = Field(
         None, description=strip('''
-            A request for the page after this value, i.e. the next `size` values behind `after`.
-            This depends on the `order_by`.
-            Each response contains the `after` value for the *next* request following
-            the defined order.
+            A string value which defines a position in the total list of results. If a
+            value for `after` is provided when making a request, the response will return
+            the next `size` results, starting from the point specified by `after`. If
+            the value is omitted when making a request, the response will just give the
+            first page of results.
 
-            The after value and its type depends on the API operation and potentially on
-            the `order_by` field and its type.
-            The after value will always be a string encoded value. It might be an `order_by` value, or an index.
-            The after value might contain an id as *tie breaker*, if `order_by` is not the unique.
+            The response should also contain an attribute `next_after`, which similarly
+            defines the starting position of the next page. Thus, one would normally start
+            with a request where `after` is omitted, then use the `next_after` value from
+            the responses as the `after` in the next request, to get the next page of
+            results.
+
+            Note that the values of `after` and `next_after` depends on the API operation
+            and potentially on the `order_by` field and its type.
+            It will always be a string encoded value. It might be an `order_by` value, or an index.
+            It might contain an id as *tie breaker*, if `order_by` is not a field with
+            unique values.
             The *tie breaker* will be `:` separated, e.g. `<value>:<id>`.
+            For simple, index-based pagination, àfter` will be the zero-based index of the
+            first result in the response.
+        '''))
+    page: Optional[int] = Field(
+        None, description=strip('''
+            For simple, index-based pagination, this should contain the number of the
+            requested page (1-based). When provided in a request, this attribute can be
+            used instead of `after` to jump to a particular results page. However, if you
+            specify both `after` *and* `page` in your request, they need to be consistent.
+        '''))
+
+    @validator('size')
+    def validate_size(cls, size):  # pylint: disable=no-self-argument
+        assert size >= 0, 'size must be >= 0'
+        return size
+
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        '''
+        Override this in your Pagination class to ensure that a valid attribute is selected.
+        This method has to be implemented!
+        '''
+        raise NotImplementedError('Validation of `order_by` not implemented!')
+
+    @validator('after')
+    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+        '''
+        Override this in your Pagination class to implement validation of the `after` value.
+        This method has to be implemented!
+        '''
+        raise NotImplementedError('Validation of `after` not implemented!')
+
+    @validator('page')
+    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
+        if page is not None:
+            # This attribute is not expected unless we are using an IndexBasedPagination
+            # or in the PaginationResponse of an index-based paginated request.
+            raise AssertionError('Value for `page` not permitted')
+        return page
+
+
+class IndexBasedPagination(Pagination):
+    @validator('after')
+    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+        # This is validated in the root validator instead
+        return after
+
+    @validator('page')
+    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
+        # This is validated in the root validator instead
+        return page
+
+    @root_validator(skip_on_failure=True)
+    def validate_values(cls, values):  # pylint: disable=no-self-argument
+        '''
+        Ensure that both page and after are filled in consistently. This requires us to
+        look at `page`, `after` and `size` (whichever is set). If inconsistent
+        information is provided, an exception will be thrown.
+        '''
+        page = values.get('page')
+        after = values.get('after')
+        size = values.get('size')
+        if after is not None:
+            try:
+                after = int(after)
+            except ValueError:
+                raise ValueError('Invalid value for `after` - could not convert to integer.')
+        if page is None and after is None:
+            # Neither page nor after provided - default to first page
+            page = 1
+            after = 0
+        elif page is not None and after is not None:
+            # Both provided - check that they are consistent.
+            assert after == (page - 1) * size, 'inconsistent page/after values provided'
+        elif page is not None:
+            # Only page provided - calculate after
+            after = (page - 1) * size
+        elif after is not None:
+            # Only after provided - calculate page
+            if not size:
+                assert after == 0, 'after must be zero if size is zero.'
+                page = 1
+            else:
+                assert after % size == 0, 'after must be a multiple of size'
+                page = after // size + 1
+        assert page >= 1, 'negative paging is not allowed'
+        values['page'] = page
+        values['after'] = str(after)
+        return values
+
+
+class PaginationResponse(Pagination):
+    total: int = Field(
+        ..., description=strip('''
+        The total number of results that fit the given query. This is independent of
+        any pagination and aggregations.
+        '''))
+    next_after: Optional[str] = Field(
+        None, description=strip('''
+        The *next* value to be used as `after` in a follow up requests, to get the next
+        page of results. If no more results are available, `next_after` will not be set.
+        '''))
+    next_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the next page.
+        '''))
+
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        # No validation - behaviour of this field depends on api method
+        return order_by
+
+    @validator('after')
+    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+        # No validation - behaviour of this field depends on api method
+        return after
+
+    @validator('page')
+    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
+        # No validation - behaviour of this field depends on api method
+        return page
+
+    @validator('next_after')
+    def validate_next_after(cls, next_after, values):  # pylint: disable=no-self-argument
+        # No validation - behaviour of this field depends on api method
+        return next_after
+
+
+class EntryPagination(Pagination):
+    order_by: Optional[str] = Field(
+        calc_id,  # type: ignore
+        description=strip('''
+            The results are ordered by the values of this field. If omitted, default
+            ordering is applied.
         '''))
 
     @validator('order_by')
@@ -478,11 +621,6 @@ class Pagination(BaseModel):
         assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
         return order_by
 
-    @validator('size')
-    def validate_size(cls, size):  # pylint: disable=no-self-argument
-        assert size >= 0, 'size must be positive integer'
-        return size
-
     @validator('after')
     def validate_after(cls, after, values):  # pylint: disable=no-self-argument
         order_by = values.get('order_by', calc_id)
@@ -491,16 +629,31 @@ class Pagination(BaseModel):
         return after
 
 
-pagination_parameters = parameter_dependency_from_model(
-    'pagination_parameters', Pagination)
+entry_pagination_parameters = parameter_dependency_from_model(
+    'entry_pagination_parameters', EntryPagination)
 
 
-class AggregationPagination(Pagination):
+class AggregationPagination(EntryPagination):
     order_by: Optional[str] = Field(
-        None, description=strip('''
-        The search results are ordered by the values of this quantity. The response
-        either contains the first `size` value or the next `size` values after `after`.
+        None,  # type: ignore
+        description=strip('''
+            The results are ordered by the values of this field. If omitted, default
+            ordering is applied.
         '''))
+
+
+class DatasetPagination(IndexBasedPagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        # TODO: need real validation
+        if order_by is None:
+            return order_by
+        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
+        return order_by
+
+
+dataset_pagination_parameters = parameter_dependency_from_model(
+    'dataset_pagination_parameters', DatasetPagination)
 
 
 class AggregatedEntities(BaseModel):
@@ -590,7 +743,7 @@ class Statistic(BaseModel):
 
 
 class WithQueryAndPagination(WithQuery):
-    pagination: Optional[Pagination] = Body(
+    pagination: Optional[EntryPagination] = Body(
         None,
         example={
             'size': 5,
@@ -773,7 +926,7 @@ class EntriesArchiveDownload(WithQuery):
 
 
 class EntriesRaw(WithQuery):
-    pagination: Optional[Pagination] = Body(None)
+    pagination: Optional[EntryPagination] = Body(None)
 
 
 class EntriesRawDownload(WithQuery):
@@ -782,17 +935,6 @@ class EntriesRawDownload(WithQuery):
         example={
             'glob_pattern': 'vasp*.xml*'
         })
-
-
-class PaginationResponse(Pagination):
-    total: int = Field(..., description=strip('''
-        The total number of entries that fit the given `query`. This is independent of
-        any pagination and aggregations.
-    '''))
-    next_after: Optional[str] = Field(None, description=strip('''
-        The *next* after value to be used as `after` in a follow up requests for the
-        next page of results.
-    '''))
 
 
 class StatisticResponse(Statistic):
@@ -828,7 +970,7 @@ class CodeResponse(BaseModel):
 
 
 class EntriesMetadataResponse(EntriesMetadata):
-    pagination: PaginationResponse
+    pagination: PaginationResponse  # type: ignore
     statistics: Optional[Dict[str, StatisticResponse]]  # type: ignore
     aggregations: Optional[Dict[str, AggregationResponse]]  # type: ignore
     data: List[Dict[str, Any]] = Field(
@@ -851,7 +993,7 @@ class EntryRaw(BaseModel):
 
 
 class EntriesRawResponse(EntriesRaw):
-    pagination: PaginationResponse = Field(None)
+    pagination: PaginationResponse = Field(None)  # type: ignore
     data: List[EntryRaw] = Field(None)
 
 
@@ -875,7 +1017,7 @@ class EntryArchive(BaseModel):
 
 
 class EntriesArchiveResponse(EntriesArchive):
-    pagination: PaginationResponse = Field(None)
+    pagination: PaginationResponse = Field(None)  # type: ignore
     data: List[EntryArchive] = Field(None)
 
 
