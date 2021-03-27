@@ -117,7 +117,7 @@ class ErrorSnacksUnstyled extends React.Component {
               </span>
             }
             action={[
-              <IconButton key={0} color="inherit" onClick={this.onClose.bind(this)}>
+              <IconButton key={0} size="small" color="inherit" onClick={this.onClose.bind(this)}>
                 <CloseIcon />
               </IconButton>
             ]}

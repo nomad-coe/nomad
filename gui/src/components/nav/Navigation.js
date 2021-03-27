@@ -18,14 +18,16 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Snackbar, SnackbarContent, IconButton, Link as MuiLink } from '@material-ui/core'
+import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button } from '@material-ui/core'
 import UnderstoodIcon from '@material-ui/icons/Check'
+import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
 import AppBar from './AppBar'
 import { guiBase, version } from '../../config'
 import packageJson from '../../../package.json'
 import Routes from './Routes'
 import { withApi } from '../api'
+import { reload } from '../../serviceWorker'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -38,8 +40,15 @@ function ReloadSnack() {
     open
   >
     <SnackbarContent
-      style={{backgroundColor: amber[700]}}
-      message={<span>There is a new NOMAD version. Please press your browser&apos;s reload (or even shift+reload) button.</span>}
+      message={<span>There is a new NOMAD version. Please reload the app.</span>}
+      action={[
+        <Button
+          key={0} color="inherit" startIcon={<ReloadIcon/>}
+          onClick={() => reload()}
+        >
+          reload
+        </Button>
+      ]}
     />
   </Snackbar>
 }
@@ -78,7 +87,7 @@ function BetaSnack() {
         } Click <MuiLink style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</MuiLink>.
       </span>}
       action={[
-        <IconButton key={0} color="inherit" onClick={() => setUnderstood(true)}>
+        <IconButton size="small" key={0} color="inherit" onClick={() => setUnderstood(true)}>
           <UnderstoodIcon />
         </IconButton>
       ]}
@@ -123,7 +132,7 @@ function Navigation() {
     }).then((response) => response.json())
       .then((meta) => {
         if (meta.commit !== packageJson.commit) {
-          console.log('GUI API version mismatch')
+          console.log('GUI version mismatch')
           setShowReloadSnack(true)
         }
       })
@@ -135,8 +144,8 @@ function Navigation() {
   return (
     <div className={classes.root}>
       <div className={classes.appFrame}>
-        { showReloadSnack ? <ReloadSnack/> : ''}
         <BetaSnack />
+        { showReloadSnack ? <ReloadSnack/> : ''}
         <AppBar />
 
         <main className={classes.content} ref={scrollParentRef}>
