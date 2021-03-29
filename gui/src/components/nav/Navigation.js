@@ -23,28 +23,47 @@ import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
 import AppBar from './AppBar'
-import { guiBase, version } from '../../config'
-import packageJson from '../../../package.json'
+import { version } from '../../config'
 import Routes from './Routes'
 import { withApi } from '../api'
-import { reload } from '../../serviceWorker'
+import { serviceWorkerUpdateHandlerRef } from '../../index'
+import { ErrorBoundary } from '../errors'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
+
 function ReloadSnack() {
+  const waitingServiceWorker = useRef(null)
+  const [reload, setReload] = useState(false)
+  useEffect(() => {
+    serviceWorkerUpdateHandlerRef.current = registration => {
+      waitingServiceWorker.current = registration.waiting
+      setReload(true)
+    }
+  }, [setReload, waitingServiceWorker])
+
   return <Snackbar
     anchorOrigin={{
       vertical: 'bottom',
       horizontal: 'left'
     }}
-    open
+    open={reload}
   >
     <SnackbarContent
       message={<span>There is a new NOMAD version. Please reload the app.</span>}
       action={[
         <Button
           key={0} color="inherit" startIcon={<ReloadIcon/>}
-          onClick={() => reload()}
+          onClick={() => {
+            if (waitingServiceWorker.current) {
+              waitingServiceWorker.current.onstatechange = () => {
+                if (waitingServiceWorker.current.state === 'activated') {
+                  window.location.reload()
+                }
+              }
+              waitingServiceWorker.current.postMessage({type: 'SKIP_WAITING'})
+            }
+          }}
         >
           reload
         </Button>
@@ -82,7 +101,7 @@ function BetaSnack() {
     <SnackbarContent
       className={classes.snack}
       message={<span style={{color: 'white'}}>
-        You are using a {version.isBeta ? 'beta' : 'test'} version of NOMAD ({version.label}). {
+       You are using a {version.isBeta ? 'beta' : 'test'} version of NOMAD ({version.label}). {
           version.usesBetaData ? 'This version is not using the official data. Everything you upload here, might get lost.' : ''
         } Click <MuiLink style={{color: 'white'}} href={version.officialUrl}>here for the official NOMAD version</MuiLink>.
       </span>}
@@ -118,41 +137,21 @@ const useStyles = makeStyles(theme => ({
 
 function Navigation() {
   const classes = useStyles()
-  const [showReloadSnack, setShowReloadSnack] = useState(false)
   const scrollParentRef = useRef(null)
-
-  useEffect(() => {
-    fetch(`${guiBase}/meta.json`, {
-      method: 'GET',
-      cache: 'no-cache',
-      headers: {
-        'Pragma': 'no-cache',
-        'Cache-Control': 'no-cache, no-store'
-      }
-    }).then((response) => response.json())
-      .then((meta) => {
-        if (meta.commit !== packageJson.commit) {
-          console.log('GUI version mismatch')
-          setShowReloadSnack(true)
-        }
-      })
-      .catch(() => {
-        console.log('Could not validate version, continue...')
-      })
-  }, [setShowReloadSnack])
 
   return (
     <div className={classes.root}>
       <div className={classes.appFrame}>
-        <BetaSnack />
-        { showReloadSnack ? <ReloadSnack/> : ''}
-        <AppBar />
-
-        <main className={classes.content} ref={scrollParentRef}>
-          <ScrollContext.Provider value={{scrollParentRef: scrollParentRef}}>
-            <Routes/>
-          </ScrollContext.Provider>
-        </main>
+        <ReloadSnack/>
+        <ErrorBoundary>
+          <BetaSnack />
+          <AppBar />
+          <main className={classes.content} ref={scrollParentRef}>
+            <ScrollContext.Provider value={{scrollParentRef: scrollParentRef}}>
+              <Routes/>
+            </ScrollContext.Provider>
+          </main>
+        </ErrorBoundary>
       </div>
     </div>
   )

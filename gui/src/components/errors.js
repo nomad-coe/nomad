@@ -17,9 +17,10 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/core'
-import ErrorIcon from '@material-ui/icons/Error'
+import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
+import { serviceWorkerRegistrationRef } from '..'
+import Markdown from './Markdown'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -42,18 +43,6 @@ class ErrorSnacksUnstyled extends React.Component {
     root: {},
     errorSnack: {
       backgroundColor: theme.palette.error.dark
-    },
-    icon: {
-      fontSize: 20,
-      opacity: 0.9,
-      marginRight: theme.spacing(1)
-    },
-    message: {
-      display: 'flex',
-      alignItems: 'center'
-    },
-    errors: {
-      marginLeft: theme.spacing(1)
     }
   })
 
@@ -80,8 +69,8 @@ class ErrorSnacksUnstyled extends React.Component {
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
       }
-    } else if (error instanceof String) {
-      errorStr = `Unexpected error: "${error}". Please try again and let us know, if this error keeps happening.`
+    } else if (typeof(error) === 'string' || error instanceof String) {
+      errorStr = `${error} Please try to reload and let us know, if this error keeps happening.`
     }
 
     if (this.state.errors.indexOf(errorStr) === -1) {
@@ -90,7 +79,9 @@ class ErrorSnacksUnstyled extends React.Component {
   }
 
   onClose() {
-    this.setState({errors: []})
+    if (this.state.errors.length > 0) {
+      this.setState({errors: this.state.errors.slice(1)})
+    }
   }
 
   render() {
@@ -101,20 +92,12 @@ class ErrorSnacksUnstyled extends React.Component {
         <Snackbar
           anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
           open={this.state.errors.length > 0}
-          // autoHideDuration={6000}
           onClose={this.handleClose}
         >
           <SnackbarContent
             className={classes.errorSnack}
             message={
-              <span id="client-snackbar" className={classes.message}>
-                <ErrorIcon className={classes.icon} />
-                <div className={classes.errors}>
-                  {this.state.errors.map((error, index) => (
-                    <p key={index}>{'' + error}</p>
-                  ))}
-                </div>
-              </span>
+              <span style={{color: 'white'}}>{'' + this.state.errors[0]}</span>
             }
             action={[
               <IconButton key={0} size="small" color="inherit" onClick={this.onClose.bind(this)}>
@@ -141,3 +124,54 @@ export function withErrors(Component) {
 
   return WithErrorComponent
 }
+
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static propTypes = {
+    children: PropTypes.any,
+    onError: PropTypes.func
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.log('cought error in boundary', error, errorInfo, serviceWorkerRegistrationRef)
+    // check for a newer version of the app
+    if (serviceWorkerRegistrationRef.current) {
+      console.log('try service worker update')
+      serviceWorkerRegistrationRef.current.update()
+    }
+    if (this.context) {
+      this.context.raiseError('There has been a Javascript error.')
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <Box margin={2}>
+        <Typography color="error">
+          Something went wrong in this part of the app (Javascript error). Please try to
+          reload and let us know, if this error keeps happening.
+        </Typography>
+
+        <Markdown>
+          {`
+          Please, write to [support@nomad-lab.eu](mailto:support@nomad-lab.eu), or
+          open an issue on our [github project](https://github.com/nomad-coe/nomad/issues).
+          `}
+        </Markdown>
+      </Box>
+    }
+
+    return this.props.children
+  }
+}
+
+ErrorBoundary.contextType = errorContext
