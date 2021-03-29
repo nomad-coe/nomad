@@ -21,7 +21,7 @@ import { withStyles, Typography, Tooltip, IconButton } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import _ from 'lodash'
-import searchQuanitites from '../searchQuantities'
+import searchQuantities from '../searchQuantities'
 
 class Quantity extends React.Component {
   static propTypes = {
@@ -124,6 +124,7 @@ class Quantity extends React.Component {
     if (!loading) {
       if (typeof quantity === 'string') {
         value = data && quantity && _.get(data, quantity)
+      } else if (children) {
       } else {
         try {
           value = quantity(data)
@@ -140,7 +141,7 @@ class Quantity extends React.Component {
         value = ''
       }
 
-      if (!value && hideIfUnavailable) {
+      if ((!value && !children) && hideIfUnavailable) {
         return ''
       }
 
@@ -167,7 +168,7 @@ class Quantity extends React.Component {
       return <div className={row ? classes.row : (column ? classes.column : classes.flex)}>{children}</div>
     } else {
       return (
-        <Tooltip title={description || (searchQuanitites[quantity] && searchQuanitites[quantity].description) || ''}>
+        <Tooltip title={description || (searchQuantities[quantity] && searchQuantities[quantity].description) || ''}>
           <div className={classes.root}>
             <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
             <div className={classes.valueContainer}>

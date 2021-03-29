@@ -79,6 +79,16 @@ export default function Placeholder(props) {
 
 Placeholder.propTypes = {
   aspectRatio: PropTypes.number,
+  paddingTop: PropTypes.string,
+  paddingBottom: PropTypes.string,
+  paddingLeft: PropTypes.string,
+  paddingRight: PropTypes.string,
   className: PropTypes.string,
   classes: PropTypes.object
+}
+Placeholder.defaultProps = {
+  paddingTop: '0.5rem',
+  paddingBottom: '0.5rem',
+  paddingLeft: '0.5rem',
+  paddingRight: '0.5rem'
 }

@@ -17,6 +17,7 @@
 #
 
 from fastapi import FastAPI, status, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
 
@@ -110,6 +111,14 @@ app = FastAPI(
         dashboard GUI will manage the access token and use it while you try out the various
         operations.
     '''))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def redirect_to_docs(req: Request):

@@ -439,7 +439,7 @@ class Material(MSection):
     )
     type_functional = Quantity(
         type=str,
-        shape=["*"],
+        shape=['0..*'],
         description="""
         Classification based on the functional properties.
         """,
@@ -447,7 +447,7 @@ class Material(MSection):
     )
     type_compound = Quantity(
         type=str,
-        shape=["*"],
+        shape=['0..*'],
         description="""
         Classification based on the chemical formula.
         """,
@@ -455,7 +455,7 @@ class Material(MSection):
     )
     elements = Quantity(
         type=MEnum(chemical_symbols),
-        shape=["1..*"],
+        shape=["0..*"],
         description="""
         Names of the different elements present in the structure.
         """,
@@ -551,8 +551,8 @@ class DFT(MSection):
     van_der_Waals_method.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     relativity_method = section_method.relativity_method.m_copy()
     relativity_method.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
-    smearing_kind = section_method.smearing_kind.m_copy()
-    smearing_kind.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    smearing_type = section_method.smearing_kind.m_copy()
+    smearing_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     smearing_width = section_method.smearing_width.m_copy()
     smearing_width.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     xc_functional_type = Quantity(
@@ -927,7 +927,7 @@ class GeometryOptimizationProperties(MSection):
     )
     trajectory = Quantity(
         type=SingleConfigurationCalculation,
-        shape=["*"],
+        shape=["0..*"],
         description="""
         List of references to each section_single_configuration_calculation in
         the optimization trajectory.
@@ -952,7 +952,7 @@ class MolecularDynamicsProperties(MSection):
     )
     trajectory = Quantity(
         type=SingleConfigurationCalculation,
-        shape=["*"],
+        shape=["0..*"],
         description="""
         List of references to each section_single_configuration_calculation in
         the molecular dynamics trajectory.
@@ -1025,6 +1025,12 @@ class Properties(MSection):
         The number of performed single configuration calculations.'
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    available_properties = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='List of all properties which are present in this section_results',
+        a_elasticsearch=Elasticsearch(),
     )
 
 

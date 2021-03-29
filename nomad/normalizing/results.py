@@ -59,8 +59,20 @@ from nomad.datamodel.results import (
 )
 
 
-def valid_array(array):
+def valid_array(array: Any) -> bool:
+    """Checks if the given variable is a non-empty array.
+    """
     return array is not None and len(array) > 0
+
+
+def isint(value: Any) -> bool:
+    """Checks if the given variable can be interpreted as an integer.
+    """
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
 
 
 class ResultsNormalizer(Normalizer):
@@ -101,6 +113,26 @@ class ResultsNormalizer(Normalizer):
         results.method = self.method(encyclopedia)
         results.properties = self.properties(repr_sys, symmetry, encyclopedia)
         self.geometry_optimization(results.method, results.properties)
+
+        # Add the present quantities. The full path will be saved for each
+        # property, and if the leaf quantity/section name is unambiguous, also
+        # it will be saved.  Each repeating section will be investigated as
+        # well to find all present properties.
+        available_properties = set()
+        for section, m_def, _ in results.properties.m_traverse():
+            parent_path = section.m_path()
+            path = "{}/{}".format(parent_path if parent_path != "/" else "", m_def.name)[20:]
+            parts = filter(lambda x: not isint(x), path.split("/"))
+            path = ".".join(parts)
+            available_properties.add(path)
+        shorthand_prop = list()
+        for prop in available_properties:
+            name = prop.rsplit(".", 1)[-1]
+            shorthand_prop.append(name)
+        u, c = np.unique(shorthand_prop, return_counts=True)
+        shorthand_prop = u[c == 1]
+        available_properties |= set([str(x) for x in shorthand_prop])
+        results.properties.available_properties = list(available_properties)
 
     def material(
             self,

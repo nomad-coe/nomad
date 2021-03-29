@@ -415,13 +415,15 @@ class EntryMetadata(metainfo.MSection):
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
         categories=[MongoMetadata],
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
 
     last_processing = metainfo.Quantity(
         type=metainfo.Datetime,
         description='The datetime of the last processing',
         categories=[MongoMetadata],
-        a_search=Search())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
 
     processing_errors = metainfo.Quantity(
         type=str, shape=['*'], description='Errors that occured during processing',
@@ -431,12 +433,16 @@ class EntryMetadata(metainfo.MSection):
         type=str,
         description='The NOMAD version used for the last processing',
         categories=[MongoMetadata],
-        a_search=Search(many_or='append'))
+        a_search=Search(many_or='append'),
+        a_elasticsearch=Elasticsearch())
+
     nomad_commit = metainfo.Quantity(
         type=str,
         description='The NOMAD commit used for the last processing',
         categories=[MongoMetadata],
-        a_search=Search(many_or='append'))
+        a_search=Search(many_or='append'),
+        a_elasticsearch=Elasticsearch())
+
     parser_name = metainfo.Quantity(
         type=str,
         description='The NOMAD parser used for the last processing',

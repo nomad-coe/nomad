@@ -19,10 +19,10 @@ import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { apiContext } from '../api'
+import { ApiDialog } from '../ApiDialogButton'
 import ElectronicProperties from '../visualization/ElectronicProperties'
 import VibrationalProperties from '../visualization/VibrationalProperties'
 import GeometryOptimization from '../visualization/GeometryOptimization'
-import { ApiDialog } from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
 import NoData from '../visualization/NoData'
 import Actions from '../Actions'
@@ -30,10 +30,10 @@ import Quantity from '../Quantity'
 import { RecoilRoot } from 'recoil'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
-import { domains } from '../domains'
 import { errorContext } from '../errors'
 import { authorList, convertSI, mergeObjects, getHighestOccupiedEnergy } from '../../utils'
 import { resolveRef, refPath } from '../archive/metainfo'
+import searchQuantities from '../../searchQuantities'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
@@ -176,7 +176,6 @@ export default function DFTEntryOverview({data}) {
   const [freeEnergy, setFreeEnergy] = useState(availableProps.has('vibrational_free_energy_at_constant_volume') ? null : false)
   const [dataGeoOpt, setDataGeoOpt] = useState(availableProps.has('geometry_optimization') ? null : false)
   const [structures, setStructures] = useState(null)
-  const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const materialType = data?.encyclopedia?.material?.material_type
@@ -242,7 +241,6 @@ export default function DFTEntryOverview({data}) {
           }
         }
       }
-
       if (e_dos) {
         setDosElectronic(e_dos)
       }
@@ -343,38 +341,6 @@ export default function DFTEntryOverview({data}) {
         }
       }
 
-      // Get method details. Any referenced core_setttings will also be taken
-      // into account. If there were no SCCs from which the method could be
-      // selected, simply select the last available method.
-      if (section_method) {
-        section_method = resolveRef(section_method, archive)
-      } else {
-        const methods = section_run.section_method
-        if (methods) {
-          section_method = methods[methods.length - 1]
-        }
-      }
-      if (section_method) {
-        const refs = section_method?.section_method_to_method_refs
-        if (refs) {
-          for (const ref of refs) {
-            if (ref.method_to_method_kind === 'core_settings') {
-              section_method = mergeObjects(resolveRef(ref.method_to_method_ref, archive), section_method)
-            }
-          }
-        }
-        const es_method = section_method?.electronic_structure_method
-        const vdw_method = section_method?.van_der_Waals_method
-        const relativity_method = section_method?.relativity_method
-        const basis_set = section_method?.basis_set
-        setMethod({
-          electronic_structure_method: es_method,
-          van_der_Waals_method: vdw_method,
-          relativity_method: relativity_method,
-          basis_set: basis_set
-        })
-      }
-
       // Get the representative system by looping over systems
       let reprSys = null
       const systems = section_run.section_system
@@ -418,7 +384,6 @@ export default function DFTEntryOverview({data}) {
   }, [data, api, raiseError])
 
   const quantityProps = {data: data, loading: !data}
-  const domain = data.domain && domains[data.domain]
 
   return (
     <RecoilRoot>
@@ -428,22 +393,25 @@ export default function DFTEntryOverview({data}) {
         <Grid item xs={4} className={styles.leftSidebar}>
           <SidebarCard title='Method'>
             <Quantity flex>
-              <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
-              <Quantity quantity="dft.code_version" label='code version' noWrap {...quantityProps}/>
-              <Quantity
-                quantity="electronic_structure_method"
-                label='electronic structure method'
-                loading={loading}
-                description="The used electronic structure method."
-                noWrap
-                data={method}
-              />
-              <Quantity quantity="dft.xc_functional" label='xc functional family' noWrap {...quantityProps}/>
-              <Quantity quantity="dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
-              <Quantity quantity="dft.basis_set" label='basis set type' noWrap {...quantityProps}/>
-              <Quantity quantity="basis_set" label='basis set name' noWrap hideIfUnavailable data={method}/>
-              {method?.van_der_Waals_method && <Quantity quantity="van_der_Waals_method" label='van der Waals method' noWrap {...quantityProps}/>}
-              {method?.relativity_method && <Quantity quantity="relativity_method" label='relativity method' noWrap data={method}/>}
+              <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap {...quantityProps}/>
+              <Quantity quantity="results.method.simulation.program_version" label='program version' noWrap {...quantityProps}/>
+              <Quantity quantity="results.method.method_name" label='electronic structure method' noWrap {...quantityProps}/>
+              {data?.results?.method?.method_name === 'DFT' && <>
+                <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.basis_set_type" label='basis set type' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.basis_set_name" label='basis set name' noWrap hideIfUnavailable {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.van_der_Waals_method" label='van der Waals method' noWrap hideIfUnavailable {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.relativity_method" label='relativity method' noWrap hideIfUnavailable {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.core_electron_treatment" label='core electron treatment' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.spin_polarized" label='spin-polarized' hideIfUnavailable noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.smearing_type" label='smearing type' noWrap hideIfUnavailable {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.dft.smearing_width" label='smearing width' noWrap hideIfUnavailable {...quantityProps}/>
+              </>}
+              {data?.results?.method?.method_name === 'GW' && <>
+                <Quantity quantity="results.method.simulation.gw.gw_type" label='gw type' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.gw.starting_point" label='ground state xc functional' noWrap {...quantityProps}/>
+              </>}
             </Quantity>
           </SidebarCard>
           <Divider className={styles.divider} />
@@ -463,8 +431,13 @@ export default function DFTEntryOverview({data}) {
                   {authorList(data || [])}
                 </Typography>
               </Quantity>
-              <Quantity quantity='datasets' placeholder='no datasets' {...quantityProps}>
-                {data.datasets &&
+              <Quantity
+                desciption={searchQuantities['datasets'] && searchQuantities['datasets'].description}
+                label='datasets'
+                placeholder='no datasets'
+                {...quantityProps}
+              >
+                {(data.datasets && data.datasets.length !== 0) &&
                 <div>
                   {data.datasets.map(ds => (
                     <Typography key={ds.dataset_id}>
@@ -479,8 +452,8 @@ export default function DFTEntryOverview({data}) {
           <SidebarCard>
             <Quantity column style={{maxWidth: 350}}>
               <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
-              <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard {...quantityProps}/>
-              <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="entry_id" label='entry_id' noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
               <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
               <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
                 <Typography noWrap>
@@ -494,7 +467,7 @@ export default function DFTEntryOverview({data}) {
                   {new Date(data.last_processing).toLocaleString()}
                 </Typography>
               </Quantity>
-              <Quantity quantity="last_processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
+              <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
                 <Typography noWrap>
                   {data.nomad_version}/{data.nomad_commit}
                 </Typography>
@@ -523,19 +496,33 @@ export default function DFTEntryOverview({data}) {
               <Grid item xs={5}>
                 <Box className={styles.materialText}>
                   <Quantity column>
-                    <Quantity quantity="formula" label='formula' noWrap {...quantityProps}/>
-                    <Quantity quantity="dft.system" label='material type' noWrap {...quantityProps}/>
-                    <Quantity quantity="encyclopedia.material.material_name" label='material name' noWrap {...quantityProps}/>
-                    <Quantity row>
-                      {materialType === 'bulk' && <Quantity quantity="dft.crystal_system" label='crystal system' noWrap {...quantityProps}/>}
-                      {materialType === 'bulk' && <Quantity quantity="dft.spacegroup_symbol" label="spacegroup" noWrap {...quantityProps}>
-                        <Typography noWrap>
-                          {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
-                        </Typography>
-                      </Quantity>}
-                    </Quantity>
+                    <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap {...quantityProps}/>
+                    <Quantity quantity="results.material.type_structural" label='structural type' noWrap {...quantityProps}/>
+                    <Quantity quantity="results.material.material_name" label='material name' noWrap {...quantityProps}/>
+                    {data?.results?.material?.symmetry &&
+                      <Quantity row>
+                        <Quantity
+                          quantity="results.material.symmetry.crystal_system"
+                          label='crystal system'
+                          hideIfUnavailable
+                          noWrap
+                          {...quantityProps}
+                        />
+                        <Quantity
+                          description="Space group symbol and number"
+                          label="spacegroup"
+                          hideIfUnavailable
+                          noWrap
+                          {...quantityProps}
+                        >
+                          <Typography noWrap>
+                            {normalizeDisplayValue(_.get(data, 'results.material.symmetry.space_group_symbol'))} ({normalizeDisplayValue(_.get(data, 'results.material.symmetry.space_group_number'))})
+                          </Typography>
+                        </Quantity>
+                      </Quantity>
+                    }
                   </Quantity>
-                  {encyclopediaEnabled && data?.encyclopedia?.material?.material_id &&
+                  {encyclopediaEnabled && data?.results?.material?.material_id &&
                     <Actions
                       className={styles.actions}
                       justifyContent='flex-start'
@@ -545,7 +532,7 @@ export default function DFTEntryOverview({data}) {
                       actions={[{
                         tooltip: 'View this material in the Encyclopedia',
                         content: 'Encyclopedia',
-                        href: `${appBase}/encyclopedia/#/material/${data.encyclopedia.material.material_id}`
+                        href: `${appBase}/encyclopedia/#/material/${data.results.material.material_id}`
                       }]}
                     >
                     </Actions>

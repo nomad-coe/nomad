@@ -17,7 +17,7 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { apiContext } from '../api'
+import { apiContext } from '../apiv1'
 import { domains } from '../domains'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
@@ -50,15 +50,15 @@ export default function OverviewView({uploadId, calcId}) {
   const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
-  const [repo, setRepo] = useState(null)
+  const [entry, setEntry] = useState(null)
   const [exists, setExists] = useState(true)
 
   // When loaded for the first time, download calc data from the ElasticSearch
   // index. It is used quick to fetch and will be used to decide the subview to
   // show.
   useEffect(() => {
-    api.repo(uploadId, calcId).then(data => {
-      setRepo(data)
+    api.entry(calcId).then(data => {
+      setEntry(data)
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
         setExists(false)
@@ -66,7 +66,7 @@ export default function OverviewView({uploadId, calcId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setRepo, setExists])
+  }, [api, raiseError, calcId, setEntry, setExists])
 
   // The entry does not exist
   if (!exists) {
@@ -77,13 +77,11 @@ export default function OverviewView({uploadId, calcId}) {
     </EntryPageContent>
   }
 
-  // When repo data is loaded, return a subview that depends on the domain. If a
-  // specialized overview component has not been declared, a default component
-  // will be loaded.
-  if (repo) {
-    const domain = repo.domain && domains[repo.domain]
+  // When repo data is loaded, return a subview that depends on the domain.
+  if (entry?.data?.domain) {
+    const domain = entry.data.domain && domains[entry.data.domain]
     return <EntryPageContent fixed>
-      <domain.EntryOverview data={repo}/>
+      <domain.EntryOverview data={entry.data}/>
     </EntryPageContent>
   }
   return null

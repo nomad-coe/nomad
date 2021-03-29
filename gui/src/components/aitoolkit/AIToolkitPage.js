@@ -16,7 +16,18 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
+import {
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  AccordionActions,
+  makeStyles,
+  Link,
+  Button,
+  Grid,
+  TextField
+} from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'

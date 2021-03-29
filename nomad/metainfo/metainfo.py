@@ -1238,7 +1238,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 that the result is JSON-serializable. By default values are serialized to
                 JSON according to the quantity type.
         '''
-
         kwargs: Dict[str, Any] = dict(
             with_meta=with_meta,
             include_defaults=include_defaults,

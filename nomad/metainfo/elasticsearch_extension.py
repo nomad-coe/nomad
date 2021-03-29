@@ -164,7 +164,7 @@ from nomad import config, utils
 
 from .metainfo import (
     Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
-    Definition, MetainfoError, QuantityReference)
+    Definition, QuantityReference)
 
 
 class DocumentType():
@@ -198,31 +198,39 @@ class DocumentType():
         self.quantities.clear()
         self.metrics.clear()
 
-    def _transform(self, quantity, section, value):
-        elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
-        for elasticsearch_annotation in elasticsearch_annotations:
-            if elasticsearch_annotation.field is None:
-                transform_function = elasticsearch_annotation.value
-                if transform_function is not None:
-                    return transform_function(section)
-
-        return value
-
     def create_index_doc(self, root: MSection):
         '''
         Creates an indexable document from the given archive.
         '''
+        def transform(quantity, section, value):
+            """Custom transform function for m_to_dict that will resolve references
+            on a per-quantity basis based on the annotation setup.
+            """
+            elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
+            for elasticsearch_annotation in elasticsearch_annotations:
+                if elasticsearch_annotation.field is None:
+                    transform_function = elasticsearch_annotation.value
+                    if transform_function is not None:
+                        return transform_function(section)
+
+            return value
+
         def exclude(property_, section):
             if property_ not in self.indexed_properties:
                 return True
 
             return False
 
-        result = root.m_to_dict(
-            with_meta=False, include_defaults=True, include_derived=True,
+        kwargs: Dict[str, Any] = dict(
+            with_meta=False,
+            include_defaults=True,
+            include_derived=True,
             resolve_references=True,
             exclude=exclude,
-            transform=self._transform)
+            transform=transform
+        )
+
+        result = root.m_to_dict(**kwargs)
 
         # TODO deal with section_metadata
         metadata = result.get('section_metadata')
@@ -540,7 +548,7 @@ class Elasticsearch(DefinitionAnnotation):
             elif isinstance(quantity.type, QuantityReference):
                 return compute_mapping(quantity.type.target_quantity_def)
             elif isinstance(quantity.type, Reference):
-                raise MetainfoError('References cannot be indexed.')
+                raise NotImplementedError('Resolving section references is not supported.')
             elif isinstance(quantity.type, MEnum):
                 return dict(type='keyword')
             else:

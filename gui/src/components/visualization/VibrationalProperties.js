@@ -30,33 +30,8 @@ import { convertSI } from '../../utils'
 import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
 import { ErrorHandler } from '../ErrorHandler'
+import NoData from './NoData'
 import Plot from './Plot'
-
-const useStyles = makeStyles((theme) => {
-  return {
-    row: {
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      width: '100%',
-      height: '100%'
-    },
-    free_energy: {
-      flex: '0 1 50%'
-    },
-    heat_capacity: {
-      flex: '0 1 50%'
-    },
-    bs: {
-      flex: '0 0 66.6%'
-    },
-    dos: {
-      flex: '0 0 33.3%'
-    }
-  }
-})
 
 export default function VibrationalProperties({bs, dos, freeEnergy, heatCapacity, className, classes, raiseError}) {
   // Find minimum and maximum from DOS/BS. Use this range for both plots.
@@ -75,21 +50,50 @@ export default function VibrationalProperties({bs, dos, freeEnergy, heatCapacity
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
   const dosYSubject = useMemo(() => new Subject(), [])
-  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range, zeroline: true}}), [range])
-  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range, zeroline: true}}), [range])
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // Styles
-  const styles = useStyles(classes)
+  const useStyles = makeStyles((theme) => {
+    return {
+      row: {
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        width: '100%',
+        height: '100%'
+      },
+      free_energy: {
+        flex: '0 1 50%'
+      },
+      heat_capacity: {
+        flex: '0 1 50%'
+      },
+      bs: {
+        flex: '0 0 66.6%'
+      },
+      dos: {
+        flex: '0 0 33.3%'
+      }
+    }
+  })
+  const style = useStyles(classes)
 
   // Synchronize panning between BS/DOS plots
-  const handleDOSRelayouting = useCallback((event) => {
-    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
-    dosYSubject.next(update)
-  }, [dosYSubject])
   const handleBSRelayouting = useCallback((event) => {
-    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
-    bsYSubject.next(update)
-  }, [bsYSubject])
+    if (dos) {
+      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+      bsYSubject.next(update)
+    }
+  }, [dos, bsYSubject])
+  const handleDOSRelayouting = useCallback((event) => {
+    if (bs) {
+      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+      dosYSubject.next(update)
+    }
+  }, [bs, dosYSubject])
 
   const theme = useTheme()
   const heatCapacityData = useMemo(() => {
@@ -159,61 +163,71 @@ export default function VibrationalProperties({bs, dos, freeEnergy, heatCapacity
 
   return (
     <RecoilRoot>
-      <Box className={styles.row}>
-        <Box className={styles.bs}>
-          <Typography variant="subtitle1" align='center'>Phonon dispersion</Typography>
-          <BandStructure
-            data={bs === false ? false : bs?.section_k_band}
-            layout={bsLayout}
-            aspectRatio={1.2}
-            unitsState={unitsState}
-            onRelayouting={handleBSRelayouting}
-            onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
-            layoutSubject={dosYSubject}
-            metaInfoLink={bs?.path}
-            type='vibrational'
-          ></BandStructure>
-        </Box>
-        <Box className={styles.dos}>
-          <Typography variant="subtitle1" align='center'>Phonon density of states</Typography>
-          <DOS
-            data={dos === false ? false : dos?.section_dos}
-            layout={dosLayout}
-            aspectRatio={0.6}
-            unitsState={unitsState}
-            onRelayouting={handleDOSRelayouting}
-            onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
-            layoutSubject={bsYSubject}
-            metaInfoLink={dos?.path}
-            type='vibrational'
-          ></DOS>
-        </Box>
-        <Box className={styles.heat_capacity}>
-          <Typography variant="subtitle1" align='center'>Heat capacity</Typography>
-          <ErrorHandler message='Could not load heat capacity.'>
-            <Plot
-              data={heatCapacity && heatCapacityData}
-              layout={heatCapacityLayout}
-              aspectRatio={1}
-              floatTitle="Heat capacity"
-              metaInfoLink={heatCapacity?.path}
-            >
-            </Plot>
-          </ErrorHandler>
-        </Box>
-        <Box className={styles.free_energy}>
-          <Typography variant="subtitle1" align='center'>Helmholtz free energy</Typography>
-          <ErrorHandler message='Could not load Helmholtz free energy.'>
-            <Plot
-              data={freeEnergy && freeEnergyData}
-              layout={freeEnergyLayout}
-              aspectRatio={1}
-              floatTitle="Helmholtz free energy"
-              metaInfoLink={freeEnergy?.path}
-            >
-            </Plot>
-          </ErrorHandler>
-        </Box>
+      <Box className={style.row}>
+        {bs !== false
+          ? <Box className={style.bs}>
+            <Typography variant="subtitle1" align='center'>Phonon dispersion</Typography>
+            <BandStructure
+              data={bs?.section_k_band}
+              layout={bsLayout}
+              aspectRatio={1.2}
+              unitsState={unitsState}
+              onRelayouting={handleBSRelayouting}
+              onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
+              layoutSubject={dosYSubject}
+              metaInfoLink={bs?.path}
+            ></BandStructure>
+          </Box>
+          : <NoData aspectRatio={1.2}/>
+        }
+        {dos !== false
+          ? <Box className={style.dos}>
+            <Typography variant="subtitle1" align='center'>Phonon density of states</Typography>
+            <DOS
+              data={dos?.section_dos}
+              layout={dosLayout}
+              aspectRatio={0.6}
+              onRelayouting={handleDOSRelayouting}
+              onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
+              unitsState={unitsState}
+              layoutSubject={bsYSubject}
+              metaInfoLink={dos?.path}
+            ></DOS>
+          </Box>
+          : <NoData aspectRatio={0.6}/>
+        }
+        {heatCapacity !== false
+          ? <Box className={style.heat_capacity}>
+            <Typography variant="subtitle1" align='center'>Heat capacity</Typography>
+            <ErrorHandler message='Could not load heat capacity.'>
+              <Plot
+                data={heatCapacityData}
+                layout={heatCapacityLayout}
+                aspectRatio={1}
+                floatTitle="Heat capacity"
+                metaInfoLink={heatCapacity?.path}
+              >
+              </Plot>
+            </ErrorHandler>
+          </Box>
+          : <NoData aspectRatio={1}/>
+        }
+        {freeEnergy !== false
+          ? <Box className={style.free_energy}>
+            <Typography variant="subtitle1" align='center'>Helmholtz free energy</Typography>
+            <ErrorHandler message='Could not load Helmholtz free energy.'>
+              <Plot
+                data={freeEnergyData}
+                layout={freeEnergyLayout}
+                aspectRatio={1}
+                floatTitle="Helmholtz free energy"
+                metaInfoLink={freeEnergy?.path}
+              >
+              </Plot>
+            </ErrorHandler>
+          </Box>
+          : <NoData aspectRatio={1}/>
+        }
       </Box>
     </RecoilRoot>
   )
