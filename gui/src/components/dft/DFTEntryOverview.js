@@ -19,6 +19,7 @@ import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { apiContext } from '../api'
+import { apiContext as apiContextv1 } from '../apiv1'
 import { ApiDialog } from '../ApiDialogButton'
 import ElectronicProperties from '../visualization/ElectronicProperties'
 import VibrationalProperties from '../visualization/VibrationalProperties'
@@ -167,6 +168,7 @@ export default function DFTEntryOverview({data}) {
     return properties
   }, [data])
   const {api} = useContext(apiContext)
+  const apiv1 = useContext(apiContextv1).api
   const {raiseError} = useContext(errorContext)
   const [dosElectronic, setDosElectronic] = useState(availableProps.has('electronic_dos') ? null : false)
   const [bsElectronic, setBsElectronic] = useState(availableProps.has('electronic_band_structure') ? null : false)
@@ -180,6 +182,18 @@ export default function DFTEntryOverview({data}) {
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const materialType = data?.encyclopedia?.material?.material_type
   const styles = useStyles()
+
+  // Load section_results from the server
+  useEffect(() => {
+    apiv1.results(data.entry_id).then(archive => {
+    }).catch(error => {
+      setLoading(false)
+      if (error.name === 'DoesNotExist') {
+      } else {
+        raiseError(error)
+      }
+    })
+  }, [data, apiv1, raiseError, setStructures])
 
   // When loaded for the first time, start downloading the archive. Once
   // finished, determine the final layout based on it's contents. TODO: When we
@@ -394,7 +408,7 @@ export default function DFTEntryOverview({data}) {
           <SidebarCard title='Method'>
             <Quantity flex>
               <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap {...quantityProps}/>
-              <Quantity quantity="results.method.simulation.program_version" label='program version' noWrap {...quantityProps}/>
+              <Quantity quantity="results.method.simulation.program_version" label='program version' ellipsisFront {...quantityProps}/>
               <Quantity quantity="results.method.method_name" label='electronic structure method' noWrap {...quantityProps}/>
               {data?.results?.method?.method_name === 'DFT' && <>
                 <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap {...quantityProps}/>

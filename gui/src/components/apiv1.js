@@ -18,14 +18,12 @@
 import React, { useContext, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { withErrors } from './errors'
-import { UploadRequest } from '@navjobs/upload'
-import Swagger from 'swagger-client'
 import { apiBase } from '../config'
 import { Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { compose } from 'recompose'
 import { withKeycloak } from 'react-keycloak'
-import * as searchQuantities from '../searchQuantities.json'
+import axios from 'axios'
 
 export const apiContext = React.createContext()
 
@@ -47,89 +45,6 @@ export class ApiError extends Error {
   constructor(msg) {
     super(msg)
     this.name = 'CannotReachApi'
-  }
-}
-
-const upload_to_gui_ids = {}
-let gui_upload_id_counter = 0
-
-class Upload {
-  constructor(json, api) {
-    this.api = api
-
-    // Cannot use upload_id as key in GUI, because uploads don't have an upload_id
-    // before upload is completed
-    if (json.upload_id) {
-      // instance from the API
-      this.gui_upload_id = upload_to_gui_ids[json.upload_id]
-      if (this.gui_upload_id === undefined) {
-        // never seen in the GUI, needs a GUI id
-        this.gui_upload_id = gui_upload_id_counter++
-        upload_to_gui_ids[json.upload_id] = this.gui_upload_id
-      }
-    } else {
-      // new instance, not from the API
-      this.gui_upload_id = gui_upload_id_counter++
-    }
-    Object.assign(this, json)
-  }
-
-  uploadFile(file) {
-    const uploadFileWithProgress = async () => {
-      const authHeaders = await this.api.authHeaders()
-      let uploadRequest = await UploadRequest(
-        {
-          request: {
-            url: `${apiBase}/uploads/?name=${this.name}`,
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/gzip',
-              ...authHeaders
-            }
-          },
-          files: [file],
-          progress: value => {
-            this.uploading = value
-          }
-        }
-      )
-      if (uploadRequest.error) {
-        handleApiError(uploadRequest.response ? uploadRequest.response.message : uploadRequest.error)
-      }
-      if (uploadRequest.aborted) {
-        throw Error('User abort')
-      }
-      this.uploading = 100
-      this.upload_id = uploadRequest.response.upload_id
-      upload_to_gui_ids[this.upload_id] = this.gui_upload_id
-    }
-
-    return uploadFileWithProgress()
-      .then(() => this)
-  }
-
-  get(page, perPage, orderBy, order) {
-    if (this.uploading !== null && this.uploading !== 100) {
-      return new Promise(resolve => resolve(this))
-    } else {
-      if (this.upload_id) {
-        return this.api.swagger().then(client => client.apis.uploads.get_upload({
-          upload_id: this.upload_id,
-          page: page || 1,
-          per_page: perPage || 5,
-          order_by: orderBy || 'mainfile',
-          order: order || -1
-        }))
-          .catch(handleApiError)
-          .then(response => response.body)
-          .then(uploadJson => {
-            Object.assign(this, uploadJson)
-            return this
-          })
-      } else {
-        return new Promise(resolve => resolve(this))
-      }
-    }
   }
 }
 
@@ -167,43 +82,7 @@ function handleApiError(e) {
 }
 
 class Api {
-  swagger() {
-    if (this.keycloak.token) {
-      const self = this
-      return new Promise((resolve, reject) => {
-        self.keycloak.updateToken()
-          .success(() => {
-            self._swaggerClient
-              .then(swaggerClient => {
-                swaggerClient.authorizations = {
-                  'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
-                }
-                resolve(swaggerClient)
-              })
-              .catch(() => {
-                reject(new ApiError())
-              })
-          })
-          .error(() => {
-            reject(new ApiError())
-          })
-      })
-    } else {
-      const self = this
-      return new Promise((resolve, reject) => {
-        self._swaggerClient
-          .then(swaggerClient => {
-            swaggerClient.authorizations = {}
-            resolve(swaggerClient)
-          })
-          .catch(() => {
-            reject(new ApiError())
-          })
-      })
-    }
-  }
-
-  authHeaders() {
+  async authHeaders() {
     if (this.keycloak.token) {
       return new Promise((resolve, reject) => {
         this.keycloak.updateToken()
@@ -222,8 +101,10 @@ class Api {
   }
 
   constructor(keycloak) {
-    this._swaggerClient = Swagger(`${apiBase}/v1/openapi.json`)
     this.keycloak = keycloak
+    this.axios = axios.create({
+      baseURL: `${apiBase}/v1`
+    })
 
     this.loadingHandler = []
     this.loading = 0
@@ -240,438 +121,67 @@ class Api {
     Api.uploadIds = 0
   }
 
-  // createUpload(name) {
-  //   const upload = new Upload({
-  //     upload_id: Api.uploadIds++,
-  //     name: name,
-  //     tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
-  //     current_task: 'uploading',
-  //     uploading: 0,
-  //     create_time: new Date()
-  //   }, this)
-
-  //   return upload
-  // }
-
-  onLoading(handler) {
-    this.loadingHandler = [...this.loadingHandler, handler]
-  }
-
-  removeOnLoading(handler) {
-    this.loadingHandler = this.loadingHandler.filter(item => item !== handler)
-  }
-
-  // async getUploads(state, page, perPage) {
-  //   state = state || 'all'
-  //   page = page || 1
-  //   perPage = perPage || 10
-
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.uploads.get_uploads({state: state, page: page, per_page: perPage}))
-  //     .catch(handleApiError)
-  //     .then(response => ({
-  //       ...response.body,
-  //       results: response.body.results.map(uploadJson => {
-  //         const upload = new Upload(uploadJson, this)
-  //         upload.uploading = 100
-  //         return upload
-  //       })
-  //     }))
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getUnpublishedUploads() {
-  //   return this.getUploads('unpublished', 1, 1000)
-  // }
-
-  // async getPublishedUploads(page, perPage) {
-  //   return this.getUploads('published', 1, 10)
-  // }
-
-  // async archive(uploadId, calcId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.archive.get_archive_calc({
-  //       upload_id: uploadId,
-  //       calc_id: calcId
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => {
-  //       const result = response.body || response.text || response.data
-  //       if (typeof result === 'string') {
-  //         try {
-  //           return JSON.parse(result)
-  //         } catch (e) {
-  //           try {
-  //             return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-  //           } catch (e) {
-  //             return result
-  //           }
-  //         }
-  //       } else {
-  //         return result
-  //       }
-  //     })
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async encyclopediaBasic(materialId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.encyclopedia.get_material({
-  //       material_id: materialId
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => {
-  //       const result = response.body || response.text || response.data
-  //       if (typeof result === 'string') {
-  //         try {
-  //           return JSON.parse(result)
-  //         } catch (e) {
-  //           try {
-  //             return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-  //           } catch (e) {
-  //             return result
-  //           }
-  //         }
-  //       } else {
-  //         return result
-  //       }
-  //     })
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async encyclopediaCalculations(materialId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.encyclopedia.get_calculations({
-  //       material_id: materialId
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => {
-  //       const result = response.body || response.text || response.data
-  //       if (typeof result === 'string') {
-  //         try {
-  //           return JSON.parse(result)
-  //         } catch (e) {
-  //           try {
-  //             return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-  //           } catch (e) {
-  //             return result
-  //           }
-  //         }
-  //       } else {
-  //         return result
-  //       }
-  //     })
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async encyclopediaCalculation(materialId, calcId, payload) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.encyclopedia.get_calculation({
-  //       material_id: materialId,
-  //       calc_id: calcId,
-  //       payload: payload
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => {
-  //       const result = response.body || response.text || response.data
-  //       if (typeof result === 'string') {
-  //         try {
-  //           return JSON.parse(result)
-  //         } catch (e) {
-  //           try {
-  //             return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-  //           } catch (e) {
-  //             return result
-  //           }
-  //         }
-  //       } else {
-  //         return result
-  //       }
-  //     })
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async calcProcLog(uploadId, calcId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.archive.get_archive_logs({
-  //       upload_id: uploadId,
-  //       calc_id: calcId
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getRawFileListFromCalc(uploadId, calcId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.raw.get_file_list_from_calc({
-  //       upload_id: uploadId,
-  //       calc_id: calcId,
-  //       path: null
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getRawFile(uploadId, calcId, path, kwargs) {
-  //   this.onStartLoading()
-  //   const length = (kwargs && kwargs.length) || 4096
-  //   return this.swagger()
-  //     .then(client => client.apis.raw.get_file_from_calc({
-  //       upload_id: uploadId,
-  //       calc_id: calcId,
-  //       path: path,
-  //       decompress: true,
-  //       ...(kwargs || {}),
-  //       length: length
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => {
-  //       /* global Blob */
-  //       /* eslint no-undef: "error" */
-  //       if (response.data instanceof Blob) {
-  //         if (response.data.type.endsWith('empty')) {
-  //           return {
-  //             contents: '',
-  //             hasMore: false,
-  //             mimeType: 'plain/text'
-  //           }
-  //         }
-  //         return {
-  //           contents: null,
-  //           hasMore: false,
-  //           mimeType: response.data.type
-  //         }
-  //       }
-  //       return {
-  //         contents: response.data,
-  //         hasMore: response.data.length === length,
-  //         mimeType: 'plain/text'
-  //       }
-  //     })
-  //     .finally(this.onFinishLoading)
-  // }
-
+  /**
+   * Returns the entry information that is stored in the search index.
+   */
   async entry(entryId) {
     this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis['entries/metadata'].get_entry_metadata_entries__entry_id__get({
-        entry_id: entryId
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.get(`/entries/${entryId}`, auth)
+      return entry.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
   }
 
-  // async edit(edit) {
-  //   // We do not call the start and finish loading callbacks, because this one is
-  //   // only used in the background.
+  /**
+   * Returns section_results from the archive corresponding to the given entry.
+   * All references within the section are resolved by the server before
+   * sending.
+   */
+  async results(entryId) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.post(
+        `/entries/archive/query`,
+        {
+          query: {calc_id: entryId},
+          pagination: {size: 1},
+          required: {results: '*'}
+        },
+        auth
+      )
+      return parse(entry.data)
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
+}
 
-  //   // repair the query, the API will only access correct use of lists for many
-  //   // quantities
-  //   Object.keys(edit.query).forEach(quantity => {
-  //     if (searchQuantities[quantity] && searchQuantities[quantity].many) {
-  //       if (!Array.isArray(edit.query[quantity])) {
-  //         edit.query[quantity] = edit.query[quantity].split(',')
-  //       }
-  //     }
-  //   })
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.edit_repo({payload: edit}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  // }
-
-  // async resolvePid(pid) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.resolve_pid({pid: pid}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async resolveDoi(doi) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.datasets.resolve_doi({doi: doi}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async search(search) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.search({
-  //       exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
-  //       ...search}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getDatasets(prefix) {
-  //   // no loading indicator, because this is only used in the background of the edit dialog
-  //   return this.swagger()
-  //     .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  // }
-
-  // async assignDatasetDOI(datasetName) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.datasets.assign_doi({name: datasetName}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async deleteDataset(datasetName) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.datasets.delete_dataset({name: datasetName}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getUsers(query) {
-  //   // no loading indicator, because this is only used in the background of the edit dialog
-  //   return this.swagger()
-  //     .then(client => client.apis.auth.get_users({query: query}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  // }
-
-  // async inviteUser(user) {
-  //   return this.swagger()
-  //     .then(client => client.apis.auth.invite_user({payload: user}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  // }
-
-  // async quantities_search(search) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.quantities_search(search))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async quantity_search(search) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.quantity_search(search))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
-  //   if (!noLoadingIndicator) {
-  //     this.onStartLoading()
-  //   }
-  //   return this.swagger()
-  //     .then(client => client.apis.repo.suggestions_search({
-  //       size: size || 20,
-  //       include: include,
-  //       quantity: quantity,
-  //       ...search
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(() => {
-  //       if (!noLoadingIndicator) {
-  //         this.onFinishLoading()
-  //       }
-  //     })
-  // }
-
-  // async deleteUpload(uploadId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async publishUpload(uploadId, embargoLength) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.uploads.exec_upload_operation({
-  //       upload_id: uploadId,
-  //       payload: {
-  //         operation: 'publish',
-  //         metadata: {
-  //           with_embargo: embargoLength > 0,
-  //           embargo_length: embargoLength
-  //         }
-  //       }
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async publishUploadToCentralNomad(uploadId) {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.uploads.exec_upload_operation({
-  //       upload_id: uploadId,
-  //       payload: {
-  //         operation: 'publish-to-central-nomad'
-  //       }
-  //     }))
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // async getSignatureToken() {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.auth.get_auth())
-  //     .catch(handleApiError)
-  //     .then(response => response.body.signature_token)
-  //     .finally(this.onFinishLoading)
-  // }
-
-  // _cachedInfo = null
-
-  // async getInfo() {
-  //   if (!this._cachedInfo) {
-  //     this.onStartLoading()
-  //     this._cachedInfo = await this.swagger()
-  //       .then(client => {
-  //         return client.apis.info.get_info()
-  //           .then(response => response.body)
-  //           .catch(handleApiError)
-  //       })
-  //       .finally(this.onFinishLoading)
-  //   }
-  //   return this._cachedInfo
-  // }
-
-  // async getUploadCommand() {
-  //   this.onStartLoading()
-  //   return this.swagger()
-  //     .then(client => client.apis.uploads.get_upload_command())
-  //     .catch(handleApiError)
-  //     .then(response => response.body)
-  //     .finally(this.onFinishLoading)
-  // }
+/**
+ * Custom JSON parse function that can handle NaNs that can be created by the
+ * python JSON serializer.
+ */
+function parse(result) {
+  if (typeof result === 'string') {
+    try {
+      return JSON.parse(result)
+    } catch (e) {
+      try {
+        return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+      } catch (e) {
+        return result
+      }
+    }
+  } else {
+    return result
+  }
 }
 
 export class ApiProviderComponent extends React.Component {
@@ -720,18 +230,6 @@ export class ApiProviderComponent extends React.Component {
 
   createApi(keycloak) {
     const api = new Api(keycloak)
-    // api.getInfo()
-    //   .catch(handleApiError)
-    //   .then(info => {
-    //     if (info.parsers) {
-    //       info.parsers.sort()
-    //     }
-    //     this.setState({info: info})
-    //   })
-    //   .catch(error => {
-    //     this.props.raiseError(error)
-    //   })
-
     return api
   }
 
