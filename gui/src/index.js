@@ -21,7 +21,9 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import './index.css'
 import App from './components/App'
-
+import '@fontsource/titillium-web/400.css'
+import '@fontsource/titillium-web/600.css'
+import '@fontsource/material-icons'
 import * as serviceWorker from './serviceWorker'
 
 export const serviceWorkerUpdateHandlerRef = {
@@ -42,7 +44,7 @@ serviceWorker.register({
     serviceWorkerRegistrationRef.current = registration
     setInterval(() => {
       registration.update()
-      console.debug("Checked for update...")
+      console.debug('Checked for update...')
     }, (1000 * 60) * 30)
   },
   onUpdate: registration => {

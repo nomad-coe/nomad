@@ -31,7 +31,6 @@ import { ErrorBoundary } from '../errors'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
-
 function ReloadSnack() {
   const waitingServiceWorker = useRef(null)
   const [reload, setReload] = useState(false)

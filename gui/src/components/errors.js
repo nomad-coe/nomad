@@ -69,7 +69,7 @@ class ErrorSnacksUnstyled extends React.Component {
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
       }
-    } else if (typeof(error) === 'string' || error instanceof String) {
+    } else if (typeof error === 'string' || error instanceof String) {
       errorStr = `${error} Please try to reload and let us know, if this error keeps happening.`
     }
 
@@ -127,8 +127,8 @@ export function withErrors(Component) {
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static propTypes = {
@@ -136,9 +136,9 @@ export class ErrorBoundary extends React.Component {
     onError: PropTypes.func
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true };
+    return { hasError: true }
   }
 
   componentDidCatch(error, errorInfo) {
