@@ -80,7 +80,7 @@ class ArchiveLogView extends React.Component {
     api: PropTypes.object.isRequired,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
-    calcId: PropTypes.string.isRequired
+    entryId: PropTypes.string.isRequired
   }
 
   static styles = theme => ({
@@ -109,15 +109,15 @@ class ArchiveLogView extends React.Component {
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api ||
         prevProps.uploadId !== this.props.uploadId ||
-        prevProps.calcId !== this.props.calcId) {
+        prevProps.entryId !== this.props.entryId) {
       this.setState({...ArchiveLogView.defaultState})
       this.update()
     }
   }
 
   update() {
-    const {uploadId, calcId, api, raiseError} = this.props
-    api.calcProcLog(uploadId, calcId).then(data => {
+    const {uploadId, entryId, api, raiseError} = this.props
+    api.calcProcLog(uploadId, entryId).then(data => {
       this.setState({data: data})
     }).catch(error => {
       this.setState({data: null})
@@ -130,7 +130,7 @@ class ArchiveLogView extends React.Component {
   }
 
   render() {
-    const { classes, uploadId, calcId } = this.props
+    const { classes, uploadId, entryId } = this.props
     const { data, doesNotExist } = this.state
 
     if (doesNotExist) {
@@ -161,7 +161,7 @@ class ArchiveLogView extends React.Component {
           classes={{root: classes.downloadFab}} tooltip="download logfile"
           component={Fab} className={classes.downloadFab} size="medium"
           color="primary"
-          url={`archive/logs/${uploadId}/${calcId}`} fileName={`${calcId}.log`}
+          url={`archive/logs/${uploadId}/${entryId}`} fileName={`${entryId}.log`}
         >
           <DownloadIcon />
         </Download>

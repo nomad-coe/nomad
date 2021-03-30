@@ -42,7 +42,7 @@ class ArchiveEntryView extends React.Component {
     info: PropTypes.object,
     raiseError: PropTypes.func.isRequired,
     uploadId: PropTypes.string.isRequired,
-    calcId: PropTypes.string.isRequired
+    entryId: PropTypes.string.isRequired
   }
 
   static styles = theme => ({
@@ -85,15 +85,15 @@ class ArchiveEntryView extends React.Component {
   componentDidUpdate(prevProps) {
     if (prevProps.api !== this.props.api ||
         prevProps.uploadId !== this.props.uploadId ||
-        prevProps.calcId !== this.props.calcId) {
+        prevProps.entryId !== this.props.entryId) {
       this.setState({...ArchiveEntryView.defaultState})
       this.updateArchive()
     }
   }
 
   updateArchive() {
-    const {uploadId, calcId, api} = this.props
-    api.archive(uploadId, calcId).then(data => {
+    const {uploadId, entryId, api} = this.props
+    api.archive(uploadId, entryId).then(data => {
       if (!this.unmounted) {
         this.setState({data: data})
       }
@@ -110,7 +110,7 @@ class ArchiveEntryView extends React.Component {
   }
 
   render() {
-    const { classes, uploadId, calcId } = this.props
+    const { classes, uploadId, entryId } = this.props
     const { data, doesNotExist } = this.state
 
     if (doesNotExist) {
@@ -148,7 +148,7 @@ class ArchiveEntryView extends React.Component {
         <Download
           classes={{root: classes.downloadFab}} tooltip="download calculation archive"
           component={Fab} className={classes.downloadFab} color="primary" size="medium"
-          url={`archive/${uploadId}/${calcId}`} fileName={`${calcId}.json`}
+          url={`archive/${uploadId}/${entryId}`} fileName={`${entryId}.json`}
         >
           <DownloadIcon />
         </Download>

@@ -82,24 +82,6 @@ function handleApiError(e) {
 }
 
 class Api {
-  async authHeaders() {
-    if (this.keycloak.token) {
-      return new Promise((resolve, reject) => {
-        this.keycloak.updateToken()
-          .success(() => {
-            resolve({
-              'Authorization': `Bearer ${this.keycloak.token}`
-            })
-          })
-          .error(() => {
-            reject(new ApiError())
-          })
-      })
-    } else {
-      return {}
-    }
-  }
-
   constructor(keycloak) {
     this.keycloak = keycloak
     this.axios = axios.create({
@@ -122,7 +104,32 @@ class Api {
   }
 
   /**
+   * Fetches the up-to-date authorization headers. Performs a token update if
+   * the current token has expired.
+   * @returns Object containing the authorization header.
+   */
+  async authHeaders() {
+    if (this.keycloak.token) {
+      return new Promise((resolve, reject) => {
+        this.keycloak.updateToken()
+          .success(() => {
+            resolve({
+              'Authorization': `Bearer ${this.keycloak.token}`
+            })
+          })
+          .error(() => {
+            reject(new ApiError())
+          })
+      })
+    } else {
+      return {}
+    }
+  }
+
+  /**
    * Returns the entry information that is stored in the search index.
+   * @param {string} entryId
+   * @returns Object containing the search index contents.
    */
   async entry(entryId) {
     this.onStartLoading()
@@ -141,6 +148,8 @@ class Api {
    * Returns section_results from the archive corresponding to the given entry.
    * All references within the section are resolved by the server before
    * sending.
+   * @param {string} entryId
+   * @returns Object containing section_results
    */
   async results(entryId) {
     this.onStartLoading()
@@ -156,6 +165,24 @@ class Api {
         auth
       )
       return parse(entry.data)
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
+
+  /**
+   * Return the raw file metadata for a given entry.
+   * @param {string} entryId
+   * @returns Object containing the raw file metadata.
+   */
+  async getRawFileListFromCalc(entryId) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.get(`/entries/${entryId}/raw`, auth)
+      return entry.data
     } catch (errors) {
       handleApiError(errors)
     } finally {
@@ -234,8 +261,7 @@ export class ApiProviderComponent extends React.Component {
   }
 
   state = {
-    api: null,
-    info: null
+    apiv1: null
   }
 
   render() {
@@ -288,7 +314,7 @@ class LoginRequiredUnstyled extends React.Component {
 
 export function DisableOnLoading({children}) {
   const containerRef = useRef(null)
-  const {api} = useContext(apiContext)
+  const {apiv1} = useContext(apiContext)
   const handleLoading = useCallback((loading) => {
     const enable = loading ? 'none' : ''
     containerRef.current.style.pointerEvents = enable
@@ -296,11 +322,11 @@ export function DisableOnLoading({children}) {
   }, [])
 
   useEffect(() => {
-    api.onLoading(handleLoading)
+    apiv1.onLoading(handleLoading)
     return () => {
-      api.removeOnLoading(handleLoading)
+      apiv1.removeOnLoading(handleLoading)
     }
-  }, [api, handleLoading])
+  }, [apiv1, handleLoading])
 
   return <div ref={containerRef}>{children}</div>
 }
@@ -312,7 +338,7 @@ export const ApiV1Provider = compose(withKeycloak, withErrors)(ApiProviderCompon
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
-const __reauthorize_trigger_changes = ['api', 'calcId', 'uploadId', 'calc_id', 'upload_id']
+const __reauthorize_trigger_changes = ['apiv1', 'calcId', 'uploadId', 'calc_id', 'upload_id']
 
 class WithApiComponent extends React.Component {
   static propTypes = {
@@ -358,7 +384,7 @@ class WithApiComponent extends React.Component {
 
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { api, keycloak } = rest
+    const { apiv1, keycloak } = rest
     const { notAuthorized } = this.state
     if (notAuthorized) {
       if (keycloak.authenticated) {
@@ -378,7 +404,7 @@ class WithApiComponent extends React.Component {
         )
       }
     } else {
-      if (api) {
+      if (apiv1) {
         if (keycloak.authenticated || !loginRequired) {
           return <Component {...rest} raiseError={this.raiseError} />
         } else {

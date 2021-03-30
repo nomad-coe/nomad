@@ -46,7 +46,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function OverviewView({uploadId, calcId}) {
+export default function OverviewView({uploadId, entryId}) {
   const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
@@ -57,7 +57,7 @@ export default function OverviewView({uploadId, calcId}) {
   // index. It is used quick to fetch and will be used to decide the subview to
   // show.
   useEffect(() => {
-    api.entry(calcId).then(data => {
+    api.entry(entryId).then(data => {
       setEntry(data)
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
@@ -66,7 +66,7 @@ export default function OverviewView({uploadId, calcId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, calcId, setEntry, setExists])
+  }, [api, raiseError, entryId, setEntry, setExists])
 
   // The entry does not exist
   if (!exists) {
@@ -89,5 +89,5 @@ export default function OverviewView({uploadId, calcId}) {
 
 OverviewView.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  entryId: PropTypes.string.isRequired
 }

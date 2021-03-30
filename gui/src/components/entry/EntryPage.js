@@ -62,15 +62,15 @@ export default function EntryPage() {
 
   return (
     <Route
-      path={`${path}/:uploadId?/:calcId?/:tab?`}
-      render={({match: {params: {uploadId, calcId, tab = 'overview'}}}) => {
-        if (calcId && uploadId) {
-          const calcProps = { calcId: calcId, uploadId: uploadId }
+      path={`${path}/:uploadId?/:entryId?/:tab?`}
+      render={({match: {params: {uploadId, entryId, tab = 'overview'}}}) => {
+        if (entryId && uploadId) {
+          const calcProps = { entryId: entryId, uploadId: uploadId }
           return (
             <React.Fragment>
               <Tabs
                 value={tab || 'overview'}
-                onChange={(_, value) => history.push(`${url}/${uploadId}/${calcId}/${value}`)}
+                onChange={(_, value) => history.push(`${url}/${uploadId}/${entryId}/${value}`)}
                 indicatorColor="primary"
                 textColor="primary"
                 variant="fullWidth"

@@ -18,7 +18,7 @@
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
-import { apiContext } from '../api'
+import { apiContext } from '../apiv1'
 import { domains } from '../domains'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
@@ -29,31 +29,31 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function RawFileView({uploadId, calcId}) {
+export default function RawFileView({uploadId, entryId}) {
   const classes = useStyles()
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
-  const [state, setState] = useState({calcData: null, doesNotExist: false})
+  const [state, setState] = useState({entryData: null, doesNotExist: false})
 
   useEffect(() => {
-    setState({calcData: null, doesNotExist: false})
-  }, [setState, uploadId, calcId])
+    setState({entryData: null, doesNotExist: false})
+  }, [setState, uploadId, entryId])
 
   useEffect(() => {
-    api.repo(uploadId, calcId).then(data => {
-      setState({calcData: data, doesNotExist: false})
+    api.entry(entryId).then(entry => {
+      setState({entryData: entry.data, doesNotExist: false})
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
-        setState({calcData: null, doesNotExist: true})
+        setState({entryData: null, doesNotExist: true})
       } else {
-        setState({calcData: null, doesNotExist: false})
+        setState({entryData: null, doesNotExist: false})
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setState])
+  }, [api, raiseError, entryId, setState])
 
-  const calcData = state.calcData || {uploadId: uploadId, calcId: calcId}
-  const domain = calcData.domain && domains[calcData.domain]
+  const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
+  const domain = entryData.domain && domains[entryData.domain]
 
   if (state.doesNotExist) {
     return <EntryPageContent>
@@ -65,12 +65,12 @@ export default function RawFileView({uploadId, calcId}) {
 
   return (
     <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
-      {domain && <domain.EntryRawView data={calcData} calcId={calcId} uploadId={uploadId} />}
+      {domain && <domain.EntryRawView data={entryData} entryId={entryId} uploadId={uploadId} />}
     </EntryPageContent>
   )
 }
 
 RawFileView.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  entryId: PropTypes.string.isRequired
 }
