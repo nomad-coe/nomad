@@ -573,6 +573,10 @@ class PaginationResponse(Pagination):
         the next page of results. If no more results are available, `next_page_after_value`
         will not be set.
         '''))
+    page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url of the current page.
+        '''))
     next_page_url: Optional[str] = Field(
         None, description=strip('''
         The url to get the next page.
