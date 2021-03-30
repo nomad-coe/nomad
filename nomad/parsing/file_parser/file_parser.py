@@ -47,7 +47,7 @@ class FileParser:
         self._results: Dict[str, Any] = None
         # a key is necessary for xml parsers, where parsing is done dynamically
         self._key: str = None
-        self._kwargs: Dict[str, Any] = None
+        self._kwargs: Dict[str, Any] = dict()
         self._file_handler: Any = None
 
     def init_parameters(self):
