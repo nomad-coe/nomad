@@ -16,9 +16,10 @@
 # limitations under the License.
 #
 
+import re
 from typing import cast, Optional, List
 from fastapi import APIRouter, Depends, Query as FastApiQuery, Path, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
@@ -30,10 +31,10 @@ from nomad.doi import DOI
 
 from .auth import get_required_user
 from .entries import _do_exaustive_search
-from ..utils import create_responses
+from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    dataset_pagination_parameters, DatasetPagination, PaginationResponse, Query, HTTPExceptionModel,
-    User, Direction, Owner, Any_)
+    IndexBasedPagination, PaginationResponse, Query, HTTPExceptionModel, User, Direction,
+    Owner, Any_)
 
 
 router = APIRouter()
@@ -75,6 +76,20 @@ _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
 
 
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
+
+
+class DatasetPagination(IndexBasedPagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        # TODO: need real validation
+        if order_by is None:
+            return order_by
+        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
+        return order_by
+
+
+dataset_pagination_parameters = parameter_dependency_from_model(
+    'dataset_pagination_parameters', DatasetPagination)
 
 
 class DatasetsResponse(BaseModel):
@@ -125,12 +140,12 @@ async def get_datasets(
 
     mongodb_query = mongodb_query.order_by(order_by)
 
-    start = int(pagination.after)
+    start = (pagination.page - 1) * pagination.size
     end = start + pagination.size
 
     pagination_response = PaginationResponse(
         total=mongodb_query.count(),
-        next_after=str(end) if end < mongodb_query.count() else None,
+        next_after=str(end - 1) if pagination.page != 1 and end < mongodb_query.count() else None,
         **pagination.dict())  # type: ignore
 
     return {

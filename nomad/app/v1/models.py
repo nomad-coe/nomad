@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 
-import re
 from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
@@ -457,27 +456,20 @@ class Pagination(BaseModel):
         '''))
     after: Optional[str] = Field(
         None, description=strip('''
-            A string value which defines a position in the total list of results. If a
-            value for `after` is provided when making a request, the response will return
-            the next `size` results, starting from the point specified by `after`. If
-            the value is omitted when making a request, the response will just give the
-            first page of results.
+            This attribute defines the position after which the page begins, and is used
+            to navigate through the total list of results.
 
-            The response will also contain an attribute `next_after`, which similarly
-            defines the starting position of the next page. Thus, one would normally start
-            with a request where `after` is omitted, then use the `next_after` value from
-            the responses as the `after` in the next request, to get the next page of
-            results.
+            When requesting the first page, no value should be provided for `after`. Each
+            response will contain a value `next_after`, which can be used to obtain the
+            next page (by setting `after` in your next request to this value).
 
-            Note that the values of `after` and `next_after` depends on the API operation
-            and potentially on the `order_by` field and its type.
-            It will always be a string encoded value. It might be an `order_by` value, or an index.
-            It might contain an id as *tie breaker*, if `order_by` is not a field with
-            unique values.
-            The *tie breaker* will be `:` separated, e.g. `<value>:<id>`.
-            For simple, index-based pagination, after` will be the zero-based index of the
-            first result in the response.
-        '''))
+            The field is encoded as a string, and the format of `after` and `next_after`
+            depends on which API method is used.
+
+            Some API functions additionally allows a simplified navigation, by specifying
+            the page number in the key `page`. It is however always possible to use `after`
+            and `next_after` to iterate through the results.
+            '''))
 
     @validator('size')
     def validate_size(cls, size):  # pylint: disable=no-self-argument
@@ -532,30 +524,32 @@ class IndexBasedPagination(Pagination):
         size = values.get('size')
         if after is not None:
             try:
-                after = int(after)
+                after_int = int(after)
             except ValueError:
                 raise ValueError('Invalid value for `after` - could not convert to integer.')
         if page is None and after is None:
             # Neither page nor after provided - default to first page
             page = 1
-            after = 0
+            after = None
         elif page is not None and after is not None:
             # Both provided - check that they are consistent.
-            assert after == (page - 1) * size, 'inconsistent page/after values provided'
+            assert page != 1, '`after` should not be set for the first page'
+            assert size, '`size` cannot be zero or unspecified when `page` != 1'
+            assert after_int == (page - 1) * size - 1, 'inconsistent page/after values provided'
         elif page is not None:
             # Only page provided - calculate after
-            after = (page - 1) * size
+            if page == 1:
+                after = None
+            else:
+                after = str((page - 1) * size - 1)
         elif after is not None:
             # Only after provided - calculate page
-            if not size:
-                assert after == 0, 'after must be zero if size is zero.'
-                page = 1
-            else:
-                assert after % size == 0, 'after must be a multiple of size'
-                page = after // size + 1
+            assert size, '`after` should not be set when `size` is zero'
+            assert (after_int + 1) % size == 0, 'illegal value for `after` provided'
+            page = (after_int + 1) // size + 1
         assert page >= 1, 'negative paging is not allowed'
         values['page'] = page
-        values['after'] = str(after)
+        values['after'] = after
         return values
 
 
@@ -576,7 +570,7 @@ class PaginationResponse(Pagination):
         '''))
     page: Optional[int] = Field(
         None, description=strip('''
-            The returned page number. The availability depends on the API method.
+        The returned page number. Only applicable for some API methods.
         '''))
 
     @validator('order_by')
@@ -634,7 +628,7 @@ class EntryPagination(EntryBasedPagination):
             used instead of `after` to jump to a particular results page.
 
             However, you can only retreive up to the 10.000th entry with a page number.
-            Only one, `after` *or* `page` must be provided.
+            Only one, `after` *or* `page` can be provided.
         '''))
 
     @validator('page')
@@ -658,20 +652,6 @@ class AggregationPagination(EntryBasedPagination):
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
         '''))
-
-
-class DatasetPagination(IndexBasedPagination):
-    @validator('order_by')
-    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        # TODO: need real validation
-        if order_by is None:
-            return order_by
-        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
-        return order_by
-
-
-dataset_pagination_parameters = parameter_dependency_from_model(
-    'dataset_pagination_parameters', DatasetPagination)
 
 
 class AggregatedEntities(BaseModel):
