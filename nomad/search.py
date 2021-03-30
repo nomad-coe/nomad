@@ -995,17 +995,17 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     # 'after' feature that allows to scan through all aggregation values.
     order_by = agg.pagination.order_by
     if order_by is None:
-        composite = dict(sources={name: terms}, size=agg.pagination.size)
+        composite = dict(sources={name: terms}, size=agg.pagination.page_size)
     else:
         order_quantity = search_quantities[order_by]
         sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = dict(sources=[{order_by: sort_terms}, {quantity.name: terms}], size=agg.pagination.size)
+        composite = dict(sources=[{order_by: sort_terms}, {quantity.name: terms}], size=agg.pagination.page_size)
 
-    if agg.pagination.after is not None:
+    if agg.pagination.page_after_value is not None:
         if order_by is None:
-            composite['after'] = {name: agg.pagination.after}
+            composite['after'] = {name: agg.pagination.page_after_value}
         else:
-            order_value, quantity_value = agg.pagination.after.split(':')
+            order_value, quantity_value = agg.pagination.page_after_value.split(':')
             composite['after'] = {quantity.name: quantity_value, order_quantity.name: order_value}
 
     composite_agg = es_search.aggs.bucket('agg:%s' % name, 'composite', **composite)
@@ -1056,10 +1056,10 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
     if 'after_key' in es_agg:
         after_key = es_agg['after_key']
         if order_by is None:
-            pagination.next_after = after_key[name]
+            pagination.next_page_after_value = after_key[name]
         else:
             str_values = [str(v) for v in after_key.to_dict().values()]
-            pagination.next_after = ':'.join(str_values)
+            pagination.next_page_after_value = ':'.join(str_values)
 
     return AggregationResponse(data=agg_data, pagination=pagination, **aggregation_dict)
 
@@ -1094,12 +1094,12 @@ def search(
     if order_field != 'calc_id':
         sort['calc_id'] = pagination.order.value
     search = search.sort(sort)
-    search = search.extra(size=pagination.size)
-    if pagination.after:
-        search = search.extra(search_after=pagination.after.rsplit(':', 1))
+    search = search.extra(size=pagination.page_size)
+    if pagination.page_after_value:
+        search = search.extra(search_after=pagination.page_after_value.rsplit(':', 1))
 
     if pagination.page:
-        search = search[(pagination.page - 1) * pagination.size: pagination.page * pagination.size]
+        search = search[(pagination.page - 1) * pagination.page_size: pagination.page * pagination.page_size]
 
     # required
     if required:
@@ -1126,19 +1126,19 @@ def search(
     more_response_data = {}
 
     # pagination
-    next_after = None
+    next_page_after_value = None
     if 0 < len(es_response.hits) < es_response.hits.total:
         last = es_response.hits[-1]
         if order_field == 'calc_id':
-            next_after = last['calc_id']
+            next_page_after_value = last['calc_id']
         else:
             after_value = last
             for order_field_segment in order_field.split('.'):
                 after_value = after_value[order_field_segment]
-            next_after = '%s:%s' % (after_value, last['calc_id'])
+            next_page_after_value = '%s:%s' % (after_value, last['calc_id'])
     pagination_response = PaginationResponse(
         total=es_response.hits.total,
-        next_after=next_after,
+        next_page_after_value=next_page_after_value,
         **pagination.dict())
 
     # statistics

@@ -33,8 +33,8 @@ from .auth import get_required_user
 from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    IndexBasedPagination, PaginationResponse, Query, HTTPExceptionModel, User, Direction,
-    Owner, Any_)
+    IndexBasedPagination, IndexBasedPaginationResponse, Query, HTTPExceptionModel, User,
+    Direction, Owner, Any_)
 
 
 router = APIRouter()
@@ -93,7 +93,7 @@ dataset_pagination_parameters = parameter_dependency_from_model(
 
 
 class DatasetsResponse(BaseModel):
-    pagination: PaginationResponse = Field(None)
+    pagination: IndexBasedPaginationResponse = Field(None)
     data: List[Dataset] = Field(None)  # type: ignore
 
 
@@ -140,12 +140,12 @@ async def get_datasets(
 
     mongodb_query = mongodb_query.order_by(order_by)
 
-    start = (pagination.page - 1) * pagination.size
-    end = start + pagination.size
+    start = (pagination.page - 1) * pagination.page_size
+    end = start + pagination.page_size
 
-    pagination_response = PaginationResponse(
+    pagination_response = IndexBasedPaginationResponse(
         total=mongodb_query.count(),
-        next_after=str(end - 1) if pagination.page != 1 and end < mongodb_query.count() else None,
+        next_page_after_value=str(end - 1) if pagination.page != 1 and end < mongodb_query.count() else None,
         **pagination.dict())  # type: ignore
 
     return {

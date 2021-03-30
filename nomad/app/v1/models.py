@@ -438,10 +438,10 @@ metadata_required_parameters = parameter_dependency_from_model(
 class Pagination(BaseModel):
     ''' Defines the order, size, and page of results. '''
 
-    size: Optional[int] = Field(
+    page_size: Optional[int] = Field(
         10, description=strip('''
             The page size, e.g. the maximum number of items contained in one response.
-            A `size` of 0 will return no results.
+            A `page_size` of 0 will return no results.
         '''))
     order_by: Optional[str] = Field(
         None,  # type: ignore
@@ -454,27 +454,28 @@ class Pagination(BaseModel):
             The ordering direction of the results based on `order_by`. Its either
             ascending `asc` or decending `desc`. Default is `asc`.
         '''))
-    after: Optional[str] = Field(
+    page_after_value: Optional[str] = Field(
         None, description=strip('''
             This attribute defines the position after which the page begins, and is used
             to navigate through the total list of results.
 
-            When requesting the first page, no value should be provided for `after`. Each
-            response will contain a value `next_after`, which can be used to obtain the
-            next page (by setting `after` in your next request to this value).
+            When requesting the first page, no value should be provided for
+            `page_after_value`. Each response will contain a value `next_page_after_value`,
+            which can be used to obtain the next page (by setting `page_after_value` in
+            your next request to this value).
 
-            The field is encoded as a string, and the format of `after` and `next_after`
-            depends on which API method is used.
+            The field is encoded as a string, and the format of `page_after_value` and
+            `next_page_after_value` depends on which API method is used.
 
             Some API functions additionally allows a simplified navigation, by specifying
-            the page number in the key `page`. It is however always possible to use `after`
-            and `next_after` to iterate through the results.
+            the page number in the key `page`. It is however always possible to use
+            `page_after_value` and `next_page_after_value` to iterate through the results.
             '''))
 
-    @validator('size')
-    def validate_size(cls, size):  # pylint: disable=no-self-argument
-        assert size >= 0, 'size must be >= 0'
-        return size
+    @validator('page_size')
+    def validate_page_size(cls, page_size):  # pylint: disable=no-self-argument
+        assert page_size >= 0, 'page_size must be >= 0'
+        return page_size
 
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
@@ -484,13 +485,14 @@ class Pagination(BaseModel):
         '''
         raise NotImplementedError('Validation of `order_by` not implemented!')
 
-    @validator('after')
-    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         '''
-        Override this in your Pagination class to implement validation of the `after` value.
+        Override this in your Pagination class to implement validation of the
+        `page_after_value` value.
         This method has to be implemented!
         '''
-        raise NotImplementedError('Validation of `after` not implemented!')
+        raise NotImplementedError('Validation of `page_after_value` not implemented!')
 
 
 class IndexBasedPagination(Pagination):
@@ -498,14 +500,15 @@ class IndexBasedPagination(Pagination):
         None, description=strip('''
             For simple, index-based pagination, this should contain the number of the
             requested page (1-based). When provided in a request, this attribute can be
-            used instead of `after` to jump to a particular results page. However, if you
-            specify both `after` *and* `page` in your request, they need to be consistent.
+            used instead of `page_after_value` to jump to a particular results page.
+            However, if you specify both `page_after_value` *and* `page` in your request,
+            they need to be consistent.
         '''))
 
-    @validator('after')
-    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         # This is validated in the root validator instead
-        return after
+        return page_after_value
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
@@ -515,41 +518,42 @@ class IndexBasedPagination(Pagination):
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
         '''
-        Ensure that both page and after are filled in consistently. This requires us to
-        look at `page`, `after` and `size` (whichever is set). If inconsistent
-        information is provided, an exception will be thrown.
+        Ensure that both `page` and `page_after_value` are filled in consistently. This
+        requires us to look at `page`, `page_after_value` and `page_size` (whichever is set).
+        If inconsistent information is provided, an exception will be thrown.
         '''
         page = values.get('page')
-        after = values.get('after')
-        size = values.get('size')
-        if after is not None:
+        page_after_value = values.get('page_after_value')
+        page_size = values.get('page_size')
+        if page_after_value is not None:
             try:
-                after_int = int(after)
+                page_after_value_int = int(page_after_value)
             except ValueError:
-                raise ValueError('Invalid value for `after` - could not convert to integer.')
-        if page is None and after is None:
-            # Neither page nor after provided - default to first page
+                raise ValueError(
+                    'Invalid value for `page_after_value` - could not convert to integer.')
+        if page is None and page_after_value is None:
+            # Neither page nor page_after_value provided - default to first page
             page = 1
-            after = None
-        elif page is not None and after is not None:
+            page_after_value = None
+        elif page is not None and page_after_value is not None:
             # Both provided - check that they are consistent.
-            assert page != 1, '`after` should not be set for the first page'
-            assert size, '`size` cannot be zero or unspecified when `page` != 1'
-            assert after_int == (page - 1) * size - 1, 'inconsistent page/after values provided'
+            assert page != 1, '`page_after_value` should not be set for the first page'
+            assert page_size, '`page_size` cannot be zero or unspecified when `page` != 1'
+            assert page_after_value_int == (page - 1) * page_size - 1, 'inconsistent page/page_after_value values provided'
         elif page is not None:
-            # Only page provided - calculate after
+            # Only page provided - calculate page_after_value
             if page == 1:
-                after = None
+                page_after_value = None
             else:
-                after = str((page - 1) * size - 1)
-        elif after is not None:
-            # Only after provided - calculate page
-            assert size, '`after` should not be set when `size` is zero'
-            assert (after_int + 1) % size == 0, 'illegal value for `after` provided'
-            page = (after_int + 1) // size + 1
+                page_after_value = str((page - 1) * page_size - 1)
+        elif page_after_value is not None:
+            # Only page_after_value provided - calculate page
+            assert page_size, '`page_after_value` should not be set when `page_size` is zero'
+            assert (page_after_value_int + 1) % page_size == 0, 'illegal value for `page_after_value` provided'
+            page = (page_after_value_int + 1) // page_size + 1
         assert page >= 1, 'negative paging is not allowed'
         values['page'] = page
-        values['after'] = after
+        values['page_after_value'] = page_after_value
         return values
 
 
@@ -559,18 +563,19 @@ class PaginationResponse(Pagination):
         The total number of results that fit the given query. This is independent of
         any pagination and aggregations.
         '''))
-    next_after: Optional[str] = Field(
-        None, description=strip('''
-        The *next* value to be used as `after` in a follow up requests, to get the next
-        page of results. If no more results are available, `next_after` will not be set.
-        '''))
-    next_url: Optional[str] = Field(
-        None, description=strip('''
-        The url to get the next page.
-        '''))
     page: Optional[int] = Field(
         None, description=strip('''
         The returned page number. Only applicable for some API methods.
+        '''))
+    next_page_after_value: Optional[str] = Field(
+        None, description=strip('''
+        The *next* value to be used as `page_after_value` in a follow up requests, to get
+        the next page of results. If no more results are available, `next_page_after_value`
+        will not be set.
+        '''))
+    next_page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the next page.
         '''))
 
     @validator('order_by')
@@ -578,20 +583,31 @@ class PaginationResponse(Pagination):
         # No validation - behaviour of this field depends on api method
         return order_by
 
-    @validator('after')
-    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         # No validation - behaviour of this field depends on api method
-        return after
+        return page_after_value
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
         # No validation - behaviour of this field depends on api method
         return page
 
-    @validator('next_after')
-    def validate_next_after(cls, next_after, values):  # pylint: disable=no-self-argument
+    @validator('next_page_after_value')
+    def validate_next_page_after_value(cls, next_page_after_value, values):  # pylint: disable=no-self-argument
         # No validation - behaviour of this field depends on api method
-        return next_after
+        return next_page_after_value
+
+
+class IndexBasedPaginationResponse(PaginationResponse):
+    prev_page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the previous page.
+        '''))
+    first_page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the first page.
+        '''))
 
 
 class EntryBasedPagination(Pagination):
@@ -612,12 +628,13 @@ class EntryBasedPagination(Pagination):
         assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
         return order_by
 
-    @validator('after')
-    def validate_after(cls, after, values):  # pylint: disable=no-self-argument
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         order_by = values.get('order_by', calc_id)
-        if after is not None and order_by is not None and order_by != calc_id and ':' not in after:
-            after = '%s:' % after
-        return after
+        if page_after_value is not None and order_by is not None and order_by != calc_id:
+            if ':' not in page_after_value:
+                page_after_value = '%s:' % page_after_value
+        return page_after_value
 
 
 class EntryPagination(EntryBasedPagination):
@@ -625,18 +642,18 @@ class EntryPagination(EntryBasedPagination):
         None, description=strip('''
             For simple, index-based pagination, this should contain the number of the
             requested page (1-based). When provided in a request, this attribute can be
-            used instead of `after` to jump to a particular results page.
+            used instead of `page_after_value` to jump to a particular results page.
 
             However, you can only retreive up to the 10.000th entry with a page number.
-            Only one, `after` *or* `page` can be provided.
+            Only one, `page_after_value` *or* `page` can be provided.
         '''))
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
         if page is not None:
-            assert values['after'] is None, 'There can only be one, a page number or an after value.'
+            assert values['page_after_value'] is None, 'There can only be one, a page number or an page_after_value value.'
             assert page > 0, 'Page has to be larger than 1.'
-            assert page * values.get('size', 10) < 10000, 'Pagination by page is limited to 10.000 entries.'
+            assert page * values.get('page_size', 10) < 10000, 'Pagination by page is limited to 10.000 entries.'
 
         return page
 
@@ -744,7 +761,7 @@ class WithQueryAndPagination(WithQuery):
     pagination: Optional[EntryPagination] = Body(
         None,
         example={
-            'size': 5,
+            'page_size': 5,
             'order_by': 'upload_time'
         })
 
@@ -776,7 +793,7 @@ class EntriesMetadata(WithQueryAndPagination):
             'uploads': {
                 'quantity': 'upload_id',
                 'pagination': {
-                    'size': 10,
+                    'page_size': 10,
                     'order_by': 'upload_time'
                 },
                 'entries': {

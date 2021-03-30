@@ -162,20 +162,20 @@ async def get_entries_metadata(
 
 
 def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: User) -> Iterator[Dict[str, Any]]:
-    after = None
+    page_after_value = None
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=EntryPagination(size=100, after=after, order_by='upload_id'),
+            pagination=EntryPagination(size=100, page_after_value=page_after_value, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
-        after = response.pagination.next_after
+        page_after_value = response.pagination.next_page_after_value
 
         for result in response.data:
             yield result
 
-        if after is None or len(response.data) == 0:
+        if page_after_value is None or len(response.data) == 0:
             break
 
 
@@ -256,7 +256,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=EntryPagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -566,7 +566,7 @@ def _answer_entries_archive_download_request(
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=EntryPagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
