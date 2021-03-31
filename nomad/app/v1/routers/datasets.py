@@ -18,7 +18,8 @@
 
 import re
 from typing import cast, Optional, List
-from fastapi import APIRouter, Depends, Query as FastApiQuery, Path, HTTPException, status
+from fastapi import (
+    APIRouter, Request, Depends, Query as FastApiQuery, Path, HTTPException, status)
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
@@ -121,6 +122,7 @@ class DatasetCreate(BaseModel):  # type: ignore
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_datasets(
+        request: Request,
         dataset_id: str = FastApiQuery(None),
         name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
@@ -143,10 +145,8 @@ async def get_datasets(
     start = (pagination.page - 1) * pagination.page_size
     end = start + pagination.page_size
 
-    pagination_response = IndexBasedPaginationResponse(
-        total=mongodb_query.count(),
-        next_page_after_value=str(end - 1) if pagination.page != 1 and end < mongodb_query.count() else None,
-        **pagination.dict())  # type: ignore
+    pagination_response = IndexBasedPaginationResponse(total=mongodb_query.count(), **pagination.dict())
+    pagination_response.populate_page_refs(request)
 
     return {
         'pagination': pagination_response,

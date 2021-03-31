@@ -31,7 +31,7 @@ from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
 from nomad.metainfo.search_extension import metrics, search_quantities, search_sub_sections
 
-from .utils import parameter_dependency_from_model
+from .utils import parameter_dependency_from_model, update_url_query_arguments
 
 
 User = datamodel.User.m_def.a_pydantic.model
@@ -581,6 +581,10 @@ class PaginationResponse(Pagination):
         None, description=strip('''
         The url to get the next page.
         '''))
+    first_page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the first page.
+        '''))
 
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
@@ -602,16 +606,48 @@ class PaginationResponse(Pagination):
         # No validation - behaviour of this field depends on api method
         return next_page_after_value
 
+    def populate_urls(self, request: Request):
+        '''
+        Populates the urls (`page_url`, `next_page_url`, `first_page_url` from the
+        request and `next_page_after_value`.
+        '''
+        original_url = str(request.url)
+        self.page_url = original_url
+        self.first_page_url = update_url_query_arguments(
+            original_url, page=None, page_after_value=None)
+        if self.next_page_after_value:
+            self.next_page_url = update_url_query_arguments(
+                original_url, page=None, page_after_value=self.next_page_after_value)
+
 
 class IndexBasedPaginationResponse(PaginationResponse):
     prev_page_url: Optional[str] = Field(
         None, description=strip('''
         The url to get the previous page.
         '''))
-    first_page_url: Optional[str] = Field(
-        None, description=strip('''
-        The url to get the first page.
-        '''))
+
+    def populate_page_refs(self, request: Request):
+        '''
+        Provided that `page` and `total` are populated, populates all other references:
+        `page_after_value`, `next_page_after_value`, `page_url`, `next_page_url`,
+        `prev_page_url`, and `first_page_url`.
+        '''
+        has_more_pages = self.total > self.page * self.page_size
+        self.page_after_value = str((self.page - 1) * self.page_size - 1) if self.page > 1 else None
+        self.next_page_after_value = str(self.page * self.page_size - 1) if has_more_pages else None
+
+        original_url = str(request.url)
+        self.page_url = original_url
+        self.first_page_url = update_url_query_arguments(
+            original_url, page=None, page_after_value=None)
+
+        if has_more_pages:
+            self.next_page_url = update_url_query_arguments(
+                original_url, page=self.page + 1, page_after_value=None)
+
+        if self.page > 1:
+            self.prev_page_url = update_url_query_arguments(
+                original_url, page=self.page - 1, page_after_value=None)
 
 
 class EntryBasedPagination(Pagination):
