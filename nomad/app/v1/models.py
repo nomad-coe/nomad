@@ -575,15 +575,15 @@ class PaginationResponse(Pagination):
         '''))
     page_url: Optional[str] = Field(
         None, description=strip('''
-        The url of the current page.
+        The url of the current page. Only applicable for GET requests.
         '''))
     next_page_url: Optional[str] = Field(
         None, description=strip('''
-        The url to get the next page.
+        The url to get the next page. Only applicable for GET requests.
         '''))
     first_page_url: Optional[str] = Field(
         None, description=strip('''
-        The url to get the first page.
+        The url to get the first page. Only applicable for GET requests.
         '''))
 
     @validator('order_by')
@@ -609,8 +609,9 @@ class PaginationResponse(Pagination):
     def populate_urls(self, request: Request):
         '''
         Populates the urls (`page_url`, `next_page_url`, `first_page_url` from the
-        request and `next_page_after_value`.
+        request and `next_page_after_value`. Only applicable for GET requests.
         '''
+        assert request.method.upper() == 'GET'
         original_url = str(request.url)
         self.page_url = original_url
         self.first_page_url = update_url_query_arguments(
@@ -630,8 +631,9 @@ class IndexBasedPaginationResponse(PaginationResponse):
         '''
         Provided that `page` and `total` are populated, populates all other references:
         `page_after_value`, `next_page_after_value`, `page_url`, `next_page_url`,
-        `prev_page_url`, and `first_page_url`.
+        `prev_page_url`, and `first_page_url`. Only applicable for GET requests.
         '''
+        assert request.method.upper() == 'GET'
         has_more_pages = self.total > self.page * self.page_size
         self.page_after_value = str((self.page - 1) * self.page_size - 1) if self.page > 1 else None
         self.next_page_after_value = str(self.page * self.page_size - 1) if has_more_pages else None

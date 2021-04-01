@@ -96,6 +96,21 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
     return data
 
 
+def assert_pagination(pagination):
+    page = pagination['page']
+    total = pagination['total']
+    page_size = pagination['page_size']
+    assert page >= 1
+    assert ('page_after_value' in pagination) == (page != 1)
+    assert ('next_page_after_value' in pagination) == (total > page * page_size)
+    assert 'page_url' in pagination
+    assert 'first_page_url' in pagination
+    if 'next_page_after_value' in pagination:
+        assert 'next_page_url' in pagination
+    if page > 1:
+        assert 'prev_page_url' in pagination
+
+
 def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_entries: int = -1, **kwargs):
     for key, value in kwargs.items():
         assert dataset[key] == value
@@ -158,6 +173,7 @@ def test_datasets(client, data, query, size, status_code):
     assert len(json_response['data']) == size
     for dataset in json_response['data']:
         assert_dataset(dataset, **query)
+    assert_pagination(json_response['pagination'])
 
 
 @pytest.mark.parametrize('dataset_id, result, status_code', [

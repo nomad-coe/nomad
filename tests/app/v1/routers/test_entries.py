@@ -25,7 +25,7 @@ import json
 from nomad.metainfo.search_extension import search_quantities
 from nomad.app.v1.models import AggregateableQuantity, Metric
 
-from tests.utils import assert_at_least
+from tests.utils import assert_at_least, assert_url_query_args
 
 from .common import assert_response
 from tests.app.conftest import example_data as data  # pylint: disable=unused-import
@@ -323,9 +323,9 @@ def assert_aggregations(response_json, name, agg, total: int, size: int):
         agg_data = [{agg['quantity']: value} for value in agg_response['data']]
 
     if 'pagination' in agg:
-        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data)
+        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data, is_get=False)
     else:
-        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'])
+        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'], is_get=False)
 
     if 'entries' in agg:
         for item in agg_response['data'].values():
@@ -336,7 +336,7 @@ def assert_aggregations(response_json, name, agg, total: int, size: int):
                     assert_required(entry, agg['entries']['required'])
 
 
-def assert_pagination(pagination, pagination_response, data, order_by=None, order=None):
+def assert_pagination(pagination, pagination_response, data, order_by=None, order=None, is_get=True):
     assert_at_least(pagination, pagination_response)
     assert len(data) <= pagination_response['page_size']
     assert len(data) <= pagination_response['total']
@@ -353,6 +353,19 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
                     assert item[order_by] >= data[index + 1][order_by]
                 else:
                     assert item[order_by] <= data[index + 1][order_by]
+
+    if is_get:
+        page_url = pagination_response.get('page_url')
+        first_page_url = pagination_response.get('first_page_url')
+        next_page_url = pagination_response.get('next_page_url')
+        next_page_after_value = pagination_response.get('next_page_after_value')
+
+        assert page_url
+        assert first_page_url
+        assert_url_query_args(first_page_url, page_after_value=None)
+        if next_page_after_value:
+            assert next_page_url
+            assert_url_query_args(next_page_url, page_after_value=next_page_after_value)
 
 
 def assert_raw_zip_file(
@@ -888,4 +901,4 @@ def test_entries_pagination(client, data, pagination, response_pagination, statu
     if response_json is None:
         return
 
-    assert_pagination(pagination, response_json['pagination'], response_json['data'])
+    assert_pagination(pagination, response_json['pagination'], response_json['data'], is_get=(http_method == 'get'))

@@ -122,7 +122,7 @@ async def post_entries_metadata_query(
     and aggregated data over all search results.
     '''
 
-    res = perform_search(
+    return perform_search(
         owner=data.owner,
         query=data.query,
         pagination=data.pagination,
@@ -130,8 +130,6 @@ async def post_entries_metadata_query(
         statistics=data.statistics,
         aggregations=data.aggregations,
         user_id=user.user_id if user is not None else None)
-    res.pagination.populate_urls(request)
-    return res
 
 
 @router.get(
@@ -358,10 +356,8 @@ _entries_raw_query_docstring = strip('''
 async def post_entries_raw_query(
         request: Request, data: EntriesRaw, user: User = Depends(get_optional_user)):
 
-    res = _answer_entries_raw_request(
+    return _answer_entries_raw_request(
         owner=data.owner, query=data.query, pagination=data.pagination, user=user)
-    res.pagination.populate_urls(request)
-    return res
 
 
 @router.get(
@@ -541,11 +537,9 @@ _entries_archive_docstring = strip('''
 async def post_entries_archive_query(
         request: Request, data: EntriesArchive, user: User = Depends(get_optional_user)):
 
-    res = _answer_entries_archive_request(
+    return _answer_entries_archive_request(
         owner=data.owner, query=data.query, pagination=data.pagination,
         required=data.required, user=user)
-    res.pagination.populate_urls(request)
-    return res
 
 
 @router.get(
