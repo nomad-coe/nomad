@@ -41,6 +41,7 @@ from gaussianparser import GaussianParser
 from gpawparser import GPAWParser
 from octopusparser import OctopusParser
 from orcaparser import OrcaParser
+from cp2kparser import CP2KParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -136,17 +137,7 @@ parsers = [
     VASPParser(),
     ExcitingParser(),
     FHIAimsParser(),
-    LegacyParser(
-        name='parsers/cp2k', code_name='CP2K', code_homepage='https://www.cp2k.org/',
-        parser_class_name='cp2kparser.CP2KParser',
-        mainfile_contents_re=(
-            r'\*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n'
-            r' \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n'
-            r' \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM STARTED BY .*\n'
-            r' \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n'
-            r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n'
-        )
-    ),
+    CP2KParser(),
     CrystalParser(),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
     # when searching through the first 500 bytes of main files. We decided
