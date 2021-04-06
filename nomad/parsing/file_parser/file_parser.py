@@ -150,9 +150,10 @@ class FileParser:
             return self[int]
 
     def __getattr__(self, key):
-        if key not in self._results:
-            self.parse(key)
-        return self._results.get(key)
+        if self._results is None:
+            self._results = dict()
+
+        return self._results.get(key, None)
 
     def parse(self, quantity_key: str = None, **kwargs):
         pass
