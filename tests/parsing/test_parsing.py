@@ -240,12 +240,17 @@ def create_reference(data, pretty):
 
 @pytest.fixture(scope='function')
 def assert_parser_result(caplog):
-    def _assert(entry_archive: EntryArchive, has_errors: bool = False):
+    def _assert(entry_archive: EntryArchive, has_errors: bool = False, has_warnings: bool = None):
         errors_exist = False
+        warnings_exist = False
         for record in caplog.get_records(when='call'):
             if record.levelname in ['ERROR', 'CRITICAL']:
                 errors_exist = True
+            if record.levelname in ['WARNING']:
+                warnings_exist = True
         assert has_errors == errors_exist
+        if has_warnings is not None:
+            assert has_warnings == has_warnings
 
     return _assert
 
@@ -319,7 +324,7 @@ def test_broken_xml_vasp(assert_parser_result):
     parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
     previous_wd = os.getcwd()  # Get Working directory before parsing.
     parsed_example = run_parser(parser_name, mainfile)
-    assert_parser_result(parsed_example, has_errors=True)
+    assert_parser_result(parsed_example, has_warnings=True)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
 
