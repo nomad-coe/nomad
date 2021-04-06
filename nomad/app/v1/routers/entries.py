@@ -41,7 +41,7 @@ from ..models import (
     entry_pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
-    ArchiveRequired)
+    ArchiveRequired, EntryArchiveRequest)
 
 
 router = APIRouter()
@@ -455,6 +455,7 @@ def _read_archive(entry_metadata, uploads, required):
         with upload_files.read_archive(calc_id) as archive:
             return {
                 'calc_id': calc_id,
+                'upload_id': upload_id,
                 'parser_name': entry_metadata['parser_name'],
                 'archive': query_archive(archive, {calc_id: required})[calc_id]
             }
@@ -529,6 +530,7 @@ def _answer_entries_archive_request(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
+        required=required,
         data=list(response_data.values()))
 
 
@@ -878,6 +880,66 @@ async def get_entry_raw_download_file(
             detail='The requested file does not exist.')
 
 
+def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):
+    try:
+        required_with_references = compute_required_with_referenced(required)
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
+            'The required specification contains an unknown quantity or section: %s' % str(e)))
+
+    query = dict(calc_id=entry_id)
+    response = perform_search(
+        owner=Owner.visible, query=query,
+        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
+        user_id=user.user_id if user is not None else None)
+
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='The entry with the given id does not exist or is not visible to you.')
+
+    entry_metadata = response.data[0]
+
+    if required_with_references is not None:
+        # We can produce all the required archive data from the partial archives stored
+        # in mongodb.
+        partial_archives = cast(dict, read_partial_archives_from_mongo([entry_id], as_dict=True))
+
+    uploads = _Uploads()
+    try:
+        archive_data = None
+        if required_with_references is not None:
+            try:
+                partial_archive = partial_archives[entry_id]
+                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
+            except KeyError:
+                # the partial archive might not exist, e.g. due to processing problems
+                pass
+            except ArchiveQueryError as e:
+                detail = 'The required specification could not be understood: %s' % str(e)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+        if archive_data is None:
+            try:
+                archive_data = _read_archive(entry_metadata, uploads, required=required)['archive']
+            except KeyError:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail='The entry with the given id does exist, but it has no archive.')
+
+        return {
+            'entry_id': entry_id,
+            'required': required,
+            'data': {
+                'calc_id': entry_id,
+                'upload_id': entry_metadata['upload_id'],
+                'parser_name': entry_metadata['parser_name'],
+                'archive': archive_data
+            }}
+    finally:
+        uploads.close()
+
+
 @router.get(
     '/{entry_id}/archive',
     tags=[archive_tag],
@@ -892,28 +954,23 @@ async def get_entry_archive(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    query = dict(calc_id=entry_id)
-    response = perform_search(
-        owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
-        user_id=user.user_id if user is not None else None)
+    return _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
 
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.')
 
-    uploads = _Uploads()
-    try:
-        try:
-            archive_data = _read_archive(response.data[0], uploads, required='*')
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='The entry with the given id does exist, but it has no archive.')
+@router.post(
+    '/{entry_id}/archive/query',
+    tags=[archive_tag],
+    summary='Get the archive for an entry by its id',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_bad_id_response, _bad_archive_required_response))
+async def post_entry_archive_query(
+        data: EntryArchiveRequest, user: User = Depends(get_optional_user),
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.')):
 
-        return {
-            'entry_id': entry_id,
-            'data': archive_data['archive']}
-    finally:
-        uploads.close()
+    '''
+    Returns a partial archive for the given `entry_id` based on the `required` specified
+    in the body.
+    '''
+    return _answer_entry_archive_request(entry_id=entry_id, required=data.required, user=user)

@@ -884,74 +884,81 @@ files_parameters = parameter_dependency_from_model(
 ArchiveRequired = Union[str, Dict[str, Any]]
 
 
-class EntriesArchive(WithQueryAndPagination):
-    required: Optional[ArchiveRequired] = Body(
-        '*',
-        embed=True,
-        description=strip('''
-            The `required` part allows you to specify what parts of the requested archives
-            should be returned. The NOMAD Archive is a hierarchical data format and
-            you can *require* certain branches (i.e. *sections*) in the hierarchy.
-            By specifing certain sections with specific contents or all contents (via `"*"`),
-            you can determine what sections and what quantities should be returned.
-            The default is everything: `"*"`.
+_archive_required_field = Body(
+    '*',
+    embed=True,
+    description=strip('''
+        The `required` part allows you to specify what parts of the requested archives
+        should be returned. The NOMAD Archive is a hierarchical data format and
+        you can *require* certain branches (i.e. *sections*) in the hierarchy.
+        By specifing certain sections with specific contents or all contents (via `"*"`),
+        you can determine what sections and what quantities should be returned.
+        The default is everything: `"*"`.
 
-            For example to specify that you are only interested in the `section_metadata`
-            use:
+        For example to specify that you are only interested in the `section_metadata`
+        use:
 
-            ```
-            {
-                "section_run": "*"
+        ```
+        {
+            "section_metadata": "*"
+        }
+        ```
+
+        Or to only get the `energy_total` from each individual calculations, use:
+        ```
+        {
+            "section_run": {
+                "section_single_configuration_calculation": {
+                    "energy_total": "*"
+                }
             }
-            ```
+        }
+        ```
 
-            Or to only get the `energy_total` from each individual calculations, use:
-            ```
-            {
-                "section_run": {
-                    "section_single_configuration_calculation": {
-                        "energy_total": "*"
+        You can also request certain parts of a list, e.g. the last calculation:
+        ```
+        {
+            "section_run": {
+                "section_single_configuration_calculation[-1]": "*"
+            }
+        }
+        ```
+
+        These required specifications are also very useful to get workflow results.
+        This works because we can use references (e.g. workflow to final result calculation)
+        and the API will resolve these references and return the respective data.
+        For example just the total energy value and reduced formula from the resulting
+        calculation:
+        ```
+        {
+            'section_workflow': {
+                'calculation_result_ref': {
+                    'energy_total': '*',
+                    'single_configuration_calculation_to_system_ref': {
+                        'chemical_composition_reduced': '*'
                     }
                 }
             }
-            ```
-
-            You can also request certain parts of a list, e.g. the last calculation:
-            ```
-            {
-                "section_run": {
-                    "section_single_configuration_calculation[-1]": "*"
-                }
-            }
-            ```
-
-            These required specifications are also very useful to get workflow results.
-            This works because we can use references (e.g. workflow to final result calculation)
-            and the API will resolve these references and return the respective data.
-            For example just the total energy value and reduced formula from the resulting
-            calculation:
-            ```
-            {
-                'section_workflow': {
-                    'calculation_result_ref': {
-                        'energy_total': '*',
-                        'single_configuration_calculation_to_system_ref': {
-                            'chemical_composition_reduced': '*'
-                        }
-                    }
-                }
-            }
-            ```
-        '''),
-        example={
-            'section_run': {
-                'section_single_configuration_calculation[-1]': {
-                    'energy_total': '*'
-                },
-                'section_system[-1]': '*'
+        }
+        ```
+    '''),
+    example={
+        'section_run': {
+            'section_single_configuration_calculation[-1]': {
+                'energy_total': '*'
             },
-            'section_metadata': '*'
-        })
+            'section_system[-1]': '*'
+        },
+        'section_metadata': '*'
+    })
+
+
+class EntriesArchive(WithQueryAndPagination):
+    required: Optional[ArchiveRequired] = _archive_required_field
+
+
+class EntryArchiveRequest(BaseModel):
+    required: Optional[ArchiveRequired] = _archive_required_field
 
 
 class EntriesArchiveDownload(WithQuery):
@@ -1046,7 +1053,7 @@ class EntryArchive(BaseModel):
     calc_id: str = Field(None)
     upload_id: str = Field(None)
     parser_name: str = Field(None)
-    archive: Any = Field(None)
+    archive: Dict[str, Any] = Field(None)
 
 
 class EntriesArchiveResponse(EntriesArchive):
@@ -1054,9 +1061,9 @@ class EntriesArchiveResponse(EntriesArchive):
     data: List[EntryArchive] = Field(None)
 
 
-class EntryArchiveResponse(BaseModel):
+class EntryArchiveResponse(EntryArchiveRequest):
     entry_id: str = Field(...)
-    data: Dict[str, Any]
+    data: EntryArchive = Field(None)
 
 
 class SearchResponse(EntriesMetadataResponse):
