@@ -471,6 +471,19 @@ class Pagination(BaseModel):
             the page number in the key `page`. It is however always possible to use
             `page_after_value` and `next_page_after_value` to iterate through the results.
             '''))
+    page: Optional[int] = Field(
+        None, description=strip('''
+            The number of the page (1-based). When provided in a request, this attribute
+            can be used instead of `page_after_value` to jump to a particular results page.
+
+            **NOTE #1**: the option to request pages by submitting the `page` number is
+            limited. There are api calls where this attribute cannot be used for indexing,
+            or where it can only be used partially. **If you want to just iterate through
+            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+
+            **NOTE #2**: In a request, you should never specify *both* `page` and
+            `page_after_value` (at most one index can be provided).
+        '''))
 
     @validator('page_size')
     def validate_page_size(cls, page_size):  # pylint: disable=no-self-argument
@@ -494,67 +507,36 @@ class Pagination(BaseModel):
         '''
         raise NotImplementedError('Validation of `page_after_value` not implemented!')
 
-
-class IndexBasedPagination(Pagination):
-    page: Optional[int] = Field(
-        None, description=strip('''
-            For simple, index-based pagination, this should contain the number of the
-            requested page (1-based). When provided in a request, this attribute can be
-            used instead of `page_after_value` to jump to a particular results page.
-            However, if you specify both `page_after_value` *and* `page` in your request,
-            they need to be consistent.
-        '''))
-
-    @validator('page_after_value')
-    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
-        # This is validated in the root validator instead
-        return page_after_value
-
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
-        # This is validated in the root validator instead
+        if page is not None:
+            assert page >= 1, 'page must be >= 1'
         return page
 
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
-        '''
-        Ensure that both `page` and `page_after_value` are filled in consistently. This
-        requires us to look at `page`, `page_after_value` and `page_size` (whichever is set).
-        If inconsistent information is provided, an exception will be thrown.
-        '''
         page = values.get('page')
         page_after_value = values.get('page_after_value')
         page_size = values.get('page_size')
-        if page_after_value is not None:
-            try:
-                page_after_value_int = int(page_after_value)
-            except ValueError:
-                raise ValueError(
-                    'Invalid value for `page_after_value` - could not convert to integer.')
-        if page is None and page_after_value is None:
-            # Neither page nor page_after_value provided - default to first page
-            page = 1
-            page_after_value = None
-        elif page is not None and page_after_value is not None:
-            # Both provided - check that they are consistent.
-            assert page != 1, '`page_after_value` should not be set for the first page'
-            assert page_size, '`page_size` cannot be zero or unspecified when `page` != 1'
-            assert page_after_value_int == (page - 1) * page_size - 1, 'inconsistent page/page_after_value values provided'
-        elif page is not None:
-            # Only page provided - calculate page_after_value
-            if page == 1:
-                page_after_value = None
-            else:
-                page_after_value = str((page - 1) * page_size - 1)
-        elif page_after_value is not None:
-            # Only page_after_value provided - calculate page
-            assert page_size, '`page_after_value` should not be set when `page_size` is zero'
-            assert (page_after_value_int + 1) % page_size == 0, 'illegal value for `page_after_value` provided'
-            page = (page_after_value_int + 1) // page_size + 1
-        assert page >= 1, 'negative paging is not allowed'
-        values['page'] = page
-        values['page_after_value'] = page_after_value
+        assert page is None or page_after_value is None, 'Cannot specify both `page` and `page_after_value'
+        if page_size == 0:
+            assert page is None, 'Cannot specify `page` when `page_size` is set to 0'
+            assert page_after_value is None, 'Cannot specify `page_after_value` when `page_size` is set to 0'
         return values
+
+    def get_simple_index(self):
+        '''
+        If simple, index-based pagination is used, this method can be used to get the
+        corresponding index (0-based). It will look on either `page` or `page_after_value`.
+        If neither index is provided, we return 0 (i.e. the first index).
+        '''
+        if self.page is None and self.page_after_value is None:
+            return 0
+        if self.page is not None:
+            return (self.page - 1) * self.page_size
+        rv = int(self.page_after_value) + 1
+        assert rv >= 0
+        return rv
 
 
 class PaginationResponse(Pagination):
@@ -562,10 +544,6 @@ class PaginationResponse(Pagination):
         ..., description=strip('''
         The total number of results that fit the given query. This is independent of
         any pagination and aggregations.
-        '''))
-    page: Optional[int] = Field(
-        None, description=strip('''
-        The returned page number. Only applicable for some API methods.
         '''))
     next_page_after_value: Optional[str] = Field(
         None, description=strip('''
@@ -580,6 +558,11 @@ class PaginationResponse(Pagination):
     next_page_url: Optional[str] = Field(
         None, description=strip('''
         The url to get the next page. Only applicable for GET requests.
+        '''))
+    prev_page_url: Optional[str] = Field(
+        None, description=strip('''
+        The url to get the previous page. **NOTE:** Only applicable for some API methods,
+        (namely, where indexing by `page` is possible), and only for GET requests.
         '''))
     first_page_url: Optional[str] = Field(
         None, description=strip('''
@@ -596,60 +579,49 @@ class PaginationResponse(Pagination):
         # No validation - behaviour of this field depends on api method
         return page_after_value
 
-    @validator('page')
-    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
-        # No validation - behaviour of this field depends on api method
-        return page
-
-    @validator('next_page_after_value')
-    def validate_next_page_after_value(cls, next_page_after_value, values):  # pylint: disable=no-self-argument
-        # No validation - behaviour of this field depends on api method
-        return next_page_after_value
+    @root_validator(skip_on_failure=True)
+    def validate_values(cls, values):  # pylint: disable=no-self-argument
+        # No validation
+        return values
 
     def populate_urls(self, request: Request):
         '''
         Populates the urls (`page_url`, `next_page_url`, `first_page_url` from the
         request and `next_page_after_value`. Only applicable for GET requests.
         '''
-        assert request.method.upper() == 'GET'
+        assert request.method.upper() == 'GET', 'Trying to populate urls, but method is not GET.'
         original_url = str(request.url)
         self.page_url = original_url
-        self.first_page_url = update_url_query_arguments(
-            original_url, page=None, page_after_value=None)
+        if self.page_size:
+            self.first_page_url = update_url_query_arguments(
+                original_url, page=None, page_after_value=None)
         if self.next_page_after_value:
             self.next_page_url = update_url_query_arguments(
                 original_url, page=None, page_after_value=self.next_page_after_value)
-
-
-class IndexBasedPaginationResponse(PaginationResponse):
-    prev_page_url: Optional[str] = Field(
-        None, description=strip('''
-        The url to get the previous page.
-        '''))
-
-    def populate_page_refs(self, request: Request):
-        '''
-        Provided that `page` and `total` are populated, populates all other references:
-        `page_after_value`, `next_page_after_value`, `page_url`, `next_page_url`,
-        `prev_page_url`, and `first_page_url`. Only applicable for GET requests.
-        '''
-        assert request.method.upper() == 'GET'
-        has_more_pages = self.total > self.page * self.page_size
-        self.page_after_value = str((self.page - 1) * self.page_size - 1) if self.page > 1 else None
-        self.next_page_after_value = str(self.page * self.page_size - 1) if has_more_pages else None
-
-        original_url = str(request.url)
-        self.page_url = original_url
-        self.first_page_url = update_url_query_arguments(
-            original_url, page=None, page_after_value=None)
-
-        if has_more_pages:
-            self.next_page_url = update_url_query_arguments(
-                original_url, page=self.page + 1, page_after_value=None)
-
-        if self.page > 1:
+        if self.page and self.page > 1:
             self.prev_page_url = update_url_query_arguments(
                 original_url, page=self.page - 1, page_after_value=None)
+
+    def populate_simple_index_and_urls(self, request: Request):
+        '''
+        If simple, index-based pagination is used, this method can be used to populate
+        the `page`, `page_after_value` and urls (if it is a GET request) automatically.
+        Assumes that the field `total` is populated.
+        '''
+        if not self.page_size:
+            self.page = 1
+            self.page_after_value = None
+            self.next_page_after_value = None
+        else:
+            ind = self.get_simple_index()
+            self.page = ind // self.page_size + 1
+            self.page_after_value = None if self.page == 1 else str(ind - 1)
+            if self.page_size * self.page >= self.total:
+                self.next_page_after_value = None
+            else:
+                self.next_page_after_value = str(ind + self.page_size - 1)
+        if request.method.upper() == 'GET':
+            self.populate_urls(request)
 
 
 class EntryBasedPagination(Pagination):
@@ -693,9 +665,8 @@ class EntryPagination(EntryBasedPagination):
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
         if page is not None:
-            assert values['page_after_value'] is None, 'There can only be one, a page number or an page_after_value value.'
             assert page > 0, 'Page has to be larger than 1.'
-            assert page * values.get('page_size', 10) < 10000, 'Pagination by page is limited to 10.000 entries.'
+            assert page * values.get('page_size', 10) < 10000, 'Pagination by `page` is limited to 10.000 entries.'
 
         return page
 
@@ -711,6 +682,11 @@ class AggregationPagination(EntryBasedPagination):
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
         '''))
+
+    @validator('page')
+    def validate_page(cls, page, values):  # pylint: disable=no-self-argument
+        assert page is None, 'Pagination by `page` is not possible for aggregations, use `page_after_value`'
+        return page
 
 
 class AggregatedEntities(BaseModel):

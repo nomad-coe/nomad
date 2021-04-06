@@ -34,7 +34,7 @@ from .auth import get_required_user
 from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    IndexBasedPagination, IndexBasedPaginationResponse, Query, HTTPExceptionModel, User,
+    Pagination, PaginationResponse, Query, HTTPExceptionModel, User,
     Direction, Owner, Any_)
 
 
@@ -79,7 +79,7 @@ _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
 
 
-class DatasetPagination(IndexBasedPagination):
+class DatasetPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         # TODO: need real validation
@@ -88,13 +88,18 @@ class DatasetPagination(IndexBasedPagination):
         assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
         return order_by
 
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
 
 dataset_pagination_parameters = parameter_dependency_from_model(
     'dataset_pagination_parameters', DatasetPagination)
 
 
 class DatasetsResponse(BaseModel):
-    pagination: IndexBasedPaginationResponse = Field(None)
+    pagination: PaginationResponse = Field(None)
     data: List[Dataset] = Field(None)  # type: ignore
 
 
@@ -142,11 +147,11 @@ async def get_datasets(
 
     mongodb_query = mongodb_query.order_by(order_by)
 
-    start = (pagination.page - 1) * pagination.page_size
+    start = pagination.get_simple_index()
     end = start + pagination.page_size
 
-    pagination_response = IndexBasedPaginationResponse(total=mongodb_query.count(), **pagination.dict())
-    pagination_response.populate_page_refs(request)
+    pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
+    pagination_response.populate_simple_index_and_urls(request)
 
     return {
         'pagination': pagination_response,

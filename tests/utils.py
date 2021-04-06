@@ -81,4 +81,4 @@ def assert_url_query_args(url: str, **kwargs):
         if v is None:
             assert k not in query_dict
         else:
-            assert query_dict[k][0] == v
+            assert query_dict[k][0] == str(v)

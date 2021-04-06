@@ -355,17 +355,24 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
                     assert item[order_by] <= data[index + 1][order_by]
 
     if is_get:
+        page_size = pagination_response['page_size']
+        page = pagination_response.get('page')
         page_url = pagination_response.get('page_url')
         first_page_url = pagination_response.get('first_page_url')
+        prev_page_url = pagination_response.get('prev_page_url')
         next_page_url = pagination_response.get('next_page_url')
         next_page_after_value = pagination_response.get('next_page_after_value')
 
         assert page_url
-        assert first_page_url
-        assert_url_query_args(first_page_url, page_after_value=None)
+        if page_size:
+            assert first_page_url
+            assert_url_query_args(first_page_url, page_after_value=None, page=None)
         if next_page_after_value:
             assert next_page_url
-            assert_url_query_args(next_page_url, page_after_value=next_page_after_value)
+            assert_url_query_args(next_page_url, page_after_value=next_page_after_value, page=None)
+        if page and page > 1:
+            assert prev_page_url
+            assert_url_query_args(prev_page_url, page=page - 1, page_after_value=None)
 
 
 def assert_raw_zip_file(
