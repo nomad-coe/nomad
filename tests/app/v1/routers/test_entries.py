@@ -22,10 +22,12 @@ import zipfile
 import io
 import json
 
+from nomad import files
 from nomad.metainfo.search_extension import search_quantities
 from nomad.app.v1.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least, assert_url_query_args
+from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import assert_response
 from tests.app.conftest import example_data as data  # pylint: disable=unused-import
@@ -661,13 +663,72 @@ def test_entry_raw(client, data, entry_id, files_per_entry, status_code):
     pytest.param('id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
     pytest.param('id_01', {'re_pattern': '**'}, -1, 422, id='bad-re-pattern'),
     pytest.param('id_01', {'compress': True}, 5, 200, id='compress')])
-def test_entry_download_raw(client, data, entry_id, files, files_per_entry, status_code):
+def test_entry_raw_download(client, data, entry_id, files, files_per_entry, status_code):
     response = client.get('entries/%s/raw/download?%s' % (entry_id, urlencode(files, doseq=True)))
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
             response, files=files_per_entry + 1, manifest_entries=1,
             compressed=files.get('compress', False))
+
+
+@pytest.fixture(scope='function')
+def data_with_compressed_files(data):
+    upload_files = files.UploadFiles.get('id_published')
+    upload_files.add_rawfiles('tests/data/api/mainfile.xz', prefix='test_content/subdir/test_entry_01')
+    upload_files.add_rawfiles('tests/data/api/mainfile.gz', prefix='test_content/subdir/test_entry_01')
+
+    yield
+
+    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.xz').delete()
+    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.gz').delete()
+
+
+@pytest.mark.parametrize('entry_id, path, params, status_code', [
+    pytest.param('id_01', 'mainfile.json', {}, 200, id='id'),
+    pytest.param('doesnotexist', 'mainfile.json', {}, 404, id='404-entry'),
+    pytest.param('id_01', 'doesnot.exist', {}, 404, id='404-file'),
+    pytest.param('id_01', 'mainfile.json', {'offset': 10, 'length': 10}, 200, id='offset-length'),
+    pytest.param('id_01', 'mainfile.json', {'length': 1000000}, 200, id='length-too-large'),
+    pytest.param('id_01', 'mainfile.json', {'offset': 1000000}, 200, id='offset-too-large'),
+    pytest.param('id_01', 'mainfile.json', {'offset': -1}, 422, id='bad-offset'),
+    pytest.param('id_01', 'mainfile.json', {'length': -1}, 422, id='bad-length'),
+    pytest.param('id_01', 'mainfile.json', {'decompress': True}, 200, id='decompress-json'),
+    pytest.param('id_01', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz'),
+    pytest.param('id_01', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz'),
+    pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
+    pytest.param('id_embargo', 'mainfile.json', {}, 404, id='404-embargo'),
+    pytest.param('id_embargo', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo'),
+    pytest.param('id_embargo', 'mainfile.json', {'user': 'other-test-user'}, 404, id='404-embargo-shared'),
+    pytest.param('id_embargo_shared', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-shared')
+])
+def test_entry_raw_download_file(
+        client, data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
+        entry_id, path, params, status_code):
+
+    user = params.get('user')
+    if user:
+        del(params['user'])
+        if user == 'test-user':
+            headers = test_user_auth
+        elif user == 'other-test-user':
+            headers = other_test_user_auth
+    else:
+        headers = {}
+
+    response = client.get(
+        f'entries/{entry_id}/raw/download/{path}?{urlencode(params, doseq=True)}',
+        headers=headers)
+
+    assert_response(response, status_code)
+    if status_code == 200:
+        content = response.text
+        if path.endswith('.json'):
+            offset = params.get('offset', 0)
+            length = params.get('length', len(example_mainfile_contents) - offset)
+            assert content == example_mainfile_contents[offset:offset + length]
+        else:
+            assert content == 'test content\n'
 
 
 @pytest.mark.parametrize('query, files, entries, status_code', [

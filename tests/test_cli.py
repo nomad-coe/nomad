@@ -68,21 +68,21 @@ class TestAdmin:
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
-    def test_clean(self, published):
-        upload_id = published.upload_id
+    # def test_clean(self, published):
+    #     upload_id = published.upload_id
 
-        Upload.objects(upload_id=upload_id).delete()
-        assert published.upload_files.exists()
-        assert Calc.objects(upload_id=upload_id).first() is not None
-        assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
+    #     Upload.objects(upload_id=upload_id).delete()
+    #     assert published.upload_files.exists()
+    #     assert Calc.objects(upload_id=upload_id).first() is not None
+    #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
 
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
+    #     result = click.testing.CliRunner().invoke(
+    #         cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
 
-        assert result.exit_code == 0
-        assert not published.upload_files.exists()
-        assert Calc.objects(upload_id=upload_id).first() is None
-        assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
+    #     assert result.exit_code == 0
+    #     assert not published.upload_files.exists()
+    #     assert Calc.objects(upload_id=upload_id).first() is None
+    #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
 
     @pytest.mark.parametrize('upload_time,dry,lifted', [
         (datetime.datetime.now(), False, False),
