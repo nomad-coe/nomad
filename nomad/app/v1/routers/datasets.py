@@ -16,9 +16,11 @@
 # limitations under the License.
 #
 
+import re
 from typing import cast, Optional, List
-from fastapi import APIRouter, Depends, Query as FastApiQuery, Path, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import (
+    APIRouter, Request, Depends, Query as FastApiQuery, Path, HTTPException, status)
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
@@ -30,10 +32,10 @@ from nomad.doi import DOI
 
 from .auth import get_required_user
 from .entries import _do_exaustive_search
-from ..utils import create_responses
+from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    pagination_parameters, Pagination, PaginationResponse, Query, HTTPExceptionModel,
-    User, Direction, Owner, Any_)
+    Pagination, PaginationResponse, Query, HTTPExceptionModel, User,
+    Direction, Owner, Any_)
 
 
 router = APIRouter()
@@ -77,6 +79,25 @@ _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
 
 
+class DatasetPagination(Pagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        # TODO: need real validation
+        if order_by is None:
+            return order_by
+        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
+        return order_by
+
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
+
+dataset_pagination_parameters = parameter_dependency_from_model(
+    'dataset_pagination_parameters', DatasetPagination)
+
+
 class DatasetsResponse(BaseModel):
     pagination: PaginationResponse = Field(None)
     data: List[Dataset] = Field(None)  # type: ignore
@@ -106,11 +127,12 @@ class DatasetCreate(BaseModel):  # type: ignore
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_datasets(
+        request: Request,
         dataset_id: str = FastApiQuery(None),
         name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
-        pagination: Pagination = Depends(pagination_parameters)):
+        pagination: DatasetPagination = Depends(dataset_pagination_parameters)):
     '''
     Retrieves all datasets that match the given criteria.
     '''
@@ -125,15 +147,11 @@ async def get_datasets(
 
     mongodb_query = mongodb_query.order_by(order_by)
 
-    start = 0
-    if pagination.after is not None:
-        start = int(pagination.after)
-    end = start + pagination.size
+    start = pagination.get_simple_index()
+    end = start + pagination.page_size
 
-    pagination_response = PaginationResponse(
-        total=mongodb_query.count(),
-        next_after=str(end),
-        **pagination.dict())  # type: ignore
+    pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
+    pagination_response.populate_simple_index_and_urls(request)
 
     return {
         'pagination': pagination_response,

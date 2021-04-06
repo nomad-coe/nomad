@@ -18,6 +18,7 @@
 
 ''' Methods to help with testing of nomad@FAIRDI.'''
 
+import urllib.parse
 import json
 from logging import LogRecord
 
@@ -68,3 +69,16 @@ def assert_at_least(source, target):
         else:
             assert value == target[key], '%s with value %s in %s is not equal the target value %s in %s' % (
                 key, source[key], source, target[key], target)
+
+
+def assert_url_query_args(url: str, **kwargs):
+    '''
+    Parses the url, and checks that the query arguments match the values specified by kwargs.
+    '''
+    __, __, __, __, query, __ = urllib.parse.urlparse(url)
+    query_dict = urllib.parse.parse_qs(query)
+    for k, v in kwargs.items():
+        if v is None:
+            assert k not in query_dict
+        else:
+            assert query_dict[k][0] == str(v)

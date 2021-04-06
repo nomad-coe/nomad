@@ -18,9 +18,10 @@
 
 from typing import Dict, Iterator, Any
 from types import FunctionType
+import urllib
 import sys
 import inspect
-from fastapi import Query, HTTPException  # pylint: disable=unused-import
+from fastapi import Request, Query, HTTPException  # pylint: disable=unused-import
 from pydantic import ValidationError, BaseModel  # pylint: disable=unused-import
 import zipstream
 
@@ -117,3 +118,21 @@ def create_responses(*args):
     return {
         status_code: response
         for status_code, response in args}
+
+
+def update_url_query_arguments(original_url: str, **kwargs) -> str:
+    '''
+    Takes an url, and returns a new url, obtained by updating the query arguments in the
+    `original_url` as specified by the kwargs.
+    '''
+    scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(original_url)
+    query_dict = urllib.parse.parse_qs(query)
+    for k, v in kwargs.items():
+        if v is None:
+            # Unset the value
+            if k in query_dict:
+                query_dict.pop(k)
+        else:
+            query_dict[k] = [str(v)]
+    query = urllib.parse.urlencode(query_dict, doseq=True)
+    return urllib.parse.urlunparse((scheme, netloc, path, params, query, fragment))

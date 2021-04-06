@@ -17,7 +17,7 @@
 #
 
 from typing import Dict, Iterator, Any, List, Set, cast
-from fastapi import APIRouter, Depends, Path, status, HTTPException
+from fastapi import APIRouter, Request, Depends, Path, status, HTTPException
 from fastapi.responses import StreamingResponse
 import os.path
 import io
@@ -33,9 +33,9 @@ from nomad.archive import (
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
 from ..models import (
-    Pagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
+    EntryPagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
     EntryMetadataResponse, query_parameters, metadata_required_parameters, Files, Query,
-    pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
+    entry_pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
     ArchiveRequired)
@@ -101,6 +101,7 @@ def perform_search(*args, **kwargs):
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_entries_metadata_query(
+        request: Request,
         data: EntriesMetadata,
         user: User = Depends(get_optional_user)):
 
@@ -139,8 +140,9 @@ async def post_entries_metadata_query(
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_entries_metadata(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         required: MetadataRequired = Depends(metadata_required_parameters),
         user: User = Depends(get_optional_user)):
     '''
@@ -155,27 +157,29 @@ async def get_entries_metadata(
     `gt`, `lt`, `lte`.
     '''
 
-    return perform_search(
+    res = perform_search(
         owner=with_query.owner, query=with_query.query,
         pagination=pagination, required=required,
         user_id=user.user_id if user is not None else None)
+    res.pagination.populate_urls(request)
+    return res
 
 
 def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: User) -> Iterator[Dict[str, Any]]:
-    after = None
+    page_after_value = None
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=Pagination(size=100, after=after, order_by='upload_id'),
+            pagination=EntryPagination(size=100, page_after_value=page_after_value, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
-        after = response.pagination.next_after
+        page_after_value = response.pagination.next_page_after_value
 
         for result in response.data:
             yield result
 
-        if after is None or len(response.data) == 0:
+        if page_after_value is None or len(response.data) == 0:
             break
 
 
@@ -218,7 +222,7 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
 
 
 def _answer_entries_raw_request(
-        owner: Owner, query: Query, pagination: Pagination, user: User):
+        owner: Owner, query: Query, pagination: EntryPagination, user: User):
 
     if owner == Owner.all_:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
@@ -256,7 +260,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -349,7 +353,8 @@ _entries_raw_query_docstring = strip('''
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_entries_raw_query(data: EntriesRaw, user: User = Depends(get_optional_user)):
+async def post_entries_raw_query(
+        request: Request, data: EntriesRaw, user: User = Depends(get_optional_user)):
 
     return _answer_entries_raw_request(
         owner=data.owner, query=data.query, pagination=data.pagination, user=user)
@@ -365,12 +370,15 @@ async def post_entries_raw_query(data: EntriesRaw, user: User = Depends(get_opti
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response))
 async def get_entries_raw(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
-    return _answer_entries_raw_request(
+    res = _answer_entries_raw_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination, user=user)
+    res.pagination.populate_urls(request)
+    return res
 
 
 _entries_raw_download_query_docstring = strip('''
@@ -440,7 +448,7 @@ def _read_archive(entry_metadata, uploads, required):
 
 
 def _answer_entries_archive_request(
-        owner: Owner, query: Query, pagination: Pagination, required: ArchiveRequired,
+        owner: Owner, query: Query, pagination: EntryPagination, required: ArchiveRequired,
         user: User):
 
     if owner == Owner.all_:
@@ -527,7 +535,7 @@ _entries_archive_docstring = strip('''
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_query(
-        data: EntriesArchive, user: User = Depends(get_optional_user)):
+        request: Request, data: EntriesArchive, user: User = Depends(get_optional_user)):
 
     return _answer_entries_archive_request(
         owner=data.owner, query=data.query, pagination=data.pagination,
@@ -544,13 +552,16 @@ async def post_entries_archive_query(
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def get_entries_archive_query(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
-    return _answer_entries_archive_request(
+    res = _answer_entries_archive_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination,
         required=None, user=user)
+    res.pagination.populate_urls(request)
+    return res
 
 
 def _answer_entries_archive_download_request(
@@ -566,7 +577,7 @@ def _answer_entries_archive_download_request(
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
