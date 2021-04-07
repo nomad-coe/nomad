@@ -1496,14 +1496,13 @@ suggestions_map = {
     "basis_set": "dft.basis_set",
     "functional_type": "encyclopedia.method.functional_type",
     "structure_type": "bulk.structure_type",
-    "material_name": "material_name",
     "strukturbericht_designation": "bulk.strukturbericht_designation",
 }
 suggestions_query = api.parser()
 suggestions_query.add_argument(
     "property",
     type=str,
-    choices=("code_name", "structure_type", "material_name", "strukturbericht_designation", "basis_set", "functional_type"),
+    choices=("code_name", "structure_type", "strukturbericht_designation", "basis_set", "functional_type"),
     help="The property name for which suggestions are returned.",
     location="args"
 )
@@ -1512,7 +1511,6 @@ suggestions_result = api.model("suggestions_result", {
     "basis_set": fields.List(fields.String),
     "functional_type": fields.List(fields.String),
     "structure_type": fields.List(fields.String),
-    "material_name": fields.List(fields.String),
     "strukturbericht_designation": fields.List(fields.String),
 })
 
@@ -1540,7 +1538,7 @@ class EncSuggestionsResource(Resource):
         prop = args.get("property", None)
 
         # Material level suggestions
-        if prop in {"structure_type", "material_name", "strukturbericht_designation"}:
+        if prop in {"structure_type", "strukturbericht_designation"}:
             s = MaterialSearch()
             s.size(0)
             s.add_material_aggregation("suggestions", A("terms", field=suggestions_map[prop], size=999))
