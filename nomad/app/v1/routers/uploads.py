@@ -241,6 +241,8 @@ async def post_uploads(
         if not os.path.exists(local_path) or not os.path.isfile(local_path):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 The specified local_path cannot be found or is not a file.'''))
+        if not name:
+            name = os.path.basename(local_path)
         src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
     elif file:
         # Data provided as formdata
@@ -271,7 +273,7 @@ async def post_uploads(
     else:
         upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
         try:
-            with open('test_DS/out.txt', 'wb') as f:
+            with open(upload_path, 'wb') as f:
                 uploaded_bytes = 0
                 log_interval = 1e9
                 log_unit = 'GB'
