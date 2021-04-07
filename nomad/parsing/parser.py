@@ -124,6 +124,7 @@ class MatchingParser(Parser):
             self, name: str, code_name: str, code_homepage: str = None,
             mainfile_contents_re: str = None,
             mainfile_binary_header: bytes = None,
+            mainfile_binary_header_re: bytes = None,
             mainfile_mime_re: str = r'text/.*',
             mainfile_name_re: str = r'.*',
             mainfile_alternative: bool = False,
@@ -144,6 +145,11 @@ class MatchingParser(Parser):
             self._mainfile_contents_re = re.compile(mainfile_contents_re)
         else:
             self._mainfile_contents_re = None
+        # TODO remove mainfile_binary_header
+        if mainfile_binary_header_re is not None:
+            self._mainfile_binary_header_re = re.compile(mainfile_binary_header_re)
+        else:
+            self._mainfile_binary_header_re = None
         self._supported_compressions = supported_compressions
 
         self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
@@ -154,6 +160,13 @@ class MatchingParser(Parser):
 
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
+                return False
+
+        if self._mainfile_binary_header_re is not None:
+            if buffer is not None:
+                if self._mainfile_binary_header_re.search(buffer) is None:
+                    return False
+            else:
                 return False
 
         if self._mainfile_contents_re is not None:

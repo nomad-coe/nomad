@@ -42,6 +42,7 @@ from gpawparser import GPAWParser
 from octopusparser import OctopusParser
 from orcaparser import OrcaParser
 from cp2kparser import CP2KParser
+from fhivibesparser import FHIVibesParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -137,6 +138,7 @@ parsers = [
     VASPParser(),
     ExcitingParser(),
     FHIAimsParser(),
+    FHIVibesParser(),
     CP2KParser(),
     CrystalParser(),
     # The main contents regex of CPMD was causing a catostrophic backtracking issue

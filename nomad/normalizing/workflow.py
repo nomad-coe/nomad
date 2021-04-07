@@ -21,7 +21,28 @@ import numpy as np
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.public import Workflow, GeometryOptimization, Phonon, Elastic,\
-    MolecularDynamics
+    MolecularDynamics, SinglePoint
+
+
+class SinglePointNormalizer(Normalizer):
+    def __init__(self, entry_archive):
+        super().__init__(entry_archive)
+
+    def normalize(self):
+        self.section = self.entry_archive.section_workflow.section_single_point
+        if not self.section:
+            self.section = self.entry_archive.section_workflow.m_create(SinglePoint)
+
+        if not self.section.calculation_method:
+            try:
+                method = self.section_run.section_method[-1]
+                self.section.single_point_calculation_method = method.electronic_structure_method
+            except Exception:
+                pass
+
+        if not self.section.scf_steps:
+            scc = self.section_run.section_single_configuration_calculation
+            self.section.scf_steps = len(scc[-1].section_scf_iteration)
 
 
 class GeometryOptimizationNormalizer(Normalizer):
@@ -86,16 +107,8 @@ class GeometryOptimizationNormalizer(Normalizer):
             except Exception:
                 pass
 
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
-
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
-
         if not self.section.optimization_steps:
+            scc = self.section_run.section_single_configuration_calculation
             self.section.optimization_steps = len(scc)
 
         if not self.section.final_energy_difference:
@@ -137,6 +150,8 @@ class PhononNormalizer(Normalizer):
         if not scc:
             return
         sec_band = scc[0].section_k_band
+        if not sec_band:
+            return
         result = 0
         for band_segment in sec_band[0].section_k_band_segment:
             freq = band_segment.band_energies
@@ -145,15 +160,6 @@ class PhononNormalizer(Normalizer):
 
     def normalize(self):
         self.section = self.entry_archive.section_workflow.section_phonon
-
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
-
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
 
         if not self.section:
             self.section = self.entry_archive.section_workflow.m_create(Phonon)
@@ -235,15 +241,6 @@ class ElasticNormalizer(Normalizer):
     def normalize(self):
         self.section = self.entry_archive.section_workflow.section_elastic
 
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
-
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
-
         if not self.section:
             self.section = self.entry_archive.section_workflow.m_create(Elastic)
 
@@ -275,15 +272,6 @@ class MolecularDynamicsNormalizer(Normalizer):
     def normalize(self):
         self.section = self.entry_archive.section_workflow.section_molecular_dynamics
 
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
-
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
-
         if not self.section:
             self.section = self.entry_archive.section_workflow.m_create(MolecularDynamics)
 
@@ -296,8 +284,7 @@ class MolecularDynamicsNormalizer(Normalizer):
 
 class WorkflowNormalizer(Normalizer):
     '''
-    This normalizer performs all produces a section all data necessary for the Optimade API.
-    It assumes that the :class:`SystemNormalizer` was run before.
+    This normalizer produces information specific to a workflow.
     '''
     def __init__(self, entry_archive):
         super().__init__(entry_archive)
@@ -382,6 +369,18 @@ class WorkflowNormalizer(Normalizer):
 
         elif workflow.workflow_type == 'molecular_dynamics':
             MolecularDynamicsNormalizer(self.entry_archive).normalize()
+
+        elif workflow.workflow_type == 'single_point':
+            SinglePointNormalizer(self.entry_archive).normalize()
+
+        scc = self.section_run.section_single_configuration_calculation
+        if not self.entry_archive.section_workflow.calculation_result_ref:
+            if scc:
+                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
+
+        if not self.entry_archive.section_workflow.calculations_ref:
+            if scc:
+                self.entry_archive.section_workflow.calculations_ref = scc
 
         # remove the section workflow again, if the parser/normalizer could not produce a result
         if workflow.calculation_result_ref is None:

@@ -10,6 +10,10 @@
 	path = dependencies/parsers/exciting
 	url = https://github.com/nomad-coe/nomad-parser-exciting.git
 	branch = master
+[submodule "dependencies/parsers/fhi-vibes"]
+	path = dependencies/parsers/fhi-vibes
+	url = https://github.com/nomad-coe/nomad-parser-fhi-vibes.git
+	branch = master
 [submodule "dependencies/parsers/fhi-aims"]
 	path = dependencies/parsers/fhi-aims
 	url = https://github.com/nomad-coe/nomad-parser-fhi-aims.git
@@ -205,3 +209,6 @@
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
+[submodule "nomad-parser-fhi-vibes"]
+	path = nomad-parser-fhi-vibes
+	url = https://github.com/nomad-coe/nomad-parser-fhi-vibes.git
