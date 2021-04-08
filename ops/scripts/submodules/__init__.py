@@ -26,6 +26,7 @@ import requests
 import json
 import yaml
 import sys
+import time
 
 
 def str_presenter(dumper, data):
@@ -139,6 +140,8 @@ def move_submodule_to_github(path: str):
     if result.status_code >= 400:
         print('Could not create github repository: ', result.text)
         return
+
+    time.sleep(3)
 
     # set team permission
     result = requests.put(

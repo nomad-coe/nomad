@@ -16,13 +16,16 @@
 # limitations under the License.
 #
 
-from typing import Dict, Iterator, Any, List, Set, cast
-from fastapi import APIRouter, Depends, Path, status, HTTPException
+from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO, cast
+from fastapi import APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter
 from fastapi.responses import StreamingResponse
 import os.path
 import io
 import json
 import orjson
+import magic
+import gzip
+import lzma
 
 from nomad import search, files, config, utils
 from nomad.utils import strip
@@ -33,12 +36,12 @@ from nomad.archive import (
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
 from ..models import (
-    Pagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
+    EntryPagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
     EntryMetadataResponse, query_parameters, metadata_required_parameters, Files, Query,
-    pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
+    entry_pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
     EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
     EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
-    ArchiveRequired)
+    ArchiveRequired, EntryArchiveRequest)
 
 
 router = APIRouter()
@@ -61,11 +64,23 @@ _bad_id_response = status.HTTP_404_NOT_FOUND, {
     'description': strip('''
         Entry not found. The given id does not match any entry.''')}
 
+_bad_path_response = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('File or directory not found.')}
+
 _raw_download_response = 200, {
     'content': {'application/zip': {}},
     'description': strip('''
         A zip file with the requested raw files. The file is streamed.
         The content length is not known in advance.
+    ''')}
+
+_raw_download_file_response = 200, {
+    'content': {'application/octet-stream': {}},
+    'description': strip('''
+        A byte stream with raw file contents. The content length is not known in advance.
+        If the whole file is requested, the mime-type might be more specific, depending
+        on the file contents.
     ''')}
 
 _archive_download_response = 200, {
@@ -101,6 +116,7 @@ def perform_search(*args, **kwargs):
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_entries_metadata_query(
+        request: Request,
         data: EntriesMetadata,
         user: User = Depends(get_optional_user)):
 
@@ -139,8 +155,9 @@ async def post_entries_metadata_query(
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_entries_metadata(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         required: MetadataRequired = Depends(metadata_required_parameters),
         user: User = Depends(get_optional_user)):
     '''
@@ -155,27 +172,29 @@ async def get_entries_metadata(
     `gt`, `lt`, `lte`.
     '''
 
-    return perform_search(
+    res = perform_search(
         owner=with_query.owner, query=with_query.query,
         pagination=pagination, required=required,
         user_id=user.user_id if user is not None else None)
+    res.pagination.populate_urls(request)
+    return res
 
 
 def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: User) -> Iterator[Dict[str, Any]]:
-    after = None
+    page_after_value = None
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=Pagination(size=100, after=after, order_by='upload_id'),
+            pagination=EntryPagination(size=100, page_after_value=page_after_value, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
-        after = response.pagination.next_after
+        page_after_value = response.pagination.next_page_after_value
 
         for result in response.data:
             yield result
 
-        if after is None or len(response.data) == 0:
+        if page_after_value is None or len(response.data) == 0:
             break
 
 
@@ -218,7 +237,7 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
 
 
 def _answer_entries_raw_request(
-        owner: Owner, query: Query, pagination: Pagination, user: User):
+        owner: Owner, query: Query, pagination: EntryPagination, user: User):
 
     if owner == Owner.all_:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
@@ -256,7 +275,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -349,7 +368,8 @@ _entries_raw_query_docstring = strip('''
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_entries_raw_query(data: EntriesRaw, user: User = Depends(get_optional_user)):
+async def post_entries_raw_query(
+        request: Request, data: EntriesRaw, user: User = Depends(get_optional_user)):
 
     return _answer_entries_raw_request(
         owner=data.owner, query=data.query, pagination=data.pagination, user=user)
@@ -365,12 +385,15 @@ async def post_entries_raw_query(data: EntriesRaw, user: User = Depends(get_opti
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response))
 async def get_entries_raw(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
-    return _answer_entries_raw_request(
+    res = _answer_entries_raw_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination, user=user)
+    res.pagination.populate_urls(request)
+    return res
 
 
 _entries_raw_download_query_docstring = strip('''
@@ -432,6 +455,7 @@ def _read_archive(entry_metadata, uploads, required):
         with upload_files.read_archive(calc_id) as archive:
             return {
                 'calc_id': calc_id,
+                'upload_id': upload_id,
                 'parser_name': entry_metadata['parser_name'],
                 'archive': query_archive(archive, {calc_id: required})[calc_id]
             }
@@ -440,7 +464,7 @@ def _read_archive(entry_metadata, uploads, required):
 
 
 def _answer_entries_archive_request(
-        owner: Owner, query: Query, pagination: Pagination, required: ArchiveRequired,
+        owner: Owner, query: Query, pagination: EntryPagination, required: ArchiveRequired,
         user: User):
 
     if owner == Owner.all_:
@@ -506,6 +530,7 @@ def _answer_entries_archive_request(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
+        required=required,
         data=list(response_data.values()))
 
 
@@ -527,7 +552,7 @@ _entries_archive_docstring = strip('''
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_query(
-        data: EntriesArchive, user: User = Depends(get_optional_user)):
+        request: Request, data: EntriesArchive, user: User = Depends(get_optional_user)):
 
     return _answer_entries_archive_request(
         owner=data.owner, query=data.query, pagination=data.pagination,
@@ -544,13 +569,16 @@ async def post_entries_archive_query(
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def get_entries_archive_query(
+        request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: Pagination = Depends(pagination_parameters),
+        pagination: EntryPagination = Depends(entry_pagination_parameters),
         user: User = Depends(get_optional_user)):
 
-    return _answer_entries_archive_request(
+    res = _answer_entries_archive_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination,
         required=None, user=user)
+    res.pagination.populate_urls(request)
+    return res
 
 
 def _answer_entries_archive_download_request(
@@ -566,7 +594,7 @@ def _answer_entries_archive_download_request(
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=Pagination(size=0),
+        pagination=EntryPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -741,6 +769,177 @@ async def get_entry_raw_download(
     return _answer_entries_raw_download_request(owner=Owner.public, query=query, files=files, user=user)
 
 
+class FileContentIterator:
+    '''
+    An iterator implementation that provides the contents of an underlying file, based on
+    offset and length.
+
+    Arguments:
+        f: the file-like
+        offset: the offset
+        length: the amount of bytes
+    '''
+    def __init__(self, f, offset, length):
+        self.f = f
+        self.offset = offset
+        self.read_bytes = 0
+        self.f.seek(self.offset)
+        self.length = length
+
+    def __iter__(self):
+        self.f.seek(self.offset)
+        self.read_bytes = 0
+
+    def __next__(self):
+        remaining = self.length - self.read_bytes
+        if remaining > 0:
+            content = self.f.read(remaining)
+            content_length = len(content)
+            self.read_bytes += content_length
+            if content_length == 0:
+                self.length = self.read_bytes
+            return content
+        else:
+            raise StopIteration
+
+
+@router.get(
+    '/{entry_id}/raw/download/{path}',
+    tags=[raw_tag],
+    summary='Get the raw data of an entry by its id',
+    response_class=StreamingResponse,
+    responses=create_responses(_bad_id_response, _bad_path_response, _raw_download_file_response))
+async def get_entry_raw_download_file(
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
+        path: str = Path(..., description='A relative path to a file based on the directory of the entry\'s mainfile.'),
+        offset: Optional[int] = QueryParameter(
+            0, ge=0, description=strip('''
+                Integer offset that marks the start of the contents to retrieve. Default
+                is the start of the file.''')),
+        length: Optional[int] = QueryParameter(
+            -1, ge=0, description=strip('''
+                The amounts of contents in bytes to stream. By default, the remainder of
+                the file is streamed.''')),
+        decompress: Optional[bool] = QueryParameter(
+            False, description=strip('''
+                Attempt to decompress the contents, if the file is .gz or .xz.''')),
+        user: User = Depends(get_optional_user)):
+    '''
+    Streams the contents of an individual file from the requested entry.
+    '''
+    query = dict(calc_id=entry_id)
+    response = perform_search(
+        owner=Owner.visible, query=query,
+        required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
+        user_id=user.user_id if user is not None else None)
+
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='The entry with the given id does not exist or is not visible to you.')
+
+    entry_metadata = response.data[0]
+    upload_id, mainfile = entry_metadata['upload_id'], entry_metadata['mainfile']
+    # The user is allowed to access all files, because the entry is in the "visible" scope
+    upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda *args, **kwargs: True)
+
+    entry_path = os.path.dirname(mainfile)
+    path = os.path.join(entry_path, path)
+
+    raw_file: Any = None
+    try:
+        raw_file = upload_files.raw_file(path, 'br')
+
+        if decompress:
+            if path.endswith('.gz'):
+                raw_file = gzip.GzipFile(filename=path[:3], mode='rb', fileobj=raw_file)
+
+            if path.endswith('.xz'):
+                raw_file = lzma.open(filename=raw_file, mode='rb')
+
+        # We only provide a specific mime-type, if the whole file is requested. Otherwise,
+        # it is unlikely that the provided contents will match the overall file mime-type.
+        mime_type = 'application/octet-stream'
+        if offset == 0 and length < 0:
+            buffer = raw_file.read(2048)
+            raw_file.seek(0)
+            mime_type = magic.from_buffer(buffer, mime=True)
+
+        raw_file_content: Union[FileContentIterator, IO] = None
+        if length > 0:
+            raw_file_content = FileContentIterator(raw_file, offset, length)
+        else:
+            raw_file.seek(offset)
+            raw_file_content = raw_file
+
+        return StreamingResponse(raw_file_content, media_type=mime_type)
+
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='The requested file does not exist.')
+
+
+def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):
+    try:
+        required_with_references = compute_required_with_referenced(required)
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
+            'The required specification contains an unknown quantity or section: %s' % str(e)))
+
+    query = dict(calc_id=entry_id)
+    response = perform_search(
+        owner=Owner.visible, query=query,
+        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
+        user_id=user.user_id if user is not None else None)
+
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='The entry with the given id does not exist or is not visible to you.')
+
+    entry_metadata = response.data[0]
+
+    if required_with_references is not None:
+        # We can produce all the required archive data from the partial archives stored
+        # in mongodb.
+        partial_archives = cast(dict, read_partial_archives_from_mongo([entry_id], as_dict=True))
+
+    uploads = _Uploads()
+    try:
+        archive_data = None
+        if required_with_references is not None:
+            try:
+                partial_archive = partial_archives[entry_id]
+                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
+            except KeyError:
+                # the partial archive might not exist, e.g. due to processing problems
+                pass
+            except ArchiveQueryError as e:
+                detail = 'The required specification could not be understood: %s' % str(e)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+        if archive_data is None:
+            try:
+                archive_data = _read_archive(entry_metadata, uploads, required=required)['archive']
+            except KeyError:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail='The entry with the given id does exist, but it has no archive.')
+
+        return {
+            'entry_id': entry_id,
+            'required': required,
+            'data': {
+                'calc_id': entry_id,
+                'upload_id': entry_metadata['upload_id'],
+                'parser_name': entry_metadata['parser_name'],
+                'archive': archive_data
+            }}
+    finally:
+        uploads.close()
+
+
 @router.get(
     '/{entry_id}/archive',
     tags=[archive_tag],
@@ -755,28 +954,23 @@ async def get_entry_archive(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    query = dict(calc_id=entry_id)
-    response = perform_search(
-        owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
-        user_id=user.user_id if user is not None else None)
+    return _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
 
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.')
 
-    uploads = _Uploads()
-    try:
-        try:
-            archive_data = _read_archive(response.data[0], uploads, required='*')
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='The entry with the given id does exist, but it has no archive.')
+@router.post(
+    '/{entry_id}/archive/query',
+    tags=[archive_tag],
+    summary='Get the archive for an entry by its id',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_bad_id_response, _bad_archive_required_response))
+async def post_entry_archive_query(
+        data: EntryArchiveRequest, user: User = Depends(get_optional_user),
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.')):
 
-        return {
-            'entry_id': entry_id,
-            'data': archive_data['archive']}
-    finally:
-        uploads.close()
+    '''
+    Returns a partial archive for the given `entry_id` based on the `required` specified
+    in the body.
+    '''
+    return _answer_entry_archive_request(entry_id=entry_id, required=data.required, user=user)

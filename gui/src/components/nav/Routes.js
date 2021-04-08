@@ -31,6 +31,7 @@ import FAQ from '../FAQ'
 import SearchPage, {help as searchHelp} from '../search/SearchPage'
 import UploadPage, {help as uploadHelp} from '../uploads/UploadPage'
 import UserdataPage, {help as userdataHelp} from '../UserdataPage'
+import { ErrorBoundary } from '../errors'
 
 export const routes = {
   'faq': {
@@ -161,10 +162,12 @@ export default function Routes() {
       const route = allRoutes[routeKey]
       const { path, exact } = route
       const children = childProps => childProps.match && <route.component {...childProps} />
-      return <Route key={routeKey} exact={exact} path={path}
-        // eslint-disable-next-line react/no-children-prop
-        children={children}
-      />
+      return <ErrorBoundary key={routeKey}>
+        <Route exact={exact} path={path}
+          // eslint-disable-next-line react/no-children-prop
+          children={children}
+        />
+      </ErrorBoundary>
     })}
   </React.Fragment>
 }

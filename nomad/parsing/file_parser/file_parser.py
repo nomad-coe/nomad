@@ -47,7 +47,7 @@ class FileParser:
         self._results: Dict[str, Any] = None
         # a key is necessary for xml parsers, where parsing is done dynamically
         self._key: str = None
-        self._kwargs: Dict[str, Any] = None
+        self._kwargs: Dict[str, Any] = dict()
         self._file_handler: Any = None
 
     def init_parameters(self):
@@ -150,9 +150,10 @@ class FileParser:
             return self[int]
 
     def __getattr__(self, key):
-        if key not in self._results:
-            self.parse(key)
-        return self._results.get(key)
+        if self._results is None:
+            self._results = dict()
+
+        return self._results.get(key, None)
 
     def parse(self, quantity_key: str = None, **kwargs):
         pass

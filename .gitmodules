@@ -76,8 +76,8 @@
 	branch = master
 [submodule "dependencies/parsers/phonopy"]
 	path = dependencies/parsers/phonopy
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-phonopy.git
-	branch = nomad-fair
+	url = https://github.com/nomad-coe/nomad-parser-phonopy.git
+	branch = master
 [submodule "dependencies/parsers/gpaw"]
 	path = dependencies/parsers/gpaw
 	url = https://github.com/nomad-coe/nomad-parser-gpaw.git
@@ -110,10 +110,6 @@
 	path = dependencies/parsers/turbomole
 	url = https://github.com/nomad-coe/nomad-parser-turbomole.git
 	branch = master
-[submodule "dependencies/parsers/skeleton"]
-	path = dependencies/parsers/skeleton
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/parser-skeleton.git
-	branch = nomad-fair
 [submodule "dependencies/parsers/mpes"]
 	path = dependencies/parsers/mpes
 	url = https://github.com/nomad-coe/nomad-parser-mpes.git

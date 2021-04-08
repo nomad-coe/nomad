@@ -64,6 +64,13 @@ def raw_files_on_all_tests(raw_files):
     pass
 
 
+@pytest.fixture(scope='session')
+def example_mainfile_contents():
+    with zipfile.ZipFile(example_file, 'r') as zf:
+        with zf.open(example_file_mainfile) as f:
+            return f.read().decode()
+
+
 class TestObjects:
 
     @pytest.fixture(scope='function')

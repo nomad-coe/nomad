@@ -22,10 +22,12 @@ import zipfile
 import io
 import json
 
+from nomad import files
 from nomad.metainfo.search_extension import search_quantities
 from nomad.app.v1.models import AggregateableQuantity, Metric
 
-from tests.utils import assert_at_least
+from tests.utils import assert_at_least, assert_url_query_args
+from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import assert_response
 from tests.app.conftest import example_data as data  # pylint: disable=unused-import
@@ -306,7 +308,7 @@ def assert_aggregations(response_json, name, agg, total: int, size: int):
     assert_at_least(agg, agg_response)
 
     n_data = len(agg_response['data'])
-    assert agg.get('pagination', {}).get('size', 10) >= n_data
+    assert agg.get('pagination', {}).get('page_size', 10) >= n_data
     assert agg_response['pagination']['total'] >= n_data
     for item in agg_response['data'].values():
         for key in ['size']:
@@ -323,9 +325,9 @@ def assert_aggregations(response_json, name, agg, total: int, size: int):
         agg_data = [{agg['quantity']: value} for value in agg_response['data']]
 
     if 'pagination' in agg:
-        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data)
+        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data, is_get=False)
     else:
-        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'])
+        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'], is_get=False)
 
     if 'entries' in agg:
         for item in agg_response['data'].values():
@@ -336,9 +338,9 @@ def assert_aggregations(response_json, name, agg, total: int, size: int):
                     assert_required(entry, agg['entries']['required'])
 
 
-def assert_pagination(pagination, pagination_response, data, order_by=None, order=None):
+def assert_pagination(pagination, pagination_response, data, order_by=None, order=None, is_get=True):
     assert_at_least(pagination, pagination_response)
-    assert len(data) <= pagination_response['size']
+    assert len(data) <= pagination_response['page_size']
     assert len(data) <= pagination_response['total']
 
     if order is None:
@@ -353,6 +355,26 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
                     assert item[order_by] >= data[index + 1][order_by]
                 else:
                     assert item[order_by] <= data[index + 1][order_by]
+
+    if is_get:
+        page_size = pagination_response['page_size']
+        page = pagination_response.get('page')
+        page_url = pagination_response.get('page_url')
+        first_page_url = pagination_response.get('first_page_url')
+        prev_page_url = pagination_response.get('prev_page_url')
+        next_page_url = pagination_response.get('next_page_url')
+        next_page_after_value = pagination_response.get('next_page_after_value')
+
+        assert page_url
+        if page_size:
+            assert first_page_url
+            assert_url_query_args(first_page_url, page_after_value=None, page=None)
+        if next_page_after_value:
+            assert next_page_url
+            assert_url_query_args(next_page_url, page_after_value=next_page_after_value, page=None)
+        if page and page > 1:
+            assert prev_page_url
+            assert_url_query_args(prev_page_url, page=page - 1, page_after_value=None)
 
 
 def assert_raw_zip_file(
@@ -456,9 +478,13 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
 
 
 def assert_archive_response(response_json, required=None):
-    for key in ['entry_id', 'data']:
+    for key in ['entry_id', 'required', 'data']:
         assert key in response_json
-    assert_archive(response_json['data'], required=required)
+    if required is not None:
+        assert required == response_json['required']
+    for key in ['calc_id', 'upload_id', 'parser_name', 'archive']:
+        assert key in response_json['data']
+    assert_archive(response_json['data']['archive'], required=required)
 
 
 def assert_archive(archive, required=None):
@@ -523,8 +549,8 @@ def test_entries_all_statistics(client, data):
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'dft.n_calculations'}}, 3, 3, 200, id='order-int'),
     pytest.param({'quantity': 'dft.labels_springer_classification'}, 0, 0, 200, id='no-results'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'after': 'id_published'}}, 3, 1, 200, id='after'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader', 'after': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
@@ -536,7 +562,7 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
     aggregations = {'test_agg_name': aggregation}
     response_json = perform_entries_metadata_test(
         client, headers=headers, owner='visible', aggregations=aggregations,
-        pagination=dict(size=0),
+        pagination=dict(page_size=0),
         status_code=status_code, http_method='post')
 
     if response_json is None:
@@ -558,7 +584,7 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_required(client, data, required, status_code, http_method):
     response_json = perform_entries_metadata_test(
-        client, required=required, pagination={'size': 1}, status_code=status_code, http_method=http_method)
+        client, required=required, pagination={'page_size': 1}, status_code=status_code, http_method=http_method)
 
     if response_json is None:
         return
@@ -641,13 +667,72 @@ def test_entry_raw(client, data, entry_id, files_per_entry, status_code):
     pytest.param('id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
     pytest.param('id_01', {'re_pattern': '**'}, -1, 422, id='bad-re-pattern'),
     pytest.param('id_01', {'compress': True}, 5, 200, id='compress')])
-def test_entry_download_raw(client, data, entry_id, files, files_per_entry, status_code):
+def test_entry_raw_download(client, data, entry_id, files, files_per_entry, status_code):
     response = client.get('entries/%s/raw/download?%s' % (entry_id, urlencode(files, doseq=True)))
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
             response, files=files_per_entry + 1, manifest_entries=1,
             compressed=files.get('compress', False))
+
+
+@pytest.fixture(scope='function')
+def data_with_compressed_files(data):
+    upload_files = files.UploadFiles.get('id_published')
+    upload_files.add_rawfiles('tests/data/api/mainfile.xz', prefix='test_content/subdir/test_entry_01')
+    upload_files.add_rawfiles('tests/data/api/mainfile.gz', prefix='test_content/subdir/test_entry_01')
+
+    yield
+
+    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.xz').delete()
+    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.gz').delete()
+
+
+@pytest.mark.parametrize('entry_id, path, params, status_code', [
+    pytest.param('id_01', 'mainfile.json', {}, 200, id='id'),
+    pytest.param('doesnotexist', 'mainfile.json', {}, 404, id='404-entry'),
+    pytest.param('id_01', 'doesnot.exist', {}, 404, id='404-file'),
+    pytest.param('id_01', 'mainfile.json', {'offset': 10, 'length': 10}, 200, id='offset-length'),
+    pytest.param('id_01', 'mainfile.json', {'length': 1000000}, 200, id='length-too-large'),
+    pytest.param('id_01', 'mainfile.json', {'offset': 1000000}, 200, id='offset-too-large'),
+    pytest.param('id_01', 'mainfile.json', {'offset': -1}, 422, id='bad-offset'),
+    pytest.param('id_01', 'mainfile.json', {'length': -1}, 422, id='bad-length'),
+    pytest.param('id_01', 'mainfile.json', {'decompress': True}, 200, id='decompress-json'),
+    pytest.param('id_01', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz'),
+    pytest.param('id_01', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz'),
+    pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
+    pytest.param('id_embargo', 'mainfile.json', {}, 404, id='404-embargo'),
+    pytest.param('id_embargo', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo'),
+    pytest.param('id_embargo', 'mainfile.json', {'user': 'other-test-user'}, 404, id='404-embargo-shared'),
+    pytest.param('id_embargo_shared', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-shared')
+])
+def test_entry_raw_download_file(
+        client, data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
+        entry_id, path, params, status_code):
+
+    user = params.get('user')
+    if user:
+        del(params['user'])
+        if user == 'test-user':
+            headers = test_user_auth
+        elif user == 'other-test-user':
+            headers = other_test_user_auth
+    else:
+        headers = {}
+
+    response = client.get(
+        f'entries/{entry_id}/raw/download/{path}?{urlencode(params, doseq=True)}',
+        headers=headers)
+
+    assert_response(response, status_code)
+    if status_code == 200:
+        content = response.text
+        if path.endswith('.json'):
+            offset = params.get('offset', 0)
+            length = params.get('length', len(example_mainfile_contents) - offset)
+            assert content == example_mainfile_contents[offset:offset + length]
+        else:
+            assert content == 'test content\n'
 
 
 @pytest.mark.parametrize('query, files, entries, status_code', [
@@ -676,13 +761,30 @@ def test_entries_archive(client, data, required, status_code):
 
 @pytest.mark.parametrize('entry_id, status_code', [
     pytest.param('id_01', 200, id='id'),
-    pytest.param('id_02', 404, id='404'),
-    pytest.param('doesnotexist', 404, id='404')])
+    pytest.param('id_02', 404, id='404-not-visible'),
+    pytest.param('doesnotexist', 404, id='404-does-not-exist')])
 def test_entry_archive(client, data, entry_id, status_code):
     response = client.get('entries/%s/archive' % entry_id)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
+
+
+@pytest.mark.parametrize('entry_id, required, status_code', [
+    pytest.param('id_01', '*', 200, id='full'),
+    pytest.param('id_02', '*', 404, id='404'),
+    pytest.param('id_01', {'section_metadata': '*'}, 200, id='partial'),
+    pytest.param('id_01', {'section_run': {'section_system[NOTANINT]': '*'}}, 400, id='bad-required-1'),
+    pytest.param('id_01', {'section_metadata': {'owners[NOTANINT]': '*'}}, 400, id='bad-required-2'),
+    pytest.param('id_01', {'DOESNOTEXIST': '*'}, 400, id='bad-required-3')
+])
+def test_entry_archive_query(client, data, entry_id, required, status_code):
+    response = client.post('entries/%s/archive/query' % entry_id, json={
+        'required': required
+    })
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json(), required=required)
 
 
 def perform_entries_owner_test(
@@ -751,10 +853,10 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
 
     pagination = response_json['pagination']
     assert pagination['total'] == total
-    assert pagination['size'] == 10
+    assert pagination['page_size'] == 10
     assert pagination['order_by'] == 'calc_id'
     assert pagination['order'] == 'asc'
-    assert ('next_after' in pagination) == (total > 10)
+    assert ('next_page_after_value' in pagination) == (total > 10)
 
 
 @pytest.mark.parametrize('query, status_code, total', [
@@ -808,10 +910,10 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
 
     pagination = response_json['pagination']
     assert pagination['total'] == total
-    assert pagination['size'] == 10
+    assert pagination['page_size'] == 10
     assert pagination['order_by'] == 'calc_id'
     assert pagination['order'] == 'asc'
-    assert ('next_after' in pagination) == (total > 10)
+    assert ('next_page_after_value' in pagination) == (total > 10)
 
 
 @pytest.mark.parametrize('owner, user, status_code, total', [
@@ -859,18 +961,22 @@ def test_entries_owner(
 
 
 @pytest.mark.parametrize('pagination, response_pagination, status_code', [
-    pytest.param({}, {'total': 23, 'size': 10, 'next_after': 'id_10'}, 200, id='empty'),
-    pytest.param({'size': 1}, {'total': 23, 'size': 1, 'next_after': 'id_01'}, 200, id='size'),
-    pytest.param({'size': 0}, {'total': 23, 'size': 0}, 200, id='size-0'),
-    pytest.param({'size': 1, 'after': 'id_01'}, {'after': 'id_01', 'next_after': 'id_02'}, 200, id='after'),
-    pytest.param({'size': 1, 'after': 'id_02', 'order': 'desc'}, {'next_after': 'id_01'}, 200, id='after-desc'),
-    pytest.param({'size': 1, 'order_by': 'n_atoms'}, {'next_after': '2:id_01'}, 200, id='order-by-after-int'),
-    pytest.param({'size': 1, 'order_by': 'dft.code_name'}, {'next_after': 'VASP:id_01'}, 200, id='order-by-after-nested'),
-    pytest.param({'size': -1}, None, 422, id='bad-size'),
+    pytest.param({}, {'total': 23, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
+    pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
+    pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
+    pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
+    pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
+    pytest.param({'page_size': 1, 'order_by': 'n_atoms'}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
+    pytest.param({'page_size': 1, 'order_by': 'dft.code_name'}, {'next_page_after_value': 'VASP:id_01'}, 200, id='order-by-after-nested'),
+    pytest.param({'page_size': -1}, None, 422, id='bad-size'),
     pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
     pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
-    pytest.param({'order_by': 'atoms', 'after': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': 'n_atoms', 'after': 'some'}, None, 400, id='order-by-bad-after')
+    pytest.param({'order_by': 'atoms', 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
+    pytest.param({'order_by': 'n_atoms', 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
+    pytest.param({'page': 1, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
+    pytest.param({'page': 2, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
+    pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
+    pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
@@ -884,4 +990,4 @@ def test_entries_pagination(client, data, pagination, response_pagination, statu
     if response_json is None:
         return
 
-    assert_pagination(pagination, response_json['pagination'], response_json['data'])
+    assert_pagination(pagination, response_json['pagination'], response_json['data'], is_get=(http_method == 'get'))
