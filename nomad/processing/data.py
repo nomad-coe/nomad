@@ -578,21 +578,14 @@ class Calc(Proc):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
-
         metadata_file = config.metadata_file_name
         metadata_dir = os.path.dirname(self.mainfile_file.os_path)
+        upload_raw_dir = self.upload_files._raw_dir.os_path
 
         metadata = {}
+        metadata_part = None
+        # apply the nomad files of the current directory and parent directories
         while True:
-            # top-level nomad file can also contain an entries dict with entry
-            # metadata per mainfile as key
-            if metadata_dir == self.upload_files.os_path:
-                entries = metadata_part.get('entries', {})
-                metadata_part = entries.get(self.mainfile, {})
-                for key, val in metadata_part.items():
-                    metadata.setdefault(key, val)
-
-            # consider the nomad file of the current directory
             metadata_part = self.upload.metadata_file_cached(
                 os.path.join(metadata_dir, metadata_file))
             for key, val in metadata_part.items():
@@ -600,10 +593,17 @@ class Calc(Proc):
                     continue
                 metadata.setdefault(key, val)
 
-            if metadata_dir == self.upload_files.os_path:
+            if metadata_dir == upload_raw_dir:
                 break
 
             metadata_dir = os.path.dirname(metadata_dir)
+
+        # Top-level nomad file can also contain an entries dict with entry
+        # metadata per mainfile as key. This takes precedence of the other files.
+        entries = metadata_part.get('entries', {})
+        metadata_part = entries.get(self.mainfile, {})
+        for key, val in metadata_part.items():
+            metadata[key] = val
 
         if len(metadata) > 0:
             logger.info('Apply user metadata from nomad.yaml/json file')
@@ -644,7 +644,10 @@ class Calc(Proc):
         if self.upload.publish_directly:
             self._entry_metadata.published |= True
 
-        self._read_metadata_from_file(logger)
+        try:
+            self._read_metadata_from_file(logger)
+        except Exception as e:
+            logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
 
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
@@ -1108,7 +1111,7 @@ class Upload(Proc):
         if self.from_oasis:
             # we might need to add datasets from the oasis before processing and
             # adding the entries
-            oasis_metadata_file = os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name + '.json')
+            oasis_metadata_file = os.path.join(self.upload_files._raw_dir.os_path, config.metadata_file_name + '.json')
             with open(oasis_metadata_file, 'rt') as f:
                 oasis_metadata = json.load(f)
             oasis_datasets = oasis_metadata.get('oasis_datasets', {})
