@@ -33,7 +33,7 @@ class SinglePointNormalizer(Normalizer):
         if not self.section:
             self.section = self.entry_archive.section_workflow.m_create(SinglePoint)
 
-        if not self.section.calculation_method:
+        if not self.section.single_point_calculation_method:
             try:
                 method = self.section_run.section_method[-1]
                 self.section.single_point_calculation_method = method.electronic_structure_method
