@@ -18,7 +18,7 @@
 import os
 import io
 from datetime import datetime
-from typing import Tuple, List, Set, Dict, Any
+from typing import Tuple, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
@@ -39,7 +39,6 @@ default_tag = 'uploads'
 logger = utils.get_logger(__name__)
 
 
-_upload_fields: Set[str] = set(Upload._fields.keys())
 _upload_fields_sortable: Tuple[str, ...] = (
     'upload_time', 'upload_name', 'current_process', 'process_status')
 
@@ -62,9 +61,47 @@ upload_pagination_parameters = parameter_dependency_from_model(
     'upload_pagination_parameters', UploadPagination)
 
 
+class UploadMetaData(BaseModel):
+    upload_id: str = Field(
+        None,
+        description='The unique id for the upload.')
+    name: Optional[str] = Field(
+        description='The name of the upload. This can be provided during upload '
+                    'using the name query parameter.')
+    create_time: datetime = Field(
+        None,
+        description='The time of creation.')
+    upload_time: datetime = Field(
+        None,
+        description='The time of upload.')
+    upload_path: Optional[str] = Field(
+        description='Path to the uploaded file on the server.')
+    published: bool = Field(
+        False,
+        description='If this upload is already published.')
+    published_to: List[str] = Field(
+        None,
+        description='A list of other NOMAD deployments that this upload was uploaded to already.')
+    tasks: List[str] = Field()
+    current_task: str = Field()
+    tasks_running: bool = Field()
+    tasks_status: str = Field()
+    errors: List[str] = Field()
+    warnings: List[str] = Field()
+    complete_time: Optional[datetime] = Field()
+    current_process: str = Field()
+    process_running: bool = Field()
+    last_status_message: str = Field(
+        None,
+        description='The last informative message that the processing saved about this uploads status.')
+
+    class Config:
+        orm_mode = True
+
+
 class UploadsMetadataResponse(BaseModel):
     pagination: PaginationResponse
-    data: List[Dict[str, Any]] = Field(
+    data: List[UploadMetaData] = Field(
         None, description=strip('''
         The upload metadata as a list. Each item is a dictionary with the metadata for each
         upload.'''))
@@ -73,7 +110,7 @@ class UploadsMetadataResponse(BaseModel):
 class UploadMetadataResponse(BaseModel):
     upload_id: str = Field(None, description=strip('''
         Unique id of the upload.'''))
-    data: Dict[str, Any] = Field(
+    data: UploadMetaData = Field(
         None, description=strip('''
         The upload metadata as a dictionary.'''))
 
@@ -99,10 +136,6 @@ async def get_uploads(
             [],
             description=strip('''
             Specify to retrieve only uploads with specific processing statuses.''')),
-        required: List[str] = FastApiQuery(
-            [],
-            description=strip('''
-            Specify to retrieve only selected fields.''')),
         pagination: UploadPagination = Depends(upload_pagination_parameters),
         user: User = Depends(get_optional_user)):
     '''
@@ -121,12 +154,6 @@ async def get_uploads(
             '''))
 
     # Check query
-    if required:
-        for attr in required:
-            if attr not in _upload_fields:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip(f'''
-                    Invalid attribute requested: `{attr}`.
-                    '''))
     if processing_filters:
         pass  # TODO: check that all values are valid
 
@@ -137,8 +164,7 @@ async def get_uploads(
     # TODO: apply processing filters
 
     # Fetch data from DB
-    mongodb_query = Upload.objects(**query_kwargs)
-
+    mongodb_query = _query_mongodb(**query_kwargs)
     # Create response
     start = pagination.get_simple_index()
     end = start + pagination.page_size
@@ -147,7 +173,7 @@ async def get_uploads(
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
     mongodb_query = mongodb_query.order_by(order_by_with_sign, 'upload_id')
 
-    data = [_upload_to_dict(upload, required) for upload in mongodb_query[start:end]]
+    data = [_upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
 
     pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
@@ -167,28 +193,16 @@ async def get_upload_by_id(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to retrieve.'),
-        required: List[str] = FastApiQuery(
-            [],
-            description=strip('''
-            Specify to retrieve only selected fields.''')),
         user: User = Depends(get_optional_user)):
     '''
-    Fetches a specific upload by its upload_id. Specify the `required` argument to
-    select only the specified fields.
+    Fetches a specific upload by its upload_id.
     '''
-    # Check query
-    if required:
-        for attr in required:
-            if attr not in _upload_fields:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip(f'''
-                    Invalid attribute requested: `{attr}`.
-                    '''))
     # Get upload (or throw exception if nonexistent/no access)
     upload = _get_upload_with_read_access(upload_id, user)
 
     return UploadMetadataResponse(
         upload_id=upload_id,
-        data=_upload_to_dict(upload, required))
+        data=_upload_to_pydantic(upload))
 
 
 @router.post(
@@ -258,7 +272,7 @@ async def post_uploads(
 
     # Check upload limit
     if not user.is_admin:
-        if Upload.user_uploads(user, published=False).count() >= config.services.upload_limit:  # type: ignore
+        if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
@@ -317,7 +331,7 @@ async def post_uploads(
 
     return UploadMetadataResponse(
         upload_id=upload_id,
-        data=_upload_to_dict(upload))
+        data=_upload_to_pydantic(upload))
 
 
 @router.delete(
@@ -354,7 +368,7 @@ async def delete_upload_by_id(
 
     return UploadMetadataResponse(
         upload_id=upload_id,
-        data=_upload_to_dict(upload))
+        data=_upload_to_pydantic(upload))
 
 
 async def _asyncronous_file_reader(f):
@@ -371,7 +385,11 @@ async def _asyncronous_file_reader(f):
         yield data
 
 
-def _get_upload_with_read_access(upload_id, user):
+def _query_mongodb(**kwargs):
+    return Upload.objects(**kwargs)
+
+
+def _get_upload_with_read_access(upload_id, user) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the module does not exist, or the user has
@@ -379,7 +397,7 @@ def _get_upload_with_read_access(upload_id, user):
     '''
     # TODO: complete the logic. For now, you only have read access to your own uploads.
     if user:
-        mongodb_query = Upload.objects(upload_id=upload_id, user_id=str(user.user_id))
+        mongodb_query = _query_mongodb(upload_id=upload_id, user_id=str(user.user_id))
         if mongodb_query.count():
             # The upload exists
             return mongodb_query[0]
@@ -388,14 +406,14 @@ def _get_upload_with_read_access(upload_id, user):
         '''))
 
 
-def _get_upload_with_write_access(upload_id, user):
+def _get_upload_with_write_access(upload_id, user) -> Upload:
     # TODO: complete the logic.
     if user:
-        query_args = {}
+        query_args: dict = {}
         if not user.is_admin:
             query_args.update(user_id=str(user.user_id))
             query_args.update(published=False)
-        mongodb_query = Upload.objects(upload_id=upload_id, **query_args)
+        mongodb_query = _query_mongodb(upload_id=upload_id, **query_args)
         if mongodb_query.count():
             # The upload exists
             return mongodb_query[0]
@@ -405,17 +423,6 @@ def _get_upload_with_write_access(upload_id, user):
         '''))
 
 
-def _upload_to_dict(upload, required=None):
-    ''' Extracts the required fields from the provided upload, and returns as dict. '''
-    if required:
-        rv = {}
-        for attr in required:
-            if hasattr(upload, attr):
-                rv[attr] = getattr(upload, attr)
-            else:
-                rv[attr] = None
-        return rv
-    else:
-        rv = dict(upload.to_mongo())
-        rv['upload_id'] = rv.pop('_id')
-        return rv
+def _upload_to_pydantic(upload: Upload) -> UploadMetaData:
+    ''' Converts the mongo db object to a dictionary. '''
+    return UploadMetaData.from_orm(upload)
