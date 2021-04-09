@@ -145,7 +145,6 @@ class MatchingParser(Parser):
             self._mainfile_contents_re = re.compile(mainfile_contents_re)
         else:
             self._mainfile_contents_re = None
-        # TODO remove mainfile_binary_header
         if mainfile_binary_header_re is not None:
             self._mainfile_binary_header_re = re.compile(mainfile_binary_header_re)
         else:
