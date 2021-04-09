@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO, cast
+from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO
 from fastapi import APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter
 from fastapi.responses import StreamingResponse
 import os.path
@@ -29,9 +29,7 @@ import lzma
 
 from nomad import search, files, config, utils
 from nomad.utils import strip
-from nomad.archive import (
-    query_archive, ArchiveQueryError, compute_required_with_referenced,
-    read_partial_archives_from_mongo, filter_archive)
+from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 
 from .auth import get_optional_user
 from ..utils import create_streamed_zipfile, File, create_responses
@@ -446,7 +444,7 @@ async def get_entries_raw_download(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
 
 
-def _read_archive(entry_metadata, uploads, required):
+def _read_archive(entry_metadata, uploads, required_reader: RequiredReader):
     calc_id = entry_metadata['calc_id']
     upload_id = entry_metadata['upload_id']
     upload_files = uploads.get_upload_files(upload_id)
@@ -457,10 +455,18 @@ def _read_archive(entry_metadata, uploads, required):
                 'calc_id': calc_id,
                 'upload_id': upload_id,
                 'parser_name': entry_metadata['parser_name'],
-                'archive': query_archive(archive, {calc_id: required})[calc_id]
+                'archive': required_reader.read(archive, calc_id)
             }
     except ArchiveQueryError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+def _validate_required(required: ArchiveRequired) -> RequiredReader:
+    try:
+        return RequiredReader(required)
+    except RequiredValidationError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[dict(
+            msg=e.msg, loc=['required'] + e.loc)])
 
 
 def _answer_entries_archive_request(
@@ -476,11 +482,7 @@ def _answer_entries_archive_request(
     if required is None:
         required = '*'
 
-    try:
-        required_with_references = compute_required_with_referenced(required)
-    except KeyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
-            'The required specification contains an unknown quantity or section: %s' % str(e)))
+    required_reader = _validate_required(required)
 
     search_response = perform_search(
         owner=owner, query=query,
@@ -488,35 +490,17 @@ def _answer_entries_archive_request(
         required=MetadataRequired(include=['calc_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
 
-    if required_with_references is not None:
-        # We can produce all the required archive data from the partial archives stored
-        # in mongodb.
-        entry_ids = [entry['calc_id'] for entry in search_response.data]
-        partial_archives = cast(dict, read_partial_archives_from_mongo(entry_ids, as_dict=True))
-
     uploads = _Uploads()
     response_data = {}
     for entry_metadata in search_response.data:
         calc_id, upload_id = entry_metadata['calc_id'], entry_metadata['upload_id']
 
         archive_data = None
-        if required_with_references is not None:
-            try:
-                partial_archive = partial_archives[calc_id]
-                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
-            except KeyError:
-                # the partial archive might not exist, e.g. due to processing problems
-                pass
-            except ArchiveQueryError as e:
-                detail = 'The required specification could not be understood: %s' % str(e)
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-        if archive_data is None:
-            try:
-                archive_data = _read_archive(entry_metadata, uploads, required)['archive']
-            except KeyError as e:
-                logger.error('missing archive', exc_info=e, calc_id=calc_id)
-                continue
+        try:
+            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
+        except KeyError as e:
+            logger.error('missing archive', exc_info=e, calc_id=calc_id)
+            continue
 
         response_data[calc_id] = {
             'calc_id': calc_id,
@@ -609,13 +593,15 @@ def _answer_entries_archive_download_request(
     manifest = []
     search_includes = ['calc_id', 'upload_id', 'parser_name']
 
+    required_reader = RequiredReader('*')
+
     # a generator of File objects to create the streamed zip from
     def file_generator():
         # go through all entries that match the query
         for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
             path = os.path.join(entry_metadata['upload_id'], '%s.json' % entry_metadata['calc_id'])
             try:
-                archive_data = _read_archive(entry_metadata, uploads, '*')
+                archive_data = _read_archive(entry_metadata, uploads, required_reader)
 
                 f = io.BytesIO(orjson.dumps(
                     archive_data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
@@ -881,11 +867,7 @@ async def get_entry_raw_download_file(
 
 
 def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):
-    try:
-        required_with_references = compute_required_with_referenced(required)
-    except KeyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
-            'The required specification contains an unknown quantity or section: %s' % str(e)))
+    required_reader = _validate_required(required)
 
     query = dict(calc_id=entry_id)
     response = perform_search(
@@ -900,32 +882,14 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
 
     entry_metadata = response.data[0]
 
-    if required_with_references is not None:
-        # We can produce all the required archive data from the partial archives stored
-        # in mongodb.
-        partial_archives = cast(dict, read_partial_archives_from_mongo([entry_id], as_dict=True))
-
     uploads = _Uploads()
     try:
-        archive_data = None
-        if required_with_references is not None:
-            try:
-                partial_archive = partial_archives[entry_id]
-                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
-            except KeyError:
-                # the partial archive might not exist, e.g. due to processing problems
-                pass
-            except ArchiveQueryError as e:
-                detail = 'The required specification could not be understood: %s' % str(e)
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-        if archive_data is None:
-            try:
-                archive_data = _read_archive(entry_metadata, uploads, required=required)['archive']
-            except KeyError:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail='The entry with the given id does exist, but it has no archive.')
+        try:
+            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
+        except KeyError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='The entry with the given id does exist, but it has no archive.')
 
         return {
             'entry_id': entry_id,

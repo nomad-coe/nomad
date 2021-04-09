@@ -891,9 +891,9 @@ _archive_required_field = Body(
         The `required` part allows you to specify what parts of the requested archives
         should be returned. The NOMAD Archive is a hierarchical data format and
         you can *require* certain branches (i.e. *sections*) in the hierarchy.
-        By specifing certain sections with specific contents or all contents (via `"*"`),
-        you can determine what sections and what quantities should be returned.
-        The default is everything: `"*"`.
+        By specifing certain sections with specific contents or all contents (via
+        the directive `"*"`), you can determine what sections and what quantities should
+        be returned. The default is the whole archive, i.e., `"*"`.
 
         For example to specify that you are only interested in the `section_metadata`
         use:
@@ -931,13 +931,40 @@ _archive_required_field = Body(
         calculation:
         ```
         {
-            'section_workflow': {
-                'calculation_result_ref': {
-                    'energy_total': '*',
-                    'single_configuration_calculation_to_system_ref': {
-                        'chemical_composition_reduced': '*'
+            "section_workflow": {
+                "calculation_result_ref": {
+                    "energy_total": "*",
+                    "single_configuration_calculation_to_system_ref": {
+                        "chemical_composition_reduced": "*"
                     }
                 }
+            }
+        }
+        ```
+
+        You can also resolve all references in a branch with the `include-resolved`
+        directive. This will resolve all references in the branch, and also all references
+        in referenced sections:
+        ```
+        {
+            "section_workflow":
+                "calculation_result_ref": "include-resolved"
+            }
+        }
+        ```
+
+        By default, the targets of "resolved" references are added to the archive at
+        their original hierarchy positions.
+        This means, all references are still references, but they are resolvable within
+        the returned data, since they targets are now part of the data. Another option
+        is to add
+        `"resolve-inplace": true` to the root of required. Here, the reference targets will
+        replace the references:
+        ```
+        {
+            "resolve-inplace": true,
+            "section_workflow":
+                "calculation_result_ref": "include-resolved"
             }
         }
         ```
