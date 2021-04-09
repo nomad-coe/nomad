@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Any
+from typing import Dict, Any, Union
 import pytest
 import msgpack
 from io import BytesIO
@@ -24,11 +24,14 @@ import os.path
 import json
 
 from nomad import utils, config
+from nomad.metainfo import MSection, Quantity, Reference, SubSection
 from nomad.datamodel import EntryArchive
+from nomad.archive.storage import TOCPacker
 from nomad.archive import (
-    TOCPacker, write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive,
+    write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive,
     write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
-    create_partial_archive, compute_required_with_referenced)
+    create_partial_archive, compute_required_with_referenced, RequiredReader,
+    RequiredValidationError)
 
 
 def create_example_uuid(index: int = 0):
@@ -338,6 +341,131 @@ def archive():
             }
         }
         '''))
+
+
+@pytest.mark.parametrize('required, error', [
+    pytest.param('include', None, id='include-all'),
+    pytest.param('*', None, id='include-all-alias'),
+    pytest.param({'section_metadata': '*'}, None, id='include-sub-section'),
+    pytest.param({'section_metadata': {
+        'calc_id': '*'
+    }}, None, id='include-quantity'),
+    pytest.param({
+        'section_workflow': {
+            'calculation_result_ref': {
+                'energy_total': '*'
+            }
+        }
+    }, None, id='resolve'),
+    pytest.param({
+        'section_workflow': 'include-resolved'
+    }, None, id='include-resolved'),
+    pytest.param({
+        'section_metadata': {
+            'calc_id': {
+                'doesnotexist': '*'
+            }
+        }
+    }, ['section_metadata', 'calc_id'], id='not-a-section'),
+    pytest.param({
+        'section_metadata': 'bad-directive'
+    }, ['section_metadata'], id='bad-directive')
+])
+@pytest.mark.parametrize('resolve_inplace', [
+    pytest.param(True, id='inplace'),
+    pytest.param(False, id='root'),
+])
+def test_required_reader(archive, required, error, resolve_inplace):
+    f = BytesIO()
+    write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=1)
+    packed_archive = f.getbuffer()
+
+    archive_reader = ArchiveReader(BytesIO(packed_archive))
+    try:
+        required_reader = RequiredReader(required, resolve_inplace=resolve_inplace)
+    except RequiredValidationError as e:
+        assert error is not None, f'{e.msg}, loc={e.loc}'
+        assert e.loc == error
+        return
+
+    assert error is None
+    results = required_reader.read(archive_reader, 'entry_id')
+
+    assert_required_results(results, required_reader.required, archive)
+
+
+def assert_required_results(
+        results: dict, required: dict, archive: MSection,
+        current_results: Union[dict, str] = None,
+        current_archive_serialized: Union[str, dict] = None):
+    '''
+    Asserts if the resulting dict from a :class:`RequiredReader` contains everything that
+    was requested and if this is consistent with the archive that was read from.
+    '''
+
+    # initialize recursion
+    if current_archive_serialized is None:
+        current_archive_serialized = archive.m_to_dict()
+    if current_results is None:
+        current_results = results
+
+    definition = required['_def']
+    directive = required.get('_directive')
+
+    # assert quantity values
+    if isinstance(definition, Quantity):
+        assert current_results == current_archive_serialized
+        return
+
+    # deal with references
+    if isinstance(current_archive_serialized, str):
+        # The current value must be a reference.
+        if directive in ['*', 'include']:
+            assert current_results == current_archive_serialized
+            return
+
+        if isinstance(current_results, str):
+            # It is an inplace resolved reference, it should be resolveable within an
+            # results based archive. We should continue the assert from the resolved
+            # results and resolved section in the archive.
+            assert current_results == current_archive_serialized
+            resolved_results: MSection = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
+            current_results = resolved_results.m_to_dict()
+
+        resolved_archive: MSection = archive.m_resolve(current_archive_serialized)
+        current_archive_serialized = resolved_archive.m_to_dict()
+
+    # continue recursion on directives, by extending the required with all possible
+    # decends
+    def prop_def(prop, section):
+        prop_def = section.all_properties[prop]
+        if isinstance(prop_def, SubSection):
+            return prop_def.sub_section.m_resolved()
+        if isinstance(prop_def, Quantity) and isinstance(prop_def.type, Reference):
+            return prop_def.type.target_section_def.m_resolved()
+
+        return prop_def
+
+    if directive is not None:
+        # we use a made up required that applies the directive to all values
+        required = {
+            key: dict(_directive=directive, _prop=key, _def=prop_def(key, definition))
+            for key in current_archive_serialized}
+
+    # recurse of all required decends
+    for key, value in required.items():
+        if key.startswith('_'): continue
+        prop = value['_prop']
+        assert prop in current_results
+        assert prop in current_archive_serialized
+        prop_value = current_results[prop]
+        if isinstance(prop_value, list):
+            for i, _ in enumerate(prop_value):
+                assert_required_results(
+                    results, value, archive, prop_value[i], current_archive_serialized[prop][i])
+        else:
+            assert_required_results(
+                results, value, archive, prop_value, current_archive_serialized[prop])
 
 
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:

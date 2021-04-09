@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Iterable, Any, Tuple, Dict, Callable, BinaryIO, Union, List, cast
+from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
 import msgpack
@@ -24,29 +24,9 @@ from msgpack.fallback import Packer, StringIO
 import struct
 import json
 import math
-import re
 
-from nomad import utils, config, infrastructure
-from nomad.metainfo import Quantity, Reference, Definition, MSection, Section, SubSection
-from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.common_dft import FastAccess
+from nomad import utils
 
-'''
-The archive storage is made from two tiers. First the whole archive is stored in
-files, secondly parts of the archive are stored in mongodb documents.
-
-The file storage is done in msg-pack files. Each file contains the archive of many
-entries (all entries of an upload). These msg-pack files contain the JSON serialized
-version of the metainfo archive (see module:`nomad.metainfo`). In addition msg-pack
-contains TOC information for quicker access of individual sections. See :func:`write_archive`
-and :func:`read_archvive`. In addition there query functionality to partially read
-specified sections from an archive: func:`query_archive`.
-
-The mongo storage uses mongodb's native bson to store JSON serialized metainfo archive
-data. Each document in mongodb holds the partial archive of single entry. Which parts
-of an archive are stored in mongo is determined by the metainfo and
-section annotations/categories.
-'''
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
 
@@ -59,22 +39,8 @@ def unpackb(o, **kwargs):
     return msgpack.unpackb(o, raw=False)
 
 
-def adjust_uuid_size(uuid):
-    uuid = uuid.rjust(utils.default_hash_len, ' ')
-    assert len(uuid) == utils.default_hash_len, 'uuids must have the right fixed size'
-    return uuid
-
-
 class ArchiveError(Exception):
     ''' An error that indicates a broken archive. '''
-    pass
-
-
-class ArchiveQueryError(Exception):
-    '''
-    An error that indicates that an archive query is either not valid or does not fit to
-    the queried archive.
-    '''
     pass
 
 
@@ -232,7 +198,7 @@ class ArchiveWriter:
             end.to_bytes(5, byteorder='little', signed=False)
 
     def add(self, uuid: str, data: Any) -> None:
-        uuid = adjust_uuid_size(uuid)
+        uuid = utils.adjust_uuid_size(uuid)
 
         self._toc_packer.reset()
         packed = self._toc_packer.pack(data)
@@ -405,7 +371,7 @@ class ArchiveReader(ArchiveObject):
         return first, last
 
     def __getitem__(self, key):
-        key = adjust_uuid_size(key)
+        key = utils.adjust_uuid_size(key)
 
         if self.use_blocked_toc and self.toc_entry is None:
             if self._n_toc == 0:
@@ -556,369 +522,6 @@ def read_archive(file_or_path: str, **kwargs) -> ArchiveReader:
     '''
 
     return ArchiveReader(file_or_path, **kwargs)
-
-
-__query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*))?\])?$')
-
-
-def query_archive(
-        f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict,
-        **kwargs) -> Dict:
-    '''
-    Takes an open msg-pack based archive (either as str, reader, or BytesIO) and returns
-    the archive as JSON serializable dictionary filtered based on the given required
-    specification.
-    '''
-    def _to_son(data):
-        if isinstance(data, (ArchiveList, List)):
-            data = [_to_son(item) for item in data]
-
-        elif isinstance(data, ArchiveObject):
-            data = data.to_dict()
-
-        return data
-
-    def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveObject) -> Dict:
-        query_dict_with_fixed_ids = {
-            adjust_uuid_size(key): value for key, value in query_dict.items()}
-        return filter_archive(query_dict_with_fixed_ids, archive_item, transform=_to_son)
-
-    if isinstance(f_or_archive_reader, ArchiveReader):
-        return _load_data(query_dict, f_or_archive_reader)
-
-    elif isinstance(f_or_archive_reader, (BytesIO, str)):
-        with ArchiveReader(f_or_archive_reader, **kwargs) as archive:
-            return _load_data(query_dict, archive)
-
-    else:
-        raise TypeError('%s is neither a file-like nor ArchiveReader' % f_or_archive_reader)
-
-
-def filter_archive(
-        required: Union[str, Dict[str, Any]], archive_item: Union[Dict, ArchiveObject],
-        transform: Callable) -> Dict:
-
-    def _fix_index(index, length):
-        if index is None:
-            return index
-        if index < 0:
-            return max(-(length), index)
-        else:
-            return min(length, index)
-
-    if archive_item is None:
-        return None
-
-    if not isinstance(required, dict):
-        return transform(archive_item)
-
-    result: Dict[str, Any] = {}
-    for key, val in required.items():
-        key = key.strip()
-
-        # process array indices
-        match = __query_archive_key_pattern.match(key)
-        index: Union[Tuple[int, int], int] = None
-        if match:
-            key = match.group(1)
-
-            # check if we have indices
-            if match.group(2) is not None:
-                first_index, last_index = None, None
-                group = match.group(3)
-                first_index = None if group == '' else int(group)
-
-                if match.group(4) is not None:
-                    group = match.group(5)
-                    last_index = None if group == '' else int(group)
-                    index = (0 if first_index is None else first_index, last_index)
-
-                else:
-                    index = first_index  # one item
-
-            else:
-                index = None
-
-        else:
-            raise ArchiveQueryError('invalid key format: %s' % key)
-
-        try:
-            archive_child = archive_item[key]
-            is_list = isinstance(archive_child, (ArchiveList, list))
-
-            if index is None and is_list:
-                index = (0, None)
-
-            elif index is not None and not is_list:
-                raise ArchiveQueryError('cannot use list key on none list %s' % key)
-
-            if index is None:
-                pass
-            else:
-                length = len(archive_child)
-                if isinstance(index, tuple):
-                    index = (_fix_index(index[0], length), _fix_index(index[1], length))
-                    if index[0] == index[1]:
-                        archive_child = [archive_child[index[0]]]
-                    else:
-                        archive_child = archive_child[index[0]: index[1]]
-                else:
-                    archive_child = [archive_child[_fix_index(index, length)]]
-
-            if isinstance(archive_child, (ArchiveList, list)):
-                result[key] = [
-                    filter_archive(val, item, transform=transform)
-                    for item in archive_child]
-            else:
-                result[key] = filter_archive(val, archive_child, transform=transform)
-
-        except (KeyError, IndexError):
-            continue
-
-    return result
-
-
-def create_partial_archive(archive: EntryArchive) -> Dict:
-    '''
-    Creates a partial archive JSON serializable dict that can be stored directly.
-    The given archive is filtered based on the metainfo category ``FastAccess``.
-    Selected sections and other data that they reference (recursively) comprise the
-    resulting partial archive.
-
-    TODO at the moment is hard coded and NOT informed by the metainfo. We simply
-    add sections EntryMetadata and Workflow.
-
-    Arguments:
-        archive: The archive as an :class:`EntryArchive` instance.
-
-    Returns: the partial archive in JSON serializable dictionary form.
-    '''
-    # A list with all referenced sections that might not yet been ensured to be in the
-    # resulting partial archive
-    referenceds: List[MSection] = []
-    # contents keeps track of all sections in the partial archive by keeping their
-    # JSON serializable form and placeholder status in a dict
-    contents: Dict[MSection, Tuple[dict, bool]] = dict()
-
-    def partial(definition: Definition, section: MSection) -> bool:
-        '''
-        ``m_to_dict`` partial function that selects what goes into the partial archive
-        and what not. It also collects references as a side-effect.
-        '''
-        if section.m_def == EntryArchive.m_def:
-            if definition.m_def == Quantity:
-                return True
-            return FastAccess.m_def in definition.categories
-
-        if isinstance(definition, Quantity) and isinstance(definition.type, Reference) \
-                and FastAccess.m_def in definition.categories:
-            # Reference list in partial archives are not supported
-            if definition.is_scalar:
-                referenced = getattr(section, definition.name)
-                if referenced is not None and referenced not in contents:
-                    referenceds.append(referenced)
-
-        if isinstance(definition, SubSection):
-            return FastAccess.m_def in definition.categories
-
-        return True
-
-    # add the main content
-    partial_contents = archive.m_to_dict(partial=partial)
-
-    # add the referenced data
-    def add(section, placeholder=False) -> dict:
-        '''
-        Adds the given section to partial_contents at the right place. If not a placeholder,
-        the section's serialization is added (or replacing an existing placeholder).
-        Otherwise, an empty dict is added as a placeholder for referenced children.
-        '''
-        result: Dict[str, Any] = None
-        content, content_is_placeholder = contents.get(section, (None, True))
-        if content is not None:
-            if content_is_placeholder and not placeholder:
-                # the placeholder gets replaced later
-                pass
-            else:
-                return content
-
-        if section.m_parent is None:
-            contents[section] = partial_contents, False
-            return partial_contents
-
-        parent_dict = add(section.m_parent, placeholder=True)
-        if placeholder:
-            result = {}
-        else:
-            result = section.m_to_dict(partial=partial)
-
-        sub_section = section.m_parent_sub_section
-        if sub_section.repeats:
-            sections = parent_dict.setdefault(sub_section.name, [])
-            while len(sections) < section.m_parent_index + 1:
-                sections.append(None)
-            sections[section.m_parent_index] = result
-        else:
-            parent_dict[sub_section.name] = result
-
-        contents[section] = result, placeholder
-        return result
-
-    # we add referenced objects as long as they are added by subsequent serialization
-    # of referenced sections to implement the recursive nature of further references in
-    # already referenced sections.
-    while len(referenceds) > 0:
-        referenced = referenceds.pop()
-        add(referenced)
-
-    return partial_contents
-
-
-def write_partial_archive_to_mongo(archive: EntryArchive):
-    ''' Partially writes the given archive to mongodb. '''
-    mongo_db = infrastructure.mongo_client[config.mongo.db_name]
-    mongo_collection = mongo_db['archive']
-    mongo_id = archive.section_metadata.calc_id
-
-    partial_archive_dict = create_partial_archive(archive)
-    partial_archive_dict['_id'] = mongo_id
-    mongo_collection.replace_one(dict(_id=mongo_id), partial_archive_dict, upsert=True)
-
-
-def read_partial_archive_from_mongo(entry_id: str, as_dict=False) -> Union[EntryArchive, Dict]:
-    '''
-    Reads the partial archive for the given id from mongodb.
-
-    Arguments:
-        entry_id: The entry id for the entry.
-        as_dict: Return the JSON serializable dictionary form of the archive not the
-            :class:`EntryArchive` form.
-    '''
-    mongo_db = infrastructure.mongo_client[config.mongo.db_name]
-    mongo_collection = mongo_db['archive']
-    archive_dict = mongo_collection.find_one(dict(_id=entry_id))
-
-    if as_dict:
-        return archive_dict
-
-    return EntryArchive.m_from_dict(archive_dict)
-
-
-def delete_partial_archives_from_mongo(entry_ids: List[str]):
-    mongo_db = infrastructure.mongo_client[config.mongo.db_name]
-    mongo_collection = mongo_db['archive']
-    mongo_collection.delete_many(dict(_id={'$in': entry_ids}))
-
-
-def read_partial_archives_from_mongo(entry_ids: List[str], as_dict=False) -> Dict[str, Union[EntryArchive, Dict]]:
-    '''
-    Reads the partial archives for a set of entries.
-
-    Arguments:
-        entry_ids: A list of entry ids.
-        as_dict: Return the JSON serializable dictionary form of the archive not the
-            :class:`EntryArchive` form.
-
-    Returns:
-        A dictionary with entry_ids as keys.
-    '''
-    mongo_db = infrastructure.mongo_client[config.mongo.db_name]
-    mongo_collection = mongo_db['archive']
-    archive_dicts = mongo_collection.find(dict(_id={'$in': entry_ids}))
-
-    if as_dict:
-        return {archive_dict.pop('_id'): archive_dict for archive_dict in archive_dicts}
-
-    return {
-        archive_dict.pop('_id'): EntryArchive.m_from_dict(archive_dict)
-        for archive_dict in archive_dicts}
-
-
-__all_parent_sections: Dict[Section, Tuple[str, Section]] = {}
-
-
-def _all_parent_sections():
-    if len(__all_parent_sections) == 0:
-        def add(section):
-            for sub_section in section.all_sub_sections.values():
-                sub_section_section = sub_section.sub_section.m_resolved()
-                __all_parent_sections.setdefault(sub_section_section, []).append((sub_section.qualified_name(), section, ))
-                add(sub_section_section)
-
-        add(EntryArchive.m_def)
-
-    return __all_parent_sections
-
-
-class _Incomplete(Exception): pass
-
-
-def compute_required_with_referenced(required):
-    '''
-    Updates the given required dictionary to ensure that references to non required
-    sections within a partial fast access archive are included. Only references that
-    are directly contained in required are added. References from wildcarded sub sections
-    are ignored.
-
-    Returns: A new required dict or None. None is returned if it is unclear if the required
-    is only accessing information of fast access partial archives.
-    '''
-    # TODO this function should be based on the metainfo
-
-    if not isinstance(required, dict):
-        return None
-
-    if any(key.startswith('section_run') for key in required):
-        return None
-
-    required = dict(**required)
-
-    def add_parent_section(section, child_required):
-        parent_sections = _all_parent_sections().get(section, [])
-        if len(parent_sections) == 0:
-            return [required]
-
-        result = []
-        for name, parent_section in parent_sections:
-            child_key = name.split('.')[-1]
-            for parent_required in add_parent_section(parent_section, None):
-                result.append(parent_required.setdefault(child_key, child_required if child_required else {}))
-
-        return result
-
-    def traverse(
-            current: Union[dict, str],
-            parent: Section = EntryArchive.m_def):
-
-        if isinstance(current, str):
-            return
-
-        current_updates = {}
-        for key, value in current.items():
-            prop = key.split('[')[0]
-            prop_definition = parent.all_properties[prop]
-            if isinstance(prop_definition, SubSection):
-                if FastAccess.m_def not in prop_definition.categories:
-                    raise _Incomplete()
-
-                traverse(value, prop_definition.sub_section)
-            if isinstance(prop_definition, Quantity) and isinstance(prop_definition.type, Reference):
-                current_updates[prop] = '*'
-                if FastAccess.m_def not in prop_definition.categories:
-                    continue
-
-                target_section_def = prop_definition.type.target_section_def.m_resolved()
-                add_parent_section(target_section_def, value)
-                traverse(value, target_section_def)
-        current.update(**current_updates)
-
-    try:
-        traverse(dict(**required))
-    except _Incomplete:
-        # We realized that something is required that is not in the partial archive
-        return None
-
-    return required
 
 
 if __name__ == '__main__':

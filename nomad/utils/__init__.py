@@ -170,6 +170,13 @@ def create_uuid() -> str:
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
+def adjust_uuid_size(uuid, length: int = default_hash_len):
+    ''' Adds prefixing spaces to a uuid to ensure the default uuid length. '''
+    uuid = uuid.rjust(length, ' ')
+    assert len(uuid) == length, 'uuids must have the right fixed size'
+    return uuid
+
+
 @contextmanager
 def lnr(logger, event, **kwargs):
     '''
