@@ -78,12 +78,12 @@ class RequiredReader:
             self.root_section_def = datamodel.EntryArchive.m_def
         else:
             self.root_section_def = root_section_def
-        self.resolve_inplace = resolve_inplace
 
         self.__result_root: dict = None
         self.__archive_root: dict = None  # it is actually an ArchvieReader, but we use it as dict
 
-        self.required = self.validate(required)
+        self.resolve_inplace = resolve_inplace
+        self.required = self.validate(required, is_root=True)
 
     def __to_son(self, data):
         if isinstance(data, (ArchiveList, List)):
@@ -103,8 +103,8 @@ class RequiredReader:
             return min(length, index)
 
     def validate(
-            self, required: Union[str, dict] = None, definition: Definition = None,
-            loc: list = None) -> dict:
+            self, required: Union[str, dict], definition: Definition = None,
+            loc: list = None, is_root=False) -> dict:
         '''
         Validates the required specification of this instance. It will replace all
         string directives with dicts. Those will have keys `_def` and `_directive`. It
@@ -118,8 +118,14 @@ class RequiredReader:
         raises:
             - RequiredValidationError
         '''
-        if required is None:
-            required = self.required
+        if is_root and isinstance(required, dict):
+            resolve_inplace = required.get('resolve-inplace', None)
+            if isinstance(resolve_inplace, bool):
+                self.resolve_inplace = resolve_inplace
+            elif resolve_inplace is not None:
+                raise RequiredValidationError(
+                    'resolve-inplace is not a bool', ['resolve-inplace'])
+
         if definition is None:
             definition = self.root_section_def
         if loc is None:
@@ -150,8 +156,14 @@ class RequiredReader:
 
         result: Dict[str, Any] = dict(_def=definition)
         for key, value in cast(dict, required).items():
+            if key == 'resolve-inplace':
+                continue
+
             loc.append(key)
-            prop, index = self.__parse_required_key(key)
+            try:
+                prop, index = self.__parse_required_key(key)
+            except Exception:
+                raise RequiredValidationError(f'invalid key format {key}', loc)
             if prop == '*':
                 # TODO support wildcards
                 raise RequiredValidationError('wildcard (*) keys are not supported yet', loc)
@@ -209,19 +221,21 @@ class RequiredReader:
                 index = None
 
         else:
-            raise ArchiveQueryError('invalid key format: %s' % key)
+            raise Exception('invalid key format: %s' % key)
 
         return key, index
 
     def __resolve_refs(self, archive: dict, section_def: Section) -> dict:
         ''' Resolves all references in archive. '''
+        archive = self.__to_son(archive)
         result = {}
-        for prop, value in archive.items():
+        for prop in archive:
+            value = archive[prop]
             prop_def = section_def.all_properties[prop]
             handle_item: Callable[[Any], Any] = None
             if isinstance(prop_def, SubSection):
                 handle_item = lambda value: self.__resolve_refs(value, prop_def.sub_section.m_resolved())
-            elif isinstance(prop_def.type, Reference):
+            elif isinstance(prop_def.type, Reference) and not isinstance(prop_def.type, QuantityReference):
                 target_section_def = prop_def.type.target_section_def.m_resolved()
                 required = dict(_directive='include-resolved', _def=target_section_def)
                 handle_item = lambda value: self.__resolve_ref(required, value)
@@ -242,7 +256,9 @@ class RequiredReader:
         # TODO the metainfo should also provide this implementation
 
         # resolve to archive_item
-        assert path.startswith('/'), 'only absolute references are supported'
+        if not path.startswith('/'):
+            # TODO support custom reference resolution, e.g. user_id based
+            return path
 
         resolved = self.__archive_root
         path_stack = path.strip('/').split('/')

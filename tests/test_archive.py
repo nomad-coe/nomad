@@ -356,7 +356,12 @@ def archive():
                 'energy_total': '*'
             }
         }
-    }, None, id='resolve'),
+    }, None, id='resolve-with-required'),
+    pytest.param({
+        'section_workflow': {
+            'calculation_result_ref': 'include-resolved'
+        }
+    }, None, id='resolve-with-directive'),
     pytest.param({
         'section_workflow': 'include-resolved'
     }, None, id='include-resolved'),
@@ -377,7 +382,7 @@ def archive():
 ])
 def test_required_reader(archive, required, error, resolve_inplace):
     f = BytesIO()
-    write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=1)
+    write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=2)
     packed_archive = f.getbuffer()
 
     archive_reader = ArchiveReader(BytesIO(packed_archive))
@@ -402,7 +407,6 @@ def assert_required_results(
     Asserts if the resulting dict from a :class:`RequiredReader` contains everything that
     was requested and if this is consistent with the archive that was read from.
     '''
-
     # initialize recursion
     if current_archive_serialized is None:
         current_archive_serialized = archive.m_to_dict()
