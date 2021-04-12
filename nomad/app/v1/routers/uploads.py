@@ -28,7 +28,7 @@ from nomad import utils, config, files
 from nomad.processing import Upload, ProcessAlreadyRunning
 from nomad.utils import strip
 
-from .auth import get_optional_user, get_required_user
+from .auth import get_optional_user, get_required_user, get_required_user_bearer_or_upload_token
 from ..models import (
     BaseModel, User, Owner, Direction, Pagination, PaginationResponse)
 from ..utils import parameter_dependency_from_model
@@ -225,7 +225,7 @@ async def post_uploads(
             description=strip('''
             If the upload should be published directly. False by default.
             ''')),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(get_required_user_bearer_or_upload_token)):
     '''
     Upload a file to the repository. Can be used to upload files via browser or other
     http clients like curl. This will also start the processing of the upload.
@@ -236,11 +236,17 @@ async def post_uploads(
 
     Method 1: streaming data
 
-        curl -X 'POST' "url" --upload-file local_file
+        curl -X 'POST' "url" -T local_file
 
     Method 2: multipart-formdata
 
         curl -X 'POST' "url" -F file=@local_file
+
+    Authentication is required to perform an upload. This can either be done using the
+    regular bearer token, or using the simplified upload token. To use the simplified
+    upload token, just specify it as a query parameter in the url, i.e.
+
+        curl -X 'POST' ".../uploads?token=ABC.XYZ" ...
 
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.

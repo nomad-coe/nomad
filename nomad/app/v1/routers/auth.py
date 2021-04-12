@@ -16,12 +16,15 @@
 # limitations under the License.
 #
 
+import hmac
+import hashlib
+import uuid
 from typing import cast
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, Query as FastApiQuery, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from nomad import infrastructure, config, datamodel
+from nomad import utils, infrastructure, config, datamodel
 from nomad.utils import get_logger, strip
 
 from ..common import root_path
@@ -86,6 +89,37 @@ async def get_required_user(user: User = Depends(get_optional_user)) -> User:
     return user
 
 
+async def get_required_user_bearer_or_upload_token(
+        user: User = Depends(get_optional_user),
+        token: str = FastApiQuery(
+            None,
+            description='Token for simplified authorization when uploading.')) -> User:
+    if token and not user:
+        # Upload token provided, but no bearer token. Check if the upload token is correct.
+        try:
+            payload, signature = token.split('.')
+            payload_bytes = utils.base64_decode(payload)
+            signature_bytes = utils.base64_decode(signature)
+
+            compare = hmac.new(
+                bytes(config.services.api_secret, 'utf-8'),
+                msg=payload_bytes,
+                digestmod=hashlib.sha1)
+
+            if signature_bytes == compare.digest():
+                user_id = str(uuid.UUID(bytes=payload_bytes))
+                user = cast(datamodel.User, infrastructure.keycloak.get_user(user_id))
+        except Exception:
+            # Decode error, format error, user not found, etc.
+            user = None
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='A valid bearer or upload token required.')
+    return user
+
+
 _bad_credentials_response = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
@@ -146,3 +180,15 @@ async def get_token_via_query(username: str, password: str):
             headers={'WWW-Authenticate': 'Bearer'})
 
     return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+def generate_upload_token(user):
+    payload = uuid.UUID(user.user_id).bytes
+    signature = hmac.new(
+        bytes(config.services.api_secret, 'utf-8'),
+        msg=payload,
+        digestmod=hashlib.sha1)
+
+    return '%s.%s' % (
+        utils.base64_encode(payload),
+        utils.base64_encode(signature.digest()))

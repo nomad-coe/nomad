@@ -22,6 +22,7 @@ import time
 from tests.utils import build_url
 from nomad import config
 from nomad.processing import SUCCESS
+from nomad.app.v1.routers.auth import generate_upload_token
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -34,10 +35,12 @@ to assert for certain aspects in the responses.
 '''
 
 
-def perform_uploads_post(client, mode, file, user_auth=None, **params):
+def perform_uploads_post(client, mode, file, user_auth=None, token=None, **params):
     ''' Posts a new upload. '''
     if mode == 'local_path':
         params.update(local_path=file)
+    if token:
+        params.update(token=token)
     url = build_url('uploads', params)
     if mode == 'multipart':
         with open(file, 'rb') as f:
@@ -102,28 +105,46 @@ def block_until_completed(client, upload_id: str, user_auth):
     raise Exception('Timed out while waiting for upload processing to finish')
 
 
-@pytest.mark.parametrize('mode, name, user, expected_status_code', [
-    pytest.param('multipart', 'test_name', 'test_user', 200, id='post-multipart'),
-    pytest.param('multipart', None, 'test_user', 200, id='post-multipart-no-name'),
-    pytest.param('stream', 'test_name', 'test_user', 200, id='post-stream'),
-    pytest.param('stream', None, 'test_user', 200, id='post-stream-no-name'),
-    pytest.param('local_path', None, 'admin_user', 200, id='post-local_path'),
-    pytest.param('multipart', None, None, 401, id='post-not-logged-in-multipart'),
-    pytest.param('stream', None, None, 401, id='post-not-logged-in-stream'),
-    pytest.param('local_path', None, None, 401, id='post-not-logged-in-local_path'),
-    pytest.param('local_path', None, 'test_user', 401, id='post-not-admin-local_path')])
+@pytest.mark.parametrize('mode, name, user, use_upload_token, expected_status_code', [
+    pytest.param('multipart', 'test_name', 'test_user', False, 200, id='post-multipart'),
+    pytest.param('multipart', None, 'test_user', False, 200, id='post-multipart-no-name'),
+    pytest.param('stream', 'test_name', 'test_user', False, 200, id='post-stream'),
+    pytest.param('stream', None, 'test_user', False, 200, id='post-stream-no-name'),
+    pytest.param('multipart', None, 'invalid', False, 401, id='post-multipart-no-name-invalid-cred'),
+    pytest.param('stream', None, 'invalid', False, 401, id='post-stream-no-name-invalid-cred'),
+    pytest.param('multipart', 'test_name', 'test_user', True, 200, id='post-multipart-token'),
+    pytest.param('stream', 'test_name', 'test_user', True, 200, id='post-stream-token'),
+    pytest.param('multipart', 'test_name', 'invalid', True, 401, id='post-multipart-token-invalid-cred'),
+    pytest.param('stream', 'test_name', 'invalid', True, 401, id='post-stream-token-invalid-cred'),
+    pytest.param('local_path', None, 'admin_user', False, 200, id='post-local_path'),
+    pytest.param('multipart', None, None, False, 401, id='post-not-logged-in-multipart'),
+    pytest.param('stream', None, None, False, 401, id='post-not-logged-in-stream'),
+    pytest.param('local_path', None, None, False, 401, id='post-not-logged-in-local_path'),
+    pytest.param('local_path', None, 'test_user', False, 401, id='post-not-admin-local_path')])
 def test_uploads_post(
-        client, mongo, proc_infra, test_user_auth, admin_user_auth, example_upload,
-        mode, name, user, expected_status_code):
+        client, mongo, proc_infra, test_user, admin_user, test_user_auth, admin_user_auth, example_upload,
+        mode, name, user, use_upload_token, expected_status_code):
 
     if user == 'test_user':
         user_auth = test_user_auth
+        token = generate_upload_token(test_user)
     elif user == 'admin_user':
         user_auth = admin_user_auth
+        token = generate_upload_token(admin_user)
+    elif user == 'invalid':
+        user_auth = {'Authorization': 'Bearer JUST-MADE-IT-UP'}
+        token = 'invalid.token'
     else:
         user_auth = None
+        token = None
 
-    response = perform_uploads_post(client, mode, example_upload, user_auth=user_auth, name=name)
+    user_auth_post = user_auth
+    if use_upload_token:
+        user_auth_post = None
+    else:
+        token = None
+
+    response = perform_uploads_post(client, mode, example_upload, user_auth_post, token, name=name)
     assert response.status_code == expected_status_code
     if expected_status_code == 200:
         response_json = response.json()
