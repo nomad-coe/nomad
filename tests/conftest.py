@@ -324,6 +324,9 @@ class KeycloakMock:
         return g.oidc_access_token
 
 
+config.keycloak.realm_name = 'fairdi_nomad_test'
+config.keycloak.password = 'password'
+
 _keycloak = infrastructure.keycloak
 
 
