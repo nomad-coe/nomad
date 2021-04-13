@@ -579,6 +579,7 @@ class EditRepoCalcsResource(Resource):
         mongo_update = {}
         uploader_ids = None
         lift_embargo = False
+        has_error = False
         removed_datasets = None
 
         with utils.timer(common.logger, 'edit verified'):

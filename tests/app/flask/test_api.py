@@ -1747,7 +1747,7 @@ class TestEditRepo():
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo(api, published, other_test_user_auth):
+def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
     example_calc = Calc.objects(upload_id=published.upload_id).first()
     assert example_calc.metadata['with_embargo']
     elastic_calc = next(

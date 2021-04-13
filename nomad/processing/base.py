@@ -361,10 +361,20 @@ class Proc(Document, metaclass=ProcMetaclass):
 
     def block_until_complete(self, interval=0.01):
         '''
+        Reloads the process constantly until it sees a completed process with finished tasks.
+        Should be used with care as it can block indefinitely. Just intended for testing
+        purposes.
+        '''
+        while self.tasks_running or self.process_running:
+            time.sleep(interval)
+            self.reload()
+
+    def block_until_process_complete(self, interval=0.01):
+        '''
         Reloads the process constantly until it sees a completed process. Should be
         used with care as it can block indefinitely. Just intended for testing purposes.
         '''
-        while self.tasks_running or self.process_running:
+        while self.process_running:
             time.sleep(interval)
             self.reload()
 
