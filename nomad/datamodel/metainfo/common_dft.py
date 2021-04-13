@@ -1829,6 +1829,64 @@ class EnergyContribution(MSection):
         a_legacy=LegacyDefinition(name='energy_contribution_value'))
 
 
+class StressTensorContribution(MSection):
+    '''
+    Section describing the contributions to the stress tensor.
+    '''
+
+    m_def = Section(
+        aliases=['section_stress_tensor_contribution'],
+        validate=False,
+        a_legacy=LegacyDefinition(name='section_stress_tensor_contribution'))
+
+    stress_tensor_contribution_kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The kind of the stress tensor contribution. Can be one of bond, pair, coulomb, etc.
+        ''',
+        a_legacy=LegacyDefinition(name='stress_tensor_contribution_kind'))
+
+    stress_tensor_contribution_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='joule/meter**3',
+        description='''
+        Value of the stress tensor contribution.
+        ''',
+        categories=[EnergyComponent, EnergyValue],
+        a_legacy=LegacyDefinition(name='stress_tensor_contribution_value'))
+
+
+class AtomStressContribution(MSection):
+    '''
+    Section describing the contributions to the stress tensor.
+    '''
+
+    m_def = Section(
+        aliases=['section_atom_stress_contribution'],
+        validate=False,
+        a_legacy=LegacyDefinition(name='section_atom_stress_contribution'))
+
+    atom_stress_contribution_kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The kind of the stress tensor contribution. Can be one of bond, pair, coulomb, etc.
+        ''',
+        a_legacy=LegacyDefinition(name='atom_stress_tensor_contribution_kind'))
+
+    atom_stress_contribution_value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['number_of_atoms', 3, 3],
+        unit='joule/meter**3',
+        description='''
+        Value of the atom stress contribution.
+        ''',
+        categories=[EnergyComponent, EnergyValue],
+        a_legacy=LegacyDefinition(name='atom_stress_contribution_value'))
+
+
 class FrameSequenceUserQuantity(MSection):
     '''
     Section collecting some user-defined quantities evaluated along a sequence of frame.
@@ -5361,6 +5419,16 @@ class SingleConfigurationCalculation(MSection):
         repeats=True,
         a_legacy=LegacyDefinition(name='section_energy_contribution'))
 
+    section_stress_tensor_contribution = SubSection(
+        sub_section=SectionProxy('StressTensorContribution'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_stress_tensor_contribution'))
+
+    section_atom_stress_contribution = SubSection(
+        sub_section=SectionProxy('AtomStressContribution'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='section_atom_stress_contribution'))
+
     section_k_band_normalized = SubSection(
         sub_section=SectionProxy('KBandNormalized'),
         repeats=True,
@@ -6762,6 +6830,40 @@ class MolecularDynamics(MSection):
         a_legacy=LegacyDefinition(name='with_thermodynamics'))
 
 
+class SinglePoint(MSection):
+    '''
+    Section containing results of a single point workflow.
+    '''
+
+    m_def = Section(
+        validate=False,
+        a_legacy=LegacyDefinition(name='section_single_point'))
+
+    single_point_calculation_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Calculation method used.
+        ''',
+        a_legacy=LegacyDefinition(name='single_point_calculation_method'))
+
+    scf_steps = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of self-consistent steps for the calculation
+        ''',
+        a_legacy=LegacyDefinition(name='number_of_scf_steps'))
+
+    is_converged = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the convergence criteria were fullfilled
+        ''',
+        a_legacy=LegacyDefinition(name='is_converged'))
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -6780,6 +6882,14 @@ class Workflow(MSection):
         ''',
         a_search=Search(),
         a_legacy=LegacyDefinition(name='workflow_type'))
+
+    calculator = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Energy and force calculator.
+        ''',
+        a_legacy=LegacyDefinition(name='calculator'))
 
     calculation_result_ref = Quantity(
         type=Reference(SectionProxy('SingleConfigurationCalculation')),
@@ -6800,6 +6910,12 @@ class Workflow(MSection):
         simulation.
         ''',
         a_legacy=LegacyDefinition(name='calculations_ref'))
+
+    section_single_point = SubSection(
+        sub_section=SectionProxy('SinglePoint'),
+        repeats=False,
+        categories=[FastAccess],
+        a_legacy=LegacyDefinition(name='section_single_point'))
 
     section_geometry_optimization = SubSection(
         sub_section=SectionProxy('GeometryOptimization'),
