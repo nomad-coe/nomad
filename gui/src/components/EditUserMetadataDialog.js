@@ -787,7 +787,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       coauthors: [],
       shared_with: [],
       datasets: [],
-      with_embargo: 'lift'
+      with_embargo: {
+        value: 'lift'
+      }
     }
     this.unmounted = false
   }
@@ -983,11 +985,12 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       }
     }
 
-    const metadataFieldProps = (key, verify) => ({
+    const metadataFieldProps = (key, verify, defaultValue) => ({
       modified: Boolean(actions[key]),
+      defaultValue: defaultValue,
       onChange: checked => {
         if (checked) {
-          this.setState({actions: {...actions, [key]: editDataToActions(this.editData[key])}}, () => {
+          this.setState({actions: {...actions, [key]: editDataToActions(this.editData[key] || defaultValue)}}, () => {
             if (verify) {
               this.verify()
             }
@@ -1060,7 +1063,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="Datasets"
                 />
               </UserMetadataField>
-              <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true)}>
+              <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true, 'lift')}>
                 <FormLabel>Lift embargo</FormLabel>
               </UserMetadataField>
             </DialogContent>

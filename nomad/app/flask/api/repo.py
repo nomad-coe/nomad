@@ -579,6 +579,7 @@ class EditRepoCalcsResource(Resource):
         mongo_update = {}
         uploader_ids = None
         lift_embargo = False
+        has_error = False
         removed_datasets = None
 
         with utils.timer(common.logger, 'edit verified'):
@@ -607,7 +608,22 @@ class EditRepoCalcsResource(Resource):
                     action_value = action.get('value')
                     action_value = action_value if action_value is None else action_value.strip()
 
-                    if action_value is None:
+                    if action_quantity_name == 'with_embargo':
+                        # ignore the actual value ... just lift the embargo
+                        mongo_value = False
+                        lift_embargo = True
+
+                        # check if necessary
+                        search_request = search.SearchRequest()
+                        apply_search_parameters(search_request, parsed_query)
+                        search_request.q = search_request.q & Q('term', with_embargo=True)
+                        if search_request.execute()['total'] == 0:
+                            action['success'] = False
+                            has_error = True
+                            action['message'] = 'There is no embargo to lift'
+                            continue
+
+                    elif action_value is None:
                         mongo_value = None
 
                     elif action_value == '':
@@ -644,20 +660,6 @@ class EditRepoCalcsResource(Resource):
                                 dataset.a_mongo.create()
                                 mongo_value = dataset.dataset_id
 
-                    elif action_quantity_name == 'with_embargo':
-                        # ignore the actual value ... just lift the embargo
-                        mongo_value = False
-                        lift_embargo = True
-
-                        # check if necessary
-                        search_request = search.SearchRequest()
-                        apply_search_parameters(search_request, parsed_query)
-                        search_request.q = search_request.q & Q('term', with_embargo=True)
-                        if search_request.execute()['total'] == 0:
-                            action['success'] = False
-                            has_error = True
-                            action['message'] = 'There is no embargo to lift'
-                            continue
                     else:
                         mongo_value = action_value
 

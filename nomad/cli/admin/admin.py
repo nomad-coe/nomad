@@ -101,7 +101,7 @@ def __run_processing(
         else:
             upload.reset(force=True)
             process(upload)
-            upload.block_until_complete(interval=.5)
+            upload.block_until_process_complete(interval=.5)
 
             if upload.tasks_status == proc.FAILURE:
                 logger.info('%s with failure' % label, upload_id=upload.upload_id)
