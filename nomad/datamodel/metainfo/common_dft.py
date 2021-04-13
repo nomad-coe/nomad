@@ -6847,13 +6847,23 @@ class SinglePoint(MSection):
         ''',
         a_legacy=LegacyDefinition(name='single_point_calculation_method'))
 
-    scf_steps = Quantity(
+    number_of_scf_steps = Quantity(
         type=int,
         shape=[],
         description='''
-        Number of self-consistent steps for the calculation
+        Number of self-consistent steps in the calculation
         ''',
         a_legacy=LegacyDefinition(name='number_of_scf_steps'))
+
+    final_scf_energy_difference = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        The difference in the energy between the last two scf steps.
+        ''',
+        a_search=Search(),
+        a_legacy=LegacyDefinition(name='final_scf_energy_difference'))
 
     is_converged = Quantity(
         type=bool,
@@ -6862,6 +6872,46 @@ class SinglePoint(MSection):
         Indicates if the convergence criteria were fullfilled
         ''',
         a_legacy=LegacyDefinition(name='is_converged'))
+
+    with_density_of_states = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the calculation contains density of states data
+        ''',
+        a_legacy=LegacyDefinition(name='with_density_of_states'))
+
+    with_bandstructure = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the calculation contains bandstructure data
+        ''',
+        a_legacy=LegacyDefinition(name='with_bandstructure'))
+
+    with_eigenvalues = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the calculation contains eigenvalue data
+        ''',
+        a_legacy=LegacyDefinition(name='with_eigenvalues'))
+
+    with_volumetric_data = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the calculation contains volumetric data
+        ''',
+        a_legacy=LegacyDefinition(name='with_volumetric_data'))
+
+    with_excited_states = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the calculation contains excited states data
+        ''',
+        a_legacy=LegacyDefinition(name='with_excited_states'))
 
 
 class Workflow(MSection):
@@ -6878,7 +6928,7 @@ class Workflow(MSection):
         shape=[],
         description='''
         The type of calculation workflow. Can be one of geometry_optimization, elastic,
-        phonon, molecular_dynamics.
+        phonon, molecular_dynamics, single_point.
         ''',
         a_search=Search(),
         a_legacy=LegacyDefinition(name='workflow_type'))
@@ -6913,6 +6963,8 @@ class Workflow(MSection):
 
     section_single_point = SubSection(
         sub_section=SectionProxy('SinglePoint'),
+        # TODO determine if there is a need for this to be a repeating section
+        # such as in the context of fhi-vibes single_point
         repeats=False,
         categories=[FastAccess],
         a_legacy=LegacyDefinition(name='section_single_point'))

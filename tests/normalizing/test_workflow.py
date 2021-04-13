@@ -37,6 +37,24 @@ def test_no_workflow(workflow_archive):
     assert vasp_archive.section_workflow is None
 
 
+def test_single_point_workflow(workflow_archive):
+    vasp_archive = workflow_archive(
+        'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml.static')
+    sec_workflow = vasp_archive.section_workflow
+
+    assert sec_workflow.workflow_type == 'single_point'
+    assert sec_workflow.calculations_ref is not None
+    assert sec_workflow.calculation_result_ref.m_def.name == 'SingleConfigurationCalculation'
+    assert sec_workflow.section_single_point.single_point_calculation_method == 'DFT'
+    assert sec_workflow.section_single_point.number_of_scf_steps == 9
+    assert sec_workflow.section_single_point.final_scf_energy_difference > 0
+    assert sec_workflow.section_single_point.with_density_of_states
+    assert not sec_workflow.section_single_point.with_bandstructure
+    assert sec_workflow.section_single_point.with_eigenvalues
+    assert not sec_workflow.section_single_point.with_volumetric_data
+    assert not sec_workflow.section_single_point.with_excited_states
+
+
 def test_geometry_optimization_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml')
