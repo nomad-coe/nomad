@@ -85,7 +85,8 @@ def __run_parallel(
 
 
 def __run_processing(
-        uploads, parallel: int, process, label: str, reprocess_running: bool = False):
+        uploads, parallel: int, process, label: str, reprocess_running: bool = False,
+        wait_for_tasks: bool = True):
 
     def run_process(upload, logger):
         logger.info(
@@ -101,7 +102,10 @@ def __run_processing(
         else:
             upload.reset(force=True)
             process(upload)
-            upload.block_until_complete(interval=.5)
+            if wait_for_tasks:
+                upload.block_until_complete(interval=.5)
+            else:
+                upload.block_until_process_complete(interval=.5)
 
             if upload.tasks_status == proc.FAILURE:
                 logger.info('%s with failure' % label, upload_id=upload.upload_id)
@@ -198,7 +202,9 @@ def lift_embargo(dry, parallel):
                     search.index_all(entries)
 
     if not dry:
-        __run_processing(uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing')
+        __run_processing(
+            uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing',
+            wait_for_tasks=False)
 
 
 @admin.command()

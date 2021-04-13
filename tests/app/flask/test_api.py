@@ -1747,22 +1747,33 @@ class TestEditRepo():
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo(api, published, other_test_user_auth):
+def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
     example_calc = Calc.objects(upload_id=published.upload_id).first()
     assert example_calc.metadata['with_embargo']
+    elastic_calc = next(
+        search.SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
+    assert elastic_calc['with_embargo'] is True
+    with pytest.raises(files.Restricted):
+        with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
+            archive[example_calc.calc_id].to_dict()
+
     rv = api.post(
         '/repo/edit', headers=other_test_user_auth, content_type='application/json',
         data=json.dumps({
             'actions': {
-                'with_embargo': {
-                    'value': 'lift'
-                }
+                'with_embargo': {}
             }
         }))
+
     assert rv.status_code == 200, rv.data
     assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
 
     Upload.get(published.upload_id).block_until_complete()
+
+    elastic_calc = next(
+        search.SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
+    assert elastic_calc['with_embargo'] is False
+
     # should not raise Restricted anymore
     with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
         archive[example_calc.calc_id].to_dict()

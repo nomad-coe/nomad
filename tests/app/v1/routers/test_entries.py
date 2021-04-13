@@ -750,9 +750,9 @@ def test_entries_archive_download(client, data, query, files, entries, status_co
 @pytest.mark.parametrize('required, status_code', [
     pytest.param('*', 200, id='full'),
     pytest.param({'section_metadata': '*'}, 200, id='partial'),
-    pytest.param({'section_run': {'section_system[NOTANINT]': '*'}}, 400, id='bad-required-1'),
-    pytest.param({'section_metadata': {'owners[NOTANINT]': '*'}}, 400, id='bad-required-2'),
-    pytest.param({'DOESNOTEXIST': '*'}, 400, id='bad-required-3')
+    pytest.param({'section_run': {'section_system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
+    pytest.param({'section_metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
 ])
 def test_entries_archive(client, data, required, status_code):
     perform_entries_archive_test(
@@ -774,9 +774,11 @@ def test_entry_archive(client, data, entry_id, status_code):
     pytest.param('id_01', '*', 200, id='full'),
     pytest.param('id_02', '*', 404, id='404'),
     pytest.param('id_01', {'section_metadata': '*'}, 200, id='partial'),
-    pytest.param('id_01', {'section_run': {'section_system[NOTANINT]': '*'}}, 400, id='bad-required-1'),
-    pytest.param('id_01', {'section_metadata': {'owners[NOTANINT]': '*'}}, 400, id='bad-required-2'),
-    pytest.param('id_01', {'DOESNOTEXIST': '*'}, 400, id='bad-required-3')
+    pytest.param('id_01', {'section_run': {'section_system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
+    pytest.param('id_01', {'section_metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param('id_01', {'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
+    pytest.param('id_01', {'resolve-inplace': 'NotBool', 'section_workflow': '*'}, 422, id='bad-required-4'),
+    pytest.param('id_01', {'resolve-inplace': True, 'section_metadata': 'include-resolved'}, 200, id='resolve-inplace')
 ])
 def test_entry_archive_query(client, data, entry_id, required, status_code):
     response = client.post('entries/%s/archive/query' % entry_id, json={

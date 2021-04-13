@@ -168,11 +168,19 @@ export default function DFTEntryOverview({data}) {
       let structs = {}
       const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
 
+      // Check that at least one section run is available. If not, break the execution.
+      let section_run = archive?.section_run
+      if (section_run) {
+        const nRuns = section_run.length
+        section_run = section_run[nRuns - 1]
+      } else {
+        return
+      }
+
       // Figure out what properties are present by looping over the SCCS. This
       // information will eventually be directly available in the ES index.
       let e_dos = null
       let e_bs = null
-      const section_run = archive.section_run[0]
       let section_method = null
       const sccs = section_run.section_single_configuration_calculation
       if (sccs) {
@@ -394,14 +402,12 @@ export default function DFTEntryOverview({data}) {
         structs.conventional = ideal
       }
       setStructures(structs)
-      setLoading(false)
     }).catch(error => {
-      setLoading(false)
       if (error.name === 'DoesNotExist') {
       } else {
         raiseError(error)
       }
-    })
+    }).finally(() => setLoading(false))
   }, [data, api, raiseError, setElectronicStructure, setStructures])
 
   const quantityProps = {data: data, loading: !data}

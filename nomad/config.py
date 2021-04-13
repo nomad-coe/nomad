@@ -126,9 +126,9 @@ elastic = NomadConfig(
 
 keycloak = NomadConfig(
     server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
-    realm_name='fairdi_nomad_test',
+    realm_name='fairdi_nomad_prod',
     username='admin',
-    password='password',
+    password='*',
     client_id='nomad_public',
     client_secret=None,
     oasis=False)
@@ -284,7 +284,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.1',
+    version='0.10.2',
     commit=gitinfo.commit,
     release='devel',
     deployment='standard',

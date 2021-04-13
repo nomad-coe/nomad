@@ -137,6 +137,15 @@ via your preferred tools. Just make sure to use the right ports.
 
 ## Running NOMAD
 
+Before you run NOMAD for development purposes, you should configure it to use the `test`
+realm of our user management system. By default, NOMAD will use the `prod` realm.
+Create a `nomad.yaml` file in the root folder:
+
+```
+keycloak:
+  realm: fairdi_nomad_test
+```
+
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
 the NOMAD cli. These commands will run the services and show their logout put. You should open
 them in separate shells as they run continuously. They will not watch code changes and
