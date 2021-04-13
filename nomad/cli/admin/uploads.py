@@ -340,7 +340,9 @@ def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
 @click.pass_context
 def re_pack(ctx, uploads, parallel: int):
     _, uploads = query_uploads(ctx, uploads)
-    __run_processing(uploads, parallel, lambda upload: upload.re_pack(), 're-packing')
+    __run_processing(
+        uploads, parallel, lambda upload: upload.re_pack(), 're-packing',
+        wait_for_tasks=False)
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
