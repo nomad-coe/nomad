@@ -24,6 +24,18 @@ from nomad.datamodel.metainfo.public import Workflow, GeometryOptimization, Phon
     MolecularDynamics, SinglePoint
 
 
+def resolve_energy_difference(energies):
+    delta_energy = None
+
+    energies = [e for e in energies if e is not None]
+    for n in range(-1, -len(energies), -1):
+        delta_energy = abs(energies[n] - energies[n - 1])
+        if delta_energy != 0.0:
+            break
+
+    return delta_energy
+
+
 class SinglePointNormalizer(Normalizer):
     def __init__(self, entry_archive):
         super().__init__(entry_archive)
@@ -40,9 +52,40 @@ class SinglePointNormalizer(Normalizer):
             except Exception:
                 pass
 
-        if not self.section.scf_steps:
-            scc = self.section_run.section_single_configuration_calculation
-            self.section.scf_steps = len(scc[-1].section_scf_iteration)
+        scc = self.section_run.section_single_configuration_calculation
+        if not scc:
+            return
+
+        if not self.section.number_of_scf_steps:
+            self.section.number_of_scf_steps = len(scc[-1].section_scf_iteration)
+
+        energies = [scf.energy_total_scf_iteration for scf in scc[-1].section_scf_iteration]
+        delta_energy = resolve_energy_difference(energies)
+        if not self.section.final_scf_energy_difference and delta_energy is not None:
+            self.section.final_scf_energy_difference = delta_energy
+
+        if not self.section.is_converged and delta_energy is not None:
+            try:
+                threshold = self.section.section_method[-1].scf_threshold_energy_change
+                if threshold <= delta_energy:
+                    self.section.is_converged = True
+            except Exception:
+                pass
+
+        if not self.section.with_density_of_states:
+            self.section.with_density_of_states = len(scc[-1].section_dos) > 0
+
+        if not self.section.with_bandstructure:
+            self.section.with_bandstructure = len(scc[-1].section_k_band) > 0
+
+        if not self.section.with_eigenvalues:
+            self.section.with_eigenvalues = len(scc[-1].section_eigenvalues) > 0
+
+        if not self.section.with_volumetric_data:
+            self.section.with_volumetric_data = len(scc[-1].section_volumetric_data) > 0
+
+        if not self.section.with_excited_states:
+            self.section.with_excited_states = len(scc[-1].section_excited_states) > 0
 
 
 class GeometryOptimizationNormalizer(Normalizer):
@@ -117,17 +160,8 @@ class GeometryOptimizationNormalizer(Normalizer):
                 if scc.energy_total_T0:
                     energies.append(scc.energy_total_T0)
 
-            delta_energy = None
-            if len(energies) > 1:
-                delta_energy = abs(energies[-1] - energies[-2])
-
-            if delta_energy == 0.0:
-                try:
-                    delta_energy = abs(energies[-1] - energies[-3])
-                except Exception:
-                    pass
-
-            if delta_energy:
+            delta_energy = resolve_energy_difference(energies)
+            if delta_energy is not None:
                 self.section.final_energy_difference = delta_energy
 
         if not self.section.final_force_maximum:
@@ -292,16 +326,20 @@ class WorkflowNormalizer(Normalizer):
         self._phonon_programs = ['phonopy']
 
     def _resolve_workflow_type_vasp(self):
-        try:
-            ibrion = self.section_run.section_method[0].x_vasp_incarOut_IBRION
-        except Exception:
-            ibrion = 1
+        sec_method = self.section_run.section_method
+        if not sec_method:
+            return
 
-        if ibrion == 0:
-            workflow_type = "molecular_dynamics"
+        incar = self.section_run.section_method[0].x_vasp_incar_out
+        nsw = incar.get('NSW')
+        ibrion = -1 if nsw == 0 else incar.get('IBRION', 0)
+
+        if ibrion == -1:
+            return 'single_point'
+        elif ibrion == 0:
+            return 'molecular_dynamics'
         else:
-            workflow_type = "geometry_optimization"
-        return workflow_type
+            return 'geometry_optimization'
 
     def _resolve_workflow_type(self):
         # first get it from section_sampling_method
@@ -330,6 +368,11 @@ class WorkflowNormalizer(Normalizer):
 
             elif program_name == 'phonopy':
                 workflow_type = 'phonon'
+
+        # resolve if from scc
+        if not workflow_type:
+            if len(self.section_run.section_single_configuration_calculation) == 1:
+                workflow_type = 'single_point'
 
         return workflow_type
 
