@@ -46,6 +46,11 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.2
+- fixes small parser and normalizer issues
+- fixes broken embargo lifting
+- fixes default keycloak configuration for authenticated access via ArchiveQuery
+
 ### v0.10.0
 - The entries page shows visualizations for key properties of the underlying data
 - A new more consistent API (/api/v1) alongside the old API (/api)
