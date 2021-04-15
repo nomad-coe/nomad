@@ -314,7 +314,7 @@ class UploadListResource(Resource):
                 if 'file' not in request.files:
                     abort(400, message='Bad multipart-formdata, there is no file part.')
                 file = request.files['file']
-                if upload_name is None or upload_name is '':
+                if upload_name is None or upload_name == '':
                     upload_name = file.filename
 
                 file.save(upload_path)

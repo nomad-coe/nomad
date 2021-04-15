@@ -62,7 +62,7 @@ class Catalog(Resource):
             search_request.q &= modified_clause
 
         es_search = search_request._search.query(search_request.q)
-        if after is not '':
+        if after != '':
             es_search = es_search.extra(search_after=[after], sort='calc_id')
         es_response = es_search.execute()
 
