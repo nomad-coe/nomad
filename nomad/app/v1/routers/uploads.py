@@ -18,19 +18,20 @@
 import os
 import io
 from datetime import datetime
-from typing import Tuple, List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
 
-from nomad import utils, config, files
-from nomad.processing import Upload, ProcessAlreadyRunning
+from nomad import utils, config, files, datamodel
+from nomad.processing import Upload, ProcessAlreadyRunning, FAILURE
+from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
 
-from .auth import get_optional_user, get_required_user, get_required_user_bearer_or_upload_token
+from .auth import get_required_user, get_required_user_bearer_or_upload_token
 from ..models import (
-    BaseModel, User, Owner, Direction, Pagination, PaginationResponse)
+    BaseModel, User, Direction, Pagination, PaginationResponse)
 from ..utils import parameter_dependency_from_model
 
 router = APIRouter()
@@ -39,16 +40,12 @@ default_tag = 'uploads'
 logger = utils.get_logger(__name__)
 
 
-_upload_fields_sortable: Tuple[str, ...] = (
-    'upload_time', 'upload_name', 'current_process', 'process_status')
-
-
 class UploadPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'upload_time'  # Default value
-        assert order_by in _upload_fields_sortable, 'order_by must be a valid attribute'
+        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -61,7 +58,7 @@ upload_pagination_parameters = parameter_dependency_from_model(
     'upload_pagination_parameters', UploadPagination)
 
 
-class UploadMetaData(BaseModel):
+class UploadData(BaseModel):
     upload_id: str = Field(
         None,
         description='The unique id for the upload.')
@@ -99,69 +96,77 @@ class UploadMetaData(BaseModel):
         orm_mode = True
 
 
-class UploadsMetadataResponse(BaseModel):
-    pagination: PaginationResponse
-    data: List[UploadMetaData] = Field(
-        None, description=strip('''
-        The upload metadata as a list. Each item is a dictionary with the metadata for each
-        upload.'''))
-
-
-class UploadMetadataResponse(BaseModel):
+class UploadDataResponse(BaseModel):
     upload_id: str = Field(None, description=strip('''
         Unique id of the upload.'''))
-    data: UploadMetaData = Field(
+    data: UploadData = Field(
         None, description=strip('''
-        The upload metadata as a dictionary.'''))
+        The upload data as a dictionary.'''))
+
+
+class UploadQuery(BaseModel):
+    upload_id: Optional[List[str]] = Field(
+        description='Search for uploads matching the given id. Multiple values can be specified.')
+    upload_name: Optional[List[str]] = Field(
+        description='Search for uploads matching the given name. Multiple values can be specified.')
+    is_processing: Optional[bool] = Field(
+        description=strip('''
+            If True, only include currently processing uploads.
+            If False, do not include currently processing uploads.
+            If unset, include everything.'''))
+    is_published: Optional[bool] = Field(
+        description=strip('''
+            If True: only include published uploads.
+            If False: only include unpublished uploads.
+            If unset: include everything.'''))
+
+
+upload_query_parameters = parameter_dependency_from_model(
+    'upload_query_parameters', UploadQuery)
+
+
+class UploadQueryResponse(BaseModel):
+    query: UploadQuery = Field()
+    pagination: PaginationResponse = Field()
+    data: List[UploadData] = Field(
+        None, description=strip('''
+        The upload metadata as a list. Each item is a dictionary with the data for each
+        upload.'''))
 
 
 @router.get(
     '', tags=[default_tag],
     summary='List uploads of authenticated user.',
-    response_model=UploadsMetadataResponse,
+    response_model=UploadQueryResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_uploads(
         request: Request,
-        owner: Owner = FastApiQuery(
-            Owner.user,
-            description=strip(Owner.__doc__)),
-        modified_since: datetime = FastApiQuery(
-            None,
-            description=strip('''
-            Specify to retrieve only uploads modified after a specific point in time.
-            Format: YYYY-HH-MMThh:mm:ss
-            ''')),
-        processing_filters: List[str] = FastApiQuery(
-            [],
-            description=strip('''
-            Specify to retrieve only uploads with specific processing statuses.''')),
+        query: UploadQuery = Depends(upload_query_parameters),
         pagination: UploadPagination = Depends(upload_pagination_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(get_required_user)):
     '''
-    Retrieves metadata about all uploads that match the given criteria.
+    Retrieves metadata about all uploads that match the given query criteria.
     '''
-    if owner != Owner.user:
-        # In the future, we may support other values
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            Only owner = user is currently supported.
-            '''))
-    # Check access
-    if not user:
-        # For now, login is required in all cases
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip(f'''
-            You need to be logged in to search for uploads with owner = {owner}.
-            '''))
-
-    # Check query
-    if processing_filters:
-        pass  # TODO: check that all values are valid
-
     # Build query
     query_kwargs: Dict[str, Any] = {}
     query_kwargs.update(user_id=str(user.user_id))
-    # TODO: apply modified_since
-    # TODO: apply processing filters
+
+    if query.upload_id:
+        query_kwargs.update(upload_id__in=query.upload_id)
+
+    if query.upload_name:
+        query_kwargs.update(name__in=query.upload_name)
+
+    if query.is_processing is True:
+        query_kwargs.update(process_status__ne=PROCESS_COMPLETED)
+    elif query.is_processing is False:
+        query_kwargs.update(process_status=PROCESS_COMPLETED)
+
+    if query.is_published is True:
+        query_kwargs.update(published=True)
+    elif query.is_published is False:
+        query_kwargs.update(published=False)
 
     # Fetch data from DB
     mongodb_query = _query_mongodb(**query_kwargs)
@@ -178,7 +183,8 @@ async def get_uploads(
     pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
 
-    return UploadsMetadataResponse(
+    return UploadQueryResponse(
+        query=query,
         pagination=pagination_response,
         data=data)
 
@@ -186,21 +192,21 @@ async def get_uploads(
 @router.get(
     '/{upload_id}', tags=[default_tag],
     summary='Get a specific upload',
-    response_model=UploadMetadataResponse,
+    response_model=UploadDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_upload_by_id(
+async def get_uploads_id(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to retrieve.'),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(get_required_user)):
     '''
     Fetches a specific upload by its upload_id.
     '''
     # Get upload (or throw exception if nonexistent/no access)
     upload = _get_upload_with_read_access(upload_id, user)
 
-    return UploadMetadataResponse(
+    return UploadDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -208,7 +214,7 @@ async def get_upload_by_id(
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
-    response_model=UploadMetadataResponse,
+    response_model=UploadDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_uploads(
@@ -218,13 +224,24 @@ async def post_uploads(
         name: str = FastApiQuery(
             None,
             description=strip('''
-            Specifies the name of the upload.
-            ''')),
+            Specifies the name of the upload.''')),
         publish_directly: bool = FastApiQuery(
             False,
             description=strip('''
-            If the upload should be published directly. False by default.
-            ''')),
+            If the upload should be published directly. False by default.''')),
+        oasis_upload_id: str = FastApiQuery(
+            None,
+            description=strip('''
+            For oasis uploads: the upload id of the oasis system.''')),
+        oasis_uploader_id: str = FastApiQuery(
+            None,
+            description=strip('''
+            For oasis uploads: the id of the user in the oasis system who made the upload
+            originally. The user must also be registered in NOMAD.''')),
+        oasis_deployment_id: str = FastApiQuery(
+            None,
+            description=strip('''
+            For oasis uploads: the deployment id.''')),
         user: User = Depends(get_required_user_bearer_or_upload_token)):
     '''
     Upload a file to the repository. Can be used to upload files via browser or other
@@ -274,7 +291,6 @@ async def post_uploads(
         src_stream = request.stream()
 
     # TODO: allow admin users to upload in the name of other users?
-    # TODO: handle oasis uploads?
 
     # Check upload limit
     if not user.is_admin:
@@ -282,8 +298,49 @@ async def post_uploads(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
+    # check if allowed to perform oasis upload
+    from_oasis = oasis_upload_id is not None
+    if from_oasis:
+        if not user.is_oasis_admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Only an oasis admin can perform an oasis upload.')
+        if oasis_uploader_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='You must provide the original uploader for an oasis upload.')
+        if oasis_deployment_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='You must provide the oasis deployment id for an oasis upload.')
+        if publish_directly is False:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Oasis uploads are always published directly.')
+        # Switch user!
+        user = datamodel.User.get(user_id=oasis_uploader_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The given original uploader does not exist.')
+    elif oasis_uploader_id is not None or oasis_deployment_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='For an oasis upload you must provide an oasis_upload_id.')
+
     # Get upload_id and path
-    upload_id = utils.create_uuid()
+    if from_oasis:
+        upload_id = oasis_upload_id
+        try:
+            Upload.get(upload_id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='An oasis upload with the given upload_id already exists.')
+        except KeyError:
+            pass
+    else:
+        upload_id = utils.create_uuid()
+
     logger.info('upload created', upload_id=upload_id)
 
     # Read the stream and save to file
@@ -316,7 +373,6 @@ async def post_uploads(
                     Some IO went wrong, download probably aborted/disrupted.'''))
 
     if not uploaded_bytes:
-        # TODO: add support for empty uploads
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Empty upload - not allowed.'''))
 
@@ -329,13 +385,13 @@ async def post_uploads(
         upload_time=datetime.utcnow(),
         upload_path=upload_path,
         temporary=local_path != upload_path,
-        publish_directly=publish_directly,
-        from_oasis=False,
-        oasis_deployment_id=None)
+        publish_directly=publish_directly or from_oasis,
+        from_oasis=from_oasis,
+        oasis_deployment_id=oasis_deployment_id)
 
     upload.process_upload()
 
-    return UploadMetadataResponse(
+    return UploadDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -343,10 +399,10 @@ async def post_uploads(
 @router.delete(
     '/{upload_id}', tags=[default_tag],
     summary='Delete an upload',
-    response_model=UploadMetadataResponse,
+    response_model=UploadDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def delete_upload_by_id(
+async def delete_uploads_id(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to delete.'),
@@ -372,7 +428,63 @@ async def delete_upload_by_id(
         logger.error('could not delete processing upload', exc_info=e)
         raise
 
-    return UploadMetadataResponse(
+    return UploadDataResponse(
+        upload_id=upload_id,
+        data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/publish', tags=[default_tag],
+    summary='Publish an upload',
+    response_model=UploadDataResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_uploads_id_action_publish(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload to publish.'),
+        with_embargo: bool = FastApiQuery(
+            True,
+            description='If the data is published with an embargo.'),
+        embargo_length: int = FastApiQuery(
+            36,
+            description='Length of the requested embargo in months.'),
+        user: User = Depends(get_required_user)):
+    '''
+    Publishes an upload. The upload cannot be modified after this point, and after the
+    embargo period (if any) is expired, the generated archive entries will be publicly visible.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user)
+
+    metadata_dict: Dict[str, Any] = {'with_embargo': with_embargo}
+    if with_embargo:
+        if not embargo_length or not 0 < embargo_length <= 36:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='embargo_length needs to be between 1 and 36 months.')
+        metadata_dict.update(embargo_length=embargo_length)
+
+    if upload.tasks_running:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is not processed yet.')
+    if upload.tasks_status == FAILURE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Cannot publish an upload that failed processing.')
+    if upload.processed_calcs == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Cannot publish an upload without any resulting entries.')
+    try:
+        upload.compress_and_set_metadata(metadata_dict)
+        upload.publish_upload()
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is still/already processed.')
+
+    return UploadDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -398,37 +510,43 @@ def _query_mongodb(**kwargs):
 def _get_upload_with_read_access(upload_id, user) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
-    corresponding Upload object is returned. If the module does not exist, or the user has
-    no read access to it, a 401 HTTPException is raised.
+    corresponding Upload object is returned. If the upload does not exist, or the user has
+    no read access to it, a HTTPException is raised.
     '''
-    # TODO: complete the logic. For now, you only have read access to your own uploads.
-    if user:
-        mongodb_query = _query_mongodb(upload_id=upload_id, user_id=str(user.user_id))
-        if mongodb_query.count():
-            # The upload exists
-            return mongodb_query[0]
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-        The specified upload_id is invalid, or you have no read access to it.
-        '''))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            User authentication required to access uploads.'''))
+    mongodb_query = _query_mongodb(upload_id=upload_id)
+    if not mongodb_query.count():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+            The specified upload_id was not found.'''))
+    upload = mongodb_query.first()
+    if user.is_admin or upload.user_id == str(user.user_id):
+        # Ok, it exists and belongs to user
+        return upload
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            You do not have access to the specified upload.'''))
 
 
 def _get_upload_with_write_access(upload_id, user) -> Upload:
-    # TODO: complete the logic.
-    if user:
-        query_args: dict = {}
-        if not user.is_admin:
-            query_args.update(user_id=str(user.user_id))
-            query_args.update(published=False)
-        mongodb_query = _query_mongodb(upload_id=upload_id, **query_args)
-        if mongodb_query.count():
-            # The upload exists
-            return mongodb_query[0]
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-        The specified upload_id is invalid, or you have no write access to it.
-        Note, only admins can update uploads that have already been published.
-        '''))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            User authentication required to access uploads.'''))
+    mongodb_query = _query_mongodb(upload_id=upload_id)
+    if not mongodb_query.count():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+            The specified upload_id was not found.'''))
+    upload = mongodb_query.first()
+    if upload.user_id != str(user.user_id) and not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            You do not have write access to the specified upload.'''))
+    if upload.published and not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            Only admins can change uploads that are published.'''))
+    return upload
 
 
-def _upload_to_pydantic(upload: Upload) -> UploadMetaData:
+def _upload_to_pydantic(upload: Upload) -> UploadData:
     ''' Converts the mongo db object to a dictionary. '''
-    return UploadMetaData.from_orm(upload)
+    return UploadData.from_orm(upload)
