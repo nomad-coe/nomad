@@ -36,10 +36,12 @@ for name, collection in ENTRY_COLLECTIONS.items():
         collection.collection.drop()
 
 # patch the structure collection with out elasticsearch implementation
-from .elasticsearch import ElasticsearchStructureCollection  # nopep8
+from .elasticsearch import StructureCollection  # nopep8
+# from optimade.server.entry_collections.elasticsearch import ElasticCollection
 from .filterparser import parse_filter  # nopep8
 
-structures.structures_coll = ElasticsearchStructureCollection()
+
+structures.structures_coll = StructureCollection()
 optimade.add_major_version_base_url(optimade.app)
 
 # patch exception handlers

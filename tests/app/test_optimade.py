@@ -60,7 +60,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     upload.create_test_structure(1, 2, 1, [], 0)
     upload.create_test_structure(2, 2, 1, ['C'], 0)
     upload.create_test_structure(3, 2, 1, [], 1)
-    upload.create_test_structure(4, 1, 1, [], 0)
+    upload.create_test_structure(4, 1, 1, [], 0, metadata=dict(upload_time='1978-04-08T10:10:00Z'))
     upload.create_upload_files()
     search.refresh()
 
@@ -126,7 +126,9 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('nelements LENGTH = 1', -1),
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
-    ('elements HAS ONY "H", "O"', -1)
+    ('elements HAS ONY "H", "O"', -1),
+    ('last_modified >= "2009-02-01T20:07:00Z"', 3),
+    ('species_at_sites HAS "C"', 1)
 ])
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:

@@ -1,8 +1,10 @@
 from typing import Callable
 from lark import v_args
-from elasticsearch_dsl import Q, Text, Keyword, Integer, Field, Boolean
-from optimade.filtertransformers.elasticsearch import Quantity, ElasticTransformer
+from elasticsearch_dsl import Q, Field
+from optimade.filtertransformers.elasticsearch import Quantity
 from nomad.atomutils import get_hill_decomposition
+
+from nomad.app.optimade.filterparser import ElasticTransformer
 
 
 _cmp_operators = {">": "gt", ">=": "gte", "<": "lt", "<=": "lte"}
@@ -63,7 +65,8 @@ class MQuantity(Quantity):
 
 
 class MElasticTransformer(ElasticTransformer):
-    """A specialized Optimade/Lark transformer for handling material queries.
+    '''
+    A specialized Optimade/Lark transformer for handling material queries.
     Provides mostly the same functionality as
     optimade.filtertransformers.elasticsearch.ElasticTransformer, but has
     additions that make nested queries and parameter conversions possible.
@@ -73,31 +76,7 @@ class MElasticTransformer(ElasticTransformer):
     Arguments:
         quantities: A list of :class:`MQuantity`s that describe how optimade (and other)
             quantities are mapped to the elasticsearch index.
-    """
-
-    def _query_op(self, quantity, op, value, nested=None):
-        """
-        Return a range, match, or term query for the given quantity, comparison
-        operator, and value
-        """
-        field = self._field(quantity, nested=nested)
-        if op in _cmp_operators:
-            return Q("range", **{field: {_cmp_operators[op]: value}})
-
-        if quantity.elastic_mapping_type == Text:
-            query_type = "match"
-        elif quantity.elastic_mapping_type in [Keyword, Integer, Boolean]:
-            query_type = "term"
-        else:
-            raise NotImplementedError("Quantity has unsupported ES field type")
-
-        if op in ["=", ""]:
-            return Q(query_type, **{field: value})
-
-        if op == "!=":
-            return ~Q(  # pylint: disable=invalid-unary-operand-type
-                query_type, **{field: value}
-            )
+    '''
 
     def _has_query_op(self, quantities, op, predicate_zip_list):
         """

@@ -1,0 +1,7 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.7.7, pytest-3.10.0, py-1.10.0, pluggy-0.13.1 -- /Users/markus/Documents/Projects/nomad-fairdi/.pyenv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/markus/Documents/Projects/nomad-fairdi/tests, inifile: pytest.ini
+plugins: celery-4.4.7, cov-2.7.1, timeout-1.4.2
+collecting ... 
+========================= no tests ran in 0.01 seconds =========================

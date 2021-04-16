@@ -43,7 +43,7 @@ lxml
 xarray
 
 # [infrastructure]
-optimade
+optimade==0.14.0
 structlog==20.1.0
 elasticsearch==6.4.0
 msgpack<0.6.0

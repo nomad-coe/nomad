@@ -63,7 +63,7 @@ class DatasetListResource(Resource):
         prefix = args.get('prefix', '')
 
         query_params = dict(user_id=g.user.user_id)
-        if prefix is not '':
+        if prefix != '':
             query_params.update(name=re.compile('^%s.*' % prefix, re.IGNORECASE))
 
         result_query = Dataset.m_def.a_mongo.objects(**query_params)
