@@ -21,7 +21,9 @@ from elasticsearch_dsl import Q
 from cachetools import cached
 
 from optimade.filterparser import LarkParser
-from optimade.filtertransformers.elasticsearch import ElasticTransformer, Quantity
+from optimade.filtertransformers.elasticsearch import (
+    Quantity, ElasticTransformer as OPTElasticTransformer)
+from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 
 from nomad.search import search_quantities
 
@@ -101,3 +103,53 @@ def parse_filter(filter_str: str, nomad_properties='dft', without_prefix=False) 
         raise FilterException('Semantic error: %s' % str(e))
 
     return query
+
+
+class ElasticTransformer(OPTElasticTransformer):
+    def _has_query_op(self, quantities, op, predicate_zip_list):
+        # We override this to add 'HAS ONLY' support.
+        if op == 'HAS ONLY':
+            # HAS ONLY comes with heavy limitations, because there is no such thing
+            # in elastic search. Only supported for elements, where we can construct
+            # an anonymous 'formula' based on elements sorted by order number and
+            # can do a = comparision to check if all elements are contained
+            if len(quantities) > 1:
+                raise Exception('HAS ONLY is not supported with zip')
+            quantity = quantities[0]
+
+            if quantity.has_only_quantity is None:
+                raise Exception('HAS ONLY is not supported by %s' % quantity.name)
+
+            def values():
+                for predicates in predicate_zip_list:
+                    if len(predicates) != 1:
+                        raise Exception('Tuples not supported in HAS ONLY')
+                    op, value = predicates[0]
+                    if op != '=':
+                        raise Exception('Predicated not supported in HAS ONLY')
+                    if not isinstance(value, str):
+                        raise Exception('Only strings supported in HAS ONLY')
+                    yield value
+
+            try:
+                order_numbers = list([ATOMIC_NUMBERS[element] for element in values()])
+                order_numbers.sort()
+                value = ''.join(
+                    [CHEMICAL_SYMBOLS[number - 1] for number in order_numbers]
+                )
+            except KeyError:
+                raise NotImplementedError('HAS ONLY is only supported for chemical symbols')
+
+            return Q('term', **{quantity.has_only_quantity.name: value})
+
+        else:
+            return super()._has_query_op(quantities, op, predicate_zip_list)
+
+    def property_zip_addon(self, args):
+        return args
+
+    def value_zip(self, args):
+        return self.value_list(args)
+
+    def value_zip_list(self, args):
+        return args

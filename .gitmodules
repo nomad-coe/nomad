@@ -138,9 +138,6 @@
 	path = dependencies/parsers/onetep
 	url = https://github.com/nomad-coe/nomad-parser-onetep.git
 	branch = master
-[submodule "dependencies/optimade-python-tools"]
-	path = dependencies/optimade-python-tools
-	url = https://github.com/markus1978/optimade-python-tools.git
 [submodule "dependencies/parsers/namd"]
     path = dependencies/parsers/namd
 	url = https://github.com/nomad-coe/nomad-parser-namd.git

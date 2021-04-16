@@ -24,7 +24,6 @@ class ElasticsearchStructureCollection(EntryCollection):
 
     def __init__(self):
         super().__init__(
-            collection=config.elastic.index_name,
             resource_cls=StructureResource,
             resource_mapper=StructureMapper,
             transformer=get_transformer(nomad_properties='dft', without_prefix=False))
@@ -107,7 +106,7 @@ class ElasticsearchStructureCollection(EntryCollection):
                     detail=f'Instead of a single entry, {nresults_now} entries were found')
             results = results[0] if results else None
 
-        return results, data_returned, more_data_available, all_fields - fields
+        return results, data_returned, more_data_available, self.all_fields - fields
 
     def _check_aliases(self, aliases):
         pass
@@ -137,15 +136,10 @@ class ElasticsearchStructureCollection(EntryCollection):
         metadata = archive[calc_id]['section_metadata'].to_dict()
         entry = datamodel.EntryMetadata.m_from_dict(metadata)
 
-        def include(key):
-            return response_fields is None or (key in response_fields) or not key.startswith('_')
-
         attrs = entry.dft.optimade.m_to_dict()
 
-        if include('immutable_id'):
-            attrs['immutable_id'] = calc_id
-        if include('last_modified'):
-            attrs['last_modified'] = entry.last_processing if entry.last_processing is not None else entry.upload_time
+        attrs['immutable_id'] = calc_id
+        attrs['last_modified'] = entry.last_processing if entry.last_processing is not None else entry.upload_time
 
         # TODO this should be removed, once all data is reprocessed with the right normalization
         attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(
@@ -161,8 +155,6 @@ class ElasticsearchStructureCollection(EntryCollection):
             attrs['nperiodic_dimensions'] = dimension_types
         elif isinstance(dimension_types, list):
             attrs['nperiodic_dimensions'] = sum(dimension_types)
-
-        attrs = {key: value for key, value in attrs.items() if include(key)}
 
         if response_fields is not None:
             for request_field in response_fields:
@@ -198,3 +190,14 @@ class ElasticsearchStructureCollection(EntryCollection):
                 upload_files.close()
 
         return optimade_results
+
+    def _run_db_query(self, *args, **kwargs):
+        # We overwrite all the methods that use this, so that this should never be called.
+        # We just need to implement it, because its marked as @abstractmethod.
+        raise NotImplementedError()
+
+    def insert(self, *args, **kwargs):
+        # This is used to insert test records during OPT tests. This should never be necessary
+        # on our implementation. We just need to implement it, because its marked as
+        # @abstractmethod.
+        raise NotImplementedError()
