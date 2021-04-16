@@ -18,6 +18,7 @@
 
 from typing import List
 import numpy as np
+import datetime
 
 from nomad import processing, files
 from nomad.datamodel import EntryMetadata, MongoMetadata, EntryArchive
@@ -102,7 +103,8 @@ class Upload():
 
         entry_metadata.m_update(
             domain='dft', upload_id=self.upload_id, calc_id='test_calc_id_%d' % id,
-            mainfile='test_mainfile', published=True, processed=True, with_embargo=False)
+            mainfile='test_mainfile', published=True, processed=True, with_embargo=False,
+            upload_time=datetime.datetime.now())
 
         entry_metadata.apply_domain_metadata(archive)
 
