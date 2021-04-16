@@ -1,4 +1,4 @@
-from typing import Tuple, List, Union, Dict, Set
+from typing import Tuple, List, Union, Dict, Set, Any
 from fastapi import HTTPException
 from elasticsearch_dsl import Search, Q
 
@@ -9,7 +9,7 @@ from optimade.server.exceptions import BadRequest
 from optimade.server.mappers import StructureMapper
 from optimade.models import StructureResource
 
-from nomad import config, datamodel, files, search, utils
+from nomad import datamodel, files, search, utils
 from nomad.normalizing.optimade import (
     optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)
@@ -20,7 +20,7 @@ from .filterparser import _get_transformer as get_transformer
 logger = utils.get_logger(__name__)
 
 
-class ElasticsearchStructureCollection(EntryCollection):
+class StructureCollection(EntryCollection):
 
     def __init__(self):
         super().__init__(
@@ -57,56 +57,31 @@ class ElasticsearchStructureCollection(EntryCollection):
             -> Tuple[List[StructureResource], int, bool, set]:
 
         criteria = self.handle_query_params(params)
+        single_entry = isinstance(params, SingleEntryQueryParams)
+        response_fields = criteria.pop("fields")
 
-        all_fields = criteria.pop("fields")
-        if getattr(params, "response_fields", False):
-            fields = set(params.response_fields.split(","))
-            fields |= self.resource_mapper.get_required_fields()
-        else:
-            fields = all_fields.copy()
+        results, data_returned, more_data_available = self._run_db_query(
+            criteria, single_entry=isinstance(params, SingleEntryQueryParams)
+        )
 
-        sort, order = criteria.get('sort', (('chemical_formula_reduced', 1),))[0]
-        sort_quantity = datamodel.OptimadeEntry.m_def.all_quantities.get(sort, None)
-        if sort_quantity is None:
-            raise BadRequest(detail='Unable to sort on field %s' % sort)
-        sort_quantity_a_optimade = sort_quantity.m_get_annotations('optimade')
-        if not sort_quantity_a_optimade.sortable:
-            raise BadRequest(detail='Unable to sort on field %s' % sort)
+        results = self._es_to_optimade_results(results, response_fields=response_fields)
 
-        search_request = self._base_search_request().include('calc_id', 'upload_id')
-
-        filter = criteria['filter']
-        if filter is None:
-            filter_param = getattr(params, 'filter')
-            logger.error('could not parse optimade filter', filter=filter_param)
-            raise NotImplementedError(
-                'some features used in filter query %s are not implemented' % filter_param)
-
-        if filter != {}:
-            search_request.query(filter)
-
-        es_response = search_request.execute_paginated(
-            page_offset=criteria.get('skip', 0),
-            per_page=criteria['limit'],
-            order=order,
-            order_by='dft.optimade.%s' % sort)
-        results = self._es_to_optimade_results(es_response['results'], response_fields=fields)
-
-        nresults_now = len(results)
-        if isinstance(params, EntryListingQueryParams):
-            data_returned = es_response['pagination']['total']
-            more_data_available = data_returned >= criteria.get('skip', 0) + criteria['limit']
-        else:
-            # SingleEntryQueryParams, e.g., /structures/{entry_id}
-            data_returned = nresults_now
-            more_data_available = False
-            if nresults_now > 1:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f'Instead of a single entry, {nresults_now} entries were found')
+        if single_entry:
             results = results[0] if results else None
 
-        return results, data_returned, more_data_available, self.all_fields - fields
+            if data_returned > 1:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f'Instead of a single entry, {data_returned} entries were found')
+
+        exclude_fields = self.all_fields - response_fields
+
+        return (
+            results,
+            data_returned,
+            more_data_available,
+            exclude_fields,
+        )
 
     def _check_aliases(self, aliases):
         pass
@@ -191,10 +166,32 @@ class ElasticsearchStructureCollection(EntryCollection):
 
         return optimade_results
 
-    def _run_db_query(self, *args, **kwargs):
-        # We overwrite all the methods that use this, so that this should never be called.
-        # We just need to implement it, because its marked as @abstractmethod.
-        raise NotImplementedError()
+    def _run_db_query(self, criteria: Dict[str, Any], single_entry=False):
+
+        sort, order = criteria.get('sort', (('chemical_formula_reduced', 1),))[0]
+        sort_quantity = datamodel.OptimadeEntry.m_def.all_quantities.get(sort, None)
+        if sort_quantity is None:
+            raise BadRequest(detail='Unable to sort on field %s' % sort)
+        sort_quantity_a_optimade = sort_quantity.m_get_annotations('optimade')
+        if not sort_quantity_a_optimade.sortable:
+            raise BadRequest(detail='Unable to sort on field %s' % sort)
+
+        search_request = self._base_search_request().include('calc_id', 'upload_id')
+
+        if criteria.get("filter", False):
+            search_request.query(criteria["filter"])
+
+        es_response = search_request.execute_paginated(
+            page_offset=criteria.get('skip', 0),
+            per_page=criteria['limit'],
+            order=order,
+            order_by='dft.optimade.%s' % sort)
+        results = es_response['results']
+
+        data_returned = es_response['pagination']['total']
+        more_data_available = data_returned >= criteria.get('skip', 0) + criteria['limit']
+
+        return results, data_returned, more_data_available
 
     def insert(self, *args, **kwargs):
         # This is used to insert test records during OPT tests. This should never be necessary

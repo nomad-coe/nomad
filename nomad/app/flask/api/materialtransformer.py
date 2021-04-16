@@ -1,6 +1,6 @@
 from typing import Callable
 from lark import v_args
-from elasticsearch_dsl import Q, Text, Keyword, Integer, Field, Boolean
+from elasticsearch_dsl import Q, Field
 from optimade.filtertransformers.elasticsearch import Quantity
 from nomad.atomutils import get_hill_decomposition
 
