@@ -527,6 +527,68 @@ oasis:
         - user2@gmail.com
 ```
 
+## Performance considerations
+
+If you run the OASIS on a single computer, like described here (either with docker or bare
+linux), you might run into problems with processing large uploads. If the NOMAD worker
+and app are run on the same computer, the app might become unresponsive, when the worker
+consumes all system resources.
+
+By default, the worker container might as many worker processes as the system as CPU cores.
+In addition, each worker process might spawn additional threads and consume
+more than one CPU core.
+
+There are multiple ways to restrict the resources that the worker might consume:
+- limit the number of worker processes and thereby lower the number of used cores
+- disable or limit multi-threading
+- limit available CPU utilization of the worker's docker container with docker
+
+### Limit the number of worker processes
+
+The worker uses the Python package celery. Celery can be configured to use less than the
+default number of worker processes (which equals the number of available cores). To use just
+a single core, you can alter the worker service command in the `docker-compose.yml` and
+add a `--concurrency` argument:
+
+```
+command: python -m celery worker -l info -A nomad.processing --concurrency=1 -Q celery,calcs,uploads
+```
+
+See also the [celery documentation](https://docs.celeryproject.org/en/stable/userguide/workers.html#id1).
+
+### Limiting the use of threads
+
+You can also reduce the usable threads that Python packages based on OpenMP might use to
+reduce the threads that might be spawn by a single worker process. Simply set the `OMP_NUM_THREADS`
+environment variable in the worker container in your `docker-compose.yml`:
+
+```
+services:
+    worker:
+        ...
+        environment:
+            ...
+            OMP_NUM_THREADS: 1
+```
+
+### Limit CPU with docker
+
+You can add a `deploy.resources.limits` section to the worker service in the `docker-compose.yml`:
+
+```
+services:
+    worker:
+        ...
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.50'
+```
+
+The number refers to the percentage use of a single CPU core.
+See also the [docker-compose documentation](https://docs.docker.com/compose/compose-file/compose-file-v3/#resources).
+
+
 ## NOMAD Oasis FAQ
 
 ### Why use an Oasis?
