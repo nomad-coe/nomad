@@ -70,7 +70,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
         return True
 
     # add the main content
-    partial_contents = archive.m_to_dict(partial=partial)
+    partial_contents = archive.m_to_dict(include=partial)
 
     # add the referenced data
     def add(section, placeholder=False) -> dict:
@@ -96,7 +96,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
         if placeholder:
             result = {}
         else:
-            result = section.m_to_dict(partial=partial)
+            result = section.m_to_dict(include=partial)
 
         sub_section = section.m_parent_sub_section
         if sub_section.repeats:

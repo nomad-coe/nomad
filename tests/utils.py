@@ -286,13 +286,15 @@ class ExampleData:
         entry_metadata.domain = 'dft'
         entry_metadata.apply_domain_metadata(archive)
 
-        if metadata is not None:
-            entry_metadata.m_update(**metadata)
-
         if not optimade:
             entry_metadata.dft.optimade = None
+
+        if metadata is not None:
+            kwargs = metadata
+        else:
+            kwargs = {}
 
         self.create_entry(
             entry_archive=archive,
             domain='dft', calc_id='test_calc_id_%d' % id, upload_id='test_upload',
-            published=True, processed=True, with_embargo=False)
+            published=True, processed=True, with_embargo=False, **kwargs)

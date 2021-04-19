@@ -482,7 +482,7 @@ def assert_archive_response(response_json, required=None):
         assert key in response_json
     if required is not None:
         assert required == response_json['required']
-    for key in ['calc_id', 'upload_id', 'parser_name', 'archive']:
+    for key in ['entry_id', 'upload_id', 'parser_name', 'archive']:
         assert key in response_json['data']
     assert_archive(response_json['data']['archive'], required=required)
 
@@ -549,9 +549,9 @@ def test_entries_all_statistics(client, data):
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.user_id'}}, 3, 3, 200, id='order-str'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
-    pytest.param({'quantity': 'results.material.labels_springer_classification'}, 0, 0, 200, id='no-results'),
+    pytest.param({'quantity': 'results.material.symmetry.structure_name'}, 0, 0, 200, id='no-results'),
     pytest.param({'quantity': 'upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
+    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.name', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
     pytest.param({'quantity': 'upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
@@ -810,7 +810,7 @@ def perform_entries_owner_test(
 
 
 elements = 'results.material.elements'
-n_elements = 'results.material.nelements'
+n_elements = 'results.material.n_elements'
 
 
 @pytest.mark.parametrize('query, status_code, total', [
@@ -879,7 +879,8 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     pytest.param({'calc_id__any': 'id_01'}, 200, 1, id='any-not-list'),
     pytest.param({'calc_id__gt': 'id_01'}, 200, 22, id='gt'),
     pytest.param({'calc_id__gt': ['id_01', 'id_02']}, 422, -1, id='gt-list'),
-    pytest.param({'calc_id__missspelled': 'id_01'}, 422, -1, id='not-op'),
+    pytest.param({'calc_id__missspelled': 'id_01'}, 422, -1, id='not-op-1'),
+    pytest.param({n_elements + '__missspelled': 2}, 422, -1, id='not-op-2'),
     pytest.param({'q': 'calc_id__id_01'}, 200, 1, id='q-match'),
     pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
     pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
@@ -979,7 +980,7 @@ def test_entries_owner(
     pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
     pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
     pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': 'n_elements', 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
+    pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
     pytest.param({'page': 1, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
     pytest.param({'page': 2, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
     pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),

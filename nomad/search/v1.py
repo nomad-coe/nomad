@@ -255,19 +255,19 @@ def search(
     more_response_data = {}
 
     # pagination
-    next_after = None
+    next_page_after_value = None
     if 0 < len(es_response.hits) < es_response.hits.total:
         last = es_response.hits[-1]
         if order_field == 'entry_id':
-            next_after = last['entry_id']
+            next_page_after_value = last['entry_id']
         else:
             after_value = last
             for order_field_segment in order_field.split('.'):
                 after_value = after_value[order_field_segment]
-            next_after = '%s:%s' % (after_value, last['entry_id'])
+            next_page_after_value = '%s:%s' % (after_value, last['entry_id'])
     pagination_response = PaginationResponse(
         total=es_response.hits.total,
-        next_after=next_after,
+        next_page_after_value=next_page_after_value,
         **pagination.dict())
 
     # statistics

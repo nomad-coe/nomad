@@ -330,9 +330,11 @@ class WorkflowNormalizer(Normalizer):
         if not sec_method:
             return
 
+        ibrion = -1
         incar = self.section_run.section_method[0].x_vasp_incar_out
-        nsw = incar.get('NSW')
-        ibrion = -1 if nsw == 0 else incar.get('IBRION', 0)
+        if incar is not None:
+            nsw = incar.get('NSW')
+            ibrion = -1 if nsw == 0 else incar.get('IBRION', 0)
 
         if ibrion == -1:
             return 'single_point'

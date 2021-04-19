@@ -37,3 +37,5 @@ examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
 */node_modules/
+
+dependencies/parsers/xps

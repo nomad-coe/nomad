@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO, cast
+from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO
 from fastapi import APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter
 from fastapi.responses import StreamingResponse
 import os.path
@@ -30,9 +30,7 @@ import lzma
 from nomad import files, config, utils
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
-from nomad.archive import (
-    ArchiveQueryError, compute_required_with_referenced,
-    read_partial_archives_from_mongo, filter_archive)
+from nomad.archive import ArchiveQueryError
 from nomad.search import AuthenticationRequiredError, SearchError
 from nomad.search.v1 import search
 
@@ -188,7 +186,7 @@ def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: U
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=EntryPagination(size=100, page_after_value=page_after_value, order_by='upload_id'),
+            pagination=EntryPagination(page_size=100, page_after_value=page_after_value, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
@@ -486,12 +484,6 @@ def _answer_entries_archive_request(
     if required is None:
         required = '*'
 
-    try:
-        required_with_references = compute_required_with_referenced(required)
-    except KeyError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=(
-            'The required specification contains an unknown quantity or section: %s' % str(e)))
-
     required_reader = _validate_required(required)
 
     search_response = perform_search(
@@ -500,35 +492,18 @@ def _answer_entries_archive_request(
         required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
 
-    if required_with_references is not None:
-        # We can produce all the required archive data from the partial archives stored
-        # in mongodb.
-        entry_ids = [entry['entry_id'] for entry in search_response.data]
-        partial_archives = cast(dict, read_partial_archives_from_mongo(entry_ids, as_dict=True))
-
     uploads = _Uploads()
     response_data = {}
     for entry_metadata in search_response.data:
         entry_id, upload_id = entry_metadata['entry_id'], entry_metadata['upload_id']
 
         archive_data = None
-        if required_with_references is not None:
-            try:
-                partial_archive = partial_archives[entry_id]
-                archive_data = filter_archive(required, partial_archive, transform=lambda e: e)
-            except KeyError:
-                # the partial archive might not exist, e.g. due to processing problems
-                pass
-            except ArchiveQueryError as e:
-                detail = 'The required specification could not be understood: %s' % str(e)
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
-        if archive_data is None:
-            try:
-                archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
-            except KeyError as e:
-                logger.error('missing archive', exc_info=e, entry_id=entry_id)
-                continue
+        try:
+            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
+        except KeyError as e:
+            logger.error('missing archive', exc_info=e, entry_id=entry_id)
+            continue
 
         response_data[entry_id] = {
             'entry_id': entry_id,
@@ -923,7 +898,7 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
             'entry_id': entry_id,
             'required': required,
             'data': {
-                'calc_id': entry_id,
+                'entry_id': entry_id,
                 'upload_id': entry_metadata['upload_id'],
                 'parser_name': entry_metadata['parser_name'],
                 'archive': archive_data

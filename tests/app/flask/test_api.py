@@ -1793,7 +1793,7 @@ def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
     example_calc = Calc.objects(upload_id=published.upload_id).first()
     assert example_calc.metadata['with_embargo']
     elastic_calc = next(
-        search.SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
+        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
     assert elastic_calc['with_embargo'] is True
     with pytest.raises(files.Restricted):
         with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
@@ -1813,7 +1813,7 @@ def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
     Upload.get(published.upload_id).block_until_complete()
 
     elastic_calc = next(
-        search.SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
+        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
     assert elastic_calc['with_embargo'] is False
 
     # should not raise Restricted anymore
