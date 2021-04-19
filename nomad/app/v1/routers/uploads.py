@@ -80,15 +80,15 @@ class UploadData(BaseModel):
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.')
     tasks: List[str] = Field()
-    current_task: str = Field()
+    current_task: Optional[str] = Field()
     tasks_running: bool = Field()
     tasks_status: str = Field()
     errors: List[str] = Field()
     warnings: List[str] = Field()
     complete_time: Optional[datetime] = Field()
-    current_process: str = Field()
+    current_process: Optional[str] = Field()
     process_running: bool = Field()
-    last_status_message: str = Field(
+    last_status_message: Optional[str] = Field(
         None,
         description='The last informative message that the processing saved about this uploads status.')
 
@@ -226,7 +226,7 @@ async def post_uploads(
             description=strip('''
             Specifies the name of the upload.''')),
         publish_directly: bool = FastApiQuery(
-            False,
+            None,
             description=strip('''
             If the upload should be published directly. False by default.''')),
         oasis_upload_id: str = FastApiQuery(
@@ -247,17 +247,17 @@ async def post_uploads(
     Upload a file to the repository. Can be used to upload files via browser or other
     http clients like curl. This will also start the processing of the upload.
 
-    There are two basic ways to upload a file: streaming the file data in the http body or
-    in the multipart-formdata. Both are supported. The first method does not transfer a
+    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. The second method does not transfer a
     filename, so it is recommended to supply the parameter `name` in this case.
 
-    Method 1: streaming data
-
-        curl -X 'POST' "url" -T local_file
-
-    Method 2: multipart-formdata
+    Method 1: multipart-formdata
 
         curl -X 'POST' "url" -F file=@local_file
+
+    Method 2: streaming data
+
+        curl -X 'POST' "url" -T local_file
 
     Authentication is required to perform an upload. This can either be done using the
     regular bearer token, or using the simplified upload token. To use the simplified
@@ -271,7 +271,7 @@ async def post_uploads(
     # Determine the source data stream
     src_stream = None
     if local_path:
-        # Local file - only for admins
+        # Method 0: Local file - only for admins
         if not user.is_admin:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You need to be admin to use local_path as method of upload.'''))
@@ -282,12 +282,12 @@ async def post_uploads(
             name = os.path.basename(local_path)
         src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
     elif file:
-        # Data provided as formdata
+        # Method 1: Data provided as formdata
         if not name:
             name = file.filename
         src_stream = _asyncronous_file_reader(file)
     else:
-        # Data has to be sent streamed in the body
+        # Method 2: Data has to be sent streamed in the body
         src_stream = request.stream()
 
     # TODO: allow admin users to upload in the name of other users?
@@ -442,13 +442,22 @@ async def delete_uploads_id(
 async def post_uploads_id_action_publish(
         upload_id: str = Path(
             ...,
-            description='The unique id of the upload to publish.'),
+            description=strip('''
+                The unique id of the upload to publish.''')),
         with_embargo: bool = FastApiQuery(
             True,
-            description='If the data is published with an embargo.'),
+            description=strip('''
+                If the data is published with an embargo.''')),
         embargo_length: int = FastApiQuery(
             36,
-            description='Length of the requested embargo in months.'),
+            description=strip('''
+                Length of the requested embargo in months.''')),
+        to_central_nomad: bool = FastApiQuery(
+            False,
+            description=strip('''
+                Will send the upload to the central NOMAD repository and publish it. This
+                option is only available on an OASIS. The upload must already be published
+                on the OASIS.''')),
         user: User = Depends(get_required_user)):
     '''
     Publishes an upload. The upload cannot be modified after this point, and after the
@@ -456,18 +465,10 @@ async def post_uploads_id_action_publish(
     '''
     upload = _get_upload_with_write_access(upload_id, user)
 
-    metadata_dict: Dict[str, Any] = {'with_embargo': with_embargo}
-    if with_embargo:
-        if not embargo_length or not 0 < embargo_length <= 36:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='embargo_length needs to be between 1 and 36 months.')
-        metadata_dict.update(embargo_length=embargo_length)
-
-    if upload.tasks_running:
+    if upload.tasks_running or upload.process_running:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is not processed yet.')
+            detail='The upload is not finished processing yet.')
     if upload.tasks_status == FAILURE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -476,14 +477,77 @@ async def post_uploads_id_action_publish(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload without any resulting entries.')
-    try:
-        upload.compress_and_set_metadata(metadata_dict)
-        upload.publish_upload()
-    except ProcessAlreadyRunning:
+
+    if to_central_nomad:
+        # Publish from an OASIS to the central repository
+        if not config.keycloak.oasis:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Must be on an OASIS to publish to the central NOMAD repository.')
+        if not upload.published:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='The upload must be published on the OASIS first.')
+        # Everything looks ok, try to publish it to the central NOMAD!
+        upload.publish_from_oasis()
+    else:
+        # Publish to this repository
+        if upload.published:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='The upload is already published.')
+        metadata_dict: Dict[str, Any] = {'with_embargo': with_embargo}
+        if with_embargo:
+            if not embargo_length or not 0 < embargo_length <= 36:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='embargo_length needs to be between 1 and 36 months.')
+            metadata_dict.update(embargo_length=embargo_length)
+        try:
+            upload.compress_and_set_metadata(metadata_dict)
+            upload.publish_upload()
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is still/already processed.')
+
+    return UploadDataResponse(
+        upload_id=upload_id,
+        data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/re-process', tags=[default_tag],
+    summary='Re-process a published upload',
+    response_model=UploadDataResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_uploads_id_action_reprocess(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload to re-process.'),
+        user: User = Depends(get_required_user)):
+    '''
+    Re-processes an upload. The upload must be published, have at least one outdated
+    caclulation, and not be processing at the moment.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, published_requires_admin=False)
+
+    if upload.tasks_running or upload.process_running:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is still/already processed.')
+            detail='The upload is currently being processed.')
+    if not upload.published:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Only published uploads can be re-processed.')
+    if len(upload.outdated_calcs) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='You can only re-process uploads with at least one outdated calculation')
 
+    upload.reset()
+    upload.re_process_upload()
     return UploadDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
@@ -529,7 +593,7 @@ def _get_upload_with_read_access(upload_id, user) -> Upload:
             You do not have access to the specified upload.'''))
 
 
-def _get_upload_with_write_access(upload_id, user) -> Upload:
+def _get_upload_with_write_access(upload_id, user, published_requires_admin=True) -> Upload:
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             User authentication required to access uploads.'''))
@@ -541,7 +605,7 @@ def _get_upload_with_write_access(upload_id, user) -> Upload:
     if upload.user_id != str(user.user_id) and not user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             You do not have write access to the specified upload.'''))
-    if upload.published and not user.is_admin:
+    if published_requires_admin and upload.published and not user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             Only admins can change uploads that are published.'''))
     return upload

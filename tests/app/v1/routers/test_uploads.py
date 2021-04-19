@@ -117,7 +117,7 @@ def assert_processing(client, upload_id, user_auth):
     # TODO: Also check calcs, like the old api tests.
 
 
-def assert_published(
+def assert_publish(
         client, user_auth, upload_id, proc_infra, expected_status_code=200, **query_args):
     '''
     Attempts to publish the given upload and check that it is successful (unless failure
@@ -130,21 +130,24 @@ def assert_published(
     response = perform_post_uploads_id_action(client, user_auth, upload_id, 'publish', **query_args)
 
     assert response.status_code == expected_status_code
-    if expected_status_code != 200:
-        return  # The publish request is expected to be denied - nothing more to check
+    if expected_status_code == 200:
+        upload = assert_upload(response.json())
+        assert upload['current_process'] == 'publish_upload'
+        assert upload['process_running']
 
+        assert_gets_published(client, upload_id, user_auth, **query_args)
+
+
+def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **query_args):
     with_embargo = query_args.get('with_embargo', True)
     embargo_length = query_args.get('embargo_length', 36)
-
-    upload = assert_upload(response.json())
-    assert upload['current_process'] == 'publish_upload'
-    assert upload['process_running']
 
     block_until_completed(client, upload_id, user_auth)
 
     upload_proc = Upload.objects(upload_id=upload_id).first()
     assert upload_proc is not None
     assert upload_proc.published is True
+    assert upload_proc.from_oasis == from_oasis
     if with_embargo:
         assert upload_proc.embargo_length == embargo_length
 
@@ -221,7 +224,7 @@ def test_get_uploads_query(client, mongo, proc_infra, slow_processing, test_user
     upload_id_1 = response.json()['upload_id']
     upload_id_to_name[upload_id_1] = '#1'
     assert_processing(client, upload_id_1, test_user_auth)
-    assert_published(client, test_user_auth, upload_id_1, proc_infra)
+    assert_publish(client, test_user_auth, upload_id_1, proc_infra)
 
     # Upload #2 - wait for processing to finish, but do not publish
     response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth, name='name2')
@@ -333,9 +336,61 @@ def test_post_uploads_with_publish_directly(
     if empty:
         assert not upload_proc.published
     else:
-        assert upload_proc.published
+        assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
 
-        # TODO: verify entries, as in old api tests
+
+def test_post_uploads_oasis_not_admin(
+        client, mongo, non_empty_example_upload, other_test_user_auth, test_user):
+    response = perform_post_uploads(
+        client, 'stream', non_empty_example_upload, other_test_user_auth,
+        oasis_upload_id='oasis_upload_id',
+        oasis_uploader_id=test_user.user_id,
+        oasis_deployment_id='an_id')
+    assert response.status_code == 401
+
+
+def test_post_uploads_oasis_duplicate(
+        client, mongo, non_empty_example_upload, test_user, test_user_auth):
+    Upload.create(upload_id='oasis_upload_id', user=test_user).save()
+    response = perform_post_uploads(
+        client, 'stream', non_empty_example_upload, test_user_auth,
+        oasis_upload_id='oasis_upload_id',
+        oasis_uploader_id=test_user.user_id,
+        oasis_deployment_id='an_id')
+    assert response.status_code == 400
+
+
+def test_post_uploads_oasis_missing_parameters(
+        client, mongo, non_empty_example_upload, test_user_auth, test_user):
+    ''' Attempts to make an oasis upload with one of the mandatory arguments missing. '''
+    query_args_full = dict(
+        oasis_upload_id='oasis_upload_id',
+        oasis_uploader_id=test_user.user_id,
+        oasis_deployment_id='an_id')
+
+    for k in query_args_full:
+        query_args = dict(**query_args_full)
+        query_args.pop(k)
+        assert perform_post_uploads(
+            client, 'stream', non_empty_example_upload, test_user_auth,
+            **query_args).status_code == 400
+
+
+def test_post_uploads_oasis(client, mongo, proc_infra, test_user_auth, test_user, oasis_example_upload):
+    response = perform_post_uploads(
+        client, 'stream', oasis_example_upload, test_user_auth,
+        oasis_upload_id='oasis_upload_id',
+        oasis_uploader_id=test_user.user_id,
+        oasis_deployment_id='an_id')
+
+    assert response.status_code == 200
+
+    response_json = response.json()
+    upload_id = response_json['upload_id']
+    assert upload_id == 'oasis_upload_id'
+    assert_upload(response_json)
+    assert_processing(client, upload_id, test_user_auth)
+    assert_gets_published(client, upload_id, test_user_auth, from_oasis=True, with_embargo=False)
 
 
 @pytest.mark.parametrize('query_args, expected_status_code', [
@@ -354,7 +409,7 @@ def test_publish(
     upload_id = response_json['upload_id']
     assert_upload(response_json)
     assert_processing(client, upload_id, test_user_auth)
-    assert_published(
+    assert_publish(
         client, test_user_auth, upload_id, proc_infra,
         expected_status_code=expected_status_code, **query_args)
 
@@ -367,7 +422,31 @@ def test_publish_empty(client, test_user_auth, empty_upload, proc_infra):
     upload_id = response_json['upload_id']
     assert_upload(response_json)
     assert_processing(client, upload_id, test_user_auth)
-    assert_published(client, test_user_auth, upload_id, proc_infra, expected_status_code=400)
+    assert_publish(client, test_user_auth, upload_id, proc_infra, expected_status_code=400)
+
+
+def test_publish_again(client, test_user_auth, admin_user_auth, non_empty_example_upload, proc_infra):
+    ''' Tries to publish an upload after it has already been published. Should fail. '''
+    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth)
+    assert response.status_code == 200
+    response_json = response.json()
+    upload_id = response_json['upload_id']
+    assert_upload(response_json)
+    assert_processing(client, upload_id, test_user_auth)
+    assert_publish(client, test_user_auth, upload_id, proc_infra, embargo_length=24)
+    assert_publish(client, test_user_auth, upload_id, proc_infra, embargo_length=18, expected_status_code=401)
+    assert_publish(client, admin_user_auth, upload_id, proc_infra, embargo_length=18, expected_status_code=401)
+
+
+def test_re_process(client, published, test_user_auth, monkeypatch):
+    monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
+    monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
+
+    upload_id = published.upload_id
+
+    response = perform_post_uploads_id_action(client, test_user_auth, upload_id, 're-process')
+    assert response.status_code == 200
+    assert_processing(client, upload_id, test_user_auth)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -416,7 +495,7 @@ def test_delete(
     assert_upload(response_json)
     assert_processing(client, upload_id, test_user_auth)
     if publish:
-        assert_published(client, test_user_auth, upload_id, proc_infra)
+        assert_publish(client, test_user_auth, upload_id, proc_infra)
 
     response = perform_delete_uploads(client, upload_id, user_auth=delete_auth)
     assert response.status_code == expected_status_code
