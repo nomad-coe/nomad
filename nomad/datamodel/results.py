@@ -23,13 +23,18 @@ from ase.data import chemical_symbols
 
 from nomad import config
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type, material_entry_type
+
 from nomad.metainfo import (
     MSection,
     Section,
     SubSection,
     Quantity,
     MEnum,
+    Package,
 )
+
+m_package = Package()
+
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
     Method as section_method,
@@ -1044,3 +1049,6 @@ class Results(MSection):
     material = SubSection(sub_section=Material.m_def, repeats=False)
     method = SubSection(sub_section=Method.m_def, repeats=False)
     properties = SubSection(sub_section=Properties.m_def, repeats=False)
+
+
+m_package.__init_metainfo__()
