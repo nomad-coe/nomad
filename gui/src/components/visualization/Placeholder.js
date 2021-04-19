@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -25,43 +25,60 @@ import clsx from 'clsx'
  * Component that is used as a placeholder while loading data. Fairly simple
  * wrapper around the MUI Skeleton component.
  */
+
+// These styles do not depend on any props: they can be created once and are
+// shared by each instance.
+const useStaticStyles = makeStyles(theme => ({
+  root: {
+  },
+  placeholder: {
+    position: 'absolute',
+    top: theme.spacing(2),
+    left: theme.spacing(2),
+    right: theme.spacing(2),
+    bottom: theme.spacing(2)
+  },
+  skeleton: {
+    width: '100%',
+    height: '100%'
+  }
+}))
 export default function Placeholder(props) {
   // If aspect ratio is provided, use it to determine width and height
   const {aspectRatio, className, classes, ...other} = props
-  const useStyles = makeStyles(props => {
+  const useStyles = makeStyles(theme => {
+    const style = {}
     if (aspectRatio) {
-      return {
-        root: {
-        },
-        skeletonContainer: {
-          height: 0,
-          overflow: 'hidden',
-          paddingBottom: `${100 / aspectRatio}%`,
-          position: 'relative'
-        },
-        skeleton: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%'
-        }
+      style.containerOuter = {
+        height: 0,
+        overflow: 'hidden',
+        paddingBottom: `${100 / aspectRatio}%`,
+        position: 'relative'
       }
     }
+    return style
   })
-  const styles = useStyles(classes)
+  const theme = useTheme()
+  const styles = useStyles()
+  const staticStyles = useStaticStyles({classes: classes, theme: theme})
   if (aspectRatio) {
     return <div className={clsx(className, styles.root)}>
-      <div className={styles.skeletonContainer}>
-        <Skeleton variant="rect" className={styles.skeleton} {...other}/>
+      <div className={styles.containerOuter}>
+        <div className={staticStyles.placeholder}>
+          <Skeleton variant="rect" className={staticStyles.skeleton} {...other}/>
+        </div>
       </div>
     </div>
   }
-  return <Skeleton {...other}></Skeleton>
+  return <div className={clsx(className, staticStyles.root)}>
+    <div className={styles.containerInner}>
+      <Skeleton {...other} className={staticStyles.skeleton}></Skeleton>
+    </div>
+  </div>
 }
 
 Placeholder.propTypes = {
   aspectRatio: PropTypes.number,
   className: PropTypes.string,
-  classes: PropTypes.string
+  classes: PropTypes.object
 }

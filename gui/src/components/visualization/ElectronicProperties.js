@@ -25,7 +25,6 @@ import {
 import { useRecoilValue, RecoilRoot } from 'recoil'
 import { convertSI } from '../../utils'
 import DOS from './DOS'
-import NoData from './NoData'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
 import { unitsState } from '../archive/ArchiveBrowser'
@@ -53,18 +52,22 @@ const useStyles = makeStyles((theme) => {
     dos: {
       flex: '0 0 33.3%'
     },
-    boxBs: {
-      padding: '1.45rem',
-      paddingBottom: '2.4rem'
+    noData: {
+      top: '1.43rem',
+      left: theme.spacing(2),
+      right: theme.spacing(2),
+      bottom: '3.55rem'
     },
-    boxDos: {
-      padding: '1.45rem',
-      paddingBottom: '3.55rem'
+    placeHolder: {
+      top: '1.43rem',
+      left: theme.spacing(2),
+      right: theme.spacing(2),
+      bottom: theme.spacing(2)
     }
   }
 })
 
-function ElectronicStructureOverview({data, className, classes, raiseError}) {
+function ElectronicProperties({bs, dos, className, classes}) {
   const units = useRecoilValue(unitsState)
   const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
@@ -79,58 +82,52 @@ function ElectronicStructureOverview({data, className, classes, raiseError}) {
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
-    if (data.dos) {
-      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
-      bsYSubject.next(update)
-    }
-  }, [data, bsYSubject])
+    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+    bsYSubject.next(update)
+  }, [bsYSubject])
   const handleDOSRelayouting = useCallback((event) => {
-    if (data.bs) {
-      let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
-      dosYSubject.next(update)
-    }
-  }, [data, dosYSubject])
+    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+    dosYSubject.next(update)
+  }, [dosYSubject])
 
   return (
     <RecoilRoot>
       <Box className={styles.row}>
         <Box className={styles.bs}>
           <Typography variant="subtitle1" align='center'>Band structure</Typography>
-          {data.bs
-            ? <BandStructure
-              data={data?.bs?.section_k_band}
-              layout={bsLayout}
-              aspectRatio={1.2}
-              unitsState={unitsState}
-              onRelayouting={handleBSRelayouting}
-              onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
-              layoutSubject={dosYSubject}
-              metaInfoLink={data?.bs?.path}
-            ></BandStructure>
-            : <NoData aspectRatio={1.2} classes={{box: styles.boxBs}}/>
-          }
+          <BandStructure
+            data={bs === false ? false : bs?.section_k_band}
+            layout={bsLayout}
+            aspectRatio={1.2}
+            placeHolderStyle={styles.placeHolder}
+            noDataStyle={styles.noData}
+            unitsState={unitsState}
+            onRelayouting={handleBSRelayouting}
+            onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
+            layoutSubject={dosYSubject}
+            metaInfoLink={bs?.path}
+          ></BandStructure>
         </Box>
         <Box className={styles.dos}>
           <Typography variant="subtitle1" align='center'>Density of states</Typography>
-          {data.dos
-            ? <DOS
-              data={data.dos.section_dos}
-              layout={dosLayout}
-              aspectRatio={0.6}
-              onRelayouting={handleDOSRelayouting}
-              onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
-              unitsState={unitsState}
-              layoutSubject={bsYSubject}
-              metaInfoLink={data?.dos?.path}
-            ></DOS>
-            : <NoData aspectRatio={0.6} classes={{box: styles.boxDos}}/>
-          }
+          <DOS
+            data={dos === false ? false : dos?.section_dos}
+            layout={dosLayout}
+            aspectRatio={0.6}
+            placeHolderStyle={styles.placeHolder}
+            noDataStyle={styles.noData}
+            onRelayouting={handleDOSRelayouting}
+            onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
+            unitsState={unitsState}
+            layoutSubject={bsYSubject}
+            metaInfoLink={dos?.path}
+          ></DOS>
         </Box>
-        {data.bs
+        {bs !== false
           ? <Box className={styles.bz}>
             <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
             <BrillouinZone
-              data={data.bs.section_k_band}
+              data={bs?.section_k_band}
               aspectRatio={1.2}
             ></BrillouinZone>
           </Box>
@@ -141,11 +138,11 @@ function ElectronicStructureOverview({data, className, classes, raiseError}) {
   )
 }
 
-ElectronicStructureOverview.propTypes = {
-  data: PropTypes.object,
+ElectronicProperties.propTypes = {
+  dos: PropTypes.any, // Data for DOS. Set false if no data is available, set to some other falsy value to enable placeholder.
+  bs: PropTypes.any, // Data for BS. Set false if no data is available, set to some other falsy value to enable placeholder.
   className: PropTypes.string,
-  classes: PropTypes.object,
-  raiseError: PropTypes.func
+  classes: PropTypes.object
 }
 
-export default ElectronicStructureOverview
+export default ElectronicProperties

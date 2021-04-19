@@ -106,3 +106,7 @@ export function normalizeDisplayValue(value) {
 }
 
 export const electronicRange = [-10, 20]
+export const normalizationWarning = `
+Energy reference could not be found: energies have an unknown shift with
+respect to the highest occupied energy.
+`

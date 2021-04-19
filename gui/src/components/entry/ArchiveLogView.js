@@ -17,7 +17,7 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Fab, Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails } from '@material-ui/core'
+import { withStyles, Fab, Typography, Accordion, AccordionSummary, AccordionDetails } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withApi } from '../api'
 import Download from './Download'
@@ -55,20 +55,20 @@ class LogEntryUnstyled extends React.Component {
       summaryProps.classes = {root: classes.warning}
     }
     return (
-      <ExpansionPanel>
-        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography {...summaryProps}>{data.level}: {data.event} {(data.parser || data.normalizer) ? `(${data.parser || data.normalizer})` : ''}</Typography>
-        </ExpansionPanelSummary>
-        <ExpansionPanelDetails>
+        </AccordionSummary>
+        <AccordionDetails>
           <ReactJson
             src={data}
             enableClipboard={false}
             displayObjectSize={false} />
-        </ExpansionPanelDetails>
-        {data.exception && <ExpansionPanelDetails>
+        </AccordionDetails>
+        {data.exception && <AccordionDetails>
           <pre className={classes.exception}>{data.exception}</pre>
-        </ExpansionPanelDetails>}
-      </ExpansionPanel>)
+        </AccordionDetails>}
+      </Accordion>)
   }
 }
 

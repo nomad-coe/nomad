@@ -17,23 +17,25 @@
  */
 import React, { useState, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles } from '@material-ui/core/styles'
 import { cloneDeep } from 'lodash'
 import { useHistory } from 'react-router-dom'
-
+import { makeStyles } from '@material-ui/core/styles'
 import {
   Typography,
-  Box
+  Box,
+  Tooltip
 } from '@material-ui/core'
 import {
   Fullscreen,
   FullscreenExit,
   CameraAlt,
   Replay,
-  ViewList
+  ViewList,
+  Warning
 } from '@material-ui/icons'
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
+import NoData from './NoData'
 import Actions from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
@@ -50,6 +52,9 @@ export default function Plot({
   fixedMargins,
   className,
   classes,
+  placeHolderStyle,
+  noDataStyle,
+  warning,
   onRelayout,
   onRedraw,
   onRelayouting,
@@ -80,14 +85,13 @@ export default function Plot({
   // Styles
   const useStyles = makeStyles((theme) => {
     return {
-      header: {
+      footer: {
         paddingRight: theme.spacing(1),
         display: 'flex',
         flexDirection: 'row',
         zIndex: 1
       },
       root: {
-
       },
       placeHolder: {
         left: 0,
@@ -99,6 +103,13 @@ export default function Plot({
       },
       spacer: {
         flex: 1
+      },
+      warning: {
+        color: theme.palette.warning.main,
+        position: 'absolute',
+        zIndex: 1,
+        left: '2px',
+        top: '20px'
       },
       iconButton: {
         backgroundColor: 'white',
@@ -126,6 +137,13 @@ export default function Plot({
       title: {
         font: {
           family: 'Titillium Web,sans-serif'
+        }
+      },
+      legend: {
+        bgcolor: 'rgba(255, 255, 255, 0.9)',
+        font: {
+          family: 'Titillium Web,sans-serif',
+          size: 14
         }
       },
       xaxis: {
@@ -172,6 +190,28 @@ export default function Plot({
           size: 14,
           color: '#333'
         }
+      },
+      yaxis2: {
+        automargin: true,
+        autorange: true,
+        linecolor: '#333',
+        linewidth: 1,
+        mirror: true,
+        ticks: 'outside',
+        showline: true,
+        title: {
+          standoff: 10,
+          font: {
+            family: 'Titillium Web,sans-serif',
+            size: 16,
+            color: '#333'
+          }
+        },
+        tickfont: {
+          family: 'Titillium Web,sans-serif',
+          size: 14,
+          color: '#333'
+        }
       }
     }
     const finalLayoutResult = mergeObjects(layout, defaultLayout)
@@ -183,9 +223,11 @@ export default function Plot({
     const resLayout = cloneDeep(finalLayout)
     if (margins) {
       resLayout.yaxis.automargin = false
+      resLayout.yaxis2.automargin = false
       resLayout.xaxis.automargin = false
       resLayout.margin.l = margins.l
       resLayout.margin.t = margins.t
+      resLayout.margin.r = margins.r
     }
     return resLayout
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,6 +273,9 @@ export default function Plot({
   // useLayoutEffect is used so that React rendering and Plotly rendering are
   // synced.
   useLayoutEffect(() => {
+    if (!data) {
+      return
+    }
     if (firstRender.current) {
       Plotly.newPlot(canvasRef.current, data, finalLayout, finalConfig)
       attach.current = true
@@ -240,7 +285,9 @@ export default function Plot({
       if (layoutSubject) {
         layoutSubject.subscribe(layout => {
           let oldLayout = canvasRef.current.layout
-          Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+          // The updates are throttled by using requestAnimationFrame: there is
+          // no sense in trying to update beyond what the browser can render
+          window.requestAnimationFrame(() => { Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout)) })
         })
       }
       setLoading(false)
@@ -277,13 +324,17 @@ export default function Plot({
         const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
         const currentLayout = canvasRef.current.layout
         currentLayout.yaxis.automargin = false
+        currentLayout.yaxis2.automargin = false
         currentLayout.xaxis.automargin = false
         currentLayout.margin.l = parseInt(group.getAttribute('x'))
         currentLayout.margin.t = parseInt(group.getAttribute('y'))
+        const totalWidth = canvasRef.current.clientWidth
+        const plotAreaWidth = parseInt(group.getAttribute('width'))
+        currentLayout.margin.r = totalWidth - plotAreaWidth - currentLayout.margin.l
         Plotly.relayout(canvasRef.current, currentLayout)
 
         // Save the margins so that they can also be updated on the reset config
-        setMargins({l: currentLayout.margin.l, t: currentLayout.margin.t})
+        setMargins({l: currentLayout.margin.l, t: currentLayout.margin.t, r: currentLayout.margin.r})
       } catch (e) {
         console.log('Could not determine the margin values.')
       }
@@ -315,16 +366,26 @@ export default function Plot({
     actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(metaInfoLink) }, content: <ViewList/>})
   }
 
+  // If data is set explicitly to False, we show the NoData component.
+  if (data === false) {
+    return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
+      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}}/>
+    </Box>
+  }
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
-  // palceholder with visibility=hidden. This way Plotly still has access to
+  // placeholder with visibility=hidden. This way Plotly still has access to
   // these HTML nodes and their sizes when the plots are loading.
   return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-    {loading && <Placeholder className={styles.placeHolder} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
+    {loading && <Placeholder className={styles.placeHolder} classes={{placeholder: placeHolderStyle}} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
     <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%'}}></div>
-      <div className={styles.header}>
+      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}}>
+        {warning && <Tooltip title={warning}>
+          <Warning className={styles.warning}></Warning>
+        </Tooltip>}
+      </div>
+      <div className={styles.footer}>
         <Actions actions={actions}></Actions>
       </div>
     </Floatable>
@@ -332,16 +393,19 @@ export default function Plot({
 }
 
 Plot.propTypes = {
-  data: PropTypes.array, // Plotly.js data object
+  data: PropTypes.any, // Plotly.js data object: Set to null to show Placeholder, set to false to show NoData.
   layout: PropTypes.object, // Plotly.js layout object
   config: PropTypes.object, // Plotly.js config object
   capture: PropTypes.object, // Capture settings
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   fixedMargins: PropTypes.bool, // Whether to automatically update margins beyond the first render.
   className: PropTypes.string,
-  classes: PropTypes.string,
+  classes: PropTypes.object,
+  placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
+  noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
   floatTitle: PropTypes.string, // The title of the plot shown in floating mode
   metaInfoLink: PropTypes.string, // A link to the metainfo definition
+  warning: PropTypes.string, // Optional message displayed under a warning icon on the top-left corner of the element.
   onRelayout: PropTypes.func,
   onRedraw: PropTypes.func,
   onRelayouting: PropTypes.func,

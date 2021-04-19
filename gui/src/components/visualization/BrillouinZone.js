@@ -110,6 +110,8 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     if (options === undefined) {
       viewerOptions = {
         view: {
+          autoResize: false,
+          autoFit: true,
           fitMargin: 0.05
         },
         layout: {
@@ -216,8 +218,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     refViewer.current.saveReset()
     refViewer.current.reset()
     setLoading(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [data])
 
   const toggleFullscreen = useCallback(() => {
     setFullscreen(!fullscreen)

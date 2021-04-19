@@ -24,41 +24,58 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convertSI, distance, mergeObjects } from '../../utils'
+import { convertSI, add, distance, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
+import { normalizationWarning } from '../../config'
 
 const useStyles = makeStyles({
   root: {
   }
 })
 
-function BandStructure({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
-  const [finalData, setFinalData] = useState(undefined)
+function BandStructure({data, layout, aspectRatio, className, classes, placeholderStyle, unitsState, type, ...other}) {
+  const [finalData, setFinalData] = useState(data)
   const [pathSegments, setPathSegments] = useState(undefined)
+  const [normalizedToHOE, setNormalizedToHOE] = useState(false)
   const units = useRecoilValue(unitsState)
 
   // Styles
   const style = useStyles(classes)
   const theme = useTheme()
 
-  // Determine the final plotted data based on the received data. Will work with
-  // normalized and unnormalized data.
+  // Side effect that runs when the data that is displayed should change. By
+  // running all this heavy stuff as a side effect, the first render containing
+  // the placeholders etc. can be done as fast as possible.
   useEffect(() => {
     if (!data) {
       return
     }
 
-    // Determine if data is normalized
-    const norm = data.section_k_band_segment_normalized === undefined ? '' : '_normalized'
-    const segmentName = 'section_k_band_segment' + norm
-    const energyName = 'band_energies' + norm
-    const kpointName = 'band_k_points' + norm
+    // Determine the energy reference.
+    let energyReference
+    if (type === 'vibrational') {
+      energyReference = 0
+      setNormalizedToHOE(true)
+    } else {
+      if (data.energy_highest_occupied === null || data.energy_highest_occupied === undefined) {
+        energyReference = 0
+        setNormalizedToHOE(false)
+      } else {
+        energyReference = Math.max(...data.energy_highest_occupied)
+        energyReference = convertSI(energyReference, 'joule', units, false)
+        setNormalizedToHOE(true)
+      }
+    }
+    const segmentName = 'section_k_band_segment'
+    const energyName = 'band_energies'
+    const kpointName = 'band_k_points'
 
     let plotData = []
     let nChannels = data[segmentName][0][energyName].length
     let nBands = data[segmentName][0][energyName][0][0].length
 
-    // Calculate distances if missing
+    // Calculate distances in k-space if missing. These distances in k-space
+    // define the plot x-axis spacing.
     let tempSegments = []
     if (data[segmentName][0].k_path_distances === undefined) {
       let length = 0
@@ -99,9 +116,9 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
       }
       for (let segment of data[segmentName]) {
         for (let iBand = 0; iBand < nBands; ++iBand) {
-          let nKPoints = segment[energyName][0].length
+          let nKPoints = segment[energyName][1].length
           for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
-            bands[iBand].push(segment[energyName][0][iKPoint][iBand])
+            bands[iBand].push(segment[energyName][1][iKPoint][iBand])
           }
         }
       }
@@ -109,12 +126,16 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
       // Create plot data entry for each band
       for (let band of bands) {
         band = convertSI(band, 'joule', units, false)
+        if (energyReference !== 0) {
+          band = add(band, -energyReference)
+        }
         plotData.push(
           {
             x: path,
             y: band,
             type: 'scatter',
             mode: 'lines',
+            showlegend: false,
             line: {
               color: theme.palette.secondary.main,
               width: 2
@@ -142,12 +163,16 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
     // Create plot data entry for each band
     for (let band of bands) {
       band = convertSI(band, 'joule', units, false)
+      if (energyReference !== 0) {
+        band = add(band, -energyReference)
+      }
       plotData.push(
         {
           x: path,
           y: band,
           type: 'scatter',
           mode: 'lines',
+          showlegend: false,
           line: {
             color: theme.palette.primary.main,
             width: 2
@@ -156,8 +181,24 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
       )
     }
 
+    // Normalization line
+    if (type !== 'vibrational' && normalizedToHOE) {
+      plotData.push({
+        x: [path[0], path[path.length - 1]],
+        y: [0, 0],
+        name: 'Highest occupied',
+        showlegend: true,
+        type: 'line',
+        mode: 'lines',
+        line: {
+          color: '#000',
+          width: 1
+        }
+      })
+    }
+
     setFinalData(plotData)
-  }, [data, theme, units])
+  }, [data, theme, units, type, normalizedToHOE])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -166,17 +207,26 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
         tickangle: 0,
         tickfont: {
           size: 14
-        }
+        },
+        zeroline: false
       },
       yaxis: {
         title: {
           text: 'Energy (eV)'
-        }
+        },
+        zeroline: false
       },
       title: {
         text: {
           text: 'Band structure'
         }
+      },
+      showlegend: true,
+      legend: {
+        x: 1,
+        y: 0,
+        xanchor: 'right',
+        yanchor: 'bottom'
       }
     }
     return mergeObjects(layout, defaultLayout)
@@ -184,7 +234,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
-    if (data === undefined || pathSegments === undefined) {
+    if (data === undefined || data === false || pathSegments === undefined) {
       return {}
     }
     // Set new layout that contains the segment labels
@@ -195,11 +245,16 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
     let labelKPoints = []
     for (let iSegment = 0; iSegment < data[segmentName].length; ++iSegment) {
       let segment = data[segmentName][iSegment]
+      const startLabel = segment[labelName] ? segment[labelName][0] : ''
       if (iSegment === 0) {
         // If label is not defined, use empty string
-        const startLabel = segment[labelName] ? segment[labelName][0] : ''
         labels.push(startLabel)
         labelKPoints.push(pathSegments[iSegment][0])
+      } else {
+        let prevLabel = labels[labels.length - 1]
+        if (prevLabel !== startLabel) {
+          labels[labels.length - 1] = `${prevLabel}|${startLabel}`
+        }
       }
       const endLabel = segment[labelName] ? segment[labelName][1] : ''
       labels.push(endLabel)
@@ -245,6 +300,8 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
+        warning={normalizedToHOE ? null : normalizationWarning}
+        placeholderStyle={placeholderStyle}
         {...other}
       >
       </Plot>
@@ -253,12 +310,17 @@ function BandStructure({data, layout, aspectRatio, className, classes, unitsStat
 }
 
 BandStructure.propTypes = {
-  data: PropTypes.object, // section_band_structure or section_band_structure_normalized
+  data: PropTypes.any, // section_band_structure
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  unitsState: PropTypes.object // Recoil atom containing the unit configuration
+  placeholderStyle: PropTypes.any,
+  unitsState: PropTypes.object, // Recoil atom containing the unit configuration
+  type: PropTypes.string // Type of band structure: electronic or vibrational
+}
+BandStructure.defaultProps = {
+  type: 'electronic'
 }
 
 export default withErrorHandler(BandStructure, 'Could not load band structure.')

@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo } from 'react'
-import { Subject } from 'rxjs'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -25,7 +24,6 @@ import {
 } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
-import Structure from '../visualization/Structure'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 
 const useStyles = makeStyles((theme) => {
@@ -43,41 +41,42 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function GeoOptOverview({data, className, classes}) {
-  // RxJS subject for efficiently propagating changes in structure information
-  const positionsSubject = useMemo(() => new Subject(), [])
-
+function GeometryOptimization({data, className, classes}) {
   // Styles
   const style = useStyles(classes)
   const theme = useTheme()
 
   const plotData = useMemo(() => {
-    let steps = [...Array(data.structures.length).keys()]
+    if (!data) {
+      return null
+    }
+    let steps = [...Array(data.energies.length).keys()]
     let energies = data.energies
-    const diff = [0]
+    const diff = []
     for (let i = 0; i < energies.length - 1; ++i) {
-      diff.push(energies[i + 1] - energies[i])
+      diff.push(Math.abs(energies[i + 1] - energies[i]))
     }
     const traces = [
       {
         x: steps,
-        y: diff,
-        hoverinfo: 'x',
-        name: 'Change per step',
+        y: energies,
+        name: 'Total change',
         type: 'scatter',
+        showlegend: false,
         line: {
-          color: theme.palette.secondary.main,
+          color: theme.palette.primary.main,
           width: 2
         }
       },
       {
-        x: steps,
-        y: energies,
-        hoverinfo: 'x',
-        name: 'Total change',
+        x: steps.slice(1, steps.length),
+        y: diff,
+        yaxis: 'y2',
+        name: 'Abs. change per step',
         type: 'scatter',
+        showlegend: false,
         line: {
-          color: theme.palette.primary.main,
+          color: theme.palette.secondary.main,
           width: 2
         }
       }
@@ -86,11 +85,13 @@ function GeoOptOverview({data, className, classes}) {
       traces.push({
         x: [steps[0], steps[steps.length - 1]],
         y: [data?.energy_change_criteria, data?.energy_change_criteria],
-        hoverinfo: 'x',
+        yaxis: 'y2',
         name: 'Convergence criteria',
+        showlegend: true,
         type: 'line',
+        mode: 'lines',
         line: {
-          color: '#999',
+          color: theme.palette.secondary.main,
           width: 1,
           dash: '10px,10px'
         }
@@ -100,16 +101,21 @@ function GeoOptOverview({data, className, classes}) {
   }, [data, theme])
 
   const plotLayout = useMemo(() => {
+    if (!data) {
+      return null
+    }
     return {
-      hovermode: 'x',
-      hoverdistance: 100,
-      spikedistance: 1000,
+      margin: {
+        l: 30,
+        r: 80,
+        t: 20,
+        b: 50
+      },
       showlegend: true,
       legend: {
         x: 0,
-        xanchor: 'left',
         y: 1,
-        bgcolor: 'rgba(255, 255, 255, 0.9)'
+        xanchor: 'left'
       },
       xaxis: {
         showexponent: 'first',
@@ -119,7 +125,7 @@ function GeoOptOverview({data, className, classes}) {
         tickmode: 'auto',
         tickformat: ',d',
         autorange: false,
-        range: [0, data.structures.length - 1],
+        range: [0, data.energies.length - 1],
         zeroline: false,
         showspikes: true,
         spikethickness: 2,
@@ -128,18 +134,29 @@ function GeoOptOverview({data, className, classes}) {
         spikemode: 'across' },
       yaxis: {
         title: {
-          text: 'Energy (eV)'
+          text: 'Total change (eV)'
+        },
+        tickfont: {
+          color: theme.palette.primary.dark
         },
         autorange: true,
         zeroline: false
+      },
+      yaxis2: {
+        title: {
+          text: 'Abs. change per step (eV)'
+        },
+        tickfont: {
+          color: theme.palette.secondary.dark
+        },
+        type: 'log',
+        autorange: true,
+        zeroline: false,
+        overlaying: 'y',
+        side: 'right'
       }
     }
-  }, [data])
-
-  // Handles hover event on the plot to update the currently shown structure
-  const handleHover = useCallback((event) => {
-    positionsSubject.next(data.structures[event.points[0].x].positions)
-  }, [data, positionsSubject])
+  }, [data, theme])
 
   return (
     <Box className={style.root}>
@@ -149,30 +166,20 @@ function GeoOptOverview({data, className, classes}) {
           <Plot
             data={plotData}
             layout={plotLayout}
-            aspectRatio={1.5}
-            onHover={handleHover}
+            aspectRatio={2}
             floatTitle="Energy convergence"
           >
           </Plot>
         </ErrorHandler>
       </Box>
-      <Box className={style.structure}>
-        <Typography variant="subtitle1" align='center'>Optimization trajectory</Typography>
-        <Structure
-          system={data.structures[0]}
-          aspectRatio={0.75}
-          options={{view: {fitMargin: 0.75}}}
-          positionsSubject={positionsSubject}
-        ></Structure>
-      </Box>
     </Box>
   )
 }
 
-GeoOptOverview.propTypes = {
-  data: PropTypes.object,
+GeometryOptimization.propTypes = {
+  data: PropTypes.any,
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
-export default withErrorHandler(GeoOptOverview, 'Could not load geometry optimization data.')
+export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')
