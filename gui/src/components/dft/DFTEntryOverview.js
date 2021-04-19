@@ -32,7 +32,7 @@ import { RecoilRoot } from 'recoil'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { errorContext } from '../errors'
-import { authorList, convertSI, mergeObjects, getHighestOccupiedEnergy } from '../../utils'
+import { authorList, convertSI, getHighestOccupiedEnergy } from '../../utils'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
 import _ from 'lodash'
@@ -180,7 +180,6 @@ export default function DFTEntryOverview({data}) {
   const [structures, setStructures] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
-  const materialType = data?.encyclopedia?.material?.material_type
   const styles = useStyles()
 
   // Load section_results from the server

@@ -20,10 +20,10 @@
 This module represents calculations in elastic search.
 '''
 
-from typing import Iterable, Dict, List, Any
+from typing import Iterable, Dict, List, Any, cast
 from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
 import elasticsearch.helpers
-from elasticsearch.exceptions import NotFoundError
+from elasticsearch.exceptions import NotFoundError, RequestError, TransportError
 from datetime import datetime
 import json
 
@@ -35,34 +35,6 @@ from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     EntryPagination, PaginationResponse, Query, MetadataRequired, SearchResponse, Aggregation,
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem)
-
-
-_entry_metadata_defaults = {
-    quantity.name: quantity.default
-    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
-    if quantity.default not in [None, [], False, 0]
-}
-
-
-def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
-    '''
-    Elasticsearch entry metadata does not contain default values, if a metadata is not
-    set. This will add default values to entry metadata in dict form obtained from
-    elasticsearch.
-    '''
-    entry_dict = hit.to_dict()
-    for key, value in _entry_metadata_defaults.items():
-        if key not in entry_dict:
-            if required is not None:
-                if required.exclude and key in required.exclude:
-                    continue
-                if required.include and key not in required.include:
-                    continue
-
-            entry_dict[key] = value
-
-    return entry_dict
-
 from .common import _es_to_entry_dict, _owner_es_query
 from .common import SearchError, AuthenticationRequiredError  # pylint: disable=unused-import
 

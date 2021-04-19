@@ -124,17 +124,17 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     # 'after' feature that allows to scan through all aggregation values.
     order_by = agg.pagination.order_by
     if order_by is None:
-        composite = dict(sources={name: terms}, size=agg.pagination.size)
+        composite = dict(sources={name: terms}, size=agg.pagination.page_size)
     else:
         order_quantity = entry_type.quantities[order_by]
         sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = dict(sources=[{order_by: sort_terms}, {quantity.search_field: terms}], size=agg.pagination.size)
+        composite = dict(sources=[{order_by: sort_terms}, {quantity.search_field: terms}], size=agg.pagination.page_size)
 
-    if agg.pagination.after is not None:
+    if agg.pagination.page_after_value is not None:
         if order_by is None:
-            composite['after'] = {name: agg.pagination.after}
+            composite['after'] = {name: agg.pagination.page_after_value}
         else:
-            order_value, quantity_value = agg.pagination.after.split(':')
+            order_value, quantity_value = agg.pagination.page_after_value.split(':')
             composite['after'] = {quantity.search_field: quantity_value, order_quantity.search_field: order_value}
 
     composite_agg = es_search.aggs.bucket('agg:%s' % name, 'composite', **composite)
@@ -185,10 +185,10 @@ def _es_to_api_aggregation(es_response, name: str, agg: Aggregation) -> Aggregat
     if 'after_key' in es_agg:
         after_key = es_agg['after_key']
         if order_by is None:
-            pagination.next_after = after_key[name]
+            pagination.next_page_after_value = after_key[name]
         else:
             str_values = [str(v) for v in after_key.to_dict().values()]
-            pagination.next_after = ':'.join(str_values)
+            pagination.next_page_after_value = ':'.join(str_values)
 
     return AggregationResponse(data=agg_data, pagination=pagination, **aggregation_dict)
 
@@ -226,9 +226,9 @@ def search(
     if order_field != 'entry_id':
         sort['entry_id'] = pagination.order.value
     search = search.sort(sort)
-    search = search.extra(size=pagination.size)
-    if pagination.after:
-        search = search.extra(search_after=pagination.after.rsplit(':', 1))
+    search = search.extra(size=pagination.page_size)
+    if pagination.page_after_value:
+        search = search.extra(search_after=pagination.page_after_value.rsplit(':', 1))
 
     # required
     if required:
