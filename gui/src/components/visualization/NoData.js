@@ -34,26 +34,20 @@ import clsx from 'clsx'
 const useStaticStyles = makeStyles(theme => ({
   root: {
   },
-  innerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%'
-  },
-  box: {
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    padding: theme.spacing(2)
-  },
-  background: {
+  container: {
     backgroundColor: '#f3f3f3',
     width: '100%',
     height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  placeholder: {
+    position: 'absolute',
+    top: theme.spacing(2),
+    left: theme.spacing(2),
+    right: theme.spacing(2),
+    bottom: theme.spacing(2)
   },
   message: {
     color: theme.palette.primary.main,
@@ -74,15 +68,13 @@ export default function NoData({aspectRatio, className, classes}) {
   }))
   const staticStyles = useStaticStyles({classes: classes})
   const styles = useStyles()
-  const content = <Box className={staticStyles.box}>
-    <Box className={staticStyles.background}>
-      <div className={staticStyles.message}>no data</div>
-    </Box>
+  const content = <Box className={staticStyles.container}>
+    <div className={staticStyles.message}>no data</div>
   </Box>
   return aspectRatio
     ? <div className={clsx(className, staticStyles.root)}>
       <div className={styles.outerContainer}>
-        <div className={staticStyles.innerContainer}>
+        <div className={staticStyles.placeholder}>
           {content}
         </div>
       </div>

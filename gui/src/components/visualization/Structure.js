@@ -208,52 +208,57 @@ function Structure({
   }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
-    // If the cell is all zeroes, positions are assumed to be cartesian.
-    if (system.cell !== undefined) {
-      if (_.flattenDeep(system.cell).every(v => v === 0)) {
-        system.cell = undefined
-      }
-    }
-    // Systems with non-empty cell are centered on the cell center and
-    // orientation is defined by the cell vectors.
-    const opts = {}
-    if (system.cell !== undefined) {
-      opts.layout = {
-        viewRotation: {
-          alignments: [
-            ['up', 'c'],
-            ['right', 'b']
-          ],
-          rotations: [
-            [0, 1, 0, 60],
-            [1, 0, 0, 30]
-          ]
+    // This function calls is wrapped inside a setTimeout in order to not block
+    // the first render of the component. setTimeout hoists the heavy function
+    // call outside so that the react rendering can finish before it.
+    setTimeout(() => {
+      // If the cell is all zeroes, positions are assumed to be cartesian.
+      if (system.cell !== undefined) {
+        if (_.flattenDeep(system.cell).every(v => v === 0)) {
+          system.cell = undefined
         }
       }
-    } else {
-      opts.layout = {
-        viewRotation: {
-          rotations: [
-            [0, 1, 0, 60],
-            [1, 0, 0, 30]
-          ]
+      // Systems with non-empty cell are centered on the cell center and
+      // orientation is defined by the cell vectors.
+      const opts = {}
+      if (system.cell !== undefined) {
+        opts.layout = {
+          viewRotation: {
+            alignments: [
+              ['up', 'c'],
+              ['right', 'b']
+            ],
+            rotations: [
+              [0, 1, 0, 60],
+              [1, 0, 0, 30]
+            ]
+          }
+        }
+      } else {
+        opts.layout = {
+          viewRotation: {
+            rotations: [
+              [0, 1, 0, 60],
+              [1, 0, 0, 30]
+            ]
+          }
         }
       }
-    }
-    if (system.cell !== undefined && materialType === 'bulk') {
-      opts.layout.viewCenter = 'COC'
-      opts.layout.periodicity = 'wrap'
-    // Systems without cell are centered on the center of positions
-    } else {
-      opts.layout.viewCenter = 'COP'
-      opts.layout.periodicity = 'none'
-    }
-    refViewer.current.setOptions(opts, false, false)
-    refViewer.current.load(system)
-    refViewer.current.fitToCanvas()
-    refViewer.current.saveReset()
-    refViewer.current.reset()
-    setLoading(false)
+      if (system.cell !== undefined && materialType === 'bulk') {
+        opts.layout.viewCenter = 'COC'
+        opts.layout.periodicity = 'wrap'
+      // Systems without cell are centered on the center of positions
+      } else {
+        opts.layout.viewCenter = 'COP'
+        opts.layout.periodicity = 'none'
+      }
+      refViewer.current.setOptions(opts, false, false)
+      refViewer.current.load(system)
+      refViewer.current.fitToCanvas()
+      refViewer.current.saveReset()
+      refViewer.current.reset()
+      setLoading(false)
+    }, 0)
   }, [materialType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
@@ -279,7 +284,7 @@ function Structure({
     }
 
     loadSystem(finalSystem, refViewer)
-  }, [finalSystem, positionsOnly, loadSystem, accepted])
+  }, [finalSystem, positionsOnly, accepted, loadSystem])
 
   // Viewer settings
   useEffect(() => {
@@ -364,7 +369,7 @@ function Structure({
     </Alert>
   }
   if (loading) {
-    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+    return <Placeholder variant="rect" className={clsx(styles.root, className)} aspectRatio={aspectRatio}></Placeholder>
   }
 
   // List of actionable buttons for the viewer

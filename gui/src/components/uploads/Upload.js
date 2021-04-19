@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
-  ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
+import { withStyles, Accordion, AccordionSummary, Typography,
+  AccordionDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
   IconButton, DialogTitle, DialogContent, Button, Dialog, DialogActions, FormControl,
   Select, InputLabel, Input, MenuItem, FormHelperText} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
@@ -743,7 +743,7 @@ class Upload extends React.Component {
     if (this.state.upload) {
       return (
         <div className={classes.root}>
-          <ExpansionPanel
+          <Accordion
             expanded={expanded === null ? open : expanded}
             onChange={(event, expanded) => {
               this.setState({expanded: expanded})
@@ -752,12 +752,12 @@ class Upload extends React.Component {
               }
             }}
           >
-            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} >
+            <AccordionSummary expandIcon={<ExpandMoreIcon/>} >
               {this.renderStatusIcon()}
               {this.renderTitle()}
               {this.renderStepper()}
-            </ExpansionPanelSummary>
-            <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+            </AccordionSummary>
+            <AccordionDetails style={{width: '100%'}} classes={{root: classes.details}}>
               {errors && errors.length > 0
                 ? <Typography className={classes.detailsContent} color="error">
                   Upload processing has errors: {errors.join(', ')}
@@ -771,8 +771,8 @@ class Upload extends React.Component {
                 ? <div className={classes.detailsContent}>
                   <ReactJson src={upload} enableClipboard={false} collapsed={0} />
                 </div> : ''}
-            </ExpansionPanelDetails>
-          </ExpansionPanel>
+            </AccordionDetails>
+          </Accordion>
           <PublishConfirmDialog
             open={showPublishDialog}
             onClose={this.handlePublishCancel}

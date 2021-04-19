@@ -352,3 +352,52 @@ export function hasWebGLSupport() {
     return false
   }
 }
+
+/**
+ * Returns the highest occupied energy for the given section_k_band, or null if
+ * none can be found.
+ *
+ * For now we use section_band_gap.valence_band_max_energy as the
+ * energy reference if a band gap is detected, and
+ * energy_reference_fermi as the reference is a band gap is not
+ * present. These represent the highest occupied energy for
+ * insulators and metals respectively. Once section_results is
+ * ready, it will contain the highest occupied energies explicitly.
+ *
+ * @param {section_k_band} section_k_band.
+ * @param {scc} section_single_configuration_calculation parent section for
+ * section_k_band
+ *
+ * @return {array} List of highest occupied energies, one for each spin
+ * channel.
+ */
+export function getHighestOccupiedEnergy(section_k_band, scc) {
+  let energyHighestOccupied
+  const section_band_gap = section_k_band?.section_band_gap
+  // If not energy references available, the normalization cannot be done.
+  if (scc?.energy_reference_fermi === undefined && scc?.energy_reference_highest_occupied === undefined) {
+    energyHighestOccupied = null
+  // If a band gap is detected, it contains the most accurate highest occupied
+  // energy for materials with a band gap.
+  } else if (section_band_gap) {
+    energyHighestOccupied = []
+    for (let i = 0; i < section_band_gap.length; ++i) {
+      const bg = section_band_gap[i]
+      let e = bg.valence_band_max_energy
+      if (e === undefined) {
+        e = scc.energy_reference_fermi && scc.energy_reference_fermi[i]
+        if (e === undefined) {
+          e = scc.energy_reference_highest_occupied && scc.energy_reference_highest_occupied[i]
+        }
+      }
+      energyHighestOccupied.push(e)
+    }
+  // Highest occupied energy reported directly by parser
+  } else if (scc?.energy_reference_highest_occupied !== undefined) {
+    energyHighestOccupied = scc.energy_reference_highest_occupied
+  // No band gap detected -> highest occupied energy corresponds to fermi energy
+  } else {
+    energyHighestOccupied = scc.energy_reference_fermi
+  }
+  return energyHighestOccupied
+}
