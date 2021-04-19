@@ -676,7 +676,6 @@ class EntryArchive(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     section_run = metainfo.SubSection(sub_section=Run, repeats=True)
-    # section_experiment = metainfo.SubSection(sub_section=Experiment)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
     section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
     section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[FastAccess])

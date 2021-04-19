@@ -87,13 +87,13 @@ class EMSMetadata(MSection):
         # self.sample_constituents = _unavailable(root_section.section_sample.sample_constituents)
 
         self.experiment_summary = root_section.section_metadata.section_experiment.notes
-        # location = root_section.experiment_location
-        # if location is not None:
-        #     location_str = ', '.join([
-        #         getattr(location, prop)
-        #         for prop in ['facility', 'institution', 'address']
-        #         if getattr(location, prop) is not None])
-        #     self.experiment_location = location_str
+        location = root_section.section_metadata.section_experiment.experiment_location
+        if location is not None:
+            location_str = ', '.join([
+                getattr(location, prop)
+                for prop in ['facility', 'institution', 'address']
+                if getattr(location, prop) is not None])
+            self.experiment_location = location_str
 
         if root_section.section_metadata.section_experiment.experiment_start_time:
             self.origin_time = root_section.section_metadata.section_experiment.experiment_start_time
