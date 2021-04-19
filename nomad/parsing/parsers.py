@@ -43,6 +43,7 @@ from octopusparser import OctopusParser
 from orcaparser import OrcaParser
 from cp2kparser import CP2KParser
 from fhivibesparser import FHIVibesParser
+from turbomoleparser import TurbomoleParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -227,20 +228,6 @@ parsers = [
         mainfile_contents_re=(r'\s*<GAP_params\s')
     ),
     OctopusParser(),
-    # match gpaw2 first, other .gpw files are then considered to be "gpaw1"
-    # LegacyParser(
-    #     name='parsers/gpaw2', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
-    #     parser_class_name='gpawparser.GPAWParser2Wrapper',
-    #     mainfile_binary_header=b'GPAW',
-    #     mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
-    #     mainfile_mime_re=r'application/(x-tar|octet-stream)'
-    # ),
-    # LegacyParser(
-    #     name='parsers/gpaw', code_name='GPAW', code_homepage='https://wiki.fysik.dtu.dk/gpaw/',
-    #     parser_class_name='gpawparser.GPAWParserWrapper',
-    #     mainfile_name_re=(r'^.*\.gpw$'),
-    #     mainfile_mime_re=r'application/(x-tar|octet-stream)'
-    # ),
     GPAWParser(),
     LegacyParser(
         name='parsers/atk', code_name='AtomistixToolKit', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
@@ -279,12 +266,7 @@ parsers = [
             r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
             r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
     ),
-    LegacyParser(
-        name='parsers/turbomole', code_name='turbomole', code_homepage='https://www.turbomole.org/',
-        parser_class_name='turbomoleparser.TurbomoleParser',
-        mainfile_contents_re=(
-            r'Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe')
-    ),
+    TurbomoleParser(),
     MPESParser(),
     APTFIMParser(),
     EELSApiJsonConverter(),

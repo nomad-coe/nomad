@@ -4946,6 +4946,7 @@ class SingleConfigurationCalculation(MSection):
     energy_zero_point = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         Value for the converged zero-point vibrations energy calculated using the method
         described in zero_point_method , and used in energy_current .
@@ -5207,6 +5208,7 @@ class SingleConfigurationCalculation(MSection):
         categories=[Unused],
         a_legacy=LegacyDefinition(name='zero_point_method'))
 
+    # TODO put all thermodynamics properties under one section
     enthalpy = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -5216,6 +5218,24 @@ class SingleConfigurationCalculation(MSection):
         ''',
         categories=[EnergyComponent, EnergyValue, Unused],
         a_legacy=LegacyDefinition(name='energy_enthalpy'))
+
+    heat_capacity_C_v = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Stores the heat capacity per cell unit at constant volume.
+        ''',
+        a_legacy=LegacyDefinition(name='heat_capacity_C_v'))
+
+    heat_capacity_C_p = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Stores the heat capacity per cell unit at constant pressure.
+        ''',
+        a_legacy=LegacyDefinition(name='heat_capacity_C_p'))
 
     pressure = Quantity(
         type=np.dtype(np.float64),
