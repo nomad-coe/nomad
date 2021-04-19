@@ -501,3 +501,16 @@ def test_delete(
     assert response.status_code == expected_status_code
     if expected_status_code == 200:
         assert_upload_does_not_exist(client, upload_id, test_user_auth)
+
+
+def test_get_command_examples(client, test_user_auth):
+    response = perform_get(client, 'uploads/command-examples', user_auth=None)
+    assert response.status_code == 401
+    response = perform_get(client, 'uploads/command-examples', user_auth=test_user_auth)
+    assert response.status_code == 200
+    data = response.json()
+    for k in (
+            'upload_url', 'upload_command', 'upload_command_with_name',
+            'upload_progress_command', 'upload_command_form', 'upload_tar_command'):
+        assert k in data
+    assert '/api/v1/uploads' in data['upload_command']

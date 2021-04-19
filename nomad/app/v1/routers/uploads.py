@@ -29,7 +29,7 @@ from nomad.processing import Upload, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
 
-from .auth import get_required_user, get_required_user_bearer_or_upload_token
+from .auth import get_required_user, get_required_user_bearer_or_upload_token, generate_upload_token
 from ..models import (
     BaseModel, User, Direction, Pagination, PaginationResponse)
 from ..utils import parameter_dependency_from_model
@@ -132,6 +132,41 @@ class UploadQueryResponse(BaseModel):
         None, description=strip('''
         The upload metadata as a list. Each item is a dictionary with the data for each
         upload.'''))
+
+
+class UploadCommandExamplesResponse(BaseModel):
+    upload_url: str = Field()
+    upload_command: str = Field()
+    upload_command_with_name: str = Field()
+    upload_progress_command: str = Field()
+    upload_command_form: str = Field()
+    upload_tar_command: str = Field()
+
+
+@router.get(
+    '/command-examples', tags=[default_tag],
+    summary='Get example commands for shell based uploads.',
+    response_model=UploadCommandExamplesResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_command_examples(user: User = Depends(get_required_user)):
+    ''' Get url and example command for shell based uploads. '''
+    token = generate_upload_token(user)
+    api_url = config.api_url(ssl=config.services.https_upload, api='api/v1')
+    upload_url = f'{api_url}/uploads?token={token}'
+    upload_url_with_name = upload_url + '&name=<name>'
+    # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
+    # It is also easier for the user to unterstand IMHO.
+    upload_command = f"curl -X POST '{upload_url}' -T <local_file>"
+    rv = UploadCommandExamplesResponse(
+        upload_url=upload_url,
+        upload_command=upload_command,
+        upload_command_form=f"curl -X POST '{upload_url}' -F file=@<local_file>",
+        upload_command_with_name=f"curl -X POST '{upload_url_with_name}' -T <local_file>",
+        upload_progress_command=upload_command + ' | xargs echo',
+        upload_tar_command=f"tar -cf - <local_folder> | curl -# '{upload_url}' -X POST -T - | xargs echo"
+    )
+    return rv
 
 
 @router.get(
