@@ -25,7 +25,7 @@ from fastapi import (
     HTTPException)
 
 from nomad import utils, config, files, datamodel
-from nomad.processing import Upload, ProcessAlreadyRunning, FAILURE
+from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
 
@@ -40,34 +40,29 @@ default_tag = 'uploads'
 logger = utils.get_logger(__name__)
 
 
-class UploadPagination(Pagination):
-    @validator('order_by')
-    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        if order_by is None:
-            return 'upload_time'  # Default value
-        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
-        return order_by
+class ProcData(BaseModel):
+    tasks: List[str] = Field()
+    tasks_running: bool = Field()
+    tasks_status: str = Field()
+    current_task: Optional[str] = Field()
+    process_running: bool = Field()
+    current_process: Optional[str] = Field()
+    errors: List[str] = Field()
+    warnings: List[str] = Field()
+    create_time: datetime = Field()
+    complete_time: Optional[datetime] = Field()
 
-    @validator('page_after_value')
-    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
-        # Validation handled elsewhere
-        return page_after_value
-
-
-upload_pagination_parameters = parameter_dependency_from_model(
-    'upload_pagination_parameters', UploadPagination)
+    class Config:
+        orm_mode = True
 
 
-class UploadData(BaseModel):
+class UploadProcData(ProcData):
     upload_id: str = Field(
         None,
         description='The unique id for the upload.')
     name: Optional[str] = Field(
         description='The name of the upload. This can be provided during upload '
                     'using the name query parameter.')
-    create_time: datetime = Field(
-        None,
-        description='The time of creation.')
     upload_time: datetime = Field(
         None,
         description='The time of upload.')
@@ -79,32 +74,63 @@ class UploadData(BaseModel):
     published_to: List[str] = Field(
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.')
-    tasks: List[str] = Field()
-    current_task: Optional[str] = Field()
-    tasks_running: bool = Field()
-    tasks_status: str = Field()
-    errors: List[str] = Field()
-    warnings: List[str] = Field()
-    complete_time: Optional[datetime] = Field()
-    current_process: Optional[str] = Field()
-    process_running: bool = Field()
     last_status_message: Optional[str] = Field(
         None,
         description='The last informative message that the processing saved about this uploads status.')
 
-    class Config:
-        orm_mode = True
+
+class EntryProcData(ProcData):
+    entry_id: str = Field()
+    mainfile: str = Field()
+    upload_id: str = Field()
+    parser: str = Field()
 
 
-class UploadDataResponse(BaseModel):
+class UploadProcDataPagination(Pagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        if order_by is None:
+            return 'create_time'  # Default value
+        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
+        return order_by
+
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
+
+upload_proc_data_pagination_parameters = parameter_dependency_from_model(
+    'upload_proc_data_pagination_parameters', UploadProcDataPagination)
+
+
+class EntryProcDataPagination(Pagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        if order_by is None:
+            return 'mainfile'  # Default value
+        assert order_by in ('mainfile', 'parser', 'tasks_status', 'current_task'), 'order_by must be a valid attribute'
+        return order_by
+
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
+
+entry_proc_data_pagination_parameters = parameter_dependency_from_model(
+    'entry_proc_data_pagination_parameters', EntryProcDataPagination)
+
+
+class UploadProcDataResponse(BaseModel):
     upload_id: str = Field(None, description=strip('''
         Unique id of the upload.'''))
-    data: UploadData = Field(
+    data: UploadProcData = Field(
         None, description=strip('''
         The upload data as a dictionary.'''))
 
 
-class UploadQuery(BaseModel):
+class UploadProcDataQuery(BaseModel):
     upload_id: Optional[List[str]] = Field(
         description='Search for uploads matching the given id. Multiple values can be specified.')
     upload_name: Optional[List[str]] = Field(
@@ -121,17 +147,38 @@ class UploadQuery(BaseModel):
             If unset: include everything.'''))
 
 
-upload_query_parameters = parameter_dependency_from_model(
-    'upload_query_parameters', UploadQuery)
+upload_proc_data_query_parameters = parameter_dependency_from_model(
+    'upload_proc_data_query_parameters', UploadProcDataQuery)
 
 
-class UploadQueryResponse(BaseModel):
-    query: UploadQuery = Field()
+class UploadProcDataQueryResponse(BaseModel):
+    query: UploadProcDataQuery = Field()
     pagination: PaginationResponse = Field()
-    data: List[UploadData] = Field(
+    data: List[UploadProcData] = Field(
         None, description=strip('''
-        The upload metadata as a list. Each item is a dictionary with the data for each
+        The upload data as a list. Each item is a dictionary with the data for each
         upload.'''))
+
+
+class EntryProcDataResponse(BaseModel):
+    entry_id: str = Field()
+    data: EntryProcData = Field()
+
+
+class EntryProcDataQueryResponse(BaseModel):
+    pagination: PaginationResponse = Field()
+    processing_successful: int = Field(
+        None, description=strip('''
+        Number of entries that has been processed successfully.
+        '''))
+    processing_failed: int = Field(
+        None, description=strip('''
+        Number of entries that failed to process.
+        '''))
+    data: List[EntryProcData] = Field(
+        None, description=strip('''
+        The entries data as a list. Each item is a dictionary with the data for one entry.
+        '''))
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -172,13 +219,13 @@ async def get_command_examples(user: User = Depends(get_required_user)):
 @router.get(
     '', tags=[default_tag],
     summary='List uploads of authenticated user.',
-    response_model=UploadQueryResponse,
+    response_model=UploadProcDataQueryResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_uploads(
         request: Request,
-        query: UploadQuery = Depends(upload_query_parameters),
-        pagination: UploadPagination = Depends(upload_pagination_parameters),
+        query: UploadProcDataQuery = Depends(upload_proc_data_query_parameters),
+        pagination: UploadProcDataPagination = Depends(upload_proc_data_pagination_parameters),
         user: User = Depends(get_required_user)):
     '''
     Retrieves metadata about all uploads that match the given query criteria.
@@ -211,14 +258,19 @@ async def get_uploads(
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    mongodb_query = mongodb_query.order_by(order_by_with_sign, 'upload_id')
+    if order_by == 'create_time':
+        order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
+    elif order_by == 'published':
+        order_by_args = [order_by_with_sign, 'create_time', 'upload_id']
+
+    mongodb_query = mongodb_query.order_by(*order_by_args)
 
     data = [_upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
 
     pagination_response = PaginationResponse(total=mongodb_query.count(), **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
 
-    return UploadQueryResponse(
+    return UploadProcDataQueryResponse(
         query=query,
         pagination=pagination_response,
         data=data)
@@ -227,7 +279,7 @@ async def get_uploads(
 @router.get(
     '/{upload_id}', tags=[default_tag],
     summary='Get a specific upload',
-    response_model=UploadDataResponse,
+    response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_uploads_id(
@@ -241,15 +293,80 @@ async def get_uploads_id(
     # Get upload (or throw exception if nonexistent/no access)
     upload = _get_upload_with_read_access(upload_id, user)
 
-    return UploadDataResponse(
+    return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
+
+
+@router.get(
+    '/{upload_id}/entries', tags=[default_tag],
+    summary='Get the entries of the specific upload as a list',
+    response_model=EntryProcDataQueryResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_uploads_id_entries(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload to retrieve entries for.'),
+        pagination: EntryProcDataPagination = Depends(entry_proc_data_pagination_parameters),
+        user: User = Depends(get_required_user)):
+    '''
+    Fetches the entries of a specific upload. Pagination is used to browse through the
+    results.
+    '''
+    upload = _get_upload_with_read_access(upload_id, user)
+
+    order_by = pagination.order_by
+    order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
+
+    start = pagination.get_simple_index()
+    end = start + pagination.page_size
+
+    # load upload's calcs. Use calc_id as tie breaker for ordering.
+    entries = list(upload.all_calcs(start, end, order_by=(order_by_with_sign, 'calc_id')))
+    failed_calcs = upload.failed_calcs
+
+    pagination_response = PaginationResponse(total=upload.total_calcs, **pagination.dict())
+    pagination_response.populate_simple_index_and_urls(request)
+    return EntryProcDataQueryResponse(
+        pagination=pagination_response,
+        processing_successful=upload.processed_calcs - failed_calcs,
+        processing_failed=failed_calcs,
+        data=[_entry_to_pydantic(entry) for entry in entries])
+
+
+@router.get(
+    '/{upload_id}/entries/{entry_id}', tags=[default_tag],
+    summary='Get a specific entry for a specific upload',
+    response_model=EntryProcDataResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_uploads_id_entries_id(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        entry_id: str = Path(
+            ...,
+            description='The unique id of the entry, belonging to the specified upload.'),
+        user: User = Depends(get_required_user)):
+    '''
+    Fetches a specific entry for a specific upload.
+    '''
+    upload = _get_upload_with_read_access(upload_id, user)
+    entry = upload.get_calc(entry_id)
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+            An entry by that id could not be found in the specified upload.'''))
+    return EntryProcDataResponse(
+        entry_id=entry_id,
+        data=_entry_to_pydantic(entry))
 
 
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
-    response_model=UploadDataResponse,
+    response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_uploads(
@@ -325,10 +442,8 @@ async def post_uploads(
         # Method 2: Data has to be sent streamed in the body
         src_stream = request.stream()
 
-    # TODO: allow admin users to upload in the name of other users?
-
-    # Check upload limit
     if not user.is_admin:
+        # Check upload limit
         if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
@@ -426,7 +541,7 @@ async def post_uploads(
 
     upload.process_upload()
 
-    return UploadDataResponse(
+    return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -434,7 +549,7 @@ async def post_uploads(
 @router.delete(
     '/{upload_id}', tags=[default_tag],
     summary='Delete an upload',
-    response_model=UploadDataResponse,
+    response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def delete_uploads_id(
@@ -463,7 +578,7 @@ async def delete_uploads_id(
         logger.error('could not delete processing upload', exc_info=e)
         raise
 
-    return UploadDataResponse(
+    return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -471,7 +586,7 @@ async def delete_uploads_id(
 @router.post(
     '/{upload_id}/action/publish', tags=[default_tag],
     summary='Publish an upload',
-    response_model=UploadDataResponse,
+    response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_uploads_id_action_publish(
@@ -546,7 +661,7 @@ async def post_uploads_id_action_publish(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='The upload is still/already processed.')
 
-    return UploadDataResponse(
+    return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -554,7 +669,7 @@ async def post_uploads_id_action_publish(
 @router.post(
     '/{upload_id}/action/re-process', tags=[default_tag],
     summary='Re-process a published upload',
-    response_model=UploadDataResponse,
+    response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_uploads_id_action_reprocess(
@@ -583,7 +698,7 @@ async def post_uploads_id_action_reprocess(
 
     upload.reset()
     upload.re_process_upload()
-    return UploadDataResponse(
+    return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
 
@@ -646,6 +761,11 @@ def _get_upload_with_write_access(upload_id, user, published_requires_admin=True
     return upload
 
 
-def _upload_to_pydantic(upload: Upload) -> UploadData:
-    ''' Converts the mongo db object to a dictionary. '''
-    return UploadData.from_orm(upload)
+def _upload_to_pydantic(upload: Upload) -> UploadProcData:
+    ''' Converts the mongo db object to an UploadProcData object. '''
+    return UploadProcData.from_orm(upload)
+
+
+def _entry_to_pydantic(entry: Calc) -> EntryProcData:
+    ''' Converts the mongo db object to an EntryProcData object'''
+    return EntryProcData.from_orm(entry)

@@ -515,6 +515,12 @@ class Pagination(BaseModel):
 
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
+        # Because of a bug in pydantic (#2670), root validators can't be overridden, so
+        # we invoke a class method, which *can* be overridden.
+        return cls._root_validation(values)
+
+    @classmethod
+    def _root_validation(cls, values):
         page = values.get('page')
         page_after_value = values.get('page_after_value')
         page_size = values.get('page_size')
@@ -579,8 +585,8 @@ class PaginationResponse(Pagination):
         # No validation - behaviour of this field depends on api method
         return page_after_value
 
-    @root_validator(skip_on_failure=True)
-    def validate_values(cls, values):  # pylint: disable=no-self-argument
+    @classmethod
+    def _root_validation(cls, values):  # pylint: disable=no-self-argument
         # No validation
         return values
 

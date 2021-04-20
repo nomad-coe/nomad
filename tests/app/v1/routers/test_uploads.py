@@ -19,7 +19,7 @@
 import pytest
 import os
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Iterable
 from tests.utils import build_url
 from tests.test_files import assert_upload_files
 from tests.test_search import assert_search_upload
@@ -27,6 +27,7 @@ from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.files import UploadFiles, PublicUploadFiles
 from nomad.app.v1.routers.auth import generate_upload_token
+from nomad.datamodel import EntryMetadata
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -106,7 +107,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert upload_files is None or isinstance(upload_files, PublicUploadFiles)
 
 
-def assert_processing(client, upload_id, user_auth):
+def assert_processing(client, upload_id, user_auth, check_search=True, check_files=True, published=False):
     response_data = block_until_completed(client, upload_id, user_auth)
 
     assert len(response_data['tasks']) == 4
@@ -115,6 +116,22 @@ def assert_processing(client, upload_id, user_auth):
     assert not response_data['process_running']
 
     # TODO: Also check calcs, like the old api tests.
+    response = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
+    assert response.status_code == 200
+    response_json = response.json()
+    response_data = response_json['data']
+    for entry in response_json['data']:
+        assert entry['tasks_status'] == SUCCESS
+        assert entry['current_task'] == 'archiving'
+        assert len(entry['tasks']) == 3
+        assert response_json['pagination']['total'] < response_json['pagination']['page_size']
+
+    entries = get_upload_entries_metadata(response_data)
+    if check_files:
+        expected_file_class = files.PublicUploadFiles if published else files.StagingUploadFiles
+        assert_upload_files(upload_id, entries, expected_file_class)
+    if check_search:
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
 
 def assert_publish(
@@ -180,6 +197,13 @@ def block_until_completed(client, upload_id: str, user_auth):
     raise Exception('Timed out while waiting for upload processing to finish')
 
 
+def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[EntryMetadata]:
+    ''' Create a iterable of :class:`EntryMetadata` from a API upload json record. '''
+    return [
+        EntryMetadata(domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'])
+        for entry in entries]
+
+
 @pytest.fixture(scope='function')
 def slow_processing(monkeypatch):
     ''' Slow down processing to mitigate race conditions. '''
@@ -231,7 +255,8 @@ def test_get_uploads_query(client, mongo, proc_infra, slow_processing, test_user
     assert response.status_code == 200
     upload_id_2 = response.json()['upload_id']
     upload_id_to_name[upload_id_2] = '#2'
-    assert_processing(client, upload_id_2, test_user_auth)
+    # Note, we set check_search to False, because it assumes that there is only one upload
+    assert_processing(client, upload_id_2, test_user_auth, check_search=False)
 
     # Upload #3 - do NOT wait for processing to finish
     response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth, name='name3')
@@ -331,7 +356,7 @@ def test_post_uploads_with_publish_directly(
     response_json = response.json()
     upload_id = response_json['upload_id']
     assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
+    assert_processing(client, upload_id, test_user_auth, published=not empty)
     upload_proc = Upload.objects(upload_id=upload_id).first()
     if empty:
         assert not upload_proc.published
@@ -389,7 +414,7 @@ def test_post_uploads_oasis(client, mongo, proc_infra, test_user_auth, test_user
     upload_id = response_json['upload_id']
     assert upload_id == 'oasis_upload_id'
     assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
+    assert_processing(client, upload_id, test_user_auth, published=True)
     assert_gets_published(client, upload_id, test_user_auth, from_oasis=True, with_embargo=False)
 
 
@@ -446,7 +471,7 @@ def test_re_process(client, published, test_user_auth, monkeypatch):
 
     response = perform_post_uploads_id_action(client, test_user_auth, upload_id, 're-process')
     assert response.status_code == 200
-    assert_processing(client, upload_id, test_user_auth)
+    assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
