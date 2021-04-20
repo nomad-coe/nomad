@@ -635,10 +635,9 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
-    additional_keys = [
-        'ems.method', 'formula', 'n_atoms', 'atoms', 'ems.origin_time']
-    assert upload.total_calcs == 1
-    assert len(upload.calcs) == 1
+    additional_keys = ['ems.method', 'ems.origin_time']
+    assert upload.total_calcs == 2
+    assert len(upload.calcs) == 2
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)

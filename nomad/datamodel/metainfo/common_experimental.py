@@ -19,8 +19,7 @@
 import numpy as np
 
 from nomad.metainfo import (
-    MSection, MCategory, Package, Quantity, SubSection,
-    Datetime, JSON)
+    MSection, MCategory, Package, Quantity, SubSection, Datetime)
 
 
 m_package = Package(name='experimental_common')
@@ -31,6 +30,10 @@ class UserProvided(MCategory):
 
 
 class SectionWithNotes(MSection):
+    '''
+    A common base-class for sections that should contain optional user provided
+    notes.
+    '''
     notes = Quantity(type=str, categories=[UserProvided])
 
 
@@ -57,44 +60,46 @@ class DeviceSettings(MSection):
 
 class SampleMaterial(MSection):
     ''' This section describes a sample's material. '''
-    chemical_formula = Quantity(
-        type=str, description='The chemical formula that describes the sample.')
+    elements = Quantity(
+        type=str, shape=['*'],
+        description='A list of element symbols for chemical elements in the material.')
 
-    chemical_name = Quantity(
-        type=str, description='The chemical name that describes the sample.')
+    formula = Quantity(
+        type=str, description='The chemical formula that describes the material.')
 
-    atom_labels = Quantity(
-        type=str, shape=['number_of_elements'],
-        description='Atom labels for distinct elements in the sample.')
+    name = Quantity(
+        type=str, description='The name that describes the material.')
 
-    number_of_elements = Quantity(
-        type=int, derived=lambda m: len(m.atom_labels) if m.atom_labels else 0,
-        description='Number of distinct chemical elements in the sample.')
-
-    space_group = Quantity(
-        type=int, description='Space group of the sample compound (if crystalline).')
+    space_group_number = Quantity(
+        type=int, description='Space group of the material (if crystalline).')
 
 
 class Sample(SectionWithNotes):
     sample_id = Quantity(
         type=str, description='Identification number or signatures of the sample used.')
-    sample_title = Quantity(type=str)
-    formula = Quantity(type=str)
-    elements = Quantity(type=str, shape=['*'])
-    spectrum_region = Quantity(type=str, shape=[])
+
+    sample_name = Quantity(
+        type=str, description='A human readable free text name for the sample.')
+
     sample_description = Quantity(
-        type=str, description='Description of the sample used in the experiment.')
+        type=str, description='A description of the sample.')
+
     sample_state = Quantity(
         type=str, description='The physical state of the sample.')
+
     sample_temperature = Quantity(
         type=np.dtype(np.float64), unit='kelvin',
         description='The temperature of the sample during the experiment.')
+
     sample_microstructure = Quantity(
         type=str, description='The sample microstructure.')
+
     sample_constituents = Quantity(
         type=str, description='The constituents.')
 
-    section_material = SubSection(sub_section=SampleMaterial)
+    spectrum_region = Quantity(type=str, shape=[])
+
+    section_material = SubSection(sub_section=SampleMaterial, repeats=True)
 
 
 class ExperimentLocation(MSection):
