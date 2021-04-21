@@ -626,6 +626,11 @@ class PaginationResponse(Pagination):
                 self.next_page_after_value = None
             else:
                 self.next_page_after_value = str(ind + self.page_size - 1)
+
+            if self.page < 1 or (
+                    self.total == 0 and self.page != 1) or (
+                    self.total > 0 and (self.page - 1) * self.page_size >= self.total):
+                raise HTTPException(400, detail='Page out of range requested.')
         if request.method.upper() == 'GET':
             self.populate_urls(request)
 
