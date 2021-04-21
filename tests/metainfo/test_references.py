@@ -166,3 +166,16 @@ def test_resolve_references(example_data):
             'quantity_reference': 'test_value'
         }
     }
+
+
+def test_quantity_references_serialize():
+    source = {
+        'referenced': {
+            'str_quantity': 'test_value'
+        },
+        'referencing': {
+            'quantity_reference': '/referenced/str_quantity'
+        }
+    }
+    root = Root.m_from_dict(source)
+    assert source == root.m_to_dict()
