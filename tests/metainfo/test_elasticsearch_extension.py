@@ -102,6 +102,12 @@ class Entry(MSection):
         type=str,
         a_elasticsearch=Elasticsearch(index=False, value=lambda _: 'other_mainfile'))
 
+    files = Quantity(
+        type=str, shape=['*'],
+        a_elasticsearch=[
+            Elasticsearch(_es_field='keyword'),
+            Elasticsearch(mapping='text', field='path', _es_field='')])
+
     upload_time = Quantity(
         type=Datetime,
         a_elasticsearch=Elasticsearch())
@@ -220,6 +226,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'results.properties.n_series', 'integer')
     assert_mapping(entry_mapping, 'owners.user_id', 'keyword')
     assert_mapping(entry_mapping, 'owners.name', 'keyword')
+    assert_mapping(entry_mapping, 'files', 'text')
+    assert_mapping(entry_mapping, 'files', 'keyword', 'keyword')
 
     assert_mapping(material_mapping, 'material_id', 'keyword')
     assert_mapping(material_mapping, 'formula', 'keyword')
@@ -233,6 +241,12 @@ def test_mappings(indices):
     formula_annotations = Material.formula.m_get_annotations(Elasticsearch)
     assert entry_type.quantities.get('results.material.formula').annotation == formula_annotations[0]
     assert entry_type.quantities.get('results.material.formula.text').annotation == formula_annotations[1]
+
+    files_annotations = Entry.files.m_get_annotations(Elasticsearch)
+    assert files_annotations[0].name == 'files'
+    assert files_annotations[1].name == 'files.path'
+    assert entry_type.quantities.get('files').annotation == files_annotations[0]
+    assert entry_type.quantities.get('files.path').annotation == files_annotations[1]
 
     assert entry_type.metrics['uploads'] == ('cardinality', entry_type.quantities['upload_id'])
 

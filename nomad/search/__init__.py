@@ -81,6 +81,7 @@ def run_on_both_indexes(func):
     return wrapper
 
 
+# TODO this is easy, but the update itself needs to be adapted to how we merge section_metadata
 @run_on_both_indexes
 def update_by_query(
         update_script: str,
@@ -131,6 +132,7 @@ def update_by_query(
     return result
 
 
+# TODO this is easy
 @run_on_both_indexes
 def delete_by_query(
         query: dict,
@@ -170,6 +172,7 @@ def delete_by_query(
     return result
 
 
+# TODO this is easy
 @run_on_both_indexes
 def refresh(index: str = None):
     '''
@@ -188,6 +191,8 @@ def refresh(index: str = None):
 _refresh = refresh
 
 
+# TODO if entry_type.create_index_doc(entry) [v1] and calc.a_elastic.create_index_entry() [v0]
+# get unified, this becomes easy.
 def index(
         entries: Union[EntryArchive, List[EntryArchive]],
         index: str = None,
@@ -216,6 +221,7 @@ def index(
         _refresh(index=None)
 
 
+# TODO this depends on how we merge section_metadata
 def publish(entries: List[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
@@ -226,6 +232,9 @@ def publish(entries: List[EntryMetadata], index: str = None) -> int:
         entries, index=index, published=True, update_materials=True, refresh=True)
 
 
+# TODO if entry_type.create_index_doc(entry) [v1] and calc.a_elastic.create_index_entry() [v0]
+# get unified, this becomes easy.
+# Still, depending on how we merge section_metadata the update itself needs to change.
 def update_metadata(
         entries: List[EntryMetadata], index: str = None,
         update_materials: bool = False, refresh: bool = False,
@@ -261,6 +270,7 @@ def lift_embargo(query: dict, refresh=True, **kwargs):
         _refresh(index=None)
 
 
+# TODO easy
 def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
     '''
     Deletes the given upload.
@@ -271,6 +281,7 @@ def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
         _refresh(index=None)
 
 
+# TODO easy
 def delete_entry(entry_id: str, index: str = None, refresh: bool = False, **kwargs):
     '''
     Deletes the given entry.

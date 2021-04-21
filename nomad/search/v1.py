@@ -128,7 +128,13 @@ def _api_to_es_aggregation(es_search: Search, name: str, agg: Aggregation) -> A:
     else:
         order_quantity = entry_type.quantities[order_by]
         sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = dict(sources=[{order_by: sort_terms}, {quantity.search_field: terms}], size=agg.pagination.page_size)
+        composite = {
+            'sources': [
+                {order_quantity.search_field: sort_terms},
+                {quantity.search_field: terms}
+            ],
+            'size': agg.pagination.page_size
+        }
 
     if agg.pagination.page_after_value is not None:
         if order_by is None:
