@@ -113,7 +113,7 @@ class FileParser:
                 open_file = open
         return open_file(mainfile)
 
-    def get(self, key: str, default: Any = None, unit: str = None, **kwargs):
+    def get(self, key: str, default: Any = None, unit: Any = None, **kwargs):
         '''
         Returns the parsed result for quantity with name key. If quantity is not in
         results default will be returned. A pint unit can be provided which is attached
@@ -132,7 +132,7 @@ class FileParser:
             return
 
         if unit is not None:
-            if isinstance(unit, pint.Quantity):
+            if isinstance(unit, pint.Quantity) or isinstance(unit, pint.Unit):
                 val = val * unit
 
             elif isinstance(val, pint.Quantity):
