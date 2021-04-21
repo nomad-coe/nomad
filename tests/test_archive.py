@@ -24,7 +24,7 @@ import os.path
 import json
 
 from nomad import utils, config
-from nomad.metainfo import MSection, Quantity, Reference, SubSection
+from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
 from nomad.datamodel import EntryArchive
 from nomad.archive.storage import TOCPacker
 from nomad.archive import (
@@ -297,6 +297,15 @@ def archive():
                     }
                 }
             },
+            "results": {
+                "properties": {
+                    "electronic": {
+                        "dos_electronic": {
+                            "energies": "/section_run/0/section_single_configuration_calculation/1/section_dos/0/dos_energies"
+                        }
+                    }
+                }
+            },
             "section_run": [
                 {
                     "section_single_configuration_calculation": [
@@ -307,7 +316,8 @@ def archive():
                             "energy_total": 0.2,
                             "section_dos": [
                                 {
-                                    "dos_kind": "test"
+                                    "dos_kind": "test",
+                                    "dos_energies": [0.0, 0.1]
                                 }
                             ],
                             "section_eigenvalues": [
@@ -363,8 +373,20 @@ def archive():
         }
     }, None, id='resolve-with-directive'),
     pytest.param({
-        'section_workflow': 'include-resolved'
+        'section_workflow': 'include-resolved',
+        'results': 'include-resolved'
     }, None, id='include-resolved'),
+    pytest.param({
+        'results': {
+            'properties': {
+                'electronic': {
+                    'dos_electronic': {
+                        'energies': 'include-resolved'
+                    }
+                }
+            }
+        }
+    }, None, id='resolve-quantity-ref'),
     pytest.param({
         'section_metadata': {
             'calc_id': {
@@ -418,8 +440,14 @@ def assert_required_results(
 
     # assert quantity values
     if isinstance(definition, Quantity):
-        assert current_results == current_archive_serialized
-        return
+        if current_results != current_archive_serialized:
+            if isinstance(current_archive_serialized, str):
+                # assume its a quantity reference
+                pass
+            else:
+                assert False, 'quantity values do not match'
+        else:
+            return
 
     # deal with references
     if isinstance(current_archive_serialized, str):
@@ -429,15 +457,27 @@ def assert_required_results(
             return
 
         if isinstance(current_results, str):
-            # It is an inplace resolved reference, it should be resolveable within an
+            # It is a reference string, it should be resolveable within an
             # results based archive. We should continue the assert from the resolved
             # results and resolved section in the archive.
             assert current_results == current_archive_serialized
-            resolved_results: MSection = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
-            current_results = resolved_results.m_to_dict()
+            resolved: Any = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
 
-        resolved_archive: MSection = archive.m_resolve(current_archive_serialized)
-        current_archive_serialized = resolved_archive.m_to_dict()
+            if isinstance(resolved, MSection):
+                current_results = resolved.m_to_dict()
+            else:
+                # its a quantity reference
+                # assertion only works for np typed quantities with unit
+                current_results = list(resolved.m)  # type: ignore
+
+        resolved = archive.m_resolve(current_archive_serialized)
+        if isinstance(resolved, MSection):
+            current_archive_serialized = resolved.m_to_dict()
+        else:
+            # its a quantity reference
+            # assertion only works for np typed quantities with unit
+            assert current_results == list(resolved.m)
+            return
 
     # continue recursion on directives, by extending the required with all possible
     # decends
@@ -445,8 +485,11 @@ def assert_required_results(
         prop_def = section.all_properties[prop]
         if isinstance(prop_def, SubSection):
             return prop_def.sub_section.m_resolved()
-        if isinstance(prop_def, Quantity) and isinstance(prop_def.type, Reference):
-            return prop_def.type.target_section_def.m_resolved()
+        if isinstance(prop_def, Quantity):
+            if isinstance(prop_def.type, Reference):
+                if isinstance(prop_def.type, QuantityReference):
+                    return prop_def.type.target_quantity_def.m_resolved()
+                return prop_def.type.target_section_def.m_resolved()
 
         return prop_def
 
@@ -456,14 +499,15 @@ def assert_required_results(
             key: dict(_directive=directive, _prop=key, _def=prop_def(key, definition))
             for key in current_archive_serialized}
 
-    # recurse of all required decends
+    # decend into references and subsections
     for key, value in required.items():
         if key.startswith('_'): continue
         prop = value['_prop']
         assert prop in current_results
         assert prop in current_archive_serialized
         prop_value = current_results[prop]
-        if isinstance(prop_value, list):
+        prop_definition = value['_def']
+        if isinstance(prop_value, list) and not isinstance(prop_definition, Quantity):
             for i, _ in enumerate(prop_value):
                 assert_required_results(
                     results, value, archive, prop_value[i], current_archive_serialized[prop][i])
