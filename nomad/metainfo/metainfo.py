@@ -348,6 +348,9 @@ class Reference(DataType):
         '''
         return proxy.m_proxy_section.m_resolve(proxy.m_proxy_value)
 
+    def serialize_proxy_value(self, proxy):
+        return proxy.m_proxy_value
+
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(self.target_section_def, MProxy):
             proxy = self.target_section_def
@@ -396,6 +399,9 @@ class QuantityReference(Reference):
     def __init__(self, quantity_def: Union['Quantity']):
         super().__init__(cast(Section, quantity_def.m_parent))
         self.target_quantity_def = quantity_def
+
+    def serialize_proxy_value(self, proxy):
+        return f'{proxy.m_proxy_value}/{self.target_quantity_def.name}'
 
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section = super().get_normalize(section, quantity_def, value)
@@ -1294,9 +1300,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         if value.m_proxy_resolved is not None:
                             return quantity_type.serialize(self, quantity, value)
                         else:
-                            return value.m_proxy_value
-                    else:
-                        return quantity_type.serialize(self, quantity, value)
+                            return quantity_type.serialize_proxy_value(value)
+
+                    return quantity_type.serialize(self, quantity, value)
+
                 serialize = reference_serialize
 
             elif isinstance(quantity_type, DataType):
