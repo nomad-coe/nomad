@@ -19,7 +19,9 @@
 import hmac
 import hashlib
 import uuid
-from typing import cast
+from typing import Callable, cast
+from inspect import Parameter, signature
+from functools import wraps
 from fastapi import APIRouter, Depends, Query as FastApiQuery, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -45,59 +47,124 @@ class Token(BaseModel):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{root_path}/auth/token', auto_error=False)
 
 
-async def get_optional_user(access_token: str = Depends(oauth2_scheme)) -> User:
+def create_user_dependency(
+        required: bool = False,
+        basic_auth_allowed: bool = False,
+        bearer_token_auth_allowed: bool = True,
+        upload_token_auth_allowed: bool = False) -> Callable:
     '''
-    A dependency that provides the authenticated (if credentials are available) or None.
+    Creates a dependency for getting the authenticated user. The parameters define if
+    the authentication is required or not, and which authentication methods are allowed.
     '''
-    if access_token is None:
-        user: datamodel.User = None
-    else:
+
+    def user_dependency(**kwargs) -> User:
+        user = None
+        if basic_auth_allowed:
+            user = _get_user_basic_auth(kwargs.get('form_data'))
+        if not user and bearer_token_auth_allowed:
+            user = _get_user_bearer_token_auth(kwargs.get('bearer_token'))
+        if not user and upload_token_auth_allowed:
+            user = _get_user_upload_token_auth(kwargs.get('token'))
+
+        if required and not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Authorization required.')
+
+        if config.oasis.allowed_users is not None:
+            # We're an oasis, and have allowed_users set
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='Authentication is required for this Oasis',
+                    headers={'WWW-Authenticate': 'Bearer'})
+            if user.email not in config.oasis.allowed_users:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='You are not authorized to access this Oasis',
+                    headers={'WWW-Authenticate': 'Bearer'})
+        return user
+
+    # Create the desired function signature (as it depends on which auth options are allowed)
+    new_parameters = []
+    if basic_auth_allowed:
+        new_parameters.append(
+            Parameter(
+                name='form_data',
+                annotation=OAuth2PasswordRequestForm,
+                default=Depends(),
+                kind=Parameter.KEYWORD_ONLY))
+    if bearer_token_auth_allowed:
+        new_parameters.append(
+            Parameter(
+                name='bearer_token',
+                annotation=str,
+                default=Depends(oauth2_scheme),
+                kind=Parameter.KEYWORD_ONLY))
+    if upload_token_auth_allowed:
+        new_parameters.append(
+            Parameter(
+                name='token',
+                annotation=str,
+                default=FastApiQuery(
+                    None,
+                    description='Token for simplified authorization for uploading.'),
+                kind=Parameter.KEYWORD_ONLY))
+
+    # Create a wrapper around user_dependency, and set the signature on it
+    @wraps(user_dependency)
+    def wrapper(**kwargs) -> Callable:
+        return user_dependency(**kwargs)
+
+    sig = signature(user_dependency)
+    sig = sig.replace(parameters=tuple(new_parameters))
+    wrapper.__signature__ = sig  # type: ignore
+    return wrapper
+
+
+def _get_user_basic_auth(form_data: OAuth2PasswordRequestForm) -> User:
+    '''
+    Verifies basic auth (username and password), throwing an exception if illegal credentials
+    are provided, and returns the corresponding user object if successful, None if no
+    credentials provided.
+    '''
+    if form_data and form_data.username and form_data.password:
         try:
-            user = cast(datamodel.User, infrastructure.keycloak.tokenauth(access_token))
+            infrastructure.keycloak.basicauth(form_data.username, form_data.password)
+            user = cast(datamodel.User, infrastructure.keycloak.get_user(form_data.username))
+            return user
+        except infrastructure.KeycloakError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Incorrect username or password',
+                headers={'WWW-Authenticate': 'Bearer'})
+    return None
+
+
+def _get_user_bearer_token_auth(bearer_token: str) -> User:
+    '''
+    Verifies bearer_token (throwing exception if illegal value provided) and returns the
+    corresponding user object, or None, if no bearer_token provided.
+    '''
+    if bearer_token:
+        try:
+            user = cast(datamodel.User, infrastructure.keycloak.tokenauth(bearer_token))
+            return user
         except infrastructure.KeycloakError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
-
-    if config.oasis.allowed_users is not None:
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Authentication is required for this Oasis',
-                headers={'WWW-Authenticate': 'Bearer'})
-
-        if user.email not in config.oasis.allowed_users:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='You are not authorized to access this Oasis',
-                headers={'WWW-Authenticate': 'Bearer'})
-
-    return user
+    return None
 
 
-async def get_required_user(user: User = Depends(get_optional_user)) -> User:
+def _get_user_upload_token_auth(upload_token: str) -> User:
     '''
-    A dependency that provides the authenticated user or raises 401 if no user is
-    authenticated.
+    Verifies the upload token (throwing exception if illegal value provided) and returns the
+    corresponding user object, or None, if no upload_token provided.
     '''
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Authentication required',
-            headers={'WWW-Authenticate': 'Bearer'})
-
-    return user
-
-
-async def get_required_user_bearer_or_upload_token(
-        user: User = Depends(get_optional_user),
-        token: str = FastApiQuery(
-            None,
-            description='Token for simplified authorization when uploading.')) -> User:
-    if token and not user:
-        # Upload token provided, but no bearer token. Check if the upload token is correct.
+    if upload_token:
         try:
-            payload, signature = token.split('.')
+            payload, signature = upload_token.split('.')
             payload_bytes = utils.base64_decode(payload)
             signature_bytes = utils.base64_decode(signature)
 
@@ -109,15 +176,13 @@ async def get_required_user_bearer_or_upload_token(
             if signature_bytes == compare.digest():
                 user_id = str(uuid.UUID(bytes=payload_bytes))
                 user = cast(datamodel.User, infrastructure.keycloak.get_user(user_id))
+                return user
         except Exception:
             # Decode error, format error, user not found, etc.
-            user = None
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='A valid bearer or upload token required.')
-    return user
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='A invalid upload token was supplied.')
+    return None
 
 
 _bad_credentials_response = status.HTTP_401_UNAUTHORIZED, {

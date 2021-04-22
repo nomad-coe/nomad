@@ -20,7 +20,7 @@ from fastapi import Depends, APIRouter, status
 
 from nomad.utils import strip
 
-from .auth import get_required_user
+from .auth import create_user_dependency
 from ..models import User, HTTPExceptionModel
 from ..utils import create_responses
 
@@ -42,5 +42,5 @@ _authentication_required_response = status.HTTP_401_UNAUTHORIZED, {
     description='Returnes the account data of the authenticated user.',
     responses=create_responses(_authentication_required_response),
     response_model=User)
-async def read_users_me(current_user: User = Depends(get_required_user)):
+async def read_users_me(current_user: User = Depends(create_user_dependency(required=True))):
     return current_user

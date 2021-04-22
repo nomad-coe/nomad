@@ -29,7 +29,7 @@ from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
 
-from .auth import get_required_user, get_required_user_bearer_or_upload_token, generate_upload_token
+from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     BaseModel, User, Direction, Pagination, PaginationResponse)
 from ..utils import parameter_dependency_from_model
@@ -196,7 +196,7 @@ class UploadCommandExamplesResponse(BaseModel):
     response_model=UploadCommandExamplesResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_command_examples(user: User = Depends(get_required_user)):
+async def get_command_examples(user: User = Depends(create_user_dependency(required=True))):
     ''' Get url and example command for shell based uploads. '''
     token = generate_upload_token(user)
     api_url = config.api_url(ssl=config.services.https_upload, api='api/v1')
@@ -226,7 +226,7 @@ async def get_uploads(
         request: Request,
         query: UploadProcDataQuery = Depends(upload_proc_data_query_parameters),
         pagination: UploadProcDataPagination = Depends(upload_proc_data_pagination_parameters),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Retrieves metadata about all uploads that match the given query criteria.
     '''
@@ -286,7 +286,7 @@ async def get_uploads_id(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to retrieve.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Fetches a specific upload by its upload_id.
     '''
@@ -310,7 +310,7 @@ async def get_uploads_id_entries(
             ...,
             description='The unique id of the upload to retrieve entries for.'),
         pagination: EntryProcDataPagination = Depends(entry_proc_data_pagination_parameters),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Fetches the entries of a specific upload. Pagination is used to browse through the
     results.
@@ -349,7 +349,7 @@ async def get_uploads_id_entries_id(
         entry_id: str = Path(
             ...,
             description='The unique id of the entry, belonging to the specified upload.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Fetches a specific entry for a specific upload.
     '''
@@ -394,7 +394,7 @@ async def post_uploads(
             None,
             description=strip('''
             For oasis uploads: the deployment id.''')),
-        user: User = Depends(get_required_user_bearer_or_upload_token)):
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
     Upload a file to the repository. Can be used to upload files via browser or other
     http clients like curl. This will also start the processing of the upload.
@@ -556,7 +556,7 @@ async def delete_uploads_id(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to delete.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Delete an existing upload.
 
@@ -608,7 +608,7 @@ async def post_uploads_id_action_publish(
                 Will send the upload to the central NOMAD repository and publish it. This
                 option is only available on an OASIS. The upload must already be published
                 on the OASIS.''')),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Publishes an upload. The upload cannot be modified after this point, and after the
     embargo period (if any) is expired, the generated archive entries will be publicly visible.
@@ -676,7 +676,7 @@ async def post_uploads_id_action_reprocess(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to re-process.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Re-processes an upload. The upload must be published, have at least one outdated
     caclulation, and not be processing at the moment.

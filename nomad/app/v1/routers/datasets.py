@@ -30,7 +30,7 @@ from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
 
-from .auth import get_required_user
+from .auth import create_user_dependency
 from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
@@ -191,7 +191,7 @@ async def get_dataset(
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_datasets(
-        create: DatasetCreate, user: User = Depends(get_required_user)):
+        create: DatasetCreate, user: User = Depends(create_user_dependency(required=True))):
     '''
     Create a new dataset.
     '''
@@ -262,7 +262,7 @@ async def post_datasets(
     response_model_exclude_none=True)
 async def delete_dataset(
         dataset_id: str = Path(..., description='The unique dataset id of the dataset to delete.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Delete an dataset.
     '''
@@ -327,7 +327,7 @@ async def delete_dataset(
     response_model_exclude_none=True)
 async def assign_doi(
         dataset_id: str = Path(..., description='The unique dataset id of the dataset to delete.'),
-        user: User = Depends(get_required_user)):
+        user: User = Depends(create_user_dependency(required=True))):
     '''
     Assign a DOI to a dataset.
     '''

@@ -33,7 +33,7 @@ from nomad.archive import (
     query_archive, ArchiveQueryError, compute_required_with_referenced,
     read_partial_archives_from_mongo, filter_archive)
 
-from .auth import get_optional_user
+from .auth import create_user_dependency
 from ..utils import create_streamed_zipfile, File, create_responses
 from ..models import (
     EntryPagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
@@ -118,7 +118,7 @@ def perform_search(*args, **kwargs):
 async def post_entries_metadata_query(
         request: Request,
         data: EntriesMetadata,
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
 
     '''
     Executes a *query* and returns a *page* of the results with *required* result data
@@ -159,7 +159,7 @@ async def get_entries_metadata(
         with_query: WithQuery = Depends(query_parameters),
         pagination: EntryPagination = Depends(entry_pagination_parameters),
         required: MetadataRequired = Depends(metadata_required_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Executes a *query* and returns a *page* of the results with *required* result data.
     This is a version of `/entries/query`. Queries work a little different, because
@@ -369,7 +369,7 @@ _entries_raw_query_docstring = strip('''
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_entries_raw_query(
-        request: Request, data: EntriesRaw, user: User = Depends(get_optional_user)):
+        request: Request, data: EntriesRaw, user: User = Depends(create_user_dependency())):
 
     return _answer_entries_raw_request(
         owner=data.owner, query=data.query, pagination=data.pagination, user=user)
@@ -388,7 +388,7 @@ async def get_entries_raw(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
         pagination: EntryPagination = Depends(entry_pagination_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
 
     res = _answer_entries_raw_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination, user=user)
@@ -424,7 +424,7 @@ _entries_raw_download_query_docstring = strip('''
     response_class=StreamingResponse,
     responses=create_responses(_raw_download_response, _bad_owner_response))
 async def post_entries_raw_download_query(
-        data: EntriesRawDownload, user: User = Depends(get_optional_user)):
+        data: EntriesRawDownload, user: User = Depends(create_user_dependency())):
 
     return _answer_entries_raw_download_request(
         owner=data.owner, query=data.query, files=data.files, user=user)
@@ -440,7 +440,7 @@ async def post_entries_raw_download_query(
 async def get_entries_raw_download(
         with_query: WithQuery = Depends(query_parameters),
         files: Files = Depends(files_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
 
     return _answer_entries_raw_download_request(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
@@ -552,7 +552,7 @@ _entries_archive_docstring = strip('''
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_query(
-        request: Request, data: EntriesArchive, user: User = Depends(get_optional_user)):
+        request: Request, data: EntriesArchive, user: User = Depends(create_user_dependency())):
 
     return _answer_entries_archive_request(
         owner=data.owner, query=data.query, pagination=data.pagination,
@@ -572,7 +572,7 @@ async def get_entries_archive_query(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
         pagination: EntryPagination = Depends(entry_pagination_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
 
     res = _answer_entries_archive_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination,
@@ -655,7 +655,7 @@ _entries_archive_download_docstring = strip('''
     responses=create_responses(
         _archive_download_response, _bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_download_query(
-        data: EntriesArchiveDownload, user: User = Depends(get_optional_user)):
+        data: EntriesArchiveDownload, user: User = Depends(create_user_dependency())):
 
     return _answer_entries_archive_download_request(
         owner=data.owner, query=data.query, files=data.files, user=user)
@@ -672,7 +672,7 @@ async def post_entries_archive_download_query(
 async def get_entries_archive_download(
         with_query: WithQuery = Depends(query_parameters),
         files: Files = Depends(files_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
 
     return _answer_entries_archive_download_request(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
@@ -688,7 +688,7 @@ async def get_entries_archive_download(
 async def get_entry_metadata(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve metadata from.'),
         required: MetadataRequired = Depends(metadata_required_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Retrives the entry metadata for the given id.
     '''
@@ -719,7 +719,7 @@ async def get_entry_metadata(
 async def get_entry_raw(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         files: Files = Depends(files_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Returns the file metadata for all input and output files (including auxiliary files)
     of the given `entry_id`. The first file will be the *mainfile*.
@@ -751,7 +751,7 @@ async def get_entry_raw(
 async def get_entry_raw_download(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         files: Files = Depends(files_parameters),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Streams a .zip file with the raw files from the requested entry.
     '''
@@ -823,7 +823,7 @@ async def get_entry_raw_download_file(
         decompress: Optional[bool] = QueryParameter(
             False, description=strip('''
                 Attempt to decompress the contents, if the file is .gz or .xz.''')),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Streams the contents of an individual file from the requested entry.
     '''
@@ -950,7 +950,7 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
     responses=create_responses(_bad_id_response))
 async def get_entry_archive(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
-        user: User = Depends(get_optional_user)):
+        user: User = Depends(create_user_dependency())):
     '''
     Returns the full archive for the given `entry_id`.
     '''
@@ -966,7 +966,7 @@ async def get_entry_archive(
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response, _bad_archive_required_response))
 async def post_entry_archive_query(
-        data: EntryArchiveRequest, user: User = Depends(get_optional_user),
+        data: EntryArchiveRequest, user: User = Depends(create_user_dependency()),
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.')):
 
     '''
