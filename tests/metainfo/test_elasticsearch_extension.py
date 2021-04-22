@@ -205,8 +205,8 @@ def indices(elastic_infra):
     except Exception:
         pass
 
-    yield create_indices(Entry.m_def, Material.m_def)
-
+    create_indices(Entry.m_def, Material.m_def)
+    yield
     # re-establish the default elasticsearch setup.
     clear_elastic_infra()
 

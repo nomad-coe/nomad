@@ -579,8 +579,7 @@ def test_ems_data(proc_infra, test_user):
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
-        # TODO test this also for v1, when ems is added to results
-        assert_search_upload(entries, additional_keys, published=False, index='v0')
+        assert_search_upload(entries, additional_keys, published=False)
 
 
 def test_qcms_data(proc_infra, test_user):
@@ -592,8 +591,7 @@ def test_qcms_data(proc_infra, test_user):
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
-        # TODO test this also for v1, when qcms is added to results
-        assert_search_upload(entries, additional_keys, published=False, index='v0')
+        assert_search_upload(entries, additional_keys, published=False)
 
 
 def test_read_metadata_from_file(proc_infra, test_user, other_test_user):

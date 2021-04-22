@@ -239,6 +239,10 @@ class DocumentType():
             del(result['section_metadata'])
             result.update(**metadata)
 
+            # TODO merge with the v0 index data, create by the other search extension
+            v0_entry = root.section_metadata.a_elastic.create_index_entry()
+            result.update(**v0_entry.to_dict(include_meta=False))
+
         return result
 
     def create_mapping(
@@ -393,7 +397,7 @@ class Index():
 
         return wrapper
 
-    def create_index(self):
+    def create_index(self, upsert: bool = False):
         ''' Initially creates the index with the mapping of its document type. '''
         assert self.doc_type.mapping is not None, 'The mapping has to be created first.'
         logger = utils.get_logger(__name__, index=self.index_name)
@@ -416,6 +420,12 @@ class Index():
                 }
             })
             logger.info('elasticsearch index created')
+        elif upsert:
+            self.elastic_client.indices.put_mapping(
+                index=self.index_name,
+                doc_type=self.doc_type.name,
+                body=self.doc_type.mapping)
+            logger.info('elasticsearch index updated')
         else:
             logger.info('elasticsearch index exists')
 
@@ -427,7 +437,9 @@ class Index():
         self.elastic_client.indices.refresh(index=self.index_name)
 
 
-entry_type = DocumentType('entry')
+# TODO type 'doc' because it's the default used by elasticsearch_dsl and the v0 entries index.
+# 'entry' would be more descriptive.
+entry_type = DocumentType('doc')
 material_type = DocumentType('material')
 material_entry_type = DocumentType('material_entry')
 
@@ -690,13 +702,13 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     material_type._reset()
     material_entry_type._reset()
 
-    mapping = entry_type.create_mapping(entry_section_def)
+    entry_type.create_mapping(entry_section_def)
     material_type.create_mapping(material_section_def, auto_include_subsections=True)
     material_entry_type.create_mapping(entry_section_def, prefix='entries')
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
 
-    entry_index.create_index()
+    entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
 
 
@@ -734,7 +746,9 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     actions_and_docs = []
     for entry in entries:
         actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
-        actions_and_docs.append(entry_type.create_index_doc(entry))
+        entry_index_doc = entry_type.create_index_doc(entry)
+        actions_and_docs.append(entry_index_doc)
+
     elasticsearch_results = entry_index.bulk(body=actions_and_docs, refresh=True)
 
     if not update_materials:

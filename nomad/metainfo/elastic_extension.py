@@ -68,14 +68,12 @@ class ElasticDocument(SectionAnnotation):
         return dict(elastic=ElasticEntry(section))
 
     @classmethod
-    def create_index_entry(cls, section: MSection, include_empty: Callable[[Quantity], bool] = None):
+    def create_index_entry(cls, section: MSection):
         '''
         Creates an elasticsearch_dsl document instance for the given section.
 
         Attributes:
             section: The section to index.
-            include_empty: Includes the quantities that the given predicate accepts
-                even if they are empty (None or []).
         '''
         from elasticsearch_dsl import Object
 
@@ -99,8 +97,6 @@ class ElasticDocument(SectionAnnotation):
 
                 value = annotation.value(section)
                 if value is None or value == []:
-                    if include_empty is not None and include_empty(quantity):
-                        setattr(obj, annotation.field, value)
                     continue
 
                 # By default the full section is resolved for references
