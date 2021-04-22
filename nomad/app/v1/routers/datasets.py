@@ -246,8 +246,7 @@ async def post_datasets(
                 ctx._source.datasets.add(params.dataset);
             ''',
             params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
-            query=es_query, user_id=user.user_id,
-            refresh=True, index='v1')
+            query=es_query, user_id=user.user_id, refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -311,8 +310,7 @@ async def delete_dataset(
                 }
             ''',
             params=dict(dataset_id=dataset_id),
-            query=es_query, user_id=user.user_id,
-            refresh=True, index='v1')
+            query=es_query, user_id=user.user_id, refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,

@@ -20,71 +20,36 @@
 This module provides an interface to elasticsearch. Other parts of NOMAD must not
 interact with elasticsearch to maintain a clear coherent interface and allow for change.
 
-Currently NOMAD uses two distinct pairs of elasticsearch indices. One based on the
-old datamodel and metainfo layout based on metadata, domain, and encyclopedia sections (v0).
-The other one based on the new section results (v1). Both provide an entry and derived materials
-index. Write operations (index, publish, edit, lift embargo, delete) are common; defined
-here in the module ``__init__.py``. There might be specific versions
-in v0 and v1, but with a common interface here. Read operations are different and
+Currently NOMAD uses one entry index and two distinct materials indices. The entries
+index is based on two different mappings, once used by the old flask api (v0) and one
+used by the new fastapi api (v1). The mappings are used at the same time and the documents
+are merged. Write operations (index, publish, edit, lift embargo, delete) are common; defined
+here in the module ``__init__.py``. Read operations are different and
 should be used as per use-case directly from the ``v0`` and ``v1`` submodules.
 
-Most common functions take an ``index`` keyword arg (either None, ``v0_index``, or
-``v1_index``) and runs the function on either both, v0, or v1 entries index.
-
 Most common functions also take an ``update_materials`` keyword arg with allows to
-update the v1 materials index according to the performed changes.
+update the v1 materials index according to the performed changes. TODO this is only
+partially implemented.
 '''
 
-from typing import Union, List, Iterable
+from typing import Union, List, Iterable, Any
 from enum import Enum
 import json
+import elasticsearch
 from elasticsearch.exceptions import TransportError
 
 from nomad import config, infrastructure, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.metainfo.elasticsearch_extension import index_entries, entry_type, entry_index
 
-from . import v0
-from . import v1
 from .common import (
     _api_to_es_query, _owner_es_query,
     SearchError, AuthenticationRequiredError)
 
 
-v0_index = 'v0'
-v1_index = 'v1'
-
-
-def run_on_both_indexes(func):
-    '''
-    A decorator that takes an ``index`` keyword arg (either None, ``v0_index``, or ``v1_index``)
-    and runs the decorated function on either both, v0, or v1 entries index. The decorated
-    function must take an elasticsearch index name as first argument.
-    '''
-    def wrapper(*args, index: str = None, **kwargs):
-        if index is None:
-            indices = [v0_index, v1_index]
-        elif isinstance(index, List):
-            indices = index
-        else:
-            indices = [index]
-
-        for index in indices:
-            if index == v0_index:
-                index_name = config.elastic.index_name
-            elif index == v1_index:
-                index_name = config.elastic.entries_index
-            else:
-                index_name = index
-
-            func(*args, index=index_name, **kwargs)
-
-    return wrapper
-
-
-@run_on_both_indexes
 def update_by_query(
         update_script: str,
-        query: dict = None,
+        query: Any = None,
         owner: str = None,
         user_id: str = None,
         index: str = None,
@@ -118,7 +83,7 @@ def update_by_query(
 
     try:
         result = infrastructure.elastic_client.update_by_query(
-            body=body, index=index)
+            body=body, index=config.elastic.entries_index)
     except TransportError as e:
         utils.get_logger(__name__).error(
             'es update_by_query script error', exc_info=e,
@@ -126,17 +91,15 @@ def update_by_query(
         raise SearchError(e)
 
     if refresh:
-        _refresh(index=index)
+        _refresh()
 
     return result
 
 
-@run_on_both_indexes
 def delete_by_query(
         query: dict,
         owner: str = None,
         user_id: str = None,
-        index: str = None,
         update_materials: bool = False,
         refresh: bool = False):
     '''
@@ -153,7 +116,7 @@ def delete_by_query(
 
     try:
         result = infrastructure.elastic_client.delete_by_query(
-            body=body, index=index)
+            body=body, index=config.elastic.entries_index)
     except TransportError as e:
         utils.get_logger(__name__).error(
             'es delete_by_query error', exc_info=e,
@@ -161,7 +124,7 @@ def delete_by_query(
         raise SearchError(e)
 
     if refresh:
-        _refresh(index=index)
+        _refresh()
 
     if update_materials:
         # TODO update the matrials index at least for v1
@@ -170,14 +133,13 @@ def delete_by_query(
     return result
 
 
-@run_on_both_indexes
-def refresh(index: str = None):
+def refresh():
     '''
     Refreshes the specified indices.
     '''
 
     try:
-        infrastructure.elastic_client.indices.refresh(index=index)
+        infrastructure.elastic_client.indices.refresh(index=config.elastic.entries_index)
     except TransportError as e:
         utils.get_logger(__name__).error(
             'es delete_by_query error', exc_info=e,
@@ -190,7 +152,6 @@ _refresh = refresh
 
 def index(
         entries: Union[EntryArchive, List[EntryArchive]],
-        index: str = None,
         update_materials: bool = False,
         refresh: bool = True):
     '''
@@ -198,24 +159,16 @@ def index(
     elasticsearch documents. If an underlying elasticsearch document already exists it
     will be fully replaced.
     '''
-    if index is None:
-        indices = [v0_index, v1_index]
-    else:
-        indices = [index]
-
     if not isinstance(entries, list):
         entries = [entries]
 
-    if v0_index in indices:
-        v0._index([entry.section_metadata for entry in entries])
-
-    if v1_index in indices:
-        v1._index(entries=entries, update_materials=update_materials)
+    index_entries(entries=entries, update_materials=update_materials)
 
     if refresh:
-        _refresh(index=None)
+        _refresh()
 
 
+# TODO this depends on how we merge section_metadata
 def publish(entries: List[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
@@ -235,14 +188,39 @@ def update_metadata(
     Returns the number of failed updates. This is doing a partial update on the underlying
     elasticsearch documents.
     '''
-    failed = 0
-    if index == v0_index or index is None:
-        failed += v0._update_metadata(entries, **kwargs)
-    if index == v1_index or index is None:
-        failed += v1._update_metadata(entries, update_materials=update_materials, **kwargs)
+
+    def elastic_updates():
+        for entry_metadata in entries:
+            entry_archive = entry_metadata.m_parent
+            if entry_archive is None:
+                entry_archive = EntryArchive(section_metadata=entry_metadata)
+            entry_doc = entry_type.create_index_doc(entry_archive)
+
+            entry_doc.update(**kwargs)
+            # TODO this a exception that should be treated differently. None values are
+            # not included in elasticsearch docs. However, when a user removes his comment
+            # (the only case where a value is unset in an update?), the None value needs
+            # to be transported.
+            if 'comment' not in entry_doc:
+                entry_doc['comment'] = None
+
+            yield dict(
+                doc=entry_doc,
+                _id=entry_metadata.calc_id,
+                _type=entry_index.doc_type.name,
+                _index=entry_index.index_name,
+                _op_type='update')
+
+    updates = list(elastic_updates())
+    _, failed = elasticsearch.helpers.bulk(
+        infrastructure.elastic_client, updates, stats_only=True)
+
+    if update_materials:
+        # TODO update the matrials index at least for v1
+        pass
 
     if refresh:
-        _refresh(index=None)
+        _refresh()
 
     return failed
 
@@ -258,27 +236,24 @@ def lift_embargo(query: dict, refresh=True, **kwargs):
         **kwargs)
 
     if refresh:
-        _refresh(index=None)
+        _refresh()
 
 
 def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
     '''
     Deletes the given upload.
     '''
-    delete_by_query(index=None, query=dict(upload_id=upload_id), **kwargs)
+    delete_by_query(query=dict(upload_id=upload_id), **kwargs)
 
     if refresh:
-        _refresh(index=None)
+        _refresh()
 
 
 def delete_entry(entry_id: str, index: str = None, refresh: bool = False, **kwargs):
     '''
     Deletes the given entry.
     '''
-    if index == v0_index or index is None:
-        delete_by_query(index=v0_index, query=dict(calc_id=entry_id), **kwargs)
-    if index == v1_index or index is None:
-        delete_by_query(index=v1_index, query=dict(entry_id=entry_id), **kwargs)
+    delete_by_query(query=dict(calc_id=entry_id), **kwargs)
 
     if refresh:
-        _refresh(index=None)
+        _refresh()

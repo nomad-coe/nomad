@@ -22,7 +22,6 @@ This module represents calculations in elastic search.
 
 from typing import Iterable, Dict, List, Any
 from elasticsearch_dsl import Search, Q, A, analyzer, tokenizer
-import elasticsearch.helpers
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 import json
@@ -59,29 +58,6 @@ for domain in datamodel.domains:
     order_default_quantities.setdefault(domain, order_default_quantities.get('__all__'))
 
 
-def _include_empty(quantity):
-    return quantity in [
-        datamodel.EntryMetadata.datasets, datamodel.EntryMetadata.authors,
-        datamodel.EntryMetadata.shared_with, datamodel.EntryMetadata.comment,
-        datamodel.EntryMetadata.references]
-
-
-def _update_metadata(calcs: Iterable[datamodel.EntryMetadata], **kwargs) -> int:
-    def elastic_updates():
-        for calc in calcs:
-            entry = calc.a_elastic.create_index_entry(include_empty=_include_empty)
-            entry = entry.to_dict(include_meta=True, skip_empty=False)
-            source = entry.pop('_source')
-            source.update(**kwargs)
-            entry['doc'] = source
-            entry['_id'] = calc.calc_id
-            entry['_op_type'] = 'update'
-            yield entry
-
-    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True, refresh=True)
-    return failed
-
-
 def _index(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     '''
     Adds all given calcs with their metadata to the index.
@@ -89,16 +65,7 @@ def _index(calcs: Iterable[datamodel.EntryMetadata]) -> None:
     Returns:
         Number of failed entries.
     '''
-    def elastic_updates():
-        for calc in calcs:
-            entry = calc.a_elastic.create_index_entry()
-            entry = entry.to_dict(include_meta=True)
-            entry['_op_type'] = 'index'
-            yield entry
-
-    _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
-
-    return failed
+    raise NotImplementedError
 
 
 class SearchRequest:

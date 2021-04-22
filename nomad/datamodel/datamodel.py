@@ -57,20 +57,31 @@ path_analyzer = analyzer(
     tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
 
 
+def PathSearch():
+    return [
+        Elasticsearch(_es_field='keyword'),
+        Elasticsearch(
+            mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
+            field='path', _es_field='')]
+
+
 class Author(metainfo.MSection):
     ''' A person that is author of data in NOMAD or references by NOMAD. '''
     name = metainfo.Quantity(
         type=str,
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
         a_search=Search(mapping=Text(fields={'keyword': Keyword()})),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=[
+            Elasticsearch(_es_field='keyword'),
+            Elasticsearch(mapping='text', field='text', _es_field='')
+        ])
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
     last_name = metainfo.Quantity(type=metainfo.Capitalized)
     email = metainfo.Quantity(
         type=str,
         a_elastic=dict(mapping=Keyword),  # TODO remove?
-        a_search=Search())
+        a_search=Search(), a_eleasticsearch=Elasticsearch())
 
     affiliation = metainfo.Quantity(type=str)
     affiliation_address = metainfo.Quantity(type=str)
@@ -206,29 +217,30 @@ class Dataset(metainfo.MSection):
     name = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
-        a_search=Search())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
     user_id = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True))
     doi = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
     pid = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
     modified = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
     dataset_type = metainfo.Quantity(
         type=metainfo.MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
-        a_search=Search())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
 
 
 class DatasetReference(metainfo.Reference):
@@ -362,7 +374,7 @@ class EntryMetadata(metainfo.MSection):
             Search(
                 description='Search for the exact mainfile.',
                 many_and='append', name='mainfile_path', search_field='mainfile.keyword')],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=PathSearch())
 
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
@@ -380,7 +392,7 @@ class EntryMetadata(metainfo.MSection):
             Search(
                 description='Search for exact paths.',
                 many_or='append', name='files', search_field='files.keyword')],
-        a_elasticseach=Elasticsearch())
+        a_elasticsearch=PathSearch())
 
     pid = metainfo.Quantity(
         type=str,

@@ -16,33 +16,34 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Iterable
 
 from nomad import config, utils, infrastructure
-from nomad.search import refresh, run_on_both_indexes
+from nomad.search import refresh
 
 
-@run_on_both_indexes
 def assert_search_upload(
-        entries: Union[int, List] = -1,
+        entries: Union[int, Iterable] = -1,
         additional_keys: List[str] = [],
         upload_id: str = None,
-        index: str = None,
         **kwargs):
 
     if isinstance(entries, list):
         size = len(entries)
-    else:
+    elif isinstance(entries, int):
         size = entries
+    else:
+        assert False
 
     keys = ['calc_id', 'upload_id', 'mainfile']
-    refresh(index=index)
+    refresh()
     body: Dict[str, Any] = {}
     body.update(size=10)
     if upload_id is not None:
         body['query'] = dict(match=dict(upload_id=upload_id))
 
-    search_results = infrastructure.elastic_client.search(index=index, body=body)['hits']
+    search_results = infrastructure.elastic_client.search(
+        index=config.elastic.entries_index, body=body)['hits']
 
     if size != -1:
         assert search_results['total'] == size

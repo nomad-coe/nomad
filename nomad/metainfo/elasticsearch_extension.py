@@ -203,9 +203,10 @@ class DocumentType():
         Creates an indexable document from the given archive.
         '''
         def transform(quantity, section, value):
-            """Custom transform function for m_to_dict that will resolve references
+            '''
+            Custom transform function for m_to_dict that will resolve references
             on a per-quantity basis based on the annotation setup.
-            """
+            '''
             elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
             for elasticsearch_annotation in elasticsearch_annotations:
                 if elasticsearch_annotation.field is None:
@@ -237,6 +238,10 @@ class DocumentType():
         if metadata is not None:
             del(result['section_metadata'])
             result.update(**metadata)
+
+            # TODO merge with the v0 index data, create by the other search extension
+            v0_entry = root.section_metadata.a_elastic.create_index_entry()
+            result.update(**v0_entry.to_dict(include_meta=False))
 
         return result
 
@@ -392,17 +397,35 @@ class Index():
 
         return wrapper
 
-    def create_index(self):
+    def create_index(self, upsert: bool = False):
         ''' Initially creates the index with the mapping of its document type. '''
         assert self.doc_type.mapping is not None, 'The mapping has to be created first.'
         logger = utils.get_logger(__name__, index=self.index_name)
         if not self.elastic_client.indices.exists(index=self.index_name):
+            # TODO the settings emulate the path_analyzer used in the v0 elasticsearch_dsl
+            # based index, configured by nomad.datamodel.datamodel::path_analyzer
             self.elastic_client.indices.create(index=self.index_name, body={
+                'settings': {
+                    'analysis': {
+                        'analyzer': {
+                            'path_analyzer': {'tokenizer': 'path_tokenizer', 'type': 'custom'}
+                        },
+                        'tokenizer': {
+                            'path_tokenizer': {'pattern': '/', 'type': 'pattern'}
+                        }
+                    }
+                },
                 'mappings': {
                     self.doc_type.name: self.doc_type.mapping
                 }
             })
             logger.info('elasticsearch index created')
+        elif upsert:
+            self.elastic_client.indices.put_mapping(
+                index=self.index_name,
+                doc_type=self.doc_type.name,
+                body=self.doc_type.mapping)
+            logger.info('elasticsearch index updated')
         else:
             logger.info('elasticsearch index exists')
 
@@ -414,7 +437,9 @@ class Index():
         self.elastic_client.indices.refresh(index=self.index_name)
 
 
-entry_type = DocumentType('entry')
+# TODO type 'doc' because it's the default used by elasticsearch_dsl and the v0 entries index.
+# 'entry' would be more descriptive.
+entry_type = DocumentType('doc')
 material_type = DocumentType('material')
 material_entry_type = DocumentType('material_entry')
 
@@ -439,8 +464,8 @@ class Elasticsearch(DefinitionAnnotation):
             default depends on the quantity type. You can provide the elasticsearch type
             name, a full dictionary with additional elasticsearch mapping parameters, or
             an elasticsearch_dsl mapping object.
-        field: Allows to specify custom field name. There has to be another annotation on the
-            same quantity with the default field name. The custom field name is concatenated
+        field: Allows to specify sub-field name. There has to be another annotation on the
+            same quantity with the default name. The custom field name is concatenated
             to the default. This will create an additional mapping for this
             quantity. In queries this can be used like an additional field, but the
             quantity is only stored once (under the quantity name) in the source document.
@@ -488,16 +513,21 @@ class Elasticsearch(DefinitionAnnotation):
             self,
             doc_type: DocumentType = entry_type,
             mapping: Union[str, Dict[str, Any]] = None,
-            field: str = None,
+            field: str = None, es_field: str = None,
             value: Callable[[MSection], Any] = None,
             index: bool = True,
             values: List[str] = None, statistics_size: int = None,
             metrics: Dict[str, str] = None,
             many_all: bool = False,
-            auto_include_subsections: bool = False):
+            auto_include_subsections: bool = False,
+            _es_field: str = None):
+
+        # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
+        # for v0 compatibility
 
         self._custom_mapping = mapping
         self.field = field
+        self._es_field = field if _es_field is None else _es_field
         self.doc_type = doc_type
         self.value = value
         self.index = index
@@ -564,11 +594,11 @@ class Elasticsearch(DefinitionAnnotation):
 
     @property
     def fields(self) -> Dict[str, Any]:
-        if self.field is None:
+        if self._es_field == '' or self._es_field is None:
             return {}
 
         return {
-            self.field: self.mapping
+            self._es_field: self.mapping
         }
 
     @property
@@ -607,7 +637,7 @@ class SearchQuantity():
             document type. This will be the quantity name (plus additional field if set)
             with subsection names up to the root of the metainfo data.
         search_field:
-            An alias for qualified_field.
+            The full qualified name of the field in the elasticsearch index.
         qualified_name:
             Same name as qualified_field. This will be used to address the search
             property in our APIs.
@@ -628,8 +658,11 @@ class SearchQuantity():
             qualified_field = f'{qualified_field}.{annotation.field}'
 
         self.qualified_field = qualified_field
-        self.search_field = qualified_field
         self.qualified_name = qualified_field
+
+        self.search_field = qualified_field
+        if not(annotation._es_field == '' or annotation._es_field is None):
+            self.search_field = f'{qualified_field}.{annotation._es_field}'
 
     @property
     def definition(self):
@@ -675,7 +708,7 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
 
-    entry_index.create_index()
+    entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
 
 
@@ -713,7 +746,9 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     actions_and_docs = []
     for entry in entries:
         actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
-        actions_and_docs.append(entry_type.create_index_doc(entry))
+        entry_index_doc = entry_type.create_index_doc(entry)
+        actions_and_docs.append(entry_index_doc)
+
     elasticsearch_results = entry_index.bulk(body=actions_and_docs, refresh=True)
 
     if not update_materials:
