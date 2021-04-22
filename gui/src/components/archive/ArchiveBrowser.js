@@ -28,6 +28,7 @@ import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
+import EELS from '../visualization/EELS'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
 import { getHighestOccupiedEnergy } from '../../utils'
@@ -380,6 +381,11 @@ function Overview({section, def, parent, units}) {
         height: '40rem',
         margin: 'auto'
       },
+      eels: {
+        width: '30rem',
+        height: '15rem',
+        margin: 'auto'
+      },
       radio: {
         display: 'flex',
         justifyContent: 'center'
@@ -511,6 +517,15 @@ function Overview({section, def, parent, units}) {
       units={units}
       type={isVibrational ? 'vibrational' : null}
     ></DOS>
+  // EELS data
+  } else if (def.name === 'Spectrum') {
+    return <EELS
+      className={style.eels}
+      data={section}
+      layout={{yaxis: {autorange: true}}}
+      aspectRatio={2}
+      unitsState={unitsState}
+    ></EELS>
   }
   return null
 }
