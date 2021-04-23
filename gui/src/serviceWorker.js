@@ -37,6 +37,14 @@ const isLocalhost = Boolean(
     )
 )
 
+export const serviceWorkerUpdateHandlerRef = {
+  current: null
+}
+
+export const serviceWorkerRegistrationRef = {
+  current: null
+}
+
 export function register(config) {
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.

@@ -19,7 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
-import { serviceWorkerRegistrationRef } from '..'
+import { serviceWorkerRegistrationRef } from '../serviceWorker'
 import Markdown from './Markdown'
 
 export class VersionMismatch extends Error {

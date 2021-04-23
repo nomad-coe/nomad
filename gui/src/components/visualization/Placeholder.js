@@ -45,7 +45,7 @@ const useStaticStyles = makeStyles(theme => ({
 }))
 export default function Placeholder(props) {
   // If aspect ratio is provided, use it to determine width and height
-  const {aspectRatio, className, classes, ...other} = props
+  const {aspectRatio, className, classes, 'data-testid': testID, ...other} = props
   const useStyles = makeStyles(theme => {
     const style = {}
     if (aspectRatio) {
@@ -62,7 +62,7 @@ export default function Placeholder(props) {
   const styles = useStyles()
   const staticStyles = useStaticStyles({classes: classes, theme: theme})
   if (aspectRatio) {
-    return <div className={clsx(className, styles.root)}>
+    return <div className={clsx(className, styles.root)} data-testid={testID}>
       <div className={styles.containerOuter}>
         <div className={staticStyles.placeholder}>
           <Skeleton variant="rect" className={staticStyles.skeleton} {...other}/>
@@ -70,7 +70,7 @@ export default function Placeholder(props) {
       </div>
     </div>
   }
-  return <div className={clsx(className, staticStyles.root)}>
+  return <div className={clsx(className, staticStyles.root)} data-testid={testID}>
     <div className={styles.containerInner}>
       <Skeleton {...other} className={staticStyles.skeleton}></Skeleton>
     </div>
@@ -79,16 +79,7 @@ export default function Placeholder(props) {
 
 Placeholder.propTypes = {
   aspectRatio: PropTypes.number,
-  paddingTop: PropTypes.string,
-  paddingBottom: PropTypes.string,
-  paddingLeft: PropTypes.string,
-  paddingRight: PropTypes.string,
   className: PropTypes.string,
-  classes: PropTypes.object
-}
-Placeholder.defaultProps = {
-  paddingTop: '0.5rem',
-  paddingBottom: '0.5rem',
-  paddingLeft: '0.5rem',
-  paddingRight: '0.5rem'
+  classes: PropTypes.object,
+  'data-testid': PropTypes.string
 }

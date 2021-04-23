@@ -16,25 +16,16 @@
  * limitations under the License.
  */
 import React from 'react'
-import DFTEntryDetails from './dft/DFTEntryDetails'
-import DFTEntryOverview from './dft/DFTEntryOverview'
-import DFTEntryRawView from './dft/DFTEntryRawView'
-import EMSEntryDetails from './ems/EMSEntryDetails'
-import EMSEntryRawView from './ems/EMSEntryRawView'
-import EMSEntryOverview from './ems/EMSEntryOverview'
 import {
   DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
 } from './dft/DFTVisualizations'
 import EMSVisualizations from './ems/EMSVisualizations'
-import QCMSEntryDetails from './qcms/QCMSEntryDetails'
-import QCMSEntryOverview from './qcms/QCMSEntryOverview'
-import QCMSEntryRawView from './qcms/QCMSEntryRawView'
 import { Link, Typography } from '@material-ui/core'
 import { amber } from '@material-ui/core/colors'
 
 /* eslint-disable react/display-name */
 
-export const domains = ({
+export const domainData = ({
   dft: {
     name: 'Computational data',
     label: 'Computational materials science data',
@@ -171,27 +162,6 @@ export const domains = ({
       }
     },
     defaultSearchResultColumns: ['formula', 'dft.code_name', 'dft.system', 'dft.crystal_system', 'dft.spacegroup_symbol'],
-    /**
-     * A component to render the domain specific quantities in the metadata card of
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryDetails: DFTEntryDetails,
-    /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: DFTEntryOverview,
-    /**
-     * A component to render additional domain specific cards in the
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryRawView: DFTEntryRawView,
-    /**
-     * A component to render additional domain specific cards in the
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
@@ -264,25 +234,6 @@ export const domains = ({
       }
     },
     defaultSearchResultColumns: ['formula', 'ems.chemical', 'ems.method', 'ems.data_type', 'ems.origin_time', 'ems.repository_url'],
-    /**
-     * A component to render the domain specific quantities in the metadata card of
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryDetails: EMSEntryDetails,
-    /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: EMSEntryOverview,
-    /**
-     * A component to render additional domain specific cards in the
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryRawView: EMSEntryRawView,
-    /**
-     * Names of the possible search tabs for this domain
-     */
     searchTabs: ['entries', 'datasets', 'uploads']
   },
   qcms: {
@@ -345,25 +296,6 @@ export const domains = ({
     defaultSearchResultColumns: [
       'formula', 'qcms.chemical', 'qcms.quantum_computer_system', 'qcms.quantum_computing_libraries',
       'qcms.computation_datetime'],
-    /**
-     * A component to render the domain specific quantities in the metadata card of
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryDetails: QCMSEntryDetails,
-    /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: QCMSEntryOverview,
-    /**
-     * A component to render additional domain specific cards in the
-     * the entry view. Needs to work with props: data (the entry data from the API),
-     * loading (a bool with api loading status).
-     */
-    EntryRawView: QCMSEntryRawView,
-    /**
-     * Names of the possible search tabs for this domain
-     */
     searchTabs: ['entries', 'datasets', 'uploads']
   }
 })

@@ -121,6 +121,7 @@ function ElectronicProperties({bs, dos, className, classes}) {
             unitsState={unitsState}
             layoutSubject={bsYSubject}
             metaInfoLink={dos?.path}
+            data-testid="dos-electronic-overview"
           ></DOS>
         </Box>
         {bs !== false

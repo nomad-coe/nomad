@@ -32,7 +32,18 @@ const useStyles = makeStyles({
   root: {}
 })
 
-function DOS({data, layout, aspectRatio, className, classes, placeholderStyle, unitsState, type, ...other}) {
+function DOS({
+  data,
+  layout,
+  aspectRatio,
+  className,
+  classes,
+  placeholderStyle,
+  unitsState,
+  type,
+  'data-testid': testID,
+  ...other
+}) {
   // Merge custom layout with default layout
   const units = useRecoilValue(unitsState)
   const initialLayout = useMemo(() => {
@@ -179,6 +190,7 @@ function DOS({data, layout, aspectRatio, className, classes, placeholderStyle, u
         floatTitle="Density of states"
         warning={normalizedToHOE === false ? normalizationWarning : null}
         {...other}
+        data-testid={testID}
       >
       </Plot>
     </Box>
@@ -194,7 +206,8 @@ DOS.propTypes = {
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,
   unitsState: PropTypes.object, // Recoil atom containing the unit configuration
-  type: PropTypes.string // Type of band structure: electronic or vibrational
+  type: PropTypes.string, // Type of band structure: electronic or vibrational
+  'data-testid': PropTypes.string
 }
 DOS.defaultProps = {
   type: 'electronic'

@@ -22,7 +22,7 @@ import Markdown from './Markdown'
 import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import { apiContext } from './api'
 import packageJson from '../../package.json'
-import { domains } from './domains'
+import { domainData } from './domainData'
 import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 import tutorials from '../toolkitMetadata'
@@ -356,7 +356,7 @@ export default function About() {
         Originally NOMAD was build for DFT calculations and data from the respective
         community code. By NOMAD supports multiple materials science domains:
 
-        ${info && info.domains.map(domain => domains[domain.name]).map(domain => `- ${domain.name}: ${domain.about}`).join('\n')}
+        ${info && info.domains.map(domain => domainData[domain.name]).map(domain => `- ${domain.name}: ${domain.about}`).join('\n')}
         ` : ''}
 
         ${debug ? `

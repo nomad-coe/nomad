@@ -26,7 +26,7 @@ import AppBar from './AppBar'
 import { version } from '../../config'
 import Routes from './Routes'
 import { withApi } from '../api'
-import { serviceWorkerUpdateHandlerRef } from '../../index'
+import { serviceWorkerUpdateHandlerRef } from '../../serviceWorker'
 import { ErrorBoundary } from '../errors'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})

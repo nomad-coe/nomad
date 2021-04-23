@@ -190,7 +190,7 @@
 	path = dependencies/encyclopedia-gui
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-gui.git
 [submodule "dependencies/materia"]
-	path = dependencies/materia
+	path = gui/materia
 	url = https://github.com/nomad-coe/materia
 [submodule "dependencies/nomad-dos-fingerprints"]
 	path = dependencies/nomad-dos-fingerprints

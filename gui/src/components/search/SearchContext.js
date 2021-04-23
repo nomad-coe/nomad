@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import hash from 'object-hash'
 import { errorContext } from '../errors'
 import { onlyUnique, objectFilter } from '../../utils'
-import { domains } from '../domains'
+import { domainData } from '../domainData'
 import { apiContext } from '../api'
 import { useLocation, useHistory } from 'react-router-dom'
 import qs from 'qs'
@@ -119,7 +119,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       order: -1,
       order_by: 'upload_time'
     },
-    metric: domains.dft.defaultSearchMetric
+    metric: domainData.dft.defaultSearchMetric
   }), [])
 
   const {api} = useContext(apiContext)
@@ -139,10 +139,10 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   // The second ref keeps a hash over the last request that was send to the API.
   // This is used to verify if a new request is actually necessary.
   const requestRef = useRef({
-    metric: domains.dft.defaultSearchMetric,
+    metric: domainData.dft.defaultSearchMetric,
     statistics: [],
     groups: {},
-    domainKey: domains.dft.key,
+    domainKey: domainData.dft.key,
     owner: 'all',
     pagination: {
       page: 1,
@@ -171,7 +171,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   const runRequest = useCallback(() => {
     let dateHistogramInterval = null
     const {metric, domainKey, owner, dateHistogram} = requestRef.current
-    const domain = domains[domainKey]
+    const domain = domainData[domainKey]
     const apiRequest = {
       ...initialRequest,
       ...requestRef.current.pagination,
@@ -226,7 +226,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
     }, [requestRef])
 
   const setDomain = useCallback(domainKey => {
-    requestRef.current.domainKey = domainKey || domains.dft.key
+    requestRef.current.domainKey = domainKey || domainData.dft.key
   }, [requestRef])
 
   const setOwner = useCallback(owner => {
@@ -234,7 +234,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
   }, [requestRef])
 
   const setMetric = useCallback(metric => {
-    requestRef.current.metric = metric || domains.dft.defaultSearchMetric
+    requestRef.current.metric = metric || domainData.dft.defaultSearchMetric
   }, [requestRef])
 
   const setStatistics = useCallback(statistics => {
@@ -284,7 +284,7 @@ export default function SearchContext({initialRequest, initialQuery, query, chil
       ...requestRef.current.query,
       ...query
     },
-    domain: domains[requestRef.current.domainKey],
+    domain: domainData[requestRef.current.domainKey],
     metric: requestRef.current.metric,
     requestParameters: requestRef.current.pagination,
     setRequestParameters: setRequestParameters,

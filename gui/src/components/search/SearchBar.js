@@ -23,7 +23,7 @@ import { CircularProgress, InputAdornment, Button, Tooltip } from '@material-ui/
 import searchQuantities from '../../searchQuantities'
 import { apiContext } from '../api'
 import { defsByName as metainfoDefs } from '../archive/metainfo'
-import { domains } from '../domains'
+import { domainData } from '../domainData'
 
 const metainfoOptions = []
 
@@ -322,7 +322,7 @@ export default function SearchBar() {
     ...params,
     startAdornment: (
       <React.Fragment>
-        {domain === domains.dft &&
+        {domain === domainData.dft &&
         <InputAdornment position="start">
           <Tooltip title="Switch between NOMAD's quantity=value search and the Optimade filter language.">
             <Button onClick={handleSearchTypeClicked}size="small">{searchType}</Button>
