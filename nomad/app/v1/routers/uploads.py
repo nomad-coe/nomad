@@ -282,7 +282,7 @@ async def get_uploads(
     response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_uploads_id(
+async def get_upload(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to retrieve.'),
@@ -304,7 +304,7 @@ async def get_uploads_id(
     response_model=EntryProcDataQueryResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_uploads_id_entries(
+async def get_upload_entries(
         request: Request,
         upload_id: str = Path(
             ...,
@@ -342,7 +342,7 @@ async def get_uploads_id_entries(
     response_model=EntryProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_uploads_id_entries_id(
+async def get_upload_entry(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload.'),
@@ -369,7 +369,7 @@ async def get_uploads_id_entries_id(
     response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_uploads(
+async def post_upload(
         request: Request,
         file: UploadFile = File(None),
         local_path: str = None,  # Internal use/admins only
@@ -552,7 +552,7 @@ async def post_uploads(
     response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def delete_uploads_id(
+async def delete_upload(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to delete.'),
@@ -589,7 +589,7 @@ async def delete_uploads_id(
     response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_uploads_id_action_publish(
+async def post_upload_action_publish(
         upload_id: str = Path(
             ...,
             description=strip('''
@@ -672,7 +672,7 @@ async def post_uploads_id_action_publish(
     response_model=UploadProcDataResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_uploads_id_action_reprocess(
+async def post_upload_action_reprocess(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to re-process.'),

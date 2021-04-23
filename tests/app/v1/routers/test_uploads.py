@@ -46,7 +46,7 @@ def perform_get(client, base_url, user_auth=None, **query_args):
     return response
 
 
-def perform_post_uploads(client, mode, file, user_auth=None, token=None, **query_args):
+def perform_post_upload(client, mode, file, user_auth=None, token=None, **query_args):
     ''' Posts a new upload. '''
     if mode == 'local_path':
         query_args.update(local_path=file)
@@ -68,12 +68,12 @@ def perform_post_uploads(client, mode, file, user_auth=None, token=None, **query
     return response
 
 
-def perform_post_uploads_id_action(client, user_auth, upload_id, action, **query_args):
+def perform_post_upload_action(client, user_auth, upload_id, action, **query_args):
     return client.post(
         build_url(f'uploads/{upload_id}/action/{action}', query_args), headers=user_auth)
 
 
-def perform_delete_uploads(client, upload_id, user_auth=None, **query_args):
+def perform_delete_upload(client, upload_id, user_auth=None, **query_args):
     headers = user_auth
     response = client.delete(build_url(f'uploads/{upload_id}', query_args), headers=headers)
     return response
@@ -162,7 +162,7 @@ def assert_publish(
     upload = assert_upload(response.json())
 
     # Api call to actually publish the upload
-    response = perform_post_uploads_id_action(client, user_auth, upload_id, 'publish', **query_args)
+    response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
 
     assert response.status_code == expected_status_code
     if expected_status_code == 200:
@@ -315,7 +315,7 @@ def test_get_uploads(client, mongo, proc_infra, slow_processing, test_user_auth,
     upload_id_to_name = {}
 
     # Upload #1 - published
-    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth, name='name1')
+    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name1')
     assert response.status_code == 200
     upload_id_1 = response.json()['upload_id']
     upload_id_to_name[upload_id_1] = '#1'
@@ -323,7 +323,7 @@ def test_get_uploads(client, mongo, proc_infra, slow_processing, test_user_auth,
     assert_publish(client, test_user_auth, upload_id_1, proc_infra)
 
     # Upload #2 - wait for processing to finish, but do not publish
-    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth, name='name2')
+    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name2')
     assert response.status_code == 200
     upload_id_2 = response.json()['upload_id']
     upload_id_to_name[upload_id_2] = '#2'
@@ -331,7 +331,7 @@ def test_get_uploads(client, mongo, proc_infra, slow_processing, test_user_auth,
     assert_processing(client, upload_id_2, test_user_auth, check_search=False)
 
     # Upload #3 - do NOT wait for processing to finish
-    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth, name='name3')
+    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name3')
     assert response.status_code == 200
     upload_id_3 = response.json()['upload_id']
     upload_id_to_name[upload_id_3] = '#3'
@@ -408,10 +408,10 @@ def test_get_uploads(client, mongo, proc_infra, slow_processing, test_user_auth,
         expected_status_code=422)
 
 
-def test_get_uploads_id(
+def test_get_upload(
         client, mongo, proc_infra, test_user_auth, other_test_user_auth, admin_user_auth,
         non_empty_example_upload):
-    response = perform_post_uploads(
+    response = perform_post_upload(
         client, 'stream', non_empty_example_upload, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
@@ -431,11 +431,11 @@ def test_get_uploads_id(
     assert response.status_code == 401
 
 
-def test_get_uploads_id_entries(
+def test_get_upload_entries(
         client, mongo, proc_infra, test_user_auth, other_test_user_auth, admin_user_auth,
         non_empty_example_upload_vasp_with_binary):
     ''' Uploads a file with two entries, and lists these entries in various ways. '''
-    response = perform_post_uploads(
+    response = perform_post_upload(
         client, 'stream', non_empty_example_upload_vasp_with_binary, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
@@ -541,7 +541,7 @@ def test_get_uploads_id_entries(
     pytest.param('stream', None, None, False, 401, id='post-not-logged-in-stream'),
     pytest.param('local_path', None, None, False, 401, id='post-not-logged-in-local_path'),
     pytest.param('local_path', None, 'test_user', False, 401, id='post-not-admin-local_path')])
-def test_post_uploads(
+def test_post_upload(
         client, mongo, proc_infra, test_user, admin_user, test_user_auth, admin_user_auth, non_empty_example_upload,
         mode, name, user, use_upload_token, expected_status_code):
     '''
@@ -566,7 +566,7 @@ def test_post_uploads(
     else:
         token = None
 
-    response = perform_post_uploads(client, mode, non_empty_example_upload, user_auth_post, token, name=name)
+    response = perform_post_upload(client, mode, non_empty_example_upload, user_auth_post, token, name=name)
     assert response.status_code == expected_status_code
     if expected_status_code == 200:
         response_json = response.json()
@@ -584,14 +584,14 @@ def test_post_uploads(
 @pytest.mark.parametrize('empty', [
     pytest.param(False, id='non-empty'),
     pytest.param(True, id='empty')])
-def test_post_uploads_with_publish_directly(
+def test_post_upload_with_publish_directly(
         client, test_user_auth, empty_upload, non_empty_example_upload, proc_infra, empty):
     ''' Posts uploads with publish_directly = True. '''
     if empty:
         file = empty_upload
     else:
         file = non_empty_example_upload
-    response = perform_post_uploads(client, 'stream', file, test_user_auth, publish_directly=True)
+    response = perform_post_upload(client, 'stream', file, test_user_auth, publish_directly=True)
     assert response.status_code == 200
     response_json = response.json()
     upload_id = response_json['upload_id']
@@ -604,9 +604,9 @@ def test_post_uploads_with_publish_directly(
         assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
 
 
-def test_post_uploads_oasis_not_admin(
+def test_post_upload_oasis_not_admin(
         client, mongo, non_empty_example_upload, other_test_user_auth, test_user):
-    response = perform_post_uploads(
+    response = perform_post_upload(
         client, 'stream', non_empty_example_upload, other_test_user_auth,
         oasis_upload_id='oasis_upload_id',
         oasis_uploader_id=test_user.user_id,
@@ -614,10 +614,10 @@ def test_post_uploads_oasis_not_admin(
     assert response.status_code == 401
 
 
-def test_post_uploads_oasis_duplicate(
+def test_post_upload_oasis_duplicate(
         client, mongo, non_empty_example_upload, test_user, test_user_auth):
     Upload.create(upload_id='oasis_upload_id', user=test_user).save()
-    response = perform_post_uploads(
+    response = perform_post_upload(
         client, 'stream', non_empty_example_upload, test_user_auth,
         oasis_upload_id='oasis_upload_id',
         oasis_uploader_id=test_user.user_id,
@@ -625,7 +625,7 @@ def test_post_uploads_oasis_duplicate(
     assert response.status_code == 400
 
 
-def test_post_uploads_oasis_missing_parameters(
+def test_post_upload_oasis_missing_parameters(
         client, mongo, non_empty_example_upload, test_user_auth, test_user):
     ''' Attempts to make an oasis upload with one of the mandatory arguments missing. '''
     query_args_full = dict(
@@ -636,13 +636,13 @@ def test_post_uploads_oasis_missing_parameters(
     for k in query_args_full:
         query_args = dict(**query_args_full)
         query_args.pop(k)
-        assert perform_post_uploads(
+        assert perform_post_upload(
             client, 'stream', non_empty_example_upload, test_user_auth,
             **query_args).status_code == 400
 
 
-def test_post_uploads_oasis(client, mongo, proc_infra, test_user_auth, test_user, oasis_example_upload):
-    response = perform_post_uploads(
+def test_post_upload_oasis(client, mongo, proc_infra, test_user_auth, test_user, oasis_example_upload):
+    response = perform_post_upload(
         client, 'stream', oasis_example_upload, test_user_auth,
         oasis_upload_id='oasis_upload_id',
         oasis_uploader_id=test_user.user_id,
@@ -664,11 +664,11 @@ def test_post_uploads_oasis(client, mongo, proc_infra, test_user_auth, test_user
     pytest.param(dict(embargo_length=24), 200, id='non-standard-embargo-length-only'),
     pytest.param(dict(embargo_length=100), 400, id='illegal-embargo-length'),
     pytest.param(dict(with_embargo=False), 200, id='no-embargo')])
-def test_publish(
+def test_action_publish(
         client, test_user_auth, non_empty_example_upload, proc_infra,
         query_args, expected_status_code):
     ''' Tests the publish action with various arguments. '''
-    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth)
+    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
     upload_id = response_json['upload_id']
@@ -679,9 +679,9 @@ def test_publish(
         expected_status_code=expected_status_code, **query_args)
 
 
-def test_publish_empty(client, test_user_auth, empty_upload, proc_infra):
+def test_action_publish_empty(client, test_user_auth, empty_upload, proc_infra):
     ''' Tries to publish an empty upload (without entries). Should fail. '''
-    response = perform_post_uploads(client, 'stream', empty_upload, test_user_auth)
+    response = perform_post_upload(client, 'stream', empty_upload, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
     upload_id = response_json['upload_id']
@@ -690,9 +690,9 @@ def test_publish_empty(client, test_user_auth, empty_upload, proc_infra):
     assert_publish(client, test_user_auth, upload_id, proc_infra, expected_status_code=400)
 
 
-def test_publish_again(client, test_user_auth, admin_user_auth, non_empty_example_upload, proc_infra):
+def test_action_publish_again(client, test_user_auth, admin_user_auth, non_empty_example_upload, proc_infra):
     ''' Tries to publish an upload after it has already been published. Should fail. '''
-    response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth)
+    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
     upload_id = response_json['upload_id']
@@ -703,13 +703,13 @@ def test_publish_again(client, test_user_auth, admin_user_auth, non_empty_exampl
     assert_publish(client, admin_user_auth, upload_id, proc_infra, embargo_length=18, expected_status_code=401)
 
 
-def test_re_process(client, published, test_user_auth, monkeypatch):
+def test_action_reprocess(client, published, test_user_auth, monkeypatch):
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
 
     upload_id = published.upload_id
 
-    response = perform_post_uploads_id_action(client, test_user_auth, upload_id, 're-process')
+    response = perform_post_upload_action(client, test_user_auth, upload_id, 're-process')
     assert response.status_code == 200
     assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
 
@@ -722,7 +722,7 @@ def test_upload_limit(client, mongo, test_user, test_user_auth, proc_infra, non_
     try:
         for _ in range(0, config.services.upload_limit):
             Upload.create(user=test_user)
-        response = perform_post_uploads(client, 'stream', non_empty_example_upload, test_user_auth)
+        response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
         assert response.status_code == 400
         assert Upload.user_uploads(test_user).count() == config.services.upload_limit
     finally:
@@ -731,7 +731,7 @@ def test_upload_limit(client, mongo, test_user, test_user_auth, proc_infra, non_
 
 def test_delete_id_invalid(client, mongo, test_user_auth):
     ''' Trys to delete an invalid upload_id'''
-    response = perform_delete_uploads(client, upload_id='1234567890', user_auth=test_user_auth)
+    response = perform_delete_upload(client, upload_id='1234567890', user_auth=test_user_auth)
     assert response.status_code == 404
 
 
@@ -752,7 +752,7 @@ def test_delete(
         'admin_user': admin_user_auth
     }[delete_user]
 
-    response = perform_post_uploads(
+    response = perform_post_upload(
         client, 'multipart', non_empty_example_upload, test_user_auth)
     assert response.status_code == 200
     response_json = response.json()
@@ -762,7 +762,7 @@ def test_delete(
     if publish:
         assert_publish(client, test_user_auth, upload_id, proc_infra)
 
-    response = perform_delete_uploads(client, upload_id, user_auth=delete_auth)
+    response = perform_delete_upload(client, upload_id, user_auth=delete_auth)
     assert response.status_code == expected_status_code
     if expected_status_code == 200:
         assert_upload_does_not_exist(client, upload_id, test_user_auth)
