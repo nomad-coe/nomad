@@ -246,8 +246,7 @@ class Upload extends React.Component {
     showPublishDialog: false,
     showPublishToCentralNomadDialog: false,
     showDeleteDialog: false,
-    columns: {},
-    expanded: null
+    columns: {}
   }
 
   _unmounted = false
@@ -267,10 +266,6 @@ class Upload extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.open !== this.props.open && this.props.open) {
-      this.setState({expanded: null})
-    }
-
     if (prevProps.domain !== this.props.domain) {
       this.updateColumns()
     }
@@ -710,6 +705,7 @@ class Upload extends React.Component {
       onEdit={this.handleChange}
       actions={actions}
       showEntryActions={entry => entry.processed || !running}
+      entryPagePathPrefix="/uploads"
       {...this.state.params}
     />
   }
@@ -737,17 +733,18 @@ class Upload extends React.Component {
 
   render() {
     const { classes, open } = this.props
-    const { upload, showPublishDialog, showDeleteDialog, showPublishToCentralNomadDialog, expanded } = this.state
+    const { upload, showPublishDialog, showDeleteDialog, showPublishToCentralNomadDialog } = this.state
     const { errors, last_status_message } = upload
 
     if (this.state.upload) {
       return (
         <div className={classes.root}>
           <Accordion
-            expanded={expanded === null ? open : expanded}
-            onChange={(event, expanded) => {
-              this.setState({expanded: expanded})
+            expanded={open}
+            onChange={(event, open) => {
               if (open) {
+                this.props.history.push(`/uploads?open=${upload.upload_id}`)
+              } else {
                 this.props.history.push('/uploads')
               }
             }}

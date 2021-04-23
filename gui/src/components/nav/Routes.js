@@ -17,7 +17,7 @@
  */
 
 import React from 'react'
-import { Route } from 'react-router-dom'
+import { Route, useLocation } from 'react-router-dom'
 import About from '../About'
 import APIs from '../APIs'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
@@ -33,43 +33,15 @@ import UploadPage, {help as uploadHelp} from '../uploads/UploadPage'
 import UserdataPage, {help as userdataHelp} from '../UserdataPage'
 import { ErrorBoundary } from '../errors'
 
-export const routes = {
-  'faq': {
-    path: '/faq',
-    exact: true,
-    appBarTitle: 'Frequently Asked Questions',
-    component: FAQ
-  },
-  'search': {
-    path: '/search',
-    exact: true,
-    appBarTitle: 'Find and Download Data',
-    appBarHelp: {
-      title: 'How to find and download data',
-      content: searchHelp
-    },
-    navPath: 'explore/search',
-    component: SearchPage
-  },
-  'userdata': {
-    path: '/userdata',
-    exact: true,
-    appBarTitle: 'Manage Your Data',
-    appBarHelp: {
-      title: 'How to manage your data',
-      content: userdataHelp
-    },
-    navPath: 'publish/userdata',
-    component: UserdataPage
-  },
-  'entry': {
+function createEntryRoute(props) {
+  return ({
     path: '/entry',
-    appBarTitle: 'Entry',
-    appBarHelp: {
+    title: 'Entry',
+    help: {
       title: 'The entry page',
       content: entryHelp
     },
-    defaultNavPath: 'explore/search',
+    ...props,
     routes: [
       {
         path: '/id',
@@ -85,11 +57,62 @@ export const routes = {
         component: ResolvePID
       }
     ]
+  })
+}
+
+const routeSpecs = [
+  {
+    path: '/faq',
+    exact: true,
+    title: 'Frequently Asked Questions',
+    component: FAQ
   },
-  'dataset': {
+  {
+    path: '/search',
+    exact: true,
+    title: 'Search and Download Data',
+    help: {
+      title: 'How to find and download data',
+      content: searchHelp
+    },
+    navPath: 'explore/search',
+    component: SearchPage
+  },
+  {
+    path: '/userdata',
+    exact: true,
+    title: 'Manage Your Data',
+    help: {
+      title: 'How to manage your data',
+      content: userdataHelp
+    },
+    navPath: 'publish/userdata',
+    component: UserdataPage,
+    routes: [
+      createEntryRoute({
+        navPath: 'publish/userdata',
+        breadCrumbs: [
+          {
+            title: 'Your Data',
+            path: '/userdata'
+          }
+        ]
+      })
+    ]
+  },
+  createEntryRoute({
+    navPath: 'explore/search',
+    breadCrumbs: [
+      {
+        title: 'Search',
+        path: '/search'
+      }
+    ]
+  }),
+  {
     path: '/dataset',
-    appBarTitle: 'Dataset',
-    defaultNavPath: 'explore/search',
+    title: 'Dataset',
+    navPath: 'explore/search',
     routes: [
       {
         path: '/id',
@@ -101,68 +124,93 @@ export const routes = {
       }
     ]
   },
-  'uploads': {
+  {
     path: '/uploads',
     exact: true,
-    appBarTitle: 'Upload and Publish Data',
-    appBarHelp: {
+    title: 'Upload and Publish Data',
+    help: {
       title: 'How to upload data',
       content: uploadHelp
     },
     navPath: 'publish/uploads',
-    component: UploadPage
+    component: UploadPage,
+    routes: [
+      createEntryRoute({
+        navPath: 'publish/uploads',
+        breadCrumbs: [
+          {
+            title: 'Uploads',
+            path: '/uploads'
+          }
+        ]
+      })
+    ]
   },
-  'metainfo': {
+  {
     path: '/metainfo',
-    appBarTitle: 'The NOMAD Meta Info',
-    appBarHelp: {
+    title: 'The NOMAD Meta Info',
+    help: {
       title: 'About the NOMAD meta-info',
       content: metainfoHelp
     },
     navPath: 'analyze/metainfo',
     component: MetainfoPage
   },
-  'aitoolkit': {
+  {
     path: '/aitoolkit',
-    appBarTitle: 'Artificial Intelligence Toolkit',
+    title: 'Artificial Intelligence Toolkit',
     navPath: 'analyze/aitoolkit',
     component: AIToolkitPage
   },
-  'apis': {
+  {
     exact: true,
     path: '/apis',
-    appBarTitle: 'APIs',
+    title: 'APIs',
     navPath: 'analyze/apis',
     component: APIs
   },
-  'about': {
+  {
     exact: true,
     path: '/',
-    appBarTitle: 'About, Documentation, Getting Help',
+    title: 'About, Documentation, Getting Help',
     navPath: 'about/info',
     component: About
   }
+]
+
+function flattenRouteSpecs(routeSpecs, parent, results) {
+  results = results || []
+  parent = parent || {}
+  routeSpecs.forEach(route => {
+    const flatRoute = {
+      ...parent,
+      component: null,
+      exact: false,
+      ...route,
+      path: parent.path ? `${parent.path}/${route.path.replace(/^\/+/, '')}` : route.path,
+      routes: undefined
+    }
+
+    if (flatRoute.component) {
+      results.push(flatRoute)
+    }
+
+    if (route.routes) {
+      flattenRouteSpecs(route.routes, flatRoute, results)
+    }
+  })
+  return results
 }
 
-export const allRoutes = Object.keys(routes).map(key => {
-  const route = routes[key]
-  return route.routes
-    ? route.routes.map(subRoute => ({
-      ...route,
-      ...subRoute,
-      path: `${route.path}/${subRoute.path.replace(/^\/+/, '')}`,
-      routes: undefined
-    }))
-    : route
-}).flat()
+export const routes = flattenRouteSpecs(routeSpecs)
+routes.sort((a, b) => (a.path > b.path) ? -1 : 1)
 
 export default function Routes() {
   return <React.Fragment>
-    {Object.keys(allRoutes).map(routeKey => {
-      const route = allRoutes[routeKey]
-      const { path, exact } = route
+    {routes.map(route => {
+      const {path, exact} = route
       const children = childProps => childProps.match && <route.component {...childProps} />
-      return <ErrorBoundary key={routeKey}>
+      return <ErrorBoundary key={path}>
         <Route exact={exact} path={path}
           // eslint-disable-next-line react/no-children-prop
           children={children}
@@ -170,4 +218,17 @@ export default function Routes() {
       </ErrorBoundary>
     })}
   </React.Fragment>
+}
+
+export function useRoute() {
+  const {pathname, search} = useLocation()
+  routes.forEach(route => {
+    (route.breadCrumbs || []).forEach(breadCrumb => {
+      if (breadCrumb.path.startsWith(pathname)) {
+        breadCrumb.path = pathname + (search || '')
+      }
+    })
+  })
+  const route = routes.find(route => pathname.startsWith(route.path))
+  return route
 }

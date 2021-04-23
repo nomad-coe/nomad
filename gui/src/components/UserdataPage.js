@@ -77,7 +77,10 @@ function UserdataPage() {
     initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
     initialResultTab="uploads"
     availableResultTabs={['uploads', 'datasets', 'entries', ...(encyclopediaEnabled ? ['materials'] : [])]}
-    resultListProps={{selectedColumnsKey: 'userEntries', selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
+    resultListProps={{
+      selectedColumnsKey: 'userEntries',
+      entryPagePathPrefix: '/userdata',
+      selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
   />
 }
 
