@@ -46,6 +46,11 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.3
+- fixes in the VASP parser
+- new tubemole parser
+- property placeholders while loading entry page
+
 ### v0.10.2
 - fixes small parser and normalizer issues
 - fixes broken embargo lifting
