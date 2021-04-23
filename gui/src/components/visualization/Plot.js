@@ -60,7 +60,8 @@ export default function Plot({
   onRelayouting,
   onHover,
   onReset,
-  layoutSubject
+  layoutSubject,
+  'data-testid': testID
 }) {
   // States
   const [float, setFloat] = useState(false)
@@ -368,19 +369,25 @@ export default function Plot({
 
   // If data is set explicitly to False, we show the NoData component.
   if (data === false) {
-    return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}}/>
+    return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
+      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}} data-testid={`${testID}-nodata`}/>
     </Box>
   }
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
   // placeholder with visibility=hidden. This way Plotly still has access to
   // these HTML nodes and their sizes when the plots are loading.
-  return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-    {loading && <Placeholder className={styles.placeHolder} classes={{placeholder: placeHolderStyle}} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
+  return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
+    {loading && <Placeholder
+      className={styles.placeHolder}
+      classes={{placeholder: placeHolderStyle}}
+      variant="rect"
+      aspectRatio={aspectRatio}
+      data-testid={`${testID}-placeholder`}
+    ></Placeholder>}
     <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}}>
+      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}} data-testid="testi">
         {warning && <Tooltip title={warning}>
           <Warning className={styles.warning}></Warning>
         </Tooltip>}
@@ -416,7 +423,8 @@ Plot.propTypes = {
    * rendering of the component. Should send messages that contain the new
    * layout object.
   */
-  layoutSubject: PropTypes.any
+  layoutSubject: PropTypes.any,
+  'data-testid': PropTypes.string
 }
 Plot.defaultProps = {
   aspectRatio: 9 / 16,

@@ -18,7 +18,7 @@
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { apiContext } from '../apiv1'
-import { domains } from '../domains'
+import { domainComponents } from '../domainComponents'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 import { Typography, makeStyles } from '@material-ui/core'
@@ -54,8 +54,7 @@ export default function OverviewView({uploadId, entryId}) {
   const [exists, setExists] = useState(true)
 
   // When loaded for the first time, download calc data from the ElasticSearch
-  // index. It is used quick to fetch and will be used to decide the subview to
-  // show.
+  // index. It is used to decide the subview to show.
   useEffect(() => {
     api.entry(entryId).then(data => {
       setEntry(data)
@@ -79,7 +78,7 @@ export default function OverviewView({uploadId, entryId}) {
 
   // When repo data is loaded, return a subview that depends on the domain.
   if (entry?.data?.domain) {
-    const domain = entry.data.domain && domains[entry.data.domain]
+    const domain = entry.data.domain && domainComponents[entry.data.domain]
     return <EntryPageContent fixed>
       <domain.EntryOverview data={entry.data}/>
     </EntryPageContent>

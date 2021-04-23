@@ -62,7 +62,8 @@ function Structure({
   aspectRatio,
   positionsOnly,
   sizeLimit,
-  positionsSubject}
+  positionsSubject,
+  'data-testid': testID}
 ) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -364,12 +365,18 @@ function Structure({
             YES
         </Button>
       }
+      data-testid={testID}
     >
       {`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
     </Alert>
   }
   if (loading) {
-    return <Placeholder variant="rect" className={clsx(styles.root, className)} aspectRatio={aspectRatio}></Placeholder>
+    return <Placeholder
+      variant="rect"
+      className={clsx(styles.root, className)}
+      aspectRatio={aspectRatio}
+      data-testid={testID}
+    ></Placeholder>
   }
 
   // List of actionable buttons for the viewer
@@ -467,7 +474,7 @@ function Structure({
       </Menu>
     </div>
   </Box>
-  return <Box className={clsx(styles.root, className)} >
+  return <Box className={clsx(styles.root, className)} data-testid={testID}>
     <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
       {content}
     </Floatable>
@@ -492,7 +499,8 @@ Structure.propTypes = {
    * rendering of the component. Should send messages that contain the new
    * atomic positions as a list.
   */
-  positionsSubject: PropTypes.any
+  positionsSubject: PropTypes.any,
+  'data-testid': PropTypes.string
 }
 Structure.defaultProps = {
   aspectRatio: 4 / 3,

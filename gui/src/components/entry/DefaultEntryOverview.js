@@ -19,7 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
 import { Divider, Grid, Card, CardHeader, CardContent, Typography, Link, makeStyles } from '@material-ui/core'
-import { domains } from '../domains'
+import { domainData } from '../domainData'
 import ApiDialogButton from '../ApiDialogButton'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
@@ -46,7 +46,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function DefaultEntryOverview({data, children}) {
   const classes = useStyles()
-  const domain = data.domain && domains[data.domain]
+  const domain = data.domain && domainData[data.domain]
   let entryHeader = 'Entry metadata'
   if (domain) {
     entryHeader = domain.entryTitle(data)

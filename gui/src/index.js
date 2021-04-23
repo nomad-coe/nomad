@@ -24,22 +24,18 @@ import App from './components/App'
 import '@fontsource/titillium-web/400.css'
 import '@fontsource/titillium-web/600.css'
 import '@fontsource/material-icons'
-import * as serviceWorker from './serviceWorker'
-
-export const serviceWorkerUpdateHandlerRef = {
-  current: null
-}
-
-export const serviceWorkerRegistrationRef = {
-  current: null
-}
+import {
+  register,
+  serviceWorkerUpdateHandlerRef,
+  serviceWorkerRegistrationRef
+} from './serviceWorker'
 
 ReactDOM.render(<App />, document.getElementById('root'))
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.register({
+register({
   onSuccess: registration => {
     serviceWorkerRegistrationRef.current = registration
     setInterval(() => {

@@ -19,7 +19,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
 import { apiContext } from '../apiv1'
-import { domains } from '../domains'
+import { domainComponents } from '../domainComponents'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 
@@ -53,7 +53,7 @@ export default function RawFileView({uploadId, entryId}) {
   }, [api, raiseError, entryId, setState])
 
   const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
-  const domain = entryData.domain && domains[entryData.domain]
+  const domainComponent = entryData.domain && domainComponents[entryData.domain]
 
   if (state.doesNotExist) {
     return <EntryPageContent>
@@ -65,7 +65,7 @@ export default function RawFileView({uploadId, entryId}) {
 
   return (
     <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
-      {domain && <domain.EntryRawView data={entryData} entryId={entryId} uploadId={uploadId} />}
+      {domainComponent && <domainComponent.EntryRawView data={entryData} entryId={entryId} uploadId={uploadId} />}
     </EntryPageContent>
   )
 }

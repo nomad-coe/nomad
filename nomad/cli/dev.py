@@ -103,11 +103,13 @@ def metainfo_undecorated():
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
+    import json
+
+    # Add V0 searchable quantities
     from nomad.search import v0 as search
     # Due to this import, the parsing module will register all code_names based on parser
     # implementations.
     from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import
-    import json
 
     def to_dict(search_quantity):
         result = {
@@ -127,6 +129,26 @@ def search_quantities():
         search_quantity.qualified_name: to_dict(search_quantity)
         for search_quantity in search.search_quantities.values()
     }
+
+    # Add V1 searchable quantities: currently only quantities with "entry_type"
+    # are included.
+    from nomad.metainfo.elasticsearch_extension import entry_type
+    from nomad.datamodel import EntryArchive
+    entry_section_def = EntryArchive.m_def
+    entry_type.create_mapping(entry_section_def)
+
+    def to_dictV1(search_quantity):
+        result = {
+            'name': search_quantity.qualified_name,
+            'description': search_quantity.definition.description,
+        }
+        return result
+
+    export.update({
+        search_quantity.qualified_name: to_dictV1(search_quantity)
+        for search_quantity in entry_type.quantities.values()
+    })
+
     print(json.dumps(export, indent=2))
 
 

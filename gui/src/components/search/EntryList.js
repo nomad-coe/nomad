@@ -30,7 +30,8 @@ import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
-import { domains } from '../domains'
+import { domainData } from '../domainData'
+import { domainComponents } from '../domainComponents'
 import { apiContext, withApi } from '../api'
 import { authorList, nameList } from '../../utils'
 
@@ -249,12 +250,13 @@ export class EntryListUnstyled extends React.Component {
 
   renderEntryDetails(row) {
     const { classes } = this.props
-    const domain = (row.domain && domains[row.domain]) || domains.dft
+    const domain = (row.domain && domainData[row.domain]) || domainData.dft
+    const domainComponent = (row.domain && domainComponents[row.domain]) || domainComponents.dft
 
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <domain.EntryDetails data={row} />
+          <domainComponent.EntryDetails data={row} />
         </div>
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>

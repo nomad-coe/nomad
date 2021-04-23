@@ -186,7 +186,6 @@ export default function DFTEntryOverview({data}) {
   useEffect(() => {
     apiv1.results(data.entry_id).then(archive => {
     }).catch(error => {
-      setLoading(false)
       if (error.name === 'DoesNotExist') {
       } else {
         raiseError(error)
@@ -199,6 +198,9 @@ export default function DFTEntryOverview({data}) {
   // have more information stored in the ES index, it can be used to select
   // which parts of the Archive should be downloaded to reduce bandwidth.
   useEffect(() => {
+    if (!api) {
+      return
+    }
     api.archive(data.upload_id, data.calc_id).then(archive => {
       let structs = {}
       const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
@@ -408,7 +410,7 @@ export default function DFTEntryOverview({data}) {
             <Quantity flex>
               <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap {...quantityProps}/>
               <Quantity quantity="results.method.simulation.program_version" label='program version' ellipsisFront {...quantityProps}/>
-              <Quantity quantity="results.method.method_name" label='electronic structure method' noWrap {...quantityProps}/>
+              <Quantity quantity="results.method.method_name" label='method name' noWrap {...quantityProps}/>
               {data?.results?.method?.method_name === 'DFT' && <>
                 <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap {...quantityProps}/>
                 <Quantity quantity="results.method.simulation.dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
@@ -445,7 +447,7 @@ export default function DFTEntryOverview({data}) {
                 </Typography>
               </Quantity>
               <Quantity
-                desciption={searchQuantities['datasets'] && searchQuantities['datasets'].description}
+                description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
                 label='datasets'
                 placeholder='no datasets'
                 {...quantityProps}
@@ -465,7 +467,7 @@ export default function DFTEntryOverview({data}) {
           <SidebarCard>
             <Quantity column style={{maxWidth: 350}}>
               <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
-              <Quantity quantity="entry_id" label='entry_id' noWrap withClipboard {...quantityProps}/>
+              <Quantity quantity="entry_id" label='entry id' noWrap withClipboard {...quantityProps}/>
               <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
               <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
               <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
@@ -523,7 +525,7 @@ export default function DFTEntryOverview({data}) {
                         />
                         <Quantity
                           description="Space group symbol and number"
-                          label="spacegroup"
+                          label="space group"
                           hideIfUnavailable
                           noWrap
                           {...quantityProps}
@@ -554,8 +556,8 @@ export default function DFTEntryOverview({data}) {
               </Grid>
               <Grid item xs={7} style={{marginTop: '-2rem'}}>
                 {(loading || !_.isEmpty(structures))
-                  ? <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5}/>
-                  : <NoData aspectRatio={1.5}/>
+                  ? <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5} data-testid="viewer-material"/>
+                  : <NoData aspectRatio={1.5} data-testid="viewer-material"/>
                 }
               </Grid>
             </Grid>

@@ -56,7 +56,7 @@ const useStaticStyles = makeStyles(theme => ({
     userSelect: 'none'
   }
 }))
-export default function NoData({aspectRatio, className, classes}) {
+export default function NoData({aspectRatio, className, classes, 'data-testid': testID}) {
   // These styles change for each component individually
   const useStyles = makeStyles(theme => ({
     outerContainer: {
@@ -68,7 +68,7 @@ export default function NoData({aspectRatio, className, classes}) {
   }))
   const staticStyles = useStaticStyles({classes: classes})
   const styles = useStyles()
-  const content = <Box className={staticStyles.container}>
+  const content = <Box className={staticStyles.container} data-testid={testID}>
     <div className={staticStyles.message}>no data</div>
   </Box>
   return aspectRatio
@@ -85,5 +85,6 @@ export default function NoData({aspectRatio, className, classes}) {
 NoData.propTypes = {
   aspectRatio: PropTypes.number,
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  'data-testid': PropTypes.string
 }

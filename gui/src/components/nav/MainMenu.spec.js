@@ -16,33 +16,33 @@
  * limitations under the License.
  */
 
-// import React from 'react'
+import React from 'react'
 import 'regenerator-runtime/runtime'
-// import { toBeInTheDocument } from '@testing-library/jest-dom'
-// import { render, screen, within } from '@testing-library/react'
-// import { MemoryRouter } from 'react-router-dom'
-// import MainMenu from './MainMenu'
-// import { allRoutes as routes } from './Routes'
+import { toBeInTheDocument } from '@testing-library/jest-dom'
+import { render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import MainMenu from './MainMenu'
+import { allRoutes as routes } from './Routes'
 
-// expect.extend({ toBeInTheDocument })
+expect.extend({ toBeInTheDocument })
 
 describe('<MainMenu />', () => {
   it('renders menu items for all nav paths', () => {
-    // render(<MemoryRouter>
-    //   <MainMenu />
-    // </MemoryRouter>)
-    // Object.keys(routes).forEach(key => {
-    //   const route = routes[key]
-    //   if (route.navPath) {
-    //     let item =  screen
-    //     const path = route.navPath.split('/')
-    //     for (let i = 0; i < path.length; i++) {
-    //       const itemId = path[i]
-    //       const element = item.getByTestId(itemId)
-    //       expect(element).toBeInTheDocument()
-    //       item = within(element)
-    //     }
-    //   }
-    // })
+    render(<MemoryRouter>
+      <MainMenu />
+    </MemoryRouter>)
+    Object.keys(routes).forEach(key => {
+      const route = routes[key]
+      if (route.navPath) {
+        let item = screen
+        const path = route.navPath.split('/')
+        for (let i = 0; i < path.length; i++) {
+          const itemId = path[i]
+          const element = item.getByTestId(itemId)
+          expect(element).toBeInTheDocument()
+          item = within(element)
+        }
+      }
+    })
   })
 })

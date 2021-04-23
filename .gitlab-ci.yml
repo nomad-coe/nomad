@@ -13,9 +13,9 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
 
 stages:
   - build
+  - prepare
   - test
   - release
-
 
 variables:
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
@@ -40,6 +40,29 @@ build:
   except:
     - /^dev-.*$/
     - tags
+
+prepare:
+  stage: prepare
+  image: $TEST_IMAGE
+  script:
+    - python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - python -m nomad.cli dev units > gui/src/units.js
+  except:
+    - /^dev-.*$/
+    - tags
+  # The configuration files created with python are passed down as Gitlab CI
+  # Artifacts to the GUI tests. This ensures that the latest versions are
+  # always used by the tests.
+  artifacts:
+    paths:
+    - gui/src/metainfo.json
+    - gui/src/searchQuantities.json
+    - gui/src/parserMetadata.json
+    - gui/src/toolkitMetadata.json
+    - gui/src/units.js
+    expire_in: 1 hrs
 
 python linting:
   stage: test
@@ -106,6 +129,8 @@ gui tests:
   stage: test
   image: node
   script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia
     - cd gui
     - yarn
     - yarn run test

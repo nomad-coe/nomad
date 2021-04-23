@@ -25,7 +25,7 @@ import SearchBar from './SearchBar'
 import EntryList from './EntryList'
 import DatasetList from './DatasetList'
 import { DisableOnLoading } from '../api'
-import { domains } from '../domains'
+import { domainData } from '../domainData'
 import PeriodicTable from './PeriodicTable'
 import ReloadIcon from '@material-ui/icons/Cached'
 import UploadList from './UploadsList'
@@ -382,7 +382,7 @@ const useDomainSelectStyles = makeStyles(theme => ({
 function DomainSelect({initialDomain}) {
   const {setDomain} = useContext(searchContext)
   const [domainParam, setDomainParam] = useQueryParam('domain', StringParam)
-  const domain = domainParam || initialDomain || domains.dft.key
+  const domain = domainParam || initialDomain || domainData.dft.key
 
   useEffect(() => setDomain(domain), [domain, setDomain])
 
@@ -402,15 +402,15 @@ function DomainSelect({initialDomain}) {
             horizontal: 'left'
           }
         }}
-        renderValue={key => domains[key].name}
+        renderValue={key => domainData[key].name}
         value={domain}
         onChange={event => setDomainParam(event.target.value)}
         onMouseEnter={() => handleTooltip(true)}
         onMouseLeave={() => handleTooltip(false)}
         onOpen={() => handleTooltip(false)}
       >
-        {Object.keys(domains).map(domainKey => {
-          const domain = domains[domainKey]
+        {Object.keys(domainData).map(domainKey => {
+          const domain = domainData[domainKey]
           return (
             <MenuItem value={domain.key} key={domain.key}>
               <Tooltip title={domain.about}>
