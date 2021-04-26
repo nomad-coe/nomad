@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, ExpansionPanel, ExpansionPanelSummary, Typography,
-  ExpansionPanelDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
+import { withStyles, Accordion, AccordionSummary, Typography,
+  AccordionDetails, Stepper, Step, StepLabel, Tooltip, CircularProgress,
   IconButton, DialogTitle, DialogContent, Button, Dialog, DialogActions, FormControl,
   Select, InputLabel, Input, MenuItem, FormHelperText} from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
@@ -246,8 +246,7 @@ class Upload extends React.Component {
     showPublishDialog: false,
     showPublishToCentralNomadDialog: false,
     showDeleteDialog: false,
-    columns: {},
-    expanded: null
+    columns: {}
   }
 
   _unmounted = false
@@ -267,10 +266,6 @@ class Upload extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.open !== this.props.open && this.props.open) {
-      this.setState({expanded: null})
-    }
-
     if (prevProps.domain !== this.props.domain) {
       this.updateColumns()
     }
@@ -710,6 +705,7 @@ class Upload extends React.Component {
       onEdit={this.handleChange}
       actions={actions}
       showEntryActions={entry => entry.processed || !running}
+      entryPagePathPrefix="/uploads"
       {...this.state.params}
     />
   }
@@ -737,27 +733,28 @@ class Upload extends React.Component {
 
   render() {
     const { classes, open } = this.props
-    const { upload, showPublishDialog, showDeleteDialog, showPublishToCentralNomadDialog, expanded } = this.state
+    const { upload, showPublishDialog, showDeleteDialog, showPublishToCentralNomadDialog } = this.state
     const { errors, last_status_message } = upload
 
     if (this.state.upload) {
       return (
         <div className={classes.root}>
-          <ExpansionPanel
-            expanded={expanded === null ? open : expanded}
-            onChange={(event, expanded) => {
-              this.setState({expanded: expanded})
+          <Accordion
+            expanded={open}
+            onChange={(event, open) => {
               if (open) {
+                this.props.history.push(`/uploads?open=${upload.upload_id}`)
+              } else {
                 this.props.history.push('/uploads')
               }
             }}
           >
-            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>} >
+            <AccordionSummary expandIcon={<ExpandMoreIcon/>} >
               {this.renderStatusIcon()}
               {this.renderTitle()}
               {this.renderStepper()}
-            </ExpansionPanelSummary>
-            <ExpansionPanelDetails style={{width: '100%'}} classes={{root: classes.details}}>
+            </AccordionSummary>
+            <AccordionDetails style={{width: '100%'}} classes={{root: classes.details}}>
               {errors && errors.length > 0
                 ? <Typography className={classes.detailsContent} color="error">
                   Upload processing has errors: {errors.join(', ')}
@@ -771,8 +768,8 @@ class Upload extends React.Component {
                 ? <div className={classes.detailsContent}>
                   <ReactJson src={upload} enableClipboard={false} collapsed={0} />
                 </div> : ''}
-            </ExpansionPanelDetails>
-          </ExpansionPanel>
+            </AccordionDetails>
+          </Accordion>
           <PublishConfirmDialog
             open={showPublishDialog}
             onClose={this.handlePublishCancel}

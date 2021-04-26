@@ -1,8 +1,10 @@
 from typing import Callable
 from lark import v_args
-from elasticsearch_dsl import Q, Text, Keyword, Integer, Field, Boolean
-from optimade.filtertransformers.elasticsearch import Quantity, ElasticTransformer
+from elasticsearch_dsl import Q, Field, Text, Keyword, Integer, Boolean
+from optimade.filtertransformers.elasticsearch import Quantity
 from nomad.atomutils import get_hill_decomposition
+
+from nomad.app.optimade.filterparser import ElasticTransformer
 
 
 _cmp_operators = {">": "gt", ">=": "gte", "<": "lt", "<=": "lte"}
@@ -63,18 +65,19 @@ class MQuantity(Quantity):
 
 
 class MElasticTransformer(ElasticTransformer):
-    """A specialized Optimade/Lark transformer for handling material queries.
+    '''
+    A specialized Optimade/Lark transformer for handling material queries.
     Provides mostly the same functionality as
     optimade.filtertransformers.elasticsearch.ElasticTransformer, but has
-    additions that make nested queries and parameter conversions possible.
+    additions that make nested queries, parameter conversions and the use of
+    boolean values possible.
 
     Uses elasticsearch_dsl and will produce a :class:`Q` instance.
 
     Arguments:
         quantities: A list of :class:`MQuantity`s that describe how optimade (and other)
             quantities are mapped to the elasticsearch index.
-    """
-
+    '''
     def _query_op(self, quantity, op, value, nested=None):
         """
         Return a range, match, or term query for the given quantity, comparison

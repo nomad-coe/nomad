@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { apiContext } from '../api'
-import ElectronicStructureOverview from '../visualization/ElectronicStructureOverview'
-import VibrationalOverview from '../visualization/VibrationalOverview'
+import ElectronicProperties from '../visualization/ElectronicProperties'
+import VibrationalProperties from '../visualization/VibrationalProperties'
+import GeometryOptimization from '../visualization/GeometryOptimization'
 import { ApiDialog } from '../ApiDialogButton'
 import Structure from '../visualization/Structure'
 import NoData from '../visualization/NoData'
@@ -31,12 +32,11 @@ import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { domains } from '../domains'
 import { errorContext } from '../errors'
-import { authorList, convertSI, mergeObjects } from '../../utils'
+import { authorList, convertSI, mergeObjects, getHighestOccupiedEnergy } from '../../utils'
 import { resolveRef, refPath } from '../archive/metainfo'
 import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
-import GeoOptOverview from '../visualization/GeoOptOverview'
 
 const useHeaderStyles = makeStyles(theme => ({
   root: {
@@ -127,8 +127,16 @@ const useStyles = makeStyles(theme => ({
   cardHeader: {
     paddingBottom: 0
   },
-  sidebar: {
+  leftSidebar: {
+    maxWidth: '32%',
+    flexBasis: '32%',
+    flexGrow: 0,
     paddingRight: theme.spacing(3)
+  },
+  rightSidebar: {
+    maxWidth: '67.99%',
+    flexBasis: '67.99%',
+    flexGrow: 0
   },
   divider: {
     marginTop: theme.spacing(1),
@@ -146,17 +154,32 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 export default function DFTEntryOverview({data}) {
+  const availableProps = useMemo(() => {
+    let properties
+    if (data?.dft?.searchable_quantities) {
+      properties = new Set(data.dft.searchable_quantities)
+    } else {
+      properties = new Set()
+    }
+    if (data?.dft?.workflow?.workflow_type === 'geometry_optimization') {
+      properties.add('geometry_optimization')
+    }
+    return properties
+  }, [data])
   const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
-  const [electronicStructure, setElectronicStructure] = useState(null)
-  const [vibrationalData, setVibrationalData] = useState(null)
-  const [geoOpt, setGeoOpt] = useState(null)
+  const [dosElectronic, setDosElectronic] = useState(availableProps.has('electronic_dos') ? null : false)
+  const [bsElectronic, setBsElectronic] = useState(availableProps.has('electronic_band_structure') ? null : false)
+  const [bsPhonon, setBsPhonon] = useState(availableProps.has('phonon_band_structure') ? null : false)
+  const [dosPhonon, setDosPhonon] = useState(availableProps.has('phonon_dos') ? null : false)
+  const [heatCapacity, setHeatCapacity] = useState(availableProps.has('thermodynamical_property_heat_capacity_C_v') ? null : false)
+  const [freeEnergy, setFreeEnergy] = useState(availableProps.has('vibrational_free_energy_at_constant_volume') ? null : false)
+  const [dataGeoOpt, setDataGeoOpt] = useState(availableProps.has('geometry_optimization') ? null : false)
   const [structures, setStructures] = useState(null)
   const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const materialType = data?.encyclopedia?.material?.material_type
-
   const styles = useStyles()
 
   // When loaded for the first time, start downloading the archive. Once
@@ -199,11 +222,12 @@ export default function DFTEntryOverview({data}) {
           }
           if (!e_bs && scc.section_k_band) {
             const first_band = scc.section_k_band[scc.section_k_band.length - 1]
+            first_band.energy_highest_occupied = getHighestOccupiedEnergy(first_band, scc)
             if (first_band.band_structure_kind !== 'vibrational') {
               e_bs = {
                 'section_system': scc.single_configuration_calculation_to_system_ref,
                 'section_method': scc.single_configuration_calculation_to_system_ref,
-                'section_k_band': scc.section_k_band[scc.section_k_band.length - 1],
+                'section_k_band': first_band,
                 'path': `${url}/section_run/section_single_configuration_calculation:${i}/section_k_band:${scc.section_k_band.length - 1}`
               }
             }
@@ -219,10 +243,11 @@ export default function DFTEntryOverview({data}) {
         }
       }
 
-      if (e_dos || e_bs) {
-        setElectronicStructure({
-          'dos': e_dos, 'bs': e_bs
-        })
+      if (e_dos) {
+        setDosElectronic(e_dos)
+      }
+      if (e_bs) {
+        setBsElectronic(e_bs)
       }
 
       // See if there are workflow results
@@ -235,7 +260,6 @@ export default function DFTEntryOverview({data}) {
         if (wfType === 'geometry_optimization') {
           let failed = false
           let energies = []
-          const trajectory = []
           try {
             const calculations = section_wf.calculations_ref
             let initialEnergy = null
@@ -257,17 +281,6 @@ export default function DFTEntryOverview({data}) {
                 initialEnergy = e
               }
               energies.push(e - initialEnergy)
-              let sys = calc.single_configuration_calculation_to_system_ref
-              sys = resolveRef(sys, archive)
-              if (sys === undefined) {
-                throw Error('invalid system reference')
-              }
-              trajectory.push({
-                species: sys.atom_species,
-                cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-                positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-                pbc: sys.configuration_periodic_dimensions
-              })
             }
           } catch (err) {
             failed = true
@@ -277,10 +290,10 @@ export default function DFTEntryOverview({data}) {
             const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
             const sampling_method = section_run?.section_sampling_method
             const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
-            const e_criteria = e_criteria_wf || e_criteria_fs
-            setGeoOpt({energies: energies, structures: trajectory, energy_change_criteria: e_criteria})
+            const e_criteria = convertSI(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
+            setDataGeoOpt({energies: energies, energy_change_criteria: e_criteria})
           } else {
-            setGeoOpt({})
+            setDataGeoOpt({})
           }
         } else if (wfType === 'phonon') {
           // Find phonon dos and dispersion
@@ -306,7 +319,6 @@ export default function DFTEntryOverview({data}) {
           // Find thermal properties
           let free_energy = null
           let heat_capacity = null
-          let temperature = null
           const sequences = section_run.section_frame_sequence
           const sequence = sequences && sequences[sequences.length - 1]
           if (sequence) {
@@ -314,25 +326,20 @@ export default function DFTEntryOverview({data}) {
             if (properties) {
               heat_capacity = {
                 thermodynamical_property_heat_capacity_C_v: properties.thermodynamical_property_heat_capacity_C_v,
-                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/thermodynamical_property_heat_capacity_C_v`
+                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/thermodynamical_property_heat_capacity_C_v`,
+                temperature: properties.thermodynamical_property_temperature
               }
               free_energy = {
                 vibrational_free_energy_at_constant_volume: properties.vibrational_free_energy_at_constant_volume,
-                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/vibrational_free_energy_at_constant_volume`
+                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/vibrational_free_energy_at_constant_volume`,
+                temperature: properties.thermodynamical_property_temperature
               }
-              temperature = properties.thermodynamical_property_temperature
             }
           }
-
-          if (v_dos || v_bs || free_energy || heat_capacity) {
-            setVibrationalData({
-              dos: v_dos,
-              bs: v_bs,
-              free_energy: free_energy,
-              heat_capacity: heat_capacity,
-              temperature: temperature
-            })
-          }
+          v_dos && setDosPhonon(v_dos)
+          v_bs && setBsPhonon(v_bs)
+          free_energy && setFreeEnergy(free_energy)
+          heat_capacity && setHeatCapacity(heat_capacity)
         }
       }
 
@@ -408,7 +415,7 @@ export default function DFTEntryOverview({data}) {
         raiseError(error)
       }
     }).finally(() => setLoading(false))
-  }, [data, api, raiseError, setElectronicStructure, setStructures])
+  }, [data, api, raiseError])
 
   const quantityProps = {data: data, loading: !data}
   const domain = data.domain && domains[data.domain]
@@ -418,7 +425,7 @@ export default function DFTEntryOverview({data}) {
       <Grid container spacing={0} className={styles.root}>
 
         {/* Left column */}
-        <Grid item xs={4} className={styles.sidebar}>
+        <Grid item xs={4} className={styles.leftSidebar}>
           <SidebarCard title='Method'>
             <Quantity flex>
               <Quantity quantity="dft.code_name" label='code name' noWrap {...quantityProps}/>
@@ -510,7 +517,7 @@ export default function DFTEntryOverview({data}) {
         </Grid>
 
         {/* Right column */}
-        <Grid item xs={8}>
+        <Grid item xs={8} className={styles.rightSidebar}>
           <PropertyCard title="Material">
             <Grid container spacing={1}>
               <Grid item xs={5}>
@@ -553,23 +560,33 @@ export default function DFTEntryOverview({data}) {
               </Grid>
             </Grid>
           </PropertyCard>
-          {electronicStructure &&
+          {(dosElectronic !== false ||
+            bsElectronic !== false) &&
             <PropertyCard title="Electronic properties">
-              <ElectronicStructureOverview
-                data={electronicStructure}>
-              </ElectronicStructureOverview>
+              <ElectronicProperties
+                bs={bsElectronic}
+                dos={dosElectronic}
+              >
+              </ElectronicProperties>
             </PropertyCard>
           }
-          {geoOpt && structures &&
+          {dataGeoOpt !== false &&
             <PropertyCard title="Geometry optimization">
-              <GeoOptOverview data={geoOpt}></GeoOptOverview>
+              <GeometryOptimization data={dataGeoOpt}></GeometryOptimization>
             </PropertyCard>
           }
-          {vibrationalData &&
+          {(dosPhonon !== false ||
+            bsPhonon !== false ||
+            heatCapacity !== false ||
+            freeEnergy !== false) &&
             <PropertyCard title="Vibrational properties">
-              <VibrationalOverview
-                data={vibrationalData}>
-              </VibrationalOverview>
+              <VibrationalProperties
+                bs={bsPhonon}
+                dos={dosPhonon}
+                heatCapacity={heatCapacity}
+                freeEnergy={freeEnergy}
+              >
+              </VibrationalProperties>
             </PropertyCard>
           }
         </Grid>

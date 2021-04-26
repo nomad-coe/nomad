@@ -112,6 +112,12 @@ def simplify_version(version):
         return match.group(0)
 
 
+def valid_array(array):
+    """Checks if the given variable is a non-empty array.
+    """
+    return array is not None and len(array) > 0
+
+
 class Label(MSection):
     '''
     Label that further classify a structure.
@@ -410,6 +416,22 @@ class DFTMetadata(MSection):
             if property_name == 'section_system':
                 n_geometries += 1
 
+        # Special handling for electronic/vibrational DOS and band structure:
+        # these cannot currently be distinguished through the presence of a
+        # single metainfo.
+        searchable_quantities.discard("electronic_dos")
+        searchable_quantities.discard("electronic_band_structure")
+        searchable_quantities.discard("phonon_dos")
+        searchable_quantities.discard("phonon_band_structure")
+        if self.band_structure_electronic(entry_archive):
+            searchable_quantities.add("electronic_band_structure")
+        if self.band_structure_phonon(entry_archive):
+            searchable_quantities.add("phonon_band_structure")
+        if self.dos_electronic(entry_archive):
+            searchable_quantities.add("electronic_dos")
+        if self.dos_phonon(entry_archive):
+            searchable_quantities.add("phonon_dos")
+
         self.xc_functional_names = sorted(xc_functionals)
         if len(self.xc_functional_names) > 0:
             self.xc_functional = map_functional_name_to_xc_treatment(
@@ -455,3 +477,119 @@ class DFTMetadata(MSection):
 
         if entry_archive.section_workflow:
             self.workflow = entry_archive.section_workflow
+
+    def band_structure_electronic(self, entry_archive):
+        """Returns whether a valid electronic band structure can be found. In
+        the case of multiple valid band structures, only the latest one is
+        considered.
+
+       Band structure is reported only under the following conditions:
+          - There is a non-empty array of band_k_points.
+          - There is a non-empty array of band_energies.
+          - The reported band_structure_kind is not "vibrational".
+        """
+        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        valid = False
+        for bs in self.traverse_reversed(entry_archive, path):
+            kind = bs.band_structure_kind
+            if kind == "vibrational" or not bs.section_k_band_segment:
+                continue
+            valid = True
+            for segment in bs.section_k_band_segment:
+                energies = segment.band_energies
+                k_points = segment.band_k_points
+                if not valid_array(energies) or not valid_array(k_points):
+                    valid = False
+                    break
+            if valid:
+                break
+        return valid
+
+    def dos_electronic(self, entry_archive):
+        """Returns whether a valid electronic DOS can be found. In the case of
+        multiple valid DOSes, only the latest one is reported.
+
+       DOS is reported only under the following conditions:
+          - There is a non-empty array of dos_values_normalized.
+          - There is a non-empty array of dos_energies.
+          - The reported dos_kind is not "vibrational".
+        """
+        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        for dos in self.traverse_reversed(entry_archive, path):
+            kind = dos.dos_kind
+            energies = dos.dos_energies
+            values = dos.dos_values_normalized
+            if kind != "vibrational" and valid_array(energies) and valid_array(values):
+                return True
+
+        return False
+
+    def band_structure_phonon(self, entry_archive):
+        """Returns whether a valid phonon band structure can be found. In the
+        case of multiple valid band structures, only the latest one is
+        considered.
+
+       Band structure is reported only under the following conditions:
+          - There is a non-empty array of band_k_points.
+          - There is a non-empty array of band_energies.
+          - The reported band_structure_kind is "vibrational".
+        """
+        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        valid = False
+        for bs in self.traverse_reversed(entry_archive, path):
+            kind = bs.band_structure_kind
+            if kind != "vibrational" or not bs.section_k_band_segment:
+                continue
+            valid = True
+            for segment in bs.section_k_band_segment:
+                energies = segment.band_energies
+                k_points = segment.band_k_points
+                if not valid_array(energies) or not valid_array(k_points):
+                    valid = False
+                    break
+            if valid:
+                break
+
+        return valid
+
+    def dos_phonon(self, entry_archive):
+        """Returns whether a valid phonon dos can be found. In the case of
+        multiple valid data sources, only the latest one is reported.
+
+       DOS is reported only under the following conditions:
+          - There is a non-empty array of dos_values_normalized.
+          - There is a non-empty array of dos_energies.
+          - The reported dos_kind is "vibrational".
+        """
+        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        for dos in self.traverse_reversed(entry_archive, path):
+            kind = dos.dos_kind
+            energies = dos.dos_energies
+            values = dos.dos_values
+            if kind == "vibrational" and valid_array(energies) and valid_array(values):
+                return True
+
+        return False
+
+    def traverse_reversed(self, entry_archive, path):
+        """Traverses the given metainfo path in reverse order. Useful in
+        finding the latest reported section or value.
+        """
+        def traverse(root, path, i):
+            sections = getattr(root, path[i])
+            if isinstance(sections, list):
+                for section in reversed(sections):
+                    if i == len(path) - 1:
+                        yield section
+                    else:
+                        for s in traverse(section, path, i + 1):
+                            yield s
+            else:
+                if i == len(path) - 1:
+                    yield sections
+                else:
+                    for s in traverse(sections, path, i + 1):
+                        yield s
+        for t in traverse(entry_archive, path, 0):
+            if t is not None:
+                yield t

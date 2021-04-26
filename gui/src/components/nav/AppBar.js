@@ -17,10 +17,10 @@
  */
 
 import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link as RouterLink } from 'react-router-dom'
 import { Typography,
   AppBar as MuiAppBar, Toolbar, Link, LinearProgress, makeStyles } from '@material-ui/core'
-import { allRoutes as routes } from './Routes'
+import { useRoute } from './Routes'
 import LoginLogout from '../LoginLogout'
 import HelpDialog from '../Help'
 import MainMenu from './MainMenu'
@@ -77,14 +77,7 @@ const useAppBarStyles = makeStyles(theme => ({
 
 export default function AppBar() {
   const classes = useAppBarStyles()
-  const {pathname} = useLocation()
-  const selectedRouteKey = Object.keys(routes).find(key => {
-    const route = routes[key]
-    return pathname.startsWith(route.path)
-  })
-  const selectedRoute = routes[selectedRouteKey]
-  const help = selectedRoute.appBarHelp
-  const title = selectedRoute.appBarTitle
+  const {help, title, breadCrumbs} = useRoute()
 
   return <MuiAppBar position="fixed" className={classes.root}>
     <Toolbar classes={{root: classes.toolbar}} disableGutters>
@@ -93,6 +86,11 @@ export default function AppBar() {
           <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
         </Link>
         <Typography variant="h6" color="inherit" noWrap>
+          {
+            breadCrumbs && breadCrumbs.map((breadCrumb, index) => <React.Fragment key={index}>
+              <Link component={RouterLink} to={breadCrumb.path}>{breadCrumb.title}</Link>&nbsp;›&nbsp;
+            </React.Fragment>)
+          }
           {title}
         </Typography>
         {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}

@@ -17,9 +17,8 @@
 #
 
 import functools
-import fractions
 import itertools
-from math import gcd as gcd
+import math
 from functools import reduce
 from typing import List, Dict, Tuple, Any, Union, cast
 from nptyping import NDArray
@@ -377,7 +376,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
 
     # Reduce if requested
     if reduced:
-        greatest_common_divisor = reduce(gcd, counts)
+        greatest_common_divisor = reduce(math.gcd, counts)
         counts = np.array(counts) / greatest_common_divisor
 
     return names, counts
@@ -468,7 +467,7 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
         counts = [c for x in standard_wyc.values() for c in x.values()]
         gcd = counts[0]
         for c in counts[1:]:
-            gcd = fractions.gcd(gcd, c)
+            gcd = math.gcd(gcd, c)
         if gcd != 1:
             for d in standard_wyc.values():
                 for at, c in d.items():

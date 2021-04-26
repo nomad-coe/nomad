@@ -430,7 +430,10 @@ class TextParser(FileParser):
                     unit = units[j] if units[j] else quantities[i].unit
                     if not unit:
                         continue
-                    value_processed[j] = pint.Quantity(value_processed[j], unit)
+                    if isinstance(unit, str):
+                        value_processed[j] = pint.Quantity(value_processed[j], unit)
+                    else:
+                        value_processed[j] = value_processed[j] * unit
 
                 if not quantities[i].repeats and value_processed:
                     value_processed = value_processed[0]
@@ -445,52 +448,31 @@ class TextParser(FileParser):
 
         value = []
         units = []
-        if not quantity.repeats:
-            res = quantity.re_pattern.search(self.file_mmap)
-            if res is not None:
-                if quantity._sub_parser is not None:
-                    span = np.array(res.span()) + self.file_offset
-                    sub_parser = quantity._sub_parser.copy()
-                    sub_parser.mainfile = self.mainfile
-                    sub_parser.logger = self.logger
-                    if (span[1] - span[0]) < mmap.PAGESIZE or True:
-                        # self.logger.warn(
-                        #     'Cannot use sub parser on quantity %s with blocks with size <'
-                        #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
-                        sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
-                    else:
-                        sub_parser.file_offset = span[0]
-                        sub_parser.file_length = span[1] - sub_parser.file_offset
-                    value.append(sub_parser.parse())
-
+        re_matches = quantity.re_pattern.finditer(self.file_mmap) if quantity.repeats else [
+            quantity.re_pattern.search(self.file_mmap)]
+        for res in re_matches:
+            if res is None:
+                continue
+            if quantity._sub_parser is not None:
+                span = np.array(res.span()) + self.file_offset
+                sub_parser = quantity._sub_parser.copy()
+                sub_parser.mainfile = self.mainfile
+                sub_parser.logger = self.logger
+                if (span[1] - span[0]) < mmap.PAGESIZE or True:
+                    # self.logger.warn(
+                    #     'Cannot use sub parser on quantity %s with blocks with size <'
+                    #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
+                    sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
                 else:
-                    unit = res.groupdict().get('__unit_%s' % quantity.name, None)
-                    units.append(unit.decode() if unit is not None else None)
-                    value.append(' '.join(
-                        [group.decode() for group in res.groups() if group and group != unit]))
+                    sub_parser.file_offset = span[0]
+                    sub_parser.file_length = span[1] - sub_parser.file_offset
+                value.append(sub_parser.parse())
 
-        else:
-            for res in quantity.re_pattern.finditer(self.file_mmap):
-                if quantity._sub_parser is not None:
-                    span = np.array(res.span()) + self.file_offset
-                    sub_parser = quantity._sub_parser.copy()
-                    sub_parser.mainfile = self.mainfile
-                    sub_parser.logger = self.logger
-                    if (span[1] - span[0]) < mmap.PAGESIZE or True:
-                        # self.logger.warn(
-                        #     'Cannot use sub parser on quantity %s with blocks with size <'
-                        #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
-                        sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
-                    else:
-                        sub_parser.file_offset = span[0]
-                        sub_parser.file_length = span[1] - sub_parser.file_offset
-                    value.append(sub_parser.parse())
-
-                else:
-                    unit = res.groupdict().get('__unit_%s' % quantity.name, None)
-                    value.append(
-                        ' '.join([group.decode() for group in res.groups() if group and group != unit]))
-                    units.append(unit.decode() if unit is not None else None)
+            else:
+                unit = res.groupdict().get('__unit_%s' % quantity.name, None)
+                units.append(unit.decode() if unit is not None else None)
+                value.append(' '.join(
+                    [group.decode() for group in res.groups() if group and group != unit]))
 
         if not value:
             return
@@ -505,7 +487,10 @@ class TextParser(FileParser):
                     unit = units[i] if units[i] else quantity.unit
                     if not unit:
                         continue
-                    value_processed[i] = pint.Quantity(value_processed[i], unit)
+                    if isinstance(unit, str):
+                        value_processed[i] = pint.Quantity(value_processed[i], unit)
+                    else:
+                        value_processed[i] = value_processed[i] * unit
 
                 if not quantity.repeats and value_processed:
                     value_processed = value_processed[0]

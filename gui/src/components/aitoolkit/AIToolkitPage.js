@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails, makeStyles, Link, ExpansionPanelActions, Button, Grid, TextField } from '@material-ui/core'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
@@ -128,17 +128,17 @@ export default function AIToolkitPage() {
           <div>
             {section.tutorials.map(tutorial => {
               const key = tutorial.key
-              return <ExpansionPanel
+              return <Accordion
                 key={key}
                 disabled={!filter(tutorial)}
                 expanded={expanded === key}
                 onChange={() => setExpanded(expanded === key ? null : key)}
                 className={classes.tutorial}
               >
-                <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography className={classes.tutorialTitle}>{tutorial.title}</Typography>
-                </ExpansionPanelSummary>
-                <ExpansionPanelDetails className={classes.tutorialDetails}>
+                </AccordionSummary>
+                <AccordionDetails className={classes.tutorialDetails}>
                   <Typography>
                     {tutorial.authors
                       .map(name => {
@@ -191,16 +191,16 @@ export default function AIToolkitPage() {
                       )).reduce((prev, curr) => [prev, ', ', curr])
                     }
                   </Typography>
-                </ExpansionPanelDetails>
-                <ExpansionPanelActions>
+                </AccordionDetails>
+                <AccordionActions>
                   <Button color="primary" href={tutorial.link} target="tutorial">
                     open with login
                   </Button>
                   <Button color="primary" href={tutorial.link_public} target="tutorial">
                     open as guest
                   </Button>
-                </ExpansionPanelActions>
-              </ExpansionPanel>
+                </AccordionActions>
+              </Accordion>
             })}
           </div>
         </div>

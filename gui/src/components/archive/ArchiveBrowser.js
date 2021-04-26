@@ -28,11 +28,10 @@ import { Matrix, Number } from './visualizations'
 import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
-import { ErrorHandler } from '../ErrorHandler'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
 import { UnitSelector } from './UnitSelector'
-import { convertSI } from '../../utils'
+import { convertSI, getHighestOccupiedEnergy } from '../../utils'
 import { conversionMap } from '../../units'
 import { electronicRange } from '../../config'
 
@@ -223,17 +222,18 @@ function archiveSearchOptions(data) {
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(obj, def, context) {
+  constructor(obj, def, parent, context) {
     super(obj)
     this.def = def
+    this.parent = parent
     this.context = context
   }
 
-  adaptorFactory(obj, def, context) {
+  adaptorFactory(obj, def, parent, context) {
     if (def.m_def === 'Section') {
-      return new SectionAdaptor(obj, def, context || this.context)
+      return new SectionAdaptor(obj, def, parent, context || this.context)
     } else if (def.m_def === 'Quantity') {
-      return new QuantityAdaptor(obj, def, context || this.context)
+      return new QuantityAdaptor(obj, def, parent, context || this.context)
     }
   }
 
@@ -256,9 +256,9 @@ class SectionAdaptor extends ArchiveAdaptor {
     } else if (property.m_def === 'SubSection') {
       const sectionDef = resolveRef(property.sub_section)
       if (property.repeats) {
-        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef)
+        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef, this.e)
       } else {
-        return this.adaptorFactory(value, sectionDef)
+        return this.adaptorFactory(value, sectionDef, this.e)
       }
     } else if (property.m_def === 'Quantity') {
       if (property.type.type_kind === 'reference' && property.shape.length === 0) {
@@ -269,15 +269,15 @@ class SectionAdaptor extends ArchiveAdaptor {
         if (resolvedDef.name === 'User' && !resolved.user_id) {
           resolved.user_id = value
         }
-        return this.adaptorFactory(resolved, resolveRef(property.type.type_data))
+        return this.adaptorFactory(resolved, resolveRef(property.type.type_data), this.e)
       }
-      return this.adaptorFactory(value, property)
+      return this.adaptorFactory(value, property, this.e)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} />
+    return <Section section={this.e} def={this.def} parent={this.parent} />
   }
 }
 
@@ -371,7 +371,7 @@ QuantityValue.propTypes = ({
  * An optional overview for a section displayed directly underneath the section
  * title.
  */
-function Overview({section, def}) {
+function Overview({section, def, parent}) {
   // States
   const [mode, setMode] = useState('bs')
   const units = useRecoilValue(unitsState)
@@ -385,8 +385,7 @@ function Overview({section, def}) {
         margin: 'auto'
       },
       structure: {
-        width: '20rem',
-        height: '20rem',
+        width: '28rem',
         margin: 'auto'
       },
       dos: {
@@ -432,7 +431,7 @@ function Overview({section, def}) {
     visualizedSystem.nAtoms = nAtoms
 
     return <Structure
-      aspectRatio={1}
+      aspectRatio={4 / 3}
       className={style.structure}
       system={system}
     ></Structure>
@@ -456,6 +455,7 @@ function Overview({section, def}) {
     </Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
+    section.energy_highest_occupied = getHighestOccupiedEnergy(section, parent)
     return section.band_structure_kind !== 'vibrational'
       ? <>
         {mode === 'bs'
@@ -497,26 +497,33 @@ function Overview({section, def}) {
           data={section}
           aspectRatio={1}
           unitsState={unitsState}
+          type='vibrational'
         ></BandStructure>
       </Box>
   // DOS plot for section_dos
   } else if (def.name === 'Dos') {
+    const isVibrational = section.dos_kind === 'vibrational'
+    const layout = isVibrational
+      ? undefined
+      : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}
     return <DOS
       className={style.dos}
-      layout={section.dos_kind === 'vibrational' ? undefined : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+      layout={layout}
       data={section}
       aspectRatio={1 / 2}
       unitsState={unitsState}
+      type={isVibrational ? 'vibrational' : null}
     ></DOS>
   }
   return null
 }
 Overview.propTypes = ({
   def: PropTypes.object,
-  section: PropTypes.object
+  section: PropTypes.object,
+  parent: PropTypes.object
 })
 
-function Section({section, def}) {
+function Section({section, def, parent}) {
   const config = useRecoilValue(configState)
 
   if (!section) {
@@ -527,9 +534,7 @@ function Section({section, def}) {
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    <ErrorHandler message="The section overview could not be rendered, due to an unexpected error.">
-      <Overview def={def} section={section}></Overview>
-    </ErrorHandler>
+    <Overview def={def} section={section} parent={parent}></Overview>
     <Compartment title="sub sections">
       {def.sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
@@ -579,7 +584,8 @@ function Section({section, def}) {
 }
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  parent: PropTypes.object.isRequired
 })
 
 function Quantity({value, def}) {

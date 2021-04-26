@@ -16,18 +16,23 @@ You work in a Python virtual environment.
 #### pyenv
 The nomad code currently targets python 3.7. If you host machine has an older version installed,
 you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.7 in parallel to your
-system's python.
+system's python. Never the less, we have good experience with 3.8 and 3.9 users as well
+and everything might work with newer versions as well.
 
 #### virtualenv
 We strongly recommend to use *virtualenv* to create a virtual environment. It will allow you
 to keep nomad and its dependencies separate from your system's python installation.
 Make sure to base the virtual environment on Python 3.
+
 To install *virtualenv*, create an environment and activate the environment use:
 ```
 pip install virtualenv
 virtualenv -p `which python3` .pyenv
 source .pyenv/bin/activate
 ```
+
+If you use *pyenv* (or similar solutions) make sure that the `-p` arguments evaluates
+to the `python` binary with the desired version.
 
 #### conda
 If you are a conda user, there is an equivalent, but you have to install pip and the
