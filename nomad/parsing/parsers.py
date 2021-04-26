@@ -44,6 +44,7 @@ from orcaparser import OrcaParser
 from cp2kparser import CP2KParser
 from fhivibesparser import FHIVibesParser
 from turbomoleparser import TurbomoleParser
+from castepparser import CastepParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -212,11 +213,7 @@ parsers = [
     GaussianParser(),
     AbinitParser(),
     OrcaParser(),
-    LegacyParser(
-        name='parsers/castep', code_name='CASTEP', code_homepage='http://www.castep.org/',
-        parser_class_name='castepparser.CastepParser',
-        mainfile_contents_re=(r'\s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*')
-    ),
+    CastepParser(),
     LegacyParser(
         name='parsers/dl-poly', code_name='DL_POLY', code_homepage='https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx',
         parser_class_name='dlpolyparser.DlPolyParserWrapper',
