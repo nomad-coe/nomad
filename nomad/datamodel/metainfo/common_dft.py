@@ -6658,6 +6658,16 @@ class GeometryOptimization(MSection):
         categories=[Unused],
         a_legacy=LegacyDefinition(name='input_force_maximum_tolerance'))
 
+    input_displacement_maximum_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='meter',
+        description='''
+        The input maximum displacement tolerance criterion.
+        ''',
+        categories=[Unused],
+        a_legacy=LegacyDefinition(name='input_displacement_maximum_tolerance'))
+
     final_energy_difference = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -6677,6 +6687,15 @@ class GeometryOptimization(MSection):
         ''',
         a_legacy=LegacyDefinition(name='final_force_maximum'))
 
+    final_displacement_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='meter',
+        description='''
+        The maximum displacement in the last optimization step with respect to previous.
+        ''',
+        a_legacy=LegacyDefinition(name='final_displacement_maximum'))
+
     optimization_steps = Quantity(
         type=int,
         shape=[],
@@ -6684,6 +6703,14 @@ class GeometryOptimization(MSection):
         Number of optimization steps.
         ''',
         a_legacy=LegacyDefinition(name='optimization_steps'))
+
+    is_converged_geometry = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the geometry convergence criteria were fulfilled.
+        ''',
+        a_legacy=LegacyDefinition(name='is_converged_geometry'))
 
 
 class Phonon(MSection):
