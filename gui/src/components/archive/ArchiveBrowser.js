@@ -156,7 +156,7 @@ ArchiveConfigForm.propTypes = ({
 })
 
 function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), {archive: data})
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
 }
 
 function archiveSearchOptions(data) {
@@ -585,7 +585,7 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.object.isRequired
+  parent: PropTypes.any
 })
 
 function Quantity({value, def}) {
