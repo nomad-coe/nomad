@@ -525,6 +525,7 @@ def test_entries_statistics(client, data, test_user_auth, statistic, size, statu
     assert_statistic(response_json, 'test_statistic', statistic, size=size)
 
 
+# TODO is this really the desired behavior
 def test_entries_statistics_ignore_size(client, data):
     statistic = {'quantity': program_name, 'size': 10}
     statistics = {'test_statistic': statistic}

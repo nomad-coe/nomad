@@ -175,7 +175,7 @@ class DocumentType():
 
     Attributes:
         root_section_def: The section definition that serves as the root for all documents.
-        mapping: The elasticsearch mapping definition.
+            mapping: The elasticsearch mapping definition.
         indexed_properties: All definitions (quantities and sub sections) that are covered
             by documents of this type.
         quantities: All elasticsearch quantities that in documents of this type. A dictionary
@@ -184,9 +184,12 @@ class DocumentType():
         metrics: All metrics in this document type. A dictionary with metric names as
             keys and tuples of elasticsearch metric aggregation and respective
             :class:`Elasticsearch` metainfo annotation as values.
+        id_field: The quantity (and elasticsearch field) name that is used as unique
+            identifier for this type of documents.
     '''
-    def __init__(self, name: str):
+    def __init__(self, name: str, id_field: str):
         self.name = name
+        self.id_field = id_field
         self.root_section_def = None
         self.mapping: Dict[str, Any] = None
         self.indexed_properties: Set[Definition] = set()
@@ -349,6 +352,9 @@ class DocumentType():
                 assert name not in self.metrics, 'Metric names must be unique: %s' % name
                 self.metrics[name] = (metric, search_quantity)
 
+    def __repr__(self):
+        return f'search index document type {self.name}'
+
 
 class Index():
     '''
@@ -439,9 +445,9 @@ class Index():
 
 # TODO type 'doc' because it's the default used by elasticsearch_dsl and the v0 entries index.
 # 'entry' would be more descriptive.
-entry_type = DocumentType('doc')
-material_type = DocumentType('material')
-material_entry_type = DocumentType('material_entry')
+entry_type = DocumentType('doc', id_field='entry_id')
+material_type = DocumentType('material', id_field='material_id')
+material_entry_type = DocumentType('material_entry', id_field='entry_id')
 
 entry_index = Index(entry_type, index_config_key='entries_index')
 material_index = Index(material_type, index_config_key='materials_index')
