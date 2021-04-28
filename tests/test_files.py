@@ -572,6 +572,15 @@ def create_test_upload_files(
     return upload_files
 
 
+def append_published_zip_files(upload_id: str, path_source: str, path_in_archive: str, access='public'):
+    ''' Used to append published zip files, for testing purposes. '''
+    upload_files = UploadFiles.get(upload_id)
+    zip_path = upload_files._raw_file_object(access).os_path  # type: ignore
+    zf = zipfile.ZipFile(zip_path, 'a')
+    zf.write(path_source, path_in_archive)
+    zf.close()
+
+
 def test_test_upload_files(raw_files_infra):
     upload_id = utils.create_uuid()
     archives: datamodel.EntryArchive = []

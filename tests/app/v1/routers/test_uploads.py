@@ -23,6 +23,7 @@ from typing import List, Dict, Any, Iterable
 from tests.utils import build_url
 from tests.test_files import assert_upload_files
 from tests.test_search import assert_search_upload
+from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, SUCCESS
 from nomad.files import UploadFiles, PublicUploadFiles
@@ -30,7 +31,7 @@ from nomad.app.v1.routers.auth import generate_upload_token
 from nomad.datamodel import EntryMetadata
 
 '''
-These are the tests for all API operations below ``entries``. The tests are organized
+These are the tests for all API operations below ``uploads``. The tests are organized
 using the following type of methods: fixtures, ``perfrom_*_test``, ``assert_*``, and
 ``test_*``. While some ``test_*`` methods test individual API operations, some
 test methods will test multiple API operations that use common aspects like
@@ -73,12 +74,6 @@ def perform_post_upload_action(client, user_auth, upload_id, action, **query_arg
         build_url(f'uploads/{upload_id}/action/{action}', query_args), headers=user_auth)
 
 
-def perform_delete_upload(client, upload_id, user_auth=None, **query_args):
-    headers = user_auth
-    response = client.delete(build_url(f'uploads/{upload_id}', query_args), headers=headers)
-    return response
-
-
 def assert_upload(response_json, **kwargs):
     data = response_json['data']
     assert 'upload_id' in response_json
@@ -94,7 +89,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     block_until_completed(client, upload_id, user_auth)
 
     response = perform_get(client, 'uploads/{upload_id}', user_auth)
-    assert response.status_code == 404
+    assert_response(response, 404)
 
     assert Upload.objects(upload_id=upload_id).first() is None
     assert Calc.objects(upload_id=upload_id).count() is 0
@@ -107,25 +102,6 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert upload_files is None or isinstance(upload_files, PublicUploadFiles)
 
 
-def assert_uploads(
-        client, user_auth, test_case: str, query_params={},
-        expected_status_code=200, expected_upload_ids=None, expected_pagination={}):
-    response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
-    assert response.status_code == expected_status_code
-    if expected_status_code == 200:
-        response_json = response.json()
-        response_data = response_json['data']
-
-        if expected_upload_ids is not None:
-            assert len(response_data) == len(expected_upload_ids), (
-                f'Wrong number of records returned, expected {len(expected_upload_ids)}, got {len(response_data)}')
-            for ind, upload in enumerate(response_data):
-                upload_id = upload['upload_id']
-                assert upload_id == expected_upload_ids[ind], f'Test case {test_case} failed - wrong upload_id list returned.'
-
-        assert_pagination(response_json['pagination'], expected_pagination)
-
-
 def assert_processing(client, upload_id, user_auth, check_search=True, check_files=True, published=False):
     response_data = block_until_completed(client, upload_id, user_auth)
 
@@ -135,7 +111,7 @@ def assert_processing(client, upload_id, user_auth, check_search=True, check_fil
     assert not response_data['process_running']
 
     response = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
-    assert response.status_code == 200
+    assert_response(response, 200)
     response_json = response.json()
     response_data = response_json['data']
     for entry in response_json['data']:
@@ -150,27 +126,6 @@ def assert_processing(client, upload_id, user_auth, check_search=True, check_fil
         assert_upload_files(upload_id, entries, expected_file_class)
     if check_search:
         assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
-
-
-def assert_publish(
-        client, user_auth, upload_id, proc_infra, expected_status_code=200, **query_args):
-    '''
-    Attempts to publish the given upload and check that it is successful (unless failure
-    is expected).
-    '''
-    response = client.get('uploads/%s' % upload_id, headers=user_auth)
-    upload = assert_upload(response.json())
-
-    # Api call to actually publish the upload
-    response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
-
-    assert response.status_code == expected_status_code
-    if expected_status_code == 200:
-        upload = assert_upload(response.json())
-        assert upload['current_process'] == 'publish_upload'
-        assert upload['process_running']
-
-        assert_gets_published(client, upload_id, user_auth, **query_args)
 
 
 def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **query_args):
@@ -191,10 +146,9 @@ def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **quer
             assert entry.with_embargo == with_embargo
 
     assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
-    assert_search_upload(entries, additional_keys=['with_embargo'], published=True)
 
 
-def assert_entry_content(entry, **kwargs):
+def assert_entry(entry, **kwargs):
     ''' Checks the content of a returned entry dictionary. '''
     assert 'upload_id' in entry
     assert 'entry_id' in entry
@@ -203,51 +157,6 @@ def assert_entry_content(entry, **kwargs):
     assert not entry['process_running'] and not entry['tasks_running']
     for key, value in kwargs.items():
         assert entry.get(key, None) == value
-
-
-def assert_entry(client, user_auth, upload_id, entry_id, expected_status_code=200):
-    ''' Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.'''
-    response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
-    assert response.status_code == expected_status_code
-    if expected_status_code == 200:
-        response_json = response.json()
-        assert response_json['entry_id'] == entry_id
-        response_data = response_json['data']
-        assert_entry_content(response_data)
-
-
-def assert_entries(
-        client, user_auth, upload_id, query_args={},
-        expected_status_code=200,
-        expected_data_len=None,
-        expected_response={},
-        expected_pagination={}):
-    '''
-    Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
-    with the provided query paramters, and checks the result.
-    '''
-    response = perform_get(client, f'uploads/{upload_id}/entries', user_auth, **query_args)
-    assert response.status_code == expected_status_code
-    if expected_status_code == 200:
-        response_json = response.json()
-        response_data = response_json['data']
-
-        if expected_data_len is not None:
-            assert len(response_data) == expected_data_len
-
-        for entry in response_data:
-            assert_entry_content(entry)
-            entry_id = entry['entry_id']
-            assert_entry(client, user_auth, upload_id, entry_id)
-
-        for key, value in expected_response.items():
-            assert response_json.get(key, None) == value
-
-        pagination = response_json['pagination']
-        assert_pagination(pagination, expected_pagination)
-
-        return response_data
-    return None
 
 
 def assert_pagination(pagination, expected_pagination):
@@ -289,261 +198,335 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
         for entry in entries]
 
 
-@pytest.fixture(scope='function')
-def slow_processing(monkeypatch):
-    ''' Slow down processing to mitigate race conditions. '''
-    old_cleanup = Upload.cleanup
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            expected_upload_ids=['id_embargo', 'id_unpublished', 'id_published', 'id_processing', 'id_empty'],
+            expected_pagination={
+                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}
+        ), id='no-args'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            expected_upload_ids=[],
+        ), id='other_test_user'),
+    pytest.param(
+        dict(
+            query_params={'is_processing': True},
+            expected_upload_ids=['id_processing'],
+        ), id='filter-is_processing-True'),
+    pytest.param(
+        dict(
+            query_params={'is_processing': False},
+            expected_upload_ids=['id_embargo', 'id_unpublished', 'id_published', 'id_empty'],
+        ), id='filter-is_processing-False'),
+    pytest.param(
+        dict(
+            query_params={'is_published': True},
+            expected_upload_ids=['id_embargo', 'id_published'],
+        ), id='filter-is_published-True'),
+    pytest.param(
+        dict(
+            query_params={'is_published': False},
+            expected_upload_ids=['id_unpublished', 'id_processing', 'id_empty'],
+        ), id='filter-is_published-False'),
+    pytest.param(
+        dict(
+            query_params={'upload_id': 'id_published'},
+            expected_upload_ids=['id_published'],
+        ), id='filter-upload_id-single'),
+    pytest.param(
+        dict(
+            query_params={'upload_id': ['id_published', 'id_embargo']},
+            expected_upload_ids=['id_embargo', 'id_published'],
+        ), id='filter-upload_id-multiple'),
+    pytest.param(
+        dict(
+            query_params={'upload_name': 'name_published'},
+            expected_upload_ids=['id_published'],
+        ), id='filter-upload_name-single'),
+    pytest.param(
+        dict(
+            query_params={'upload_name': ['name_published', 'name_embargo']},
+            expected_upload_ids=['id_embargo', 'id_published'],
+        ), id='filter-upload_name-multiple'),
+    pytest.param(
+        dict(
+            query_params={'page_size': 2},
+            expected_upload_ids=['id_embargo', 'id_unpublished'],
+            expected_pagination={
+                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
+        ), id='pag-page-1'),
+    pytest.param(
+        dict(
+            query_params={'page_size': 2, 'page': 2},
+            expected_upload_ids=['id_published', 'id_processing'],
+            expected_pagination={
+                'total': 5, 'page': 2, 'page_after_value': '1', 'next_page_after_value': '3',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': Any, 'first_page_url': Any}
+        ), id='pag-page-2'),
+    pytest.param(
+        dict(
+            query_params={'page_size': 2, 'page': 3},
+            expected_upload_ids=['id_empty'],
+            expected_pagination={
+                'total': 5, 'page': 3, 'page_after_value': '3', 'next_page_after_value': None,
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}
+        ), id='pag-page-3'),
+    pytest.param(
+        dict(
+            query_params={'page_size': 2, 'page': 4},
+            expected_status_code=400
+        ), id='pag-page-out-of-range'),
+    pytest.param(
+        dict(
+            query_params={'page_size': 2, 'order': 'desc'},
+            expected_upload_ids=['id_empty', 'id_processing'],
+            expected_pagination={
+                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
+        ), id='pag-page-order-desc'),
+    pytest.param(
+        dict(
+            query_params={'order_by': 'upload_id'},
+            expected_status_code=422
+        ), id='pag-invalid-order_by')])
+def test_get_uploads(
+        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data, kwargs):
+    ''' Makes a get request to uploads in various different ways. '''
+    # Extract kwargs
+    user = kwargs.get('user', 'test_user')
+    query_params = kwargs.get('query_params', {})
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    expected_upload_ids = kwargs.get('expected_upload_ids', None)
+    expected_pagination = kwargs.get('expected_pagination', {})
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
+    # Api call
+    response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
+    # Verify result
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        response_json = response.json()
+        response_data = response_json['data']
 
-    def slow_cleanup(self):
-        time.sleep(2)
-        old_cleanup(self)
+        if expected_upload_ids is not None:
+            assert len(response_data) == len(expected_upload_ids), (
+                f'Wrong number of records returned, expected {len(expected_upload_ids)}, got {len(response_data)}')
+            found_upload_ids = [upload['upload_id'] for upload in response_data]
+            assert expected_upload_ids == found_upload_ids, (
+                f'Wrong upload is list returned. Expected {repr(expected_upload_ids)}, got {repr(found_upload_ids)}.')
 
-    monkeypatch.setattr('nomad.processing.data.Upload.cleanup', slow_cleanup)
-    yield True
-    monkeypatch.setattr('nomad.processing.data.Upload.cleanup', old_cleanup)
-
-
-def test_get_uploads_empty_list(client, mongo, test_user_auth):
-    ''' Gets user's uploads, without having submitted anything -> empty list. '''
-    response = perform_get(client, 'uploads', test_user_auth)
-    assert response.status_code == 200
-    assert len(response.json()['data']) == 0
+        assert_pagination(response_json['pagination'], expected_pagination)
 
 
-def test_get_uploads(client, mongo, proc_infra, slow_processing, test_user_auth, non_empty_example_upload):
-    ''' Tests various ways of getting the uppload with different filtering. '''
-    upload_id_to_name = {}
-
-    # Upload #1 - published
-    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name1')
-    assert response.status_code == 200
-    upload_id_1 = response.json()['upload_id']
-    upload_id_to_name[upload_id_1] = '#1'
-    assert_processing(client, upload_id_1, test_user_auth)
-    assert_publish(client, test_user_auth, upload_id_1, proc_infra)
-
-    # Upload #2 - wait for processing to finish, but do not publish
-    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name2')
-    assert response.status_code == 200
-    upload_id_2 = response.json()['upload_id']
-    upload_id_to_name[upload_id_2] = '#2'
-    # Note, we set check_search to False, because it assumes that there is only one upload
-    assert_processing(client, upload_id_2, test_user_auth, check_search=False)
-
-    # Upload #3 - do NOT wait for processing to finish
-    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth, name='name3')
-    assert response.status_code == 200
-    upload_id_3 = response.json()['upload_id']
-    upload_id_to_name[upload_id_3] = '#3'
-
-    assert_uploads(
-        client, test_user_auth, 'no_query_args',
-        expected_upload_ids=[upload_id_1, upload_id_2, upload_id_3],
-        expected_pagination={
-            'total': 3, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any})
-    # Test filter: UploadQuery.processing
-    # TODO: race condition here, need to solve it
-    # assert_uploads(
-    #     client, test_user_auth, 'is_processing_true', query_params={'is_processing': True},
-    #     expected_upload_ids=[upload_id_3])
-    # assert_uploads(
-    #     client, test_user_auth, 'is_processing_false', query_params={'is_processing': False},
-    #     expected_upload_ids=[upload_id_1, upload_id_2])
-
-    # Let #3 finish processing
-    assert_processing(client, upload_id_2, test_user_auth, check_search=False)
-
-    # Test filter: published/staging
-    assert_uploads(
-        client, test_user_auth, 'is_published_False', query_params={'is_published': False},
-        expected_upload_ids=[upload_id_2, upload_id_3])
-    assert_uploads(
-        client, test_user_auth, 'is_published_True', query_params={'is_published': True},
-        expected_upload_ids=[upload_id_1])
-    # Test filter: upload_id
-    assert_uploads(
-        client, test_user_auth, 'upload_id_single', query_params={'upload_id': upload_id_1},
-        expected_upload_ids=[upload_id_1])
-    assert_uploads(
-        client, test_user_auth, 'upload_id_multiple', query_params={'upload_id': [upload_id_1, upload_id_3]},
-        expected_upload_ids=[upload_id_1, upload_id_3])
-    # Test filter: upload_name
-    assert_uploads(
-        client, test_user_auth, 'upload_name_single', query_params={'upload_name': 'name1'},
-        expected_upload_ids=[upload_id_1])
-    assert_uploads(
-        client, test_user_auth, 'upload_name_multiple', query_params={'upload_name': ['name1', 'name3']},
-        expected_upload_ids=[upload_id_1, upload_id_3])
-    # Test pagination
-    assert_uploads(
-        client, test_user_auth, 'page_1_of_3', query_params={'page_size': 1},
-        expected_upload_ids=[upload_id_1],
-        expected_pagination={
-            'total': 3, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any})
-    assert_uploads(
-        client, test_user_auth, 'page_2_of_3', query_params={'page_size': 1, 'page': 2},
-        expected_upload_ids=[upload_id_2],
-        expected_pagination={
-            'total': 3, 'page': 2, 'page_after_value': '0', 'next_page_after_value': '1',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': Any, 'first_page_url': Any})
-    assert_uploads(
-        client, test_user_auth, 'page_3_of_3', query_params={'page_size': 1, 'page': 3},
-        expected_upload_ids=[upload_id_3],
-        expected_pagination={
-            'total': 3, 'page': 3, 'page_after_value': '1', 'next_page_after_value': None,
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any})
-    assert_uploads(
-        client, test_user_auth, 'page_out_of_range', query_params={'page_after_value': '999'},
-        expected_status_code=400)
-    assert_uploads(
-        client, test_user_auth, 'reversely_sorted', query_params={'page_size': 2, 'order': 'desc'},
-        expected_upload_ids=[upload_id_3, upload_id_2],
-        expected_pagination={
-            'total': 3, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any})
-    assert_uploads(
-        client, test_user_auth, 'illegal_order_by', query_params={'order_by': 'upload_id'},
-        expected_status_code=422)
-
-
+@pytest.mark.parametrize('user, upload_id, expected_status_code', [
+    pytest.param('test_user', 'id_unpublished', 200, id='valid-upload_id'),
+    pytest.param('test_user', 'silly_value', 404, id='invalid-upload_id'),
+    pytest.param('other_test_user', 'id_unpublished', 401, id='no-access'),
+    pytest.param('admin_user', 'id_unpublished', 200, id='admin-access')])
 def test_get_upload(
-        client, mongo, proc_infra, test_user_auth, other_test_user_auth, admin_user_auth,
-        non_empty_example_upload):
-    response = perform_post_upload(
-        client, 'stream', non_empty_example_upload, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
-
-    response = perform_get(client, 'uploads/1234567890', test_user_auth)
-    assert response.status_code == 404
-    response = perform_get(client, f'uploads/{upload_id}', test_user_auth)
-    assert response.status_code == 200
-    assert_upload(response.json())
-    response = perform_get(client, f'uploads/{upload_id}', admin_user_auth)
-    assert response.status_code == 200
-    assert_upload(response.json())
-    response = perform_get(client, f'uploads/{upload_id}', other_test_user_auth)
-    assert response.status_code == 401
+        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        user, upload_id, expected_status_code):
+    ''' Tests the endpoint for getting an upload by upload_id. '''
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
+    response = perform_get(client, f'uploads/{upload_id}', user_auth)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_upload(response.json())
 
 
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            expected_data_len=2,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}),
+        id='no-args'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            expected_status_code=401),
+        id='no-access'),
+    pytest.param(
+        dict(
+            user='admin_user',
+            expected_data_len=2),
+        id='admin-access'),
+    pytest.param(
+        dict(
+            upload_id='silly_value',
+            expected_status_code=404),
+        id='invalid-upload_id'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1},
+            expected_data_len=1,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
+        id='pag-page-1'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page': 1},
+            expected_data_len=1,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
+        id='pag-page-1-by-page'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page': 2},
+            expected_data_len=1,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}),
+        id='pag-page-2-by-page'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page_after_value': '0'},
+            expected_data_len=1,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}),
+        id='pag-page-2-by-page_after_value'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 0},
+            expected_data_len=0,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None, 'order_by': 'mainfile',
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': None}),
+        id='pag-page_size-zero'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page': 3},
+            expected_status_code=400),
+        id='pag-out-of-rage-page'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page_after_value': '1'},
+            expected_status_code=400),
+        id='pag-out-of-rage-page_after_value'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'order_by': 'parser'},
+            expected_data_len=1,
+            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_pagination={
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser',
+                'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
+        id='pag-order_by-parser'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'order_by': 'calc_id'},
+            expected_status_code=422),
+        id='pag-order_by-illegal'),
+    pytest.param(
+        dict(
+            query_args={'page_size': 1, 'page': 2, 'page_after_value': '0'},
+            expected_status_code=422),
+        id='pag-overspecified')])
 def test_get_upload_entries(
-        client, mongo, proc_infra, test_user_auth, other_test_user_auth, admin_user_auth,
-        non_empty_example_upload_vasp_with_binary):
-    ''' Uploads a file with two entries, and lists these entries in various ways. '''
-    response = perform_post_upload(
-        client, 'stream', non_empty_example_upload_vasp_with_binary, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
+        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        kwargs):
+    '''
+    Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
+    with the provided query paramters, and checks the result.
+    '''
+    upload_id = kwargs.get('upload_id', 'id_embargo')
+    user = kwargs.get('user', 'test_user')
+    query_args = kwargs.get('query_args', {})
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    expected_data_len = kwargs.get('expected_data_len', 2)
+    expected_response = kwargs.get('expected_response', {})
+    expected_pagination = kwargs.get('expected_pagination', {})
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
 
-    entries = assert_entries(
-        client, test_user_auth, upload_id,
-        expected_data_len=2,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any})
-    assert_entries(client, other_test_user_auth, upload_id, expected_status_code=401)
-    assert_entries(client, admin_user_auth, upload_id, expected_data_len=2)
-    assert_entries(client, test_user_auth, 'an_invalid_upload_id', expected_status_code=404)
+    response = perform_get(client, f'uploads/{upload_id}/entries', user_auth, **query_args)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        response_json = response.json()
+        response_data = response_json['data']
 
-    a_valid_entry_id = entries[0]['entry_id']
-    assert_entry(client, test_user_auth, 'an_invalid_upload_id', a_valid_entry_id, expected_status_code=404)
-    assert_entry(client, test_user_auth, upload_id, 'an_invalid_entry_id', expected_status_code=404)
-    assert_entry(client, other_test_user_auth, upload_id, a_valid_entry_id, expected_status_code=401)
-    assert_entry(client, admin_user_auth, upload_id, a_valid_entry_id)
+        if expected_data_len is not None:
+            assert len(response_data) == expected_data_len
 
-    # Test pagination
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1},  # Gets the first of two pages
-        expected_data_len=1,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page': 1},  # Gets the first of two pages, by explicitly using page
-        expected_data_len=1,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page': 2},  # Gets the last of two pages using page
-        expected_data_len=1,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page_after_value': '0'},  # Gets the last of two pages using page_after_value
-        expected_data_len=1,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 0},  # Empty result list
-        expected_data_len=0,
-        expected_response={'processing_successful': 2, 'processing_failed': 0},
-        expected_pagination={
-            'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None, 'order_by': 'mainfile',
-            'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': None})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'order_by': 'parser'},  # Non-standard ordering
-        expected_pagination={
-            'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser',
-            'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any})
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'order_by': 'calc_id'},  # Invalid order_by
-        expected_status_code=422)
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page': 3},  # Out of range (page)
-        expected_status_code=400)
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page_after_value': '1'},  # Out of range (page_after_value)
-        expected_status_code=400)
-    assert_entries(
-        client, test_user_auth, upload_id,
-        query_args={'page_size': 1, 'page': 2, 'page_after_value': '0'},  # Overspecified
-        expected_status_code=422)
+        for entry in response_data:
+            assert_entry(entry)
+
+        for key, value in expected_response.items():
+            assert response_json.get(key, None) == value
+
+        pagination = response_json['pagination']
+        assert_pagination(pagination, expected_pagination)
 
 
-@pytest.mark.parametrize('mode, name, user, use_upload_token, expected_status_code', [
-    pytest.param('multipart', 'test_name', 'test_user', False, 200, id='post-multipart'),
-    pytest.param('multipart', None, 'test_user', False, 200, id='post-multipart-no-name'),
-    pytest.param('stream', 'test_name', 'test_user', False, 200, id='post-stream'),
-    pytest.param('stream', None, 'test_user', False, 200, id='post-stream-no-name'),
-    pytest.param('multipart', None, 'invalid', False, 401, id='post-multipart-no-name-invalid-cred'),
-    pytest.param('stream', None, 'invalid', False, 401, id='post-stream-no-name-invalid-cred'),
-    pytest.param('multipart', 'test_name', 'test_user', True, 200, id='post-multipart-token'),
-    pytest.param('stream', 'test_name', 'test_user', True, 200, id='post-stream-token'),
-    pytest.param('multipart', 'test_name', 'invalid', True, 401, id='post-multipart-token-invalid-cred'),
-    pytest.param('stream', 'test_name', 'invalid', True, 401, id='post-stream-token-invalid-cred'),
-    pytest.param('local_path', None, 'admin_user', False, 200, id='post-local_path'),
-    pytest.param('multipart', None, None, False, 401, id='post-not-logged-in-multipart'),
-    pytest.param('stream', None, None, False, 401, id='post-not-logged-in-stream'),
-    pytest.param('local_path', None, None, False, 401, id='post-not-logged-in-local_path'),
-    pytest.param('local_path', None, 'test_user', False, 401, id='post-not-admin-local_path')])
+@pytest.mark.parametrize('upload_id, entry_id, user, expected_status_code', [
+    pytest.param('id_embargo', 'id_embargo', 'test_user', 200, id='ok'),
+    pytest.param('id_embargo', 'id_embargo', 'other_test_user', 401, id='no-access'),
+    pytest.param('id_embargo', 'id_embargo', 'admin_user', 200, id='admin-access'),
+    pytest.param('silly_value', 'id_embargo', 'test_user', 404, id='invalid-upload_id'),
+    pytest.param('id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id')])
+def test_get_upload_entry(
+        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        upload_id, entry_id, user, expected_status_code):
+    '''
+    Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.
+    '''
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
+    response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        response_json = response.json()
+        assert response_json['entry_id'] == entry_id
+        response_data = response_json['data']
+        assert_entry(response_data)
+
+
+@pytest.mark.parametrize('mode, name, user, use_upload_token, empty, publish_directly, test_limit, expected_status_code', [
+    pytest.param('multipart', 'test_name', 'test_user', False, False, None, False, 200, id='multipart'),
+    pytest.param('multipart', None, 'test_user', False, False, None, False, 200, id='multipart-no-name'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, None, False, 200, id='stream'),
+    pytest.param('stream', None, 'test_user', False, False, None, False, 200, id='stream-no-name'),
+    pytest.param('multipart', None, 'invalid', False, False, None, False, 401, id='multipart-no-name-invalid-cred'),
+    pytest.param('stream', None, 'invalid', False, False, None, False, 401, id='stream-no-name-invalid-cred'),
+    pytest.param('multipart', 'test_name', 'test_user', True, False, None, False, 200, id='multipart-token'),
+    pytest.param('stream', 'test_name', 'test_user', True, False, None, False, 200, id='stream-token'),
+    pytest.param('multipart', 'test_name', 'invalid', True, False, None, False, 401, id='multipart-token-invalid-cred'),
+    pytest.param('stream', 'test_name', 'invalid', True, False, None, False, 401, id='stream-token-invalid-cred'),
+    pytest.param('local_path', None, 'admin_user', False, False, None, False, 200, id='local_path'),
+    pytest.param('multipart', None, None, False, False, None, False, 401, id='not-logged-in-multipart'),
+    pytest.param('stream', None, None, False, False, None, False, 401, id='not-logged-in-stream'),
+    pytest.param('local_path', None, None, False, False, None, False, 401, id='not-logged-in-local_path'),
+    pytest.param('local_path', None, 'test_user', False, False, None, False, 401, id='not-admin-local_path'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, True, False, 200, id='publish_directly'),
+    pytest.param('stream', 'test_name', 'test_user', False, True, True, False, 200, id='publish_directly-empty'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, None, True, 400, id='upload-limit-exceeded')])
 def test_post_upload(
-        client, mongo, proc_infra, test_user, admin_user, test_user_auth, admin_user_auth, non_empty_example_upload,
-        mode, name, user, use_upload_token, expected_status_code):
+        client, mongo, proc_infra, monkeypatch, test_user, admin_user, test_user_auth, admin_user_auth,
+        empty_upload, non_empty_example_upload,
+        mode, name, user, use_upload_token, empty, publish_directly, test_limit, expected_status_code):
     '''
     Posts an upload, with different arguments.
     '''
@@ -566,8 +549,19 @@ def test_post_upload(
     else:
         token = None
 
-    response = perform_post_upload(client, mode, non_empty_example_upload, user_auth_post, token, name=name)
-    assert response.status_code == expected_status_code
+    if empty:
+        upload_file = empty_upload
+    else:
+        upload_file = non_empty_example_upload
+
+    if test_limit:
+        monkeypatch.setattr('nomad.config.services.upload_limit', 0)
+
+    response = perform_post_upload(
+        client, mode, upload_file, user_auth_post, token,
+        name=name, publish_directly=publish_directly)
+
+    assert_response(response, expected_status_code)
     if expected_status_code == 200:
         response_json = response.json()
         upload_id = response_json['upload_id']
@@ -578,204 +572,176 @@ def test_post_upload(
         if mode == 'local_path':
             assert response_json['data']['upload_path'] == non_empty_example_upload
 
-        assert_processing(client, upload_id, user_auth)
+        assert_processing(client, upload_id, user_auth, published=(publish_directly and not empty))
+
+        if publish_directly:
+            upload_proc = Upload.objects(upload_id=upload_id).first()
+            if empty:
+                assert not upload_proc.published
+            else:
+                assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
 
 
-@pytest.mark.parametrize('empty', [
-    pytest.param(False, id='non-empty'),
-    pytest.param(True, id='empty')])
-def test_post_upload_with_publish_directly(
-        client, test_user_auth, empty_upload, non_empty_example_upload, proc_infra, empty):
-    ''' Posts uploads with publish_directly = True. '''
-    if empty:
-        file = empty_upload
-    else:
-        file = non_empty_example_upload
-    response = perform_post_upload(client, 'stream', file, test_user_auth, publish_directly=True)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth, published=not empty)
-    upload_proc = Upload.objects(upload_id=upload_id).first()
-    if empty:
-        assert not upload_proc.published
-    else:
-        assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
+@pytest.mark.parametrize('user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code', [
+    pytest.param('test_user', 'test_user', 'oasis_upload_id', 'an_id', 200, id='ok'),
+    pytest.param('test_user', 'test_user', 'id_unpublished_w', 'an_id', 400, id='dulicate'),
+    pytest.param('test_user', None, 'oasis_upload_id', 'an_id', 400, id='missing-oasis_uploader_id'),
+    pytest.param('test_user', 'test_user', None, 'an_id', 400, id='missing-oasis_upload_id'),
+    pytest.param('test_user', 'test_user', 'oasis_upload_id', None, 400, id='missing-oasis_deployment_id'),
+    pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin')])
+def test_post_upload_oasis(
+        client, mongo, proc_infra, oasis_example_upload, example_data_writeable,
+        test_user, other_test_user, test_user_auth, other_test_user_auth,
+        user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code):
 
+    auth_dict = {
+        'test_user': (test_user.user_id, test_user_auth),
+        'other_test_user': (other_test_user.user_id, other_test_user_auth),
+        None: (None, None)}
+    __, user_auth = auth_dict[user]
+    oasis_uploader_id, __ = auth_dict[oasis_uploader]
 
-def test_post_upload_oasis_not_admin(
-        client, mongo, non_empty_example_upload, other_test_user_auth, test_user):
     response = perform_post_upload(
-        client, 'stream', non_empty_example_upload, other_test_user_auth,
-        oasis_upload_id='oasis_upload_id',
-        oasis_uploader_id=test_user.user_id,
-        oasis_deployment_id='an_id')
-    assert response.status_code == 401
+        client, 'stream', oasis_example_upload, user_auth,
+        oasis_upload_id=oasis_upload_id,
+        oasis_uploader_id=oasis_uploader_id,
+        oasis_deployment_id=oasis_deployment_id)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        response_json = response.json()
+        upload_id = response_json['upload_id']
+        assert upload_id == oasis_upload_id
+        assert_upload(response_json)
+        assert_processing(client, upload_id, user_auth, published=True, check_search=False)
+        assert_gets_published(client, upload_id, user_auth, from_oasis=True, with_embargo=False)
 
 
-def test_post_upload_oasis_duplicate(
-        client, mongo, non_empty_example_upload, test_user, test_user_auth):
-    Upload.create(upload_id='oasis_upload_id', user=test_user).save()
-    response = perform_post_upload(
-        client, 'stream', non_empty_example_upload, test_user_auth,
-        oasis_upload_id='oasis_upload_id',
-        oasis_uploader_id=test_user.user_id,
-        oasis_deployment_id='an_id')
-    assert response.status_code == 400
-
-
-def test_post_upload_oasis_missing_parameters(
-        client, mongo, non_empty_example_upload, test_user_auth, test_user):
-    ''' Attempts to make an oasis upload with one of the mandatory arguments missing. '''
-    query_args_full = dict(
-        oasis_upload_id='oasis_upload_id',
-        oasis_uploader_id=test_user.user_id,
-        oasis_deployment_id='an_id')
-
-    for k in query_args_full:
-        query_args = dict(**query_args_full)
-        query_args.pop(k)
-        assert perform_post_upload(
-            client, 'stream', non_empty_example_upload, test_user_auth,
-            **query_args).status_code == 400
-
-
-def test_post_upload_oasis(client, mongo, proc_infra, test_user_auth, test_user, oasis_example_upload):
-    response = perform_post_upload(
-        client, 'stream', oasis_example_upload, test_user_auth,
-        oasis_upload_id='oasis_upload_id',
-        oasis_uploader_id=test_user.user_id,
-        oasis_deployment_id='an_id')
-
-    assert response.status_code == 200
-
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert upload_id == 'oasis_upload_id'
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth, published=True)
-    assert_gets_published(client, upload_id, test_user_auth, from_oasis=True, with_embargo=False)
-
-
-@pytest.mark.parametrize('query_args, expected_status_code', [
-    pytest.param({}, 200, id='no-args'),
-    pytest.param(dict(with_embargo=True, embargo_length=12), 200, id='non-standard-embargo'),
-    pytest.param(dict(embargo_length=24), 200, id='non-standard-embargo-length-only'),
-    pytest.param(dict(embargo_length=100), 400, id='illegal-embargo-length'),
-    pytest.param(dict(with_embargo=False), 200, id='no-embargo')])
-def test_action_publish(
-        client, test_user_auth, non_empty_example_upload, proc_infra,
-        query_args, expected_status_code):
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            expected_status_code=200),
+        id='no-args'),
+    pytest.param(
+        dict(
+            query_args={'with_embargo': True, 'embargo_length': 12},
+            expected_status_code=200),
+        id='non-standard-embargo'),
+    pytest.param(
+        dict(
+            query_args={'embargo_length': 24},
+            expected_status_code=200),
+        id='non-standard-embargo-length-only'),
+    pytest.param(
+        dict(
+            query_args={'embargo_length': 100},
+            expected_status_code=400),
+        id='illegal-embargo-length'),
+    pytest.param(
+        dict(
+            query_args={'with_embargo': False},
+            expected_status_code=200),
+        id='no-embargo'),
+    pytest.param(
+        dict(
+            upload_id='id_empty_w',
+            expected_status_code=400),
+        id='empty'),
+    pytest.param(
+        dict(
+            upload_id='id_processing_w',
+            expected_status_code=400),
+        id='processing'),
+    pytest.param(
+        dict(
+            upload_id='id_published_w',
+            expected_status_code=401),
+        id='already-published'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            expected_status_code=401),
+        id='not-my-upload')])
+def test_post_upload_action_publish(
+        client, proc_infra, example_data_writeable, test_user_auth, other_test_user_auth, admin_user_auth,
+        kwargs):
     ''' Tests the publish action with various arguments. '''
-    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
-    assert_publish(
-        client, test_user_auth, upload_id, proc_infra,
-        expected_status_code=expected_status_code, **query_args)
+    upload_id = kwargs.get('upload_id', 'id_unpublished_w')
+    query_args = kwargs.get('query_args', {})
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    user = kwargs.get('user', 'test_user')
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
+
+    response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = assert_upload(response.json())
+        assert upload['current_process'] == 'publish_upload'
+        assert upload['process_running']
+
+        assert_gets_published(client, upload_id, user_auth, **query_args)
 
 
-def test_action_publish_empty(client, test_user_auth, empty_upload, proc_infra):
-    ''' Tries to publish an empty upload (without entries). Should fail. '''
-    response = perform_post_upload(client, 'stream', empty_upload, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
-    assert_publish(client, test_user_auth, upload_id, proc_infra, expected_status_code=400)
-
-
-def test_action_publish_again(client, test_user_auth, admin_user_auth, non_empty_example_upload, proc_infra):
-    ''' Tries to publish an upload after it has already been published. Should fail. '''
-    response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
-    assert_publish(client, test_user_auth, upload_id, proc_infra, embargo_length=24)
-    assert_publish(client, test_user_auth, upload_id, proc_infra, embargo_length=18, expected_status_code=401)
-    assert_publish(client, admin_user_auth, upload_id, proc_infra, embargo_length=18, expected_status_code=401)
-
-
-def test_action_reprocess(client, published, test_user_auth, monkeypatch):
+@pytest.mark.parametrize('upload_id, user, expected_status_code', [
+    pytest.param('examples_template', 'test_user', 200, id='ok'),
+    pytest.param('examples_template', 'other_test_user', 401, id='no-access'),
+    pytest.param('id_unpublished_w', 'test_user', 400, id='not-published'),
+    pytest.param('id_processing_w', 'test_user', 400, id='already-processing'),
+    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
+def test_post_upload_action_reprocess(
+        client, monkeypatch, example_data_writeable, published, test_user_auth, other_test_user_auth,
+        upload_id, user, expected_status_code):
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth}[user]
 
-    upload_id = published.upload_id
-
-    response = perform_post_upload_action(client, test_user_auth, upload_id, 're-process')
-    assert response.status_code == 200
-    assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_upload_limit(client, mongo, test_user, test_user_auth, proc_infra, non_empty_example_upload):
-    ''' Tries to violate the limit on the number of unpublished uploads. '''
-    old_upload_limit = config.services.upload_limit
-    config.services.upload_limit = 5
-    try:
-        for _ in range(0, config.services.upload_limit):
-            Upload.create(user=test_user)
-        response = perform_post_upload(client, 'stream', non_empty_example_upload, test_user_auth)
-        assert response.status_code == 400
-        assert Upload.user_uploads(test_user).count() == config.services.upload_limit
-    finally:
-        config.services.upload_limit = old_upload_limit
+    response = perform_post_upload_action(client, user_auth, upload_id, 're-process')
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
 
 
-def test_delete_id_invalid(client, mongo, test_user_auth):
-    ''' Trys to delete an invalid upload_id'''
-    response = perform_delete_upload(client, upload_id='1234567890', user_auth=test_user_auth)
-    assert response.status_code == 404
-
-
-@pytest.mark.parametrize('publish, delete_user, expected_status_code', [
-    pytest.param(False, 'test_user', 200, id='delete-own'),
-    pytest.param(False, 'other_test_user', 401, id='delete-others-not-admin'),
-    pytest.param(False, 'admin_user', 200, id='delete-others-admin'),
-    pytest.param(True, 'test_user', 401, id='delete-own-published'),
-    pytest.param(True, 'admin_user', 200, id='delete-others-published-admin')])
-def test_delete(
-        client, mongo, proc_infra, non_empty_example_upload,
+@pytest.mark.parametrize('upload_id, user, expected_status_code', [
+    pytest.param('id_unpublished_w', 'test_user', 200, id='delete-own'),
+    pytest.param('id_unpublished_w', 'other_test_user', 401, id='delete-others-not-admin'),
+    pytest.param('id_unpublished_w', 'admin_user', 200, id='delete-others-admin'),
+    pytest.param('id_published_w', 'test_user', 401, id='delete-own-published'),
+    pytest.param('id_published_w', 'admin_user', 200, id='delete-others-published-admin'),
+    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
+def test_delete_upload(
+        client, proc_infra, example_data_writeable,
         test_user_auth, other_test_user_auth, admin_user_auth,
-        publish, delete_user, expected_status_code):
+        upload_id, user, expected_status_code):
     ''' Uploads a file, and then tries to delete it, with different parameters and users. '''
-    delete_auth = {
+    user_auth = {
         'test_user': test_user_auth,
         'other_test_user': other_test_user_auth,
         'admin_user': admin_user_auth
-    }[delete_user]
+    }[user]
 
-    response = perform_post_upload(
-        client, 'multipart', non_empty_example_upload, test_user_auth)
-    assert response.status_code == 200
-    response_json = response.json()
-    upload_id = response_json['upload_id']
-    assert_upload(response_json)
-    assert_processing(client, upload_id, test_user_auth)
-    if publish:
-        assert_publish(client, test_user_auth, upload_id, proc_infra)
-
-    response = perform_delete_upload(client, upload_id, user_auth=delete_auth)
-    assert response.status_code == expected_status_code
+    response = client.delete(f'uploads/{upload_id}', headers=user_auth)
+    assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_upload_does_not_exist(client, upload_id, test_user_auth)
 
 
-def test_get_command_examples(client, test_user_auth):
-    response = perform_get(client, 'uploads/command-examples', user_auth=None)
-    assert response.status_code == 401
-    response = perform_get(client, 'uploads/command-examples', user_auth=test_user_auth)
-    assert response.status_code == 200
-    data = response.json()
-    for k in (
-            'upload_url', 'upload_command', 'upload_command_with_name',
-            'upload_progress_command', 'upload_command_form', 'upload_tar_command'):
-        assert k in data
-    assert '/api/v1/uploads' in data['upload_command']
+@pytest.mark.parametrize('authorized, expected_status_code', [
+    pytest.param(True, 200, id='ok'),
+    pytest.param(False, 401, id='not-authorized')])
+def test_get_command_examples(client, test_user_auth, authorized, expected_status_code):
+    response = perform_get(
+        client, 'uploads/command-examples', user_auth=test_user_auth if authorized else None)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        data = response.json()
+        for k in (
+                'upload_url', 'upload_command', 'upload_command_with_name',
+                'upload_progress_command', 'upload_command_form', 'upload_tar_command'):
+            assert k in data
+        assert '/api/v1/uploads' in data['upload_command']
