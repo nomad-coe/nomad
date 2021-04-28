@@ -72,7 +72,7 @@ _existing_name_response = status.HTTP_400_BAD_REQUEST, {
 _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
     'model': HTTPExceptionModel,
     'description': strip('''
-        The dataset already as a DOI and cannot be changed anymore.
+        The dataset already has a DOI and cannot be changed anymore.
     ''')}
 
 

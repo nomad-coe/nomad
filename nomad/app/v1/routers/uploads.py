@@ -31,13 +31,51 @@ from nomad.utils import strip
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
-    BaseModel, User, Direction, Pagination, PaginationResponse)
-from ..utils import parameter_dependency_from_model
+    BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel)
+from ..utils import parameter_dependency_from_model, create_responses
 
 router = APIRouter()
 default_tag = 'uploads'
 
 logger = utils.get_logger(__name__)
+
+
+_not_authorized = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
+
+_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload.''')}
+
+_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload or entry.''')}
+
+_bad_request = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. The request could not be processed because of some error/invalid argument.''')}
+
+_bad_pagination = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. Invalid pagination arguments supplied.''')}
+
+_upload_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload could not be found.''')}
+
+_entry_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload or entry could not be found.''')}
 
 
 class ProcData(BaseModel):
@@ -194,6 +232,7 @@ class UploadCommandExamplesResponse(BaseModel):
     '/command-examples', tags=[default_tag],
     summary='Get example commands for shell based uploads.',
     response_model=UploadCommandExamplesResponse,
+    responses=create_responses(_not_authorized),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_command_examples(user: User = Depends(create_user_dependency(required=True))):
@@ -220,6 +259,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
     '', tags=[default_tag],
     summary='List uploads of authenticated user.',
     response_model=UploadProcDataQueryResponse,
+    responses=create_responses(_not_authorized, _bad_pagination),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_uploads(
@@ -280,6 +320,7 @@ async def get_uploads(
     '/{upload_id}', tags=[default_tag],
     summary='Get a specific upload',
     response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_upload(
@@ -302,6 +343,7 @@ async def get_upload(
     '/{upload_id}/entries', tags=[default_tag],
     summary='Get the entries of the specific upload as a list',
     response_model=EntryProcDataQueryResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_pagination),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_upload_entries(
@@ -340,6 +382,7 @@ async def get_upload_entries(
     '/{upload_id}/entries/{entry_id}', tags=[default_tag],
     summary='Get a specific entry for a specific upload',
     response_model=EntryProcDataResponse,
+    responses=create_responses(_entry_not_found, _not_authorized_to_entry),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_upload_entry(
@@ -367,6 +410,7 @@ async def get_upload_entry(
     '', tags=[default_tag],
     summary='Submit a new upload',
     response_model=UploadProcDataResponse,
+    responses=create_responses(_not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload(
@@ -550,6 +594,7 @@ async def post_upload(
     '/{upload_id}', tags=[default_tag],
     summary='Delete an upload',
     response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def delete_upload(
@@ -587,6 +632,7 @@ async def delete_upload(
     '/{upload_id}/action/publish', tags=[default_tag],
     summary='Publish an upload',
     response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload_action_publish(
@@ -670,6 +716,7 @@ async def post_upload_action_publish(
     '/{upload_id}/action/re-process', tags=[default_tag],
     summary='Re-process a published upload',
     response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload_action_reprocess(

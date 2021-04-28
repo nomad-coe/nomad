@@ -26,7 +26,7 @@ from nomad.metainfo.search_extension import search_quantities
 from nomad.app.v1.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least, assert_url_query_args
-from tests.test_files import example_mainfile_contents, append_published_zip_files  # pylint: disable=unused-import
+from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import assert_response
 from tests.app.conftest import example_data as data  # pylint: disable=unused-import
@@ -677,9 +677,9 @@ def test_entry_raw_download(client, data, entry_id, files, files_per_entry, stat
 
 @pytest.fixture(scope='module')
 def data_with_compressed_files(data):
-    append_published_zip_files(
+    append_raw_files(
         'id_published', 'tests/data/api/mainfile.xz', 'test_content/subdir/test_entry_02/mainfile.xz')
-    append_published_zip_files(
+    append_raw_files(
         'id_published', 'tests/data/api/mainfile.gz', 'test_content/subdir/test_entry_02/mainfile.gz')
 
 

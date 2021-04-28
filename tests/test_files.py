@@ -572,7 +572,7 @@ def create_test_upload_files(
     return upload_files
 
 
-def append_published_zip_files(upload_id: str, path_source: str, path_in_archive: str, access='public'):
+def append_raw_files(upload_id: str, path_source: str, path_in_archive: str, access='public'):
     ''' Used to append published zip files, for testing purposes. '''
     upload_files = UploadFiles.get(upload_id)
     zip_path = upload_files._raw_file_object(access).os_path  # type: ignore
