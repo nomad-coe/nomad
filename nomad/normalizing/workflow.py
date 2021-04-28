@@ -67,7 +67,7 @@ class SinglePointNormalizer(Normalizer):
         if not self.section.is_converged and delta_energy is not None:
             try:
                 threshold = self.section_run.section_method[-1].scf_threshold_energy_change
-                self.section.is_converged = threshold <= delta_energy
+                self.section.is_converged = bool(delta_energy <= threshold)
             except Exception:
                 pass
 
