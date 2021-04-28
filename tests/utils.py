@@ -21,6 +21,7 @@
 import urllib.parse
 import json
 from logging import LogRecord
+from typing import Dict, Any
 
 
 def assert_log(caplog, level: str, event_part: str) -> LogRecord:
@@ -82,3 +83,15 @@ def assert_url_query_args(url: str, **kwargs):
             assert k not in query_dict
         else:
             assert query_dict[k][0] == str(v)
+
+
+def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
+    '''
+    Takes a base_url and a dictionary, and combines to a url with query arguments.
+    Arguments with value None are ignored.
+    '''
+    # Remove args with value None
+    query_args_clean = {k: v for k, v in query_args.items() if v is not None}
+    if not query_args_clean:
+        return base_url
+    return base_url + '?' + urllib.parse.urlencode(query_args_clean, doseq=True)

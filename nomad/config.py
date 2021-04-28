@@ -175,12 +175,13 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True, api: str = 'api'):
-    base_url = '%s://%s/%s' % (
-        'https' if services.https and ssl else 'http',
-        services.api_host.strip('/'),
-        services.api_base_path.strip('/'))
-
-    return '%s/%s' % (base_url.strip('/'), api)
+    protocol = 'https' if services.https and ssl else 'http'
+    host_and_port = services.api_host.strip('/')
+    standard_port = 443 if protocol == 'https' else 80
+    if services.api_port != standard_port:
+        host_and_port += ':' + str(services.api_port)
+    base_path = services.api_base_path.strip('/')
+    return f'{protocol}://{host_and_port}/{base_path}/{api}'
 
 
 def gui_url(page: str = None):
