@@ -23,7 +23,8 @@ from elasticsearch_dsl.query import Query as EsQuery
 from pydantic.error_wrappers import ErrorWrapper
 
 from nomad.metainfo.elasticsearch_extension import (
-    entry_type, entry_index, Index, index_entries, DocumentType, SearchQuantity)
+    material_type, entry_type, material_entry_type,
+    entry_index, Index, index_entries, DocumentType, SearchQuantity)
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
@@ -51,6 +52,9 @@ def validate_quantity(
     '''
     assert quantity_name is not None
 
+    if doc_type == material_entry_type and not quantity_name.startswith('entries'):
+        quantity_name = f'entries.{quantity_name}'
+
     if doc_type is None:
         doc_type = entry_type
 
@@ -63,7 +67,7 @@ def validate_quantity(
     return quantity
 
 
-def validate_api_query(query: Query, doc_type: DocumentType) -> EsQuery:
+def validate_api_query(query: Query, doc_type: DocumentType, owner_query: EsQuery) -> EsQuery:
     '''
     Creates an ES query based on the API's query model. This needs to be a normalized
     query expression with explicit objects for logical, set, and comparison operators.
@@ -82,51 +86,71 @@ def validate_api_query(query: Query, doc_type: DocumentType) -> EsQuery:
 
     Raises: QueryValidationError
     '''
-    def quantity_to_es(name: str, value: Value) -> EsQuery:
+    def quantity_to_es(name: str, value: Value, doc_type: DocumentType) -> EsQuery:
         # TODO depends on keyword or not, value might need normalization, etc.
         quantity = validate_quantity(name, value, doc_type=doc_type)
         return Q('match', **{quantity.search_field: value})
 
-    def parameter_to_es(name: str, value: QueryParameterValue) -> EsQuery:
+    def parameter_to_es(name: str, value: QueryParameterValue, doc_type=doc_type) -> EsQuery:
+        nest = False
+        if doc_type == material_type and name.startswith('entries'):
+            nest = True
+            doc_type = material_entry_type
 
         if isinstance(value, api_models.All):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
+            result = Q('bool', must=[
+                quantity_to_es(name, item, doc_type=doc_type)
                 for item in value.op])
 
-        if isinstance(value, api_models.Any_):
-            return Q('bool', should=[
-                quantity_to_es(name, item)
+        elif isinstance(value, api_models.Any_):
+            result = Q('bool', should=[
+                quantity_to_es(name, item, doc_type=doc_type)
                 for item in value.op])
 
-        if isinstance(value, api_models.None_):
-            return Q('bool', must_not=[
-                quantity_to_es(name, item)
+        elif isinstance(value, api_models.None_):
+            result = Q('bool', must_not=[
+                quantity_to_es(name, item, doc_type=doc_type)
                 for item in value.op])
 
-        if isinstance(value, api_models.ComparisonOperator):
+        elif isinstance(value, api_models.ComparisonOperator):
             quantity = validate_quantity(name, value.op, doc_type=doc_type)
-            return Q('range', **{quantity.search_field: {
+            result = Q('range', **{quantity.search_field: {
                 type(value).__name__.lower(): value.op}})
 
         # list of values is treated as an "all" over the items
-        if isinstance(value, list):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
+        elif isinstance(value, list):
+            result = Q('bool', must=[
+                quantity_to_es(name, item, doc_type=doc_type)
                 for item in value])
 
-        return quantity_to_es(name, value)
+        else:
+            result = quantity_to_es(name, value, doc_type=doc_type)
 
-    def query_to_es(query: Query) -> EsQuery:
+        if nest:
+            return Q('nested', path='entries', query=result & owner_query)
+        else:
+            return result
+
+    def query_to_es(query: Query, doc_type: DocumentType) -> EsQuery:
         if isinstance(query, api_models.LogicalOperator):
             if isinstance(query, api_models.And):
-                return Q('bool', must=[query_to_es(operand) for operand in query.op])
+                return Q('bool', must=[query_to_es(operand, doc_type=doc_type) for operand in query.op])
 
             if isinstance(query, api_models.Or):
-                return Q('bool', should=[query_to_es(operand) for operand in query.op])
+                return Q('bool', should=[query_to_es(operand, doc_type=doc_type) for operand in query.op])
 
             if isinstance(query, api_models.Not):
-                return Q('bool', must_not=query_to_es(query.op))
+                return Q('bool', must_not=query_to_es(query.op, doc_type=doc_type))
+
+            if isinstance(query, api_models.Entries):
+                if doc_type != material_type:
+                    raise QueryValidationError(
+                        'entries can only be nested into material queries',
+                        loc=['query', 'entries'])
+
+                return Q(
+                    'nested', path='entries',
+                    query=query_to_es(query.op, doc_type=material_entry_type) & owner_query)
 
             raise NotImplementedError()
 
@@ -139,12 +163,12 @@ def validate_api_query(query: Query, doc_type: DocumentType) -> EsQuery:
 
         if len(query) == 1:
             key = next(iter(query))
-            return parameter_to_es(key, query[key])
+            return parameter_to_es(key, query[key], doc_type=doc_type)
 
         return Q('bool', must=[
-            parameter_to_es(name, value) for name, value in query.items()])
+            parameter_to_es(name, value, doc_type=doc_type) for name, value in query.items()])
 
-    return query_to_es(query)
+    return query_to_es(query, doc_type=doc_type)
 
 
 def validate_pagination(pagination: Pagination, doc_type: DocumentType, loc: List[str] = None):
@@ -341,33 +365,38 @@ def search(
         aggregations: Dict[str, Aggregation] = {},
         statistics: Dict[str, Statistic] = {},
         user_id: str = None,
-        doc_type: DocumentType = entry_type,
-        index: Union[Index, str] = entry_index) -> MetadataResponse:
+        index: Index = entry_index) -> MetadataResponse:
 
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a MetadataResponse.
 
-    # query and owner
+    doc_type = index.doc_type
+
+    # owner and query
+    owner_query = _owner_es_query(owner=owner, user_id=user_id, doc_type=doc_type)
+
     if query is None:
         query = {}
 
     if isinstance(query, EsQuery):
         es_query = cast(EsQuery, query)
     else:
-        es_query = validate_api_query(cast(Query, query), doc_type=doc_type)
+        es_query = validate_api_query(
+            cast(Query, query), doc_type=doc_type, owner_query=owner_query)
 
-    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+    if doc_type != entry_type:
+        es_query &= Q('nested', path='entries', query=owner_query)
+    else:
+        es_query &= owner_query
 
     # pagination
     if pagination is None:
         pagination = Pagination()
 
     if pagination.order_by is None:
-        pagination.order_by = 'entry_id'
+        pagination.order_by = doc_type.id_field
 
-    if isinstance(index, Index):
-        index = index.index_name
-    search = Search(index=index)
+    search = Search(index=index.index_name)
 
     search = search.query(es_query)
     # TODO this depends on doc_type

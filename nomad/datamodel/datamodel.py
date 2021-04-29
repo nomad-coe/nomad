@@ -73,7 +73,7 @@ class Author(metainfo.MSection):
         a_search=Search(mapping=Text(fields={'keyword': Keyword()})),
         a_elasticsearch=[
             Elasticsearch(_es_field='keyword'),
-            Elasticsearch(mapping='text', field='text', _es_field='')
+            Elasticsearch(material_entry_type, mapping='text', field='text', _es_field='')
         ])
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
@@ -110,7 +110,7 @@ class User(Author):
 
     user_id = metainfo.Quantity(
         type=str,
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
     username = metainfo.Quantity(type=str)
 
@@ -491,7 +491,7 @@ class EntryMetadata(metainfo.MSection):
                 name='uploader_id', search_field='uploader.user_id',
                 description='The full name of the authors',)
         ],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     origin = metainfo.Quantity(
         type=str,
@@ -529,7 +529,7 @@ class EntryMetadata(metainfo.MSection):
         a_search=Search(
             description='The full name of the owners for exact searches',
             many_or='append', search_field='owners.name.keyword'),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     license = metainfo.Quantity(
         type=str,

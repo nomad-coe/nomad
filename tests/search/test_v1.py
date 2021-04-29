@@ -22,7 +22,7 @@ import json
 from nomad.app.v1.models import WithQuery
 from nomad.search import update_by_query
 from nomad.search.v1 import search
-from nomad.metainfo.elasticsearch_extension import entry_type, entry_index
+from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, material_index
 
 from tests.utils import ExampleData
 
@@ -33,12 +33,17 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
 
     data.create_entry(
         upload_id='test_upload_id',
-        calc_id='test_upload_id',
+        calc_id='test_entry_id',
         mainfile='test_content/test_embargo_entry/mainfile.json',
         shared_with=[],
         with_embargo=True)
 
     data.save()
+
+
+def test_index(indices, example_data):
+    assert material_index.get(id='test_material_id') is not None
+    assert entry_index.get(id='test_entry_id') is not None
 
 
 @pytest.fixture()

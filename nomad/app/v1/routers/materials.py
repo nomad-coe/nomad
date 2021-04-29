@@ -17,12 +17,13 @@
 #
 
 from fastapi import APIRouter, Depends, Path, status, HTTPException, Request
+from fastapi.exception_handlers import RequestValidationError
 
 from nomad import utils
 from nomad.utils import strip
 from nomad.search import AuthenticationRequiredError, SearchError
-from nomad.search.v1 import search
-from nomad.metainfo.elasticsearch_extension import material_type
+from nomad.search.v1 import search, QueryValidationError
+from nomad.metainfo.elasticsearch_extension import material_type, material_index
 
 from .auth import create_user_dependency
 from ..utils import create_responses
@@ -52,10 +53,13 @@ _bad_id_response = status.HTTP_404_NOT_FOUND, {
 
 
 def perform_search(*args, **kwargs) -> MetadataResponse:
+    kwargs.update(index=material_index)
     try:
         search_response = search(*args, **kwargs)
         search_response.es_query = None
         return search_response
+    except QueryValidationError as e:
+        raise RequestValidationError(errors=e.errors)
     except AuthenticationRequiredError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except SearchError as e:

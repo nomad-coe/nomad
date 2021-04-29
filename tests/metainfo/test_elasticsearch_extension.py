@@ -120,6 +120,8 @@ class Entry(MSection):
     owners = Quantity(
         type=User, shape=['*'], a_elasticsearch=Elasticsearch())
 
+    not_indexed = Quantity(type=str)
+
 
 def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None, **kwargs):
     for segment in path.split('.'):
@@ -259,7 +261,9 @@ def test_mappings(indices):
 
 def test_index_docs(indices):
     user = User(user_id='test_user_id', name='Test User')
-    entry = Entry(entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user])
+    entry = Entry(
+        entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user],
+        not_indexed='value')
     data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
     results = entry.m_create(Results)
     results.m_create(

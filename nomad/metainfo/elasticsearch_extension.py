@@ -243,8 +243,9 @@ class DocumentType():
             result.update(**metadata)
 
             # TODO merge with the v0 index data, create by the other search extension
-            v0_entry = root.section_metadata.a_elastic.create_index_entry()
-            result.update(**v0_entry.to_dict(include_meta=False))
+            if self == entry_type:
+                v0_entry = root.section_metadata.a_elastic.create_index_entry()
+                result.update(**v0_entry.to_dict(include_meta=False))
 
         return result
 
@@ -353,7 +354,7 @@ class DocumentType():
                 self.metrics[name] = (metric, search_quantity)
 
     def __repr__(self):
-        return f'search index document type {self.name}'
+        return self.name
 
 
 class Index():

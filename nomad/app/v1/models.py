@@ -114,6 +114,10 @@ class Not(LogicalOperator):
     op: 'Query' = Field(None, alias='not')
 
 
+class Entries(LogicalOperator):
+    op: 'Query' = Field(None, alias='entries')
+
+
 ops = {
     'lte': Lte,
     'lt': Lt,
@@ -121,19 +125,21 @@ ops = {
     'gt': Gt,
     'all': All,
     'none': None_,
-    'any': Any_
+    'any': Any_,
+    'entries': Entries
 }
 
 
 QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_]
 
 Query = Union[
-    Mapping[str, QueryParameterValue], And, Or, Not]
+    Mapping[str, QueryParameterValue], And, Or, Not, Entries]
 
 
 And.update_forward_refs()
 Or.update_forward_refs()
 Not.update_forward_refs()
+Entries.update_forward_refs()
 
 
 class Owner(str, enum.Enum):

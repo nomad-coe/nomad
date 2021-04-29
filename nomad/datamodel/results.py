@@ -1024,7 +1024,7 @@ class Properties(MSection):
         type=str,
         shape=['0..*'],
         description='List of all properties which are present in this section_results',
-        a_elasticsearch=Elasticsearch(),
+        a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
 
