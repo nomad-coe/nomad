@@ -54,7 +54,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any
+from typing import IO, Generator, Dict, Set, Iterable, Callable, List, Tuple, Any
 import os.path
 import os
 import shutil
@@ -248,6 +248,25 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         else:
             return None
 
+    def raw_path_exists(self, path: str) -> bool:
+        '''
+        Returns True if the specified path is a valid raw path (either file or directory)
+        '''
+        raise NotImplementedError()
+
+    def raw_path_is_file(self, path: str) -> bool:
+        '''
+        Returns True if the specified path points to a file (rather than a directory).
+        '''
+        raise NotImplementedError()
+
+    def raw_list_directory(self, path: str) -> List[str]:
+        '''
+        Returns a list of strings, naming elements (files and folders) in the directory
+        specified by path.
+        '''
+        raise NotImplementedError()
+
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         '''
         Opens a raw file and returns a file-like object. Additional args, kwargs are
@@ -327,6 +346,38 @@ class StagingUploadFiles(UploadFiles):
             raise KeyError(path_object.os_path)
         except IsADirectoryError:
             raise KeyError(path_object.os_path)
+
+    def _raw_path_to_os_path(self, path: str) -> str:
+        '''
+        Takes a raw path (path relative to the raw folder) and returns the correspondig
+        os path. A Restricted exception is thrown if the user is not authorized. If the
+        path is invalid (for example if it contains a '..', which could pose a security
+        risk), None is returned.
+        '''
+        if not self._is_authorized():
+            raise Restricted
+        if '..' in path.split(os.path.sep):
+            return None
+        return os.path.join(self.os_path, 'raw', path)
+
+    def raw_path_exists(self, path: str) -> bool:
+        os_path = self._raw_path_to_os_path(path)
+        return os_path is not None and os.path.exists(os_path)
+
+    def raw_path_is_file(self, path: str) -> bool:
+        os_path = self._raw_path_to_os_path(path)
+        return os_path is not None and os.path.isfile(os_path)
+
+    def raw_list_directory(self, path: str) -> List[str]:
+        os_path = self._raw_path_to_os_path(path)
+        assert os_path and os.path.isdir(os_path), f'Path {path} is not a directory'
+        rv: List[str] = []
+        for name in os.listdir(os_path):
+            if os.path.isdir(os.path.join(os_path, name)):
+                name += os.path.sep  # To differentiate directory names from file names
+            rv.append(name)
+        rv.sort()
+        return rv
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
@@ -797,6 +848,51 @@ class PublicUploadFiles(UploadFiles):
         with zipfile.ZipFile(zip_path, 'a') as zf:
             with zf.open('nomad.json', 'w') as f:
                 f.write(json.dumps(metadata).encode())
+
+    def raw_path_exists(self, path: str) -> bool:
+        if path == '' or path == '.':
+            return True  # Special case for root dir
+        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
+        path_not_slashed = path.rstrip(os.path.sep)
+        path_slashed = path_not_slashed + os.path.sep
+        for access in access_levels:
+            zf = self._open_raw_file(access)
+            for zip_path in zf.namelist():
+                if zip_path == path_not_slashed or zip_path.startswith(path_slashed):
+                    return True
+        return False
+
+    def raw_path_is_file(self, path: str) -> bool:
+        if path == '' or path == '.':
+            return False  # Special case for root dir
+        if path.endswith(os.path.sep):
+            return False
+        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
+        for access in access_levels:
+            zf = self._open_raw_file(access)
+            if path in zf.namelist():
+                return True
+        return False
+
+    def raw_list_directory(self, path: str) -> List[str]:
+        if path == '' or path == '.':
+            path_head = ''  # Special case for root dir
+        else:
+            path_head = path if path.endswith(os.path.sep) else path + os.path.sep
+        content: Set[str] = set()
+        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
+        for access in access_levels:
+            zf = self._open_raw_file(access)
+            for zip_path in zf.namelist():
+                if zip_path.startswith(path_head):
+                    tail = zip_path[len(path_head):]
+                    if os.path.sep in tail:
+                        # Subfolder found
+                        content.add(tail[:tail.find(os.path.sep) + 1])
+                    else:
+                        # File found
+                        content.add(tail)
+        return sorted(content)
 
     @property
     def public_raw_data_file(self):

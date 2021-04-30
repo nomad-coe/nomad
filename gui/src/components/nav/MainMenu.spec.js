@@ -22,7 +22,7 @@ import { toBeInTheDocument } from '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import MainMenu from './MainMenu'
-import { allRoutes as routes } from './Routes'
+import { routes } from './Routes'
 
 expect.extend({ toBeInTheDocument })
 

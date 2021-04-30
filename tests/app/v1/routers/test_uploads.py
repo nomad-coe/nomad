@@ -41,15 +41,20 @@ to assert for certain aspects in the responses.
 '''
 
 
-def perform_get(client, base_url, user_auth=None, **query_args):
-    headers = user_auth
-    url = build_url(base_url, query_args)
-    response = client.get(url, headers=headers)
+def perform_get(client, base_url, user_auth=None, accept='application/json', **query_args):
+    headers = {'Accept': accept}
+    if user_auth:
+        headers.update(user_auth)
+    response = client.get(build_url(base_url, query_args), headers=headers)
     return response
 
 
-def perform_post_upload(client, mode, file, user_auth=None, token=None, **query_args):
+def perform_post_upload(
+        client, mode, file, user_auth=None, token=None, accept='application/json', **query_args):
     ''' Posts a new upload. '''
+    headers = {'Accept': accept}
+    if user_auth:
+        headers.update(user_auth)
     if mode == 'local_path':
         query_args.update(local_path=file)
     if token:
@@ -58,12 +63,12 @@ def perform_post_upload(client, mode, file, user_auth=None, token=None, **query_
     if mode == 'multipart':
         with open(file, 'rb') as f:
             response = client.post(
-                url, files={'file': f}, headers=user_auth)
+                url, files={'file': f}, headers=headers)
     elif mode == 'stream':
         with open(file, 'rb') as f:
-            response = client.post(url, data=f.read(), headers=user_auth)
+            response = client.post(url, data=f.read(), headers=headers)
     elif mode == 'local_path':
-        response = client.post(url, headers=user_auth)
+        response = client.post(url, headers=headers)
     else:
         assert False, 'Invalid value for mode provided'
 
@@ -505,29 +510,95 @@ def test_get_upload_entry(
         assert_entry(response_data)
 
 
-@pytest.mark.parametrize('mode, name, user, use_upload_token, empty, publish_directly, test_limit, expected_status_code', [
-    pytest.param('multipart', 'test_name', 'test_user', False, False, None, False, 200, id='multipart'),
-    pytest.param('multipart', None, 'test_user', False, False, None, False, 200, id='multipart-no-name'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, None, False, 200, id='stream'),
-    pytest.param('stream', None, 'test_user', False, False, None, False, 200, id='stream-no-name'),
-    pytest.param('multipart', None, 'invalid', False, False, None, False, 401, id='multipart-no-name-invalid-cred'),
-    pytest.param('stream', None, 'invalid', False, False, None, False, 401, id='stream-no-name-invalid-cred'),
-    pytest.param('multipart', 'test_name', 'test_user', True, False, None, False, 200, id='multipart-token'),
-    pytest.param('stream', 'test_name', 'test_user', True, False, None, False, 200, id='stream-token'),
-    pytest.param('multipart', 'test_name', 'invalid', True, False, None, False, 401, id='multipart-token-invalid-cred'),
-    pytest.param('stream', 'test_name', 'invalid', True, False, None, False, 401, id='stream-token-invalid-cred'),
-    pytest.param('local_path', None, 'admin_user', False, False, None, False, 200, id='local_path'),
-    pytest.param('multipart', None, None, False, False, None, False, 401, id='not-logged-in-multipart'),
-    pytest.param('stream', None, None, False, False, None, False, 401, id='not-logged-in-stream'),
-    pytest.param('local_path', None, None, False, False, None, False, 401, id='not-logged-in-local_path'),
-    pytest.param('local_path', None, 'test_user', False, False, None, False, 401, id='not-admin-local_path'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, True, False, 200, id='publish_directly'),
-    pytest.param('stream', 'test_name', 'test_user', False, True, True, False, 200, id='publish_directly-empty'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, None, True, 400, id='upload-limit-exceeded')])
+@pytest.mark.parametrize('user, upload_id, path, accept, expected_status_code, expected_mime_type, expected_content', [
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        200, 'application/octet-stream', 'content', id='unpublished-file'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json',
+        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-json'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/test_entry/', '*',
+        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
+    pytest.param(
+        'test_user', 'id_unpublished', '', 'application/json',
+        200, 'application/json', ['test_content/'], id='unpublished-dir-json-root'),
+    pytest.param(
+        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        401, None, None, id='unpublished-file-unauthorized'),
+    pytest.param(
+        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        200, 'application/octet-stream', 'content', id='unpublished-file-admin-auth'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        200, 'application/octet-stream', 'content', id='published-file'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json',
+        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*',
+        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
+    pytest.param(
+        'test_user', 'id_published', '', 'application/json',
+        200, 'application/json', ['test_content/'], id='published-dir-json-root'),
+    pytest.param(
+        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        401, None, None, id='published-file-unauthorized'),
+    pytest.param(
+        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        200, 'application/octet-stream', 'content', id='published-file-admin-auth'),
+])
+def test_get_upload_raw_path(
+        client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
+        user, upload_id, path, accept, expected_status_code, expected_mime_type, expected_content):
+    user_auth = {
+        'test_user': test_user_auth,
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
+    response = perform_get(client, f'uploads/{upload_id}/raw/{path}', user_auth=user_auth, accept=accept)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        mime_type = response.headers.get('content-type')
+        assert mime_type == expected_mime_type
+        if mime_type == 'application/octet-stream':
+            if expected_content:
+                assert expected_content in response.text, 'Expected content not found'
+        elif mime_type == 'application/json':
+            data = response.json()
+            assert data['path'] == (path.rstrip('/') or '.')
+            if expected_content:
+                assert data['content'] == expected_content, 'Incorrect list of files returned'
+        elif mime_type == 'text/html':
+            assert response.text, 'No response text'
+            if expected_content:
+                for name in expected_content:
+                    assert name in response.text
+
+
+@pytest.mark.parametrize('mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code', [
+    pytest.param('multipart', 'test_name', 'test_user', False, False, None, False, True, 200, id='multipart'),
+    pytest.param('multipart', None, 'test_user', False, False, None, False, True, 200, id='multipart-no-name'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, None, False, True, 200, id='stream'),
+    pytest.param('stream', None, 'test_user', False, False, None, False, True, 200, id='stream-no-name'),
+    pytest.param('stream', None, 'test_user', False, False, None, False, False, 200, id='stream-no-accept-json'),
+    pytest.param('multipart', None, 'invalid', False, False, None, False, True, 401, id='multipart-no-name-invalid-cred'),
+    pytest.param('stream', None, 'invalid', False, False, None, False, True, 401, id='stream-no-name-invalid-cred'),
+    pytest.param('multipart', 'test_name', 'test_user', True, False, None, False, True, 200, id='multipart-token'),
+    pytest.param('stream', 'test_name', 'test_user', True, False, None, False, True, 200, id='stream-token'),
+    pytest.param('multipart', 'test_name', 'invalid', True, False, None, False, True, 401, id='multipart-token-invalid-cred'),
+    pytest.param('stream', 'test_name', 'invalid', True, False, None, False, True, 401, id='stream-token-invalid-cred'),
+    pytest.param('local_path', None, 'admin_user', False, False, None, False, True, 200, id='local_path'),
+    pytest.param('multipart', None, None, False, False, None, False, True, 401, id='not-logged-in-multipart'),
+    pytest.param('stream', None, None, False, False, None, False, True, 401, id='not-logged-in-stream'),
+    pytest.param('local_path', None, None, False, False, None, False, True, 401, id='not-logged-in-local_path'),
+    pytest.param('local_path', None, 'test_user', False, False, None, False, True, 401, id='not-admin-local_path'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, True, False, True, 200, id='publish_directly'),
+    pytest.param('stream', 'test_name', 'test_user', False, True, True, False, True, 200, id='publish_directly-empty'),
+    pytest.param('stream', 'test_name', 'test_user', False, False, None, True, True, 400, id='upload-limit-exceeded')])
 def test_post_upload(
         client, mongo, proc_infra, monkeypatch, test_user, admin_user, test_user_auth, admin_user_auth,
         empty_upload, non_empty_example_upload,
-        mode, name, user, use_upload_token, empty, publish_directly, test_limit, expected_status_code):
+        mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code):
     '''
     Posts an upload, with different arguments.
     '''
@@ -558,29 +629,34 @@ def test_post_upload(
     if test_limit:
         monkeypatch.setattr('nomad.config.services.upload_limit', 0)
 
+    accept = 'application/json' if accept_json else '*'
+
     response = perform_post_upload(
-        client, mode, upload_file, user_auth_post, token,
+        client, mode, upload_file, user_auth_post, token, accept=accept,
         name=name, publish_directly=publish_directly)
 
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        response_json = response.json()
-        upload_id = response_json['upload_id']
-        expected_name = name
-        if not expected_name and mode in ('multipart', 'local_path'):
-            expected_name = os.path.basename(non_empty_example_upload)
-        assert_upload(response_json, name=expected_name)
-        if mode == 'local_path':
-            assert response_json['data']['upload_path'] == non_empty_example_upload
+        if accept_json:
+            response_json = response.json()
+            upload_id = response_json['upload_id']
+            expected_name = name
+            if not expected_name and mode in ('multipart', 'local_path'):
+                expected_name = os.path.basename(non_empty_example_upload)
+            assert_upload(response_json, name=expected_name)
+            if mode == 'local_path':
+                assert response_json['data']['upload_path'] == non_empty_example_upload
 
-        assert_processing(client, upload_id, user_auth, published=(publish_directly and not empty))
+            assert_processing(client, upload_id, user_auth, published=(publish_directly and not empty))
 
-        if publish_directly:
-            upload_proc = Upload.objects(upload_id=upload_id).first()
-            if empty:
-                assert not upload_proc.published
-            else:
-                assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
+            if publish_directly:
+                upload_proc = Upload.objects(upload_id=upload_id).first()
+                if empty:
+                    assert not upload_proc.published
+                else:
+                    assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
+        else:
+            assert 'Thanks for uploading' in response.text
 
 
 @pytest.mark.parametrize('user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code', [

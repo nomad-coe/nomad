@@ -17,14 +17,17 @@
 #
 import os
 import io
+import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
+from fastapi.responses import StreamingResponse
 
 from nomad import utils, config, files, datamodel
+from nomad.files import UploadFiles
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
@@ -76,6 +79,24 @@ _entry_not_found = status.HTTP_404_NOT_FOUND, {
     'model': HTTPExceptionModel,
     'description': strip('''
         The specified upload or entry could not be found.''')}
+
+_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload, or a resource with the specified path within the upload,
+        could not be found.''')}
+
+_raw_path_response = 200, {
+    'content': {
+        'application/json': {
+            'example': {'path': 'the/path', 'content': ['a_directory/', 'a_file.txt']}},
+        'application/octet-stream': {
+            'example': 'File content'},
+    },
+    'description': strip('''
+        Either a stream with the file content (if `path` denotes a file) or the directory
+        content (if `path` denotes a directory). Directory contents are returned either
+        encoded as json or html, depending on the request headers.''')}
 
 
 class ProcData(BaseModel):
@@ -406,10 +427,70 @@ async def get_upload_entry(
         data=_entry_to_pydantic(entry))
 
 
+@router.get(
+    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    summary='Get the raw files and folders for a given upload and path.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _raw_path_response, _upload_or_path_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_raw_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    '''
+    For the upload specified by `upload_id`, gets the raw file or folder content located
+    at the given `path`. If `path` points to a file, the file content is streamed in the
+    response. If it denotes a directory, the response will be a listing of the directory
+    content, either encoded as a json structure (if the request headers has
+    `Accept = application/json`), otherwise as html.
+    '''
+    path = os.path.normpath(path)
+    upload = _get_upload_with_read_access(upload_id, user)
+    if upload.tasks_running:
+        # TODO: maybe we should allow browsing even if processing?
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            The upload is being processed.'''))
+    upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    if not upload_files.raw_path_exists(path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+            Not found. Invalid path.'''))
+    if upload_files.raw_path_is_file(path):
+        # Stream file content
+        return StreamingResponse(upload_files.raw_file(path), media_type='application/octet-stream')
+    else:
+        # Directory
+        content = upload_files.raw_list_directory(path)
+        if request.headers.get('Accept') == 'application/json':
+            # json response
+            json_response = {'upload_id': upload_id, 'path': path, 'content': content}
+            response_text = json.dumps(json_response, sort_keys=True, indent=4)
+            media_type = 'application/json'
+        else:
+            # html response
+            response_text = ''
+            scheme, netloc, url_path, _query, _fragment = request.url.components
+            base_url = f'{scheme}://{netloc}{url_path}'
+            if not base_url.endswith('/'):
+                base_url += '/'
+            for name in content:
+                # TODO: Need escaping?
+                response_text += f'<p><a href="{base_url + name}">{name}</a></p>\n'
+            media_type = 'text/html'
+
+        return StreamingResponse(_streamed_string(response_text), media_type=media_type)
+
+
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
-    response_model=UploadProcDataResponse,
+    response_class=StreamingResponse,
     responses=create_responses(_not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
@@ -585,9 +666,20 @@ async def post_upload(
 
     upload.process_upload()
 
-    return UploadProcDataResponse(
-        upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+    if request.headers.get('Accept') == 'application/json':
+        upload_proc_data_response = UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+        response_text = upload_proc_data_response.json()
+        media_type = 'application/json'
+    else:
+        response_text = (
+            'Thanks for uploading your data to nomad.\n'
+            f'Go back to {config.gui_url()} and press reload to see the progress on your '
+            'upload and publish your data.')
+        media_type = 'text/plain'
+
+    return StreamingResponse(_streamed_string(response_text), media_type=media_type)
 
 
 @router.delete(
@@ -611,7 +703,7 @@ async def delete_upload(
     upload = _get_upload_with_write_access(upload_id, user)
 
     if upload.tasks_running:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             The upload is not processed yet.'''))
 
     try:
@@ -762,6 +854,11 @@ async def _asyncronous_file_reader(f):
             await f.close()
             return
         yield data
+
+
+def _streamed_string(response: str):
+    ''' Generator to use for streaming simple strings with the StreamingResponse class. '''
+    yield response
 
 
 def _query_mongodb(**kwargs):
