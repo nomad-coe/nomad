@@ -16,12 +16,134 @@
 # limitations under the License.
 #
 
+import pytest
+from typing import Set
+import re
 from devtools import debug
 from urllib.parse import urlencode
 
 from nomad.metainfo.elasticsearch_extension import DocumentType
 
 from tests.utils import assert_at_least, assert_url_query_args
+
+
+def post_query_test_parameters(
+        entity_id: str, total: int, material_prefix: str, entry_prefix: str):
+
+    elements = f'{material_prefix}elements'
+    program_name = f'{entry_prefix}results.method.simulation.program_name'
+
+    return [
+        pytest.param({}, 200, total, id='empty'),
+        pytest.param('str', 422, -1, id='not-dict'),
+        pytest.param({entity_id: 'id_01'}, 200, 1, id='match'),
+        pytest.param({'mispelled': 'id_01'}, 422, -1, id='not-quantity'),
+        pytest.param({entity_id: ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
+        pytest.param({entity_id: 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'),
+        pytest.param({f'{entity_id}:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
+        pytest.param({entity_id: {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
+        pytest.param({entity_id: {'any': 'id_01'}}, 422, -1, id='any-not-list'),
+        pytest.param({f'{entity_id}:any': 'id_01'}, 422, -1, id='any-short-not-list'),
+        pytest.param({f'{entity_id}:gt': 'id_01'}, 200, total - 1, id='gt-short'),
+        pytest.param({entity_id: {'gt': 'id_01'}}, 200, total - 1, id='gt'),
+        pytest.param({entity_id: {'gt': ['id_01']}}, 422, total - 1, id='gt-list'),
+        pytest.param({entity_id: {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
+        pytest.param({f'{entity_id}:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
+        pytest.param({f'{entity_id}:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
+        pytest.param({'or': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 2, id='or'),
+        pytest.param({'or': {entity_id: 'id_01', program_name: 'VASP'}}, 422, -1, id='or-not-list'),
+        pytest.param({'and': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 0, id='and'),
+        pytest.param({'not': {entity_id: 'id_01'}}, 200, total - 1, id='not'),
+        pytest.param({'not': [{entity_id: 'id_01'}]}, 422, -1, id='not-list'),
+        pytest.param({'not': {'not': {entity_id: 'id_01'}}}, 200, 1, id='not-nested-not'),
+        pytest.param({'not': {f'{entity_id}:any': ['id_01', 'id_02']}}, 200, total - 2, id='not-nested-any'),
+        pytest.param({'and': [{f'{entity_id}:any': ['id_01', 'id_02']}, {f'{entity_id}:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
+        pytest.param({'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]}, 200, total - 2, id='not-nested-not')
+    ]
+
+
+def get_query_test_parameters(
+        entity_id: str, total: int, material_prefix: str, entry_prefix: str):
+
+    elements = f'{material_prefix}elements'
+    n_elements = f'{material_prefix}n_elements'
+
+    return [
+        pytest.param({}, 200, total, id='empty'),
+        pytest.param({entity_id: 'id_01'}, 200, 1, id='match'),
+        pytest.param({'mispelled': 'id_01'}, 200, total, id='not-quantity'),
+        pytest.param({entity_id: ['id_01', 'id_02']}, 200, 2, id='match-many-or'),
+        pytest.param({elements: ['H', 'O']}, 200, total, id='match-list-many-and-1'),
+        pytest.param({elements: ['H', 'O', 'Zn']}, 200, 0, id='match-list-many-and-2'),
+        pytest.param({n_elements: 2}, 200, total, id='match-int'),
+        pytest.param({n_elements + '__gt': 2}, 200, 0, id='gt-int'),
+        pytest.param({f'{entity_id}__any': ['id_01', 'id_02']}, 200, 2, id='any'),
+        pytest.param({f'{entity_id}__any': 'id_01'}, 200, 1, id='any-not-list'),
+        pytest.param({f'{entity_id}__gt': 'id_01'}, 200, total - 1, id='gt'),
+        pytest.param({f'{entity_id}__gt': ['id_01', 'id_02']}, 422, -1, id='gt-list'),
+        pytest.param({f'{entity_id}__missspelled': 'id_01'}, 422, -1, id='not-op-1'),
+        pytest.param({n_elements + '__missspelled': 2}, 422, -1, id='not-op-2'),
+        pytest.param({'q': f'{entity_id}__id_01'}, 200, 1, id='q-match'),
+        pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
+        pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
+        pytest.param({'q': f'{n_elements}__2'}, 200, total, id='q-match-int'),
+        pytest.param({'q': f'{n_elements}__gt__2'}, 200, 0, id='q-gt'),
+        pytest.param({'q': f'{entry_prefix}upload_time__gt__2014-01-01'}, 200, total, id='datetime'),
+        pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, total, id='q-all'),
+        pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all')
+    ]
+
+
+def owner_test_parameters(total: int):
+    return [
+        pytest.param('user', None, 401, -1, id='user-wo-auth'),
+        pytest.param('staging', None, 401, -1, id='staging-wo-auth'),
+        pytest.param('visible', None, 200, total, id='visible-wo-auth'),
+        pytest.param('admin', None, 401, -1, id='admin-wo-auth'),
+        pytest.param('shared', None, 401, -1, id='shared-wo-auth'),
+        pytest.param('public', None, 200, total, id='public-wo-auth'),
+
+        pytest.param('user', 'test_user', 200, total + 4, id='user-test-user'),
+        pytest.param('staging', 'test_user', 200, 2, id='staging-test-user'),
+        pytest.param('visible', 'test_user', 200, total + 4, id='visible-test-user'),
+        pytest.param('admin', 'test_user', 401, -1, id='admin-test-user'),
+        pytest.param('shared', 'test_user', 200, total + 4, id='shared-test-user'),
+        pytest.param('public', 'test_user', 200, total, id='public-test-user'),
+
+        pytest.param('user', 'other_test_user', 200, 0, id='user-other-test-user'),
+        pytest.param('staging', 'other_test_user', 200, 1, id='staging-other-test-user'),
+        pytest.param('visible', 'other_test_user', 200, total + 2, id='visible-other-test-user'),
+        pytest.param('shared', 'other_test_user', 200, 2, id='shared-other-test-user'),
+        pytest.param('public', 'other_test_user', 200, total, id='public-other-test-user'),
+
+        pytest.param('all', None, 200, total + 2, id='metadata-all-wo-auth'),
+        pytest.param('all', 'test_user', 200, total + 4, id='metadata-all-test-user'),
+        pytest.param('all', 'other_test_user', 200, total + 3, id='metadata-all-other-test-user'),
+
+        pytest.param('admin', 'admin_user', 200, total + 4, id='admin-admin-user'),
+        pytest.param('all', 'bad_user', 401, -1, id='bad-credentials')
+    ]
+
+
+def pagination_test_parameters(elements: str, n_elements: str, crystal_system: str, total: int):
+    return [
+        pytest.param({}, {'total': 6, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
+        pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
+        pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
+        pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
+        pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
+        pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
+        pytest.param({'page_size': 1, 'order_by': crystal_system}, {'next_page_after_value': 'cubic:id_01'}, 200, id='order-by-after-nested'),
+        pytest.param({'page_size': -1}, None, 422, id='bad-size'),
+        pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
+        pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
+        pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
+        pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
+        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
+        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
+        pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
+        pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
+    ]
 
 
 def assert_response(response, status_code=None):
@@ -122,12 +244,42 @@ def assert_statistic(response_json, name, statistic, doc_type: DocumentType, siz
 
 
 def assert_required(data, required, default_key: str):
+    # We flat out all keys in data and then make sure that the full qualified keys in the
+    # data are consistent with the keys given in the required include and exclude.
+    keys: Set[str] = set()
+
+    def collect_keys(data, prefix=None):
+        if isinstance(data, list):
+            for item in data:
+                collect_keys(item, prefix=prefix)
+
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                collect_keys(value, prefix=f'{prefix}.{key}' if prefix is not None else key)
+
+        else:
+            keys.add(prefix)
+
+    collect_keys(data)
+
     if 'include' in required:
-        for key in data:
-            assert key in required['include'] or '%s.*' % key in required['include'] or key == default_key
+        for key in keys:
+            found_include = False
+            for include in required['include']:
+                include_re = include.replace('.', r'\.').replace('*', r'[^\.\*]*')
+                if key == default_key or re.match(include_re, key):
+                    found_include = True
+
+            assert found_include
     if 'exclude' in required:
-        for key in required['exclude']:
-            assert key not in data or key == default_key
+        for exclude in required['exclude']:
+            found_exclude = None
+            for key in keys:
+                exclude_re = exclude.replace('.', r'\.').replace('*', r'[^\.\*]*')
+                if key != default_key and re.match(exclude_re, key):
+                    found_exclude = key
+
+            assert found_exclude is None, f'{exclude} excluded but found {found_exclude}'
 
 
 def assert_aggregations(response_json, name, agg, total: int, size: int, default_key: str):
@@ -239,6 +391,25 @@ def perform_metadata_test(
 
     assert 'pagination' in response_json
     if total is not None and total >= 0:
-        assert response_json['pagination']['total'] == total
+        assert response_json['pagination']['total'] == total, response_json['pagination']['total']
 
     return response_json
+
+
+def perform_owner_test(
+        client, test_user_auth, other_test_user_auth, admin_user_auth,
+        owner, user, status_code, total, http_method, test_method):
+
+    headers = None
+    if user == 'test_user':
+        headers = test_user_auth
+    elif user == 'other_test_user':
+        headers = other_test_user_auth
+    elif user == 'admin_user':
+        headers = admin_user_auth
+    elif user == 'bad_user':
+        headers = {'Authorization': 'Bearer NOTATOKEN'}
+
+    test_method(
+        client, headers=headers, owner=owner, status_code=status_code, total=total,
+        http_method=http_method)

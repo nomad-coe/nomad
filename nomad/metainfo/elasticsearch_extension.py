@@ -159,6 +159,7 @@ sub-sections as if they were direct sub-sections.
 
 from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple
 import numpy as np
+import re
 
 from nomad import config, utils
 
@@ -319,23 +320,19 @@ class DocumentType():
                 qualified_name = f'{prefix}.{sub_section_def.name}'
 
             # TODO deal with section_metadata
-            if qualified_name == 'section_metadata':
-                sub_section_mapping = self.create_mapping(
-                    sub_section_def.sub_section, prefix=None,
-                    auto_include_subsections=continue_with_auto_include_subsections)
+            qualified_name = re.sub(r'\.?section_metadata', '', qualified_name)
+            qualified_name = None if qualified_name == '' else qualified_name
 
-                if len(sub_section_mapping['properties']) > 0:
+            sub_section_mapping = self.create_mapping(
+                sub_section_def.sub_section, prefix=qualified_name,
+                auto_include_subsections=continue_with_auto_include_subsections)
+
+            if len(sub_section_mapping['properties']) > 0:
+                if sub_section_def.name == 'section_metadata':
                     mappings.update(**sub_section_mapping['properties'])
-                    self.indexed_properties.add(sub_section_def)
-
-            else:
-                sub_section_mapping = self.create_mapping(
-                    sub_section_def.sub_section, prefix=qualified_name,
-                    auto_include_subsections=continue_with_auto_include_subsections)
-
-                if len(sub_section_mapping['properties']) > 0:
+                else:
                     mappings[sub_section_def.name] = sub_section_mapping
-                    self.indexed_properties.add(sub_section_def)
+                self.indexed_properties.add(sub_section_def)
 
         self.mapping = dict(properties=mappings)
         return self.mapping
@@ -346,6 +343,7 @@ class DocumentType():
 
         assert name not in self.quantities or self.quantities[name] == search_quantity, \
             'Search quantity names must be unique: %s' % name
+
         self.quantities[name] = search_quantity
 
         if annotation.metrics is not None:

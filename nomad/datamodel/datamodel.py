@@ -81,7 +81,7 @@ class Author(metainfo.MSection):
     email = metainfo.Quantity(
         type=str,
         a_elastic=dict(mapping=Keyword),  # TODO remove?
-        a_search=Search(), a_eleasticsearch=Elasticsearch())
+        a_search=Search(), a_elasticsearch=Elasticsearch())
 
     affiliation = metainfo.Quantity(type=str)
     affiliation_address = metainfo.Quantity(type=str)
@@ -421,7 +421,7 @@ class EntryMetadata(metainfo.MSection):
         type=bool, default=False,
         description='Indicates if the entry is published',
         categories=[MongoMetadata, OasisMetadata],
-        a_search=Search(), a_eleasticsearch=Elasticsearch(material_entry_type))
+        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
     processed = metainfo.Quantity(
         type=bool, default=False,
@@ -543,14 +543,14 @@ class EntryMetadata(metainfo.MSection):
     with_embargo = metainfo.Quantity(
         type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
         description='Indicated if this entry is under an embargo',
-        a_search=Search(), a_eleasticsearch=Elasticsearch(material_entry_type))
+        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_time = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
         description='The date and time this entry was uploaded to nomad',
         a_flask=dict(admin_only=True),
         a_search=Search(order_default=True),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_name = metainfo.Quantity(
         type=str, categories=[MongoMetadata],

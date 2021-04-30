@@ -16,8 +16,10 @@
 # limitations under the License.
 #
 
+from typing import Any
 from fastapi import APIRouter, Depends, Path, status, HTTPException, Request
 from fastapi.exception_handlers import RequestValidationError
+from pydantic import BaseModel, Field
 
 from nomad import utils
 from nomad.utils import strip
@@ -49,7 +51,14 @@ _bad_owner_response = status.HTTP_401_UNAUTHORIZED, {
 _bad_id_response = status.HTTP_404_NOT_FOUND, {
     'model': HTTPExceptionModel,
     'description': strip('''
-        Entry not found. The given id does not match any entry.''')}
+        Material not found. The given id does not match any material.''')}
+
+
+class MaterialMetadataResponse(BaseModel):
+    material_id: str = Field(None)
+    required: MetadataRequired = Field(None)
+    data: Any = Field(
+        None, description=strip('''The material metadata as dictionary.'''))
 
 
 def perform_search(*args, **kwargs) -> MetadataResponse:
@@ -142,17 +151,17 @@ async def get_entries_metadata(
 
 @router.get(
     '/{material_id}', tags=['materials'],
-    summary='Get the metadata of an material by its id',
-    response_model=MetadataResponse,
+    summary='Get the metadata of a material by its id',
+    response_model=MaterialMetadataResponse,
     responses=create_responses(_bad_id_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_entry_metadata(
-        material_id: str = Path(..., description='The unique entry id of the entry to retrieve metadata from.'),
+async def get_material_metadata(
+        material_id: str = Path(..., description='The unique material id of the material to retrieve metadata from.'),
         required: MetadataRequired = Depends(metadata_required_parameters),
         user: User = Depends(create_user_dependency())):
     '''
-    Retrives the entry metadata for the given id.
+    Retrives the material metadata for the given id.
     '''
 
     query = {'material_id': material_id}

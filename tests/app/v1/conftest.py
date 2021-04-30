@@ -17,6 +17,7 @@
 #
 
 import pytest
+import math
 from fastapi.testclient import TestClient
 
 from nomad.archive import write_partial_archive_to_mongo
@@ -36,11 +37,11 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     Provides a couple of uploads and entries including metadata, raw-data, and
     archive files.
 
-    23 published without embargo
-    1 unpublished
-    1 unpublished shared
-    1 published with embargo
-    1 published shared with embargo
+    23 entries, 6 materials published without embargo
+    1 entry, 1 material unpublished
+    1 entry, 1 material unpublished shared
+    1 entry, 1 material published with embargo
+    1 entry, 1 material published shared with embargo
 
     partial archive exists only for id_01
     raw files and archive file for id_02 are missing
@@ -57,12 +58,14 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo',
+        material_id='id_embargo',
         mainfile='test_content/test_embargo_entry/mainfile.json',
         shared_with=[],
         with_embargo=True)
     data.create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo_shared',
+        material_id='id_embargo_shared',
         mainfile='test_content/test_embargo_entry_shared/mainfile.json',
         shared_with=[other_test_user],
         with_embargo=True)
@@ -74,6 +77,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_entry(
         upload_id='id_unpublished',
         calc_id='id_unpublished',
+        material_id='id_unpublished',
         mainfile='test_content/test_entry/mainfile.json',
         with_embargo=False,
         shared_with=[],
@@ -81,6 +85,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_entry(
         upload_id='id_unpublished',
         calc_id='id_unpublished_shared',
+        material_id='id_unpublished_shared',
         mainfile='test_content/test_entry_shared/mainfile.json',
         shared_with=[other_test_user],
         with_embargo=False,
@@ -93,12 +98,14 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         published=True)
     for i in range(1, 24):
         entry_id = 'id_%02d' % i
+        material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
         if i == 11:
             mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
         data.create_entry(
             upload_id='id_published',
             calc_id=entry_id,
+            material_id=material_id,
             mainfile=mainfile)
 
         if i == 1:

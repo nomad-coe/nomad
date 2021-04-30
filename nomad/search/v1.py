@@ -55,6 +55,9 @@ def validate_quantity(
     if doc_type == material_entry_type and not quantity_name.startswith('entries'):
         quantity_name = f'entries.{quantity_name}'
 
+    if doc_type == material_type and quantity_name.startswith('entries'):
+        doc_type = material_entry_type
+
     if doc_type is None:
         doc_type = entry_type
 

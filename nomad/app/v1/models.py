@@ -29,7 +29,7 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.metainfo.elasticsearch_extension import DocumentType
+from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_type, material_type
 
 from .utils import parameter_dependency_from_model, update_url_query_arguments
 
@@ -318,10 +318,19 @@ class QueryParameters:
             name_op, value = '__'.join(fragments[:-1]), fragments[-1]
             quantity_name = name_op.split('__')[0]
 
-            if quantity_name not in self.doc_type.quantities:
+            doc_type = self.doc_type
+            if quantity_name.startswith('entries.'):
+                if self.doc_type == material_type:
+                    doc_type = material_entry_type
+                else:
+                    raise HTTPException(422, detail=[{
+                        'loc': ['query', parameter],
+                        'msg': f'entries can only be nested into material queries'}])
+
+            if quantity_name not in doc_type.quantities:
                 raise HTTPException(422, detail=[{
                     'loc': ['query', parameter],
-                    'msg': '%s is not a search quantity' % quantity_name}])
+                    'msg': f'{quantity_name} is not a {doc_type} quantity'}])
 
             query_params.setdefault(name_op, []).append(value)
 
@@ -334,10 +343,14 @@ class QueryParameters:
             else:
                 quantity_name = key
 
-            if quantity_name not in self.doc_type.quantities:
+            if quantity_name.startswith('entries.'):
+                quantity = material_entry_type.quantities.get(quantity_name[8:])
+            else:
+                quantity = self.doc_type.quantities.get(quantity_name)
+
+            if quantity is None:
                 continue
 
-            quantity = self.doc_type.quantities[quantity_name]
             type_ = quantity.definition.type
             if type_ is Datetime:
                 type_ = datetime.datetime.fromisoformat

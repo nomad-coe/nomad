@@ -601,7 +601,7 @@ _entries_raw_download_query_docstring = strip('''
     response_class=StreamingResponse,
     responses=create_responses(_raw_download_response, _bad_owner_response))
 async def post_entries_raw_download_query(
-    data: EntriesRawDownload, user: User = Depends(create_user_dependency())):
+        data: EntriesRawDownload, user: User = Depends(create_user_dependency())):
 
     return _answer_entries_raw_download_request(
         owner=data.owner, query=data.query, files=data.files, user=user)

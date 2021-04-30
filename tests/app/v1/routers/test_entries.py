@@ -29,9 +29,10 @@ from tests.utils import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import (
-    assert_response, assert_base_metadata_response, assert_metadata, assert_metadata_response,
+    assert_response, assert_base_metadata_response, assert_metadata_response,
     assert_statistic, assert_required, assert_aggregations, assert_pagination,
-    perform_metadata_test)
+    perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
+    perform_owner_test, owner_test_parameters, pagination_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -639,56 +640,12 @@ def test_entry_archive_query(client, data, entry_id, required, status_code):
         assert_archive_response(response.json(), required=required)
 
 
-def perform_entries_owner_test(
-        client, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
-
-    headers = None
-    if user == 'test_user':
-        headers = test_user_auth
-    elif user == 'other_test_user':
-        headers = other_test_user_auth
-    elif user == 'admin_user':
-        headers = admin_user_auth
-    elif user == 'bad_user':
-        headers = {'Authorization': 'Bearer NOTATOKEN'}
-
-    test_method(
-        client, headers=headers, owner=owner, status_code=status_code, total=total,
-        http_method=http_method)
-
-
 elements = 'results.material.elements'
 n_elements = 'results.material.n_elements'
 
 
-@pytest.mark.parametrize('query, status_code, total', [
-    pytest.param({}, 200, 23, id='empty'),
-    pytest.param('str', 422, -1, id='not-dict'),
-    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
-    pytest.param({'mispelled': 'id_01'}, 422, -1, id='not-quantity'),
-    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
-    pytest.param({'entry_id': 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'),
-    pytest.param({'entry_id:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
-    pytest.param({'entry_id': {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
-    pytest.param({'entry_id': {'any': 'id_01'}}, 422, -1, id='any-not-list'),
-    pytest.param({'entry_id:any': 'id_01'}, 422, -1, id='any-short-not-list'),
-    pytest.param({'entry_id:gt': 'id_01'}, 200, 22, id='gt-short'),
-    pytest.param({'entry_id': {'gt': 'id_01'}}, 200, 22, id='gt'),
-    pytest.param({'entry_id': {'gt': ['id_01']}}, 422, 22, id='gt-list'),
-    pytest.param({'entry_id': {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
-    pytest.param({'entry_id:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
-    pytest.param({'entry_id:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
-    pytest.param({'or': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 2, id='or'),
-    pytest.param({'or': {'entry_id': 'id_01', program_name: 'VASP'}}, 422, -1, id='or-not-list'),
-    pytest.param({'and': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 0, id='and'),
-    pytest.param({'not': {'entry_id': 'id_01'}}, 200, 22, id='not'),
-    pytest.param({'not': [{'entry_id': 'id_01'}]}, 422, -1, id='not-list'),
-    pytest.param({'not': {'not': {'entry_id': 'id_01'}}}, 200, 1, id='not-nested-not'),
-    pytest.param({'not': {'entry_id:any': ['id_01', 'id_02']}}, 200, 21, id='not-nested-any'),
-    pytest.param({'and': [{'entry_id:any': ['id_01', 'id_02']}, {'entry_id:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
-    pytest.param({'and': [{'not': {'entry_id': 'id_01'}}, {'not': {'entry_id': 'id_02'}}]}, 200, 21, id='not-nested-not')
-])
+@pytest.mark.parametrize('query, status_code, total', post_query_test_parameters(
+    'entry_id', total=23, material_prefix='results.material.', entry_prefix=''))
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_download_test, id='raw-download'),
@@ -715,33 +672,9 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('query, status_code, total', [
-    pytest.param({}, 200, 23, id='empty'),
-    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
-    pytest.param({'mispelled': 'id_01'}, 200, 23, id='not-quantity'),
-    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 2, id='match-many-or'),
-    pytest.param({elements: ['H', 'O']}, 200, 23, id='match-list-many-and-1'),
-    pytest.param({elements: ['H', 'O', 'Zn']}, 200, 0, id='match-list-many-and-2'),
-    pytest.param({n_elements: 2}, 200, 23, id='match-int'),
-    pytest.param({n_elements + '__gt': 2}, 200, 0, id='gt-int'),
-    pytest.param({'calc_id__any': ['id_01', 'id_02']}, 200, 2, id='any'),
-    pytest.param({'calc_id__any': 'id_01'}, 200, 1, id='any-not-list'),
-    pytest.param({'calc_id__gt': 'id_01'}, 200, 22, id='gt'),
-    pytest.param({'calc_id__gt': ['id_01', 'id_02']}, 422, -1, id='gt-list'),
-    pytest.param({'calc_id__missspelled': 'id_01'}, 422, -1, id='not-op-1'),
-    pytest.param({n_elements + '__missspelled': 2}, 422, -1, id='not-op-2'),
-    pytest.param({'q': 'calc_id__id_01'}, 200, 1, id='q-match'),
-    pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
-    pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
-    pytest.param({'q': n_elements + '__2'}, 200, 23, id='q-match-int'),
-    pytest.param({'q': n_elements + '__gt__2'}, 200, 0, id='q-gt'),
-    # TODO
-    # pytest.param({'q': 'dft.workflow.section_geometry_optimization.final_energy_difference__1e-24'}, 200, 0, id='foat'),
-    pytest.param({'q': 'domain__dft'}, 200, 23, id='enum'),
-    pytest.param({'q': 'upload_time__gt__2014-01-01'}, 200, 23, id='datetime'),
-    pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, 23, id='q-all'),
-    pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all')
-])
+@pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
+    'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
+        pytest.param({'q': 'domain__dft'}, 200, 23, id='enum')])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_download_test, id='raw-download'),
@@ -773,34 +706,7 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('owner, user, status_code, total', [
-    pytest.param('user', None, 401, -1, id='user-wo-auth'),
-    pytest.param('staging', None, 401, -1, id='staging-wo-auth'),
-    pytest.param('visible', None, 200, 23, id='visible-wo-auth'),
-    pytest.param('admin', None, 401, -1, id='admin-wo-auth'),
-    pytest.param('shared', None, 401, -1, id='shared-wo-auth'),
-    pytest.param('public', None, 200, 23, id='public-wo-auth'),
-
-    pytest.param('user', 'test_user', 200, 27, id='user-test-user'),
-    pytest.param('staging', 'test_user', 200, 2, id='staging-test-user'),
-    pytest.param('visible', 'test_user', 200, 27, id='visible-test-user'),
-    pytest.param('admin', 'test_user', 401, -1, id='admin-test-user'),
-    pytest.param('shared', 'test_user', 200, 27, id='shared-test-user'),
-    pytest.param('public', 'test_user', 200, 23, id='public-test-user'),
-
-    pytest.param('user', 'other_test_user', 200, 0, id='user-other-test-user'),
-    pytest.param('staging', 'other_test_user', 200, 1, id='staging-other-test-user'),
-    pytest.param('visible', 'other_test_user', 200, 25, id='visible-other-test-user'),
-    pytest.param('shared', 'other_test_user', 200, 2, id='shared-other-test-user'),
-    pytest.param('public', 'other_test_user', 200, 23, id='public-other-test-user'),
-
-    pytest.param('all', None, 200, 25, id='metadata-all-wo-auth'),
-    pytest.param('all', 'test_user', 200, 27, id='metadata-all-test-user'),
-    pytest.param('all', 'other_test_user', 200, 26, id='metadata-all-other-test-user'),
-
-    pytest.param('admin', 'admin_user', 200, 27, id='admin-admin-user'),
-    pytest.param('all', 'bad_user', 401, -1, id='bad-credentials')
-])
+@pytest.mark.parametrize('owner, user, status_code, total', owner_test_parameters(total=23))
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -812,29 +718,16 @@ def test_entries_owner(
         client, data, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total, http_method, test_method):
 
-    perform_entries_owner_test(
+    perform_owner_test(
         client, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total, http_method, test_method)
 
 
-@pytest.mark.parametrize('pagination, response_pagination, status_code', [
-    pytest.param({}, {'total': 23, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
-    pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
-    pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
-    pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
-    pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
-    pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
-    pytest.param({'page_size': 1, 'order_by': program_name}, {'next_page_after_value': 'VASP:id_01'}, 200, id='order-by-after-nested'),
-    pytest.param({'page_size': -1}, None, 422, id='bad-size'),
-    pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
-    pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
-    pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
-    pytest.param({'page': 1, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
-    pytest.param({'page': 2, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
-    pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
-    pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
-])
+@pytest.mark.parametrize('pagination, response_pagination, status_code', pagination_test_parameters(
+    elements='results.material.elements',
+    n_elements='results.material.n_elements',
+    crystal_system='results.material.symmetry.crystal_system',
+    total=23))
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),

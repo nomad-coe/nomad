@@ -206,6 +206,7 @@ class ExampleData:
             self,
             entry_archive: EntryArchive = None,
             calc_id: str = None, entry_id: str = None, upload_id: str = None,
+            material_id: str = None,
             mainfile: str = None,
             results: Union[Results, dict] = None,
             dft: Union[DFTMetadata, dict] = None,
@@ -227,6 +228,9 @@ class ExampleData:
 
         if entry_archive is None:
             entry_archive = EntryArchive()
+
+        if material_id is None:
+            material_id = 'test_material_id'
 
         entry_metadata = entry_archive.section_metadata
         if entry_metadata is None:
@@ -271,9 +275,12 @@ class ExampleData:
             if results is None:
                 results = {
                     'material': {
-                        'material_id': 'test_material_id',
+                        'material_id': material_id,
                         'elements': ['H', 'O'],
-                        'nelements': 2
+                        'nelements': 2,
+                        'symmetry': {
+                            'crystal_system': 'cubic'
+                        }
                     },
                     'method': {
                         'simulation': {
@@ -301,7 +308,7 @@ class ExampleData:
             entry_archive.m_update(**archive)
 
         if entry_archive.results.material.material_id is None:
-            entry_archive.results.material.material_id = 'test_material_id'
+            entry_archive.results.material.material_id = material_id
 
         self.archives[entry_id] = entry_archive
         self.entries[entry_id] = entry_metadata
