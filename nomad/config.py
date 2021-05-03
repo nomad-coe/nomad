@@ -310,6 +310,7 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
 use_empty_parsers = False
+reprocess_match = False
 reprocess_unmatched = True
 reprocess_rematch = True
 process_reuse_parser = True
