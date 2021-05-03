@@ -45,6 +45,8 @@ from cp2kparser import CP2KParser
 from fhivibesparser import FHIVibesParser
 from turbomoleparser import TurbomoleParser
 from castepparser import CastepParser
+from wien2kparser import Wien2kParser
+from nwchemparser import NWChemParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -160,13 +162,7 @@ parsers = [
             # r'\s+\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s+'
         )
     ),
-    LegacyParser(
-        name='parsers/nwchem', code_name='NWChem', code_homepage='http://www.nwchem-sw.org/',
-        parser_class_name='nwchemparser.NWChemParser',
-        mainfile_contents_re=(
-            r'Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+'
-        )
-    ),
+    NWChemParser(),
     LegacyParser(
         name='parsers/bigdft', code_name='BigDFT', code_homepage='http://bigdft.org/',
         parser_class_name='bigdftparser.BigDFTParser',
@@ -198,13 +194,7 @@ parsers = [
             # r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
         )
     ),
-    LegacyParser(
-        name='parsers/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
-        parser_class_name='wien2kparser.Wien2kParser',
-        mainfile_name_re=r'.*\.scf$',
-        mainfile_alternative=True,
-        mainfile_contents_re=r'\s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------'
-    ),
+    Wien2kParser(),
     LegacyParser(
         name='parsers/band', code_name='BAND', code_homepage='https://www.scm.com/product/band_periodicdft/',
         parser_class_name='bandparser.BANDParser',
