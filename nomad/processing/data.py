@@ -1062,7 +1062,7 @@ class Upload(Proc):
             if config.reprocess_match:
                 with utils.timer(logger, 'calcs match on reprocess'):
                     for filename, parser in self.match_mainfiles():
-                        calc_id = self.upload_files.calc_id(filename)
+                        calc_id = staging_upload_files.calc_id(filename)
                         try:
                             Calc.get(calc_id)
                         except KeyError:
@@ -1240,7 +1240,7 @@ class Upload(Proc):
             Tuples of mainfile, filename, and parsers
         '''
         directories_with_match: Dict[str, str] = dict()
-        upload_files = self.staging_upload_files
+        upload_files = self.upload_files.to_staging_upload_files()
         for filename in upload_files.raw_file_manifest():
             self._preprocess_files(filename)
             try:
