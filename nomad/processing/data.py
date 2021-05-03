@@ -1171,9 +1171,8 @@ class Upload(Proc):
         return self._upload_files
 
     @property
-    def staging_upload_files(self) -> ArchiveBasedStagingUploadFiles:
-        assert not self.published
-        return cast(ArchiveBasedStagingUploadFiles, self.upload_files)
+    def staging_upload_files(self) -> StagingUploadFiles:
+        return self.upload_files.to_staging_upload_files()
 
     @task
     def extracting(self):
@@ -1399,7 +1398,7 @@ class Upload(Proc):
     def _cleanup_after_re_processing(self):
         logger = self.get_logger(upload_size=self.upload_files.size)
         if self.published:
-            staging_upload_files = self.upload_files.to_staging_upload_files()
+            staging_upload_files = self.staging_upload_files
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
