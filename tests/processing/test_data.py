@@ -456,6 +456,24 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
         StagingUploadFiles(upload.upload_id)
 
 
+def test_re_process_match(non_empty_processed, monkeypatch, no_warn):
+    upload: Upload = non_empty_processed
+    upload.reset()
+    assert upload.total_calcs == 1, upload.total_calcs
+
+    monkeypatch.setattr('nomad.config.reprocess_match', True)
+    upload_files = StagingUploadFiles.get(upload.upload_id)
+    upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+
+    upload.re_process_upload()
+    try:
+        upload.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    assert upload.total_calcs == 2
+
+
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
 def test_re_pack(published: Upload, monkeypatch, with_failure):

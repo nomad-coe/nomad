@@ -1059,6 +1059,21 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
+            if config.reprocess_match:
+                with utils.timer(logger, 'calcs match on reprocess'):
+                    for filename, parser in self.match_mainfiles():
+                        calc_id = self.upload_files.calc_id(filename)
+                        try:
+                            Calc.get(calc_id)
+                        except KeyError:
+                            calc = Calc.create(
+                                calc_id=calc_id,
+                                mainfile=filename, parser=parser.name,
+                                worker_hostname=self.worker_hostname,
+                                upload_id=self.upload_id)
+
+                            calc.save()
+
             with utils.timer(logger, 'calcs resetted'):
                 # check if a calc is already/still processing
                 processing = Calc.objects(
