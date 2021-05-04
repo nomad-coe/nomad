@@ -1061,6 +1061,10 @@ class Upload(Proc):
         try:
             if config.reprocess_match:
                 with utils.timer(logger, 'calcs match on reprocess'):
+                    with_embargo_values = Calc._get_collection().distinct(
+                        'metadata.with_embargo', dict(upload_id=self.upload_id))
+                    with_embargo = with_embargo_values != [False]
+
                     for filename, parser in self.match_mainfiles():
                         calc_id = staging_upload_files.calc_id(filename)
                         try:
@@ -1070,7 +1074,12 @@ class Upload(Proc):
                                 calc_id=calc_id,
                                 mainfile=filename, parser=parser.name,
                                 worker_hostname=self.worker_hostname,
+                                create_time=self.upload_time,
                                 upload_id=self.upload_id)
+
+                            calc.metadata.update(
+                                published=self.published,
+                                with_embargo=with_embargo)
 
                             calc.save()
 
