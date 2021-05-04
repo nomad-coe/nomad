@@ -1230,7 +1230,7 @@ class Upload(Proc):
                 stripped_f.write('Stripped POTCAR file. Checksum of original file (sha224): %s\n' % checksum)
             os.system(
                 '''
-                    awk < %s >> %s '
+                    awk < '%s' >> '%s' '
                     BEGIN { dump=1 }
                     /End of Dataset/ { dump=1 }
                     dump==1 { print }
