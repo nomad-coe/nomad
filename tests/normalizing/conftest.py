@@ -18,7 +18,7 @@
 
 import numpy as np
 
-from typing import List
+from typing import List, Union
 
 import pytest
 
@@ -137,50 +137,59 @@ def get_section_system(atoms: Atoms):
 
 
 def get_template_dos(
-        spin_polarized: bool = False,
+        fill: List = [[[0, 1], [2, 3]]],
+        energy_reference_fermi: Union[float, None] = None,
+        energy_reference_highest_occupied: Union[float, None] = None,
+        energy_reference_lowest_unoccupied: Union[float, None] = None,
+        n_values: int = 101,
         type: str = "electronic",
-        has_references: bool = True,
         normalize: bool = True) -> EntryArchive:
     """Used to create a test data for DOS.
 
     Args:
-        spin_polarized: Whether the DOS is spin-polarized or not.
+        fill: List containing the energy ranges (eV) that should be filled with
+            non-zero values, e.g. [[[0, 1], [2, 5]]. Defaults to single channel DOS
+            with a gap.
+        energy_fermi: Fermi energy (eV)
+        energy_reference_highest_occupied: Highest occupied energy (eV) as given by a parser.
+        energy_reference_lowest_unoccupied: Lowest unoccupied energy (eV) as given by a parser.
         type: "electronic" or "vibrational"
         has_references: Whether the DOS has energy references or not.
         normalize: Whether the returned value is already normalized or not.
     """
-    if spin_polarized and type != "electronic":
+    n_channels = len(fill)
+    if len(fill) > 1 and type != "electronic":
         raise ValueError("Cannot create spin polarized DOS for non-electronic data.")
     template = get_template()
     scc = template.section_run[0].section_single_configuration_calculation[0]
-    idx_valence = 20
-    idx_conduction = 150
-    n_values = 200
     dos = scc.m_create(Dos)
     dos.dos_kind = type
-    energies = np.linspace(-5, 20, n_values)
-    if spin_polarized:
-        dos.dos_values = np.zeros((2, n_values))
-    else:
-        dos.dos_values = np.zeros((1, n_values))
-    dos.dos_values[:, 0:idx_valence] = 1
-    dos.dos_values[:, idx_conduction:] = 1
-    dos.dos_energies = energies
+    energies = np.linspace(-5, 5, n_values)
+    dos.dos_values = np.zeros((n_channels, n_values))
+    for i, range_list in enumerate(fill):
+        for r in range_list:
+            idx_bottom = (np.abs(energies - r[0])).argmin()
+            idx_top = (np.abs(energies - r[1])).argmin()
+            dos.dos_values[i, idx_bottom:idx_top] = 1
 
-    if has_references:
-        n_spin_channels = 2 if spin_polarized else 1
-        scc.energy_reference_highest_occupied = [energies[idx_valence]] * n_spin_channels
-        scc.energy_reference_lowest_unoccupied = [energies[idx_conduction]] * n_spin_channels
-        scc.energy_reference_fermi = [energies[idx_valence + 1]] * n_spin_channels
+    dos.dos_energies = energies * ureg.electron_volt
+    if energy_reference_fermi is not None:
+        energy_reference_fermi *= ureg.electron_volt
+    if energy_reference_highest_occupied is not None:
+        energy_reference_highest_occupied *= ureg.electron_volt
+    if energy_reference_lowest_unoccupied is not None:
+        energy_reference_lowest_unoccupied *= ureg.electron_volt
+    scc.energy_reference_fermi = energy_reference_fermi
+    scc.energy_reference_highest_occupied = energy_reference_highest_occupied
+    scc.energy_reference_lowest_unoccupied = energy_reference_lowest_unoccupied
 
     # import matplotlib.pyplot as mpl
-    # if spin_polarized:
-        # mpl.plot(dos.dos_energies, dos.dos_values[0, :])
-        # mpl.plot(dos.dos_energies, dos.dos_values[1, :])
+    # if n_channels == 2:
+    #     mpl.plot(energies, dos.dos_values[0, :])
+    #     mpl.plot(energies, dos.dos_values[1, :])
     # else:
-        # mpl.plot(dos.dos_energies, dos.dos_values[0, :])
+    #     mpl.plot(energies, dos.dos_values[0, :])
     # mpl.show()
-    # raise
 
     if normalize:
         template = run_normalize(template)
@@ -433,6 +442,8 @@ def geometry_optimization() -> EntryArchive:
     sys2 = get_section_system(atoms2)
     scc1 = run.m_create(SingleConfigurationCalculation)
     scc2 = run.m_create(SingleConfigurationCalculation)
+    scc1.energy_total = 1e-19
+    scc2.energy_total = 0.5e-19
     scc1.energy_total_T0 = 1e-19
     scc2.energy_total_T0 = 0.5e-19
     scc1.single_configuration_calculation_to_system_ref = sys1

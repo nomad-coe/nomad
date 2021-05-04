@@ -87,6 +87,7 @@ def metainfo_undecorated():
     nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
+    nomad.datamodel.results.m_package.__init_metainfo__()
 
     # Ensure all parser metainfo is loaded
     from nomad.parsing.parsers import parsers

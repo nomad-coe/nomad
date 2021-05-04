@@ -14,6 +14,49 @@ m_package = Package(
     a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
 
+class EnergyReference(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Stores important reference energies that are used for interpreting
+        electronic energies in band structure and density of states plots.
+        These energy references are implemented as a metainfo section, because
+        they cannot be always be stored as floating point number arrays if the
+        information is unavailable for one or more of the channels. E.g. if a
+        DOS/band structure is calculated on an energy interval that does not
+        contain the conduction band, the lowest unoccupied energies are
+        undefined.
+        """
+    )
+    index = Quantity(
+        type=np.dtype(np.int64),
+        description="""
+        The spin channel index.
+        """
+    )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        description="""
+        Fermi energy as reported by the code.
+        """
+    )
+    energy_highest_occupied = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        description="""
+        The highest occupied energy.
+        """
+    )
+    energy_lowest_unoccupied = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        description="""
+        The lowest unoccupied energy.
+        """
+    )
+
+
 class FastAccess(MCategory):
     '''
     Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
@@ -1447,6 +1490,8 @@ class Dos(MSection):
         validate=False,
         a_legacy=LegacyDefinition(name='section_dos'))
 
+    energy_references = SubSection(sub_section=EnergyReference.m_def, repeats=True)
+
     dos_energies_normalized = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_dos_values'],
@@ -2730,6 +2775,8 @@ class KBand(MSection):
         ''',
         categories=[Unused],
         a_legacy=LegacyDefinition(name='is_standard_path'))
+
+    energy_references = SubSection(sub_section=EnergyReference.m_def, repeats=True)
 
     brillouin_zone = SubSection(
         sub_section=SectionProxy('BrillouinZone'),
@@ -6643,7 +6690,8 @@ class GeometryOptimization(MSection):
         shape=[],
         unit='joule',
         description='''
-        The difference in the energy between the last two steps during optimization.
+        The difference in the energy_total between the last two steps during
+        optimization.
         ''',
         a_search=Search(),
         a_legacy=LegacyDefinition(name='final_energy_difference'))
@@ -6664,6 +6712,15 @@ class GeometryOptimization(MSection):
         Number of optimization steps.
         ''',
         a_legacy=LegacyDefinition(name='optimization_steps'))
+
+    energies = Quantity(
+        type=np.dtype(np.float64),
+        unit='joule',
+        shape=["optimization_steps"],
+        description='''
+        List of energy_total values gathered from the single configuration
+        calculations that are a part of the optimization trajectory.
+        ''')
 
 
 class Phonon(MSection):

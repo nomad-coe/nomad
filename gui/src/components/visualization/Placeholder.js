@@ -23,11 +23,13 @@ import clsx from 'clsx'
 
 /**
  * Component that is used as a placeholder while loading data. Fairly simple
- * wrapper around the MUI Skeleton component.
+ * wrapper around the MUI Skeleton component that allows using an aspect ratio
+ * to determine the size.
+ *
+ * Override the 'placeholder' CSS-class to control the size of the placeholder
+ * with respect to the root component.
  */
 
-// These styles do not depend on any props: they can be created once and are
-// shared by each instance.
 const useStaticStyles = makeStyles(theme => ({
   root: {
   },
@@ -47,32 +49,29 @@ export default function Placeholder(props) {
   // If aspect ratio is provided, use it to determine width and height
   const {aspectRatio, className, classes, 'data-testid': testID, ...other} = props
   const useStyles = makeStyles(theme => {
-    const style = {}
-    if (aspectRatio) {
-      style.containerOuter = {
-        height: 0,
-        overflow: 'hidden',
-        paddingBottom: `${100 / aspectRatio}%`,
-        position: 'relative'
-      }
+    return {
+      containerOuter: aspectRatio
+        ? {
+          height: 0,
+          overflow: 'hidden',
+          paddingBottom: `${100 / aspectRatio}%`,
+          position: 'relative'
+        }
+        : {
+          width: '100%',
+          height: '100%',
+          position: 'relative'
+        }
     }
-    return style
   })
   const theme = useTheme()
   const styles = useStyles()
   const staticStyles = useStaticStyles({classes: classes, theme: theme})
-  if (aspectRatio) {
-    return <div className={clsx(className, styles.root)} data-testid={testID}>
-      <div className={styles.containerOuter}>
-        <div className={staticStyles.placeholder}>
-          <Skeleton variant="rect" className={staticStyles.skeleton} {...other}/>
-        </div>
-      </div>
-    </div>
-  }
   return <div className={clsx(className, staticStyles.root)} data-testid={testID}>
-    <div className={styles.containerInner}>
-      <Skeleton {...other} className={staticStyles.skeleton}></Skeleton>
+    <div className={styles.containerOuter}>
+      <div className={staticStyles.placeholder}>
+        <Skeleton className={staticStyles.skeleton} {...other}/>
+      </div>
     </div>
   </div>
 }

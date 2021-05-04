@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import React, {useEffect, useState, useMemo} from 'react'
-import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import clsx from 'clsx'
@@ -24,7 +23,7 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { add, convertSI, convertSILabel, mergeObjects } from '../../utils'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 
@@ -39,20 +38,19 @@ function DOS({
   className,
   classes,
   placeholderStyle,
-  unitsState,
+  units,
   type,
   'data-testid': testID,
   ...other
 }) {
   // Merge custom layout with default layout
-  const units = useRecoilValue(unitsState)
   const initialLayout = useMemo(() => {
     let defaultLayout = {
       yaxis: {
         title: {
           text: `Energy (${convertSILabel('joule', units)})`
         },
-        zeroline: false
+        zeroline: type === 'vibrational'
       },
       xaxis: {
         showexponent: 'first',
@@ -68,55 +66,58 @@ function DOS({
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, units])
+  }, [layout, units, type])
 
-  const [finalData, setFinalData] = useState(data)
+  const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [finalLayout, setFinalLayout] = useState(initialLayout)
+  const [normalizedToHOE, setNormalizedToHOE] = useState(true)
   const styles = useStyles(classes)
   const theme = useTheme()
 
-  // Determine if data is normalized
-  let normalizedToHOE
-  if (data) {
-    if (type === 'vibrational') {
-      normalizedToHOE = true
-    } else {
-      if (data.dos_energies_normalized === undefined) {
-        normalizedToHOE = false
-      } else {
-        normalizedToHOE = true
-      }
-    }
-  }
-
   // Side effect that runs when the data that is displayed should change. By
-  // running all this heavy stuff as a side effect, the first render containing
-  // the placeholders etc. can be done as fast as possible.
+  // running all this heavy stuff within useEffect (instead of e.g. useMemo),
+  // the first render containing the placeholders etc. can be done as fast as
+  // possible.
   useEffect(() => {
     if (!data) {
       return
     }
 
-    // Determine quantity names
-    const norm = type === 'vibrational' ? '' : normalizedToHOE ? '_normalized' : ''
-    const energyName = 'dos_energies' + norm
-    const valueName = 'dos_values' + norm
+    // Determine the energy reference.
+    let energyHighestOccupied
+    let normalized
+
+    if (type === 'vibrational') {
+      energyHighestOccupied = 0
+      normalized = true
+    } else {
+      if (data.energy_highest_occupied === undefined) {
+        energyHighestOccupied = 0
+        normalized = false
+      } else {
+        energyHighestOccupied = convertSI(data.energy_highest_occupied, 'joule', units, false)
+        normalized = true
+      }
+    }
 
     // Convert units and determine range
     let mins = []
     let maxes = []
-    let nChannels = data[valueName].length
-    const energies = convertSI(data[energyName], 'joule', units, false)
-    const values1 = convertSI(data[valueName][0], '1/joule/meter^3', units, false)
+    let nChannels = data.densities.length
+    let energies = convertSI(data.energies, 'joule', units, false)
+    const values1 = convertSI(data.densities[0], '1/joule/meter^3', units, false)
     let values2
     mins.push(Math.min(...values1))
     maxes.push(Math.max(...values1))
     if (nChannels === 2) {
-      values2 = convertSI(data[valueName][1], '1/joule/meter^3', units, false)
+      values2 = convertSI(data.densities[1], '1/joule/meter^3', units, false)
       mins.push(Math.min(...values2))
       maxes.push(Math.max(...values2))
     }
     let range = [Math.min(...mins), Math.max(...maxes)]
+    if (energyHighestOccupied !== 0) {
+      energies = add(energies, -energyHighestOccupied)
+    }
 
     // Create the final data that will be plotted.
     const plotData = []
@@ -170,7 +171,7 @@ function DOS({
       {
         xaxis: {
           title: {
-            text: convertSILabel(norm ? 'states/joule/meter^3/atom' : 'states/joule/cell', units)
+            text: convertSILabel('states/joule/meter^3/atom', units)
           },
           range: range
         }
@@ -179,6 +180,7 @@ function DOS({
     )
     setFinalData(plotData)
     setFinalLayout(computedLayout)
+    setNormalizedToHOE(normalized)
   }, [data, units, initialLayout, normalizedToHOE, theme, type])
 
   return (
@@ -189,8 +191,9 @@ function DOS({
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
         warning={normalizedToHOE === false ? normalizationWarning : null}
-        {...other}
+        metaInfoLink={data?.m_path}
         data-testid={testID}
+        {...other}
       >
       </Plot>
     </Box>
@@ -198,14 +201,22 @@ function DOS({
 }
 
 DOS.propTypes = {
-  data: PropTypes.any, // section_dos
+  data: PropTypes.oneOfType([
+    PropTypes.bool, // Set to False to show NoData component
+    PropTypes.shape({
+      energies: PropTypes.array.isRequired, // DOS energies array
+      densities: PropTypes.array.isRequired, // DOS values array
+      energy_highest_occupied: PropTypes.number, // Highest occupied energy.
+      m_path: PropTypes.string // Path of the section containing the data in the Archive
+    })
+  ]),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,
-  unitsState: PropTypes.object, // Recoil atom containing the unit configuration
+  units: PropTypes.object, // Contains the unit configuration
   type: PropTypes.string, // Type of band structure: electronic or vibrational
   'data-testid': PropTypes.string
 }

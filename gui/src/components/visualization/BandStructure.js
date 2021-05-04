@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import React, {useState, useEffect, useMemo} from 'react'
-import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import clsx from 'clsx'
@@ -33,11 +32,10 @@ const useStyles = makeStyles({
   }
 })
 
-function BandStructure({data, layout, aspectRatio, className, classes, placeholderStyle, unitsState, type, ...other}) {
-  const [finalData, setFinalData] = useState(data)
+function BandStructure({data, layout, aspectRatio, className, classes, placeholderStyle, units, type, ...other}) {
+  const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const [normalizedToHOE, setNormalizedToHOE] = useState(false)
-  const units = useRecoilValue(unitsState)
 
   // Styles
   const style = useStyles(classes)
@@ -52,34 +50,32 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
     }
 
     // Determine the energy reference.
-    let energyReference
+    let energyHighestOccupied
     if (type === 'vibrational') {
-      energyReference = 0
+      energyHighestOccupied = 0
       setNormalizedToHOE(true)
     } else {
-      if (data.energy_highest_occupied === null || data.energy_highest_occupied === undefined) {
-        energyReference = 0
+      if (!data.energy_highest_occupied === undefined) {
+        energyHighestOccupied = 0
         setNormalizedToHOE(false)
       } else {
-        energyReference = Math.max(...data.energy_highest_occupied)
-        energyReference = convertSI(energyReference, 'joule', units, false)
+        energyHighestOccupied = convertSI(data.energy_highest_occupied, 'joule', units, false)
         setNormalizedToHOE(true)
       }
     }
-    const segmentName = 'section_k_band_segment'
     const energyName = 'band_energies'
     const kpointName = 'band_k_points'
 
     let plotData = []
-    let nChannels = data[segmentName][0][energyName].length
-    let nBands = data[segmentName][0][energyName][0][0].length
+    let nChannels = data.segments[0][energyName].length
+    let nBands = data.segments[0][energyName][0][0].length
 
     // Calculate distances in k-space if missing. These distances in k-space
     // define the plot x-axis spacing.
     let tempSegments = []
-    if (data[segmentName][0].k_path_distances === undefined) {
+    if (data.segments[0].k_path_distances === undefined) {
       let length = 0
-      for (let segment of data[segmentName]) {
+      for (let segment of data.segments) {
         const k_path_distances = []
         const nKPoints = segment[energyName][0].length
         let start = segment[kpointName][0]
@@ -95,7 +91,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
         tempSegments.push(k_path_distances)
       }
     } else {
-      for (let segment of data[segmentName]) {
+      for (let segment of data.segments) {
         tempSegments.push(segment.k_path_distances)
       }
     }
@@ -103,7 +99,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
 
     // Path
     let path = []
-    for (let segment of data[segmentName]) {
+    for (let segment of data.segments) {
       path = path.concat(segment.k_path_distances)
       tempSegments.push(segment.k_path_distances)
     }
@@ -114,7 +110,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
       for (let iBand = 0; iBand < nBands; ++iBand) {
         bands.push([])
       }
-      for (let segment of data[segmentName]) {
+      for (let segment of data.segments) {
         for (let iBand = 0; iBand < nBands; ++iBand) {
           let nKPoints = segment[energyName][1].length
           for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
@@ -126,8 +122,8 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
       // Create plot data entry for each band
       for (let band of bands) {
         band = convertSI(band, 'joule', units, false)
-        if (energyReference !== 0) {
-          band = add(band, -energyReference)
+        if (energyHighestOccupied !== 0) {
+          band = add(band, -energyHighestOccupied)
         }
         plotData.push(
           {
@@ -150,7 +146,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
     for (let iBand = 0; iBand < nBands; ++iBand) {
       bands.push([])
     }
-    for (let segment of data[segmentName]) {
+    for (let segment of data.segments) {
       for (let iBand = 0; iBand < nBands; ++iBand) {
         let nKPoints = segment[energyName][0].length
         for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
@@ -163,8 +159,8 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
     // Create plot data entry for each band
     for (let band of bands) {
       band = convertSI(band, 'joule', units, false)
-      if (energyReference !== 0) {
-        band = add(band, -energyReference)
+      if (energyHighestOccupied !== 0) {
+        band = add(band, -energyHighestOccupied)
       }
       plotData.push(
         {
@@ -214,7 +210,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
         title: {
           text: 'Energy (eV)'
         },
-        zeroline: false
+        zeroline: type === 'vibrational'
       },
       title: {
         text: {
@@ -230,7 +226,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout])
+  }, [layout, type])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
@@ -238,14 +234,11 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
       return {}
     }
     // Set new layout that contains the segment labels
-    const norm = data.section_k_band_segment_normalized === undefined ? '' : '_normalized'
-    const segmentName = 'section_k_band_segment' + norm
-    const labelName = 'band_segm_labels' + norm
     let labels = []
     let labelKPoints = []
-    for (let iSegment = 0; iSegment < data[segmentName].length; ++iSegment) {
-      let segment = data[segmentName][iSegment]
-      const startLabel = segment[labelName] ? segment[labelName][0] : ''
+    for (let iSegment = 0; iSegment < data.segments.length; ++iSegment) {
+      let segment = data.segments[iSegment]
+      const startLabel = segment.band_segm_labels ? segment.band_segm_labels[0] : ''
       if (iSegment === 0) {
         // If label is not defined, use empty string
         labels.push(startLabel)
@@ -256,7 +249,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
           labels[labels.length - 1] = `${prevLabel}|${startLabel}`
         }
       }
-      const endLabel = segment[labelName] ? segment[labelName][1] : ''
+      const endLabel = segment.band_segm_labels ? segment.band_segm_labels[1] : ''
       labels.push(endLabel)
       labelKPoints.push(pathSegments[iSegment].slice(-1)[0])
     }
@@ -302,6 +295,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
         floatTitle={'Band structure'}
         warning={normalizedToHOE ? null : normalizationWarning}
         placeholderStyle={placeholderStyle}
+        metaInfoLink={data?.m_path}
         {...other}
       >
       </Plot>
@@ -310,13 +304,20 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
 }
 
 BandStructure.propTypes = {
-  data: PropTypes.any, // section_band_structure
+  data: PropTypes.oneOfType([
+    PropTypes.bool, // Set to False to show NoData component
+    PropTypes.shape({
+      segments: PropTypes.array.isRequired, // Array of section_k_band_segments in SI units
+      energy_highest_occupied: PropTypes.number, // Highest occupied energy.
+      m_path: PropTypes.string // Path of the section containing the data in the Archive
+    })
+  ]),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
   placeholderStyle: PropTypes.any,
-  unitsState: PropTypes.object, // Recoil atom containing the unit configuration
+  units: PropTypes.object, // Contains the unit configuration
   type: PropTypes.string // Type of band structure: electronic or vibrational
 }
 BandStructure.defaultProps = {

@@ -112,18 +112,29 @@ export const rootSections = sortDefs(defs.filter(def => (
   def.m_def === 'Section' && !def.extends_base_section && def._parentSections.length === 0)
 ))
 
+/**
+ * Resolves the given string reference into the actual data.
+ * @param {string} ref Reference.
+ * @param {object} data Archive.
+ */
 export function resolveRef(ref, data) {
-  try {
-    data = data || metainfo
-    const segments = ref.split('/').filter(segment => segment !== '')
-    const reducer = (current, segment) => {
-      return isNaN(segment) ? current[segment] : current[parseInt(segment)]
+  const resolve = (ref, idata) => {
+    try {
+      idata = idata || metainfo
+      const segments = ref.split('/').filter(segment => segment !== '')
+      const reducer = (current, segment) => {
+        return isNaN(segment) ? current[segment] : current[parseInt(segment)]
+      }
+      return segments.reduce(reducer, idata)
+    } catch (e) {
+      console.log('could not resolve: ' + ref)
+      throw e
     }
-    return segments.reduce(reducer, data)
-  } catch (e) {
-    console.log('could not resolve: ' + ref)
-    throw e
   }
+  if (Array.isArray(ref)) {
+    return ref.map(x => resolve(x, data))
+  }
+  return resolve(ref, data)
 }
 
 /**

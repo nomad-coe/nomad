@@ -45,6 +45,8 @@ export const configState = atom({
   }
 })
 
+// Set up a unit system: by default use SI units, unless explicitly overridden
+// with something else.
 let defaults = {}
 for (const dimension in conversionMap) {
   const info = conversionMap[dimension]
@@ -156,7 +158,7 @@ ArchiveConfigForm.propTypes = ({
 })
 
 function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), {archive: data})
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
 }
 
 function archiveSearchOptions(data) {
@@ -261,16 +263,21 @@ class SectionAdaptor extends ArchiveAdaptor {
         return this.adaptorFactory(value, sectionDef, this.e)
       }
     } else if (property.m_def === 'Quantity') {
-      if (property.type.type_kind === 'reference' && property.shape.length === 0) {
-        // some sections cannot be resolved, because they are not part of the archive
-        // user_id->user is one example
-        const resolved = resolveRef(value, this.context.archive) || {}
-        const resolvedDef = resolveRef(property.type.type_data)
-        if (resolvedDef.name === 'User' && !resolved.user_id) {
-          resolved.user_id = value
+      // References: sections and quantities
+      if (property.type.type_kind === 'reference') {
+        if (property.shape.length === 0) {
+          // some sections cannot be resolved, because they are not part of the archive
+          // user_id->user is one example
+          const resolved = resolveRef(value, this.context.archive) || {}
+          const resolvedDef = resolveRef(property.type.type_data)
+          if (resolvedDef.name === 'User' && !resolved.user_id) {
+            resolved.user_id = value
+          }
+          return this.adaptorFactory(resolved, resolvedDef, this.e)
+        } else {
         }
-        return this.adaptorFactory(resolved, resolveRef(property.type.type_data), this.e)
       }
+      // Regular quantities
       return this.adaptorFactory(value, property, this.e)
     } else {
       throw new Error('Unknown metainfo meta definition')
@@ -433,7 +440,7 @@ function Overview({section, def, parent}) {
     return <Structure
       aspectRatio={4 / 3}
       className={style.structure}
-      system={system}
+      data={system}
     ></Structure>
   // Structure visualization for idealized_structure
   } else if (def.name === 'IdealizedStructure') {
@@ -449,23 +456,26 @@ function Overview({section, def, parent}) {
       pbc: section.periodicity
     }
     return <Structure
-      system={system}
+      data={system}
       className={style.structure}
       aspectRatio={1}>
     </Structure>
   // Band structure plot for section_k_band
   } else if (def.name === 'KBand') {
-    section.energy_highest_occupied = getHighestOccupiedEnergy(section, parent)
     return section.band_structure_kind !== 'vibrational'
       ? <>
         {mode === 'bs'
           ? <Box>
             <BandStructure
               className={style.bands}
-              data={section}
+              data={{
+                energy_highest_occupied: getHighestOccupiedEnergy(section, parent),
+                segments: section.section_k_band_segment,
+                reciprocal_cell: section.reciprocal_cell
+              }}
               layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
               aspectRatio={1}
-              unitsState={unitsState}
+              units={units}
             ></BandStructure>
           </Box>
           : <BrillouinZone
@@ -494,9 +504,12 @@ function Overview({section, def, parent}) {
       : <Box>
         <BandStructure
           className={style.bands}
-          data={section}
+          data={{
+            segments: section.section_k_band_segment,
+            reciprocal_cell: section.reciprocal_cell
+          }}
           aspectRatio={1}
-          unitsState={unitsState}
+          units={units}
           type='vibrational'
         ></BandStructure>
       </Box>
@@ -509,9 +522,13 @@ function Overview({section, def, parent}) {
     return <DOS
       className={style.dos}
       layout={layout}
-      data={section}
+      data={{
+        energies: section.dos_energies_normalized,
+        densities: section.dos_values_normalized,
+        energy_highest_occupied: 0
+      }}
       aspectRatio={1 / 2}
-      unitsState={unitsState}
+      units={units}
       type={isVibrational ? 'vibrational' : null}
     ></DOS>
   }
@@ -562,7 +579,7 @@ function Section({section, def, parent}) {
     </Compartment>
     <Compartment title="quantities">
       {def.quantities
-        .filter(quantityDef => section[quantityDef.name] || config.showAllDefined)
+        .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
         .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
@@ -585,7 +602,7 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.object.isRequired
+  parent: PropTypes.object
 })
 
 function Quantity({value, def}) {

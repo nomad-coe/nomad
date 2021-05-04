@@ -17,25 +17,31 @@
  */
 import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { useRecoilValue } from 'recoil'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
-import { apiContext } from '../api'
-import { apiContext as apiContextv1 } from '../apiv1'
+import _ from 'lodash'
+import { apiContext as apiContextV0 } from '../api'
+import { apiContextV1 } from '../apiV1'
 import { ApiDialog } from '../ApiDialogButton'
 import ElectronicProperties from '../visualization/ElectronicProperties'
 import VibrationalProperties from '../visualization/VibrationalProperties'
 import GeometryOptimization from '../visualization/GeometryOptimization'
 import Structure from '../visualization/Structure'
-import NoData from '../visualization/NoData'
 import Actions from '../Actions'
 import Quantity from '../Quantity'
-import { RecoilRoot } from 'recoil'
 import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from '../search/DatasetList'
 import { errorContext } from '../errors'
-import { authorList, convertSI, getHighestOccupiedEnergy } from '../../utils'
+import {
+  authorList,
+  convertSI,
+  getHighestOccupiedEnergy,
+  toMateriaStructure,
+  mergeObjects
+} from '../../utils'
+import { unitsState } from '../archive/ArchiveBrowser'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
-import _ from 'lodash'
 
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
@@ -74,13 +80,19 @@ const usePropertyCardStyles = makeStyles(theme => ({
   },
   title: {
     fontSize: '1.25rem'
+  },
+  content: {
+    paddingBottom: 16,
+    '&:last-child': {
+      paddingBottom: 16
+    }
   }
 }))
 
 function PropertyCard({title, children, actions}) {
-  const classes = usePropertyCardStyles()
-  return <Card className={classes.root}>
-    <CardContent>
+  const styles = usePropertyCardStyles()
+  return <Card className={styles.root}>
+    <CardContent classes={{root: styles.content}}>
       <Header title={title} actions={actions}></Header>
       {children}
     </CardContent>
@@ -105,8 +117,8 @@ const useSidebarCardStyles = makeStyles(theme => ({
 }))
 
 function SidebarCard({title, actions, children}) {
-  const classes = useSidebarCardStyles()
-  return <CardContent className={classes.content}>
+  const styles = useSidebarCardStyles()
+  return <CardContent className={styles.content}>
     {(title || actions) && <Header title={title} actions={actions}></Header>}
     {children}
   </CardContent>
@@ -155,378 +167,609 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 export default function DFTEntryOverview({data}) {
+  // Determine which information source will be used: section_results of
+  // section_metadata
+  const hasResults = !!data?.results
+  const units = useRecoilValue(unitsState)
+
+  // Determine the set of available properties.
   const availableProps = useMemo(() => {
     let properties
-    if (data?.dft?.searchable_quantities) {
-      properties = new Set(data.dft.searchable_quantities)
+    if (hasResults) {
+      if (data?.results?.properties?.available_properties) {
+        properties = new Set(data?.results?.properties?.available_properties)
+      } else {
+        properties = new Set()
+      }
     } else {
       properties = new Set()
-    }
-    if (data?.dft?.workflow?.workflow_type === 'geometry_optimization') {
-      properties.add('geometry_optimization')
+      properties.add('structure_original')
+      if (data?.dft?.searchable_quantities) {
+        const oldProps = new Set(data.dft.searchable_quantities)
+        if (oldProps.has('electronic_dos')) {
+          properties.add('dos_electronic')
+        }
+        if (oldProps.has('electronic_band_structure')) {
+          properties.add('band_structure_electronic')
+        }
+        if (oldProps.has('phonon_dos')) {
+          properties.add('dos_phonon')
+        }
+        if (oldProps.has('phonon_band_structure')) {
+          properties.add('band_structure_phonon')
+        }
+        if (oldProps.has('thermodynamical_property_heat_capacity_C_v')) {
+          properties.add('heat_capacity_constant_volume')
+        }
+        if (oldProps.has('vibrational_free_energy_at_constant_volume')) {
+          properties.add('energy_free_helmholtz')
+        }
+        if (oldProps.has('vibrational_free_energy_at_constant_volume')) {
+          properties.add('energy_free_helmholtz')
+        }
+      }
+      if (data?.dft?.workflow?.workflow_type === 'geometry_optimization') {
+        properties.add('geometry_optimization')
+      }
     }
     return properties
-  }, [data])
-  const {api} = useContext(apiContext)
-  const apiv1 = useContext(apiContextv1).api
+  }, [data, hasResults])
+
+  const apiV0 = useContext(apiContextV0).api
+  const apiV1 = useContext(apiContextV1).apiV1
   const {raiseError} = useContext(errorContext)
-  const [dosElectronic, setDosElectronic] = useState(availableProps.has('electronic_dos') ? null : false)
-  const [bsElectronic, setBsElectronic] = useState(availableProps.has('electronic_band_structure') ? null : false)
-  const [bsPhonon, setBsPhonon] = useState(availableProps.has('phonon_band_structure') ? null : false)
-  const [dosPhonon, setDosPhonon] = useState(availableProps.has('phonon_dos') ? null : false)
-  const [heatCapacity, setHeatCapacity] = useState(availableProps.has('thermodynamical_property_heat_capacity_C_v') ? null : false)
-  const [freeEnergy, setFreeEnergy] = useState(availableProps.has('vibrational_free_energy_at_constant_volume') ? null : false)
-  const [dataGeoOpt, setDataGeoOpt] = useState(availableProps.has('geometry_optimization') ? null : false)
-  const [structures, setStructures] = useState(null)
+  const [dosElectronic, setDosElectronic] = useState(availableProps.has('dos_electronic') ? null : false)
+  const [bsElectronic, setBsElectronic] = useState(availableProps.has('band_structure_electronic') ? null : false)
+  const [bsPhonon, setBsPhonon] = useState(availableProps.has('band_structure_phonon') ? null : false)
+  const [dosPhonon, setDosPhonon] = useState(availableProps.has('dos_phonon') ? null : false)
+  const [heatCapacity, setHeatCapacity] = useState(availableProps.has('heat_capacity_constant_volume') ? null : false)
+  const [freeEnergy, setFreeEnergy] = useState(availableProps.has('energy_free_helmholtz') ? null : false)
+  const [geoOpt, setGeoOpt] = useState(availableProps.has('geometry_optimization') ? null : false)
+  const [structures, setStructures] = useState(availableProps.has('structure_original') ? null : false)
+  const [method, setMethod] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const styles = useStyles()
 
-  // Load section_results from the server
+  // Load the archive data from the server. If section_results is present, only
+  // part of the archive will be loaded. Otherwise a full archive download is
+  // performed.
   useEffect(() => {
-    apiv1.results(data.entry_id).then(archive => {
-    }).catch(error => {
-      if (error.name === 'DoesNotExist') {
-      } else {
-        raiseError(error)
-      }
-    })
-  }, [data, apiv1, raiseError, setStructures])
+    if (hasResults) {
+      apiV1.results(data.entry_id).then(archive => {
+        const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
+        const urlStruct = `${url}/results/properties/structures`
 
-  // When loaded for the first time, start downloading the archive. Once
-  // finished, determine the final layout based on it's contents. TODO: When we
-  // have more information stored in the ES index, it can be used to select
-  // which parts of the Archive should be downloaded to reduce bandwidth.
-  useEffect(() => {
-    if (!api) {
-      return
-    }
-    api.archive(data.upload_id, data.calc_id).then(archive => {
-      let structs = {}
-      const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
+        // Structures
+        let structs = []
+        const original = toMateriaStructure(
+          archive?.results?.properties?.structures?.structure_original,
+          'original',
+          `${urlStruct}/structure_original`
+        )
+        original && structs.push(original)
+        const conventional = toMateriaStructure(
+          archive?.results?.properties?.structures?.structure_conventional,
+          'conventional',
+          `${urlStruct}/structure_conventional`
+        )
+        conventional && structs.push(conventional)
+        const primitive = toMateriaStructure(
+          archive?.results?.properties?.structures?.structure_primitive,
+          'primitive',
+          `${urlStruct}/structure_primitive`
+        )
+        primitive && structs.push(primitive)
+        structs = structs.length > 0 ? structs : false
+        setStructures(structs)
 
-      // Check that at least one section run is available. If not, break the execution.
-      let section_run = archive?.section_run
-      if (section_run) {
-        const nRuns = section_run.length
-        section_run = section_run[nRuns - 1]
-      } else {
-        return
-      }
-
-      // Figure out what properties are present by looping over the SCCS. This
-      // information will eventually be directly available in the ES index.
-      let e_dos = null
-      let e_bs = null
-      let section_method = null
-      const sccs = section_run.section_single_configuration_calculation
-      if (sccs) {
-        for (let i = sccs.length - 1; i > -1; --i) {
-          const scc = sccs[i]
-          if (!e_dos && scc.section_dos) {
-            const first_dos = scc.section_dos[scc.section_dos.length - 1]
-            if (first_dos.dos_kind !== 'vibrational') {
-              e_dos = {
-                'section_system': scc.single_configuration_calculation_to_system_ref,
-                'section_method': scc.single_configuration_calculation_to_system_ref,
-                'section_dos': scc.section_dos[scc.section_dos.length - 1],
-                'path': `${url}/section_run/section_single_configuration_calculation:${i}/section_dos:${scc.section_dos.length - 1}`
-              }
-            }
-          }
-          if (!e_bs && scc.section_k_band) {
-            const first_band = scc.section_k_band[scc.section_k_band.length - 1]
-            first_band.energy_highest_occupied = getHighestOccupiedEnergy(first_band, scc)
-            if (first_band.band_structure_kind !== 'vibrational') {
-              e_bs = {
-                'section_system': scc.single_configuration_calculation_to_system_ref,
-                'section_method': scc.single_configuration_calculation_to_system_ref,
-                'section_k_band': first_band,
-                'path': `${url}/section_run/section_single_configuration_calculation:${i}/section_k_band:${scc.section_k_band.length - 1}`
-              }
-            }
-          }
-          if (section_method !== false) {
-            let iMethod = scc.single_configuration_to_calculation_method_ref
-            if (section_method === null) {
-              section_method = iMethod
-            } else if (iMethod !== section_method) {
-              section_method = false
-            }
-          }
+        // Electronic properties
+        const electronicDOS = archive?.results?.properties?.electronic?.dos_electronic
+        if (electronicDOS) {
+          setDosElectronic({
+            energies: resolveRef(electronicDOS.energies, archive),
+            densities: resolveRef(electronicDOS.densities, archive),
+            energy_highest_occupied: Math.max(
+              ...resolveRef(electronicDOS.energy_references, archive).map(x => x.energy_highest_occupied)
+            ),
+            m_path: `${url}/${refPath(electronicDOS.energies.split('/').slice(0, -1).join('/'))}`
+          })
         }
-      }
-      if (e_dos) {
-        setDosElectronic(e_dos)
-      }
-      if (e_bs) {
-        setBsElectronic(e_bs)
-      }
+        const electronicBS = archive?.results?.properties?.electronic?.band_structure_electronic
+        if (electronicBS) {
+          setBsElectronic({
+            reciprocal_cell: resolveRef(electronicBS.reciprocal_cell, archive),
+            segments: resolveRef(electronicBS.segments, archive),
+            energy_highest_occupied: Math.max(
+              ...resolveRef(electronicBS.energy_references, archive).map(x => x.energy_highest_occupied)
+            ),
+            m_path: `${url}/${refPath(electronicBS.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
+          })
+        }
+        // Geometry optimization
+        const geoOptProps = archive?.results?.properties?.geometry_optimization
+        const geoOptMethod = archive?.results?.method?.geometry_optimization
+        if (geoOptProps) {
+          setGeoOpt({
+            energies: resolveRef(geoOptProps.energies, archive),
+            energy_change_criteria: geoOptMethod?.input_energy_difference_tolerance
+          })
+        }
+        // Vibrational properties
+        const dosPhononProp = archive?.results?.properties?.vibrational?.dos_phonon
+        const bsPhononProp = archive?.results?.properties?.vibrational?.band_structure_phonon
+        const energyFreeProp = archive?.results?.properties?.vibrational?.energy_free_helmholtz
+        const heatCapacityProp = archive?.results?.properties?.vibrational?.heat_capacity_constant_volume
+        dosPhononProp && setDosPhonon({
+          energies: resolveRef(dosPhononProp.energies, archive),
+          densities: resolveRef(dosPhononProp.densities, archive),
+          m_path: `${url}/${refPath(dosPhononProp.energies.split('/').slice(0, -1).join('/'))}`
+        })
+        bsPhononProp && setBsPhonon({
+          segments: resolveRef(bsPhononProp.segments, archive),
+          m_path: `${url}/${refPath(bsPhononProp.segments[0].split('/').slice(0, -1).join('/'))}`
+        })
+        energyFreeProp && setFreeEnergy({
+          energies: resolveRef(energyFreeProp.energies, archive),
+          temperatures: resolveRef(energyFreeProp.temperatures, archive),
+          m_path: `${url}/${refPath(energyFreeProp.temperatures.split('/').slice(0, -1).join('/'))}`
+        })
+        heatCapacityProp && setHeatCapacity({
+          heat_capacities: resolveRef(heatCapacityProp.heat_capacities, archive),
+          temperatures: resolveRef(heatCapacityProp.temperatures, archive),
+          m_path: `${url}/${refPath(heatCapacityProp.temperatures.split('/').slice(0, -1).join('/'))}`
+        })
+      }).catch(error => {
+        if (error.name === 'DoesNotExist') {
+        } else {
+          raiseError(error)
+        }
+      })
+    } else {
+      apiV0.archive(data.upload_id, data.calc_id).then(archive => {
+        let structs = []
+        const url = `/entry/id/${data.upload_id}/${data.calc_id}/archive`
 
-      // See if there are workflow results
-      const section_wf = archive.section_workflow
-      if (section_wf) {
-        const wfType = section_wf.workflow_type
+        // Check that at least one section run is available. If not, break the execution.
+        let section_run = archive?.section_run
+        if (section_run) {
+          const nRuns = section_run.length
+          section_run = section_run[nRuns - 1]
+        } else {
+          return
+        }
 
-        // Gather energies, trajectory and energy change threshold from geometry
-        // optimization
-        if (wfType === 'geometry_optimization') {
-          let failed = false
-          let energies = []
-          try {
-            const calculations = section_wf.calculations_ref
-            let initialEnergy = null
-            if (!calculations) {
-              throw Error('no calculations')
-            }
-            for (let i = 0; i < calculations.length; ++i) {
-              let ref = calculations[i]
-              const calc = resolveRef(ref, archive)
-              let e = calc.energy_total
-              if (e === undefined) {
-                if (i === calculations.length - 1) {
-                  break
-                } else {
-                  throw Error('invalid energy value')
+        // Figure out what properties are present by looping over the SCCS. This
+        // information will eventually be directly available in the ES index.
+        let e_dos = null
+        let e_bs = null
+        let section_method = null
+        const sccs = section_run.section_single_configuration_calculation
+        if (sccs) {
+          for (let i = sccs.length - 1; i > -1; --i) {
+            const scc = sccs[i]
+            const doses = scc.section_dos
+            const bss = scc.section_k_band
+            if (!e_dos && doses) {
+              for (let j = doses.length - 1; j > -1; --j) {
+                const dos = doses[j]
+                if (dos.dos_kind !== 'vibrational') {
+                  e_dos = {
+                    energies: dos.dos_energies_normalized,
+                    densities: dos.dos_values_normalized,
+                    energy_highest_occupied: 0,
+                    m_path: `${url}/section_run/section_single_configuration_calculation:${i}/section_dos:${j}`
+                  }
                 }
               }
-              if (i === 0) {
-                initialEnergy = e
+            }
+            if (!e_bs && bss) {
+              for (let j = bss.length - 1; j > -1; --j) {
+                const band = scc.section_k_band[j]
+                if (band.band_structure_kind !== 'vibrational') {
+                  e_bs = {
+                    segments: band.section_k_band_segment,
+                    reciprocal_cell: band.reciprocal_cell,
+                    energy_highest_occupied: getHighestOccupiedEnergy(band, scc),
+                    m_path: `${url}/section_run/section_single_configuration_calculation:${i}/section_k_band:${j}`
+                  }
+                }
               }
-              energies.push(e - initialEnergy)
             }
-          } catch (err) {
-            failed = true
-          }
-          if (!failed) {
-            energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
-            const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
-            const sampling_method = section_run?.section_sampling_method
-            const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
-            const e_criteria = convertSI(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
-            setDataGeoOpt({energies: energies, energy_change_criteria: e_criteria})
-          } else {
-            setDataGeoOpt({})
-          }
-        } else if (wfType === 'phonon') {
-          // Find phonon dos and dispersion
-          const scc_ref = section_wf.calculation_result_ref
-          const scc = resolveRef(scc_ref, archive)
-          let v_dos = null
-          let v_bs = null
-          if (scc) {
-            v_bs = {
-              section_system: scc.single_configuration_calculation_to_system_ref,
-              section_method: scc.single_configuration_calculation_to_system_ref,
-              section_k_band: scc.section_k_band[scc.section_k_band.length - 1],
-              path: `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
-            }
-            v_dos = {
-              section_system: scc.single_configuration_calculation_to_system_ref,
-              section_method: scc.single_configuration_calculation_to_system_ref,
-              section_dos: scc.section_dos[scc.section_dos.length - 1],
-              path: `${url}/${refPath(scc_ref)}/section_dos:${scc.section_dos.length - 1}`
-            }
-          }
-
-          // Find thermal properties
-          let free_energy = null
-          let heat_capacity = null
-          const sequences = section_run.section_frame_sequence
-          const sequence = sequences && sequences[sequences.length - 1]
-          if (sequence) {
-            const properties = sequence.section_thermodynamical_properties && sequence.section_thermodynamical_properties[0]
-            if (properties) {
-              heat_capacity = {
-                thermodynamical_property_heat_capacity_C_v: properties.thermodynamical_property_heat_capacity_C_v,
-                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/thermodynamical_property_heat_capacity_C_v`,
-                temperature: properties.thermodynamical_property_temperature
-              }
-              free_energy = {
-                vibrational_free_energy_at_constant_volume: properties.vibrational_free_energy_at_constant_volume,
-                path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/vibrational_free_energy_at_constant_volume`,
-                temperature: properties.thermodynamical_property_temperature
+            if (section_method !== false) {
+              let iMethod = scc.single_configuration_to_calculation_method_ref
+              if (section_method === null) {
+                section_method = iMethod
+              } else if (iMethod !== section_method) {
+                section_method = false
               }
             }
           }
-          v_dos && setDosPhonon(v_dos)
-          v_bs && setBsPhonon(v_bs)
-          free_energy && setFreeEnergy(free_energy)
-          heat_capacity && setHeatCapacity(heat_capacity)
         }
-      }
+        if (e_dos) {
+          setDosElectronic(e_dos)
+        }
+        if (e_bs) {
+          setBsElectronic(e_bs)
+        }
 
-      // Get the representative system by looping over systems
-      let reprSys = null
-      const systems = section_run.section_system
-      if (systems) {
-        for (let i = systems.length - 1; i > -1; --i) {
-          const sys = systems[i]
-          if (!reprSys && sys.is_representative) {
-            const reprSys = {
-              species: sys.atom_species,
-              cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-              positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
-              pbc: sys.configuration_periodic_dimensions,
-              path: `${url}/section_run/section_system:${i}`
+        // See if there are workflow results
+        const section_wf = archive.section_workflow
+        if (section_wf) {
+          const wfType = section_wf.workflow_type
+
+          // Gather energies, trajectory and energy change threshold from geometry
+          // optimization
+          if (wfType === 'geometry_optimization') {
+            let failed = false
+            let energies = []
+            try {
+              const calculations = section_wf.calculations_ref
+              if (!calculations) {
+                throw Error('no calculations')
+              }
+              for (let i = 0; i < calculations.length; ++i) {
+                let ref = calculations[i]
+                const calc = resolveRef(ref, archive)
+                let e = calc.energy_total
+                if (e === undefined) {
+                  if (i === calculations.length - 1) {
+                    break
+                  } else {
+                    throw Error('invalid energy value')
+                  }
+                }
+                energies.push(e)
+              }
+            } catch (err) {
+              failed = true
             }
-            structs.original = reprSys
-            break
+            if (!failed) {
+              const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
+              const sampling_method = section_run?.section_sampling_method
+              const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
+              const e_criteria = convertSI(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
+              setGeoOpt({energies: energies, energy_change_criteria: e_criteria})
+            } else {
+              setGeoOpt({})
+            }
+          } else if (wfType === 'phonon') {
+            // Find phonon dos and dispersion
+            const scc_ref = section_wf.calculation_result_ref
+            const scc = resolveRef(scc_ref, archive)
+            let v_dos = null
+            let v_bs = null
+            if (scc) {
+              v_bs = {
+                segments: scc.section_k_band[scc.section_k_band.length - 1].section_k_band_segment,
+                m_path: `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
+              }
+              v_dos = {
+                energies: scc.section_dos[scc.section_dos.length - 1].dos_energies,
+                densities: scc.section_dos[scc.section_dos.length - 1].dos_values_normalized,
+                m_path: `${url}/${refPath(scc_ref)}/section_dos:${scc.section_dos.length - 1}`
+              }
+            }
+
+            // Find thermal properties
+            let free_energy = null
+            let heat_capacity = null
+            const sequences = section_run.section_frame_sequence
+            const sequence = sequences && sequences[sequences.length - 1]
+            if (sequence) {
+              const properties = sequence.section_thermodynamical_properties && sequence.section_thermodynamical_properties[0]
+              if (properties) {
+                heat_capacity = {
+                  heat_capacities: properties.thermodynamical_property_heat_capacity_C_v,
+                  temperatures: properties.thermodynamical_property_temperature,
+                  m_path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/thermodynamical_property_heat_capacity_C_v`
+                }
+                free_energy = {
+                  energies: properties.vibrational_free_energy_at_constant_volume,
+                  temperatures: properties.thermodynamical_property_temperature,
+                  m_path: `${url}/section_run/section_frame_sequence:${sequences.length - 1}/section_thermodynamical_properties/vibrational_free_energy_at_constant_volume`
+                }
+              }
+            }
+            v_dos && setDosPhonon(v_dos)
+            v_bs && setBsPhonon(v_bs)
+            free_energy && setFreeEnergy(free_energy)
+            heat_capacity && setHeatCapacity(heat_capacity)
           }
         }
-      }
 
-      // Get the conventional (=normalized) system, if present
-      let idealSys = archive?.section_metadata?.encyclopedia?.material?.idealized_structure
-      if (idealSys && data?.dft?.system === 'bulk') {
-        const ideal = {
-          species: idealSys.atom_labels,
-          cell: idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-          positions: idealSys.atom_positions,
-          fractional: true,
-          pbc: idealSys.periodicity,
-          path: `${url}/section_metadata/encyclopedia/material/idealized_structure`
+        // Get method details. Any referenced core_setttings will also be taken
+        // into account. If there were no SCCs from which the method could be
+        // selected, simply select the last available method.
+        if (section_method) {
+          section_method = resolveRef(section_method, archive)
+        } else {
+          const methods = section_run.section_method
+          if (methods) {
+            section_method = methods[methods.length - 1]
+          }
         }
-        structs.conventional = ideal
-      }
-      setStructures(structs)
-    }).catch(error => {
-      if (error.name === 'DoesNotExist') {
-      } else {
-        raiseError(error)
-      }
-    }).finally(() => setLoading(false))
-  }, [data, api, raiseError])
+        if (section_method) {
+          const refs = section_method?.section_method_to_method_refs
+          if (refs) {
+            for (const ref of refs) {
+              if (ref.method_to_method_kind === 'core_settings') {
+                section_method = mergeObjects(resolveRef(ref.method_to_method_ref, archive), section_method)
+              }
+            }
+          }
+          const es_method = section_method?.electronic_structure_method
+          const vdw_method = section_method?.van_der_Waals_method
+          const relativity_method = section_method?.relativity_method
+          const basis_set = section_method?.basis_set
+          setMethod({
+            method_name: es_method,
+            van_der_Waals_method: vdw_method,
+            relativity_method: relativity_method,
+            basis_set_name: basis_set
+          })
+        }
+
+        // Get the representative system by looping over systems
+        let reprSys = null
+        const systems = section_run.section_system
+        if (systems) {
+          for (let i = systems.length - 1; i > -1; --i) {
+            const sys = systems[i]
+            if (!reprSys && sys.is_representative) {
+              const reprSys = {
+                species: sys.atom_species,
+                cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+                positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+                pbc: sys.configuration_periodic_dimensions,
+                m_path: `${url}/section_run/section_system:${i}`,
+                name: 'original'
+              }
+              structs.push(reprSys)
+              break
+            }
+          }
+        }
+
+        // Get the conventional (=normalized) system, if present
+        let idealSys = archive?.section_metadata?.encyclopedia?.material?.idealized_structure
+        if (idealSys && data?.dft?.system === 'bulk') {
+          const ideal = {
+            species: idealSys.atom_labels,
+            cell: idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+            positions: idealSys.atom_positions,
+            fractional: true,
+            pbc: idealSys.periodicity,
+            m_path: `${url}/section_metadata/encyclopedia/material/idealized_structure`,
+            name: 'conventional'
+          }
+          structs.push(ideal)
+        }
+        setStructures(structs)
+      }).catch(error => {
+        if (error.name === 'DoesNotExist') {
+        } else {
+          raiseError(error)
+        }
+      }).finally(() => setLoading(false))
+    }
+  }, [data, apiV0, apiV1, raiseError, hasResults])
 
   const quantityProps = {data: data, loading: !data}
+  const materialId = data?.results?.material?.material_id || data?.encyclopedia?.material?.material_id
 
   return (
-    <RecoilRoot>
-      <Grid container spacing={0} className={styles.root}>
+    <Grid container spacing={0} className={styles.root}>
 
-        {/* Left column */}
-        <Grid item xs={4} className={styles.leftSidebar}>
-          <SidebarCard title='Method'>
-            <Quantity flex>
-              <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap {...quantityProps}/>
-              <Quantity quantity="results.method.simulation.program_version" label='program version' ellipsisFront {...quantityProps}/>
-              <Quantity quantity="results.method.method_name" label='method name' noWrap {...quantityProps}/>
-              {data?.results?.method?.method_name === 'DFT' && <>
-                <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.basis_set_type" label='basis set type' noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.basis_set_name" label='basis set name' noWrap hideIfUnavailable {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.van_der_Waals_method" label='van der Waals method' noWrap hideIfUnavailable {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.relativity_method" label='relativity method' noWrap hideIfUnavailable {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.core_electron_treatment" label='core electron treatment' noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.spin_polarized" label='spin-polarized' hideIfUnavailable noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.smearing_type" label='smearing type' noWrap hideIfUnavailable {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.dft.smearing_width" label='smearing width' noWrap hideIfUnavailable {...quantityProps}/>
-              </>}
-              {data?.results?.method?.method_name === 'GW' && <>
-                <Quantity quantity="results.method.simulation.gw.gw_type" label='gw type' noWrap {...quantityProps}/>
-                <Quantity quantity="results.method.simulation.gw.starting_point" label='ground state xc functional' noWrap {...quantityProps}/>
-              </>}
+      {/* Left column */}
+      <Grid item xs={4} className={styles.leftSidebar}>
+        <SidebarCard title='Method'>
+          <Quantity flex>
+            {hasResults
+              ? <>
+                <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap {...quantityProps}/>
+                <Quantity quantity="results.method.simulation.program_version" label='program version' ellipsisFront {...quantityProps}/>
+                <Quantity quantity="results.method.method_name" label='method name' noWrap {...quantityProps}/>
+                {data?.results?.method?.method_name === 'DFT' && <>
+                  <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.xc_functional_names" label='xc functional names' noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.basis_set_type" label='basis set type' noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.basis_set_name" label='basis set name' noWrap hideIfUnavailable {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.van_der_Waals_method" description="The used Van der Waals method." label='van der Waals method' noWrap hideIfUnavailable {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.relativity_method" label='relativity method' noWrap hideIfUnavailable {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.core_electron_treatment" label='core electron treatment' noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.spin_polarized" label='spin-polarized' hideIfUnavailable noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.smearing_type" label='smearing type' noWrap hideIfUnavailable {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.dft.smearing_width" label='smearing width' noWrap hideIfUnavailable {...quantityProps}/>
+                </>}
+                {data?.results?.method?.method_name === 'GW' && <>
+                  <Quantity quantity="results.method.simulation.gw.gw_type" label='gw type' noWrap {...quantityProps}/>
+                  <Quantity quantity="results.method.simulation.gw.starting_point" label='ground state xc functional' noWrap {...quantityProps}/>
+                </>}
+              </>
+              : <>
+                <Quantity
+                  quantity="dft.code_name"
+                  description={searchQuantities['results.method.simulation.program_name']?.description || ''}
+                  label='program name'
+                  noWrap
+                  {...quantityProps}
+                />
+                <Quantity
+                  quantity="dft.code_version"
+                  description={searchQuantities['results.method.simulation.program_version']?.description || ''}
+                  label='program version'
+                  ellipsisFront
+                  {...quantityProps}
+                />
+                <Quantity
+                  quantity="method_name"
+                  description={searchQuantities['results.method.method_name']?.description || ''}
+                  label='method name'
+                  loading={loading}
+                  noWrap
+                  data={method}
+                />
+                <Quantity
+                  quantity="dft.xc_functional"
+                  description={searchQuantities['results.method.simulation.dft.xc_functional_type']?.description || ''}
+                  label='xc functional family'
+                  noWrap
+                  {...quantityProps}
+                />
+                <Quantity
+                  quantity="dft.xc_functional_names"
+                  description={searchQuantities['results.method.simulation.dft.xc_functional_names']?.description || ''}
+                  label='xc functional names'
+                  noWrap
+                  {...quantityProps}
+                />
+                <Quantity
+                  quantity="dft.basis_set"
+                  description={searchQuantities['results.method.simulation.dft.basis_set_type']?.description || ''}
+                  label='basis set type'
+                  noWrap
+                  {...quantityProps}
+                />
+                <Quantity
+                  quantity="basis_set_name"
+                  description={searchQuantities['results.method.simulation.dft.basis_set_name']?.description || ''}
+                  label='basis set name'
+                  hideIfUnavailable
+                  loading={loading}
+                  noWrap
+                  data={method}
+                />
+                <Quantity
+                  quantity="van_der_Waals_method"
+                  description="The used Van der Waals method."
+                  label='van der Waals method'
+                  hideIfUnavailable
+                  loading={loading}
+                  noWrap
+                  data={method}
+                />
+                <Quantity
+                  quantity="relativity_method"
+                  description={searchQuantities['results.method.simulation.dft.relativity_method']?.description || ''}
+                  label='relativity method'
+                  hideIfUnavailable
+                  loading={loading}
+                  noWrap
+                  data={method}
+                />
+              </>
+            }
+          </Quantity>
+        </SidebarCard>
+        <Divider className={styles.divider} />
+        <SidebarCard title='Author metadata'>
+          <Quantity flex>
+            <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
+            <Quantity quantity='references' placeholder='no references' {...quantityProps}>
+              {data.references &&
+              <div style={{display: 'inline-grid'}}>
+                {data.references.map(ref => <Typography key={ref} noWrap>
+                  <Link href={ref}>{ref}</Link>
+                </Typography>)}
+              </div>}
             </Quantity>
-          </SidebarCard>
-          <Divider className={styles.divider} />
-          <SidebarCard title='Author metadata'>
-            <Quantity flex>
-              <Quantity quantity='comment' placeholder='no comment' {...quantityProps} />
-              <Quantity quantity='references' placeholder='no references' {...quantityProps}>
-                {data.references &&
-                <div style={{display: 'inline-grid'}}>
-                  {data.references.map(ref => <Typography key={ref} noWrap>
-                    <Link href={ref}>{ref}</Link>
-                  </Typography>)}
-                </div>}
-              </Quantity>
-              <Quantity quantity='authors' {...quantityProps}>
-                <Typography>
-                  {authorList(data || [])}
-                </Typography>
-              </Quantity>
-              <Quantity
-                description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
-                label='datasets'
-                placeholder='no datasets'
+            <Quantity quantity='authors' {...quantityProps}>
+              <Typography>
+                {authorList(data || [])}
+              </Typography>
+            </Quantity>
+            <Quantity
+              description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
+              label='datasets'
+              placeholder='no datasets'
+              {...quantityProps}
+            >
+              {(data.datasets && data.datasets.length !== 0) &&
+              <div>
+                {data.datasets.map(ds => (
+                  <Typography key={ds.dataset_id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
+                  </Typography>))}
+              </div>}
+            </Quantity>
+          </Quantity>
+        </SidebarCard>
+        <Divider className={styles.divider}/>
+        <SidebarCard>
+          <Quantity column style={{maxWidth: 350}}>
+            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
+            <Quantity quantity="entry_id" label='entry id' noWrap withClipboard {...quantityProps}/>
+            { hasResults
+              ? <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
+              : <Quantity
+                quantity="encyclopedia.material.material_id"
+                description={searchQuantities['results.material.material_id']?.description || ''}
+                label='material id'
+                noWrap
+                withClipboard
                 {...quantityProps}
-              >
-                {(data.datasets && data.datasets.length !== 0) &&
-                <div>
-                  {data.datasets.map(ds => (
-                    <Typography key={ds.dataset_id}>
-                      <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                      {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
-                    </Typography>))}
-                </div>}
-              </Quantity>
+              />
+            }
+            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
+            <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
+              <Typography noWrap>
+                {new Date(data.upload_time).toLocaleString()}
+              </Typography>
             </Quantity>
-          </SidebarCard>
-          <Divider className={styles.divider}/>
-          <SidebarCard>
-            <Quantity column style={{maxWidth: 350}}>
-              <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard {...quantityProps}/>
-              <Quantity quantity="entry_id" label='entry id' noWrap withClipboard {...quantityProps}/>
-              <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard {...quantityProps}/>
-              <Quantity quantity="upload_id" label='upload id' noWrap withClipboard {...quantityProps}/>
-              <Quantity quantity="upload_time" label='upload time' noWrap {...quantityProps}>
-                <Typography noWrap>
-                  {new Date(data.upload_time).toLocaleString()}
-                </Typography>
-              </Quantity>
-              <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard {...quantityProps}/>
-              <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard {...quantityProps}/>
-              <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap {...quantityProps}>
-                <Typography noWrap>
-                  {new Date(data.last_processing).toLocaleString()}
-                </Typography>
-              </Quantity>
-              <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
-                <Typography noWrap>
-                  {data.nomad_version}/{data.nomad_commit}
-                </Typography>
-              </Quantity>
+            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard {...quantityProps}/>
+            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard {...quantityProps}/>
+            <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap {...quantityProps}>
+              <Typography noWrap>
+                {new Date(data.last_processing).toLocaleString()}
+              </Typography>
             </Quantity>
-          </SidebarCard>
-          <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
-          <Actions
-            justifyContent='flex-end'
-            variant='outlined'
-            color='primary'
-            size='medium'
-            actions={[{
-              tooltip: 'Show the API access code',
-              onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-              content: 'API'
-            }]}
-          >
-          </Actions>
-        </Grid>
+            <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" {...quantityProps}>
+              <Typography noWrap>
+                {data.nomad_version}/{data.nomad_commit}
+              </Typography>
+            </Quantity>
+          </Quantity>
+        </SidebarCard>
+        <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+        <Actions
+          justifyContent='flex-end'
+          variant='outlined'
+          color='primary'
+          size='medium'
+          actions={[{
+            tooltip: 'Show the API access code',
+            onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+            content: 'API'
+          }]}
+        >
+        </Actions>
+      </Grid>
 
-        {/* Right column */}
-        <Grid item xs={8} className={styles.rightSidebar}>
-          <PropertyCard title="Material">
-            <Grid container spacing={1}>
-              <Grid item xs={5}>
-                <Box className={styles.materialText}>
-                  <Quantity column>
-                    <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap {...quantityProps}/>
-                    <Quantity quantity="results.material.type_structural" label='structural type' noWrap {...quantityProps}/>
-                    <Quantity quantity="results.material.material_name" label='material name' noWrap {...quantityProps}/>
-                    {data?.results?.material?.symmetry &&
+      {/* Right column */}
+      <Grid item xs={8} className={styles.rightSidebar}>
+        <PropertyCard title="Material">
+          <Grid container spacing={1}>
+            <Grid item xs={5}>
+              <Box className={styles.materialText}>
+                <Quantity column>
+                  {hasResults
+                    ? <>
+                      <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap {...quantityProps}/>
+                      <Quantity quantity="results.material.type_structural" label='structural type' noWrap {...quantityProps}/>
+                      <Quantity quantity="results.material.material_name" label='material name' noWrap {...quantityProps}/>
+                      {data?.results?.material?.symmetry &&
                       <Quantity row>
                         <Quantity
                           quantity="results.material.symmetry.crystal_system"
                           label='crystal system'
-                          hideIfUnavailable
                           noWrap
                           {...quantityProps}
                         />
                         <Quantity
                           description="Space group symbol and number"
                           label="space group"
-                          hideIfUnavailable
                           noWrap
                           {...quantityProps}
                         >
@@ -535,65 +778,112 @@ export default function DFTEntryOverview({data}) {
                           </Typography>
                         </Quantity>
                       </Quantity>
-                    }
-                  </Quantity>
-                  {encyclopediaEnabled && data?.results?.material?.material_id &&
-                    <Actions
-                      className={styles.actions}
-                      justifyContent='flex-start'
-                      color='primary'
-                      variant='text'
-                      size='medium'
-                      actions={[{
-                        tooltip: 'View this material in the Encyclopedia',
-                        content: 'Encyclopedia',
-                        href: `${appBase}/encyclopedia/#/material/${data.results.material.material_id}`
-                      }]}
-                    >
-                    </Actions>
+                      }
+                    </>
+                    : <>
+                      <Quantity
+                        quantity="formula"
+                        description={searchQuantities['results.material.chemical_formula_hill']?.description || ''}
+                        label='formula'
+                        noWrap
+                        {...quantityProps}
+                      />
+                      <Quantity
+                        quantity="dft.system"
+                        description={searchQuantities['results.material.type_structural']?.description || ''}
+                        label='structural type'
+                        noWrap
+                        {...quantityProps}
+                      />
+                      <Quantity
+                        quantity="encyclopedia.material.material_name"
+                        description={searchQuantities['results.material.material_name']?.description || ''}
+                        label='material name'
+                        noWrap
+                        {...quantityProps}
+                      />
+                      {data?.encyclopedia?.material?.bulk &&
+                      <Quantity row>
+                        <Quantity
+                          quantity="dft.crystal_system"
+                          description={searchQuantities['results.material.symmetry.crystal_system']?.description || ''}
+                          label='crystal system'
+                          noWrap
+                          {...quantityProps}
+                        />
+                        <Quantity
+                          description="Space group symbol and number"
+                          label="space group"
+                          noWrap
+                          {...quantityProps}
+                        >
+                          <Typography noWrap>
+                            {normalizeDisplayValue(_.get(data, 'dft.spacegroup_symbol'))} ({normalizeDisplayValue(_.get(data, 'dft.spacegroup'))})
+                          </Typography>
+                        </Quantity>
+                      </Quantity>
+                      }
+                    </>
                   }
-                </Box>
-              </Grid>
-              <Grid item xs={7} style={{marginTop: '-2rem'}}>
-                {(loading || !_.isEmpty(structures))
-                  ? <Structure systems={structures} materialType={data?.dft?.system} aspectRatio={1.5} data-testid="viewer-material"/>
-                  : <NoData aspectRatio={1.5} data-testid="viewer-material"/>
+                </Quantity>
+                {encyclopediaEnabled && materialId &&
+                  <Actions
+                    className={styles.actions}
+                    justifyContent='flex-start'
+                    color='primary'
+                    variant='text'
+                    size='medium'
+                    actions={[{
+                      tooltip: 'View this material in the Encyclopedia',
+                      content: 'Encyclopedia',
+                      href: `${appBase}/encyclopedia/#/material/${materialId}`
+                    }]}
+                  >
+                  </Actions>
                 }
-              </Grid>
+              </Box>
             </Grid>
+            <Grid item xs={7} style={{marginTop: '-2rem'}}>
+              <Structure
+                data={structures}
+                materialType={data?.results?.material?.type_structural || data?.dft?.system}
+                aspectRatio={1.5}
+                data-testid="viewer-material"
+              />
+            </Grid>
+          </Grid>
+        </PropertyCard>
+        {(dosElectronic !== false ||
+          bsElectronic !== false) &&
+          <PropertyCard title="Electronic properties">
+            <ElectronicProperties
+              bs={bsElectronic}
+              dos={dosElectronic}
+              units={units}
+            />
           </PropertyCard>
-          {(dosElectronic !== false ||
-            bsElectronic !== false) &&
-            <PropertyCard title="Electronic properties">
-              <ElectronicProperties
-                bs={bsElectronic}
-                dos={dosElectronic}
-              >
-              </ElectronicProperties>
-            </PropertyCard>
-          }
-          {dataGeoOpt !== false &&
-            <PropertyCard title="Geometry optimization">
-              <GeometryOptimization data={dataGeoOpt}></GeometryOptimization>
-            </PropertyCard>
-          }
-          {(dosPhonon !== false ||
-            bsPhonon !== false ||
-            heatCapacity !== false ||
-            freeEnergy !== false) &&
-            <PropertyCard title="Vibrational properties">
-              <VibrationalProperties
-                bs={bsPhonon}
-                dos={dosPhonon}
-                heatCapacity={heatCapacity}
-                freeEnergy={freeEnergy}
-              >
-              </VibrationalProperties>
-            </PropertyCard>
-          }
-        </Grid>
+        }
+        {geoOpt !== false &&
+          <PropertyCard title="Geometry optimization">
+            <GeometryOptimization data={geoOpt} units={units}/>
+          </PropertyCard>
+        }
+        {(dosPhonon !== false ||
+          bsPhonon !== false ||
+          heatCapacity !== false ||
+          freeEnergy !== false) &&
+          <PropertyCard title="Vibrational properties">
+            <VibrationalProperties
+              bs={bsPhonon}
+              dos={dosPhonon}
+              heatCapacity={heatCapacity}
+              freeEnergy={freeEnergy}
+              units={units}
+            />
+          </PropertyCard>
+        }
       </Grid>
-    </RecoilRoot>
+    </Grid>
   )
 }
 

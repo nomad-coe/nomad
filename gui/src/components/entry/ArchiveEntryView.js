@@ -157,4 +157,7 @@ class ArchiveEntryView extends React.Component {
   }
 }
 
-export default compose(withApi(false, true), withStyles(ArchiveEntryView.styles))(ArchiveEntryView)
+export default compose(
+  withApi(false, true),
+  withStyles(ArchiveEntryView.styles)
+)(ArchiveEntryView)
