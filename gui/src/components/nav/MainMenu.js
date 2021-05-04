@@ -19,10 +19,9 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
   FormGroup,
   Switch} from '@material-ui/core'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
 import Markdown from '../Markdown'
-import { allRoutes as routes } from './Routes'
+import { useRoute } from './Routes'
 import { matomo } from '../App'
 import { useCookies } from 'react-cookie'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
@@ -118,27 +117,8 @@ function Consent(moreProps) {
 }
 
 export default function MainMenu() {
-  // We keep the URL of those path where components keep meaningful state in the URL.
-  // If the menu is used to comeback, the old URL is used. Therefore, it appears as
-  // if the same component instance with the same state is still there.
-  const {pathname, search} = useLocation()
-  const historyRef = useRef({
-    search: '/search',
-    userdata: '/userdata'
-  })
-  const history = {...historyRef.current}
-  Object.keys(historyRef.current).forEach(key => {
-    if (pathname.startsWith('/' + key)) {
-      historyRef.current[key] = pathname + (search || '')
-      history[key] = '/' + key
-    }
-  })
-  const route = Object.keys(routes).find(routeKey => pathname.startsWith(routes[routeKey].path))
-  const routeNavPath = route && routes[route].navPath
-  if (routeNavPath) {
-    historyRef.current.navPath = routeNavPath
-  }
-  const selected = (route && routes[route].navPath) || historyRef.current.navPath || (route && routes[route].defaultNavPath) || 'publish/uploads'
+  const route = useRoute()
+  const selected = (route?.navPath) || 'publish/uploads'
 
   return <MenuBar selected={selected}>
     <MenuBarMenu name="publish" label="Publish" route="/uploads" icon={<BackupIcon/>}>
@@ -147,13 +127,13 @@ export default function MainMenu() {
         tooltip="Upload and publish new data" icon={<SearchIcon />}
       />
       <MenuBarItem
-        label="Your data" name="userdata" route={history.userdata}
+        label="Your data" name="userdata" route="/userdata"
         tooltip="Manage your uploaded data" icon={<UserDataIcon />}
       />
     </MenuBarMenu>
-    <MenuBarMenu name="explore" route={history.search} icon={<SearchIcon/>}>
+    <MenuBarMenu name="explore" route="/search" icon={<SearchIcon/>}>
       <MenuBarItem
-        name="search" route={history.search}
+        name="search" route="/search"
         tooltip="Find and download data"
       />
       {encyclopediaEnabled && <MenuBarItem

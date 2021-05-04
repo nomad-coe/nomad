@@ -693,7 +693,7 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
     def extract(self, include_archive: bool = False) -> None:
         assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
         for access in ['public', 'restricted']:
-            raw_file_zip = self.public_upload_files._raw_file_object(access)
+            raw_file_zip = self.public_upload_files.raw_file_object(access)
             if raw_file_zip.exists():
                 super().add_rawfiles(raw_file_zip.os_path, force_archive=True)
 
@@ -732,14 +732,14 @@ class PublicUploadFiles(UploadFiles):
     def _create_raw_file_object(dir: DirectoryObject, access: str, suffix: str = '') -> PathObject:
         return dir.join_file(f'raw-{access}{suffix}.plain.zip')
 
-    def _raw_file_object(self, access: str, **kwargs) -> PathObject:
+    def raw_file_object(self, access: str, **kwargs) -> PathObject:
         return PublicUploadFiles._create_raw_file_object(self, access, **kwargs)
 
     def _open_raw_file(self, access: str) -> zipfile.ZipFile:
         if access in self._raw_zip_files:
             return self._raw_zip_files[access]
 
-        zip_path = self._raw_file_object(access).os_path
+        zip_path = self.raw_file_object(access).os_path
         f = zipfile.ZipFile(zip_path)
         self._raw_zip_files[access] = f
 
@@ -753,7 +753,7 @@ class PublicUploadFiles(UploadFiles):
 
         return dir.join_file(f'archive-{access}{suffix}.msg.msg')
 
-    def _msg_file_object(self, access: str, **kwargs) -> PathObject:
+    def msg_file_object(self, access: str, **kwargs) -> PathObject:
         return PublicUploadFiles._create_msg_file_object(self, access, **kwargs)
 
     def _open_msg_file(self, access: str) -> ArchiveReader:
@@ -762,7 +762,7 @@ class PublicUploadFiles(UploadFiles):
             if not archive.is_closed():
                 return archive
 
-        msg_object = self._msg_file_object(access)
+        msg_object = self.msg_file_object(access)
 
         if not msg_object.exists():
             raise FileNotFoundError()
@@ -793,14 +793,14 @@ class PublicUploadFiles(UploadFiles):
         return staging_upload_files
 
     def add_metadata_file(self, metadata: dict):
-        zip_path = self._raw_file_object('public').os_path
+        zip_path = self.raw_file_object('public').os_path
         with zipfile.ZipFile(zip_path, 'a') as zf:
             with zf.open('nomad.json', 'w') as f:
                 f.write(json.dumps(metadata).encode())
 
     @property
     def public_raw_data_file(self):
-        return self._raw_file_object('public').os_path
+        return self.raw_file_object('public').os_path
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
@@ -919,12 +919,12 @@ class PublicUploadFiles(UploadFiles):
         for access in ['public', 'restricted']:
             if not skip_archive:
                 files.append((
-                    self._msg_file_object(access, suffix='repacked'),
-                    self._msg_file_object(access)))
+                    self.msg_file_object(access, suffix='repacked'),
+                    self.msg_file_object(access)))
             if not skip_raw:
                 files.append((
-                    self._raw_file_object(access, suffix='repacked'),
-                    self._raw_file_object(access)))
+                    self.raw_file_object(access, suffix='repacked'),
+                    self.raw_file_object(access)))
 
         # check if there already is a running repack
         for repacked_file, _ in files:
@@ -935,11 +935,11 @@ class PublicUploadFiles(UploadFiles):
         staging_upload = self.to_staging_upload_files(create=True, include_archive=True)
 
         def create_zipfile(access: str) -> zipfile.ZipFile:
-            file = self._raw_file_object(access, suffix='repacked')
+            file = self.raw_file_object(access, suffix='repacked')
             return zipfile.ZipFile(file.os_path, mode='w')
 
         def write_msgfile(access: str, size: int, data: Iterable[Tuple[str, Any]]):
-            file = self._msg_file_object(access, suffix='repacked')
+            file = self.msg_file_object(access, suffix='repacked')
             write_archive(file.os_path, size, data)
 
         # perform the repacking

@@ -19,12 +19,12 @@
 ''' Methods to help with testing of nomad@FAIRDI.'''
 
 import urllib.parse
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 import json
 from logging import LogRecord
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from nomad import search
+from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, DFTMetadata, Results
 from nomad.datamodel.metainfo.common_dft import Run, System
 
@@ -92,6 +92,18 @@ def assert_url_query_args(url: str, **kwargs):
             assert query_dict[k][0] == str(v)
 
 
+def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
+    '''
+    Takes a base_url and a dictionary, and combines to a url with query arguments.
+    Arguments with value None are ignored.
+    '''
+    # Remove args with value None
+    query_args_clean = {k: v for k, v in query_args.items() if v is not None}
+    if not query_args_clean:
+        return base_url
+    return base_url + '?' + urllib.parse.urlencode(query_args_clean, doseq=True)
+
+
 class ExampleData:
     '''
     Allows to define, create, and manage a set of example data. Will create respective
@@ -106,7 +118,8 @@ class ExampleData:
     '''
 
     def __init__(self, **kwargs):
-        self.uploads: Dict[str, List[str]] = dict()
+        self.upload_entries: Dict[str, List[str]] = dict()
+        self.uploads: Dict[str, Dict[str, Any]] = dict()
         self.entries: Dict[str, EntryMetadata] = dict()
         self.archives: Dict[str, EntryArchive] = dict()
 
@@ -114,17 +127,25 @@ class ExampleData:
         self._entry_id_counter = 1
         self._upload_id_counter = 1
 
+        self._time_stamp = datetime.now()
+
     def save(self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
 
         if with_mongo:
+            for upload_id, upload_dict in self.uploads.items():
+                mongo_upload = proc.Upload(**upload_dict)
+                mongo_upload.save()
+
             for entry_metadata in self.entries.values():
                 mongo_entry = proc.Calc(
                     create_time=datetime.now(),
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
-                    mainfile=entry_metadata.mainfile)
+                    mainfile=entry_metadata.mainfile,
+                    parser='parsers/vasp',
+                    tasks_status='SUCCESS')
                 mongo_entry.apply_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
@@ -133,8 +154,9 @@ class ExampleData:
             search.index(archives, update_materials=True, refresh=True)
 
         if with_files:
-            published = True
-            for upload_id, entry_ids in self.uploads.items():
+            for upload_id in set(list(self.uploads) + list(self.upload_entries)):
+                entry_ids = self.upload_entries.get(upload_id, [])
+                published = True
                 archives = []
                 for entry_id in entry_ids:
                     published &= self.entries[entry_id].published
@@ -144,6 +166,41 @@ class ExampleData:
                 create_test_upload_files(upload_id, archives, published=published)
                 from nomad import files
                 assert files.UploadFiles.get(upload_id) is not None
+
+    def delete(self):
+        from nomad import processing as proc
+
+        for upload_id in self.upload_entries:
+            search.delete_upload(upload_id, refresh=True)
+            upload_proc = proc.Upload.objects(upload_id=upload_id).first()
+            if upload_proc is not None:
+                upload_proc.delete()
+            upload_files = files.UploadFiles.get(upload_id)
+            if upload_files is not None:
+                upload_files.delete()
+
+    def create_upload(self, upload_id, **kwargs):
+        '''
+        Creates a dictionary holding all the upload information.
+        Default values are used/generated, and can be set via kwargs.
+        '''
+        upload_dict = {
+            'upload_id': upload_id,
+            'current_task': 'cleanup',
+            'tasks_status': 'SUCCESS',
+            'current_process': 'process_upload',
+            'process_status': 'COMPLETED',
+            'errors': [],
+            'warnings': [],
+            'create_time': self._next_time_stamp(),
+            'upload_time': self._next_time_stamp(),
+            'complete_time': self._next_time_stamp(),
+            'published': False,
+            'published_to': []}
+        upload_dict.update(kwargs)
+        if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
+            upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
+        self.uploads[upload_id] = upload_dict
 
     def create_entry(
             self,
@@ -178,9 +235,10 @@ class ExampleData:
         entry_metadata.m_update(
             calc_id=entry_id,
             upload_id=upload_id,
-            domain='dft',
             mainfile=mainfile,
-            upload_time=datetime.now(),
+            calc_hash='dummy_hash_' + entry_id,
+            domain='dft',
+            upload_time=self._next_time_stamp(),
             published=True,
             processed=True,
             with_embargo=False,
@@ -247,9 +305,17 @@ class ExampleData:
 
         self.archives[entry_id] = entry_archive
         self.entries[entry_id] = entry_metadata
-        self.uploads.setdefault(entry_metadata.upload_id, []).append(entry_id)
+        self.upload_entries.setdefault(entry_metadata.upload_id, []).append(entry_id)
 
         return entry_archive
+
+    def _next_time_stamp(self):
+        '''
+        Returns self._time_stamp and ticks up the time stamp with 1 millisecond. This
+        utility guarantees that we get unique and increasing time stamps for each entity.
+        '''
+        self._time_stamp += timedelta(milliseconds=1)
+        return self._time_stamp
 
     def create_structure(
             self,

@@ -41,6 +41,7 @@ nomadcore
 nomad_dos_fingerprints
 lxml
 xarray
+phonopy
 
 # [infrastructure]
 optimade==0.14.0

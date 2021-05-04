@@ -191,9 +191,9 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.species_at_sites = nomad_species
         optimade.lattice_vectors = get_value(section_system.lattice_vectors, numpy=True, unit=ureg.m)
         optimade.cartesian_site_positions = get_value(section_system.atom_positions, numpy=True, unit=ureg.m)
-        optimade.dimension_types = [
-            1 if value else 0
-            for value in get_value(section_system.configuration_periodic_dimensions)]
+        pbc = get_value(section_system.configuration_periodic_dimensions)
+        if pbc is not None:
+            optimade.dimension_types = [1 if value else 0 for value in pbc]
 
         # species
         for species_label in set(nomad_species):

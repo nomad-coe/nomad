@@ -190,6 +190,9 @@ def search(
     if pagination is None:
         pagination = Pagination()
 
+    if pagination.order_by is None:
+        pagination.order_by = 'entry_id'
+
     if isinstance(index, Index):
         index = index.index_name
     search = Search(index=index)

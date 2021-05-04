@@ -43,7 +43,7 @@ from nomad.datamodel import User
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
-from tests.test_files import example_file, empty_file
+from tests.test_files import example_file, empty_file, example_file_vasp_with_binary
 
 test_log_level = logging.CRITICAL
 example_files = [empty_file, example_file]
@@ -532,6 +532,11 @@ def example_upload(request) -> str:
 @pytest.fixture(scope='session')
 def non_empty_example_upload():
     return example_file
+
+
+@pytest.fixture(scope='session')
+def non_empty_example_upload_vasp_with_binary():
+    return example_file_vasp_with_binary
 
 
 @pytest.fixture(scope='session')

@@ -31,7 +31,7 @@ def client():
 
 
 @pytest.fixture(scope='module')
-def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user):
+def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
     '''
     Provides a couple of uploads and entries including metadata, raw-data, and
     archive files.
@@ -46,12 +46,14 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     raw files and archive file for id_02 are missing
     id_10, id_11 reside in the same directory
     '''
-
     data = ExampleData(
-        uploader=test_user
-    )
+        uploader=test_user)
 
     # one upload with two calc published with embargo, one shared
+    data.create_upload(
+        upload_id='id_embargo',
+        name='name_embargo',
+        published=True)
     data.create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo',
@@ -66,6 +68,9 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         with_embargo=True)
 
     # one upload with two calc in staging, one shared
+    data.create_upload(
+        upload_id='id_unpublished',
+        published=False)
     data.create_entry(
         upload_id='id_unpublished',
         calc_id='id_unpublished',
@@ -82,6 +87,10 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         published=False)
 
     # one upload with 23 calcs published
+    data.create_upload(
+        upload_id='id_published',
+        name='name_published',
+        published=True)
     for i in range(1, 24):
         entry_id = 'id_%02d' % i
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
@@ -96,8 +105,64 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             archive = data.archives[entry_id]
             write_partial_archive_to_mongo(archive)
 
+    # one upload, no calcs, still processing
+    data.create_upload(
+        upload_id='id_processing',
+        published=False,
+        tasks_status='RUNNING',
+        process_status='RUNNING')
+
+    # one upload, no calcs, unpublished
+    data.create_upload(
+        upload_id='id_empty',
+        published=False)
+
     data.save(with_files=False)
     del(data.archives['id_02'])
     data.save(with_files=True, with_es=False, with_mongo=False)
 
-    return data
+
+@pytest.fixture(scope='function')
+def example_data_writeable(mongo, test_user, normalized):
+    data = ExampleData(uploader=test_user)
+
+    # one upload with one entry, published
+    data.create_upload(
+        upload_id='id_published_w',
+        published=True)
+    data.create_entry(
+        upload_id='id_published_w',
+        calc_id='id_published_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+        shared_with=[],
+        with_embargo=True)
+
+    # one upload with one entry, unpublished
+    data.create_upload(
+        upload_id='id_unpublished_w',
+        published=False)
+    data.create_entry(
+        upload_id='id_unpublished_w',
+        calc_id='id_unpublished_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+        shared_with=[],
+        with_embargo=True,
+        published=False)
+
+    # one upload, no entries, still processing
+    data.create_upload(
+        upload_id='id_processing_w',
+        published=False,
+        tasks_status='RUNNING',
+        process_status='RUNNING')
+
+    # one upload, no entries, unpublished
+    data.create_upload(
+        upload_id='id_empty_w',
+        published=False)
+
+    data.save()
+
+    yield
+
+    data.delete()

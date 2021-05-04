@@ -97,7 +97,8 @@ export class EntryListUnstyled extends React.Component {
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
     domain: PropTypes.object,
     user: PropTypes.object,
-    showAccessColumn: PropTypes.bool
+    showAccessColumn: PropTypes.bool,
+    entryPagePathPrefix: PropTypes.string
   }
 
   static styles = theme => ({
@@ -228,7 +229,9 @@ export class EntryListUnstyled extends React.Component {
   }
 
   handleClickCalc(calc) {
-    this.props.history.push(`/entry/id/${calc.upload_id}/${calc.calc_id}`)
+    const prefix = this.props.entryPagePathPrefix || ''
+    const url = `${prefix}/entry/id/${calc.upload_id}/${calc.calc_id}`
+    this.props.history.push(url)
   }
 
   handleChangePage = (event, page) => {
@@ -319,7 +322,9 @@ export class EntryListUnstyled extends React.Component {
 
   handleViewEntryPage(event, row) {
     event.stopPropagation()
-    this.props.history.push(`/entry/id/${row.upload_id}/${row.calc_id}`)
+    const prefix = this.props.entryPagePathPrefix || ''
+    const url = `${prefix}/entry/id/${row.upload_id}/${row.calc_id}`
+    this.props.history.push(url)
   }
 
   renderEntryActions(row, selected) {

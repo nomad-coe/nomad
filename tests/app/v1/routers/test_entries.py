@@ -22,12 +22,11 @@ import zipfile
 import io
 import json
 
-from nomad import files
 from nomad.datamodel import results
 from nomad.metainfo.elasticsearch_extension import entry_type
 
-from tests.utils import assert_at_least, assert_url_query_args
-from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
+from tests.utils import assert_at_least, assert_url_query_args, ExampleData
+from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import assert_response
 from ..conftest import example_data as data  # pylint: disable=unused-import
@@ -678,15 +677,47 @@ def test_entry_raw_download(client, data, entry_id, files, files_per_entry, stat
 
 
 @pytest.fixture(scope='function')
-def data_with_compressed_files(data):
-    upload_files = files.UploadFiles.get('id_published')
-    upload_files.add_rawfiles('tests/data/api/mainfile.xz', prefix='test_content/subdir/test_entry_01')
-    upload_files.add_rawfiles('tests/data/api/mainfile.gz', prefix='test_content/subdir/test_entry_01')
+def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+    data = ExampleData(
+        uploader=test_user)
+
+    data.create_upload(
+        upload_id='with_compr_published',
+        published=True)
+    data.create_entry(
+        upload_id='with_compr_published',
+        calc_id='with_compr_published',
+        mainfile='test_content/test_entry/mainfile.json',
+        shared_with=[])
+    data.create_upload(
+        upload_id='with_compr_unpublished',
+        published=False)
+    data.create_entry(
+        upload_id='with_compr_unpublished',
+        calc_id='with_compr_unpublished',
+        mainfile='test_content/test_entry/mainfile.json',
+        shared_with=[])
+
+    data.save()
+
+    append_raw_files(
+        'with_compr_published', 'tests/data/api/mainfile.xz',
+        'test_content/test_entry/mainfile.xz')
+    append_raw_files(
+        'with_compr_published', 'tests/data/api/mainfile.gz',
+        'test_content/test_entry/mainfile.gz')
+    append_raw_files(
+        'with_compr_unpublished', 'tests/data/api/mainfile.xz',
+        'test_content/test_entry/mainfile.xz')
+    append_raw_files(
+        'with_compr_unpublished', 'tests/data/api/mainfile.gz',
+        'test_content/test_entry/mainfile.gz')
 
     yield
 
-    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.xz').delete()
-    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.gz').delete()
+    data.delete()
+    from nomad.search.v1 import search
+    assert search(query=dict(upload_id='with_compr_published')).pagination.total == 0
 
 
 @pytest.mark.parametrize('entry_id, path, params, status_code', [
@@ -699,8 +730,10 @@ def data_with_compressed_files(data):
     pytest.param('id_01', 'mainfile.json', {'offset': -1}, 422, id='bad-offset'),
     pytest.param('id_01', 'mainfile.json', {'length': -1}, 422, id='bad-length'),
     pytest.param('id_01', 'mainfile.json', {'decompress': True}, 200, id='decompress-json'),
-    pytest.param('id_01', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz'),
-    pytest.param('id_01', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz'),
+    pytest.param('with_compr_published', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz-published'),
+    pytest.param('with_compr_published', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz-published'),
+    pytest.param('with_compr_unpublished', 'mainfile.xz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-xz-unpublished'),
+    pytest.param('with_compr_unpublished', 'mainfile.gz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-gz-unpublished'),
     pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
     pytest.param('id_embargo', 'mainfile.json', {}, 404, id='404-embargo'),
     pytest.param('id_embargo', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo'),
@@ -708,7 +741,7 @@ def data_with_compressed_files(data):
     pytest.param('id_embargo_shared', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-shared')
 ])
 def test_entry_raw_download_file(
-        client, data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
+        client, data, example_data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
         entry_id, path, params, status_code):
 
     user = params.get('user')

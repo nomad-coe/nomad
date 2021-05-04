@@ -4993,6 +4993,7 @@ class SingleConfigurationCalculation(MSection):
     energy_zero_point = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='joule',
         description='''
         Value for the converged zero-point vibrations energy calculated using the method
         described in zero_point_method , and used in energy_current .
@@ -5254,6 +5255,7 @@ class SingleConfigurationCalculation(MSection):
         categories=[Unused],
         a_legacy=LegacyDefinition(name='zero_point_method'))
 
+    # TODO put all thermodynamics properties under one section
     enthalpy = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -5263,6 +5265,24 @@ class SingleConfigurationCalculation(MSection):
         ''',
         categories=[EnergyComponent, EnergyValue, Unused],
         a_legacy=LegacyDefinition(name='energy_enthalpy'))
+
+    heat_capacity_C_v = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Stores the heat capacity per cell unit at constant volume.
+        ''',
+        a_legacy=LegacyDefinition(name='heat_capacity_C_v'))
+
+    heat_capacity_C_p = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Stores the heat capacity per cell unit at constant pressure.
+        ''',
+        a_legacy=LegacyDefinition(name='heat_capacity_C_p'))
 
     pressure = Quantity(
         type=np.dtype(np.float64),
@@ -6685,6 +6705,16 @@ class GeometryOptimization(MSection):
         categories=[Unused],
         a_legacy=LegacyDefinition(name='input_force_maximum_tolerance'))
 
+    input_displacement_maximum_tolerance = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='meter',
+        description='''
+        The input maximum displacement tolerance criterion.
+        ''',
+        categories=[Unused],
+        a_legacy=LegacyDefinition(name='input_displacement_maximum_tolerance'))
+
     final_energy_difference = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -6705,6 +6735,15 @@ class GeometryOptimization(MSection):
         ''',
         a_legacy=LegacyDefinition(name='final_force_maximum'))
 
+    final_displacement_maximum = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='meter',
+        description='''
+        The maximum displacement in the last optimization step with respect to previous.
+        ''',
+        a_legacy=LegacyDefinition(name='final_displacement_maximum'))
+
     optimization_steps = Quantity(
         type=int,
         shape=[],
@@ -6721,6 +6760,13 @@ class GeometryOptimization(MSection):
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
         ''')
+    is_converged_geometry = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if the geometry convergence criteria were fulfilled.
+        ''',
+        a_legacy=LegacyDefinition(name='is_converged_geometry'))
 
 
 class Phonon(MSection):

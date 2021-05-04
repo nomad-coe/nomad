@@ -47,6 +47,7 @@ example_file_contents = [
     'examples_template/3.aux',
     'examples_template/4.aux']
 example_file_mainfile = 'examples_template/template.json'
+example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
 empty_file = 'tests/data/proc/empty.zip'
 example_archive_contents = {
     "section_run": [],
@@ -569,6 +570,18 @@ def create_test_upload_files(
         return UploadFiles.get(upload_id)
 
     return upload_files
+
+
+def append_raw_files(upload_id: str, path_source: str, path_in_upload: str):
+    ''' Used to append published zip files, for testing purposes. '''
+    upload_files = UploadFiles.get(upload_id)
+    if isinstance(upload_files, PublicUploadFiles):
+        zip_path = upload_files.raw_file_object('public').os_path  # type: ignore
+        with zipfile.ZipFile(zip_path, 'a') as zf:
+            zf.write(path_source, path_in_upload)
+    else:
+        path = upload_files.raw_file_object('public').os_path  # type: ignore
+        shutil.copy(path_source, os.path.join(path, path_in_upload))
 
 
 def test_test_upload_files(raw_files_infra):

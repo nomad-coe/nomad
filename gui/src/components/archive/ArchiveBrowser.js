@@ -602,7 +602,7 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.object
+  parent: PropTypes.any
 })
 
 function Quantity({value, def}) {

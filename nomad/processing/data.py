@@ -134,6 +134,7 @@ class Calc(Proc):
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser'),
             ('upload_id', 'tasks_status'),
+            ('upload_id', 'current_task'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'metadata.processed',
@@ -156,6 +157,11 @@ class Calc(Proc):
     @classmethod
     def get(cls, id):
         return cls.get_by_id(id, 'calc_id')
+
+    @property
+    def entry_id(self) -> str:
+        ''' Just an alias for calc_id. '''
+        return self.calc_id
 
     @property
     def mainfile_file(self) -> PathObject:
@@ -765,7 +771,7 @@ class Upload(Proc):
     meta: Any = {
         'strict': False,
         'indexes': [
-            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time'
+            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time', 'create_time'
         ]
     }
 
@@ -1060,6 +1066,21 @@ class Upload(Proc):
 
         self._continue_with('parse_all')
         try:
+            if config.reprocess_match:
+                with utils.timer(logger, 'calcs match on reprocess'):
+                    for filename, parser in self.match_mainfiles():
+                        calc_id = staging_upload_files.calc_id(filename)
+                        try:
+                            Calc.get(calc_id)
+                        except KeyError:
+                            calc = Calc.create(
+                                calc_id=calc_id,
+                                mainfile=filename, parser=parser.name,
+                                worker_hostname=self.worker_hostname,
+                                upload_id=self.upload_id)
+
+                            calc.save()
+
             with utils.timer(logger, 'calcs resetted'):
                 # check if a calc is already/still processing
                 processing = Calc.objects(
@@ -1157,9 +1178,8 @@ class Upload(Proc):
         return self._upload_files
 
     @property
-    def staging_upload_files(self) -> ArchiveBasedStagingUploadFiles:
-        assert not self.published
-        return cast(ArchiveBasedStagingUploadFiles, self.upload_files)
+    def staging_upload_files(self) -> StagingUploadFiles:
+        return self.upload_files.to_staging_upload_files()
 
     @task
     def extracting(self):
@@ -1226,7 +1246,7 @@ class Upload(Proc):
             Tuples of mainfile, filename, and parsers
         '''
         directories_with_match: Dict[str, str] = dict()
-        upload_files = self.staging_upload_files
+        upload_files = self.upload_files.to_staging_upload_files()
         for filename in upload_files.raw_file_manifest():
             self._preprocess_files(filename)
             try:
@@ -1385,7 +1405,7 @@ class Upload(Proc):
     def _cleanup_after_re_processing(self):
         logger = self.get_logger(upload_size=self.upload_files.size)
         if self.published:
-            staging_upload_files = self.upload_files.to_staging_upload_files()
+            staging_upload_files = self.staging_upload_files
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
@@ -1449,7 +1469,12 @@ class Upload(Proc):
             order_by: the property to order by
         '''
         query = Calc.objects(upload_id=self.upload_id)[start:end]
-        return query.order_by(order_by) if order_by is not None else query
+        if not order_by:
+            return query
+        if type(order_by) == str:
+            return query.order_by(order_by)
+        assert type(order_by) == tuple, 'order_by must be a string or a tuple if set'
+        return query.order_by(*order_by)
 
     @property
     def outdated_calcs(self):
