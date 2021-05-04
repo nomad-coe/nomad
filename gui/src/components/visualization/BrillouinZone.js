@@ -39,7 +39,16 @@ import clsx from 'clsx'
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
-function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
+function BrillouinZone({
+  className,
+  classes,
+  options,
+  viewer,
+  data,
+  captureName,
+  aspectRatio,
+  'data-testid': testID
+}) {
   // States
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -187,7 +196,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     }
     let previousPoint
     let segment = []
-    for (let seg of data.section_k_band_segment) {
+    for (let seg of data.segments) {
       let labels = seg.band_segm_labels
       const start = seg.band_k_points[0]
       const end = seg.band_k_points.slice(-1)[0]
@@ -235,7 +244,11 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
   }, [])
 
   if (loading) {
-    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+    return <Placeholder
+      variant="rect"
+      aspectRatio={aspectRatio}
+      data-testid={`${testID}-placeholder`}
+    />
   }
 
   // List of actionable buttons for the viewer
@@ -262,12 +275,16 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
 
 BrillouinZone.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
-  data: PropTypes.object, // section_k_band
+  data: PropTypes.shape({
+    reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
+    segments: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
+  }),
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   classes: PropTypes.object,
-  className: PropTypes.string
+  className: PropTypes.string,
+  'data-testid': PropTypes.string
 }
 BrillouinZone.defaultProps = {
   aspectRatio: 4 / 3,

@@ -65,19 +65,18 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     assert gap_ev == pytest.approx(1, 0.001)
     assert gap.type == "indirect"
 
-    # TODO: AL I cannot find a polarized example with band gap! Previous parser got the band gap wrong.
     # Polarized, finite gap, indirect
-    # bs = bands_polarized_gap_indirect.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
-    # test_generic(bs)
-    # assert len(bs.section_band_gap) == 2
-    # gap_up = bs.section_band_gap[0]
-    # gap_down = bs.section_band_gap[1]
-    # gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
-    # gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
-    # assert gap_up.type == "indirect"
-    # assert gap_down.type == "indirect"
-    # assert gap_up_ev == pytest.approx(0.956, 0.01)
-    # assert gap_down_ev == pytest.approx(1.230, 0.01)
+    bs = bands_polarized_gap_indirect.section_run[0].section_single_configuration_calculation[0].section_k_band[0]
+    test_generic(bs)
+    assert len(bs.section_band_gap) == 2
+    gap_up = bs.section_band_gap[0]
+    gap_down = bs.section_band_gap[1]
+    gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
+    gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
+    assert gap_up.type == "indirect"
+    assert gap_down.type == "indirect"
+    assert gap_up_ev == pytest.approx(1, 0.01)
+    assert gap_down_ev == pytest.approx(0.8, 0.01)
 
 
 def test_paths(band_path_cF, band_path_tP, band_path_hP):

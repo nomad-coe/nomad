@@ -37,6 +37,7 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
+    EnergyReference,
     Method as section_method,
     Dos,
     Phonon,
@@ -143,6 +144,7 @@ class LatticeParameters(MSection):
     )
     a = Quantity(
         type=float,
+        unit="m",
         description="""
         Length of the first basis vector.
         """,
@@ -150,6 +152,7 @@ class LatticeParameters(MSection):
     )
     b = Quantity(
         type=float,
+        unit="m",
         description="""
         Length of the second basis vector.
         """,
@@ -157,6 +160,7 @@ class LatticeParameters(MSection):
     )
     c = Quantity(
         type=float,
+        unit="m",
         description="""
         Length of the third basis vector.
         """,
@@ -302,6 +306,28 @@ class StructureOptimized(Structure):
         description="""
         Contains a structure that is the result of a geometry optimization.
         """
+    )
+
+
+class Structures(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains full atomistic representations of the material in different
+        forms.
+        """,
+    )
+    structure_original = SubSection(
+        sub_section=StructureOriginal.m_def,
+        repeats=False,
+    )
+    structure_conventional = SubSection(
+        sub_section=StructureConventional.m_def,
+        repeats=False,
+    )
+    structure_primitive = SubSection(
+        sub_section=StructurePrimitive.m_def,
+        repeats=False,
     )
 
 
@@ -535,6 +561,7 @@ class DFT(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     basis_set_name = section_method.basis_set.m_copy()
+    basis_set_name.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     core_electron_treatment = Quantity(
         type=MEnum(core_electron_treatments),
         default=unavailable,
@@ -748,28 +775,11 @@ class DOSElectronic(DOS):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    energy_fermi = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
+    energy_references = Quantity(
+        type=EnergyReference,
+        shape=["*"],
         description="""
-        Fermi energy for each spin channel.
-        """,
-    )
-    energy_highest_occupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
-        description="""
-        The highest occupied energy for each spin channel.
-        """,
-    )
-    energy_lowest_unoccupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
-        description="""
-        The lowest unoccupied energy for each spin channel.
+        Energy references.
         """,
     )
 
@@ -833,28 +843,11 @@ class BandStructureElectronic(BandStructure):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    energy_fermi = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
+    energy_references = Quantity(
+        type=EnergyReference,
+        shape=["*"],
         description="""
-        Fermi energy for each spin channel.
-        """,
-    )
-    energy_highest_occupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
-        description="""
-        The highest occupied energy for each spin channel.
-        """,
-    )
-    energy_lowest_unoccupied = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
-        description="""
-        The lowest unoccupied energy for each spin channel.
+        Energy references.
         """,
     )
     band_gap = Quantity(
@@ -886,7 +879,7 @@ class HeatCapacityConstantVolume(MSection):
         """
     )
     heat_capacities = Quantity(
-        type=ThermodynamicalProperties.specific_heat_capacity,
+        type=ThermodynamicalProperties.thermodynamical_property_heat_capacity_C_v,
         shape=[],
         description="""
         Specific heat capacity values at constant volume.
@@ -937,6 +930,13 @@ class GeometryOptimizationProperties(MSection):
         List of references to each section_single_configuration_calculation in
         the optimization trajectory.
         """,
+    )
+    energies = Quantity(
+        type=GeometryOptimization.energies,
+        description='''
+        List of energy_total values gathered from the single configuration
+        calculations that are a part of the optimization trajectory.
+        ''',
     )
     structure_optimized = SubSection(
         sub_section=StructureOptimized.m_def,
@@ -1006,18 +1006,7 @@ class Properties(MSection):
         this entry.
         """
     )
-    structure_original = SubSection(
-        sub_section=StructureOriginal.m_def,
-        repeats=False,
-    )
-    structure_conventional = SubSection(
-        sub_section=StructureConventional.m_def,
-        repeats=False,
-    )
-    structure_primitive = SubSection(
-        sub_section=StructurePrimitive.m_def,
-        repeats=False,
-    )
+    structures = SubSection(sub_section=Structures.m_def, repeats=False)
     geometry_optimization = SubSection(sub_section=GeometryOptimizationProperties.m_def, repeats=False)
     molecular_dynamics = SubSection(sub_section=MolecularDynamicsProperties.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)

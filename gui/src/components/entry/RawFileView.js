@@ -17,8 +17,9 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { compose } from 'recompose'
 import { Typography, makeStyles } from '@material-ui/core'
-import { apiContext } from '../apiv1'
+import { withApiV1 } from '../apiV1'
 import { domainComponents } from '../domainComponents'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
@@ -29,9 +30,8 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function RawFileView({uploadId, entryId}) {
+function RawFileView({uploadId, entryId, apiV1}) {
   const classes = useStyles()
-  const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
   const [state, setState] = useState({entryData: null, doesNotExist: false})
 
@@ -40,7 +40,7 @@ export default function RawFileView({uploadId, entryId}) {
   }, [setState, uploadId, entryId])
 
   useEffect(() => {
-    api.entry(entryId).then(entry => {
+    apiV1.entry(entryId).then(entry => {
       setState({entryData: entry.data, doesNotExist: false})
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
@@ -50,7 +50,7 @@ export default function RawFileView({uploadId, entryId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, entryId, setState])
+  }, [apiV1, raiseError, entryId, setState])
 
   const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
   const domainComponent = entryData.domain && domainComponents[entryData.domain]
@@ -72,5 +72,10 @@ export default function RawFileView({uploadId, entryId}) {
 
 RawFileView.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  entryId: PropTypes.string.isRequired
+  entryId: PropTypes.string.isRequired,
+  apiV1: PropTypes.object.isRequired
 }
+
+export default compose(
+  withApiV1(false, true)
+)(RawFileView)

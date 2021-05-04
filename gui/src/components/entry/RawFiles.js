@@ -31,7 +31,7 @@ import {
 } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withApi } from '../api'
-import { apiContext } from '../apiv1'
+import { apiContextV1 } from '../apiV1'
 import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
@@ -101,7 +101,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
   const [files, setFiles] = useState(null)
   const [loading, setLoading] = useState(false)
   const [doesNotExist, setDoesNotExist] = useState(false)
-  const c = useContext(apiContext)
+  const c = useContext(apiContextV1)
   const apiv1 = c.api
 
   useEffect(() => {

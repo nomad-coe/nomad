@@ -41,7 +41,9 @@ export default function Actions({actions, color, variant, size, justifyContent, 
           className={styles.iconButton}
           onClick={value.onClick}
           disabled={value.disabled}
-          href={value.href}>
+          href={value.href}
+          aria-label={value.tooltip}
+        >
           {value.content}
         </IconButton>
         : <Button
@@ -51,7 +53,9 @@ export default function Actions({actions, color, variant, size, justifyContent, 
           className={styles.iconButton}
           onClick={value.onClick}
           disabled={value.disabled}
-          href={value.href}>
+          href={value.href}
+          aria-label={value.tooltip}
+        >
           {value.content}
         </Button>
       }

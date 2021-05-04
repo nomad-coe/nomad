@@ -17,13 +17,22 @@
  */
 
 import React from 'react'
+import { RecoilRoot } from 'recoil'
 import { compose } from 'recompose'
 import { render } from '@testing-library/react'
 import { apiContext as apiContextV0 } from './components/api'
-import { apiContext as apiContextV1 } from './components/apiv1'
+import { apiContextV1 } from './components/apiV1'
 import { Router } from 'react-router-dom'
-import { archiveDftBulk } from '../tests/archive'
-import history from './history'
+import {
+  archiveDftBulk,
+  archiveDftBulkOld
+} from '../tests/DFTBulk'
+import { createBrowserHistory } from 'history'
+
+// Map from entry_id/calc_id to an archive
+const archives = new Map()
+archives.set(archiveDftBulk.section_metadata.entry_id, archiveDftBulk)
+archives.set(archiveDftBulkOld.section_metadata.entry_id, archiveDftBulkOld)
 
 /**
  * Mock for useKeycloak in the package 'react-keycloak'. Notice that this is
@@ -91,7 +100,7 @@ export function withApiV0Mock(Component) {
   const apiValue = {
     api: {
       archive: (upload_id, calc_id) => {
-        return wait(archiveDftBulk)
+        return wait(archives.get(calc_id))
       }
     }
   }
@@ -105,9 +114,9 @@ export function withApiV0Mock(Component) {
  */
 export function withApiV1Mock(Component) {
   const apiValue = {
-    api: {
+    apiV1: {
       results: (entry_id) => {
-        return wait(archiveDftBulk)
+        return wait(archives.get(entry_id))
       }
     }
   }
@@ -120,9 +129,18 @@ export function withApiV1Mock(Component) {
  * HOC for Router dependency injection
  */
 export function withRouterMock(Component) {
-  return <Router history={history}>
+  return <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
     {Component}
   </Router>
+}
+
+/**
+ * HOC for RecoilRoot injection
+ */
+export function withRecoilRoot(Component) {
+  return <RecoilRoot>
+    {Component}
+  </RecoilRoot>
 }
 
 /**
@@ -130,6 +148,7 @@ export function withRouterMock(Component) {
  */
 export function renderWithAPIRouter(component) {
   return render(compose(
+    withRecoilRoot,
     withRouterMock,
     withApiV0Mock,
     withApiV1Mock
@@ -142,6 +161,6 @@ export function renderWithAPIRouter(component) {
  * @param {*} value value to return after delay
  * @param {number} ms delay in milliseconds
  */
-function wait(value, ms = 200) {
+export function wait(value, ms = 100) {
   return new Promise(resolve => setTimeout(() => resolve(value), ms))
 }

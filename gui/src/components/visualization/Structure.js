@@ -38,6 +38,7 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
 import Actions from '../Actions'
 import { mergeObjects } from '../../utils'
@@ -46,6 +47,58 @@ import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
 import clsx from 'clsx'
 
+// Styles
+const useStyles = makeStyles((theme) => {
+  return {
+    root: {},
+    container: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      flexDirection: 'column',
+      backgroundColor: 'white'
+    },
+    header: {
+      display: 'flex',
+      flexDirection: 'row',
+      zIndex: 1
+    },
+    toggles: {
+      marginBottom: theme.spacing(1),
+      height: '2rem'
+    },
+    toggle: {
+      color: fade(theme.palette.action.active, 0.87)
+    },
+    selected: {
+      '&$selected': {
+        color: fade(theme.palette.action.active, 0.87)
+      }
+    },
+    title: {
+      marginBottom: theme.spacing(1)
+    },
+    viewerCanvas: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(1)
+    },
+    switchContainer: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(1)
+    },
+    switchPlaceholder: {
+      left: theme.spacing(0),
+      right: theme.spacing(0),
+      top: theme.spacing(0.5),
+      bottom: theme.spacing(0.5)
+    }
+  }
+})
+
 /**
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
@@ -53,8 +106,7 @@ import clsx from 'clsx'
 function Structure({
   className,
   classes,
-  system,
-  systems,
+  data,
   options,
   materialType,
   viewer,
@@ -63,7 +115,9 @@ function Structure({
   positionsOnly,
   sizeLimit,
   positionsSubject,
-  'data-testid': testID}
+  'data-testid': testID,
+  placeHolderStyle,
+  noDataStyle}
 ) {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -71,73 +125,34 @@ function Structure({
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
-  const [wrap, setWrap] = useState(true)
+  const [wrap, setWrap] = useState(materialType === 'bulk')
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [switching, setSwitching] = useState(false)
   const [shownSystem, setShownSystem] = useState(null)
-  const [finalSystem, setFinalSystem] = useState(system)
-
-  const history = useHistory()
+  const [finalSystem, setFinalSystem] = useState(null)
 
   // Variables
+  const multiple = Array.isArray(data)
+  const history = useHistory()
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
-
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      root: {},
-      container: {
-        display: 'flex',
-        width: '100%',
-        height: '100%',
-        flexDirection: 'column',
-        backgroundColor: 'white'
-      },
-      header: {
-        paddingRight: theme.spacing(1),
-        display: 'flex',
-        flexDirection: 'row',
-        zIndex: 1
-      },
-      toggles: {
-        marginBottom: theme.spacing(1),
-        height: '2rem'
-      },
-      toggle: {
-        color: fade(theme.palette.action.active, 0.87)
-      },
-      selected: {
-        '&$selected': {
-          color: fade(theme.palette.action.active, 0.87)
-        }
-      },
-      title: {
-        marginBottom: theme.spacing(1)
-      },
-      viewerCanvas: {
-        flex: 1,
-        zIndex: 0,
-        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(1)
-      }
-    }
-  })
   const styles = useStyles(classes)
 
   useEffect(() => {
-    setFinalSystem(system)
-  }, [system])
-
-  useEffect(() => {
-    if (systems) {
-      const firstSystem = Object.keys(systems)[0]
-      setFinalSystem(systems[firstSystem])
-      setShownSystem(firstSystem)
+    if (data) {
+      let firstSystem
+      if (multiple) {
+        firstSystem = data[0]
+      } else {
+        firstSystem = data
+      }
+      setFinalSystem(firstSystem)
+      setShownSystem(0)
     }
-  }, [systems])
+  }, [data, multiple])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -154,48 +169,58 @@ function Structure({
     refViewer.current.changeHostElement(node, true, true)
   }, [])
 
+  // Merge custom options with default options. These options can only set once.
+  const finalOptions = useMemo(() => {
+    let defaultOptions = {
+      view: {
+        autoResize: false,
+        autoFit: true,
+        fitMargin: 0.6
+      },
+      bonds: {
+        enabled: true
+      },
+      latticeConstants: {
+        size: 0.7,
+        font: 'Titillium Web,sans-serif',
+        a: {color: '#f44336'},
+        b: {color: '#4caf50'},
+        c: {color: '#5c6bc0'}
+      },
+      layout: {
+        periodicity: wrap ? 'wrap' : 'none'
+      },
+      controls: {
+        enableZoom: true,
+        enablePan: true,
+        enableRotate: true
+      },
+      renderer: {
+        backgroundColor: ['#ffffff', 1],
+        shadows: {
+          enabled: false
+        }
+      }
+    }
+    let viewerOptions
+    if (options === undefined) {
+      viewerOptions = defaultOptions
+    } else {
+      viewerOptions = mergeObjects(options, defaultOptions)
+    }
+    return viewerOptions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
   // https://nomad-coe.github.io/materia/viewers/structureviewer
   useEffect(() => {
-    let viewerOptions
-    if (options === undefined) {
-      viewerOptions = {
-        view: {
-          autoResize: false,
-          autoFit: true,
-          fitMargin: 0.6
-        },
-        bonds: {
-          enabled: true
-        },
-        latticeConstants: {
-          size: 0.7,
-          font: 'Titillium Web,sans-serif',
-          a: {color: '#f44336'},
-          b: {color: '#4caf50'},
-          c: {color: '#5c6bc0'}
-        },
-        controls: {
-          enableZoom: true,
-          enablePan: true,
-          enableRotate: true
-        },
-        renderer: {
-          backgroundColor: ['#ffffff', 1],
-          shadows: {
-            enabled: false
-          }
-        }
-      }
-    } else {
-      viewerOptions = mergeObjects(options, viewerOptions)
-    }
     if (viewer === undefined) {
-      refViewer.current = new StructureViewer(undefined, viewerOptions)
+      refViewer.current = new StructureViewer(undefined, finalOptions)
     } else {
       refViewer.current = viewer
-      refViewer.current.setOptions(viewerOptions, false, false)
+      refViewer.current.setOptions(finalOptions, false, false)
     }
     if (refCanvas.current) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
@@ -247,11 +272,9 @@ function Structure({
       }
       if (system.cell !== undefined && materialType === 'bulk') {
         opts.layout.viewCenter = 'COC'
-        opts.layout.periodicity = 'wrap'
       // Systems without cell are centered on the center of positions
       } else {
         opts.layout.viewCenter = 'COP'
-        opts.layout.periodicity = 'none'
       }
       refViewer.current.setOptions(opts, false, false)
       refViewer.current.load(system)
@@ -259,6 +282,7 @@ function Structure({
       refViewer.current.saveReset()
       refViewer.current.reset()
       setLoading(false)
+      setSwitching(false)
     }, 0)
   }, [materialType])
 
@@ -330,26 +354,34 @@ function Structure({
   }, [])
 
   const structureToggles = useMemo(() => {
-    if (systems) {
+    if (data && multiple) {
       const toggles = []
-      for (let key in systems) {
+      for (let i = 0; i < data.length; ++i) {
         toggles.push(<ToggleButton
-          key={key}
-          value={key}
-          aria-label={key}
+          key={i}
+          value={i}
+          aria-label={i}
           classes={{root: styles.toggle, selected: styles.selected}}
-        >{key}</ToggleButton>)
+        >{data[i].name}</ToggleButton>)
       }
       return toggles
     }
     return null
-  }, [systems, styles])
+  }, [data, multiple, styles])
+
+  // If data is set explicitly to false, we show the NoData component.
+  if (data === false) {
+    return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
+      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}}/>
+    </Box>
+  }
 
   // Enforce at least one structure view option
   const handleStructureChange = (event, value) => {
     if (value !== null) {
+      setSwitching(true)
       setShownSystem(value)
-      setFinalSystem(systems[value])
+      setFinalSystem(data[value])
     }
   }
 
@@ -376,6 +408,7 @@ function Structure({
       className={clsx(styles.root, className)}
       aspectRatio={aspectRatio}
       data-testid={testID}
+      classes={{placeholder: placeHolderStyle}}
     ></Placeholder>
   }
 
@@ -447,7 +480,7 @@ function Structure({
 
   const content = <Box className={styles.container}>
     {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
-    {systems && <ToggleButtonGroup
+    {(Array.isArray(data) && data.length > 1) && <ToggleButtonGroup
       className={styles.toggles}
       size="small"
       exclusive
@@ -457,7 +490,14 @@ function Structure({
       {structureToggles}
     </ToggleButtonGroup>
     }
-    <div className={styles.viewerCanvas} ref={refCanvas}></div>
+    {switching
+      ? <Placeholder
+        variant="rect"
+        className={styles.switchContainer}
+        classes={{placeholder: styles.switchPlaceholder}}
+      />
+      : <div className={styles.viewerCanvas} ref={refCanvas}></div>
+    }
     <div className={styles.header}>
       <Actions actions={actions}></Actions>
       <Menu
@@ -485,8 +525,11 @@ Structure.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   viewer: PropTypes.object, // Optional shared viewer instance.
-  system: PropTypes.object, // The system to display in the native materia-format
-  systems: PropTypes.object, // Set of systems that can be switched
+  data: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.object,
+    PropTypes.arrayOf(PropTypes.object)
+  ]),
   metaInfoLink: PropTypes.string, // A link to the metainfo definition
   options: PropTypes.object, // Viewer options
   materialType: PropTypes.string, // The material type, affects the visualization layout.
@@ -494,6 +537,8 @@ Structure.propTypes = {
   aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
+  placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
+  noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
   /**
    * A RxJS Subject for efficient, non-persistent, position changes that bypass
    * rendering of the component. Should send messages that contain the new

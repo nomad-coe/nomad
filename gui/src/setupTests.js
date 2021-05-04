@@ -18,3 +18,6 @@ global.nomadEnv = {
   'aitoolkitEnabled': true,
   'oasis': false
 }
+// Increased the default jest timeout for individual tests
+// eslint-disable-next-line no-undef
+jest.setTimeout(10000)

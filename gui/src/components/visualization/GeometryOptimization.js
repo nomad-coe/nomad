@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -25,6 +25,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
+import { diffTotal, convertSI, convertSILabel } from '../../utils'
 
 const useStyles = makeStyles((theme) => {
   return {
@@ -41,25 +42,33 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function GeometryOptimization({data, className, classes}) {
-  // Styles
+function GeometryOptimization({data, className, classes, units}) {
+  const [finalData, setFinalData] = useState(data)
   const style = useStyles(classes)
   const theme = useTheme()
 
-  const plotData = useMemo(() => {
+  // Side effect that runs when the data that is displayed should change. By
+  // running all this heavy stuff within useEffect (instead of e.g. useMemo),
+  // the first render containing the placeholders etc. can be done as fast as
+  // possible.
+  useEffect(() => {
     if (!data) {
-      return null
+      return
     }
+
+    // Convert energies into the correct units and calculate the total difference
+    let energyDiffTotal = diffTotal(data.energies)
+    energyDiffTotal = convertSI(energyDiffTotal, 'joule', units, false)
+
     let steps = [...Array(data.energies.length).keys()]
-    let energies = data.energies
-    const diff = []
-    for (let i = 0; i < energies.length - 1; ++i) {
-      diff.push(Math.abs(energies[i + 1] - energies[i]))
+    const energyDiff = []
+    for (let i = 0; i < energyDiffTotal.length - 1; ++i) {
+      energyDiff.push(Math.abs(energyDiffTotal[i + 1] - energyDiffTotal[i]))
     }
     const traces = [
       {
         x: steps,
-        y: energies,
+        y: energyDiffTotal,
         name: 'Total change',
         type: 'scatter',
         showlegend: false,
@@ -70,7 +79,7 @@ function GeometryOptimization({data, className, classes}) {
       },
       {
         x: steps.slice(1, steps.length),
-        y: diff,
+        y: energyDiff,
         yaxis: 'y2',
         name: 'Abs. change per step',
         type: 'scatter',
@@ -97,8 +106,8 @@ function GeometryOptimization({data, className, classes}) {
         }
       })
     }
-    return traces
-  }, [data, theme])
+    setFinalData(traces)
+  }, [data, units, theme])
 
   const plotLayout = useMemo(() => {
     if (!data) {
@@ -134,7 +143,7 @@ function GeometryOptimization({data, className, classes}) {
         spikemode: 'across' },
       yaxis: {
         title: {
-          text: 'Total change (eV)'
+          text: `Total change (${convertSILabel('joule', units)})`
         },
         tickfont: {
           color: theme.palette.primary.dark
@@ -144,7 +153,7 @@ function GeometryOptimization({data, className, classes}) {
       },
       yaxis2: {
         title: {
-          text: 'Abs. change per step (eV)'
+          text: `Abs. change per step (${convertSILabel('joule', units)})`
         },
         tickfont: {
           color: theme.palette.secondary.dark
@@ -156,7 +165,7 @@ function GeometryOptimization({data, className, classes}) {
         side: 'right'
       }
     }
-  }, [data, theme])
+  }, [data, theme, units])
 
   return (
     <Box className={style.root}>
@@ -164,7 +173,7 @@ function GeometryOptimization({data, className, classes}) {
         <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
         <ErrorHandler message='Could not load energies.'>
           <Plot
-            data={plotData}
+            data={finalData}
             layout={plotLayout}
             aspectRatio={2}
             floatTitle="Energy convergence"
@@ -177,9 +186,16 @@ function GeometryOptimization({data, className, classes}) {
 }
 
 GeometryOptimization.propTypes = {
-  data: PropTypes.any,
+  data: PropTypes.oneOfType([
+    PropTypes.bool, // Set to False to show NoData component
+    PropTypes.shape({
+      energies: PropTypes.array.isRequired, // Energies in SI units
+      energy_change_criteria: PropTypes.number // Energy change criteria in SI units
+    })
+  ]),
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  units: PropTypes.object // Contains the unit configuration
 }
 
 export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')

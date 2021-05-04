@@ -157,8 +157,8 @@ class GeometryOptimizationNormalizer(Normalizer):
         if not self.section.final_energy_difference:
             energies = []
             for scc in self.section_run.section_single_configuration_calculation:
-                if scc.energy_total_T0:
-                    energies.append(scc.energy_total_T0)
+                if scc.energy_total:
+                    energies.append(scc.energy_total)
 
             delta_energy = resolve_energy_difference(energies)
             if delta_energy is not None:
@@ -173,6 +173,25 @@ class GeometryOptimizationNormalizer(Normalizer):
                     max_force = np.max(np.linalg.norm(forces, axis=1))
             if max_force is not None:
                 self.section.final_force_maximum = max_force
+
+        # Store the energies as an explicit list. If a step within the
+        # trajectory does not contain an energy the rest of the energies in the
+        # trajectory are not included.
+        trajectory = self.entry_archive.section_workflow.calculations_ref
+        if trajectory:
+            n_steps = len(trajectory)
+            energies = []
+            invalid = False
+            for step in range(n_steps):
+                energy = trajectory[step].energy_total
+                if energy is None:
+                    invalid = True
+                    break
+                energies.append(energy.magnitude)
+            if invalid:
+                self.logger.warning("energy not reported for an scc that is part of a geometry optimization")
+            if energies:
+                self.section.energies = energies
 
 
 class PhononNormalizer(Normalizer):
@@ -403,6 +422,15 @@ class WorkflowNormalizer(Normalizer):
 
         workflow.workflow_type = workflow_type
 
+        scc = self.section_run.section_single_configuration_calculation
+        if not self.entry_archive.section_workflow.calculation_result_ref:
+            if scc:
+                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
+
+        if not self.entry_archive.section_workflow.calculations_ref:
+            if scc:
+                self.entry_archive.section_workflow.calculations_ref = scc
+
         if workflow.workflow_type == 'geometry_optimization':
             GeometryOptimizationNormalizer(self.entry_archive).normalize()
 
@@ -417,15 +445,6 @@ class WorkflowNormalizer(Normalizer):
 
         elif workflow.workflow_type == 'single_point':
             SinglePointNormalizer(self.entry_archive).normalize()
-
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
-
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
 
         # remove the section workflow again, if the parser/normalizer could not produce a result
         if workflow.calculation_result_ref is None:

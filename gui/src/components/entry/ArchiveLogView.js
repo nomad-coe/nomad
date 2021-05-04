@@ -170,4 +170,7 @@ class ArchiveLogView extends React.Component {
   }
 }
 
-export default compose(withApi(false, true), withStyles(ArchiveLogView.styles))(ArchiveLogView)
+export default compose(
+  withApi(false, true),
+  withStyles(ArchiveLogView.styles)
+)(ArchiveLogView)

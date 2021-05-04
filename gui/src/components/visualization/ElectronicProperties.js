@@ -22,12 +22,10 @@ import {
   Box,
   Typography
 } from '@material-ui/core'
-import { useRecoilValue, RecoilRoot } from 'recoil'
 import { convertSI } from '../../utils'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import { unitsState } from '../archive/ArchiveBrowser'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
 
@@ -67,8 +65,7 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function ElectronicProperties({bs, dos, className, classes}) {
-  const units = useRecoilValue(unitsState)
+function ElectronicProperties({bs, dos, className, classes, units}) {
   const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
@@ -91,59 +88,58 @@ function ElectronicProperties({bs, dos, className, classes}) {
   }, [dosYSubject])
 
   return (
-    <RecoilRoot>
-      <Box className={styles.row}>
-        <Box className={styles.bs}>
-          <Typography variant="subtitle1" align='center'>Band structure</Typography>
-          <BandStructure
-            data={bs === false ? false : bs?.section_k_band}
-            layout={bsLayout}
-            aspectRatio={1.2}
-            placeHolderStyle={styles.placeHolder}
-            noDataStyle={styles.noData}
-            unitsState={unitsState}
-            onRelayouting={handleBSRelayouting}
-            onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
-            layoutSubject={dosYSubject}
-            metaInfoLink={bs?.path}
-          ></BandStructure>
-        </Box>
-        <Box className={styles.dos}>
-          <Typography variant="subtitle1" align='center'>Density of states</Typography>
-          <DOS
-            data={dos === false ? false : dos?.section_dos}
-            layout={dosLayout}
-            aspectRatio={0.6}
-            placeHolderStyle={styles.placeHolder}
-            noDataStyle={styles.noData}
-            onRelayouting={handleDOSRelayouting}
-            onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
-            unitsState={unitsState}
-            layoutSubject={bsYSubject}
-            metaInfoLink={dos?.path}
-            data-testid="dos-electronic-overview"
-          ></DOS>
-        </Box>
-        {bs !== false
-          ? <Box className={styles.bz}>
-            <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
-            <BrillouinZone
-              data={bs?.section_k_band}
-              aspectRatio={1.2}
-            ></BrillouinZone>
-          </Box>
-          : null
-        }
+    <Box className={styles.row}>
+      <Box className={styles.bs}>
+        <Typography variant="subtitle1" align='center'>Band structure</Typography>
+        <BandStructure
+          data={bs}
+          layout={bsLayout}
+          aspectRatio={1.2}
+          placeHolderStyle={styles.placeHolder}
+          noDataStyle={styles.noData}
+          units={units}
+          onRelayouting={handleBSRelayouting}
+          onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
+          layoutSubject={dosYSubject}
+          data-testid="bs-electronic"
+        ></BandStructure>
       </Box>
-    </RecoilRoot>
+      <Box className={styles.dos}>
+        <Typography variant="subtitle1" align='center'>Density of states</Typography>
+        <DOS
+          data={dos}
+          layout={dosLayout}
+          aspectRatio={0.6}
+          placeHolderStyle={styles.placeHolder}
+          noDataStyle={styles.noData}
+          onRelayouting={handleDOSRelayouting}
+          onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
+          units={units}
+          layoutSubject={bsYSubject}
+          data-testid="dos-electronic"
+        ></DOS>
+      </Box>
+      {bs !== false
+        ? <Box className={styles.bz}>
+          <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
+          <BrillouinZone
+            data={bs}
+            aspectRatio={1.2}
+            data-testid="bz-electronic"
+          ></BrillouinZone>
+        </Box>
+        : null
+      }
+    </Box>
   )
 }
 
 ElectronicProperties.propTypes = {
-  dos: PropTypes.any, // Data for DOS. Set false if no data is available, set to some other falsy value to enable placeholder.
-  bs: PropTypes.any, // Data for BS. Set false if no data is available, set to some other falsy value to enable placeholder.
+  dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
+  bs: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  units: PropTypes.object // Contains the unit configuration
 }
 
 export default ElectronicProperties

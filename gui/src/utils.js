@@ -167,7 +167,10 @@ export function convertSI(value, unit, system, units = true) {
     if (constant !== undefined) {
       newValues = add(newValues, constant)
     }
-    return [newValues, label]
+    if (units) {
+      return [newValues, label]
+    }
+    return newValues
   }
 
   // Gather all units present
@@ -392,12 +395,64 @@ export function getHighestOccupiedEnergy(section_k_band, scc) {
       }
       energyHighestOccupied.push(e)
     }
+    energyHighestOccupied = Math.max(...energyHighestOccupied)
   // Highest occupied energy reported directly by parser
   } else if (scc?.energy_reference_highest_occupied !== undefined) {
     energyHighestOccupied = scc.energy_reference_highest_occupied
   // No band gap detected -> highest occupied energy corresponds to fermi energy
   } else {
-    energyHighestOccupied = scc.energy_reference_fermi
+    energyHighestOccupied = Math.max(...scc.energy_reference_fermi)
   }
   return energyHighestOccupied
+}
+
+/**
+ * Converts the given structure in the format used by section_results into the
+ * format used by the materia-library.
+ *
+ * @param {object} structure.
+ *
+ * @return {undefined|object} If the given structure cannot be converted,
+ * returns an empty object.
+ */
+export function toMateriaStructure(structure, name, m_path) {
+  if (!structure) {
+    return undefined
+  }
+
+  try {
+    // Resolve atomic species using the labels and their mapping to chemical
+    // elements.
+    const speciesMap = new Map(structure.species.map(s => [s.name, s.chemical_symbols[0]]))
+
+    const structMateria = {
+      species: structure.species_at_sites.map(x => speciesMap.get(x)),
+      cell: structure.lattice_vectors ? convertSI(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      positions: convertSI(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
+      fractional: false,
+      pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined,
+      name: name,
+      m_path: m_path
+    }
+    return structMateria
+  } catch (error) {
+    return {}
+  }
+}
+
+/**
+ * Given an array of numbers, calculates and returns the difference between
+ * each array item and the first value in the array.
+ *
+ * @param {array} values Array containing values
+ *
+ * @return {array} Array containing the total difference values.
+ */
+export function diffTotal(values) {
+  const diffValues = []
+  const initial = values[0]
+  for (let i = 0; i < values.length; i++) {
+    diffValues.push(values[i] - initial)
+  }
+  return diffValues
 }

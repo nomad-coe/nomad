@@ -58,7 +58,7 @@ def assert_structure(structure, has_cell=True, has_wyckoff=False):
     assert len(structure.species) > 0
     assert structure.species[0].name
     assert structure.species[0].concentration
-    assert structure.species[0].chemical_elements
+    assert structure.species[0].chemical_symbols
     if has_cell:
         assert len(structure.dimension_types) == 3
         assert np.sum(structure.dimension_types) == structure.nperiodic_dimensions
@@ -89,7 +89,7 @@ def test_material_atom(atom):
     assert material.symmetry is None
 
     properties = atom.results.properties
-    assert_structure(properties.structure_original)
+    assert_structure(properties.structures.structure_original)
 
 
 def test_material_molecule(molecule):
@@ -103,7 +103,7 @@ def test_material_molecule(molecule):
     assert material.symmetry is None
 
     properties = molecule.results.properties
-    assert_structure(properties.structure_original, has_cell=False)
+    assert_structure(properties.structures.structure_original, has_cell=False)
 
 
 def test_material_1d(one_d):
@@ -117,7 +117,7 @@ def test_material_1d(one_d):
     assert material.symmetry is None
 
     properties = one_d.results.properties
-    assert_structure(properties.structure_original)
+    assert_structure(properties.structures.structure_original)
 
 
 def test_material_2d(two_d):
@@ -131,7 +131,7 @@ def test_material_2d(two_d):
     assert material.symmetry is None
 
     properties = two_d.results.properties
-    assert_structure(properties.structure_original)
+    assert_structure(properties.structures.structure_original)
 
 
 def test_material_surface(surface):
@@ -145,7 +145,7 @@ def test_material_surface(surface):
     assert material.symmetry is None
 
     properties = surface.results.properties
-    assert_structure(properties.structure_original)
+    assert_structure(properties.structures.structure_original)
 
 
 def test_material_bulk(bulk):
@@ -159,9 +159,9 @@ def test_material_bulk(bulk):
     assert_symmetry(material.symmetry)
 
     properties = bulk.results.properties
-    assert_structure(properties.structure_original)
-    assert_structure(properties.structure_primitive)
-    assert_structure(properties.structure_conventional, has_wyckoff=True)
+    assert_structure(properties.structures.structure_original)
+    assert_structure(properties.structures.structure_primitive)
+    assert_structure(properties.structures.structure_conventional, has_wyckoff=True)
 
 
 def test_method_dft(dft):
@@ -208,26 +208,45 @@ def test_method_gw(gw):
 
 
 def test_dos_electronic():
-    # DOS without energy references
-    archive = get_template_dos(has_references=False)
-    dos = archive.results.properties.electronic.dos_electronic
-    assert dos.spin_polarized is False
-    assert dos.densities.shape == (1, 200)
-    assert dos.energies.shape == (200, )
+    gap_fill = [[0, 1], [2, 3]]
 
-    # Unpolarized DOS
-    archive = get_template_dos(spin_polarized=False)
+    # DOS without energy references
+    archive = get_template_dos()
     dos = archive.results.properties.electronic.dos_electronic
     assert dos.spin_polarized is False
-    assert dos.densities.shape == (1, 200)
-    assert dos.energies.shape == (200, )
+    assert dos.densities.shape == (1, 101)
+    assert dos.energies.shape == (101, )
+    energy_references = dos.energy_references
+    assert len(energy_references) == 0
+
+    # Unpolarized DOS with gap:
+    efermi = 1.5
+    archive = get_template_dos(energy_reference_fermi=[efermi])
+    dos = archive.results.properties.electronic.dos_electronic
+    assert dos.spin_polarized is False
+    assert dos.densities.shape == (1, 101)
+    assert dos.energies.shape == (101, )
+    energy_references = dos.energy_references
+    assert len(energy_references) == 1
+    assert energy_references[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert energy_references[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert energy_references[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Polarized DOS
-    archive = get_template_dos(spin_polarized=True)
+    efermi = 1.5
+    archive = get_template_dos(fill=[gap_fill, gap_fill], energy_reference_fermi=[efermi, efermi])
     dos = archive.results.properties.electronic.dos_electronic
     assert dos.spin_polarized is True
-    assert dos.densities.shape == (2, 200)
-    assert dos.energies.shape == (200, )
+    assert dos.densities.shape == (2, 101)
+    assert dos.energies.shape == (101, )
+    energy_references = dos.energy_references
+    assert len(energy_references) == 2
+    assert energy_references[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert energy_references[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert energy_references[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
+    assert energy_references[1].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert energy_references[1].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert energy_references[1].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Vibrational instead of electronic
     archive = get_template_dos(type="vibrational")
@@ -253,36 +272,45 @@ def test_band_structure_electronic():
     # Band structure without energy reference
     archive = get_template_band_structure([(1, "direct")], has_references=False)
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap is None
     assert bs.band_gap_type is None
     assert bs.spin_polarized is False
-    assert bs.energy_highest_occupied is None
-    assert bs.energy_lowest_unoccupied is None
+    assert len(erefs) == 0
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Unpolarized band structure with no gap
     archive = get_template_band_structure([None])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [0]
     assert bs.band_gap_type == ["no_gap"]
     assert bs.spin_polarized is False
-    assert bs.energy_highest_occupied.shape == (1,)
-    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert len(erefs) == 1
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Polarized band structure with no gap
     archive = get_template_band_structure([None, None])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, [0, 0])
     assert bs.band_gap_type == ["no_gap", "no_gap"]
     assert bs.spin_polarized is True
-    assert bs.energy_highest_occupied.shape == (2,)
-    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert len(erefs) == 2
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
+    assert erefs[1].energy_fermi is not None
+    assert erefs[1].energy_highest_occupied is not None
+    assert erefs[1].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -291,13 +319,15 @@ def test_band_structure_electronic():
     gap_type = "direct"
     archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
-    assert bs.energy_fermi.shape == (1,)
-    assert bs.energy_highest_occupied.shape == (1,)
-    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert len(erefs) == 1
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -306,13 +336,15 @@ def test_band_structure_electronic():
     gap_type = "indirect"
     archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
     assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
-    assert bs.energy_fermi.shape == (1,)
-    assert bs.energy_highest_occupied.shape == (1,)
-    assert bs.energy_lowest_unoccupied.shape == (1,)
+    assert len(erefs) == 1
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -322,14 +354,19 @@ def test_band_structure_electronic():
     gap_type = "direct"
     archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
     assert bs.band_gap_type == [gap_type, gap_type]
     assert bs.spin_polarized is True
-    assert bs.energy_fermi.shape == (2,)
-    assert bs.energy_highest_occupied.shape == (2,)
-    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert len(erefs) == 2
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
+    assert erefs[1].energy_fermi is not None
+    assert erefs[1].energy_highest_occupied is not None
+    assert erefs[1].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -340,14 +377,19 @@ def test_band_structure_electronic():
     gap2_type = "indirect"
     archive = get_template_band_structure([(gap1, gap1_type), (gap2, gap2_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
+    erefs = bs.energy_references
     gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
     assert bs.reciprocal_cell.shape == (3, 3)
     assert np.allclose(bs.band_gap.magnitude, gaps_joule)
     assert bs.band_gap_type == [gap1_type, gap2_type]
     assert bs.spin_polarized is True
-    assert bs.energy_fermi.shape == (2,)
-    assert bs.energy_highest_occupied.shape == (2,)
-    assert bs.energy_lowest_unoccupied.shape == (2,)
+    assert len(erefs) == 2
+    assert erefs[0].energy_fermi is not None
+    assert erefs[0].energy_highest_occupied is not None
+    assert erefs[0].energy_lowest_unoccupied is not None
+    assert erefs[1].energy_fermi is not None
+    assert erefs[1].energy_highest_occupied is not None
+    assert erefs[1].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -356,8 +398,8 @@ def test_dos_phonon():
     # DOS with all correct metainfo
     archive = get_template_dos(type="vibrational")
     dos = archive.results.properties.vibrational.dos_phonon
-    assert dos.densities.shape == (1, 200)
-    assert dos.energies.shape == (200, )
+    assert dos.densities.shape == (1, 101)
+    assert dos.energies.shape == (101, )
 
     # Electronic instead of vibrational
     archive = get_template_dos(type="electronic")

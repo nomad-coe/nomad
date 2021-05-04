@@ -201,7 +201,7 @@ export default function Plot({
         ticks: 'outside',
         showline: true,
         title: {
-          standoff: 10,
+          standoff: 8,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -288,7 +288,9 @@ export default function Plot({
           let oldLayout = canvasRef.current.layout
           // The updates are throttled by using requestAnimationFrame: there is
           // no sense in trying to update beyond what the browser can render
-          window.requestAnimationFrame(() => { Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout)) })
+          window.requestAnimationFrame(() => {
+            Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+          })
         })
       }
       setLoading(false)
@@ -316,9 +318,9 @@ export default function Plot({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutSubject, canvasNode, firstRender, data, finalConfig])
 
-  // Captures the first margin value from the plot and performs
+  // Captures the first margin value from the plot and performs an update
   useLayoutEffect(() => {
-    if (fixedMargins && canvasRef.current) {
+    if (fixedMargins && canvasRef.current && data) {
       try {
         // Get the element which explicitly stores the computed margin and
         // perform a relayout with these values.
@@ -387,7 +389,7 @@ export default function Plot({
     ></Placeholder>}
     <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
       {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}} data-testid="testi">
+      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}}>
         {warning && <Tooltip title={warning}>
           <Warning className={styles.warning}></Warning>
         </Tooltip>}

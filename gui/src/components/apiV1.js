@@ -25,7 +25,7 @@ import { compose } from 'recompose'
 import { withKeycloak } from 'react-keycloak'
 import axios from 'axios'
 
-export const apiContext = React.createContext()
+export const apiContextV1 = React.createContext()
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -99,8 +99,6 @@ class Api {
       this.loading++
       this.loadingHandler.forEach(handler => handler(this.loading))
     }
-
-    Api.uploadIds = 0
   }
 
   /**
@@ -114,7 +112,9 @@ class Api {
         this.keycloak.updateToken()
           .success(() => {
             resolve({
-              'Authorization': `Bearer ${this.keycloak.token}`
+              headers: {
+                'Authorization': `Bearer ${this.keycloak.token}`
+              }
             })
           })
           .error(() => {
@@ -128,6 +128,7 @@ class Api {
 
   /**
    * Returns the entry information that is stored in the search index.
+   *
    * @param {string} entryId
    * @returns Object containing the search index contents.
    */
@@ -146,8 +147,10 @@ class Api {
 
   /**
    * Returns section_results from the archive corresponding to the given entry.
+   * Some large quantities which are not required by the GUI are filtered out.
    * All references within the section are resolved by the server before
    * sending.
+   *
    * @param {string} entryId
    * @returns Object containing section_results
    */
@@ -156,15 +159,29 @@ class Api {
     const auth = await this.authHeaders()
     try {
       const entry = await this.axios.post(
-        `/entries/archive/query`,
+        `/entries/${entryId}/archive/query`,
         {
-          query: {calc_id: entryId},
-          pagination: {size: 1},
-          required: {results: '*'}
+          required: {
+            'resolve-inplace': false,
+            results: {
+              material: '*',
+              method: '*',
+              properties: {
+                structures: '*',
+                electronic: 'include-resolved',
+                vibrational: 'include-resolved',
+                // We do not want to include the resolved trajectory in the
+                // response, so we explicitly specify which parts we want
+                geometry_optimization: {
+                  energies: 'include-resolved'
+                }
+              }
+            }
+          }
         },
         auth
       )
-      return parse(entry.data)
+      return parse(entry).data.data.archive
     } catch (errors) {
       handleApiError(errors)
     } finally {
@@ -233,7 +250,7 @@ export class ApiProviderComponent extends React.Component {
 
   update() {
     const { keycloak } = this.props
-    this.setState({api: this.createApi(keycloak)})
+    this.setState({apiV1: this.createApi(keycloak)})
     if (keycloak.token) {
       keycloak.loadUserInfo()
         .success(user => {
@@ -261,15 +278,15 @@ export class ApiProviderComponent extends React.Component {
   }
 
   state = {
-    apiv1: null
+    apiV1: null
   }
 
   render() {
     const { children } = this.props
     return (
-      <apiContext.Provider value={this.state}>
+      <apiContextV1.Provider value={this.state}>
         {children}
-      </apiContext.Provider>
+      </apiContextV1.Provider>
     )
   }
 }
@@ -314,7 +331,7 @@ class LoginRequiredUnstyled extends React.Component {
 
 export function DisableOnLoading({children}) {
   const containerRef = useRef(null)
-  const {apiv1} = useContext(apiContext)
+  const {apiV1} = useContext(apiContextV1)
   const handleLoading = useCallback((loading) => {
     const enable = loading ? 'none' : ''
     containerRef.current.style.pointerEvents = enable
@@ -322,11 +339,11 @@ export function DisableOnLoading({children}) {
   }, [])
 
   useEffect(() => {
-    apiv1.onLoading(handleLoading)
+    apiV1.onLoading(handleLoading)
     return () => {
-      apiv1.removeOnLoading(handleLoading)
+      apiV1.removeOnLoading(handleLoading)
     }
-  }, [apiv1, handleLoading])
+  }, [apiV1, handleLoading])
 
   return <div ref={containerRef}>{children}</div>
 }
@@ -338,7 +355,7 @@ export const ApiV1Provider = compose(withKeycloak, withErrors)(ApiProviderCompon
 
 const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
 
-const __reauthorize_trigger_changes = ['apiv1', 'calcId', 'uploadId', 'calc_id', 'upload_id']
+const __reauthorize_trigger_changes = ['apiV1', 'calcId', 'uploadId', 'calc_id', 'upload_id']
 
 class WithApiComponent extends React.Component {
   static propTypes = {
@@ -384,7 +401,7 @@ class WithApiComponent extends React.Component {
 
   render() {
     const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { apiv1, keycloak } = rest
+    const { apiV1, keycloak } = rest
     const { notAuthorized } = this.state
     if (notAuthorized) {
       if (keycloak.authenticated) {
@@ -404,7 +421,7 @@ class WithApiComponent extends React.Component {
         )
       }
     } else {
-      if (apiv1) {
+      if (apiV1) {
         if (keycloak.authenticated || !loginRequired) {
           return <Component {...rest} raiseError={this.raiseError} />
         } else {
@@ -417,14 +434,22 @@ class WithApiComponent extends React.Component {
   }
 }
 
-const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
+const WithKeycloakWithApiComponent = withKeycloak(WithApiComponent)
 
-export function withApi(loginRequired, showErrorPage, loginMessage) {
+/**
+ * HOC that will check the API connectivity before rendering a component.
+ *
+ * @param {bool} loginRequired Set to true if component should not be displayed
+ * without login.
+ * @param {bool} showErrorPage
+ * @param {string} loginMessage The login message to show.
+ */
+export function withApiV1(loginRequired, showErrorPage, loginMessage) {
   return function(Component) {
     return withErrors(props => (
-      <apiContext.Consumer>
+      <apiContextV1.Consumer>
         {apiContext => (
-          <WithKeycloakWithApiCompnent
+          <WithKeycloakWithApiComponent
             loginRequired={loginRequired}
             loginMessage={loginMessage}
             showErrorPage={showErrorPage}
@@ -432,7 +457,7 @@ export function withApi(loginRequired, showErrorPage, loginMessage) {
             {...props} {...apiContext}
           />
         )}
-      </apiContext.Consumer>
+      </apiContextV1.Consumer>
     ))
   }
 }

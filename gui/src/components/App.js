@@ -18,6 +18,7 @@
 import React from 'react'
 import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
+import { RecoilRoot } from 'recoil'
 import history from '../history'
 import PiwikReactRouter from 'piwik-react-router'
 import { nomadTheme, matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm,
@@ -27,7 +28,7 @@ import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ApiProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
-import { ApiV1Provider } from './apiv1'
+import { ApiV1Provider } from './apiV1'
 import Navigation from './nav/Navigation'
 
 export const matomo = matomoEnabled ? PiwikReactRouter({
@@ -53,11 +54,13 @@ export default function App() {
           <MuiThemeProvider theme={nomadTheme}>
             <ErrorSnacks>
               <ErrorBoundary>
-                <ApiV1Provider>
-                  <ApiProvider>
-                    <Navigation />
-                  </ApiProvider>
-                </ApiV1Provider>
+                <RecoilRoot>
+                  <ApiV1Provider>
+                    <ApiProvider>
+                      <Navigation />
+                    </ApiProvider>
+                  </ApiV1Provider>
+                </RecoilRoot>
               </ErrorBoundary>
             </ErrorSnacks>
           </MuiThemeProvider>

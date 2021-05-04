@@ -17,8 +17,10 @@
 #
 
 import json
+import re
 import numpy as np
 from typing import Dict, List, Union, Any
+import ase.data
 
 from nomad import config
 from nomad import atomutils
@@ -37,6 +39,7 @@ from nomad.datamodel.results import (
     GeometryOptimizationMethod,
     Properties,
     Symmetry,
+    Structures,
     Structure,
     StructureOriginal,
     StructurePrimitive,
@@ -57,6 +60,28 @@ from nomad.datamodel.results import (
     EnergyFreeHelmholtz,
     HeatCapacityConstantVolume,
 )
+
+re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
+elements = set(ase.data.chemical_symbols)
+
+
+def label_to_chemical_symbol(label: str) -> Union[str, None]:
+    """Tries to extract a valid chemical symbol from a label. Currently can
+    only handle labels that correspond to chemical names (no matter what case)
+    and that possbily have a non-alphabetic postfix. Raises an error if no
+    match can be made.
+    """
+    match = re_label.match(label)
+    symbol = None
+    if match:
+        test = match.group(1).capitalize()
+        if test in elements:
+            symbol = test
+    if symbol is None:
+        raise ValueError(
+            "Could not identify a chemical element from the given label: {}".format(label)
+        )
+    return symbol
 
 
 def valid_array(array: Any) -> bool:
@@ -116,8 +141,8 @@ class ResultsNormalizer(Normalizer):
 
         # Add the present quantities. The full path will be saved for each
         # property, and if the leaf quantity/section name is unambiguous, also
-        # it will be saved.  Each repeating section will be investigated as
-        # well to find all present properties.
+        # it will be saved. Each repeating section will be investigated as well
+        # to find all present properties.
         available_properties = set()
         for section, m_def, _ in results.properties.m_traverse():
             parent_path = section.m_path()
@@ -232,7 +257,12 @@ class ResultsNormalizer(Normalizer):
         for label in unique_labels:
             i_species = struct.m_create(Species)
             i_species.name = label
-            i_species.chemical_elements = [label]
+            try:
+                symbol = label_to_chemical_symbol(label)
+            except ValueError:
+                self.logger.info("could not identify chemical symbol from the label: {}".format(label))
+            else:
+                i_species.chemical_symbols = [symbol]
             i_species.concentration = [1.0]
 
     def basis_set_type(self) -> Union[str, None]:
@@ -384,6 +414,7 @@ class ResultsNormalizer(Normalizer):
                 bs_new.segments = bs.section_k_band_segment
                 bs_new.spin_polarized = bs_new.segments[0].band_energies.shape[0] > 1
                 bs_new.energy_fermi = bs.m_parent.energy_reference_fermi
+                bs_new.energy_references = bs.energy_references
                 if bs.section_band_gap:
                     energy_highest_occupied = []
                     energy_lowest_unoccupied = []
@@ -426,10 +457,9 @@ class ResultsNormalizer(Normalizer):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
                 dos_new.densities = dos
-                dos_new.spin_polarized = values.shape[0] > 1
-                dos_new.energy_fermi = dos.m_parent.energy_reference_fermi
-                dos_new.energy_highest_occupied = dos.m_parent.energy_reference_highest_occupied
-                dos_new.energy_lowest_unoccupied = dos.m_parent.energy_reference_lowest_unoccupied
+                n_channels = values.shape[0]
+                dos_new.spin_polarized = n_channels > 1
+                dos_new.energy_references = dos.energy_references
                 return dos_new
 
         return None
@@ -552,6 +582,8 @@ class ResultsNormalizer(Normalizer):
                 if structure_optimized:
                     geo_opt_prop.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:
+                    if geo_opt_wf.energies is not None:
+                        geo_opt_prop.energies = geo_opt_wf
                     geo_opt_prop.final_energy_difference = geo_opt_wf.final_energy_difference
                     geo_opt_prop.final_force_maximum = geo_opt_wf.final_force_maximum
                 properties.geometry_optimization = geo_opt_prop
@@ -568,14 +600,17 @@ class ResultsNormalizer(Normalizer):
 
         # Structures
         struct_orig = self.structure_original(repr_sys)
-        if struct_orig:
-            properties.structure_original = struct_orig
         struct_prim = self.structure_primitive(symmetry)
-        if struct_prim:
-            properties.structure_primitive = struct_prim
         struct_conv = self.structure_conventional(symmetry)
-        if struct_conv:
-            properties.structure_conventional = struct_conv
+        if struct_orig or struct_prim or struct_conv:
+            structures = Structures()
+            if struct_conv:
+                structures.structure_conventional = struct_conv
+            if struct_prim:
+                structures.structure_primitive = struct_prim
+            if struct_orig:
+                structures.structure_original = struct_orig
+            properties.structures = structures
 
         # Electronic
         bs_electronic = self.band_structure_electronic()
