@@ -194,11 +194,13 @@ class DocumentType():
         self.root_section_def = None
         self.mapping: Dict[str, Any] = None
         self.indexed_properties: Set[Definition] = set()
+        self.nested_object_keys: List[str] = list()
         self.quantities: Dict[str, SearchQuantity] = {}
         self.metrics: Dict[str, Tuple[str, SearchQuantity]] = {}
 
     def _reset(self):
         self.indexed_properties.clear()
+        self.nested_object_keys.clear()
         self.quantities.clear()
         self.metrics.clear()
 
@@ -327,12 +329,19 @@ class DocumentType():
                 sub_section_def.sub_section, prefix=qualified_name,
                 auto_include_subsections=continue_with_auto_include_subsections)
 
+            nested = annotation is not None and annotation.nested
+            if nested:
+                sub_section_mapping['type'] = 'nested'
+
             if len(sub_section_mapping['properties']) > 0:
                 if sub_section_def.name == 'section_metadata':
                     mappings.update(**sub_section_mapping['properties'])
                 else:
                     mappings[sub_section_def.name] = sub_section_mapping
                 self.indexed_properties.add(sub_section_def)
+                if nested and qualified_name not in self.nested_object_keys:
+                    self.nested_object_keys.append(qualified_name)
+                    self.nested_object_keys.sort(key=lambda item: len(item))
 
         self.mapping = dict(properties=mappings)
         return self.mapping
@@ -508,6 +517,9 @@ class Elasticsearch(DefinitionAnnotation):
             there are no elasticsearch annotations in the sub section definitions.
             By default only sub sections with elasticsearch annotation are considered
             during index mapping creation.
+        nested:
+            If true the section is mapped to elasticsearch nested object and all queries
+            become nested queries. Only applicable to sub sections.
 
     Attributes:
         name:
@@ -525,6 +537,7 @@ class Elasticsearch(DefinitionAnnotation):
             metrics: Dict[str, str] = None,
             many_all: bool = False,
             auto_include_subsections: bool = False,
+            nested: bool = False,
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
@@ -544,6 +557,7 @@ class Elasticsearch(DefinitionAnnotation):
         self.many_all = many_all
 
         self.auto_include_subsections = auto_include_subsections
+        self.nested = nested
 
         if self.statistics_size is None:
             self.statistics_size = len(self.values) if values is not None else 10
@@ -712,6 +726,7 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     material_entry_type.create_mapping(entry_section_def, prefix='entries')
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
+    material_type.nested_object_keys = ['entries'] + material_type.nested_object_keys
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()

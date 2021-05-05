@@ -29,7 +29,7 @@ from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
     Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem,
-    Value, QueryParameterValue)
+    Value)
 
 from .common import SearchError, _es_to_entry_dict, _owner_es_query
 
@@ -70,7 +70,9 @@ def validate_quantity(
     return quantity
 
 
-def validate_api_query(query: Query, doc_type: DocumentType, owner_query: EsQuery) -> EsQuery:
+def validate_api_query(
+        query: Query, doc_type: DocumentType, owner_query: EsQuery,
+        prefix: str = None) -> EsQuery:
     '''
     Creates an ES query based on the API's query model. This needs to be a normalized
     query expression with explicit objects for logical, set, and comparison operators.
@@ -83,95 +85,114 @@ def validate_api_query(query: Query, doc_type: DocumentType, owner_query: EsQuer
 
     Arguments:
         query: The api query object.
+        doc_type:
+            The elasticsearch metainfo extension document type that this query needs to
+            be verified against.
+        owner_query:
+            A prebuild ES query that is added to nested entries query. Only for
+            materials queries.
+        prefix:
+            An optional prefix that is added to all quantity names. Used for recursion.
 
     Returns:
         A elasticsearch dsl query object.
 
     Raises: QueryValidationError
     '''
-    def quantity_to_es(name: str, value: Value, doc_type: DocumentType) -> EsQuery:
-        # TODO depends on keyword or not, value might need normalization, etc.
+
+    def match(name: str, value: Value) -> EsQuery:
+        # TODO non keyword quantities, quantities with value transformation, type checks
         quantity = validate_quantity(name, value, doc_type=doc_type)
         return Q('match', **{quantity.search_field: value})
 
-    def parameter_to_es(name: str, value: QueryParameterValue, doc_type=doc_type) -> EsQuery:
-        nest = False
-        if doc_type == material_type and name.startswith('entries'):
-            nest = True
-            doc_type = material_entry_type
+    def validate_query(query: Query) -> EsQuery:
+        return validate_api_query(
+            query, doc_type=doc_type, owner_query=owner_query, prefix=prefix)
+
+    def validate_criteria(name: str, value: Any):
+        if prefix is not None:
+            name = f'{prefix}.{name}'
+
+        # handle prefix and nested queries
+        for nested_key in doc_type.nested_object_keys:
+            if len(name) < len(nested_key):
+                break
+            if not name.startswith(nested_key):
+                continue
+            if prefix is not None and prefix.startswith(nested_key):
+                continue
+            if nested_key == name and isinstance(value, api_models.Nested):
+                continue
+
+            value = api_models.Nested(query={name[len(nested_key) + 1:]: value})
+            name = nested_key
+            break
 
         if isinstance(value, api_models.All):
-            result = Q('bool', must=[
-                quantity_to_es(name, item, doc_type=doc_type)
-                for item in value.op])
+            return Q('bool', must=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.Any_):
-            result = Q('bool', should=[
-                quantity_to_es(name, item, doc_type=doc_type)
-                for item in value.op])
+            return Q('bool', should=[match(name, item)for item in value.op])
 
         elif isinstance(value, api_models.None_):
-            result = Q('bool', must_not=[
-                quantity_to_es(name, item, doc_type=doc_type)
-                for item in value.op])
+            return Q('bool', must_not=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.ComparisonOperator):
-            quantity = validate_quantity(name, value.op, doc_type=doc_type)
-            result = Q('range', **{quantity.search_field: {
-                type(value).__name__.lower(): value.op}})
+            # TODO typecheck?
+            quantity = validate_quantity(name, None, doc_type=doc_type)
+            field = quantity.search_field
+            return Q('range', **{field: {type(value).__name__.lower(): value.op}})
+
+        elif isinstance(value, (api_models.And, api_models.Or, api_models.Not)):
+            return validate_query(value)
+
+        elif isinstance(value, api_models.Nested):
+            sub_doc_type = material_entry_type if name == 'entries' else doc_type
+
+            sub_query = validate_api_query(
+                value.query, doc_type=sub_doc_type, prefix=name, owner_query=owner_query)
+
+            if name in doc_type.nested_object_keys:
+                if name == 'entries':
+                    sub_query &= owner_query
+                return Q('nested', path=name, query=sub_query)
+            else:
+                return sub_query
 
         # list of values is treated as an "all" over the items
         elif isinstance(value, list):
-            result = Q('bool', must=[
-                quantity_to_es(name, item, doc_type=doc_type)
-                for item in value])
+            return Q('bool', must=[match(name, item) for item in value])
+
+        elif isinstance(value, dict):
+            assert False, (
+                'Using dictionaries as criteria values directly is not supported. Use the '
+                'Nested model.')
 
         else:
-            result = quantity_to_es(name, value, doc_type=doc_type)
+            return match(name, value)
 
-        if nest:
-            return Q('nested', path='entries', query=result & owner_query)
-        else:
-            return result
+    if isinstance(query, api_models.And):
+        return Q('bool', must=[validate_query(operand) for operand in query.op])
 
-    def query_to_es(query: Query, doc_type: DocumentType) -> EsQuery:
-        if isinstance(query, api_models.LogicalOperator):
-            if isinstance(query, api_models.And):
-                return Q('bool', must=[query_to_es(operand, doc_type=doc_type) for operand in query.op])
+    if isinstance(query, api_models.Or):
+        return Q('bool', should=[validate_query(operand) for operand in query.op])
 
-            if isinstance(query, api_models.Or):
-                return Q('bool', should=[query_to_es(operand, doc_type=doc_type) for operand in query.op])
+    if isinstance(query, api_models.Not):
+        return Q('bool', must_not=validate_query(query.op))
 
-            if isinstance(query, api_models.Not):
-                return Q('bool', must_not=query_to_es(query.op, doc_type=doc_type))
-
-            if isinstance(query, api_models.Entries):
-                if doc_type != material_type:
-                    raise QueryValidationError(
-                        'entries can only be nested into material queries',
-                        loc=['query', 'entries'])
-
-                return Q(
-                    'nested', path='entries',
-                    query=query_to_es(query.op, doc_type=material_entry_type) & owner_query)
-
-            raise NotImplementedError()
-
-        if not isinstance(query, dict):
-            raise NotImplementedError()
-
+    if isinstance(query, dict):
         # dictionary is like an "and" of all items in the dict
         if len(query) == 0:
             return Q()
 
         if len(query) == 1:
             key = next(iter(query))
-            return parameter_to_es(key, query[key], doc_type=doc_type)
+            return validate_criteria(key, query[key])
 
         return Q('bool', must=[
-            parameter_to_es(name, value, doc_type=doc_type) for name, value in query.items()])
+            validate_criteria(name, value) for name, value in query.items()])
 
-    return query_to_es(query, doc_type=doc_type)
+    raise NotImplementedError()
 
 
 def validate_pagination(pagination: Pagination, doc_type: DocumentType, loc: List[str] = None):

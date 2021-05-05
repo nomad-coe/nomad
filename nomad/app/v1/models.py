@@ -37,8 +37,8 @@ from .utils import parameter_dependency_from_model, update_url_query_arguments
 User = datamodel.User.m_def.a_pydantic.model
 
 
-Value = Union[str, int, float, bool, datetime.datetime]
-ComparableValue = Union[str, int, float, datetime.datetime]
+Value = Union[bool, int, float, datetime.datetime, str]
+ComparableValue = Union[int, float, datetime.datetime, str]
 
 
 class AggregationOrderType(str, enum.Enum):
@@ -73,7 +73,8 @@ class Any_(NoneEmptyBaseModel):
     op: List[Value] = Field(None, alias='any')
 
 
-class ComparisonOperator(NoneEmptyBaseModel): pass
+class ComparisonOperator(NoneEmptyBaseModel):
+    op: ComparableValue
 
 
 class Lte(ComparisonOperator):
@@ -93,7 +94,6 @@ class Gt(ComparisonOperator):
 
 
 class LogicalOperator(NoneEmptyBaseModel):
-
     @validator('op', check_fields=False)
     def validate_query(cls, query):  # pylint: disable=no-self-argument
         if isinstance(query, list):
@@ -114,8 +114,12 @@ class Not(LogicalOperator):
     op: 'Query' = Field(None, alias='not')
 
 
-class Entries(LogicalOperator):
-    op: 'Query' = Field(None, alias='entries')
+class Nested(BaseModel):
+    query: 'Query'
+
+    @validator('query')
+    def validate_query(cls, query):  # pylint: disable=no-self-argument
+        return _validate_query(query)
 
 
 ops = {
@@ -125,21 +129,18 @@ ops = {
     'gt': Gt,
     'all': All,
     'none': None_,
-    'any': Any_,
-    'entries': Entries
+    'any': Any_
 }
 
+QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
 
-QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_]
-
-Query = Union[
-    Mapping[str, QueryParameterValue], And, Or, Not, Entries]
+Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
 
 
 And.update_forward_refs()
 Or.update_forward_refs()
 Not.update_forward_refs()
-Entries.update_forward_refs()
+Nested.update_forward_refs()
 
 
 class Owner(str, enum.Enum):
@@ -270,6 +271,9 @@ def _validate_query(query: Query):
         for key, value in list(query.items()):
             # Note, we loop over a list of items, not query.items(). This is because we
             # may modify the query in the loop.
+            if isinstance(value, dict):
+                value = Nested(query=value)
+
             if ':' in key:
                 quantity, qualifier = key.split(':')
             else:
@@ -282,6 +286,8 @@ def _validate_query(query: Query):
                 query[quantity] = ops[qualifier](**{qualifier: value})  # type: ignore
             elif isinstance(value, list):
                 query[quantity] = All(all=value)
+            else:
+                query[quantity] = value
 
     return query
 

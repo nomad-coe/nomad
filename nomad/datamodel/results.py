@@ -986,7 +986,9 @@ class ElectronicProperties(MSection):
         """,
     )
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False)
-    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False)
+    dos_electronic = SubSection(
+        sub_section=DOSElectronic.m_def, repeats=False,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True))
 
 
 class ElasticProperties(MSection):

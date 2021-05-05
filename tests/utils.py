@@ -291,7 +291,12 @@ class ExampleData:
                         }
                     },
                     'properties': {
-                        'n_calculations': 1
+                        'n_calculations': 1,
+                        'electronic': {
+                            'dos_electronic': {
+                                'spin_polarized': entry_id.endswith('04')
+                            }
+                        }
                     }
                 }
             if isinstance(results, dict):

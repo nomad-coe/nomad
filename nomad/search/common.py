@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Any, Dict
+from typing import cast, Any, Dict
 from elasticsearch_dsl import Q
 
 from nomad import datamodel
@@ -100,7 +100,7 @@ def _api_to_es_query(query: api_models.Query) -> Q:
                 quantity_to_es(name, item)
                 for item in value])
 
-        return quantity_to_es(name, value)
+        return quantity_to_es(name, cast(api_models.Value, value))
 
     def query_to_es(query: api_models.Query) -> Q:
         if isinstance(query, api_models.LogicalOperator):

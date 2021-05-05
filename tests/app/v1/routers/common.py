@@ -32,6 +32,8 @@ def post_query_test_parameters(
 
     elements = f'{material_prefix}elements'
     program_name = f'{entry_prefix}results.method.simulation.program_name'
+    method = f'{entry_prefix}results.method'
+    properties = f'{entry_prefix}results.properties'
 
     return [
         pytest.param({}, 200, total, id='empty'),
@@ -58,7 +60,11 @@ def post_query_test_parameters(
         pytest.param({'not': {'not': {entity_id: 'id_01'}}}, 200, 1, id='not-nested-not'),
         pytest.param({'not': {f'{entity_id}:any': ['id_01', 'id_02']}}, 200, total - 2, id='not-nested-any'),
         pytest.param({'and': [{f'{entity_id}:any': ['id_01', 'id_02']}, {f'{entity_id}:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
-        pytest.param({'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]}, 200, total - 2, id='not-nested-not')
+        pytest.param({'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]}, 200, total - 2, id='not-nested-not'),
+        pytest.param({method: {'simulation.program_name': 'VASP'}}, 200, total, id='inner-object'),
+        pytest.param({f'{properties}.electronic.dos_electronic.spin_polarized': True}, 200, 1, id='nested-implicit'),
+        pytest.param({f'{properties}.electronic.dos_electronic': {'spin_polarized': True}}, 200, 1, id='nested-explicit'),
+        pytest.param({properties: {'electronic.dos_electronic': {'spin_polarized': True}}}, 200, 1, id='nested-explicit-explicit')
     ]
 
 

@@ -62,6 +62,10 @@ class Data(MSection):
     series = Quantity(type=np.dtype(np.float64), shape=['*'])
 
 
+class Dos(MSection):
+    channel = Quantity(type=int, a_elasticsearch=Elasticsearch(material_entry_type))
+
+
 class Properties(MSection):
 
     available_properties = Quantity(
@@ -75,6 +79,8 @@ class Properties(MSection):
     data = Quantity(type=Data, a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_series = Quantity(type=Data.n_series, a_elasticsearch=Elasticsearch())
+
+    dos = SubSection(sub_section=Dos.m_def, repeats=True, a_elasticsearch=Elasticsearch(nested=True))
 
 
 class Results(MSection):
@@ -230,6 +236,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'owners.name', 'keyword')
     assert_mapping(entry_mapping, 'files', 'text')
     assert_mapping(entry_mapping, 'files', 'keyword', 'keyword')
+    assert_mapping(entry_mapping, 'results.properties.dos', 'nested')
+    assert_mapping(entry_mapping, 'results.properties.dos.channel', 'integer')
 
     assert_mapping(material_mapping, 'material_id', 'keyword')
     assert_mapping(material_mapping, 'formula', 'keyword')
@@ -239,6 +247,8 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'entries.upload_time', None)
     assert_mapping(material_mapping, 'entries.results.properties.available_properties', 'keyword')
     assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
+    assert_mapping(material_mapping, 'entries.results.properties.dos', 'nested')
+    assert_mapping(material_mapping, 'entries.results.properties.dos.channel', 'integer')
 
     formula_annotations = Material.formula.m_get_annotations(Elasticsearch)
     assert entry_type.quantities.get('results.material.formula').annotation == formula_annotations[0]
