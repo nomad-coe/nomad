@@ -1,0 +1,181 @@
+# Copyright 2018 Markus Scheidgen
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an"AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from typing import Dict, Any, List
+import os
+import logging
+import numpy as np
+import re
+from ase.data import chemical_symbols
+
+from nomad.datamodel import EntryArchive
+from nomad.parsing import FairdiParser
+from nomad.parsing.file_parser import TextParser, Quantity
+from nomad.datamodel.metainfo.common_dft import Run, Method, System, SingleConfigurationCalculation
+
+
+class BasicParser(FairdiParser):
+    '''
+    Defines a fairdi parser that parse basic quantities for sections method, system and
+    single_configuration_calculation.
+
+    Arguments:
+        specifications: dictionary that will be passed on to  FairdiParser
+        units_mapping: dictionary of nomad units for basic quantities such as length
+        auxiliary_files: re pattern to match auxilliary files from mainfile. If no files
+            are found will match files in working directory.
+        kwargs: metainfo_key: re pattern pairs used to parse quantity
+    '''
+    def __init__(self, specifications: Dict[str, Any], **kwargs):
+        super().__init__(**specifications)
+        self.specifications = specifications
+        self.units_mapping = kwargs.get('units_mapping', {})
+        self.auxilliary_files = kwargs.get('auxilliary_files', '')
+        self.mainfile_parser = TextParser(quantities=[Quantity(
+            key, pattern, repeats=True,
+            flatten=False) for key, pattern in kwargs.items() if isinstance(pattern, str)])
+        self._re_float = r'\-*\d+\.\d+E*e*\-*\+*\d*'
+        self.auxilliary_parsers: List[TextParser] = []
+
+    def init_parser(self):
+        '''
+        Initializes the mainfile and auxiliary parsers.
+        '''
+        self.mainfile_parser.mainfile = self.mainfile
+        self.mainfile_parser.logger = self.logger
+
+        auxilliary_files = self.mainfile_parser.get('auxilliary_files', os.listdir(self.maindir))
+        self.auxilliary_parsers = []
+        for filename in auxilliary_files:
+            if not re.match(self.auxilliary_files, filename):
+                continue
+            filename = os.path.join(self.maindir, filename)
+            if not os.path.isfile(filename):
+                continue
+            parser = self.mainfile_parser.copy()
+            parser.mainfile = filename
+            parser.logger = self.logger
+            self.auxilliary_parsers.append(parser)
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        '''
+        Triggers parsing of mainfile and writing parsed quantities to archive.
+        '''
+        self.mainfile = os.path.abspath(mainfile)
+        self.maindir = os.path.dirname(self.mainfile)
+        self.archive = archive
+        self.logger = logger if logger is not None else logging
+
+        self.init_parser()
+
+        def set_value(section, key, value, unit=None, shape=None, dtype=None):
+            dtype = dtype if dtype is not None else type(value)
+            if value is None:
+                return
+            try:
+                value = np.reshape(np.array(
+                    value, dtype=np.dtype(dtype)), shape) if shape is not None else dtype(value)
+                value = value * unit if unit is not None else value
+                setattr(section, key, value)
+            except Exception:
+                pass
+
+        def get_value(source, pattern):
+            if isinstance(source, str):
+                val = re.findall(pattern, source)
+                return val[0] if len(val) == 1 else val
+            elif isinstance(source, list):
+                return [get_value(s, pattern) for s in source]
+            else:
+                return source
+
+        def remove_empty_section(sections, definition):
+            for n in range(len(sections) - 1, -1, -1):
+                empty = True
+                for _ in sections[n].m_traverse():
+                    empty = False
+                    break
+                if empty:
+                    sec_run.m_remove_sub_section(definition, n)
+
+        sec_run = self.archive.m_create(Run)
+        sec_run.program_name = self.specifications.get('code_name', '')
+
+        energy_unit = self.units_mapping.get('energy', 1.0)
+        length_unit = self.units_mapping.get('length', 1.0)
+        re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
+
+        for key, values in self.mainfile_parser.items():
+            if values is None:
+                # get if from auxiliary files
+                for parser in self.auxilliary_parsers:
+                    values = parser.get(key)
+                    if values is not None:
+                        break
+            if values is None:
+                continue
+            # set header quantities
+            set_value(sec_run, key, values[0])
+
+            for n, value in enumerate(values):
+                # method related quantities
+                if len(sec_run.section_method) <= n:
+                    sec_run.m_create(Method)
+                sec_method = sec_run.section_method[-1]
+                set_value(sec_method, key, value)
+
+                # system related quantities
+                if len(sec_run.section_system) <= n:
+                    sec_run.m_create(System)
+                sec_system = sec_run.section_system[-1]
+                set_value(sec_system, key, value)
+
+                # calculation related quantities
+                if len(sec_run.section_single_configuration_calculation) <= n:
+                    sec_run.m_create(SingleConfigurationCalculation)
+                sec_scc = sec_run.section_single_configuration_calculation[n]
+                set_value(sec_scc, key, value)
+
+                # specific quantities that need formatting
+                if 'energy_total' in key:
+                    set_value(sec_scc, 'energy_total', value, energy_unit, dtype=np.float64)
+
+                if 'atom_forces' in key:
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).+')
+                    set_value(sec_scc, 'atom_forces', val, energy_unit / length_unit, (len(val), 3), np.float64)
+
+                if 'lattice_vectors' in key:
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).+')
+                    set_value(sec_system, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
+                    if val is not None:
+                        sec_system.configuration_periodic_dimensions = [True, True, True]
+
+                if 'atom_positions' in key:
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f})')
+                    set_value(sec_system, 'atom_positions', val, length_unit, (len(val), 3), np.float64)
+
+                if 'atom_labels' in key:
+                    val = get_value(value, r'([A-Z][a-z]*)\s')
+                    set_value(sec_system, 'atom_labels', val, shape=(len(val)), dtype=str)
+
+                if 'atom_atom_number' in key:
+                    val = get_value(value, r'(\d+)\s')
+                    set_value(sec_system, 'atom_atom_number', val, shape=(len(val)), dtype=np.int32)
+                    set_value(sec_system, 'atom_labels', [chemical_symbols[int(n)] for n in sec_system.atom_atom_number], shape=(len(val)))
+
+        # remove unfilled sections
+        remove_empty_section(sec_run.section_method, Run.section_method)
+        remove_empty_section(sec_run.section_system, Run.section_system)
+        remove_empty_section(sec_run.section_single_configuration_calculation, Run.section_single_configuration_calculation)

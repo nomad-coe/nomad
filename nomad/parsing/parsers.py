@@ -47,6 +47,7 @@ from turbomoleparser import TurbomoleParser
 from castepparser import CastepParser
 from wien2kparser import Wien2kParser
 from nwchemparser import NWChemParser
+from bandparser import BandParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -195,10 +196,7 @@ parsers = [
         )
     ),
     Wien2kParser(),
-    LegacyParser(
-        name='parsers/band', code_name='BAND', code_homepage='https://www.scm.com/product/band_periodicdft/',
-        parser_class_name='bandparser.BANDParser',
-        mainfile_contents_re=r' +\* +Amsterdam Density Functional +\(ADF\)'),
+    BandParser(),
     QuantumEspressoParser(),
     GaussianParser(),
     AbinitParser(),
