@@ -48,6 +48,7 @@ from castepparser import CastepParser
 from wien2kparser import Wien2kParser
 from nwchemparser import NWChemParser
 from bandparser import BandParser
+from amberparser import AmberParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -293,11 +294,7 @@ parsers = [
         mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
     ),
     LammpsParser(),
-    LegacyParser(
-        name='parsers/amber', code_name='Amber', domain='dft',
-        parser_class_name='amberparser.AMBERParser',
-        mainfile_contents_re=r'\s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+'
-    ),
+    AmberParser(),
     GromacsParser(),
     LegacyParser(
         name='parsers/gromos', code_name='Gromos', domain='dft',
