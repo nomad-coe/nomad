@@ -192,6 +192,49 @@ def ls(ctx, uploads, calculations, ids, json):
         headers=headers))
 
 
+@uploads.command(help=(
+    'Allows to edit metadata attribute of all entries in uploads. Be aware that this '
+    'only edits the attributes. E.g. if you set publish true, it won\'t publish the '
+    'upload, pack its files, change the upload metadata, etc.'))
+@click.option(
+    '--publish', type=click.Choice(['with-embargo', 'no-embargo']),
+    help='Set the publish attribute true and change with_embargo attribute.')
+@click.option(
+    '--unpublish', is_flag=True, help='Set the publish attribute to false.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def edit(ctx, uploads, publish: str, unpublish: bool):
+    _, uploads = query_uploads(ctx, uploads)
+
+    if publish and unpublish:
+        print('You can only publish or unpublish, not both.')
+        return
+
+    if publish:
+        update = {
+            'metadata.published': True,
+            'metadata.with_embargo': publish == 'with-embargo'}
+    elif unpublish:
+        update = {
+            'metadata.published': False,
+            'metadata.with_embargo': False}
+    else:
+        print('You have not give any attributes to edit.')
+        return
+
+    print('%d uploads selected, editing ...' % uploads.count())
+
+    for upload in uploads:
+        proc.Calc._get_collection().update_many(
+            {'upload_id': upload.upload_id},
+            {'$set': update})
+
+        with upload.entries_metadata() as calcs:
+            search.index_all(calcs, do_refresh=False)
+
+    search.refresh()
+
+
 @uploads.command(help='Change the owner of the upload and all its calcs.')
 @click.argument('USERNAME', nargs=1)
 @click.argument('UPLOADS', nargs=-1)

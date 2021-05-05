@@ -270,6 +270,39 @@ class TestAdminUploads:
         assert upload.user_id == test_user.user_id
         assert calc.metadata['uploader'] == test_user.user_id
 
+    def test_edit(self, published):
+        upload_id = published.upload_id
+
+        def assert_calcs(publish, with_embargo):
+            calcs = Calc.objects(upload_id=upload_id)
+            for calc in calcs:
+                assert calc.metadata['published'] == publish
+                assert calc.metadata['with_embargo'] == with_embargo
+
+            for calc in search.search(owner=None, query=dict(upload_id=upload_id)).data:
+                assert calc['published'] == publish
+                assert calc['with_embargo'] == with_embargo
+
+        assert_calcs(True, True)
+
+        def perform_test(publish, with_embargo):
+            if publish:
+                params = ['--publish', 'with-embargo' if with_embargo else 'no-embargo']
+            else:
+                assert not with_embargo
+                params = ['--unpublish']
+
+            result = click.testing.CliRunner().invoke(
+                cli, ['admin', 'uploads', 'edit'] + params, catch_exceptions=False)
+
+            assert result.exit_code == 0
+            assert 'editing' in result.stdout
+            assert_calcs(publish, with_embargo)
+
+        perform_test(False, False)
+        perform_test(True, False)
+        perform_test(True, True)
+
     def test_reset(self, non_empty_processed):
         upload_id = non_empty_processed.upload_id
 
