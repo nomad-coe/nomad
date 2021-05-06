@@ -522,7 +522,7 @@ def test_get_upload_entry(
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
     pytest.param(
         'test_user', 'id_unpublished', '', 'application/json',
-        200, 'application/json', ['test_content/'], id='unpublished-dir-json-root'),
+        200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
     pytest.param(
         'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
         401, None, None, id='unpublished-file-unauthorized'),
@@ -540,7 +540,7 @@ def test_get_upload_entry(
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
     pytest.param(
         'test_user', 'id_published', '', 'application/json',
-        200, 'application/json', ['test_content/'], id='published-dir-json-root'),
+        200, 'application/json', ['test_content'], id='published-dir-json-root'),
     pytest.param(
         'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
         401, None, None, id='published-file-unauthorized'),
@@ -567,7 +567,8 @@ def test_get_upload_raw_path(
             data = response.json()
             assert data['path'] == (path.rstrip('/') or '.')
             if expected_content:
-                assert data['content'] == expected_content, 'Incorrect list of files returned'
+                file_list_returned = [o['name'] for o in data['content']]
+                assert file_list_returned == expected_content, 'Incorrect list of files returned'
         elif mime_type == 'text/html':
             assert response.text, 'No response text'
             if expected_content:

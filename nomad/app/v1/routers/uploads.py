@@ -183,9 +183,19 @@ class EntryProcDataQueryResponse(BaseModel):
         '''))
 
 
+class DirectoryListingLine(BaseModel):
+    name: str = Field()
+    is_file: bool = Field()
+    size: Optional[int] = Field()
+    access: str = Field()
+
+
 class DirectoryListingResponse(BaseModel):
     path: str = Field(example='The/requested/path')
-    content: List[str] = Field(example=['a_directory/', 'a_file.txt'])
+    content: List[DirectoryListingLine] = Field(
+        example=[
+            {'name': 'a_directory', 'is_file': False, 'access': 'public'},
+            {'name': 'a_file.json', 'is_file': True, 'size': 123, 'access': 'restricted'}])
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -483,7 +493,11 @@ async def get_upload_raw_path(
         content = upload_files.raw_list_directory(path)
         if request.headers.get('Accept') == 'application/json':
             # json response
-            response_text = DirectoryListingResponse(path=path, content=content).json()
+            response_content: List[DirectoryListingLine] = []
+            for name, is_file, size, access in content:
+                response_content.append(DirectoryListingLine(
+                    name=name, is_file=is_file, size=size, access=access))
+            response_text = DirectoryListingResponse(path=path, content=response_content).json()
             media_type = 'application/json'
         else:
             # html response
@@ -492,9 +506,13 @@ async def get_upload_raw_path(
             base_url = f'{scheme}://{netloc}{url_path}'
             if not base_url.endswith('/'):
                 base_url += '/'
-            for name in content:
+            for name, is_file, size, access in content:
                 # TODO: Need escaping?
-                response_text += f'<p><a href="{base_url + name}">{name}</a></p>\n'
+                if not is_file:
+                    name += '/'
+                info = f'{size} bytes' if is_file else 'directory'
+                info += f' [{access}]'
+                response_text += f'<p><a href="{base_url + name}">{name}</a> {info}</p>\n'
             media_type = 'text/html'
 
         return StreamingResponse(_streamed_string(response_text), media_type=media_type)
