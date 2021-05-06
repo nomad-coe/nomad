@@ -17,7 +17,6 @@
 #
 import os
 import io
-import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
@@ -41,62 +40,6 @@ router = APIRouter()
 default_tag = 'uploads'
 
 logger = utils.get_logger(__name__)
-
-
-_not_authorized = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
-
-_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload.''')}
-
-_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload or entry.''')}
-
-_bad_request = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. The request could not be processed because of some error/invalid argument.''')}
-
-_bad_pagination = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. Invalid pagination arguments supplied.''')}
-
-_upload_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload could not be found.''')}
-
-_entry_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload or entry could not be found.''')}
-
-_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload, or a resource with the specified path within the upload,
-        could not be found.''')}
-
-_raw_path_response = 200, {
-    'content': {
-        'application/json': {
-            'example': {'path': 'the/path', 'content': ['a_directory/', 'a_file.txt']}},
-        'application/octet-stream': {
-            'example': 'File content'},
-    },
-    'description': strip('''
-        Either a stream with the file content (if `path` denotes a file) or the directory
-        content (if `path` denotes a directory). Directory contents are returned either
-        encoded as json or html, depending on the request headers.''')}
 
 
 class ProcData(BaseModel):
@@ -240,6 +183,11 @@ class EntryProcDataQueryResponse(BaseModel):
         '''))
 
 
+class DirectoryListingResponse(BaseModel):
+    path: str = Field(example='The/requested/path')
+    content: List[str] = Field(example=['a_directory/', 'a_file.txt'])
+
+
 class UploadCommandExamplesResponse(BaseModel):
     upload_url: str = Field()
     upload_command: str = Field()
@@ -247,6 +195,72 @@ class UploadCommandExamplesResponse(BaseModel):
     upload_progress_command: str = Field()
     upload_command_form: str = Field()
     upload_tar_command: str = Field()
+
+
+_not_authorized = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
+
+_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload.''')}
+
+_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload or entry.''')}
+
+_bad_request = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. The request could not be processed because of some error/invalid argument.''')}
+
+_bad_pagination = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. Invalid pagination arguments supplied.''')}
+
+_upload_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload could not be found.''')}
+
+_entry_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload or entry could not be found.''')}
+
+_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload, or a resource with the specified path within the upload,
+        could not be found.''')}
+
+_post_upload_response = 200, {
+    'model': UploadProcDataResponse,
+    'content': {
+        'application/json': {},
+        'text/plain': {'example': 'Thanks for uploading your data to nomad.'}
+    },
+    'description': strip('''
+        A json structure with upload data, if the request headers specifies
+        `Accept = application/json`, otherwise a plain text information string.''')}
+
+_raw_path_response = 200, {
+    'model': DirectoryListingResponse,
+    'content': {
+        'application/json': {},
+        'application/octet-stream': {'example': 'File content'},
+        'text/html': {'example': '<html defining directory content>'}
+    },
+    'description': strip('''
+        Either a stream with the file content (if `path` denotes a file) or the directory
+        content (if `path` denotes a directory). Directory contents are returned either
+        encoded as json or html, depending on the request headers.''')}
 
 
 @router.get(
@@ -469,8 +483,7 @@ async def get_upload_raw_path(
         content = upload_files.raw_list_directory(path)
         if request.headers.get('Accept') == 'application/json':
             # json response
-            json_response = {'upload_id': upload_id, 'path': path, 'content': content}
-            response_text = json.dumps(json_response, sort_keys=True, indent=4)
+            response_text = DirectoryListingResponse(path=path, content=content).json()
             media_type = 'application/json'
         else:
             # html response
@@ -491,7 +504,7 @@ async def get_upload_raw_path(
     '', tags=[default_tag],
     summary='Submit a new upload',
     response_class=StreamingResponse,
-    responses=create_responses(_not_authorized, _bad_request),
+    responses=create_responses(_post_upload_response, _not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload(
