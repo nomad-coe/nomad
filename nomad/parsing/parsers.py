@@ -49,6 +49,7 @@ from wien2kparser import Wien2kParser
 from nwchemparser import NWChemParser
 from bandparser import BandParser
 from amberparser import AmberParser
+from asapparser import AsapParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -319,12 +320,7 @@ parsers = [
         mainfile_contents_re=r'^ Fermi distribution function\s*',
         mainfile_mime_re=r'text/.*',
     ),
-    LegacyParser(
-        name='parsers/asap', code_name='ASAP', domain='dft',
-        parser_class_name='asapparser.AsapParser',
-        mainfile_name_re=r'.*.traj$',
-        mainfile_mime_re=r'application/octet-stream',
-    ),
+    AsapParser(),
     LegacyParser(
         name='parsers/fplo', code_name='fplo', domain='dft',
         parser_class_name='fploparser.FploParser',
