@@ -51,6 +51,7 @@ from bandparser import BandParser
 from amberparser import AmberParser
 from asapparser import AsapParser
 from bigdftparser import BigDFTParser
+from cpmdparser import CPMDParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -152,20 +153,7 @@ parsers = [
     # The main contents regex of CPMD was causing a catostrophic backtracking issue
     # when searching through the first 500 bytes of main files. We decided
     # to use only a portion of the regex to avoid that issue.
-    LegacyParser(
-        name='parsers/cpmd', code_name='CPMD', code_homepage='https://www.lcrc.anl.gov/for-users/software/available-software/cpmd/',
-        parser_class_name='cpmdparser.CPMDParser',
-        mainfile_contents_re=(
-            # r'\s+\*\*\*\*\*\*  \*\*\*\*\*\*    \*\*\*\*  \*\*\*\*  \*\*\*\*\*\*\s*'
-            # r'\s+\*\*\*\*\*\*\*  \*\*\*\*\*\*\*   \*\*\*\*\*\*\*\*\*\*  \*\*\*\*\*\*\*\s+'
-            r'\*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*'
-            # r'\s+\*\*        \*\*   \*\*\*  \*\*  \*\*  \*\*  \*\*    \*\*\s+'
-            # r'\s+\*\*        \*\*\*\*\*\*\*   \*\*      \*\*  \*\*    \*\*\s+'
-            # r'\s+\*\*\*       \*\*\*\*\*\*    \*\*      \*\*  \*\*   \*\*\*\s+'
-            # r'\s+\*\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\*\s+'
-            # r'\s+\*\*\*\*\*\*  \*\*        \*\*      \*\*  \*\*\*\*\*\*\s+'
-        )
-    ),
+    CPMDParser(),
     NWChemParser(),
     BigDFTParser(),
     Wien2kParser(),

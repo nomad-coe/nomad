@@ -43,9 +43,14 @@ class BasicParser(FairdiParser):
         self.specifications = specifications
         self.units_mapping = kwargs.get('units_mapping', {})
         self.auxilliary_files = kwargs.get('auxilliary_files', '')
-        self.mainfile_parser = TextParser(quantities=[Quantity(
-            key, pattern, repeats=True,
-            flatten=False) for key, pattern in kwargs.items() if isinstance(pattern, str)])
+        self.mainfile_parser = TextParser()
+        for key, pattern in kwargs.items():
+            if isinstance(pattern, str):
+                self.mainfile_parser._quantities.append(
+                    Quantity(key, pattern, repeats=True, flatten=False))
+            elif isinstance(pattern, tuple) and isinstance(pattern[0], str):
+                self.mainfile_parser._quantities.append(
+                    Quantity(key, pattern[0], str_operation=pattern[1], repeats=True))
         self._re_float = r'\-*\d+\.\d+E*e*\-*\+*\d*'
         self.auxilliary_parsers: List[TextParser] = []
 
@@ -133,13 +138,13 @@ class BasicParser(FairdiParser):
                 # method related quantities
                 if len(sec_run.section_method) <= n:
                     sec_run.m_create(Method)
-                sec_method = sec_run.section_method[-1]
+                sec_method = sec_run.section_method[n]
                 set_value(sec_method, key, value)
 
                 # system related quantities
                 if len(sec_run.section_system) <= n:
                     sec_run.m_create(System)
-                sec_system = sec_run.section_system[-1]
+                sec_system = sec_run.section_system[n]
                 set_value(sec_system, key, value)
 
                 # calculation related quantities
@@ -149,22 +154,22 @@ class BasicParser(FairdiParser):
                 set_value(sec_scc, key, value)
 
                 # specific quantities that need formatting
-                if 'energy_total' in key:
-                    set_value(sec_scc, 'energy_total', value, energy_unit, dtype=np.float64)
+                if 'energy' in key:
+                    set_value(sec_scc, key, value, energy_unit, dtype=np.float64)
 
                 if 'atom_forces' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).+')
-                    set_value(sec_scc, 'atom_forces', val, energy_unit / length_unit, (len(val), 3), np.float64)
+                    val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*')
+                    set_value(sec_scc, 'atom_forces', val, energy_unit / length_unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'lattice_vectors' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).+')
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*')
                     set_value(sec_system, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
                     if val is not None:
                         sec_system.configuration_periodic_dimensions = [True, True, True]
 
                 if 'atom_positions' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f})')
-                    set_value(sec_system, 'atom_positions', val, length_unit, (len(val), 3), np.float64)
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*')
+                    set_value(sec_system, 'atom_positions', val, length_unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'atom_labels' in key:
                     val = get_value(value, r'([A-Z][a-z]*)\s')
