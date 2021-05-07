@@ -155,7 +155,8 @@ class BasicParser(FairdiParser):
 
                 # specific quantities that need formatting
                 if 'energy' in key:
-                    set_value(sec_scc, key, value, energy_unit, dtype=np.float64)
+                    shape = np.shape(value) if key == 'energy_reference_fermi' else None
+                    set_value(sec_scc, key, value, energy_unit, shape, np.float64)
 
                 if 'atom_forces' in key:
                     val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*')

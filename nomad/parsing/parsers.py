@@ -52,6 +52,7 @@ from amberparser import AmberParser
 from asapparser import AsapParser
 from bigdftparser import BigDFTParser
 from cpmdparser import CPMDParser
+from dftbplusparser import DFTBPlusParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -273,12 +274,7 @@ parsers = [
         mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
         mainfile_mime_re=r'text/.*',
     ),
-    LegacyParser(
-        name='parsers/dftbplus', code_name='DFTB+', domain='dft',
-        parser_class_name='dftbplusparser.DFTBPlusParser',
-        mainfile_contents_re=r'^ Fermi distribution function\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
+    DFTBPlusParser(),
     AsapParser(),
     LegacyParser(
         name='parsers/fplo', code_name='fplo', domain='dft',
