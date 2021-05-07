@@ -49,7 +49,7 @@ class Mapping():
 
         self.persons = {}
 
-    def map_catalog(self, entries, after: str, modified_since):
+    def map_catalog(self, entries, after: str, modified_since, slim=True):
         def uri_ref(after):
             kwargs = dict()
             if after is not None:
@@ -64,7 +64,7 @@ class Mapping():
         self.g.add((catalog, RDF.type, DCAT.Catalog))
         last_entry = None
         for entry in entries:
-            self.g.add((catalog, DCT.dataset, self.map_entry(entry, slim=True)))
+            self.g.add((catalog, DCT.dataset, self.map_entry(entry, slim=slim)))
             last_entry = entry
 
         hydra_collection = uri_ref(after)
