@@ -510,47 +510,48 @@ def test_get_upload_entry(
         assert_entry(response_data)
 
 
-@pytest.mark.parametrize('user, upload_id, path, accept, expected_status_code, expected_mime_type, expected_content', [
+@pytest.mark.parametrize('user, upload_id, path, accept, zipped, re_pattern, expected_status_code, expected_mime_type, expected_content', [
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
         200, 'application/octet-stream', 'content', id='unpublished-file'),
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json',
+        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json', False, None,
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-json'),
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*',
+        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', False, None,
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
     pytest.param(
-        'test_user', 'id_unpublished', '', 'application/json',
+        'test_user', 'id_unpublished', '', 'application/json', False, None,
         200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
     pytest.param(
-        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
         401, None, None, id='unpublished-file-unauthorized'),
     pytest.param(
-        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*',
+        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
         200, 'application/octet-stream', 'content', id='unpublished-file-admin-auth'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
         200, 'application/octet-stream', 'content', id='published-file'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json',
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json', False, None,
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*',
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', False, None,
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
     pytest.param(
-        'test_user', 'id_published', '', 'application/json',
+        'test_user', 'id_published', '', 'application/json', False, None,
         200, 'application/json', ['test_content'], id='published-dir-json-root'),
     pytest.param(
-        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
         401, None, None, id='published-file-unauthorized'),
     pytest.param(
-        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*',
+        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
         200, 'application/octet-stream', 'content', id='published-file-admin-auth'),
 ])
 def test_get_upload_raw_path(
         client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
-        user, upload_id, path, accept, expected_status_code, expected_mime_type, expected_content):
+        user, upload_id, path, accept, zipped, re_pattern,
+        expected_status_code, expected_mime_type, expected_content):
     user_auth = {
         'test_user': test_user_auth,
         'other_test_user': other_test_user_auth,
@@ -565,7 +566,7 @@ def test_get_upload_raw_path(
                 assert expected_content in response.text, 'Expected content not found'
         elif mime_type == 'application/json':
             data = response.json()
-            assert data['path'] == (path.rstrip('/') or '.')
+            assert data['path'] == (path.rstrip('/') or '')
             if expected_content:
                 file_list_returned = [o['name'] for o in data['content']]
                 assert file_list_returned == expected_content, 'Incorrect list of files returned'

@@ -260,7 +260,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         '''
         raise NotImplementedError()
 
-    def raw_list_directory(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
         '''
         Returns a list of tuples containing (base_name, is_file, size, access), for each
         element (file or folder) in the directory specified by path.
@@ -368,7 +368,7 @@ class StagingUploadFiles(UploadFiles):
         os_path = self._raw_path_to_os_path(path)
         return os_path is not None and os.path.isfile(os_path)
 
-    def raw_list_directory(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
         os_path = self._raw_path_to_os_path(path)
         assert os_path and os.path.isdir(os_path), f'Path {path} is not a directory'
         rv: List[Tuple[str, bool, int, str]] = []
@@ -906,11 +906,11 @@ class PublicUploadFiles(UploadFiles):
         directory_content = self._directories.get(directory_path)
         if directory_content and base_name in directory_content:
             is_file, __, access = directory_content[base_name]
-            if self._is_authorized() or access == 'public':
+            if access == 'public' or self._is_authorized():
                 return is_file
         return False
 
-    def raw_list_directory(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
         self._parse_content()
         rv: List[Tuple[str, bool, int, str]] = []
         if path == '.':
