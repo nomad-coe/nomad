@@ -50,6 +50,7 @@ from nwchemparser import NWChemParser
 from bandparser import BandParser
 from amberparser import AmberParser
 from asapparser import AsapParser
+from bigdftparser import BigDFTParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -166,37 +167,7 @@ parsers = [
         )
     ),
     NWChemParser(),
-    LegacyParser(
-        name='parsers/bigdft', code_name='BigDFT', code_homepage='http://bigdft.org/',
-        parser_class_name='bigdftparser.BigDFTParser',
-        mainfile_contents_re=(
-            # r'__________________________________ A fast and precise DFT wavelet code\s*'
-            # r'\|     \|     \|     \|     \|     \|\s*'
-            # r'\|     \|     \|     \|     \|     \|      BBBB         i       gggggg\s*'
-            # r'\|_____\|_____\|_____\|_____\|_____\|     B    B               g\s*'
-            # r'\|     \|  :  \|  :  \|     \|     \|    B     B        i     g\s*'
-            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B    B         i     g        g\s*'
-            r'\|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*'
-            # r'\|  :  \|     \|     \|  :  \|     \|    B    B         i     g         g\s*'
-            # r'\|--\+0-\|     \|     \|-0\+--\|     \|    B     B     iiii     g         g\s*'
-            # r'\|__:__\|_____\|_____\|__:__\|_____\|    B     B        i      g        g\s*'
-            # r'\|     \|  :  \|  :  \|     \|     \|    B BBBB        i        g      g\s*'
-            # r'\|     \|-0\+--\|-0\+--\|     \|     \|    B        iiiii          gggggg\s*'
-            # r'\|_____\|__:__\|__:__\|_____\|_____\|__BBBBB\s*'
-            # r'\|     \|     \|     \|  :  \|     \|                           TTTTTTTTT\s*'
-            # r'\|     \|     \|     \|--\+0-\|     \|  DDDDDD          FFFFF        T\s*'
-            # r'\|_____\|_____\|_____\|__:__\|_____\| D      D        F        TTTT T\s*'
-            # r'\|     \|     \|     \|  :  \|     \|D        D      F        T     T\s*'
-            # r'\|     \|     \|     \|--\+0-\|     \|D         D     FFFF     T     T\s*'
-            # r'\|_____\|_____\|_____\|__:__\|_____\|D___      D     F         T    T\s*'
-            # r'\|     \|     \|  :  \|     \|     \|D         D     F          TTTTT\s*'
-            # r'\|     \|     \|--\+0-\|     \|     \| D        D     F         T    T\s*'
-            # r'\|_____\|_____\|__:__\|_____\|_____\|          D     F        T     T\s*'
-            # r'\|     \|     \|     \|     \|     \|         D               T    T\s*'
-            # r'\|     \|     \|     \|     \|     \|   DDDDDD       F         TTTT\s*'
-            # r'\|_____\|_____\|_____\|_____\|_____\|______                    www\.bigdft\.org'
-        )
-    ),
+    BigDFTParser(),
     Wien2kParser(),
     BandParser(),
     QuantumEspressoParser(),
