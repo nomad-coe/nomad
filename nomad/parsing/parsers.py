@@ -59,6 +59,7 @@ from elkparser import ElkParser
 from fleurparser import FleurParser
 from fploparser import FploParser
 from gamessparser import GamessParser
+from gromosparser import GromosParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -236,11 +237,7 @@ parsers = [
     LammpsParser(),
     AmberParser(),
     GromacsParser(),
-    LegacyParser(
-        name='parsers/gromos', code_name='Gromos', domain='dft',
-        parser_class_name='gromosparser.GromosParser',
-        mainfile_contents_re=r'Bugreports to http://www.gromos.net'
-    ),
+    GromosParser(),
     LegacyParser(
         name='parsers/namd', code_name='Namd', domain='dft',
         parser_class_name='namdparser.NamdParser',

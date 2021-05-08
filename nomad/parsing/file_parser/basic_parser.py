@@ -64,8 +64,10 @@ class BasicParser(FairdiParser):
         auxilliary_files = self.mainfile_parser.get('auxilliary_files', os.listdir(self.maindir))
         self.auxilliary_parsers = []
         for filename in auxilliary_files:
-            if not self.auxilliary_files or not re.match(self.auxilliary_files, filename):
-                continue
+            filename = os.path.basename(filename)
+            if self.mainfile_parser.get('auxilliary_files') is None:
+                if not self.auxilliary_files or not re.match(self.auxilliary_files, filename):
+                    continue
             filename = os.path.join(self.maindir, filename)
             if not os.path.isfile(filename):
                 continue
