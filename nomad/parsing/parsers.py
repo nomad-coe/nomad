@@ -57,6 +57,7 @@ from dlpolyparser import DLPolyParser
 from dmol3parser import Dmol3Parser
 from elkparser import ElkParser
 from fleurparser import FleurParser
+from fploparser import FploParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -260,12 +261,7 @@ parsers = [
     ),
     DFTBPlusParser(),
     AsapParser(),
-    LegacyParser(
-        name='parsers/fplo', code_name='fplo', domain='dft',
-        parser_class_name='fploparser.FploParser',
-        mainfile_contents_re=r'\s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE CODE\s*\|\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
+    FploParser(),
     LegacyParser(
         name='parsers/mopac', code_name='MOPAC', domain='dft',
         parser_class_name='mopacparser.MopacParser',
