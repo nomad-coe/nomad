@@ -54,6 +54,7 @@ from bigdftparser import BigDFTParser
 from cpmdparser import CPMDParser
 from dftbplusparser import DFTBPlusParser
 from dlpolyparser import DLPolyParser
+from dmol3parser import Dmol3Parser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -217,12 +218,7 @@ parsers = [
         mainfile_mime_re=r'(application/xml)|(text/.*)',
         mainfile_contents_re=(r'http://qboxcode.org')
     ),
-    LegacyParser(
-        name='parsers/dmol', code_name='DMol3', code_homepage='http://dmol3.web.psi.ch/dmol3.html', domain='dft',
-        parser_class_name='dmol3parser.Dmol3Parser',
-        mainfile_name_re=r'.*\.outmol',
-        mainfile_contents_re=r'Materials Studio DMol\^3'
-    ),
+    Dmol3Parser(),
     LegacyParser(
         name='parsers/fleur', code_name='fleur', code_homepage='https://www.flapw.de/', domain='dft',
         parser_class_name='fleurparser.FleurParser',
