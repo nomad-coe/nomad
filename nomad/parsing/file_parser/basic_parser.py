@@ -182,7 +182,7 @@ class BasicParser(FairdiParser):
                     unit = length_unit
                     if sub_key == 'atom_positions_scaled':
                         try:
-                            val = np.dot(val, sec_system.lattice_vectors.magnitude)
+                            val = np.dot(np.array(val, dtype=np.dtype(np.float64)), sec_system.lattice_vectors.magnitude)
                             unit = 1.0
                         except Exception:
                             pass
