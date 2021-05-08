@@ -58,6 +58,7 @@ from dmol3parser import Dmol3Parser
 from elkparser import ElkParser
 from fleurparser import FleurParser
 from fploparser import FploParser
+from gamessparser import GamessParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -199,14 +200,7 @@ parsers = [
     ),
     ElkParser(),
     ElasticParser(),
-    LegacyParser(
-        name='parsers/gamess', code_name='GAMESS', code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',
-        parser_class_name='gamessparser.GamessParser',
-        mainfile_contents_re=(
-            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*'
-            r'\s*\*\s*GAMESS VERSION =\s*(.*)\*\s*'
-            r'\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*')
-    ),
+    GamessParser(),
     TurbomoleParser(),
     MPESParser(),
     APTFIMParser(),

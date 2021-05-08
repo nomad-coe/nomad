@@ -68,6 +68,7 @@ parser_exceptions = {
     'parsers/elk': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     # TODO why rename parsers?
     'parser/fleur': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/gamess': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/band': ['dft.system'],
     'parsers/qbox': ['dft.xc_functional'],

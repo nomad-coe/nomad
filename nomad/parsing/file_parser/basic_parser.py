@@ -90,9 +90,10 @@ class BasicParser(FairdiParser):
             if value is None:
                 return
             try:
-                value = np.reshape(np.array(
-                    value, dtype=np.dtype(dtype)), shape) if shape is not None else dtype(value)
-                value = value * unit if unit is not None else value
+                if not hasattr(value, 'units'):
+                    value = np.reshape(np.array(
+                        value, dtype=np.dtype(dtype)), shape) if shape is not None else dtype(value)
+                    value = value * unit if unit is not None else value
                 setattr(section, key, value)
             except Exception:
                 pass
