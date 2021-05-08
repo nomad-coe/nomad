@@ -55,6 +55,7 @@ from cpmdparser import CPMDParser
 from dftbplusparser import DFTBPlusParser
 from dlpolyparser import DLPolyParser
 from dmol3parser import Dmol3Parser
+from elkparser import ElkParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -194,11 +195,7 @@ parsers = [
             r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
             r'(\*\s*WELCOME TO SIESTA\s*\*)')
     ),
-    LegacyParser(
-        name='parsers/elk', code_name='elk', code_homepage='http://elk.sourceforge.net/',
-        parser_class_name='elkparser.ElkParser',
-        mainfile_contents_re=r'\| Elk version [0-9.a-zA-Z]+ started \|'
-    ),
+    ElkParser(),
     ElasticParser(),
     LegacyParser(
         name='parsers/gamess', code_name='GAMESS', code_homepage='https://www.msg.chem.iastate.edu/gamess/versions.html',

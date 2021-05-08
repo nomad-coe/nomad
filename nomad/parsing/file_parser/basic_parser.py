@@ -177,8 +177,16 @@ class BasicParser(FairdiParser):
                         sec_system.configuration_periodic_dimensions = [True, True, True]
 
                 if 'atom_positions' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_positions')
-                    set_value(sec_system, 'atom_positions', val, length_unit, (np.size(val) // 3, 3), np.float64)
+                    sub_key = 'atom_positions_scaled' if 'atom_positions_scaled' in key else 'atom_positions'
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', sub_key)
+                    unit = length_unit
+                    if sub_key == 'atom_positions_scaled':
+                        try:
+                            val = np.dot(val, sec_system.lattice_vectors.magnitude)
+                            unit = 1.0
+                        except Exception:
+                            pass
+                    set_value(sec_system, 'atom_positions', val, unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'atom_velocities' in key:
                     val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_velocities')

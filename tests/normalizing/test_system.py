@@ -65,6 +65,7 @@ parser_exceptions = {
     'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional'],
     'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
     'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/elk': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/band': ['dft.system'],
     'parsers/qbox': ['dft.xc_functional'],
