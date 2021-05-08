@@ -64,7 +64,7 @@ class BasicParser(FairdiParser):
         auxilliary_files = self.mainfile_parser.get('auxilliary_files', os.listdir(self.maindir))
         self.auxilliary_parsers = []
         for filename in auxilliary_files:
-            if not re.match(self.auxilliary_files, filename):
+            if not self.auxilliary_files or not re.match(self.auxilliary_files, filename):
                 continue
             filename = os.path.join(self.maindir, filename)
             if not os.path.isfile(filename):
@@ -97,12 +97,14 @@ class BasicParser(FairdiParser):
             except Exception:
                 pass
 
-        def get_value(source, pattern):
+        def get_value(source, pattern, key=None):
             if isinstance(source, str):
                 val = re.findall(pattern, source)
                 return val[0] if len(val) == 1 else val
             elif isinstance(source, list):
                 return [get_value(s, pattern) for s in source]
+            elif isinstance(source, dict):
+                return source.get(key)
             else:
                 return source
 
@@ -120,6 +122,9 @@ class BasicParser(FairdiParser):
 
         energy_unit = self.units_mapping.get('energy', 1.0)
         length_unit = self.units_mapping.get('length', 1.0)
+        mass_unit = self.units_mapping.get('mass')
+        time_unit = self.units_mapping.get('time')
+
         re_f = r'\-*\d+\.\d+E*e*\-*\+*\d*'
 
         for key, values in self.mainfile_parser.items():
@@ -133,7 +138,6 @@ class BasicParser(FairdiParser):
                 continue
             # set header quantities
             set_value(sec_run, key, values[0])
-
             for n, value in enumerate(values):
                 # method related quantities
                 if len(sec_run.section_method) <= n:
@@ -159,25 +163,33 @@ class BasicParser(FairdiParser):
                     set_value(sec_scc, key, value, energy_unit, shape, np.float64)
 
                 if 'atom_forces' in key:
-                    val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*')
-                    set_value(sec_scc, 'atom_forces', val, energy_unit / length_unit, (np.size(val) // 3, 3), np.float64)
+                    val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*', 'atom_forces')
+                    if mass_unit is not None and time_unit is not None:
+                        unit = mass_unit * length_unit / time_unit ** 2
+                    else:
+                        unit = energy_unit / length_unit
+                    set_value(sec_scc, 'atom_forces', val, unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'lattice_vectors' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*')
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'lattice_vectors')
                     set_value(sec_system, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
                     if val is not None:
                         sec_system.configuration_periodic_dimensions = [True, True, True]
 
                 if 'atom_positions' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*')
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_positions')
                     set_value(sec_system, 'atom_positions', val, length_unit, (np.size(val) // 3, 3), np.float64)
 
+                if 'atom_velocities' in key:
+                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_velocities')
+                    set_value(sec_system, 'atom_velocities', val, length_unit / time_unit, (np.size(val) // 3, 3), np.float64)
+
                 if 'atom_labels' in key:
-                    val = get_value(value, r'([A-Z][a-z]*)\s')
+                    val = get_value(value, r'([A-Z][a-z]*)\s', 'atom_labels')
                     set_value(sec_system, 'atom_labels', val, shape=(len(val)), dtype=str)
 
                 if 'atom_atom_number' in key:
-                    val = get_value(value, r'(\d+)\s')
+                    val = get_value(value, r'(\d+)\s', 'atom_atom_number')
                     set_value(sec_system, 'atom_atom_number', val, shape=(len(val)), dtype=np.int32)
                     set_value(sec_system, 'atom_labels', [chemical_symbols[int(n)] for n in sec_system.atom_atom_number], shape=(len(val)))
 

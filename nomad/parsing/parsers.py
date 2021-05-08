@@ -53,6 +53,7 @@ from asapparser import AsapParser
 from bigdftparser import BigDFTParser
 from cpmdparser import CPMDParser
 from dftbplusparser import DFTBPlusParser
+from dlpolyparser import DLPolyParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -151,9 +152,6 @@ parsers = [
     FHIVibesParser(),
     CP2KParser(),
     CrystalParser(),
-    # The main contents regex of CPMD was causing a catostrophic backtracking issue
-    # when searching through the first 500 bytes of main files. We decided
-    # to use only a portion of the regex to avoid that issue.
     CPMDParser(),
     NWChemParser(),
     BigDFTParser(),
@@ -164,11 +162,7 @@ parsers = [
     AbinitParser(),
     OrcaParser(),
     CastepParser(),
-    LegacyParser(
-        name='parsers/dl-poly', code_name='DL_POLY', code_homepage='https://www.scd.stfc.ac.uk/Pages/DL_POLY.aspx',
-        parser_class_name='dlpolyparser.DlPolyParserWrapper',
-        mainfile_contents_re=(r'\*\* DL_POLY \*\*')
-    ),
+    DLPolyParser(),
     LegacyParser(
         name='parsers/lib-atoms', code_name='libAtoms', code_homepage='https://libatoms.github.io/',
         parser_class_name='libatomsparser.LibAtomsParserWrapper',
