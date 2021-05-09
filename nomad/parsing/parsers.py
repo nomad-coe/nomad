@@ -63,6 +63,7 @@ from gromosparser import GromosParser
 from gulpparser import GulpParser
 from molcasparser import MolcasParser
 from mopacparser import MopacParser
+from namdparser import NAMDParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -230,12 +231,7 @@ parsers = [
     AmberParser(),
     GromacsParser(),
     GromosParser(),
-    LegacyParser(
-        name='parsers/namd', code_name='Namd', domain='dft',
-        parser_class_name='namdparser.NamdParser',
-        mainfile_contents_re=r'\s*Info:\s*NAMD\s*[0-9.]+\s*for\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
+    NAMDParser(),
     LegacyParser(
         name='parsers/charmm', code_name='Charmm', domain='dft',
         parser_class_name='charmmparser.CharmmParser',
