@@ -62,6 +62,7 @@ from gamessparser import GamessParser
 from gromosparser import GromosParser
 from gulpparser import GulpParser
 from molcasparser import MolcasParser
+from mopacparser import MopacParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -244,12 +245,7 @@ parsers = [
     DFTBPlusParser(),
     AsapParser(),
     FploParser(),
-    LegacyParser(
-        name='parsers/mopac', code_name='MOPAC', domain='dft',
-        parser_class_name='mopacparser.MopacParser',
-        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
+    MopacParser(),
     ArchiveParser()
 ]
 
