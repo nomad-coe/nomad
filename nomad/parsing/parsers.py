@@ -60,6 +60,7 @@ from fleurparser import FleurParser
 from fploparser import FploParser
 from gamessparser import GamessParser
 from gromosparser import GromosParser
+from gulpparser import GulpParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -184,14 +185,7 @@ parsers = [
         # The previously used mime type r'application/x-netcdf' wasn't found by magic library.
         mainfile_mime_re=r'application/octet-stream'
     ),
-    LegacyParser(
-        name='parsers/gulp', code_name='gulp', code_homepage='http://gulp.curtin.edu.au/gulp/',
-        parser_class_name='gulpparser.GULPParser',
-        mainfile_contents_re=(
-            r'\s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*'
-            r'\*\*\*\*\*\*\*\*\*\*\*\*\*\s*'
-            r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*')
-    ),
+    GulpParser(),
     LegacyParser(
         name='parsers/siesta', code_name='Siesta', code_homepage='https://departments.icmab.es/leem/siesta/',
         parser_class_name='siestaparser.SiestaParser',
