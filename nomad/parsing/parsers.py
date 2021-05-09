@@ -61,6 +61,7 @@ from fploparser import FploParser
 from gamessparser import GamessParser
 from gromosparser import GromosParser
 from gulpparser import GulpParser
+from molcasparser import MolcasParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -208,11 +209,7 @@ parsers = [
     ),
     Dmol3Parser(),
     FleurParser(),
-    LegacyParser(
-        name='parsers/molcas', code_name='MOLCAS', code_homepage='http://www.molcas.org/', domain='dft',
-        parser_class_name='molcasparser.MolcasParser',
-        mainfile_contents_re=r'M O L C A S'
-    ),
+    MolcasParser(),
     LegacyParser(
         name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/', domain='dft',
         parser_class_name='onetepparser.OnetepParser',
