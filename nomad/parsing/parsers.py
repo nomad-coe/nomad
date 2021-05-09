@@ -64,6 +64,7 @@ from gulpparser import GulpParser
 from molcasparser import MolcasParser
 from mopacparser import MopacParser
 from namdparser import NAMDParser
+from onetepparser import OnetepParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -212,11 +213,7 @@ parsers = [
     Dmol3Parser(),
     FleurParser(),
     MolcasParser(),
-    LegacyParser(
-        name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/', domain='dft',
-        parser_class_name='onetepparser.OnetepParser',
-        mainfile_contents_re=r'####### #     # ####### ####### ####### ######'
-    ),
+    OnetepParser(),
     LegacyParser(
         name='parsers/openkim', code_name='OpenKIM', domain='dft',
         parser_class_name='openkimparser.OpenKIMParser',
