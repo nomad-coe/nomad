@@ -62,6 +62,8 @@ class BasicParser(FairdiParser):
         self.mainfile_parser.logger = self.logger
 
         auxilliary_files = self.mainfile_parser.get('auxilliary_files', os.listdir(self.maindir))
+        # remove duplicates, maintain order
+        auxilliary_files = [f for n, f in enumerate(auxilliary_files) if f not in auxilliary_files[:n]]
         self.auxilliary_parsers = []
         for filename in auxilliary_files:
             filename = os.path.basename(filename)
@@ -133,11 +135,10 @@ class BasicParser(FairdiParser):
         for key, values in self.mainfile_parser.items():
             if values is None:
                 # get if from auxiliary files
+                values = []
                 for parser in self.auxilliary_parsers:
-                    values = parser.get(key)
-                    if values is not None:
-                        break
-            if values is None:
+                    values.extend(parser.get(key, []))
+            if values is None or len(values) == 0:
                 continue
             # set header quantities
             set_value(sec_run, key, values[0])

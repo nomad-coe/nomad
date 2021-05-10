@@ -66,6 +66,7 @@ from mopacparser import MopacParser
 from namdparser import NAMDParser
 from onetepparser import OnetepParser
 from siestaparser import SiestaParser
+from tinkerparser import TinkerParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -214,11 +215,7 @@ parsers = [
         parser_class_name='openkimparser.OpenKIMParser',
         mainfile_contents_re=r'OPENKIM'
     ),
-    LegacyParser(
-        name='parsers/tinker', code_name='TINKER', domain='dft',
-        parser_class_name='tinkerparser.TinkerParser',
-        mainfile_contents_re=r'TINKER  ---  Software Tools for Molecular Design'
-    ),
+    TinkerParser(),
     LammpsParser(),
     AmberParser(),
     GromacsParser(),
