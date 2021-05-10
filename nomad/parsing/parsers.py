@@ -65,6 +65,7 @@ from molcasparser import MolcasParser
 from mopacparser import MopacParser
 from namdparser import NAMDParser
 from onetepparser import OnetepParser
+from siestaparser import SiestaParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -190,13 +191,7 @@ parsers = [
         mainfile_mime_re=r'application/octet-stream'
     ),
     GulpParser(),
-    LegacyParser(
-        name='parsers/siesta', code_name='Siesta', code_homepage='https://departments.icmab.es/leem/siesta/',
-        parser_class_name='siestaparser.SiestaParser',
-        mainfile_contents_re=(
-            r'(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|'
-            r'(\*\s*WELCOME TO SIESTA\s*\*)')
-    ),
+    SiestaParser(),
     ElkParser(),
     ElasticParser(),
     GamessParser(),

@@ -73,7 +73,8 @@ parser_exceptions = {
     'parsers/band': ['dft.system'],
     'parsers/qbox': ['dft.xc_functional'],
     'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system']
+    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this

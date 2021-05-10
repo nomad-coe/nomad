@@ -197,10 +197,12 @@ class BasicParser(FairdiParser):
 
                 if 'atom_labels' in key:
                     val = get_value(value, r'([A-Z][a-z]*)\s', 'atom_labels')
+                    val = [val] if isinstance(val, str) else val
                     set_value(sec_system, 'atom_labels', val, shape=(len(val)), dtype=str)
 
                 if 'atom_atom_number' in key:
                     val = get_value(value, r'(\d+)\s', 'atom_atom_number')
+                    val = [val] if isinstance(val, str) else val
                     set_value(sec_system, 'atom_atom_number', val, shape=(len(val)), dtype=np.int32)
                     set_value(sec_system, 'atom_labels', [chemical_symbols[int(n)] for n in sec_system.atom_atom_number], shape=(len(val)))
 
