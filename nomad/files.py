@@ -54,7 +54,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Generator, Dict, Set, Iterable, Callable, List, Tuple, Any
+from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any
 import os.path
 import os
 import shutil
@@ -260,10 +260,10 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         '''
         raise NotImplementedError()
 
-    def raw_list_directory(self, path: str) -> List[str]:
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
         '''
-        Returns a list of strings, naming elements (files and folders) in the directory
-        specified by path.
+        Returns a list of tuples containing (base_name, is_file, size, access), for each
+        element (file or folder) in the directory specified by path.
         '''
         raise NotImplementedError()
 
@@ -298,7 +298,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
         '''
-        Gives a list of directory contents and its size.
+        Gives a list of directory contents (files only) and their sizes.
         Arguments:
             directory: The directory to list
         Returns:
@@ -368,14 +368,15 @@ class StagingUploadFiles(UploadFiles):
         os_path = self._raw_path_to_os_path(path)
         return os_path is not None and os.path.isfile(os_path)
 
-    def raw_list_directory(self, path: str) -> List[str]:
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
         os_path = self._raw_path_to_os_path(path)
         assert os_path and os.path.isdir(os_path), f'Path {path} is not a directory'
-        rv: List[str] = []
+        rv: List[Tuple[str, bool, int, str]] = []
         for name in os.listdir(os_path):
-            if os.path.isdir(os.path.join(os_path, name)):
-                name += os.path.sep  # To differentiate directory names from file names
-            rv.append(name)
+            full_path = os.path.join(os_path, name)
+            is_file = os.path.isfile(full_path)
+            size = os.stat(full_path).st_size if is_file else -1
+            rv.append((name, is_file, size, 'unpublished'))
         rv.sort()
         return rv
 
@@ -768,7 +769,7 @@ class PublicUploadFiles(UploadFiles):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
-        self._directories: Dict[str, List[Tuple[str, int, str]]] = None
+        self._directories: Dict[str, Dict[str, Tuple[bool, int, str]]] = None
         self._raw_zip_files: Dict[str, zipfile.ZipFile] = {}
         self._archive_msg_files: Dict[str, ArchiveReader] = {}
 
@@ -849,50 +850,80 @@ class PublicUploadFiles(UploadFiles):
             with zf.open('nomad.json', 'w') as f:
                 f.write(json.dumps(metadata).encode())
 
+    def _parse_content(self):
+        '''
+        Parses the content of files and folders and caches it in self._directories for
+        faster future access.
+        self._dictionaries contains, for each path, a dictionary of form:
+        {name: (is_file, size, access)}, where is_file = False and size = -1 for directories.
+        '''
+        if self._directories is None:
+            self._directories = dict()
+            for access in ['public', 'restricted']:
+                try:
+                    zf = self._open_raw_file(access)
+                    for path in zf.namelist():
+                        file_name = os.path.basename(path)
+                        directory_path = os.path.dirname(path)
+                        sub_path = ''
+                        for directory in directory_path.split(os.path.sep):
+                            sub_path_content = self._directories.setdefault(sub_path, {})
+
+                            if directory not in sub_path_content:
+                                sub_path_content[directory] = (False, -1, access)
+                            sub_path = os.path.join(sub_path, directory)
+
+                        if file_name:
+                            directory_content = self._directories.setdefault(directory_path, {})
+                            directory_content[file_name] = (True, zf.getinfo(path).file_size, access)
+                except FileNotFoundError:
+                    pass
+
     def raw_path_exists(self, path: str) -> bool:
         if path == '' or path == '.':
-            return True  # Special case for root dir
-        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
-        path_not_slashed = path.rstrip(os.path.sep)
-        path_slashed = path_not_slashed + os.path.sep
-        for access in access_levels:
-            zf = self._open_raw_file(access)
-            for zip_path in zf.namelist():
-                if zip_path == path_not_slashed or zip_path.startswith(path_slashed):
+            return True  # Root folder
+        self._parse_content()
+        explicit_directory_path = path.endswith(os.path.sep)
+        path = path.rstrip(os.path.sep)
+        base_name = os.path.basename(path)
+        directory_path = os.path.dirname(path)
+        directory_content = self._directories.get(directory_path)
+        if directory_content is not None:
+            if base_name in directory_content:
+                is_file, __, access = directory_content[base_name]
+                if access == 'public' or self._is_authorized():
+                    if explicit_directory_path and is_file:
+                        return False
                     return True
         return False
 
     def raw_path_is_file(self, path: str) -> bool:
-        if path == '' or path == '.':
-            return False  # Special case for root dir
-        if path.endswith(os.path.sep):
-            return False
-        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
-        for access in access_levels:
-            zf = self._open_raw_file(access)
-            if path in zf.namelist():
-                return True
+        self._parse_content()
+        base_name = os.path.basename(path)
+        directory_path = os.path.dirname(path)
+        if not base_name:
+            return False  # Requested path is an explicit directory path
+        directory_content = self._directories.get(directory_path)
+        if directory_content and base_name in directory_content:
+            is_file, __, access = directory_content[base_name]
+            if access == 'public' or self._is_authorized():
+                return is_file
         return False
 
-    def raw_list_directory(self, path: str) -> List[str]:
-        if path == '' or path == '.':
-            path_head = ''  # Special case for root dir
-        else:
-            path_head = path if path.endswith(os.path.sep) else path + os.path.sep
-        content: Set[str] = set()
-        access_levels = ['public', 'restricted'] if self._is_authorized() else ['public']
-        for access in access_levels:
-            zf = self._open_raw_file(access)
-            for zip_path in zf.namelist():
-                if zip_path.startswith(path_head):
-                    tail = zip_path[len(path_head):]
-                    if os.path.sep in tail:
-                        # Subfolder found
-                        content.add(tail[:tail.find(os.path.sep) + 1])
-                    else:
-                        # File found
-                        content.add(tail)
-        return sorted(content)
+    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
+        self._parse_content()
+        rv: List[Tuple[str, bool, int, str]] = []
+        if path == '.':
+            path = ''
+        path = path.rstrip(os.path.sep)
+        directory_content = self._directories.get(path)
+        if directory_content is None:
+            return None
+        for base_name, (is_file, size, access) in directory_content.items():
+            if access == 'public' or self._is_authorized():
+                rv.append((base_name, is_file, size, access))
+        rv.sort()
+        return rv
 
     @property
     def public_raw_data_file(self):
@@ -952,34 +983,19 @@ class PublicUploadFiles(UploadFiles):
                 pass
 
     def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
-        if self._directories is None:
-            self._directories = dict()
-            for access in ['public', 'restricted']:
-                try:
-                    zf = self._open_raw_file(access)
-                    for path in zf.namelist():
-                        file_name = os.path.basename(path)
-                        directory_path = os.path.dirname(path)
-                        files = self._directories.setdefault(directory_path, [])
-
-                        files.append((file_name, zf.getinfo(path).file_size, access))
-
-                except FileNotFoundError:
-                    pass
-
+        self._parse_content()
         if directory is None:
             directory = ''
         else:
             directory = directory.rstrip('/')
 
         results: List[Tuple[str, int]] = []
-        files = self._directories.get(directory, [])
-        for file_name, size, access in files:
-            if access == 'restricted' and not self._is_authorized():
-                continue
-
-            results.append((file_name, size))
-
+        content: Dict[str, Tuple[bool, int, str]] = self._directories.get(directory, {})
+        for base_name, (is_file, size, access) in content.items():
+            if is_file:
+                if access == 'public' or self._is_authorized():
+                    results.append((base_name, size))
+        results.sort()
         return results
 
     def read_archive(self, calc_id: str, access: str = None) -> Any:

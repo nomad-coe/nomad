@@ -17,9 +17,8 @@
 #
 import os
 import io
-import json
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Iterator, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
@@ -34,69 +33,16 @@ from nomad.utils import strip
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
-    BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel)
-from ..utils import parameter_dependency_from_model, create_responses
+    BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
+    Files, files_parameters)
+from ..utils import (
+    parameter_dependency_from_model, create_responses, create_streamed_zipfile,
+    File as StreamedFile)
 
 router = APIRouter()
 default_tag = 'uploads'
 
 logger = utils.get_logger(__name__)
-
-
-_not_authorized = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
-
-_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload.''')}
-
-_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload or entry.''')}
-
-_bad_request = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. The request could not be processed because of some error/invalid argument.''')}
-
-_bad_pagination = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. Invalid pagination arguments supplied.''')}
-
-_upload_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload could not be found.''')}
-
-_entry_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload or entry could not be found.''')}
-
-_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload, or a resource with the specified path within the upload,
-        could not be found.''')}
-
-_raw_path_response = 200, {
-    'content': {
-        'application/json': {
-            'example': {'path': 'the/path', 'content': ['a_directory/', 'a_file.txt']}},
-        'application/octet-stream': {
-            'example': 'File content'},
-    },
-    'description': strip('''
-        Either a stream with the file content (if `path` denotes a file) or the directory
-        content (if `path` denotes a directory). Directory contents are returned either
-        encoded as json or html, depending on the request headers.''')}
 
 
 class ProcData(BaseModel):
@@ -240,6 +186,21 @@ class EntryProcDataQueryResponse(BaseModel):
         '''))
 
 
+class DirectoryListLine(BaseModel):
+    name: str = Field()
+    is_file: bool = Field()
+    size: Optional[int] = Field()
+    access: str = Field()
+
+
+class DirectoryListResponse(BaseModel):
+    path: str = Field(example='The/requested/path')
+    content: List[DirectoryListLine] = Field(
+        example=[
+            {'name': 'a_directory', 'is_file': False, 'access': 'public'},
+            {'name': 'a_file.json', 'is_file': True, 'size': 123, 'access': 'restricted'}])
+
+
 class UploadCommandExamplesResponse(BaseModel):
     upload_url: str = Field()
     upload_command: str = Field()
@@ -247,6 +208,74 @@ class UploadCommandExamplesResponse(BaseModel):
     upload_progress_command: str = Field()
     upload_command_form: str = Field()
     upload_tar_command: str = Field()
+
+
+_not_authorized = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
+
+_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload.''')}
+
+_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload or entry.''')}
+
+_bad_request = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. The request could not be processed because of some error/invalid argument.''')}
+
+_bad_pagination = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. Invalid pagination arguments supplied.''')}
+
+_upload_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload could not be found.''')}
+
+_entry_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload or entry could not be found.''')}
+
+_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload, or a resource with the specified path within the upload,
+        could not be found.''')}
+
+_post_upload_response = 200, {
+    'model': UploadProcDataResponse,
+    'content': {
+        'application/json': {},
+        'text/plain': {'example': 'Thanks for uploading your data to nomad.'}
+    },
+    'description': strip('''
+        A json structure with upload data, if the request headers specifies
+        `Accept = application/json`, otherwise a plain text information string.''')}
+
+_raw_path_response = 200, {
+    'model': DirectoryListResponse,
+    'content': {
+        'application/json': {},
+        'text/html': {'example': '<html defining a list of directory content>'},
+        'application/octet-stream': {'example': 'file data'},
+        'application/zip': {'example': '<zipped file or directory content>'}},
+    'description': strip('''
+        If `path` denotes a file: a stream with the file content, zipped if `compress = true`.
+        If `path` denotes a directory, and `compress = true`, the directory content, zipped.
+        If `path` denotes a directory, and `compress = false`, a list of the directory
+        content, either encoded as json or html, depending on the request headers (json if
+        `Accept = application/json`, html otherwise).''')}
 
 
 @router.get(
@@ -443,55 +472,107 @@ async def get_upload_raw_path(
         path: str = Path(
             ...,
             description='The path within the upload raw files.'),
+        files_params: Files = Depends(files_parameters),
         user: User = Depends(create_user_dependency(required=True))):
     '''
-    For the upload specified by `upload_id`, gets the raw file or folder content located
-    at the given `path`. If `path` points to a file, the file content is streamed in the
-    response. If it denotes a directory, the response will be a listing of the directory
-    content, either encoded as a json structure (if the request headers has
-    `Accept = application/json`), otherwise as html.
+    For the upload specified by `upload_id`, gets the raw file or directory content located
+    at the given `path`. The data is zipped if `compress = true`.
+
+    It is possible to download both individual files and directories, but directories can
+    only be downloaded if `compress = true`. If the path points to a directory, but
+    `compress = false`, a list of the directory contents is returned instead. The list is
+    encoded as a json structure (if the request headers has `Accept = application/json`),
+    otherwise as html.
+
+    When downloading a directory (i.e. with `compress = true`), it is also possible to
+    specify `re_pattern` or `glob_pattern` to filter the files based on the file names.
     '''
+    # Normalize the path
     path = os.path.normpath(path)
+    if path == '.':
+        path = ''
+    # Get upload
     upload = _get_upload_with_read_access(upload_id, user)
     if upload.tasks_running:
         # TODO: maybe we should allow browsing even if processing?
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             The upload is being processed.'''))
+    # Get upload files
     upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
-    if not upload_files.raw_path_exists(path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
-            Not found. Invalid path.'''))
-    if upload_files.raw_path_is_file(path):
-        # Stream file content
-        return StreamingResponse(upload_files.raw_file(path), media_type='application/octet-stream')
-    else:
-        # Directory
-        content = upload_files.raw_list_directory(path)
-        if request.headers.get('Accept') == 'application/json':
-            # json response
-            json_response = {'upload_id': upload_id, 'path': path, 'content': content}
-            response_text = json.dumps(json_response, sort_keys=True, indent=4)
-            media_type = 'application/json'
-        else:
-            # html response
-            response_text = ''
-            scheme, netloc, url_path, _query, _fragment = request.url.components
-            base_url = f'{scheme}://{netloc}{url_path}'
-            if not base_url.endswith('/'):
-                base_url += '/'
-            for name in content:
-                # TODO: Need escaping?
-                response_text += f'<p><a href="{base_url + name}">{name}</a></p>\n'
-            media_type = 'text/html'
+    try:
+        if not upload_files.raw_path_exists(path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+                Not found. Invalid path?'''))
+        if upload_files.raw_path_is_file(path):
+            # File
+            if files_params.compress:
+                # Stream compressed
+                def single_file_stream_generator():
+                    yield StreamedFile(
+                        path=os.path.basename(path),
+                        f=upload_files.raw_file(path, 'rb'),
+                        size=upload_files.raw_file_size(path))
+                    upload_files.close()
 
-        return StreamingResponse(_streamed_string(response_text), media_type=media_type)
+                content = create_streamed_zipfile(single_file_stream_generator(), compress=True)
+                return StreamingResponse(content, media_type='application/zip')
+            else:
+                # Stream raw
+                def single_raw_file_stream():
+                    raw_file = upload_files.raw_file(path, 'rb')
+                    for chunk in raw_file:
+                        yield chunk
+                    raw_file.close()
+                    upload_files.close()
+
+                content = single_raw_file_stream()
+                return StreamingResponse(content, media_type='application/octet-stream')
+        else:
+            # Directory
+            if files_params.compress:
+                # Stream directory content, compressed.
+                content = create_streamed_zipfile(
+                    _recursive_directory_stream_generator(upload_files, path, '', files_params),
+                    compress=True)
+                return StreamingResponse(content, media_type='application/zip')
+            else:
+                # compress = False -> return list of directory contents
+                directory_list = upload_files.raw_directory_list(path)
+                if request.headers.get('Accept') == 'application/json':
+                    # json response
+                    response = DirectoryListResponse(path=path, content=[])
+                    for name, is_file, size, access in directory_list:
+                        response.content.append(DirectoryListLine(
+                            name=name, is_file=is_file, size=size, access=access))
+                    response_text = response.json()
+                    media_type = 'application/json'
+                else:
+                    # html response
+                    response_text = ''
+                    scheme, netloc, url_path, _query, _fragment = request.url.components
+                    base_url = f'{scheme}://{netloc}{url_path}'
+                    if not base_url.endswith('/'):
+                        base_url += '/'
+                    for name, is_file, size, access in directory_list:
+                        # TODO: How should the html look? Need html escaping?
+                        if not is_file:
+                            name += '/'
+                        info = f'{size} bytes' if is_file else 'directory'
+                        info += f' [{access}]'
+                        response_text += f'<p><a href="{base_url + name}">{name}</a> {info}</p>\n'
+                    media_type = 'text/html'
+
+                return StreamingResponse(_streamed_string(response_text), media_type=media_type)
+    except Exception as e:
+        logger.error('exception while streaming download', exc_info=e)
+        upload_files.close()
 
 
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
     response_class=StreamingResponse,
-    responses=create_responses(_not_authorized, _bad_request),
+    responses=create_responses(_post_upload_response, _not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload(
@@ -859,6 +940,35 @@ async def _asyncronous_file_reader(f):
 def _streamed_string(response: str):
     ''' Generator to use for streaming simple strings with the StreamingResponse class. '''
     yield response
+
+
+def _recursive_directory_stream_generator(
+        upload_files: UploadFiles, raw_path: str, zip_path: str, files_params: Files,
+        recursive=False) -> Iterator[StreamedFile]:
+    '''
+    Generates StreamedFile objects for all files found in `raw_path` in upload_files,
+    recursively crawling subdirectories.
+    '''
+    directory_list = upload_files.raw_directory_list(raw_path)
+    for name, is_file, size, __ in directory_list:
+        raw_path_full = os.path.join(raw_path, name)
+        zip_path_full = os.path.join(zip_path, name)
+        if is_file:
+            # raw_path_full is a file
+            if not files_params.re_pattern or files_params.re_pattern.search(raw_path_full):  # type: ignore
+                yield StreamedFile(
+                    path=zip_path_full,
+                    f=upload_files.raw_file(raw_path_full, 'rb'),
+                    size=size)
+        else:
+            # raw_path_full is a directory - call recursively
+            for rv in _recursive_directory_stream_generator(
+                    upload_files, raw_path_full, zip_path_full, files_params, True):
+                yield rv
+
+    if not recursive:
+        # This is the initial call, and we are done streaming everything
+        upload_files.close()
 
 
 def _query_mongodb(**kwargs):
