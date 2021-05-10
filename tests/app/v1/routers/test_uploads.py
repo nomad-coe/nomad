@@ -17,8 +17,10 @@
 #
 
 import pytest
+import io
 import os
 import time
+import zipfile
 from typing import List, Dict, Any, Iterable
 from tests.utils import build_url
 from tests.test_files import assert_upload_files
@@ -510,53 +512,87 @@ def test_get_upload_entry(
         assert_entry(response_data)
 
 
-@pytest.mark.parametrize('user, upload_id, path, accept, zipped, re_pattern, expected_status_code, expected_mime_type, expected_content', [
+@pytest.mark.parametrize('user, upload_id, path, accept, compress, re_pattern, expected_status_code, expected_mime_type, expected_content', [
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
+        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
         200, 'application/octet-stream', 'content', id='unpublished-file'),
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json', False, None,
+        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json', None, None,
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-json'),
     pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', False, None,
+        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', None, None,
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
     pytest.param(
-        'test_user', 'id_unpublished', '', 'application/json', False, None,
+        'test_user', 'id_unpublished', '', 'application/json', None, None,
         200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
     pytest.param(
-        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
+        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
         401, None, None, id='unpublished-file-unauthorized'),
     pytest.param(
-        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', False, None,
+        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
         200, 'application/octet-stream', 'content', id='unpublished-file-admin-auth'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
         200, 'application/octet-stream', 'content', id='published-file'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json', False, None,
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json', None, None,
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
     pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', False, None,
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', None, None,
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
     pytest.param(
-        'test_user', 'id_published', '', 'application/json', False, None,
+        'test_user', 'id_published', '', 'application/json', None, None,
         200, 'application/json', ['test_content'], id='published-dir-json-root'),
     pytest.param(
-        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
+        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
         401, None, None, id='published-file-unauthorized'),
     pytest.param(
-        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', False, None,
+        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
         200, 'application/octet-stream', 'content', id='published-file-admin-auth'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', True, None,
+        200, 'application/zip', 'content',
+        id='unpublished-file-compressed'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', True, None,
+        200, 'application/zip',
+        ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='unpublished-dir-compressed'),
+    pytest.param(
+        'test_user', 'id_unpublished', '', '*', True, None,
+        200, 'application/zip',
+        ['test_content', 'test_content/test_entry/1.aux', 'test_content/test_entry/mainfile.json'],
+        id='unpublished-dir-compressed-root'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+        200, 'application/zip', 'content', id='published-file-compressed'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', True, None,
+        200, 'application/zip', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='published-dir-compressed'),
+    pytest.param(
+        'test_user', 'id_published', '', '*', True, None,
+        200, 'application/zip', ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
+        id='published-dir-compressed-root'),
 ])
 def test_get_upload_raw_path(
         client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
-        user, upload_id, path, accept, zipped, re_pattern,
+        user, upload_id, path, accept, compress, re_pattern,
         expected_status_code, expected_mime_type, expected_content):
     user_auth = {
         'test_user': test_user_auth,
         'other_test_user': other_test_user_auth,
         'admin_user': admin_user_auth}[user]
-    response = perform_get(client, f'uploads/{upload_id}/raw/{path}', user_auth=user_auth, accept=accept)
+    query_args = {}
+    if compress is not None:
+        query_args['compress'] = compress
+    if re_pattern is not None:
+        query_args['re_pattern'] = re_pattern
+
+    response = perform_get(
+        client, f'uploads/{upload_id}/raw/{path}', user_auth=user_auth, accept=accept,
+        **query_args)
+
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         mime_type = response.headers.get('content-type')
@@ -575,6 +611,30 @@ def test_get_upload_raw_path(
             if expected_content:
                 for name in expected_content:
                     assert name in response.text
+        elif mime_type == 'application/zip':
+            if expected_content:
+                with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+                    if type(expected_content) == str:
+                        # Single file - check content
+                        with zip_file.open(os.path.basename(path), 'r') as f:
+                            file_content = f.read()
+                            assert expected_content.encode() in file_content
+                    else:
+                        assert type(expected_content) == list
+                        # Directory - check content
+                        zip_paths = zip_file.namelist()
+                        # Check: only root elements specified in expected_content are allowed
+                        for zip_path in zip_paths:
+                            first_path_element = zip_path.split(os.path.sep)[0]
+                            assert first_path_element in expected_content, f'Unexpected entry found in the zip root folder: {first_path_element}'
+                        # Check: all elements specified in expected_content must exist
+                        for expected_path in expected_content:
+                            found = False
+                            for zip_path in zip_paths:
+                                if zip_path == expected_path or zip_path.startswith(expected_path + os.path.sep):
+                                    found = True
+                                    break
+                            assert found, f'Missing expected path in zip file: {expected_path}'
 
 
 @pytest.mark.parametrize('mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code', [

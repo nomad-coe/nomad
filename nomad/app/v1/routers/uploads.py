@@ -512,12 +512,20 @@ async def get_upload_raw_path(
                         path=os.path.basename(path),
                         f=upload_files.raw_file(path, 'rb'),
                         size=upload_files.raw_file_size(path))
+                    upload_files.close()
 
                 content = create_streamed_zipfile(single_file_stream_generator(), compress=True)
                 return StreamingResponse(content, media_type='application/zip')
             else:
                 # Stream raw
-                content = upload_files.raw_file(path, 'rb')
+                def single_raw_file_stream():
+                    raw_file = upload_files.raw_file(path, 'rb')
+                    for chunk in raw_file:
+                        yield chunk
+                    raw_file.close()
+                    upload_files.close()
+
+                content = single_raw_file_stream()
                 return StreamingResponse(content, media_type='application/octet-stream')
         else:
             # Directory
@@ -557,7 +565,6 @@ async def get_upload_raw_path(
                 return StreamingResponse(_streamed_string(response_text), media_type=media_type)
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
-    finally:
         upload_files.close()
 
 
@@ -936,7 +943,8 @@ def _streamed_string(response: str):
 
 
 def _recursive_directory_stream_generator(
-        upload_files: UploadFiles, raw_path: str, zip_path: str, files_params: Files) -> Iterator[StreamedFile]:
+        upload_files: UploadFiles, raw_path: str, zip_path: str, files_params: Files,
+        recursive=False) -> Iterator[StreamedFile]:
     '''
     Generates StreamedFile objects for all files found in `raw_path` in upload_files,
     recursively crawling subdirectories.
@@ -955,8 +963,12 @@ def _recursive_directory_stream_generator(
         else:
             # raw_path_full is a directory - call recursively
             for rv in _recursive_directory_stream_generator(
-                    upload_files, raw_path_full, zip_path_full, files_params):
+                    upload_files, raw_path_full, zip_path_full, files_params, True):
                 yield rv
+
+    if not recursive:
+        # This is the initial call, and we are done streaming everything
+        upload_files.close()
 
 
 def _query_mongodb(**kwargs):
