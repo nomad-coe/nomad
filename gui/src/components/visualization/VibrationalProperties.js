@@ -18,15 +18,16 @@
 import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Subject } from 'rxjs'
-import { Box, Typography } from '@material-ui/core'
+import { Box } from '@material-ui/core'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
+import PropertyContainer from './PropertyContainer'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
 import { convertSI } from '../../utils'
 import { makeStyles } from '@material-ui/core/styles'
 
-export default function VibrationalProperties({
+const VibrationalProperties = React.memo(({
   bs,
   dos,
   freeEnergy,
@@ -35,7 +36,7 @@ export default function VibrationalProperties({
   classes,
   raiseError,
   units
-}) {
+}) => {
   // Find minimum and maximum from DOS/BS. Use this range for both plots.
   const range = useMemo(() => {
     let range = [undefined, undefined]
@@ -79,7 +80,7 @@ export default function VibrationalProperties({
       }
     }
   })
-  const style = useStyles(classes)
+  const styles = useStyles(classes)
 
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
@@ -92,9 +93,8 @@ export default function VibrationalProperties({
   }, [dosYSubject])
 
   return (
-    <Box className={style.row}>
-      <Box className={style.bs}>
-        <Typography variant="subtitle1" align='center'>Phonon dispersion</Typography>
+    <Box className={styles.row}>
+      <PropertyContainer title="Phonon dispersion" className={styles.bs}>
         <BandStructure
           data={bs}
           layout={bsLayout}
@@ -107,9 +107,8 @@ export default function VibrationalProperties({
           type="vibrational"
           data-testid="bs-phonon"
         ></BandStructure>
-      </Box>
-      <Box className={style.dos}>
-        <Typography variant="subtitle1" align="center">Phonon density of states</Typography>
+      </PropertyContainer>
+      <PropertyContainer title="Phonon density of states" className={styles.dos}>
         <DOS
           data={dos}
           layout={dosLayout}
@@ -122,28 +121,26 @@ export default function VibrationalProperties({
           type="vibrational"
           data-testid="dos-phonon"
         ></DOS>
-      </Box>
-      <Box className={style.heat_capacity}>
-        <Typography variant="subtitle1" align='center'>Heat capacity</Typography>
+      </PropertyContainer>
+      <PropertyContainer title="Heat capacity" className={styles.heat_capacity}>
         <HeatCapacity
           data={heatCapacity}
           aspectRatio={1}
           units={{...units, 'energy': 'joule'}}
           data-testid="heat-capacity"
         />
-      </Box>
-      <Box className={style.free_energy}>
-        <Typography variant="subtitle1" align='center'>Helmholtz free energy</Typography>
+      </PropertyContainer>
+      <PropertyContainer title="Helmholtz free energy" className={styles.free_energy}>
         <HelmholtzFreeEnergy
           data={freeEnergy}
           aspectRatio={1}
           units={{...units, 'energy': 'joule'}}
           data-testid="energy-free"
         />
-      </Box>
+      </PropertyContainer>
     </Box>
   )
-}
+})
 
 VibrationalProperties.propTypes = {
   dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
@@ -156,3 +153,5 @@ VibrationalProperties.propTypes = {
   raiseError: PropTypes.func,
   units: PropTypes.object // Contains the unit configuration
 }
+
+export default VibrationalProperties

@@ -17,15 +17,12 @@
  */
 import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import {
-  Box,
-  Typography,
-  useTheme
-} from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box } from '@material-ui/core'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal, convertSI, convertSILabel } from '../../utils'
+import PropertyContainer from './PropertyContainer'
 
 const useStyles = makeStyles((theme) => {
   return {
@@ -42,7 +39,7 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function GeometryOptimization({data, className, classes, units}) {
+const GeometryOptimization = React.memo(({data, className, classes, units}) => {
   const [finalData, setFinalData] = useState(data)
   const style = useStyles(classes)
   const theme = useTheme()
@@ -114,12 +111,6 @@ function GeometryOptimization({data, className, classes, units}) {
       return null
     }
     return {
-      margin: {
-        l: 30,
-        r: 80,
-        t: 20,
-        b: 50
-      },
       showlegend: true,
       legend: {
         x: 0,
@@ -169,8 +160,7 @@ function GeometryOptimization({data, className, classes, units}) {
 
   return (
     <Box className={style.root}>
-      <Box className={style.energies}>
-        <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
+      <PropertyContainer title="Energy convergence" className={style.energies}>
         <ErrorHandler message='Could not load energies.'>
           <Plot
             data={finalData}
@@ -180,10 +170,10 @@ function GeometryOptimization({data, className, classes, units}) {
           >
           </Plot>
         </ErrorHandler>
-      </Box>
+      </PropertyContainer>
     </Box>
   )
-}
+})
 
 GeometryOptimization.propTypes = {
   data: PropTypes.oneOfType([

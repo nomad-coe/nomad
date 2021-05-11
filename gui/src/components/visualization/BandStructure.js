@@ -32,7 +32,17 @@ const useStyles = makeStyles({
   }
 })
 
-function BandStructure({data, layout, aspectRatio, className, classes, placeholderStyle, units, type, ...other}) {
+const BandStructure = React.memo(({
+  data,
+  layout,
+  aspectRatio,
+  className,
+  classes,
+  placeholderStyle,
+  units,
+  type,
+  ...other
+}) => {
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const [normalizedToHOE, setNormalizedToHOE] = useState(false)
@@ -301,7 +311,7 @@ function BandStructure({data, layout, aspectRatio, className, classes, placehold
       </Plot>
     </Box>
   )
-}
+})
 
 BandStructure.propTypes = {
   data: PropTypes.oneOfType([

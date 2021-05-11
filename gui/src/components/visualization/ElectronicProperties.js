@@ -18,16 +18,15 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import {
-  Box,
-  Typography
-} from '@material-ui/core'
+import { Box } from '@material-ui/core'
 import { convertSI } from '../../utils'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
+import SectionTable from './SectionTable'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
+import PropertyContainer from './PropertyContainer'
 
 // Styles
 const useStyles = makeStyles((theme) => {
@@ -42,22 +41,27 @@ const useStyles = makeStyles((theme) => {
       flexWrap: 'wrap'
     },
     bz: {
-      flex: '0 0 66.6%'
+      marginTop: theme.spacing(1.5),
+      flex: '0 0 65%'
+    },
+    gaps: {
+      marginTop: theme.spacing(1.5),
+      flex: '0 0 35%'
     },
     bs: {
-      flex: '0 0 66.6%'
+      flex: '0 0 65%'
     },
     dos: {
-      flex: '0 0 33.3%'
+      flex: '0 0 35%'
     },
-    noData: {
-      top: '1.43rem',
+    nodata: {
+      top: theme.spacing(1),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: '3.55rem'
     },
-    placeHolder: {
-      top: '1.43rem',
+    placeholder: {
+      top: theme.spacing(1),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: theme.spacing(2)
@@ -65,7 +69,14 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function ElectronicProperties({bs, dos, className, classes, units}) {
+// Band gap quantities to show. Saved as const object to prevent re-renders
+const bandGapQuantities = {
+  index: {label: 'Ch.'},
+  band_gap: {label: 'Value'},
+  band_gap_type: {label: 'Type', placeholder: 'no gap'}
+}
+
+const ElectronicProperties = React.memo(({bs, dos, className, classes, units}) => {
   const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
@@ -89,50 +100,58 @@ function ElectronicProperties({bs, dos, className, classes, units}) {
 
   return (
     <Box className={styles.row}>
-      <Box className={styles.bs}>
-        <Typography variant="subtitle1" align='center'>Band structure</Typography>
+      <PropertyContainer title="Band structure" className={styles.bs}>
         <BandStructure
           data={bs}
           layout={bsLayout}
-          aspectRatio={1.2}
-          placeHolderStyle={styles.placeHolder}
-          noDataStyle={styles.noData}
+          aspectRatio={0.6 * 65 / 35}
+          placeHolderStyle={styles.placeholder}
+          noDataStyle={styles.nodata}
           units={units}
           onRelayouting={handleBSRelayouting}
           onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
           layoutSubject={dosYSubject}
           data-testid="bs-electronic"
         ></BandStructure>
-      </Box>
-      <Box className={styles.dos}>
-        <Typography variant="subtitle1" align='center'>Density of states</Typography>
+      </PropertyContainer>
+      <PropertyContainer title="Density of states" className={styles.dos}>
         <DOS
           data={dos}
           layout={dosLayout}
           aspectRatio={0.6}
-          placeHolderStyle={styles.placeHolder}
-          noDataStyle={styles.noData}
+          placeHolderStyle={styles.placeholder}
+          noDataStyle={styles.nodata}
           onRelayouting={handleDOSRelayouting}
           onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
           units={units}
           layoutSubject={bsYSubject}
           data-testid="dos-electronic"
         ></DOS>
-      </Box>
+      </PropertyContainer>
       {bs !== false
-        ? <Box className={styles.bz}>
-          <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
+        ? <><PropertyContainer title="Brillouin zone" className={styles.bz}>
           <BrillouinZone
             data={bs}
-            aspectRatio={1.2}
+            aspectRatio={0.6 * 65 / 35}
             data-testid="bz-electronic"
           ></BrillouinZone>
-        </Box>
+        </PropertyContainer>
+        <PropertyContainer title="Band gaps" className={styles.gaps}>
+          <SectionTable
+            horizontal
+            section="results.properties.electronic.band_structure_electronic.channel_info"
+            quantities={bandGapQuantities}
+            data={bs?.channel_info}
+            aspectRatio={0.6}
+            units={units}
+          />
+        </PropertyContainer>
+        </>
         : null
       }
     </Box>
   )
-}
+})
 
 ElectronicProperties.propTypes = {
   dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.

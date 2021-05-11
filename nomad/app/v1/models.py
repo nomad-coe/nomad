@@ -29,7 +29,7 @@ import fnmatch
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_type, material_type
 
 from .utils import parameter_dependency_from_model, update_url_query_arguments
 
@@ -37,10 +37,8 @@ from .utils import parameter_dependency_from_model, update_url_query_arguments
 User = datamodel.User.m_def.a_pydantic.model
 
 
-entry_id = 'entry_id'
-
-Value = Union[str, int, float, bool, datetime.datetime]
-ComparableValue = Union[str, int, float, datetime.datetime]
+Value = Union[bool, int, float, datetime.datetime, str]
+ComparableValue = Union[int, float, datetime.datetime, str]
 
 
 class AggregationOrderType(str, enum.Enum):
@@ -75,7 +73,8 @@ class Any_(NoneEmptyBaseModel):
     op: List[Value] = Field(None, alias='any')
 
 
-class ComparisonOperator(NoneEmptyBaseModel): pass
+class ComparisonOperator(NoneEmptyBaseModel):
+    op: ComparableValue
 
 
 class Lte(ComparisonOperator):
@@ -95,7 +94,6 @@ class Gt(ComparisonOperator):
 
 
 class LogicalOperator(NoneEmptyBaseModel):
-
     @validator('op', check_fields=False)
     def validate_query(cls, query):  # pylint: disable=no-self-argument
         if isinstance(query, list):
@@ -116,6 +114,14 @@ class Not(LogicalOperator):
     op: 'Query' = Field(None, alias='not')
 
 
+class Nested(BaseModel):
+    query: 'Query'
+
+    @validator('query')
+    def validate_query(cls, query):  # pylint: disable=no-self-argument
+        return _validate_query(query)
+
+
 ops = {
     'lte': Lte,
     'lt': Lt,
@@ -126,16 +132,15 @@ ops = {
     'any': Any_
 }
 
+QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
 
-QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_]
-
-Query = Union[
-    Mapping[str, QueryParameterValue], And, Or, Not]
+Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
 
 
 And.update_forward_refs()
 Or.update_forward_refs()
 Not.update_forward_refs()
+Nested.update_forward_refs()
 
 
 class Owner(str, enum.Enum):
@@ -245,12 +250,8 @@ class WithQuery(BaseModel):
             ```
 
             The searchable quantities are a subset of the NOMAD Archive quantities defined
-            in the NOMAD Metainfo. The most common quantities are: %s.
-        ''' % ', '.join(reversed([
-            '`%s`' % name
-            for name in entry_type.quantities
-            if (name.startswith('dft') or '.' not in name) and len(name) < 20
-        ]))),
+            in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
+        '''),  # TODO custom documentation for entry and material API
         example={
             'upload_time:gt': '2020-01-01',
             'atoms': ['Ti', 'O'],
@@ -270,12 +271,14 @@ def _validate_query(query: Query):
         for key, value in list(query.items()):
             # Note, we loop over a list of items, not query.items(). This is because we
             # may modify the query in the loop.
+            if isinstance(value, dict):
+                value = Nested(query=value)
+
             if ':' in key:
                 quantity, qualifier = key.split(':')
             else:
                 quantity, qualifier = key, None
 
-            assert quantity in entry_type.quantities, '%s is not a searchable quantity' % key
             if qualifier is not None:
                 assert quantity not in query, 'a quantity can only appear once in a query'
                 assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
@@ -283,89 +286,109 @@ def _validate_query(query: Query):
                 query[quantity] = ops[qualifier](**{qualifier: value})  # type: ignore
             elif isinstance(value, list):
                 query[quantity] = All(all=value)
+            else:
+                query[quantity] = value
 
     return query
 
 
-def query_parameters(
-    request: Request,
-    owner: Optional[Owner] = FastApiQuery(
-        'public', description=strip(Owner.__doc__)),
-    q: Optional[List[str]] = FastApiQuery(
-        [], description=strip('''
-            Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
-            you can use the parameter `q` and encode a query parameter like this
-            `atoms__H` or `n_atoms__gt__3`. Multiple usage of `q` will combine parameters with
-            logical *and*.
-        '''))) -> WithQuery:
+class QueryParameters:
+    def __init__(self, doc_type: DocumentType):
+        self.doc_type = doc_type
 
-    # copy parameters from request
-    query_params = {
-        key: request.query_params.getlist(key)
-        for key in request.query_params}
+    def __call__(
+        self,
+        request: Request,
+        owner: Optional[Owner] = FastApiQuery(
+            'public', description=strip(Owner.__doc__)),
+        q: Optional[List[str]] = FastApiQuery(
+            [], description=strip('''
+                Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
+                you can use the parameter `q` and encode a query parameter like this
+                `atoms__H` or `n_atoms__gt__3`. Multiple usage of `q` will combine parameters with
+                logical *and*.
+            '''))) -> WithQuery:
 
-    # add the encoded parameters
-    for parameter in q:
-        fragments = parameter.split('__')
-        if len(fragments) == 1 or len(fragments) > 3:
-            raise HTTPException(422, detail=[{
-                'loc': ['query', 'q'],
-                'msg': 'wrong format, use <quantity>[__<op>]__<value>'}])
-        name_op, value = '__'.join(fragments[:-1]), fragments[-1]
-        quantity_name = name_op.split('__')[0]
+        # copy parameters from request
+        query_params = {
+            key: request.query_params.getlist(key)
+            for key in request.query_params}
 
-        if quantity_name not in entry_type.quantities:
-            raise HTTPException(422, detail=[{
-                'loc': ['query', parameter],
-                'msg': '%s is not a search quantity' % quantity_name}])
+        # add the encoded parameters
+        for parameter in q:
+            fragments = parameter.split('__')
+            if len(fragments) == 1 or len(fragments) > 3:
+                raise HTTPException(422, detail=[{
+                    'loc': ['query', 'q'],
+                    'msg': 'wrong format, use <quantity>[__<op>]__<value>'}])
+            name_op, value = '__'.join(fragments[:-1]), fragments[-1]
+            quantity_name = name_op.split('__')[0]
 
-        query_params.setdefault(name_op, []).append(value)
+            doc_type = self.doc_type
+            if quantity_name.startswith('entries.'):
+                if self.doc_type == material_type:
+                    doc_type = material_entry_type
+                else:
+                    raise HTTPException(422, detail=[{
+                        'loc': ['query', parameter],
+                        'msg': f'entries can only be nested into material queries'}])
 
-    # transform query parameters to query
-    query: Dict[str, Any] = {}
-    for key in query_params:
-        op = None
-        if '__' in key:
-            quantity_name, op = key.split('__')
-        else:
-            quantity_name = key
+            if quantity_name not in doc_type.quantities:
+                raise HTTPException(422, detail=[{
+                    'loc': ['query', parameter],
+                    'msg': f'{quantity_name} is not a {doc_type} quantity'}])
 
-        if quantity_name not in entry_type.quantities:
-            continue
+            query_params.setdefault(name_op, []).append(value)
 
-        quantity = entry_type.quantities[quantity_name]
-        type_ = quantity.definition.type
-        if type_ is Datetime:
-            type_ = datetime.datetime.fromisoformat
-        elif isinstance(type_, MEnum):
-            type_ = str
-        elif isinstance(type_, np.dtype):
-            type_ = float
-        elif type_ not in [int, float, bool]:
-            type_ = str
-        values = query_params[key]
-        values = [type_(value) for value in values]
+        # transform query parameters to query
+        query: Dict[str, Any] = {}
+        for key in query_params:
+            op = None
+            if '__' in key:
+                quantity_name, op = key.split('__')
+            else:
+                quantity_name = key
 
-        if op is None:
-            op = 'all' if quantity.many_all else 'any'
+            if quantity_name.startswith('entries.'):
+                quantity = material_entry_type.quantities.get(quantity_name[8:])
+            else:
+                quantity = self.doc_type.quantities.get(quantity_name)
 
-        if op == 'all':
-            query[quantity_name] = All(all=values)
-        elif op == 'any':
-            query[quantity_name] = Any_(any=values)
-        elif op in ops:
-            if len(values) > 1:
+            if quantity is None:
+                continue
+
+            type_ = quantity.definition.type
+            if type_ is Datetime:
+                type_ = datetime.datetime.fromisoformat
+            elif isinstance(type_, MEnum):
+                type_ = str
+            elif isinstance(type_, np.dtype):
+                type_ = float
+            elif type_ not in [int, float, bool]:
+                type_ = str
+            values = query_params[key]
+            values = [type_(value) for value in values]
+
+            if op is None:
+                op = 'all' if quantity.many_all else 'any'
+
+            if op == 'all':
+                query[quantity_name] = All(all=values)
+            elif op == 'any':
+                query[quantity_name] = Any_(any=values)
+            elif op in ops:
+                if len(values) > 1:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=[{
+                            'loc': ['query', key],
+                            'msg': 'operator %s does not support multiple values' % op}])
+                query[quantity_name] = ops[op](**{op: values[0]})
+            else:
                 raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        'loc': ['query', key],
-                        'msg': 'operator %s does not support multiple values' % op}])
-            query[quantity_name] = ops[op](**{op: values[0]})
-        else:
-            raise HTTPException(
-                422, detail=[{'loc': ['query', key], 'msg': 'operator %s is unknown' % op}])
+                    422, detail=[{'loc': ['query', key], 'msg': 'operator %s is unknown' % op}])
 
-    return WithQuery(query=query, owner=owner)
+        return WithQuery(query=query, owner=owner)
 
 
 class Direction(str, enum.Enum):
@@ -382,33 +405,13 @@ class MetadataRequired(BaseModel):
     include: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to include for each result. Only those quantities will be
-            returned. The entry id quantity `entry_id` will always be included.
+            returned. At least one id quantity (e.g. `entry_id`) will always be included.
         '''))
     exclude: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to exclude for each result. Only all other quantities will
-            be returned. The quantity `entry_id` cannot be excluded.
+            be returned. The entity's id quantity (e.g. `entry_id`) cannot be excluded.
         '''))
-
-    @validator('include', 'exclude')
-    def validate_include(cls, value, values, field):  # pylint: disable=no-self-argument
-        if value is None:
-            return None
-
-        for item in value:
-            assert item in entry_type.quantities or '*' in item, \
-                f'required fields ({item}) must be valid search quantities or contain wildcards'
-
-        # TODO resolve wildcards?
-
-        if field.name == 'include' and 'entry_id' not in value:
-            value.append('entry_id')
-
-        if field.name == 'exclude':
-            if 'entry_id' in value:
-                value.remove('entry_id')
-
-        return value
 
 
 metadata_required_parameters = parameter_dependency_from_model(
@@ -615,7 +618,7 @@ class PaginationResponse(Pagination):
             self.populate_urls(request)
 
 
-class EntryBasedPagination(Pagination):
+class MetadataBasedPagination(Pagination):
     order_by: Optional[str] = Field(
         None,
         description=strip('''
@@ -625,24 +628,16 @@ class EntryBasedPagination(Pagination):
 
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        if order_by is None:
-            order_by = entry_id
-
-        assert order_by in entry_type.quantities, 'order_by must be a valid search quantity'
-        quantity = entry_type.quantities[order_by]
-        assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
+        # No validation here – validation is done during search
         return order_by
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
-        order_by = values.get('order_by', entry_id)
-        if page_after_value is not None and order_by is not None and order_by != entry_id:
-            if ':' not in page_after_value:
-                page_after_value = '%s:' % page_after_value
+        # No validation here – validation is done during search
         return page_after_value
 
 
-class EntryPagination(EntryBasedPagination):
+class MetadataPagination(MetadataBasedPagination):
     page: Optional[int] = Field(
         None, description=strip('''
             For simple, index-based pagination, this should contain the number of the
@@ -662,11 +657,11 @@ class EntryPagination(EntryBasedPagination):
         return page
 
 
-entry_pagination_parameters = parameter_dependency_from_model(
-    'entry_pagination_parameters', EntryPagination)
+metadata_pagination_parameters = parameter_dependency_from_model(
+    'metadata_pagination_parameters', MetadataPagination)
 
 
-class AggregationPagination(EntryBasedPagination):
+class AggregationPagination(MetadataBasedPagination):
     order_by: Optional[str] = Field(
         None,  # type: ignore
         description=strip('''
@@ -707,12 +702,6 @@ class Aggregation(BaseModel):
         None, description=strip('''
         Optionally, a set of entries can be returned for each value.
         '''))
-
-    @validator('quantity')
-    def validate_quantity(cls, quantity):  # pylint: disable=no-self-argument
-        assert quantity in entry_type.quantities and entry_type.quantities[quantity].aggregateable, \
-            'aggregation quantities must be search quantities suitable for aggregation'
-        return quantity
 
 
 class StatisticsOrder(BaseModel):
@@ -764,30 +753,9 @@ class Statistic(BaseModel):
         natural ordering of the values.
         '''))
 
-    @validator('metrics')
-    def validate_metric(cls, metrics):  # pylint: disable=no-self-argument
-        for metric in metrics:
-            assert metric in entry_type.metrics, \
-                'metric must be the qualified name of a suitable search quantity'
-        return metrics
-
-    @validator('quantity')
-    def validate_quantity(cls, quantity):  # pylint: disable=no-self-argument
-        assert quantity in entry_type.quantities, f'{quantity} is not a search quantity'
-        assert entry_type.quantities[quantity].aggregateable, (
-            f"{quantity}'s mapping type {entry_type.quantities[quantity].mapping['type']} "
-            "is not suitable for aggregation")
-        return quantity
-
-    @root_validator(skip_on_failure=True)
-    def fill_default_size(cls, values):  # pylint: disable=no-self-argument
-        if 'size' not in values or values['size'] is None:
-            values['size'] = entry_type.quantities[values['quantity']].statistics_size
-        return values
-
 
 class WithQueryAndPagination(WithQuery):
-    pagination: Optional[EntryPagination] = Body(
+    pagination: Optional[MetadataPagination] = Body(
         None,
         example={
             'page_size': 5,
@@ -795,7 +763,7 @@ class WithQueryAndPagination(WithQuery):
         })
 
 
-class EntriesMetadata(WithQueryAndPagination):
+class Metadata(WithQueryAndPagination):
     required: Optional[MetadataRequired] = Body(
         None,
         example={
@@ -892,129 +860,6 @@ files_parameters = parameter_dependency_from_model(
     'files_parameters', Files)
 
 
-ArchiveRequired = Union[str, Dict[str, Any]]
-
-
-_archive_required_field = Body(
-    '*',
-    embed=True,
-    description=strip('''
-        The `required` part allows you to specify what parts of the requested archives
-        should be returned. The NOMAD Archive is a hierarchical data format and
-        you can *require* certain branches (i.e. *sections*) in the hierarchy.
-        By specifing certain sections with specific contents or all contents (via
-        the directive `"*"`), you can determine what sections and what quantities should
-        be returned. The default is the whole archive, i.e., `"*"`.
-
-        For example to specify that you are only interested in the `section_metadata`
-        use:
-
-        ```
-        {
-            "section_metadata": "*"
-        }
-        ```
-
-        Or to only get the `energy_total` from each individual calculations, use:
-        ```
-        {
-            "section_run": {
-                "section_single_configuration_calculation": {
-                    "energy_total": "*"
-                }
-            }
-        }
-        ```
-
-        You can also request certain parts of a list, e.g. the last calculation:
-        ```
-        {
-            "section_run": {
-                "section_single_configuration_calculation[-1]": "*"
-            }
-        }
-        ```
-
-        These required specifications are also very useful to get workflow results.
-        This works because we can use references (e.g. workflow to final result calculation)
-        and the API will resolve these references and return the respective data.
-        For example just the total energy value and reduced formula from the resulting
-        calculation:
-        ```
-        {
-            "section_workflow": {
-                "calculation_result_ref": {
-                    "energy_total": "*",
-                    "single_configuration_calculation_to_system_ref": {
-                        "chemical_composition_reduced": "*"
-                    }
-                }
-            }
-        }
-        ```
-
-        You can also resolve all references in a branch with the `include-resolved`
-        directive. This will resolve all references in the branch, and also all references
-        in referenced sections:
-        ```
-        {
-            "section_workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-
-        By default, the targets of "resolved" references are added to the archive at
-        their original hierarchy positions.
-        This means, all references are still references, but they are resolvable within
-        the returned data, since they targets are now part of the data. Another option
-        is to add
-        `"resolve-inplace": true` to the root of required. Here, the reference targets will
-        replace the references:
-        ```
-        {
-            "resolve-inplace": true,
-            "section_workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-    '''),
-    example={
-        'section_run': {
-            'section_single_configuration_calculation[-1]': {
-                'energy_total': '*'
-            },
-            'section_system[-1]': '*'
-        },
-        'section_metadata': '*'
-    })
-
-
-class EntriesArchive(WithQueryAndPagination):
-    required: Optional[ArchiveRequired] = _archive_required_field
-
-
-class EntryArchiveRequest(BaseModel):
-    required: Optional[ArchiveRequired] = _archive_required_field
-
-
-class EntriesArchiveDownload(WithQuery):
-    files: Optional[Files] = Body(None)
-
-
-class EntriesRaw(WithQuery):
-    pagination: Optional[EntryPagination] = Body(None)
-
-
-class EntriesRawDownload(WithQuery):
-    files: Optional[Files] = Body(
-        None,
-        example={
-            'glob_pattern': 'vasp*.xml*'
-        })
-
-
 class StatisticResponse(Statistic):
     data: Dict[str, Dict[str, int]] = Field(
         None, description=strip('''
@@ -1047,63 +892,16 @@ class CodeResponse(BaseModel):
     nomad_lab: Optional[str]
 
 
-class EntriesMetadataResponse(EntriesMetadata):
-    pagination: PaginationResponse  # type: ignore
+class MetadataResponse(Metadata):
+    pagination: PaginationResponse = None  # type: ignore
     statistics: Optional[Dict[str, StatisticResponse]]  # type: ignore
     aggregations: Optional[Dict[str, AggregationResponse]]  # type: ignore
+
     data: List[Dict[str, Any]] = Field(
         None, description=strip('''
         The entries data as a list. Each item is a dictionary with the metadata for each
         entry.'''))
+
     code: Optional[CodeResponse]
-
-
-class EntryRawFile(BaseModel):
-    path: str = Field(None)
-    size: int = Field(None)
-
-
-class EntryRaw(BaseModel):
-    entry_id: str = Field(None)
-    upload_id: str = Field(None)
-    mainfile: str = Field(None)
-    files: List[EntryRawFile] = Field(None)
-
-
-class EntriesRawResponse(EntriesRaw):
-    pagination: PaginationResponse = Field(None)  # type: ignore
-    data: List[EntryRaw] = Field(None)
-
-
-class EntryMetadataResponse(BaseModel):
-    entry_id: str = Field(None)
-    required: MetadataRequired = Field(None)
-    data: Dict[str, Any] = Field(
-        None, description=strip('''A dictionary with the metadata of the requested entry.'''))
-
-
-class EntryRawResponse(BaseModel):
-    entry_id: str = Field(...)
-    data: EntryRaw = Field(...)
-
-
-class EntryArchive(BaseModel):
-    entry_id: str = Field(None)
-    upload_id: str = Field(None)
-    parser_name: str = Field(None)
-    archive: Dict[str, Any] = Field(None)
-
-
-class EntriesArchiveResponse(EntriesArchive):
-    pagination: PaginationResponse = Field(None)  # type: ignore
-    data: List[EntryArchive] = Field(None)
-
-
-class EntryArchiveResponse(EntryArchiveRequest):
-    entry_id: str = Field(...)
-    data: EntryArchive = Field(None)
-
-
-class SearchResponse(EntriesMetadataResponse):
     es_query: Any = Field(
         None, description=strip('''The elasticsearch query that was used to retrieve the results.'''))

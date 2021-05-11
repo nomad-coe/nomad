@@ -139,10 +139,12 @@ def search_quantities():
     entry_type.create_mapping(entry_section_def)
 
     def to_dictV1(search_quantity):
-        result = {
-            'name': search_quantity.qualified_name,
-            'description': search_quantity.definition.description,
-        }
+        metadict = search_quantity.definition.m_to_dict(with_meta=True)
+        result = {}
+        for key in ["name", "description", "type", "unit"]:
+            val = metadict.get(key)
+            if val is not None:
+                result[key] = val
         return result
 
     export.update({
@@ -290,6 +292,32 @@ def update_parser_readmes(parser):
             local.seek(0)  # go to the top
             local.write(body.strip())
             local.truncate()
+
+
+@dev.command(help='Adds a few pieces of data to NOMAD.')
+@click.option('--username', '-u', type=str, help='The uploader username.')
+def example_data(username: str):
+    from nomad import infrastructure, utils
+    from tests.utils import ExampleData
+
+    infrastructure.setup()
+
+    user = infrastructure.keycloak.get_user(username=username)
+    if user is None:
+        print(f'The user {username} does not exist.')
+        sys.exit(1)
+
+    data = ExampleData(uploader=user)
+
+    # one upload with two calc published with embargo, one shared
+    data.create_entry(
+        calc_id=utils.create_uuid(),
+        upload_id=utils.create_uuid(),
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    data.save(with_files=True, with_es=True, with_mongo=True)
+
+    return data
 
 
 @dev.command(help='Creates a Javascript source file containing the required unit conversion factors.')

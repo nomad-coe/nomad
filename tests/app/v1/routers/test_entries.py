@@ -25,10 +25,14 @@ import json
 from nomad.datamodel import results
 from nomad.metainfo.elasticsearch_extension import entry_type
 
-from tests.utils import assert_at_least, assert_url_query_args, ExampleData
+from tests.utils import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
-from .common import assert_response
+from .common import (
+    assert_response, assert_base_metadata_response, assert_metadata_response,
+    assert_statistic, assert_required, assert_aggregations, assert_pagination,
+    perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
+    perform_owner_test, owner_test_parameters, pagination_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -42,42 +46,13 @@ to assert for certain aspects in the responses.
 '''
 
 
-def perform_entries_metadata_test(
-        client, owner=None, headers={}, status_code=200,
-        entries=None, http_method='get', **kwargs):
-
-    if http_method == 'get':
-        params = {}
-        if owner is not None:
-            params['owner'] = owner
-        for value in kwargs.values():
-            params.update(**value)
-        response = client.get(
-            'entries?%s' % urlencode(params, doseq=True), headers=headers)
-
-    elif http_method == 'post':
-        body = dict(**kwargs)
-        if owner is not None:
-            body['owner'] = owner
-        response = client.post('entries/query', headers=headers, json=body)
-
-    else:
-        assert False
-
-    response_json = assert_entries_metadata_response(response, status_code=status_code)
-
-    if response_json is None:
-        return
-
-    assert 'pagination' in response_json
-    if entries is not None and entries >= 0:
-        assert response_json['pagination']['total'] == entries
-
-    return response_json
+def perform_entries_metadata_test(*args, **kwargs):
+    kwargs.update(endpoint='entries')
+    return perform_metadata_test(*args, **kwargs)
 
 
 def perform_entries_raw_download_test(
-        client, headers={}, query={}, owner=None, files={}, entries=-1, files_per_entry=5,
+        client, headers={}, query={}, owner=None, files={}, total=-1, files_per_entry=5,
         status_code=200, http_method='get'):
 
     if owner == 'all':
@@ -103,13 +78,13 @@ def perform_entries_raw_download_test(
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
-            response, files=entries * files_per_entry + 1, manifest_entries=entries,
+            response, files=total * files_per_entry + 1, manifest_entries=total,
             compressed=files.get('compress', False))
 
 
 def perform_entries_raw_test(
         client, owner=None, headers={}, status_code=200,
-        entries=None, http_method='get', files_per_entry=-1, **kwargs):
+        total=None, http_method='get', files_per_entry=-1, **kwargs):
 
     if owner == 'all':
         # This operation is not allow for owner 'all'
@@ -133,14 +108,14 @@ def perform_entries_raw_test(
     else:
         assert False
 
-    response_json = assert_entries_raw_metadata_response(response, status_code=status_code)
+    response_json = assert_base_metadata_response(response, status_code=status_code)
 
     if response_json is None:
         return None
 
     assert 'pagination' in response_json
-    if entries is not None:
-        assert response_json['pagination']['total'] == entries
+    if total is not None:
+        assert response_json['pagination']['total'] == total
 
     assert_entries_raw_response(response_json, files_per_entry=files_per_entry)
 
@@ -149,7 +124,7 @@ def perform_entries_raw_test(
 
 def perform_entries_archive_download_test(
         client, headers={}, query={}, owner=None, files={},
-        entries=-1, status_code=200, http_method='get'):
+        total=-1, status_code=200, http_method='get'):
 
     if owner == 'all':
         # This operation is not allow for owner 'all'
@@ -174,12 +149,12 @@ def perform_entries_archive_download_test(
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_zip_file(
-            response, entries=entries,
+            response, total=total,
             compressed=files.get('compress', False))
 
 
 def perform_entries_archive_test(
-        client, headers={}, entries=-1, status_code=200, http_method='get', **kwargs):
+        client, headers={}, total=-1, status_code=200, http_method='get', **kwargs):
 
     if kwargs.get('owner') == 'all':
         # This operation is not allow for owner 'all'
@@ -202,8 +177,8 @@ def perform_entries_archive_test(
         return None
 
     json_response = response.json()
-    if entries >= 0:
-        assert json_response['pagination']['total'] == entries
+    if total >= 0:
+        assert json_response['pagination']['total'] == total
     for archive_data in json_response['data']:
         required = kwargs.get('required', '*')
         archive = archive_data['archive']
@@ -215,165 +190,6 @@ def perform_entries_archive_test(
             for key in archive: assert key in required
 
     return json_response
-
-
-def assert_entry_metadata(response_json):
-    if isinstance(response_json['data'], list):
-        entries = response_json['data']
-    else:
-        entries = [response_json['data']]
-
-    for entry in entries:
-        if 'required' not in response_json:
-            assert 'license' in entry
-
-
-def assert_entries_metadata_response(response, status_code=None):
-    response_json = assert_entries_raw_metadata_response(response, status_code=status_code)
-    if response_json is not None:
-        assert_entry_metadata(response_json)
-    return response_json
-
-
-def assert_entries_raw_metadata_response(response, status_code=None):
-    assert_response(response, status_code)
-
-    if status_code != 200 or response.status_code != 200:
-        return None
-
-    response_json = response.json()
-    assert 'es_query' not in response_json
-    assert 'data' in response_json
-    return response_json
-
-
-def assert_statistic(response_json, name, statistic, size=-1):
-    assert 'statistics' in response_json
-    assert name in response_json['statistics']
-    statistic_response = response_json['statistics'][name]
-    for key in ['data', 'size', 'order', 'quantity']:
-        assert key in statistic_response
-
-    assert_at_least(statistic, statistic_response)
-
-    default_size = entry_type.quantities[statistic['quantity']].statistics_size
-    assert statistic.get('size', default_size) >= len(statistic_response['data'])
-
-    if size != -1:
-        assert len(statistic_response['data']) == size
-
-    values = list(statistic_response['data'].keys())
-    for index, value in enumerate(values):
-        data = statistic_response['data'][value]
-        assert 'entries' in data
-        for metric in statistic.get('metrics', []):
-            assert metric in data
-
-        if index < len(values) - 1:
-
-            def order_value(value, data):
-                if statistic_response['order']['type'] == 'entries':
-                    return data['entries']
-                else:
-                    return value
-
-            if statistic_response['order']['direction'] == 'asc':
-                assert order_value(value, data) <= order_value(values[index + 1], statistic_response['data'][values[index + 1]])
-            else:
-                assert order_value(value, data) >= order_value(values[index + 1], statistic_response['data'][values[index + 1]])
-
-    if 'order' in statistic:
-        assert statistic_response['order']['type'] == statistic['order'].get('type', 'entries')
-        assert statistic_response['order']['direction'] == statistic['order'].get('direction', 'desc')
-
-
-def assert_required(data, required):
-    if 'include' in required:
-        for key in data:
-            assert key in required['include'] or '%s.*' % key in required['include'] or key == 'entry_id'
-    if 'exclude' in required:
-        for key in required['exclude']:
-            assert key not in data or key == 'entry_id'
-
-
-def assert_aggregations(response_json, name, agg, total: int, size: int):
-    assert 'aggregations' in response_json
-    assert name in response_json['aggregations']
-    agg_response = response_json['aggregations'][name]
-
-    for key in ['data', 'pagination', 'quantity']:
-        assert key in agg_response
-
-    assert_at_least(agg, agg_response)
-
-    n_data = len(agg_response['data'])
-    assert agg.get('pagination', {}).get('page_size', 10) >= n_data
-    assert agg_response['pagination']['total'] >= n_data
-    for item in agg_response['data'].values():
-        for key in ['size']:
-            assert key in item
-            assert item['size'] > 0
-    if size >= 0:
-        assert n_data == size
-    if total >= 0:
-        assert agg_response['pagination']['total'] == total
-
-    if 'entries' in agg:
-        agg_data = [item['data'][0] for item in agg_response['data'].values()]
-    else:
-        agg_data = [{agg['quantity']: value} for value in agg_response['data']]
-
-    if 'pagination' in agg:
-        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data, is_get=False)
-    else:
-        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'], is_get=False)
-
-    if 'entries' in agg:
-        for item in agg_response['data'].values():
-            assert 'data' in item
-            assert agg['entries'].get(size, 10) >= len(item['data']) > 0
-            if 'required' in agg['entries']:
-                for entry in item['data']:
-                    assert_required(entry, agg['entries']['required'])
-
-
-def assert_pagination(pagination, pagination_response, data, order_by=None, order=None, is_get=True):
-    assert_at_least(pagination, pagination_response)
-    assert len(data) <= pagination_response['page_size']
-    assert len(data) <= pagination_response['total']
-
-    if order is None:
-        order = pagination_response.get('order', 'asc')
-    if order_by is None:
-        order_by = pagination_response.get('order_by')
-
-    if order_by is not None:
-        for index, item in enumerate(data):
-            if index < len(data) - 1 and order_by in item:
-                if order == 'desc':
-                    assert item[order_by] >= data[index + 1][order_by]
-                else:
-                    assert item[order_by] <= data[index + 1][order_by]
-
-    if is_get:
-        page_size = pagination_response['page_size']
-        page = pagination_response.get('page')
-        page_url = pagination_response.get('page_url')
-        first_page_url = pagination_response.get('first_page_url')
-        prev_page_url = pagination_response.get('prev_page_url')
-        next_page_url = pagination_response.get('next_page_url')
-        next_page_after_value = pagination_response.get('next_page_after_value')
-
-        assert page_url
-        if page_size:
-            assert first_page_url
-            assert_url_query_args(first_page_url, page_after_value=None, page=None)
-        if next_page_after_value:
-            assert next_page_url
-            assert_url_query_args(next_page_url, page_after_value=next_page_after_value, page=None)
-        if page and page > 1:
-            assert prev_page_url
-            assert_url_query_args(prev_page_url, page=page - 1, page_after_value=None)
 
 
 def assert_raw_zip_file(
@@ -441,7 +257,7 @@ def assert_entry_raw(data, files_per_entry: int = -1):
         assert 'path' in file_
 
 
-def assert_archive_zip_file(response, entries: int = -1, compressed: bool = False):
+def assert_archive_zip_file(response, total: int = -1, compressed: bool = False):
     manifest_keys = ['entry_id', 'upload_id', 'path', 'parser_name']
 
     assert len(response.content) > 0
@@ -453,8 +269,8 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
         with_missing_files = any(entry['entry_id'] == 'id_02' for entry in manifest)
 
         zip_files = set(zip_file.namelist())
-        if entries >= 0:
-            assert len(zip_files) == entries + 1 - (1 if with_missing_files else 0)
+        if total >= 0:
+            assert len(zip_files) == total + 1 - (1 if with_missing_files else 0)
             assert (zip_file.getinfo(zip_file.namelist()[0]).compress_type > 0) == compressed
 
         for path in zip_files:
@@ -466,8 +282,8 @@ def assert_archive_zip_file(response, entries: int = -1, compressed: bool = Fals
                         assert key in data
                     assert_archive(data['archive'])
 
-        if entries >= 0:
-            assert len(manifest) == entries
+        if total >= 0:
+            assert len(manifest) == total
 
             for entry in manifest:
                 if 'mainfile' in manifest:
@@ -522,16 +338,17 @@ def test_entries_statistics(client, data, test_user_auth, statistic, size, statu
     if response_json is None:
         return
 
-    assert_statistic(response_json, 'test_statistic', statistic, size=size)
+    assert_statistic(response_json, 'test_statistic', statistic, size=size, doc_type=entry_type)
 
 
+# TODO is this really the desired behavior
 def test_entries_statistics_ignore_size(client, data):
     statistic = {'quantity': program_name, 'size': 10}
     statistics = {'test_statistic': statistic}
     response_json = perform_entries_metadata_test(
         client, statistics=statistics, status_code=200, http_method='post')
     statistic.update(size=n_code_names)
-    assert_statistic(response_json, 'test_statistic', statistic, size=n_code_names)
+    assert_statistic(response_json, 'test_statistic', statistic, size=n_code_names, doc_type=entry_type)
 
 
 def test_entries_all_statistics(client, data):
@@ -541,7 +358,7 @@ def test_entries_all_statistics(client, data):
     response_json = perform_entries_metadata_test(
         client, statistics=statistics, status_code=200, http_method='post')
     for name, statistic in statistics.items():
-        assert_statistic(response_json, name, statistic)
+        assert_statistic(response_json, name, statistic, doc_type=entry_type)
 
 
 @pytest.mark.parametrize('aggregation, total, size, status_code', [
@@ -568,7 +385,7 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
     if response_json is None:
         return
 
-    assert_aggregations(response_json, 'test_agg_name', aggregation, total=total, size=size)
+    assert_aggregations(response_json, 'test_agg_name', aggregation, total=total, size=size, default_key='entry_id')
 
 
 @pytest.mark.parametrize('required, status_code', [
@@ -589,7 +406,7 @@ def test_entries_required(client, data, required, status_code, http_method):
     if response_json is None:
         return
 
-    assert_required(response_json['data'][0], required)
+    assert_required(response_json['data'][0], required, default_key='entry_id')
 
 
 @pytest.mark.parametrize('entry_id, required, status_code', [
@@ -601,27 +418,27 @@ def test_entries_required(client, data, required, status_code, http_method):
 ])
 def test_entry_metadata(client, data, entry_id, required, status_code):
     response = client.get('entries/%s?%s' % (entry_id, urlencode(required, doseq=True)))
-    response_json = assert_entries_metadata_response(response, status_code=status_code)
+    response_json = assert_metadata_response(response, status_code=status_code)
 
     if response_json is None:
         return
 
-    assert_required(response_json['data'], required)
+    assert_required(response_json['data'], required, default_key='entry_id')
 
 
-@pytest.mark.parametrize('query, files, entries, files_per_entry, status_code', [
+@pytest.mark.parametrize('query, files, total, files_per_entry, status_code', [
     pytest.param({}, {}, 23, 5, 200, id='all'),
     pytest.param({'entry_id': 'id_01'}, {}, 1, 5, 200, id='all'),
     pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_raw(client, data, query, files, entries, files_per_entry, status_code, http_method):
+def test_entries_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
     perform_entries_raw_test(
-        client, status_code=status_code, query=query, files=files, entries=entries,
+        client, status_code=status_code, query=query, files=files, total=total,
         files_per_entry=files_per_entry, http_method=http_method)
 
 
-@pytest.mark.parametrize('query, files, entries, files_per_entry, status_code', [
+@pytest.mark.parametrize('query, files, total, files_per_entry, status_code', [
     pytest.param({}, {}, 23, 5, 200, id='all'),
     pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty'),
     pytest.param({}, {'glob_pattern': '*.json'}, 23, 1, 200, id='glob'),
@@ -633,9 +450,9 @@ def test_entries_raw(client, data, query, files, entries, files_per_entry, statu
     pytest.param({}, {'compress': True}, 23, 5, 200, id='compress')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_download_raw(client, data, query, files, entries, files_per_entry, status_code, http_method):
+def test_entries_download_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
     perform_entries_raw_download_test(
-        client, status_code=status_code, query=query, files=files, entries=entries,
+        client, status_code=status_code, query=query, files=files, total=total,
         files_per_entry=files_per_entry, http_method=http_method)
 
 
@@ -769,15 +586,15 @@ def test_entry_raw_download_file(
             assert content == 'test content\n'
 
 
-@pytest.mark.parametrize('query, files, entries, status_code', [
+@pytest.mark.parametrize('query, files, total, status_code', [
     pytest.param({}, {}, 23, 200, id='all'),
     pytest.param({program_name: 'DOESNOTEXIST'}, {}, -1, 200, id='empty'),
     pytest.param({}, {'compress': True}, 23, 200, id='compress')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_archive_download(client, data, query, files, entries, status_code, http_method):
+def test_entries_archive_download(client, data, query, files, total, status_code, http_method):
     perform_entries_archive_download_test(
-        client, status_code=status_code, query=query, files=files, entries=entries,
+        client, status_code=status_code, query=query, files=files, total=total,
         http_method=http_method)
 
 
@@ -823,56 +640,12 @@ def test_entry_archive_query(client, data, entry_id, required, status_code):
         assert_archive_response(response.json(), required=required)
 
 
-def perform_entries_owner_test(
-        client, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
-
-    headers = None
-    if user == 'test_user':
-        headers = test_user_auth
-    elif user == 'other_test_user':
-        headers = other_test_user_auth
-    elif user == 'admin_user':
-        headers = admin_user_auth
-    elif user == 'bad_user':
-        headers = {'Authorization': 'Bearer NOTATOKEN'}
-
-    test_method(
-        client, headers=headers, owner=owner, status_code=status_code, entries=total,
-        http_method=http_method)
-
-
 elements = 'results.material.elements'
 n_elements = 'results.material.n_elements'
 
 
-@pytest.mark.parametrize('query, status_code, total', [
-    pytest.param({}, 200, 23, id='empty'),
-    pytest.param('str', 422, -1, id='not-dict'),
-    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
-    pytest.param({'mispelled': 'id_01'}, 422, -1, id='not-quantity'),
-    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
-    pytest.param({'entry_id': 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'),
-    pytest.param({'entry_id:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
-    pytest.param({'entry_id': {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
-    pytest.param({'entry_id': {'any': 'id_01'}}, 422, -1, id='any-not-list'),
-    pytest.param({'entry_id:any': 'id_01'}, 422, -1, id='any-short-not-list'),
-    pytest.param({'entry_id:gt': 'id_01'}, 200, 22, id='gt-short'),
-    pytest.param({'entry_id': {'gt': 'id_01'}}, 200, 22, id='gt'),
-    pytest.param({'entry_id': {'gt': ['id_01']}}, 422, 22, id='gt-list'),
-    pytest.param({'entry_id': {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
-    pytest.param({'entry_id:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
-    pytest.param({'entry_id:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
-    pytest.param({'or': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 2, id='or'),
-    pytest.param({'or': {'entry_id': 'id_01', program_name: 'VASP'}}, 422, -1, id='or-not-list'),
-    pytest.param({'and': [{'entry_id': 'id_01'}, {'entry_id': 'id_02'}]}, 200, 0, id='and'),
-    pytest.param({'not': {'entry_id': 'id_01'}}, 200, 22, id='not'),
-    pytest.param({'not': [{'entry_id': 'id_01'}]}, 422, -1, id='not-list'),
-    pytest.param({'not': {'not': {'entry_id': 'id_01'}}}, 200, 1, id='not-nested-not'),
-    pytest.param({'not': {'entry_id:any': ['id_01', 'id_02']}}, 200, 21, id='not-nested-any'),
-    pytest.param({'and': [{'entry_id:any': ['id_01', 'id_02']}, {'entry_id:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
-    pytest.param({'and': [{'not': {'entry_id': 'id_01'}}, {'not': {'entry_id': 'id_02'}}]}, 200, 21, id='not-nested-not')
-])
+@pytest.mark.parametrize('query, status_code, total', post_query_test_parameters(
+    'entry_id', total=23, material_prefix='results.material.', entry_prefix=''))
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_download_test, id='raw-download'),
@@ -880,10 +653,10 @@ n_elements = 'results.material.n_elements'
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_post_query(client, data, query, status_code, total, test_method):
-    response_json = test_method(client, query=query, status_code=status_code, entries=total, http_method='post')
+    response_json = test_method(client, query=query, status_code=status_code, total=total, http_method='post')
 
     response = client.post('entries/query', json={'query': query})
-    response_json = assert_entries_metadata_response(response, status_code=status_code)
+    response_json = assert_metadata_response(response, status_code=status_code)
 
     if response_json is None:
         return
@@ -899,33 +672,9 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('query, status_code, total', [
-    pytest.param({}, 200, 23, id='empty'),
-    pytest.param({'entry_id': 'id_01'}, 200, 1, id='match'),
-    pytest.param({'mispelled': 'id_01'}, 200, 23, id='not-quantity'),
-    pytest.param({'entry_id': ['id_01', 'id_02']}, 200, 2, id='match-many-or'),
-    pytest.param({elements: ['H', 'O']}, 200, 23, id='match-list-many-and-1'),
-    pytest.param({elements: ['H', 'O', 'Zn']}, 200, 0, id='match-list-many-and-2'),
-    pytest.param({n_elements: 2}, 200, 23, id='match-int'),
-    pytest.param({n_elements + '__gt': 2}, 200, 0, id='gt-int'),
-    pytest.param({'calc_id__any': ['id_01', 'id_02']}, 200, 2, id='any'),
-    pytest.param({'calc_id__any': 'id_01'}, 200, 1, id='any-not-list'),
-    pytest.param({'calc_id__gt': 'id_01'}, 200, 22, id='gt'),
-    pytest.param({'calc_id__gt': ['id_01', 'id_02']}, 422, -1, id='gt-list'),
-    pytest.param({'calc_id__missspelled': 'id_01'}, 422, -1, id='not-op-1'),
-    pytest.param({n_elements + '__missspelled': 2}, 422, -1, id='not-op-2'),
-    pytest.param({'q': 'calc_id__id_01'}, 200, 1, id='q-match'),
-    pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
-    pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
-    pytest.param({'q': n_elements + '__2'}, 200, 23, id='q-match-int'),
-    pytest.param({'q': n_elements + '__gt__2'}, 200, 0, id='q-gt'),
-    # TODO
-    # pytest.param({'q': 'dft.workflow.section_geometry_optimization.final_energy_difference__1e-24'}, 200, 0, id='foat'),
-    pytest.param({'q': 'domain__dft'}, 200, 23, id='enum'),
-    pytest.param({'q': 'upload_time__gt__2014-01-01'}, 200, 23, id='datetime'),
-    pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, 23, id='q-all'),
-    pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all')
-])
+@pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
+    'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
+        pytest.param({'q': 'domain__dft'}, 200, 23, id='enum')])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_download_test, id='raw-download'),
@@ -934,7 +683,7 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_get_query(client, data, query, status_code, total, test_method):
     response_json = test_method(
-        client, query=query, status_code=status_code, entries=total, http_method='get')
+        client, query=query, status_code=status_code, total=total, http_method='get')
 
     if response_json is None:
         return
@@ -944,7 +693,7 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
 
     response = client.get('entries?%s' % urlencode(query, doseq=True))
 
-    response_json = assert_entries_metadata_response(response, status_code=status_code)
+    response_json = assert_metadata_response(response, status_code=status_code)
 
     if response_json is None:
         return
@@ -957,34 +706,7 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('owner, user, status_code, total', [
-    pytest.param('user', None, 401, -1, id='user-wo-auth'),
-    pytest.param('staging', None, 401, -1, id='staging-wo-auth'),
-    pytest.param('visible', None, 200, 23, id='visible-wo-auth'),
-    pytest.param('admin', None, 401, -1, id='admin-wo-auth'),
-    pytest.param('shared', None, 401, -1, id='shared-wo-auth'),
-    pytest.param('public', None, 200, 23, id='public-wo-auth'),
-
-    pytest.param('user', 'test_user', 200, 27, id='user-test-user'),
-    pytest.param('staging', 'test_user', 200, 2, id='staging-test-user'),
-    pytest.param('visible', 'test_user', 200, 27, id='visible-test-user'),
-    pytest.param('admin', 'test_user', 401, -1, id='admin-test-user'),
-    pytest.param('shared', 'test_user', 200, 27, id='shared-test-user'),
-    pytest.param('public', 'test_user', 200, 23, id='public-test-user'),
-
-    pytest.param('user', 'other_test_user', 200, 0, id='user-other-test-user'),
-    pytest.param('staging', 'other_test_user', 200, 1, id='staging-other-test-user'),
-    pytest.param('visible', 'other_test_user', 200, 25, id='visible-other-test-user'),
-    pytest.param('shared', 'other_test_user', 200, 2, id='shared-other-test-user'),
-    pytest.param('public', 'other_test_user', 200, 23, id='public-other-test-user'),
-
-    pytest.param('all', None, 200, 25, id='metadata-all-wo-auth'),
-    pytest.param('all', 'test_user', 200, 27, id='metadata-all-test-user'),
-    pytest.param('all', 'other_test_user', 200, 26, id='metadata-all-other-test-user'),
-
-    pytest.param('admin', 'admin_user', 200, 27, id='admin-admin-user'),
-    pytest.param('all', 'bad_user', 401, -1, id='bad-credentials')
-])
+@pytest.mark.parametrize('owner, user, status_code, total', owner_test_parameters(total=23))
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -996,29 +718,16 @@ def test_entries_owner(
         client, data, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total, http_method, test_method):
 
-    perform_entries_owner_test(
+    perform_owner_test(
         client, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total, http_method, test_method)
 
 
-@pytest.mark.parametrize('pagination, response_pagination, status_code', [
-    pytest.param({}, {'total': 23, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
-    pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
-    pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
-    pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
-    pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
-    pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
-    pytest.param({'page_size': 1, 'order_by': program_name}, {'next_page_after_value': 'VASP:id_01'}, 200, id='order-by-after-nested'),
-    pytest.param({'page_size': -1}, None, 422, id='bad-size'),
-    pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
-    pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
-    pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
-    pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
-    pytest.param({'page': 1, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
-    pytest.param({'page': 2, 'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
-    pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
-    pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
-])
+@pytest.mark.parametrize('pagination, response_pagination, status_code', pagination_test_parameters(
+    elements='results.material.elements',
+    n_elements='results.material.n_elements',
+    crystal_system='results.material.symmetry.crystal_system',
+    total=23))
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),

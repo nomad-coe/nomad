@@ -17,8 +17,12 @@
 #
 
 from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO
-from fastapi import APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter
+from fastapi import (
+    APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter,
+    Body)
 from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field
 import os.path
 import io
 import json
@@ -32,17 +36,16 @@ from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 from nomad.archive import ArchiveQueryError
 from nomad.search import AuthenticationRequiredError, SearchError
-from nomad.search.v1 import search
+from nomad.search.v1 import search, QueryValidationError
+from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
 from ..utils import create_streamed_zipfile, File, create_responses
 from ..models import (
-    EntryPagination, WithQuery, MetadataRequired, EntriesMetadataResponse, EntriesMetadata,
-    EntryMetadataResponse, query_parameters, metadata_required_parameters, Files, Query,
-    entry_pagination_parameters, files_parameters, User, Owner, HTTPExceptionModel, EntriesRaw,
-    EntriesRawResponse, EntriesRawDownload, EntryRaw, EntryRawFile, EntryRawResponse,
-    EntriesArchiveDownload, EntryArchiveResponse, EntriesArchive, EntriesArchiveResponse,
-    ArchiveRequired, EntryArchiveRequest)
+    PaginationResponse, MetadataPagination, WithQuery, WithQueryAndPagination, MetadataRequired,
+    MetadataResponse, Metadata, Files, Query, User, Owner,
+    QueryParameters, metadata_required_parameters, files_parameters, metadata_pagination_parameters,
+    HTTPExceptionModel)
 
 
 router = APIRouter()
@@ -52,6 +55,175 @@ raw_tag = 'entries/raw'
 archive_tag = 'entries/archive'
 
 logger = utils.get_logger(__name__)
+
+query_parameters = QueryParameters(doc_type=entry_type)
+
+ArchiveRequired = Union[str, Dict[str, Any]]
+
+_archive_required_field = Body(
+    '*',
+    embed=True,
+    description=strip('''
+        The `required` part allows you to specify what parts of the requested archives
+        should be returned. The NOMAD Archive is a hierarchical data format and
+        you can *require* certain branches (i.e. *sections*) in the hierarchy.
+        By specifing certain sections with specific contents or all contents (via
+        the directive `"*"`), you can determine what sections and what quantities should
+        be returned. The default is the whole archive, i.e., `"*"`.
+
+        For example to specify that you are only interested in the `section_metadata`
+        use:
+
+        ```
+        {
+            "section_metadata": "*"
+        }
+        ```
+
+        Or to only get the `energy_total` from each individual calculations, use:
+        ```
+        {
+            "section_run": {
+                "section_single_configuration_calculation": {
+                    "energy_total": "*"
+                }
+            }
+        }
+        ```
+
+        You can also request certain parts of a list, e.g. the last calculation:
+        ```
+        {
+            "section_run": {
+                "section_single_configuration_calculation[-1]": "*"
+            }
+        }
+        ```
+
+        These required specifications are also very useful to get workflow results.
+        This works because we can use references (e.g. workflow to final result calculation)
+        and the API will resolve these references and return the respective data.
+        For example just the total energy value and reduced formula from the resulting
+        calculation:
+        ```
+        {
+            "section_workflow": {
+                "calculation_result_ref": {
+                    "energy_total": "*",
+                    "single_configuration_calculation_to_system_ref": {
+                        "chemical_composition_reduced": "*"
+                    }
+                }
+            }
+        }
+        ```
+
+        You can also resolve all references in a branch with the `include-resolved`
+        directive. This will resolve all references in the branch, and also all references
+        in referenced sections:
+        ```
+        {
+            "section_workflow":
+                "calculation_result_ref": "include-resolved"
+            }
+        }
+        ```
+
+        By default, the targets of "resolved" references are added to the archive at
+        their original hierarchy positions.
+        This means, all references are still references, but they are resolvable within
+        the returned data, since they targets are now part of the data. Another option
+        is to add
+        `"resolve-inplace": true` to the root of required. Here, the reference targets will
+        replace the references:
+        ```
+        {
+            "resolve-inplace": true,
+            "section_workflow":
+                "calculation_result_ref": "include-resolved"
+            }
+        }
+        ```
+    '''),
+    example={
+        'section_run': {
+            'section_single_configuration_calculation[-1]': {
+                'energy_total': '*'
+            },
+            'section_system[-1]': '*'
+        },
+        'section_metadata': '*'
+    })
+
+
+class EntriesArchive(WithQueryAndPagination):
+    required: Optional[ArchiveRequired] = _archive_required_field
+
+
+class EntryArchiveRequest(BaseModel):
+    required: Optional[ArchiveRequired] = _archive_required_field
+
+
+class EntriesArchiveDownload(WithQuery):
+    files: Optional[Files] = Body(None)
+
+
+class EntriesRaw(WithQuery):
+    pagination: Optional[MetadataPagination] = Body(None)
+
+
+class EntriesRawDownload(WithQuery):
+    files: Optional[Files] = Body(
+        None,
+        example={
+            'glob_pattern': 'vasp*.xml*'
+        })
+
+
+class EntryRawFile(BaseModel):
+    path: str = Field(None)
+    size: int = Field(None)
+
+
+class EntryRaw(BaseModel):
+    entry_id: str = Field(None)
+    upload_id: str = Field(None)
+    mainfile: str = Field(None)
+    files: List[EntryRawFile] = Field(None)
+
+
+class EntriesRawResponse(EntriesRaw):
+    pagination: PaginationResponse = Field(None)  # type: ignore
+    data: List[EntryRaw] = Field(None)
+
+
+class EntryRawResponse(BaseModel):
+    entry_id: str = Field(...)
+    data: EntryRaw = Field(...)
+
+
+class EntryArchive(BaseModel):
+    entry_id: str = Field(None)
+    upload_id: str = Field(None)
+    parser_name: str = Field(None)
+    archive: Dict[str, Any] = Field(None)
+
+
+class EntriesArchiveResponse(EntriesArchive):
+    pagination: PaginationResponse = Field(None)  # type: ignore
+    data: List[EntryArchive] = Field(None)
+
+
+class EntryArchiveResponse(EntryArchiveRequest):
+    entry_id: str = Field(...)
+    data: EntryArchive = Field(None)
+
+
+class EntryMetadataResponse(BaseModel):
+    entry_id: str = Field(None)
+    required: MetadataRequired = Field(None)
+    data: Any = Field(
+        None, description=strip('''The entry metadata as dictionary.'''))
 
 
 _bad_owner_response = status.HTTP_401_UNAUTHORIZED, {
@@ -100,7 +272,11 @@ _bad_archive_required_response = status.HTTP_400_BAD_REQUEST, {
 
 def perform_search(*args, **kwargs):
     try:
-        return search(*args, **kwargs)
+        search_response = search(*args, **kwargs)
+        search_response.es_query = None
+        return search_response
+    except QueryValidationError as e:
+        raise RequestValidationError(errors=e.errors)
     except AuthenticationRequiredError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except SearchError as e:
@@ -112,13 +288,13 @@ def perform_search(*args, **kwargs):
 @router.post(
     '/query', tags=['entries/metadata'],
     summary='Search entries and retrieve their metadata',
-    response_model=EntriesMetadataResponse,
+    response_model=MetadataResponse,
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_entries_metadata_query(
         request: Request,
-        data: EntriesMetadata,
+        data: Metadata,
         user: User = Depends(create_user_dependency())):
 
     '''
@@ -151,14 +327,14 @@ async def post_entries_metadata_query(
 @router.get(
     '', tags=[metadata_tag],
     summary='Search entries and retrieve their metadata',
-    response_model=EntriesMetadataResponse,
+    response_model=MetadataResponse,
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_entries_metadata(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: EntryPagination = Depends(entry_pagination_parameters),
+        pagination: MetadataPagination = Depends(metadata_pagination_parameters),
         required: MetadataRequired = Depends(metadata_required_parameters),
         user: User = Depends(create_user_dependency())):
     '''
@@ -186,7 +362,7 @@ def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: U
     while True:
         response = perform_search(
             owner=owner, query=query,
-            pagination=EntryPagination(page_size=100, page_after_value=page_after_value, order_by='upload_id'),
+            pagination=MetadataPagination(page_size=100, page_after_value=page_after_value, order_by='upload_id'),
             required=MetadataRequired(include=include),
             user_id=user.user_id if user is not None else None)
 
@@ -238,7 +414,7 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
 
 
 def _answer_entries_raw_request(
-        owner: Owner, query: Query, pagination: EntryPagination, user: User):
+        owner: Owner, query: Query, pagination: MetadataPagination, user: User):
 
     if owner == Owner.all_:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
@@ -276,7 +452,7 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=EntryPagination(page_size=0),
+        pagination=MetadataPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 
@@ -388,7 +564,7 @@ async def post_entries_raw_query(
 async def get_entries_raw(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: EntryPagination = Depends(entry_pagination_parameters),
+        pagination: MetadataPagination = Depends(metadata_pagination_parameters),
         user: User = Depends(create_user_dependency())):
 
     res = _answer_entries_raw_request(
@@ -472,7 +648,7 @@ def _validate_required(required: ArchiveRequired) -> RequiredReader:
 
 
 def _answer_entries_archive_request(
-        owner: Owner, query: Query, pagination: EntryPagination, required: ArchiveRequired,
+        owner: Owner, query: Query, pagination: MetadataPagination, required: ArchiveRequired,
         user: User):
 
     if owner == Owner.all_:
@@ -558,7 +734,7 @@ async def post_entries_archive_query(
 async def get_entries_archive_query(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
-        pagination: EntryPagination = Depends(entry_pagination_parameters),
+        pagination: MetadataPagination = Depends(metadata_pagination_parameters),
         user: User = Depends(create_user_dependency())):
 
     res = _answer_entries_archive_request(
@@ -581,7 +757,7 @@ def _answer_entries_archive_download_request(
 
     response = perform_search(
         owner=owner, query=query,
-        pagination=EntryPagination(page_size=0),
+        pagination=MetadataPagination(page_size=0),
         required=MetadataRequired(include=[]),
         user_id=user.user_id if user is not None else None)
 

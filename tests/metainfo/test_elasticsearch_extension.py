@@ -62,6 +62,10 @@ class Data(MSection):
     series = Quantity(type=np.dtype(np.float64), shape=['*'])
 
 
+class Dos(MSection):
+    channel = Quantity(type=int, a_elasticsearch=Elasticsearch(material_entry_type))
+
+
 class Properties(MSection):
 
     available_properties = Quantity(
@@ -75,6 +79,8 @@ class Properties(MSection):
     data = Quantity(type=Data, a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_series = Quantity(type=Data.n_series, a_elasticsearch=Elasticsearch())
+
+    dos = SubSection(sub_section=Dos.m_def, repeats=True, a_elasticsearch=Elasticsearch(nested=True))
 
 
 class Results(MSection):
@@ -119,6 +125,8 @@ class Entry(MSection):
 
     owners = Quantity(
         type=User, shape=['*'], a_elasticsearch=Elasticsearch())
+
+    not_indexed = Quantity(type=str)
 
 
 def assert_mapping(mapping: dict, path: str, es_type: str, field: str = None, **kwargs):
@@ -228,6 +236,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'owners.name', 'keyword')
     assert_mapping(entry_mapping, 'files', 'text')
     assert_mapping(entry_mapping, 'files', 'keyword', 'keyword')
+    assert_mapping(entry_mapping, 'results.properties.dos', 'nested')
+    assert_mapping(entry_mapping, 'results.properties.dos.channel', 'integer')
 
     assert_mapping(material_mapping, 'material_id', 'keyword')
     assert_mapping(material_mapping, 'formula', 'keyword')
@@ -237,6 +247,8 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'entries.upload_time', None)
     assert_mapping(material_mapping, 'entries.results.properties.available_properties', 'keyword')
     assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
+    assert_mapping(material_mapping, 'entries.results.properties.dos', 'nested')
+    assert_mapping(material_mapping, 'entries.results.properties.dos.channel', 'integer')
 
     formula_annotations = Material.formula.m_get_annotations(Elasticsearch)
     assert entry_type.quantities.get('results.material.formula').annotation == formula_annotations[0]
@@ -259,7 +271,9 @@ def test_mappings(indices):
 
 def test_index_docs(indices):
     user = User(user_id='test_user_id', name='Test User')
-    entry = Entry(entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user])
+    entry = Entry(
+        entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user],
+        not_indexed='value')
     data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
     results = entry.m_create(Results)
     results.m_create(

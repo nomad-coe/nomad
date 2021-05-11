@@ -32,6 +32,7 @@ from nomad.datamodel.metainfo.common_dft import (
     section_system,
 )
 from nomad.datamodel.results import (
+    ChannelInfo,
     Results,
     Material,
     Method,
@@ -326,34 +327,32 @@ class ResultsNormalizer(Normalizer):
             if method_name is None:
                 method_name = config.services.unavailable_value
         elif n_methods > 1:
+            # GW
             for sec_method in methods:
-                # GW
                 electronic_structure_method = sec_method.electronic_structure_method
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
                     method_name = electronic_structure_method
                     break
 
-                # Methods linked to each other through references. Get all
-                # linked methods, try to get electronic_structure_method from
-                # each.
-                try:
-                    refs = sec_method.section_method_to_method_refs
-                except KeyError:
-                    pass
-                else:
-                    linked_methods = [sec_method]
+            # Method referencing another as "core_settings". If core method was
+            # given, create new merged method containing all the information.
+            for sec_method in methods:
+                refs = sec_method.section_method_to_method_refs
+                if refs:
+                    core_method = None
                     for ref in refs:
                         method_to_method_kind = ref.method_to_method_kind
-                        method_to_method_ref = ref.method_to_method_ref
                         if method_to_method_kind == "core_settings":
-                            linked_methods.append(method_to_method_ref)
-
-                    for i_method in linked_methods:
-                        electronic_structure_method = i_method.electronic_structure_method
-                        if electronic_structure_method is not None:
-                            repr_method = sec_method
-                            method_name = electronic_structure_method
+                            core_method = ref.method_to_method_ref
+                    if core_method:
+                        updatable_props = ["electronic_structure_method"]
+                        for prop in updatable_props:
+                            new_val = sec_method.get(prop)
+                            if new_val is not None:
+                                setattr(core_method, prop, new_val)
+                        repr_method = core_method
+                        method_name = repr_method.electronic_structure_method
 
         if method_name in {"G0W0", "scGW"}:
             method.method_name = "GW"
@@ -413,28 +412,14 @@ class ResultsNormalizer(Normalizer):
                 bs_new.reciprocal_cell = bs
                 bs_new.segments = bs.section_k_band_segment
                 bs_new.spin_polarized = bs_new.segments[0].band_energies.shape[0] > 1
-                bs_new.energy_fermi = bs.m_parent.energy_reference_fermi
-                bs_new.energy_references = bs.energy_references
-                if bs.section_band_gap:
-                    energy_highest_occupied = []
-                    energy_lowest_unoccupied = []
-                    band_gap = []
-                    band_gap_type = []
-                    for gap in bs.section_band_gap:
-                        band_gap.append(gap.value)
-                        band_gap_type.append("no_gap" if gap.type is None else gap.type)
-                        energy_highest_occupied.append(gap.valence_band_max_energy)
-                        energy_lowest_unoccupied.append(gap.conduction_band_min_energy)
-                    bs_new.band_gap = band_gap
-                    bs_new.band_gap_type = band_gap_type
-                    if bs.m_parent.energy_reference_highest_occupied is not None:
-                        bs_new.energy_highest_occupied = bs.m_parent.energy_reference_highest_occupied
-                    else:
-                        bs_new.energy_highest_occupied = energy_highest_occupied
-                    if bs.m_parent.energy_reference_lowest_unoccupied is not None:
-                        bs_new.energy_lowest_unoccupied = bs.m_parent.energy_reference_lowest_unoccupied
-                    else:
-                        bs_new.energy_lowest_unoccupied = energy_lowest_unoccupied
+                for info in bs.channel_info:
+                    info_new = bs_new.m_create(ChannelInfo)
+                    info_new.index = info.index
+                    info_new.band_gap = info.band_gap
+                    info_new.band_gap_type = info.band_gap_type
+                    info_new.energy_highest_occupied = info.energy_highest_occupied
+                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    info_new.energy_fermi = info.energy_fermi
                 return bs_new
 
         return None
@@ -459,7 +444,14 @@ class ResultsNormalizer(Normalizer):
                 dos_new.densities = dos
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
-                dos_new.energy_references = dos.energy_references
+                for info in dos.channel_info:
+                    info_new = dos_new.m_create(ChannelInfo)
+                    info_new.index = info.index
+                    info_new.band_gap = info.band_gap
+                    info_new.band_gap_type = info.band_gap_type
+                    info_new.energy_highest_occupied = info.energy_highest_occupied
+                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None

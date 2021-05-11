@@ -31,7 +31,7 @@ const useStyles = makeStyles({
   root: {}
 })
 
-function DOS({
+const DOS = React.memo(({
   data,
   layout,
   aspectRatio,
@@ -42,7 +42,7 @@ function DOS({
   type,
   'data-testid': testID,
   ...other
-}) {
+}) => {
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
     let defaultLayout = {
@@ -198,7 +198,7 @@ function DOS({
       </Plot>
     </Box>
   )
-}
+})
 
 DOS.propTypes = {
   data: PropTypes.oneOfType([
@@ -220,6 +220,7 @@ DOS.propTypes = {
   type: PropTypes.string, // Type of band structure: electronic or vibrational
   'data-testid': PropTypes.string
 }
+
 DOS.defaultProps = {
   type: 'electronic'
 }

@@ -456,3 +456,28 @@ export function diffTotal(values) {
   }
   return diffValues
 }
+
+/**
+ * Formats the given number.
+ *
+ * @param {number} value Number to format
+ * @param {decimals} decimals Number of decimals to use
+ * @param {bool} scientific Whether to convert large or small values to scientific
+ * form.
+ *
+ * @return {number} Array containing the total difference values.
+ */
+export function formatNumber(value, type = 'float64', decimals = 3, scientific = true) {
+  if (type?.startsWith('int')) {
+    decimals = 0
+  }
+  if (value === 0) {
+    return value
+  }
+  if (scientific) {
+    if (value > 1e3 || value < 1e-3) {
+      return Number.parseFloat(value).toExponential(decimals)
+    }
+  }
+  return value.toFixed(decimals)
+}

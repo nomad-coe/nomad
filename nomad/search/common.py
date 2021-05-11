@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-from typing import Any, Dict
+from typing import cast, Any, Dict
 from elasticsearch_dsl import Q
 
 from nomad import datamodel
-from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.metainfo.elasticsearch_extension import entry_type, DocumentType
 
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import MetadataRequired
@@ -100,7 +100,7 @@ def _api_to_es_query(query: api_models.Query) -> Q:
                 quantity_to_es(name, item)
                 for item in value])
 
-        return quantity_to_es(name, value)
+        return quantity_to_es(name, cast(api_models.Value, value))
 
     def query_to_es(query: api_models.Query) -> Q:
         if isinstance(query, api_models.LogicalOperator):
@@ -132,31 +132,36 @@ def _api_to_es_query(query: api_models.Query) -> Q:
     return query_to_es(query)
 
 
-def _owner_es_query(owner: str, user_id: str = None):
+def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = entry_type):
+    def term_query(**kwargs):
+        prefix = '' if doc_type == entry_type else 'entries.'
+        return Q('term', **{
+            (prefix + field): value for field, value in kwargs.items()})
+
     if owner == 'all':
-        q = Q('term', published=True)
+        q = term_query(published=True)
         if user_id is not None:
-            q = q | Q('term', owners__user_id=user_id)
+            q = q | term_query(owners__user_id=user_id)
     elif owner == 'public':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
+        q = term_query(published=True) & term_query(with_embargo=False)
     elif owner == 'visible':
-        q = Q('term', published=True) & Q('term', with_embargo=False)
+        q = term_query(published=True) & term_query(with_embargo=False)
         if user_id is not None:
-            q = q | Q('term', owners__user_id=user_id)
+            q = q | term_query(owners__user_id=user_id)
     elif owner == 'shared':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value shared.')
 
-        q = Q('term', owners__user_id=user_id)
+        q = term_query(owners__user_id=user_id)
     elif owner == 'user':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user.')
 
-        q = Q('term', uploader__user_id=user_id)
+        q = term_query(uploader__user_id=user_id)
     elif owner == 'staging':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user')
-        q = Q('term', published=False) & Q('term', owners__user_id=user_id)
+        q = term_query(published=False) & term_query(owners__user_id=user_id)
     elif owner == 'admin':
         if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
             raise AuthenticationRequiredError('This can only be used by the admin user.')
