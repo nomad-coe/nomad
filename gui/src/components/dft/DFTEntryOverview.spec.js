@@ -18,17 +18,28 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { renderWithAPIRouter } from '../../testutils'
-import DFTEntryOverview from './DFTEntryOverview'
+import { renderWithAPIRouter, archives, wait } from '../../testutils'
 import { screen } from '@testing-library/react'
 import { waitFor, within } from '@testing-library/dom'
+import '@testing-library/jest-dom/extend-expect'
+import DFTEntryOverview from './DFTEntryOverview'
 import {
   repoDftBulk,
   repoDftBulkOld,
   archiveDftBulk,
   archiveDftBulkOld
 } from '../../../tests/DFTBulk'
-import '@testing-library/jest-dom/extend-expect'
+import { useApi } from '../apiV1'
+
+jest.mock('../apiV1')
+
+beforeAll(() => {
+  useApi.mockReturnValue({
+    results: entry_id => wait(archives.get(entry_id))
+  })
+})
+
+afterAll(() => jest.unmock('../apiV1'))
 
 async function testMaterialMethod(repo, archive) {
   renderWithAPIRouter(

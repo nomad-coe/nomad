@@ -21,7 +21,7 @@ import { useRecoilValue } from 'recoil'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import _ from 'lodash'
 import { apiContext as apiContextV0 } from '../api'
-import { apiContextV1 } from '../apiV1'
+import { useApi } from '../apiV1'
 import { ApiDialog } from '../ApiDialogButton'
 import ElectronicProperties from '../visualization/ElectronicProperties'
 import VibrationalProperties from '../visualization/VibrationalProperties'
@@ -216,7 +216,7 @@ export default function DFTEntryOverview({data}) {
   }, [data, hasResults])
 
   const apiV0 = useContext(apiContextV0).api
-  const apiV1 = useContext(apiContextV1).apiV1
+  const apiV1 = useApi()
   const {raiseError} = useContext(errorContext)
   const [dosElectronic, setDosElectronic] = useState(availableProps.has('dos_electronic') ? null : false)
   const [bsElectronic, setBsElectronic] = useState(availableProps.has('band_structure_electronic') ? null : false)

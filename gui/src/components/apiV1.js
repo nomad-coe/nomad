@@ -15,17 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useCallback, useRef } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
-import { withErrors } from './errors'
 import { apiBase } from '../config'
-import { Typography, withStyles } from '@material-ui/core'
+import { makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
-import { compose } from 'recompose'
-import { withKeycloak } from 'react-keycloak'
+import { useKeycloak } from 'react-keycloak'
 import axios from 'axios'
-
-export const apiContextV1 = React.createContext()
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -228,236 +224,49 @@ function parse(result) {
   }
 }
 
-export class ApiProviderComponent extends React.Component {
-  static propTypes = {
-    children: PropTypes.oneOfType([
-      PropTypes.arrayOf(PropTypes.node),
-      PropTypes.node
-    ]).isRequired,
-    raiseError: PropTypes.func.isRequired,
-    keycloak: PropTypes.object.isRequired,
-    keycloakInitialized: PropTypes.bool
+let api = null
+
+export function useApi() {
+  const [keycloak] = useKeycloak()
+
+  if (!api || api.keycloak !== keycloak) {
+    api = new Api(keycloak)
   }
 
-  constructor(props) {
-    super(props)
-    this.onToken = this.onToken.bind(this)
-  }
-
-  onToken(token) {
-    // console.log(token)
-  }
-
-  update() {
-    const { keycloak } = this.props
-    this.setState({apiV1: this.createApi(keycloak)})
-    if (keycloak.token) {
-      keycloak.loadUserInfo()
-        .success(user => {
-          this.setState({user: user})
-        })
-        .error(error => {
-          this.props.raiseError(error)
-        })
-    }
-  }
-
-  componentDidMount() {
-    this.update()
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.keycloakInitialized !== prevProps.keycloakInitialized) {
-      this.update()
-    }
-  }
-
-  createApi(keycloak) {
-    const api = new Api(keycloak)
-    return api
-  }
-
-  state = {
-    apiV1: null
-  }
-
-  render() {
-    const { children } = this.props
-    return (
-      <apiContextV1.Provider value={this.state}>
-        {children}
-      </apiContextV1.Provider>
-    )
-  }
+  return api
 }
 
-class LoginRequiredUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    message: PropTypes.string
-  }
-
-  static styles = theme => ({
-    root: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: theme.spacing(2),
-      '& p': {
-        marginRight: theme.spacing(2)
-      }
+const useLoginRequiredStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(2),
+    display: 'flex',
+    alignItems: 'center',
+    '& p': {
+      marginRight: theme.spacing(1)
     }
-  })
+  }
+}))
 
-  render() {
-    const {classes, message} = this.props
-
-    let loginMessage = ''
-    if (message) {
-      loginMessage = <Typography>
-        {this.props.message}
+export function LoginRequired({message, children}) {
+  const classes = useLoginRequiredStyles()
+  const api = useApi()
+  if (api.keycloak.authenticated) {
+    return <React.Fragment>
+      {children}
+    </React.Fragment>
+  } else {
+    return <div className={classes.root}>
+      <Typography>
+        {message || 'You have to login to use this functionality.'}
       </Typography>
-    }
-
-    return (
-      <div className={classes.root}>
-        <div>
-          {loginMessage}
-        </div>
-        <LoginLogout color="primary" />
-      </div>
-    )
+      <LoginLogout color="primary" />
+    </div>
   }
 }
-
-export function DisableOnLoading({children}) {
-  const containerRef = useRef(null)
-  const {apiV1} = useContext(apiContextV1)
-  const handleLoading = useCallback((loading) => {
-    const enable = loading ? 'none' : ''
-    containerRef.current.style.pointerEvents = enable
-    containerRef.current.style.userSelects = enable
-  }, [])
-
-  useEffect(() => {
-    apiV1.onLoading(handleLoading)
-    return () => {
-      apiV1.removeOnLoading(handleLoading)
-    }
-  }, [apiV1, handleLoading])
-
-  return <div ref={containerRef}>{children}</div>
-}
-DisableOnLoading.propTypes = {
-  children: PropTypes.any.isRequired
-}
-
-export const ApiV1Provider = compose(withKeycloak, withErrors)(ApiProviderComponent)
-
-const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
-
-const __reauthorize_trigger_changes = ['apiV1', 'calcId', 'uploadId', 'calc_id', 'upload_id']
-
-class WithApiComponent extends React.Component {
-  static propTypes = {
-    raiseError: PropTypes.func.isRequired,
-    loginRequired: PropTypes.bool,
-    showErrorPage: PropTypes.bool,
-    loginMessage: PropTypes.string,
-    api: PropTypes.object,
-    user: PropTypes.object,
-    Component: PropTypes.any
-  }
-
-  state = {
-    notAuthorized: false
-  }
-
-  constructor(props) {
-    super(props)
-    this.raiseError = this.raiseError.bind(this)
-  }
-
-  componentDidUpdate(prevProps) {
-    if (__reauthorize_trigger_changes.find(key => this.props[key] !== prevProps[key])) {
-      this.setState({notAuthorized: false})
-    }
-  }
-
-  raiseError(error) {
-    const { raiseError, showErrorPage } = this.props
-
-    console.error(error)
-
-    if (!showErrorPage) {
-      raiseError(error)
-    } else {
-      if (error.name === 'NotAuthorized') {
-        this.setState({notAuthorized: true})
-      } else {
-        raiseError(error)
-      }
-    }
-  }
-
-  render() {
-    const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { apiV1, keycloak } = rest
-    const { notAuthorized } = this.state
-    if (notAuthorized) {
-      if (keycloak.authenticated) {
-        return (
-          <div style={{marginTop: 24}}>
-            <Typography variant="h6">Not Authorized</Typography>
-            <Typography>
-              You are not authorized to access this information. If someone send
-              you a link to this data, ask the authors to make the data publicly available
-              or share it with you.
-            </Typography>
-          </div>
-        )
-      } else {
-        return (
-          <LoginRequired message="You need to be logged in to access this information." />
-        )
-      }
-    } else {
-      if (apiV1) {
-        if (keycloak.authenticated || !loginRequired) {
-          return <Component {...rest} raiseError={this.raiseError} />
-        } else {
-          return <LoginRequired message={loginMessage} />
-        }
-      } else {
-        return ''
-      }
-    }
-  }
-}
-
-const WithKeycloakWithApiComponent = withKeycloak(WithApiComponent)
-
-/**
- * HOC that will check the API connectivity before rendering a component.
- *
- * @param {bool} loginRequired Set to true if component should not be displayed
- * without login.
- * @param {bool} showErrorPage
- * @param {string} loginMessage The login message to show.
- */
-export function withApiV1(loginRequired, showErrorPage, loginMessage) {
-  return function(Component) {
-    return withErrors(props => (
-      <apiContextV1.Consumer>
-        {apiContext => (
-          <WithKeycloakWithApiComponent
-            loginRequired={loginRequired}
-            loginMessage={loginMessage}
-            showErrorPage={showErrorPage}
-            Component={Component}
-            {...props} {...apiContext}
-          />
-        )}
-      </apiContextV1.Consumer>
-    ))
-  }
+LoginRequired.propTypes = {
+  message: PropTypes.string,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
 }
