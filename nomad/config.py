@@ -177,8 +177,7 @@ tests = NomadConfig(
 def api_url(ssl: bool = True, api: str = 'api'):
     protocol = 'https' if services.https and ssl else 'http'
     host_and_port = services.api_host.strip('/')
-    standard_port = 443 if protocol == 'https' else 80
-    if services.api_port != standard_port:
+    if services.api_port not in [80, 443]:
         host_and_port += ':' + str(services.api_port)
     base_path = services.api_base_path.strip('/')
     return f'{protocol}://{host_and_port}/{base_path}/{api}'

@@ -40,12 +40,12 @@ def get_optional_entry_prop(entry, name):
 class Mapping():
     def __init__(self):
         self.g = Graph()
-        self.g.namespace_manager.bind('rdf', RDF)
-        self.g.namespace_manager.bind('dcat', DCAT)
-        self.g.namespace_manager.bind('dct', DCT)
-        self.g.namespace_manager.bind('vcard', VCARD)
-        self.g.namespace_manager.bind('foaf', FOAF)
-        self.g.namespace_manager.bind('hydra', HYDRA)
+        self.g.bind('rdf', RDF)
+        self.g.bind('dcat', DCAT)
+        self.g.bind('dct', DCT)
+        self.g.bind('vcard', VCARD)
+        self.g.bind('foaf', FOAF)
+        self.g.bind('hydra', HYDRA)
 
         self.persons = {}
 
@@ -75,6 +75,9 @@ class Mapping():
             self.g.add((hydra_collection, HYDRA.next, uri_ref(last_entry.calc_id)))
 
         self.g.add((hydra_collection, RDF.type, HYDRA.collection))
+
+        for person in self.persons.values():
+            self.g.add((catalog, DCT.creator, person))
 
     def map_entry(self, entry: EntryMetadata, slim=False):
         dataset = URIRef(url('datasets', entry.calc_id))
