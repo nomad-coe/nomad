@@ -166,7 +166,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function DFTEntryOverview({data}) {
+const DFTEntryOverview = ({data}) => {
   // Determine which information source will be used: section_results of
   // section_metadata
   const hasResults = !!data?.results
@@ -266,23 +266,26 @@ export default function DFTEntryOverview({data}) {
         // Electronic properties
         const electronicDOS = archive?.results?.properties?.electronic?.dos_electronic
         if (electronicDOS) {
+          const channel_info = electronicDOS.channel_info
           setDosElectronic({
             energies: resolveRef(electronicDOS.energies, archive),
             densities: resolveRef(electronicDOS.densities, archive),
-            energy_highest_occupied: Math.max(
-              ...resolveRef(electronicDOS.energy_references, archive).map(x => x.energy_highest_occupied)
+            energy_highest_occupied: channel_info && Math.max(
+              ...channel_info.map(x => x.energy_highest_occupied)
             ),
             m_path: `${url}/${refPath(electronicDOS.energies.split('/').slice(0, -1).join('/'))}`
           })
         }
         const electronicBS = archive?.results?.properties?.electronic?.band_structure_electronic
         if (electronicBS) {
+          const channel_info = electronicBS.channel_info
           setBsElectronic({
             reciprocal_cell: resolveRef(electronicBS.reciprocal_cell, archive),
             segments: resolveRef(electronicBS.segments, archive),
-            energy_highest_occupied: Math.max(
-              ...resolveRef(electronicBS.energy_references, archive).map(x => x.energy_highest_occupied)
+            energy_highest_occupied: channel_info && Math.max(
+              ...channel_info.map(x => x.energy_highest_occupied)
             ),
+            channel_info: channel_info,
             m_path: `${url}/${refPath(electronicBS.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
           })
         }
@@ -367,10 +370,23 @@ export default function DFTEntryOverview({data}) {
               for (let j = bss.length - 1; j > -1; --j) {
                 const band = scc.section_k_band[j]
                 if (band.band_structure_kind !== 'vibrational') {
+                  let channel_info
+                  if (band.section_band_gap) {
+                    channel_info = []
+                    for (let k = 0; k < band.section_band_gap.length; ++k) {
+                      const gap = band.section_band_gap[k]
+                      channel_info.push({
+                        index: k,
+                        band_gap: gap.value,
+                        band_gap_type: gap.type
+                      })
+                    }
+                  }
                   e_bs = {
                     segments: band.section_k_band_segment,
                     reciprocal_cell: band.reciprocal_cell,
                     energy_highest_occupied: getHighestOccupiedEnergy(band, scc),
+                    channel_info: channel_info,
                     m_path: `${url}/section_run/section_single_configuration_calculation:${i}/section_k_band:${j}`
                   }
                 }
@@ -890,3 +906,5 @@ export default function DFTEntryOverview({data}) {
 DFTEntryOverview.propTypes = {
   data: PropTypes.object.isRequired
 }
+
+export default DFTEntryOverview

@@ -181,6 +181,23 @@ def test_method_dft(dft):
     assert method.simulation.dft.relativity_method == "scalar_relativistic"
 
 
+def test_method_referenced(dft_method_referenced):
+    method = dft_method_referenced.results.method
+    assert method.method_name == "DFT"
+    assert method.simulation.program_name == "VASP"
+    assert method.simulation.program_version == "4.6.35"
+    assert method.simulation.dft.basis_set_type == "plane waves"
+    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
+    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
+    assert method.simulation.dft.xc_functional_type == "GGA"
+    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.simulation.dft.smearing_width == 1e-20
+    assert method.simulation.dft.spin_polarized is True
+    assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
+    assert method.simulation.dft.van_der_Waals_method == "G06"
+    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+
+
 def test_method_dft_plus_u(dft_plus_u):
     method = dft_plus_u.results.method
     assert method.method_name == "DFT"
@@ -216,8 +233,8 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    energy_references = dos.energy_references
-    assert len(energy_references) == 0
+    channel_info = dos.channel_info
+    assert len(channel_info) == 0
 
     # Unpolarized DOS with gap:
     efermi = 1.5
@@ -226,11 +243,11 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    energy_references = dos.energy_references
-    assert len(energy_references) == 1
-    assert energy_references[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert energy_references[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert energy_references[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
+    channel_info = dos.channel_info
+    assert len(channel_info) == 1
+    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Polarized DOS
     efermi = 1.5
@@ -239,14 +256,14 @@ def test_dos_electronic():
     assert dos.spin_polarized is True
     assert dos.densities.shape == (2, 101)
     assert dos.energies.shape == (101, )
-    energy_references = dos.energy_references
-    assert len(energy_references) == 2
-    assert energy_references[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert energy_references[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert energy_references[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
-    assert energy_references[1].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert energy_references[1].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert energy_references[1].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
+    channel_info = dos.channel_info
+    assert len(channel_info) == 2
+    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
+    assert channel_info[1].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
+    assert channel_info[1].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert channel_info[1].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Vibrational instead of electronic
     archive = get_template_dos(type="vibrational")
@@ -272,45 +289,45 @@ def test_band_structure_electronic():
     # Band structure without energy reference
     archive = get_template_band_structure([(1, "direct")], has_references=False)
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert bs.band_gap is None
-    assert bs.band_gap_type is None
     assert bs.spin_polarized is False
-    assert len(erefs) == 0
+    assert len(channel_info) == 0
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Unpolarized band structure with no gap
     archive = get_template_band_structure([None])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert bs.band_gap.magnitude == [0]
-    assert bs.band_gap_type == ["no_gap"]
     assert bs.spin_polarized is False
-    assert len(erefs) == 1
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 1
+    assert channel_info[0].band_gap == 0
+    assert channel_info[0].band_gap_type is None
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Polarized band structure with no gap
     archive = get_template_band_structure([None, None])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert np.allclose(bs.band_gap.magnitude, [0, 0])
-    assert bs.band_gap_type == ["no_gap", "no_gap"]
     assert bs.spin_polarized is True
-    assert len(erefs) == 2
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
-    assert erefs[1].energy_fermi is not None
-    assert erefs[1].energy_highest_occupied is not None
-    assert erefs[1].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 2
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
+    assert channel_info[0].band_gap == 0
+    assert channel_info[0].band_gap_type is None
+    assert channel_info[1].energy_fermi is not None
+    assert channel_info[1].energy_highest_occupied is not None
+    assert channel_info[1].energy_lowest_unoccupied is not None
+    assert channel_info[1].band_gap == 0
+    assert channel_info[1].band_gap_type is None
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -319,15 +336,15 @@ def test_band_structure_electronic():
     gap_type = "direct"
     archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
-    assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
-    assert len(erefs) == 1
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 1
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
+    assert channel_info[0].band_gap == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[0].band_gap_type == gap_type
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -336,15 +353,15 @@ def test_band_structure_electronic():
     gap_type = "indirect"
     archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert bs.band_gap.magnitude == [pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)]
-    assert bs.band_gap_type == [gap_type]
     assert bs.spin_polarized is False
-    assert len(erefs) == 1
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 1
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
+    assert channel_info[0].band_gap == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[0].band_gap_type == gap_type
     assert bs.segments[0].band_energies.shape == (1, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
@@ -354,42 +371,43 @@ def test_band_structure_electronic():
     gap_type = "direct"
     archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
-    gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert np.allclose(bs.band_gap.magnitude, gaps_joule)
-    assert bs.band_gap_type == [gap_type, gap_type]
     assert bs.spin_polarized is True
-    assert len(erefs) == 2
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
-    assert erefs[1].energy_fermi is not None
-    assert erefs[1].energy_highest_occupied is not None
-    assert erefs[1].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 2
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
+    assert channel_info[0].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[0].band_gap_type == gap_type
+    assert channel_info[1].energy_fermi is not None
+    assert channel_info[1].energy_highest_occupied is not None
+    assert channel_info[1].energy_lowest_unoccupied is not None
+    assert channel_info[1].band_gap == pytest.approx((gap2 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[1].band_gap_type == gap_type
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 
     # Polarized band structure with indirect gap
     gap1 = 1  # eV
     gap2 = 2  # eV
-    gap1_type = "indirect"
-    gap2_type = "indirect"
-    archive = get_template_band_structure([(gap1, gap1_type), (gap2, gap2_type)])
+    gap_type = "indirect"
+    archive = get_template_band_structure([(gap1, gap_type), (gap2, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic
-    erefs = bs.energy_references
-    gaps_joule = (np.array([gap1, gap2]) * ureg.electron_volt).to(ureg.joule).magnitude
+    channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
-    assert np.allclose(bs.band_gap.magnitude, gaps_joule)
-    assert bs.band_gap_type == [gap1_type, gap2_type]
     assert bs.spin_polarized is True
-    assert len(erefs) == 2
-    assert erefs[0].energy_fermi is not None
-    assert erefs[0].energy_highest_occupied is not None
-    assert erefs[0].energy_lowest_unoccupied is not None
-    assert erefs[1].energy_fermi is not None
-    assert erefs[1].energy_highest_occupied is not None
-    assert erefs[1].energy_lowest_unoccupied is not None
+    assert len(channel_info) == 2
+    assert channel_info[0].energy_fermi is not None
+    assert channel_info[0].energy_highest_occupied is not None
+    assert channel_info[0].energy_lowest_unoccupied is not None
+    assert channel_info[0].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[0].band_gap_type == gap_type
+    assert channel_info[1].energy_fermi is not None
+    assert channel_info[1].energy_highest_occupied is not None
+    assert channel_info[1].energy_lowest_unoccupied is not None
+    assert channel_info[1].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert channel_info[1].band_gap_type == gap_type
     assert bs.segments[0].band_energies.shape == (2, 100, 2)
     assert bs.segments[0].band_k_points.shape == (100, 3)
 

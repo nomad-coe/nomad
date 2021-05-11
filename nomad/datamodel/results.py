@@ -37,7 +37,6 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.common_dft import (  # noqa
-    EnergyReference,
     Method as section_method,
     Dos,
     Phonon,
@@ -86,6 +85,63 @@ core_electron_treatments = [
     "pseudopotential",
     unavailable,
 ]
+
+
+class ChannelInfo(MSection):
+    m_def = Section(
+        a_flask=dict(skip_none=True),
+        description="""
+        Contains information about each present spin channel.
+        """
+    )
+    index = Quantity(
+        type=np.dtype(np.int64),
+        description="""
+        Spin channel index.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    band_gap = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Band gap size. Value of zero corresponds to not having a band gap.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    band_gap_type = Quantity(
+        type=MEnum('direct', 'indirect', 'no_gap'),
+        shape=[],
+        description='''
+        Type of band gap.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """
+    )
+    energy_highest_occupied = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        The highest occupied energy.
+        """,
+    )
+    energy_lowest_unoccupied = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        The lowest unoccupied energy.
+        """,
+    )
 
 
 class WyckoffSet(MSection):
@@ -775,12 +831,10 @@ class DOSElectronic(DOS):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    energy_references = Quantity(
-        type=EnergyReference,
-        shape=["*"],
-        description="""
-        Energy references.
-        """,
+    channel_info = SubSection(
+        sub_section=ChannelInfo.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
 
 
@@ -843,30 +897,10 @@ class BandStructureElectronic(BandStructure):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    energy_references = Quantity(
-        type=EnergyReference,
-        shape=["*"],
-        description="""
-        Energy references.
-        """,
-    )
-    band_gap = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=["n_spin_channels"],
-        description="""
-        Band gap value for each spin channel. If no gap is found, the band gap
-        is reported as zero.
-        """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-    band_gap_type = Quantity(
-        type=MEnum("direct", "indirect", "no_gap"),
-        shape=["n_spin_channels"],
-        description="""
-        Band gap type for each spin channel.
-        """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+    channel_info = SubSection(
+        sub_section=ChannelInfo.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
 
 
@@ -986,9 +1020,7 @@ class ElectronicProperties(MSection):
         """,
     )
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False)
-    dos_electronic = SubSection(
-        sub_section=DOSElectronic.m_def, repeats=False,
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True))
+    dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False)
 
 
 class ElasticProperties(MSection):

@@ -35,6 +35,7 @@ from nomad.datamodel.metainfo.common_dft import (
     FrameSequence,
     SamplingMethod,
     SingleConfigurationCalculation,
+    MethodToMethodRefs,
     Run,
     System,
     Dos,
@@ -308,6 +309,37 @@ def dft() -> EntryArchive:
     X = method_dft.m_create(XCFunctionals)
     X.XC_functional_name = "GGA_X_PBE"
     X.XC_functional_weight = 1.0
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dft_method_referenced() -> EntryArchive:
+    """DFT calculation with two methods: one referencing the other."""
+    template = get_template()
+    template.section_run[0].section_method = None
+    run = template.section_run[0]
+
+    method_dft = run.m_create(Method)
+    method_dft.smearing_kind = "gaussian"
+    method_dft.smearing_width = 1e-20
+    method_dft.scf_threshold_energy_change = 1e-24
+    method_dft.number_of_spin_channels = 2
+    method_dft.van_der_Waals_method = "G06"
+    method_dft.relativity_method = "scalar_relativistic"
+    C = method_dft.m_create(XCFunctionals)
+    C.XC_functional_name = "GGA_C_PBE"
+    C.XC_functional_weight = 1.0
+    X = method_dft.m_create(XCFunctionals)
+    X.XC_functional_name = "GGA_X_PBE"
+    X.XC_functional_weight = 1.0
+
+    method_ref = run.m_create(Method)
+    method_ref.electronic_structure_method = "DFT"
+    ref = method_ref.m_create(MethodToMethodRefs)
+    ref.method_to_method_ref = method_dft
+    ref.method_to_method_kind = "core_settings"
+    run.section_single_configuration_calculation[0].single_configuration_to_calculation_method_ref = method_ref
+
     return run_normalize(template)
 
 

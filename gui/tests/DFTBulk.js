@@ -1,5 +1,5 @@
 /*
- * Copyright The NOMAD Authors.
+ e Copyright The NOMAD Authors.
  *
  * This file is part of NOMAD. See https://nomad-lab.eu for further info.
  *
@@ -136,12 +136,18 @@ const resultsDftBulk = {
       dos_electronic: {
         energies: "/section_run/0/section_single_configuration_calculation/0/section_dos/0/dos_energies_normalized",
         densities: "/section_run/0/section_single_configuration_calculation/0/section_dos/0/dos_values_normalized",
-        energy_references: "/section_run/0/section_single_configuration_calculation/0/section_dos/0/energy_references"
+        channel_info: [{
+          energy_highest_occupied: 0
+        }]
       },
       band_structure_electronic: {
         segments: ["/section_run/0/section_single_configuration_calculation/0/section_k_band/0/section_k_band_segment/0"],
         reciprocal_cell: "/section_run/0/section_single_configuration_calculation/0/section_k_band/0/reciprocal_cell",
-        energy_references: "/section_run/0/section_single_configuration_calculation/0/section_k_band/0/energy_references"
+        channel_info: [{
+          energy_highest_occupied: 0,
+          band_gap: 1e-19,
+          band_gap_type: 'indirect'
+        }]
       }
     },
     vibrational: {
@@ -191,7 +197,7 @@ const run = [{
             dos_energies_normalized: [0, 1e-19],
             dos_values: [[0, 1e18]],
             dos_values_normalized: [[0, 1e18]],
-            energy_references: [{
+            channel_info: [{
               energy_highest_occupied: 0
             }]
           },
@@ -214,8 +220,10 @@ const run = [{
                 band_segm_labels: ["L", "K"]
               }
             ],
-            energy_references: [{
-              energy_highest_occupied: 0
+            channel_info: [{
+              energy_highest_occupied: 0,
+              band_gap: 1e-19,
+              band_gap_type: 'indirect'
             }]
           },
           {

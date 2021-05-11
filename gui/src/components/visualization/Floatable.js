@@ -26,13 +26,21 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import AspectRatio from './AspectRatio'
 
 /**
  * Component that wraps it's children in a container that can be 'floated',
  * i.e. displayed on an html element that is positioned relative to the
  * viewport and is above all other elements.
  */
-export default function Floatable({className, classes, float, children, aspectRatio, onFloat}) {
+export default function Floatable({
+  className,
+  classes,
+  float,
+  children,
+  aspectRatio,
+  onFloat
+}) {
   // Styles
   const useStyles = makeStyles((theme) => {
     // Calculate the fullscreen size
@@ -56,23 +64,6 @@ export default function Floatable({className, classes, float, children, aspectRa
     return {
       root: {
       },
-      containerOuter: {
-        width: '100%',
-        height: 0,
-        paddingBottom: `${100 / aspectRatio}%`, // CSS hack for fixed aspect ratio
-        position: 'relative',
-        boxSizing: 'border-box'
-      },
-      containerInner: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box'
-      },
       dialogContent: {
         boxSizing: 'border-box',
         padding: padding
@@ -95,24 +86,20 @@ export default function Floatable({className, classes, float, children, aspectRa
       }
     }
   })
-  const style = useStyles(classes)
+  const style = useStyles({classes: classes})
 
   return (
     <Box className={clsx(style.root, className)}>
-      <Box className={style.containerOuter}>
-        <Box className={style.containerInner}>
-          {float ? '' : children}
-        </Box>
-      </Box>
+      <AspectRatio aspectRatio={aspectRatio}>
+        {float ? '' : children}
+      </AspectRatio>
       <Dialog fullWidth={false} maxWidth={false} open={float}
         classes={{paper: style.dialogRoot}}
       >
         <DialogContent className={[style.dialogContent, style['dialogContent:first-child']].join('_')}>
-          <Box className={style.containerOuter}>
-            <Box className={style.containerInner}>
-              {float ? children : ''}
-            </Box>
-          </Box>
+          <AspectRatio aspectRatio={aspectRatio}>
+            {float ? children : ''}
+          </AspectRatio>
         </DialogContent>
         <DialogActions className={style.dialogActions}>
           <Button onClick={() => onFloat(float)}>
@@ -125,6 +112,9 @@ export default function Floatable({className, classes, float, children, aspectRa
 }
 
 Floatable.propTypes = {
+  /**
+   * Whether this component should be in floating mode or not.
+   */
   float: PropTypes.bool.isRequired,
   /**
    * Fixed aspect ratio that is enforced for this component.
@@ -136,21 +126,9 @@ Floatable.propTypes = {
    * boolean indicating the current float status.
    */
   onFloat: PropTypes.any,
-  /**
-   * Child components
-   */
   children: PropTypes.any,
-  /**
-   * CSS class for the root element.
-   */
   className: PropTypes.string,
-  /**
-   * CSS classes for this component.
-   */
   classes: PropTypes.object
-  /**
-   * Controls the float status.
-   */
 }
 Floatable.defaultProps = {
   float: false

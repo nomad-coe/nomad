@@ -28,7 +28,7 @@ const useStyles = makeStyles({
   root: {}
 })
 
-function HelmholtzFreeEnergy({
+const HelmholtzFreeEnergy = React.memo(({
   data,
   layout,
   aspectRatio,
@@ -38,7 +38,7 @@ function HelmholtzFreeEnergy({
   units,
   'data-testid': testID,
   ...other
-}) {
+}) => {
   // Merge custom layout with default layout
   const finalLayout = useMemo(() => {
     let defaultLayout = {
@@ -104,7 +104,7 @@ function HelmholtzFreeEnergy({
       </Plot>
     </Box>
   )
-}
+})
 
 HelmholtzFreeEnergy.propTypes = {
   data: PropTypes.oneOfType([
