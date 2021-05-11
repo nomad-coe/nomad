@@ -67,6 +67,7 @@ from namdparser import NAMDParser
 from onetepparser import OnetepParser
 from siestaparser import SiestaParser
 from tinkerparser import TinkerParser
+from charmmparser import CharmmParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -221,12 +222,7 @@ parsers = [
     GromacsParser(),
     GromosParser(),
     NAMDParser(),
-    LegacyParser(
-        name='parsers/charmm', code_name='Charmm', domain='dft',
-        parser_class_name='charmmparser.CharmmParser',
-        mainfile_contents_re=r'\s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*',
-        mainfile_mime_re=r'text/.*',
-    ),
+    CharmmParser(),
     DFTBPlusParser(),
     AsapParser(),
     FploParser(),
