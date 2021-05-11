@@ -68,6 +68,7 @@ from onetepparser import OnetepParser
 from siestaparser import SiestaParser
 from tinkerparser import TinkerParser
 from charmmparser import CharmmParser
+from libatomsparser import LibAtomsParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -177,11 +178,7 @@ parsers = [
     OrcaParser(),
     CastepParser(),
     DLPolyParser(),
-    LegacyParser(
-        name='parsers/lib-atoms', code_name='libAtoms', code_homepage='https://libatoms.github.io/',
-        parser_class_name='libatomsparser.LibAtomsParserWrapper',
-        mainfile_contents_re=(r'\s*<GAP_params\s')
-    ),
+    LibAtomsParser(),
     OctopusParser(),
     GPAWParser(),
     LegacyParser(
