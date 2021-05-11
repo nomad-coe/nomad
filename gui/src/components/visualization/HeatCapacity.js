@@ -28,7 +28,7 @@ const useStyles = makeStyles({
   root: {}
 })
 
-function HeatCapacity({
+const HeatCapacity = React.memo(({
   data,
   layout,
   aspectRatio,
@@ -38,7 +38,7 @@ function HeatCapacity({
   units,
   'data-testid': testID,
   ...other
-}) {
+}) => {
   // Merge custom layout with default layout
   const finalLayout = useMemo(() => {
     let defaultLayout = {
@@ -104,7 +104,7 @@ function HeatCapacity({
       </Plot>
     </Box>
   )
-}
+})
 
 HeatCapacity.propTypes = {
   data: PropTypes.oneOfType([

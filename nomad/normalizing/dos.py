@@ -24,7 +24,7 @@ from nomad_dos_fingerprints import DOSFingerprint
 from nomad.datamodel.metainfo.public import (
     section_dos_fingerprint,
     Dos,
-    EnergyReference,
+    ChannelInfo,
 )
 from nomad.atomutils import get_volume
 
@@ -92,8 +92,8 @@ class DosNormalizer(Normalizer):
                 # data has been migrated to store the highest occupied energy
                 # explicitly.
                 normalization_reference = None
-                for ref in dos.energy_references:
-                    energy_highest = ref.energy_highest_occupied
+                for info in dos.channel_info:
+                    energy_highest = info.energy_highest_occupied
                     if energy_highest is not None:
                         if normalization_reference is None:
                             normalization_reference = energy_highest
@@ -142,15 +142,15 @@ class DosNormalizer(Normalizer):
         dos_energies = dos.dos_energies
         n_channels = dos_values.shape[0]
         for i_channel in range(n_channels):
-            ref = EnergyReference()
-            ref.index = i_channel
+            info = ChannelInfo()
+            info.index = i_channel
             if energy_highest is not None:
-                ref.energy_highest_occupied = energy_highest[i_channel]
+                info.energy_highest_occupied = energy_highest[i_channel]
             if energy_lowest is not None:
-                ref.energy_lowest_unoccupied = energy_lowest[i_channel]
+                info.energy_lowest_unoccupied = energy_lowest[i_channel]
             if energy_fermi is not None:
-                ref.energy_fermi = energy_fermi[i_channel]
-            dos.m_add_sub_section(Dos.energy_references, ref)
+                info.energy_fermi = energy_fermi[i_channel]
+            dos.m_add_sub_section(Dos.channel_info, info)
 
         # Use a reference energy (fermi or highest occupied) to determine the
         # energy references from the DOS (discretization will affect the exact
@@ -158,6 +158,7 @@ class DosNormalizer(Normalizer):
         energy_threshold = config.normalize.band_structure_energy_tolerance
         value_threshold = 1e-8  # The DOS value that is considered to be zero
         for i_channel in range(n_channels):
+            info = dos.channel_info[i_channel]
             i_eref = eref[i_channel]
             fermi_idx = (np.abs(dos_energies - i_eref)).argmin()
 
@@ -203,8 +204,8 @@ class DosNormalizer(Normalizer):
                 # If there is a single peak at fermi energy, no
                 # search needs to be performed.
                 if idx_ascend != fermi_idx and idx_descend != fermi_idx:
-                    dos.energy_references[i_channel].energy_highest_occupied = fermi_energy_closest
-                    dos.energy_references[i_channel].energy_lowest_unoccupied = fermi_energy_closest
+                    info.energy_highest_occupied = fermi_energy_closest
+                    info.energy_lowest_unoccupied = fermi_energy_closest
                     continue
 
                 # Look for highest occupied energy below the descend index
@@ -216,7 +217,7 @@ class DosNormalizer(Normalizer):
                         break
                     if value > value_threshold:
                         idx = idx if idx == idx_descend else idx + 1
-                        dos.energy_references[i_channel].energy_highest_occupied = dos_energies[idx]
+                        info.energy_highest_occupied = dos_energies[idx]
                         break
                     idx -= 1
 
@@ -229,6 +230,6 @@ class DosNormalizer(Normalizer):
                         break
                     if value > value_threshold:
                         idx = idx if idx == idx_ascend else idx - 1
-                        dos.energy_references[i_channel].energy_lowest_unoccupied = dos_energies[idx]
+                        info.energy_lowest_unoccupied = dos_energies[idx]
                         break
                     idx += 1

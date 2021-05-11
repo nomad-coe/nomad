@@ -41,7 +41,7 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({
+const Plot = React.memo(({
   data,
   layout,
   config,
@@ -62,7 +62,7 @@ export default function Plot({
   onReset,
   layoutSubject,
   'data-testid': testID
-}) {
+}) => {
   // States
   const [float, setFloat] = useState(false)
   const firstRender = useRef(true)
@@ -94,10 +94,22 @@ export default function Plot({
       },
       root: {
       },
-      placeHolder: {
+      placeholderRoot: {
         left: 0,
         right: 0,
         position: 'absolute'
+      },
+      placeholder: {
+        top: theme.spacing(1),
+        left: theme.spacing(2),
+        right: theme.spacing(2),
+        bottom: theme.spacing(1)
+      },
+      nodata: {
+        top: theme.spacing(1),
+        left: theme.spacing(2),
+        right: theme.spacing(2),
+        bottom: theme.spacing(1)
       },
       floatable: {
         visibility: loading ? 'hidden' : 'visible'
@@ -118,7 +130,14 @@ export default function Plot({
       }
     }
   })
-  const styles = useStyles({classes: classes})
+  // const styles = useStyles({classes: classes})
+  let styles = useStyles({classes: classes})
+  if (noDataStyle) {
+    styles.nodata = noDataStyle
+  }
+  if (placeHolderStyle) {
+    styles.placeholder = placeHolderStyle
+  }
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -132,7 +151,7 @@ export default function Plot({
       margin: {
         l: 30,
         r: 20,
-        t: 20,
+        t: 10,
         b: 50
       },
       title: {
@@ -330,7 +349,8 @@ export default function Plot({
         currentLayout.yaxis2.automargin = false
         currentLayout.xaxis.automargin = false
         currentLayout.margin.l = parseInt(group.getAttribute('x'))
-        currentLayout.margin.t = parseInt(group.getAttribute('y'))
+        currentLayout.margin.t = finalLayout.margin.t
+        currentLayout.margin.b = finalLayout.margin.b
         const totalWidth = canvasRef.current.clientWidth
         const plotAreaWidth = parseInt(group.getAttribute('width'))
         currentLayout.margin.r = totalWidth - plotAreaWidth - currentLayout.margin.l
@@ -342,7 +362,7 @@ export default function Plot({
         console.log('Could not determine the margin values.')
       }
     }
-  }, [canvasRef, data, fixedMargins])
+  }, [canvasRef, data, fixedMargins, finalLayout])
 
   // For resetting the view.
   const handleReset = useCallback(() => {
@@ -372,7 +392,7 @@ export default function Plot({
   // If data is set explicitly to False, we show the NoData component.
   if (data === false) {
     return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
-      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}} data-testid={`${testID}-nodata`}/>
+      <NoData aspectRatio={aspectRatio} classes={{placeholder: styles.nodata}} data-testid={`${testID}-nodata`}/>
     </Box>
   }
   // Even if the plots are still loading, all the html elements need to be
@@ -381,7 +401,7 @@ export default function Plot({
   // these HTML nodes and their sizes when the plots are loading.
   return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
     {loading && <Placeholder
-      className={styles.placeHolder}
+      className={styles.placeholderRoot}
       classes={{placeholder: placeHolderStyle}}
       variant="rect"
       aspectRatio={aspectRatio}
@@ -399,7 +419,7 @@ export default function Plot({
       </div>
     </Floatable>
   </Box>
-}
+})
 
 Plot.propTypes = {
   data: PropTypes.any, // Plotly.js data object: Set to null to show Placeholder, set to false to show NoData.
@@ -433,3 +453,5 @@ Plot.defaultProps = {
   floatTitle: '',
   fixedMargins: true
 }
+
+export default Plot

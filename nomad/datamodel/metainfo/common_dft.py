@@ -14,18 +14,11 @@ m_package = Package(
     a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
 
-class EnergyReference(MSection):
+class ChannelInfo(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
         description="""
-        Stores important reference energies that are used for interpreting
-        electronic energies in band structure and density of states plots.
-        These energy references are implemented as a metainfo section, because
-        they cannot be always be stored as floating point number arrays if the
-        information is unavailable for one or more of the channels. E.g. if a
-        DOS/band structure is calculated on an energy interval that does not
-        contain the conduction band, the lowest unoccupied energies are
-        undefined.
+        Contains information for each present spin channel.
         """
     )
     index = Quantity(
@@ -34,26 +27,44 @@ class EnergyReference(MSection):
         The spin channel index.
         """
     )
+    band_gap = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Band gap energy. Value of zero corresponds to not having a band gap.
+        '''
+    )
+    band_gap_type = Quantity(
+        type=MEnum('direct', 'indirect'),
+        shape=[],
+        description='''
+        Type of band gap.
+        '''
+    )
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
         unit="joule",
+        shape=[],
         description="""
-        Fermi energy as reported by the code.
+        Fermi energy.
         """
     )
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
         unit="joule",
+        shape=[],
         description="""
         The highest occupied energy.
-        """
+        """,
     )
     energy_lowest_unoccupied = Quantity(
         type=np.dtype(np.float64),
         unit="joule",
+        shape=[],
         description="""
         The lowest unoccupied energy.
-        """
+        """,
     )
 
 
@@ -1490,8 +1501,6 @@ class Dos(MSection):
         validate=False,
         a_legacy=LegacyDefinition(name='section_dos'))
 
-    energy_references = SubSection(sub_section=EnergyReference.m_def, repeats=True)
-
     dos_energies_normalized = Quantity(
         type=np.dtype(np.float64),
         shape=['number_of_dos_values'],
@@ -1618,6 +1627,8 @@ class Dos(MSection):
         sub_section=SectionProxy('DosFingerprint'),
         repeats=False,
         a_legacy=LegacyDefinition(name='section_dos_fingerprint'))
+
+    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
 
 
 class Eigenvalues(MSection):
@@ -2776,8 +2787,6 @@ class KBand(MSection):
         categories=[Unused],
         a_legacy=LegacyDefinition(name='is_standard_path'))
 
-    energy_references = SubSection(sub_section=EnergyReference.m_def, repeats=True)
-
     brillouin_zone = SubSection(
         sub_section=SectionProxy('BrillouinZone'),
         repeats=False,
@@ -2797,6 +2806,8 @@ class KBand(MSection):
         sub_section=SectionProxy('KBandSegment'),
         repeats=True,
         a_legacy=LegacyDefinition(name='section_k_band_segment'))
+
+    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
 
 
 class MethodAtomKind(MSection):

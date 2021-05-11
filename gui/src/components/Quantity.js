@@ -147,7 +147,7 @@ class Quantity extends React.Component {
 
       if (children && children.length !== 0) {
         content = children
-      } else if (value) {
+      } else if (value || value === 0) {
         if (Array.isArray(value)) {
           value = value.join(', ')
         }

@@ -103,7 +103,7 @@ const useStyles = makeStyles((theme) => {
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-function Structure({
+const Structure = React.memo(({
   className,
   classes,
   data,
@@ -118,7 +118,7 @@ function Structure({
   'data-testid': testID,
   placeHolderStyle,
   noDataStyle}
-) {
+) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
@@ -519,7 +519,7 @@ function Structure({
       {content}
     </Floatable>
   </Box>
-}
+})
 
 Structure.propTypes = {
   className: PropTypes.string,

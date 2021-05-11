@@ -139,10 +139,12 @@ def search_quantities():
     entry_type.create_mapping(entry_section_def)
 
     def to_dictV1(search_quantity):
-        result = {
-            'name': search_quantity.qualified_name,
-            'description': search_quantity.definition.description,
-        }
+        metadict = search_quantity.definition.m_to_dict(with_meta=True)
+        result = {}
+        for key in ["name", "description", "type", "unit"]:
+            val = metadict.get(key)
+            if val is not None:
+                result[key] = val
         return result
 
     export.update({

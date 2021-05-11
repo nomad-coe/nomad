@@ -22,10 +22,10 @@ import ase
 
 from nomad.datamodel.metainfo.public import (
     KBand,
+    ChannelInfo,
     section_band_gap,
     section_system,
     section_brillouin_zone,
-    EnergyReference,
 )
 from nomad.normalizing.normalizer import Normalizer
 from nomad import config, atomutils
@@ -66,7 +66,7 @@ class BandStructureNormalizer(Normalizer):
                 if valid_band:
                     self.add_reciprocal_cell(band, system)
                     self.add_brillouin_zone(band)
-                    self.add_energy_references_and_gaps(
+                    self.add_channel_info(
                         band,
                         energy_fermi,
                         energy_highest,
@@ -162,7 +162,7 @@ class BandStructureNormalizer(Normalizer):
 
         return k_point_distance
 
-    def add_energy_references_and_gaps(
+    def add_channel_info(
             self,
             band: KBand,
             energy_fermi: NDArray,
@@ -182,15 +182,15 @@ class BandStructureNormalizer(Normalizer):
         # energy if present
         n_channels = band.section_k_band_segment[0].band_energies.shape[0]
         for i_channel in range(n_channels):
-            ref = EnergyReference()
-            ref.index = i_channel
+            info = ChannelInfo()
+            info.index = i_channel
             if energy_fermi is not None:
-                ref.energy_fermi = energy_fermi[i_channel]
+                info.energy_fermi = energy_fermi[i_channel]
             if energy_highest is not None:
-                ref.energy_highest_occupied = energy_highest[i_channel]
+                info.energy_highest_occupied = energy_highest[i_channel]
             if energy_lowest is not None:
-                ref.energy_lowest_unoccupied = energy_lowest[i_channel]
-            band.m_add_sub_section(KBand.energy_references, ref)
+                info.energy_lowest_unoccupied = energy_lowest[i_channel]
+            band.m_add_sub_section(KBand.channel_info, info)
 
         # Use a reference energy (fermi or highest occupied) to determine the
         # energy references from the band structure (discretization will affect
@@ -257,15 +257,16 @@ class BandStructureNormalizer(Normalizer):
 
             # Save the found energy references
             if i_energy_highest is not None:
-                band.energy_references[i_channel].energy_highest_occupied = i_energy_highest
+                band.channel_info[i_channel].energy_highest_occupied = i_energy_highest
             if i_energy_lowest is not None:
-                band.energy_references[i_channel].energy_lowest_unoccupied = i_energy_lowest
+                band.channel_info[i_channel].energy_lowest_unoccupied = i_energy_lowest
 
             # If highest occupied energy and a lowest unoccupied energy are
             # found, and the difference between them is positive, save
             # information about the band gap.
             gap = section_band_gap()
             gap_value = 0.0
+            info = band.channel_info[i_channel]
             if i_energy_lowest is not None and i_energy_highest is not None:
                 gap_value = float(i_energy_lowest - i_energy_highest)
                 if gap_value > 0:
@@ -276,12 +277,15 @@ class BandStructureNormalizer(Normalizer):
                     k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
                     is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
-                    gap.type = "direct" if is_direct_gap else "indirect"
+                    band_gap_type = "direct" if is_direct_gap else "indirect"
+                    gap.type = band_gap_type
+                    info.band_gap_type = band_gap_type
                     gap.conduction_band_min_k_point = k_point_upper
                     gap.conduction_band_min_energy = float(i_energy_lowest)
                     gap.valence_band_max_k_point = k_point_lower
                     gap.valence_band_max_energy = float(i_energy_highest)
             gap.value = gap_value
+            info.band_gap = gap_value
             band.m_add_sub_section(KBand.section_band_gap, gap)
 
     def add_path_labels(self, band: KBand, system: section_system) -> None:

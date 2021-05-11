@@ -39,7 +39,7 @@ import clsx from 'clsx'
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
-function BrillouinZone({
+const BrillouinZone = React.memo(({
   className,
   classes,
   options,
@@ -48,7 +48,7 @@ function BrillouinZone({
   captureName,
   aspectRatio,
   'data-testid': testID
-}) {
+}) => {
   // States
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -121,7 +121,7 @@ function BrillouinZone({
         view: {
           autoResize: false,
           autoFit: true,
-          fitMargin: 0.05
+          fitMargin: 0.06
         },
         layout: {
           viewRotation: {
@@ -271,7 +271,7 @@ function BrillouinZone({
       {content}
     </Floatable>
   </Box>
-}
+})
 
 BrillouinZone.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.

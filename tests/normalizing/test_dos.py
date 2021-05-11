@@ -79,12 +79,12 @@ def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_hig
     dos = archive.section_run[0].section_single_configuration_calculation[0].section_dos[0]
     n_channels = len(ranges)
     for i_channel in range(n_channels):
-        energy_ref = dos.energy_references[i_channel]
-        assert energy_ref.index == i_channel
-        assert energy_ref.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
+        info = dos.channel_info[i_channel]
+        assert info.index == i_channel
+        assert info.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
             expected_highest[i_channel]
         )
-        assert energy_ref.energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(
+        assert info.energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(
             expected_lowest[i_channel]
         )
 

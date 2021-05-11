@@ -32,13 +32,15 @@ import clsx from 'clsx'
 
 const useStaticStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
+    height: '100%'
   },
   placeholder: {
     position: 'absolute',
-    top: theme.spacing(2),
+    top: theme.spacing(1),
     left: theme.spacing(2),
     right: theme.spacing(2),
-    bottom: theme.spacing(2)
+    bottom: theme.spacing(1)
   },
   skeleton: {
     width: '100%',
