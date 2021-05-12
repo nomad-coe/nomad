@@ -69,6 +69,7 @@ from siestaparser import SiestaParser
 from tinkerparser import TinkerParser
 from charmmparser import CharmmParser
 from libatomsparser import LibAtomsParser
+from atkparser import ATKParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -181,14 +182,7 @@ parsers = [
     LibAtomsParser(),
     OctopusParser(),
     GPAWParser(),
-    LegacyParser(
-        name='parsers/atk', code_name='AtomistixToolKit', code_homepage='https://www.synopsys.com/silicon/quantumatk.html',
-        parser_class_name='atkparser.ATKParserWrapper',
-        # mainfile_contents_re=r'',  # We can't read .gpw as txt - of UlmGPAW|AFFormatGPAW'
-        mainfile_name_re=r'^.*\.nc',
-        # The previously used mime type r'application/x-netcdf' wasn't found by magic library.
-        mainfile_mime_re=r'application/octet-stream'
-    ),
+    ATKParser(),
     GulpParser(),
     SiestaParser(),
     ElkParser(),
