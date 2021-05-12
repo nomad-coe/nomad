@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nomad.metainfo.metainfo import Quantity
 import os.path
 
 from nomad import config, datamodel
@@ -70,6 +71,7 @@ from tinkerparser import TinkerParser
 from charmmparser import CharmmParser
 from libatomsparser import LibAtomsParser
 from atkparser import ATKParser
+from qboxparser import QboxParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -192,12 +194,7 @@ parsers = [
     MPESParser(),
     APTFIMParser(),
     EELSApiJsonConverter(),
-    LegacyParser(
-        name='parsers/qbox', code_name='qbox', code_homepage='http://qboxcode.org/', domain='dft',
-        parser_class_name='qboxparser.QboxParser',
-        mainfile_mime_re=r'(application/xml)|(text/.*)',
-        mainfile_contents_re=(r'http://qboxcode.org')
-    ),
+    QboxParser(),
     Dmol3Parser(),
     FleurParser(),
     MolcasParser(),
