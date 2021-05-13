@@ -54,7 +54,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any
+from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any, NamedTuple
 import os.path
 import os
 import shutil
@@ -201,6 +201,17 @@ class Restricted(Exception):
     pass
 
 
+class UploadPathInfo(NamedTuple):
+    '''
+    Stores basic info about the object (file or folder) at some path relative to the
+    upload root folder.
+    '''
+    path: str
+    is_file: bool
+    size: int
+    access: str
+
+
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     def __init__(
@@ -260,10 +271,11 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         '''
         raise NotImplementedError()
 
-    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
         '''
-        Returns a list of tuples containing (base_name, is_file, size, access), for each
-        element (file or folder) in the directory specified by path.
+        Returns an iterator of UploadPathInfo objects for each element (file or folder) in
+        the directory specified by `path`. If `recursive` is set to True, subdirectories are
+        also crawled. If `files_only` is set, only the file objects found are returned.
         '''
         raise NotImplementedError()
 
@@ -368,17 +380,23 @@ class StagingUploadFiles(UploadFiles):
         os_path = self._raw_path_to_os_path(path)
         return os_path is not None and os.path.isfile(os_path)
 
-    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
         os_path = self._raw_path_to_os_path(path)
-        assert os_path and os.path.isdir(os_path), f'Path {path} is not a directory'
-        rv: List[Tuple[str, bool, int, str]] = []
-        for name in os.listdir(os_path):
-            full_path = os.path.join(os_path, name)
-            is_file = os.path.isfile(full_path)
-            size = os.stat(full_path).st_size if is_file else -1
-            rv.append((name, is_file, size, 'unpublished'))
-        rv.sort()
-        return rv
+        if os_path and os.path.isdir(os_path):
+            for element_name in sorted(os.listdir(os_path)):
+                element_raw_path = os.path.join(path, element_name)
+                element_os_path = os.path.join(os_path, element_name)
+                is_file = os.path.isfile(element_os_path)
+                if not files_only or is_file:
+                    size = os.stat(element_os_path).st_size if is_file else -1
+                    yield UploadPathInfo(
+                        path=element_raw_path,
+                        is_file=is_file,
+                        size=size,
+                        access='unpublished')
+                if recursive and not is_file:
+                    for sub_path_info in self.raw_directory_list(element_raw_path, recursive, files_only):
+                        yield sub_path_info
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         if not self._is_authorized():
@@ -769,7 +787,7 @@ class PublicUploadFiles(UploadFiles):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(config.fs.public, *args, **kwargs)
-        self._directories: Dict[str, Dict[str, Tuple[bool, int, str]]] = None
+        self._directories: Dict[str, Dict[str, UploadPathInfo]] = None
         self._raw_zip_files: Dict[str, zipfile.ZipFile] = {}
         self._archive_msg_files: Dict[str, ArchiveReader] = {}
 
@@ -865,17 +883,24 @@ class PublicUploadFiles(UploadFiles):
                     for path in zf.namelist():
                         file_name = os.path.basename(path)
                         directory_path = os.path.dirname(path)
+                        # Ensure that all parent directories are added
                         sub_path = ''
                         for directory in directory_path.split(os.path.sep):
                             sub_path_content = self._directories.setdefault(sub_path, {})
+                            sub_path_ext = os.path.join(sub_path, directory)
 
                             if directory not in sub_path_content:
-                                sub_path_content[directory] = (False, -1, access)
-                            sub_path = os.path.join(sub_path, directory)
+                                sub_path_content[directory] = UploadPathInfo(
+                                    path=sub_path_ext, is_file=False, size=-1, access=access)
+                            sub_path = sub_path_ext
 
                         if file_name:
                             directory_content = self._directories.setdefault(directory_path, {})
-                            directory_content[file_name] = (True, zf.getinfo(path).file_size, access)
+                            directory_content[file_name] = UploadPathInfo(
+                                path=path,
+                                is_file=True,
+                                size=zf.getinfo(path).file_size,
+                                access=access)
                 except FileNotFoundError:
                     pass
 
@@ -890,9 +915,9 @@ class PublicUploadFiles(UploadFiles):
         directory_content = self._directories.get(directory_path)
         if directory_content is not None:
             if base_name in directory_content:
-                is_file, __, access = directory_content[base_name]
-                if access == 'public' or self._is_authorized():
-                    if explicit_directory_path and is_file:
+                path_info = directory_content[base_name]
+                if path_info.access == 'public' or self._is_authorized():
+                    if explicit_directory_path and path_info.is_file:
                         return False
                     return True
         return False
@@ -905,25 +930,25 @@ class PublicUploadFiles(UploadFiles):
             return False  # Requested path is an explicit directory path
         directory_content = self._directories.get(directory_path)
         if directory_content and base_name in directory_content:
-            is_file, __, access = directory_content[base_name]
-            if access == 'public' or self._is_authorized():
-                return is_file
+            path_info = directory_content[base_name]
+            if path_info.access == 'public' or self._is_authorized():
+                return path_info.is_file
         return False
 
-    def raw_directory_list(self, path: str) -> List[Tuple[str, bool, int, str]]:
+    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
         self._parse_content()
-        rv: List[Tuple[str, bool, int, str]] = []
         if path == '.':
             path = ''
         path = path.rstrip(os.path.sep)
         directory_content = self._directories.get(path)
-        if directory_content is None:
-            return None
-        for base_name, (is_file, size, access) in directory_content.items():
-            if access == 'public' or self._is_authorized():
-                rv.append((base_name, is_file, size, access))
-        rv.sort()
-        return rv
+        if directory_content is not None:
+            for __, path_info in sorted(directory_content.items()):
+                if path_info.access == 'public' or self._is_authorized():
+                    if not files_only or path_info.is_file:
+                        yield path_info
+                if recursive and not path_info.is_file:
+                    for sub_path_info in self.raw_directory_list(path_info.path, recursive, files_only):
+                        yield sub_path_info
 
     @property
     def public_raw_data_file(self):
@@ -990,11 +1015,11 @@ class PublicUploadFiles(UploadFiles):
             directory = directory.rstrip('/')
 
         results: List[Tuple[str, int]] = []
-        content: Dict[str, Tuple[bool, int, str]] = self._directories.get(directory, {})
-        for base_name, (is_file, size, access) in content.items():
-            if is_file:
-                if access == 'public' or self._is_authorized():
-                    results.append((base_name, size))
+        content: Dict[str, UploadPathInfo] = self._directories.get(directory, {})
+        for base_name, path_info in content.items():
+            if path_info.is_file:
+                if path_info.access == 'public' or self._is_authorized():
+                    results.append((base_name, path_info.size))
         results.sort()
         return results
 

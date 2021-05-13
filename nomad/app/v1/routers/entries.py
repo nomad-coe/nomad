@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List, Set, IO
+from typing import Optional, Union, Dict, Iterator, Any, List, IO
 from fastapi import (
     APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter,
     Body)
@@ -40,7 +40,7 @@ from nomad.search.v1 import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
-from ..utils import create_streamed_zipfile, File, create_responses
+from ..utils import create_streamed_zipfile, create_download_stream_zipped, DownloadItem, File, create_responses
 from ..models import (
     PaginationResponse, MetadataPagination, WithQuery, WithQueryAndPagination, MetadataRequired,
     MetadataResponse, Metadata, Files, Query, User, Owner,
@@ -462,61 +462,37 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
             detail='The limit of maximum number of entries in a single download (%d) has been exeeded (%d).' % (
                 config.max_entry_download, response.pagination.total))
 
-    uploads = _Uploads()
     files_params = Files() if files is None else files
-    manifest = []
     search_includes = ['entry_id', 'upload_id', 'mainfile']
-    streamed_paths: Set[str] = set()
 
     try:
         # a generator of File objects to create the streamed zip from
-        def raw_file_generator():
+        def download_items_generator():
             # go through all entries that match the query
             for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
                 upload_id = entry_metadata['upload_id']
                 mainfile = entry_metadata['mainfile']
+                entry_metadata['mainfile'] = os.path.join(upload_id, mainfile)
 
-                upload_files = uploads.get_upload_files(upload_id)
                 mainfile_dir = os.path.dirname(mainfile)
-
-                # go through all files that belong to this entry
-                all_filtered = True
-                files = upload_files.raw_file_list(directory=mainfile_dir)
-                for file_name, file_size in files:
-                    path = os.path.join(mainfile_dir, file_name)
-
-                    # apply the filter
-                    if files_params.re_pattern is not None and not files_params.re_pattern.search(path):
-                        continue
-                    all_filtered = False
-
-                    # add upload_id to path used in streamed zip
-                    streamed_path = os.path.join(upload_id, path)
-
-                    # check if already streamed
-                    if streamed_path in streamed_paths:
-                        continue
-                    streamed_paths.add(streamed_path)
-
-                    # yield the file
-                    with upload_files.raw_file(path, 'rb') as f:
-                        yield File(path=streamed_path, f=f, size=file_size)
-
-                if not all_filtered or len(files) == 0:
-                    entry_metadata['mainfile'] = os.path.join(upload_id, mainfile)
-                    manifest.append(entry_metadata)
-
-            # add the manifest at the end
-            manifest_content = json.dumps(manifest).encode()
-            yield File(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
+                yield DownloadItem(
+                    upload_id=upload_id,
+                    is_authorized=True,
+                    raw_path=mainfile_dir,
+                    zip_path=os.path.join(upload_id, mainfile_dir),
+                    entry_metadata=entry_metadata)
 
         # create the streaming response with zip file contents
-        content = create_streamed_zipfile(raw_file_generator(), compress=files_params.compress)
+        content = create_download_stream_zipped(
+            download_items=download_items_generator(),
+            re_pattern=files_params.re_pattern,
+            recursive=False,
+            create_manifest_file=True,
+            compress=files_params.compress)
         return StreamingResponse(content, media_type='application/zip')
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
-    finally:
-        uploads.close()
+        raise
 
 
 _entries_raw_query_docstring = strip('''

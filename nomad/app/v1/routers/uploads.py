@@ -18,7 +18,7 @@
 import os
 import io
 from datetime import datetime
-from typing import List, Dict, Iterator, Any, Optional
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
@@ -36,8 +36,8 @@ from ..models import (
     BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
     Files, files_parameters)
 from ..utils import (
-    parameter_dependency_from_model, create_responses, create_streamed_zipfile,
-    File as StreamedFile)
+    parameter_dependency_from_model, create_responses, DownloadItem,
+    create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
 
 router = APIRouter()
 default_tag = 'uploads'
@@ -506,44 +506,40 @@ async def get_upload_raw_path(
         if upload_files.raw_path_is_file(path):
             # File
             if files_params.compress:
-                # Stream compressed
-                def single_file_stream_generator():
-                    yield StreamedFile(
-                        path=os.path.basename(path),
-                        f=upload_files.raw_file(path, 'rb'),
-                        size=upload_files.raw_file_size(path))
-                    upload_files.close()
-
-                content = create_streamed_zipfile(single_file_stream_generator(), compress=True)
-                return StreamingResponse(content, media_type='application/zip')
+                download_item = DownloadItem(
+                    upload_id=upload_id, is_authorized=True,
+                    raw_path=path, zip_path=os.path.basename(path))
+                content = create_download_stream_zipped(
+                    download_item, upload_files, compress=True)
+                media_type = 'application/zip'
             else:
-                # Stream raw
-                def single_raw_file_stream():
-                    raw_file = upload_files.raw_file(path, 'rb')
-                    for chunk in raw_file:
-                        yield chunk
-                    raw_file.close()
-                    upload_files.close()
-
-                content = single_raw_file_stream()
-                return StreamingResponse(content, media_type='application/octet-stream')
+                content = create_download_stream_raw_file(upload_files, path)
+                media_type = 'application/octet-stream'
+            return StreamingResponse(content, media_type=media_type)
         else:
             # Directory
             if files_params.compress:
                 # Stream directory content, compressed.
-                content = create_streamed_zipfile(
-                    _recursive_directory_stream_generator(upload_files, path, '', files_params),
-                    compress=True)
+                download_item = DownloadItem(
+                    upload_id=upload_id, is_authorized=True, raw_path=path, zip_path='')
+                content = create_download_stream_zipped(
+                    download_item, upload_files,
+                    re_pattern=files_params.re_pattern, recursive=True,
+                    create_manifest_file=False, compress=True)
                 return StreamingResponse(content, media_type='application/zip')
             else:
                 # compress = False -> return list of directory contents
                 directory_list = upload_files.raw_directory_list(path)
+                upload_files.close()
                 if request.headers.get('Accept') == 'application/json':
                     # json response
                     response = DirectoryListResponse(path=path, content=[])
-                    for name, is_file, size, access in directory_list:
+                    for path_info in directory_list:
                         response.content.append(DirectoryListLine(
-                            name=name, is_file=is_file, size=size, access=access))
+                            name=os.path.basename(path_info.path),
+                            is_file=path_info.is_file,
+                            size=path_info.size,
+                            access=path_info.access))
                     response_text = response.json()
                     media_type = 'application/json'
                 else:
@@ -553,16 +549,17 @@ async def get_upload_raw_path(
                     base_url = f'{scheme}://{netloc}{url_path}'
                     if not base_url.endswith('/'):
                         base_url += '/'
-                    for name, is_file, size, access in directory_list:
+                    for path_info in directory_list:
                         # TODO: How should the html look? Need html escaping?
-                        if not is_file:
+                        name = os.path.basename(path_info.path)
+                        if not path_info.is_file:
                             name += '/'
-                        info = f'{size} bytes' if is_file else 'directory'
-                        info += f' [{access}]'
+                        info = f'{path_info.size} bytes' if path_info.is_file else 'directory'
+                        info += f' [{path_info.access}]'
                         response_text += f'<p><a href="{base_url + name}">{name}</a> {info}</p>\n'
                     media_type = 'text/html'
 
-                return StreamingResponse(_streamed_string(response_text), media_type=media_type)
+                return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
         upload_files.close()
@@ -760,7 +757,7 @@ async def post_upload(
             'upload and publish your data.')
         media_type = 'text/plain'
 
-    return StreamingResponse(_streamed_string(response_text), media_type=media_type)
+    return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
 
 
 @router.delete(
@@ -935,40 +932,6 @@ async def _asyncronous_file_reader(f):
             await f.close()
             return
         yield data
-
-
-def _streamed_string(response: str):
-    ''' Generator to use for streaming simple strings with the StreamingResponse class. '''
-    yield response
-
-
-def _recursive_directory_stream_generator(
-        upload_files: UploadFiles, raw_path: str, zip_path: str, files_params: Files,
-        recursive=False) -> Iterator[StreamedFile]:
-    '''
-    Generates StreamedFile objects for all files found in `raw_path` in upload_files,
-    recursively crawling subdirectories.
-    '''
-    directory_list = upload_files.raw_directory_list(raw_path)
-    for name, is_file, size, __ in directory_list:
-        raw_path_full = os.path.join(raw_path, name)
-        zip_path_full = os.path.join(zip_path, name)
-        if is_file:
-            # raw_path_full is a file
-            if not files_params.re_pattern or files_params.re_pattern.search(raw_path_full):  # type: ignore
-                yield StreamedFile(
-                    path=zip_path_full,
-                    f=upload_files.raw_file(raw_path_full, 'rb'),
-                    size=size)
-        else:
-            # raw_path_full is a directory - call recursively
-            for rv in _recursive_directory_stream_generator(
-                    upload_files, raw_path_full, zip_path_full, files_params, True):
-                yield rv
-
-    if not recursive:
-        # This is the initial call, and we are done streaming everything
-        upload_files.close()
 
 
 def _query_mongodb(**kwargs):
