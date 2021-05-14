@@ -406,9 +406,8 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
     mainfile_dir = os.path.dirname(mainfile)
 
     files = []
-    for file_name, file_size in upload_files.raw_file_list(directory=mainfile_dir):
-        path = os.path.join(mainfile_dir, file_name)
-        files.append(EntryRawFile(path=path, size=file_size))
+    for path_info in upload_files.raw_directory_list(mainfile_dir, files_only=True):
+        files.append(EntryRawFile(path=path_info.path, size=path_info.size))
 
     return EntryRaw(entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, files=files)
 

@@ -251,20 +251,20 @@ class UploadFilesContract(UploadFilesFixtures):
         raw_files = list(upload_files.raw_file_manifest(path_prefix=prefix))
         assert_example_files(raw_files)
 
-    @pytest.mark.parametrize('prefix', [None, 'examples_template'])
-    def test_raw_file_list(self, test_upload: UploadWithFiles, prefix: str):
+    @pytest.mark.parametrize('path', [None, 'examples_template'])
+    def test_raw_directory_list(self, test_upload: UploadWithFiles, path: str):
         _, _, upload_files = test_upload
-        raw_files = list(upload_files.raw_file_list(directory=prefix))
-        if prefix is None:
+        raw_files = list(upload_files.raw_directory_list(path, files_only=True))
+        if path is None:
             assert len(raw_files) == 0
         elif upload_files._is_authorized() or len(raw_files) > 0:
-            assert '1.aux' in list(path for path, _ in raw_files)
-            for file, size in raw_files:
-                if file.endswith('.aux'):
-                    assert size == 8
+            assert '1.aux' in list(os.path.basename(path_info.path) for path_info in raw_files)
+            for path_info in raw_files:
+                if path_info.path.endswith('.aux'):
+                    assert path_info.size == 8
                 else:
-                    assert size > 0
-            assert_example_files([os.path.join(prefix, path) for path, _ in raw_files])
+                    assert path_info.size > 0
+            assert_example_files([path_info.path for path_info in raw_files])
 
     @pytest.mark.parametrize('with_access', [False, True])
     def test_read_archive(self, test_upload: UploadWithFiles, with_access: str):

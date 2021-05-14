@@ -276,6 +276,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         Returns an iterator of UploadPathInfo objects for each element (file or folder) in
         the directory specified by `path`. If `recursive` is set to True, subdirectories are
         also crawled. If `files_only` is set, only the file objects found are returned.
+        If path is not a valid directory, the result will be empty.
         '''
         raise NotImplementedError()
 
@@ -305,16 +306,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             path_prefix: An optional prefix; only returns those files that have the prefix.
         Returns:
             An iterable over all (matching) raw files.
-        '''
-        raise NotImplementedError()
-
-    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
-        '''
-        Gives a list of directory contents (files only) and their sizes.
-        Arguments:
-            directory: The directory to list
-        Returns:
-            A list of tuples with file name and size.
         '''
         raise NotImplementedError()
 
@@ -363,12 +354,12 @@ class StagingUploadFiles(UploadFiles):
         '''
         Takes a raw path (path relative to the raw folder) and returns the correspondig
         os path. A Restricted exception is thrown if the user is not authorized. If the
-        path is invalid (for example if it contains a '..', which could pose a security
-        risk), None is returned.
+        path is invalid (for example if it starts with a '/' or contains a '..', which
+        could pose a security risk), None is returned.
         '''
         if not self._is_authorized():
             raise Restricted
-        if '..' in path.split(os.path.sep):
+        if path is None or '..' in path.split(os.path.sep):
             return None
         return os.path.join(self.os_path, 'raw', path)
 
@@ -619,26 +610,6 @@ class StagingUploadFiles(UploadFiles):
                 path = os.path.join(root, file)[upload_prefix_len:]
                 if path_prefix is None or path.startswith(path_prefix):
                     yield path
-
-    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
-        if not self._is_authorized():
-            raise Restricted
-
-        if directory is None or directory == '':
-            prefix = self._raw_dir.os_path
-        else:
-            prefix = os.path.join(self._raw_dir.os_path, directory)
-
-        results: List[Tuple[str, int]] = []
-        if not os.path.isdir(prefix):
-            return results
-
-        for file in os.listdir(prefix):
-            path = os.path.join(prefix, file)
-            if os.path.isfile(path):
-                results.append((file, os.path.getsize(path)))
-
-        return results
 
     def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         '''
@@ -936,6 +907,8 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
+        if path is None:
+            return
         self._parse_content()
         if path == '.':
             path = ''
@@ -1006,22 +979,6 @@ class PublicUploadFiles(UploadFiles):
                         yield path
             except FileNotFoundError:
                 pass
-
-    def raw_file_list(self, directory: str) -> List[Tuple[str, int]]:
-        self._parse_content()
-        if directory is None:
-            directory = ''
-        else:
-            directory = directory.rstrip('/')
-
-        results: List[Tuple[str, int]] = []
-        content: Dict[str, UploadPathInfo] = self._directories.get(directory, {})
-        for base_name, path_info in content.items():
-            if path_info.is_file:
-                if path_info.access == 'public' or self._is_authorized():
-                    results.append((base_name, path_info.size))
-        results.sort()
-        return results
 
     def read_archive(self, calc_id: str, access: str = None) -> Any:
         if access is not None:

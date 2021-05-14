@@ -174,11 +174,11 @@ def get_raw_file_from_upload_path(
     except Restricted:
         abort(401, message='Not authorized to access all files in %s.' % upload_files.upload_id)
     except KeyError:
-        directory_files = upload_files.raw_file_list(upload_filepath)
+        directory_files = list(upload_files.raw_directory_list(upload_filepath, files_only=True))
         if len(directory_files) == 0:
             abort(404, message='There is nothing to be found at %s.' % upload_filepath)
 
-        contents = sorted([dict(name=name, size=size) for name, size in directory_files], key=lambda x: '' if x['name'] == mainfile else x['name'])
+        contents = sorted([dict(name=os.path.basename(path_info.path), size=path_info.size) for path_info in directory_files], key=lambda x: '' if x['name'] == mainfile else x['name'])
         # if mainfile is not None:
         #     contents = [mainfile] + [content for content in contents if content['name'] != mainfile]
         return {
@@ -546,8 +546,8 @@ def respond_to_raw_files_query(search_request, args, logger):
                 if directory_w_upload not in directories:
                     streamed += 1
                     directories.add(directory_w_upload)
-                    for filename, file_size in upload_files.raw_file_list(directory=directory):
-                        filename = os.path.join(directory, filename)
+                    for path_info in upload_files.raw_directory_list(directory, files_only=True):
+                        filename = path_info.path
                         filename_w_upload = os.path.join(upload_files.upload_id, filename)
                         filename_wo_prefix = filename_w_upload[common_prefix_len:]
                         if len(patterns) == 0 or any(
@@ -555,7 +555,7 @@ def respond_to_raw_files_query(search_request, args, logger):
                                 for pattern in patterns):
                             yield (
                                 filename_wo_prefix, filename, manifest, open_file,
-                                lambda *args, **kwargs: file_size)
+                                lambda *args, **kwargs: path_info.size)
                 else:
                     skipped += 1
 
