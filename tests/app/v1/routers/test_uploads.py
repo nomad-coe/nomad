@@ -574,7 +574,12 @@ def test_get_upload_entry(
         'test_user', 'id_published', '', '*', True, None,
         200, 'application/zip', ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
         id='published-dir-compressed-root'),
-])
+    pytest.param(
+        'test_user', 'silly_value', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+        404, None, None, id='bad-upload-id'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/silly_name', '*', True, None,
+        404, None, None, id='bad-path')])
 def test_get_upload_raw_path(
         client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
         user, upload_id, path, accept, compress, re_pattern,

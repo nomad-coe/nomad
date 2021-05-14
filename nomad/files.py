@@ -359,7 +359,13 @@ class StagingUploadFiles(UploadFiles):
         '''
         if not self._is_authorized():
             raise Restricted
-        if path is None or '..' in path.split(os.path.sep):
+        if path is None:
+            return None
+        # Normalize the path
+        path = os.path.normpath(path)
+        if path == '.':
+            path = ''
+        if path.startswith(os.path.sep) or '..' in path.split(os.path.sep):
             return None
         return os.path.join(self.os_path, 'raw', path)
 

@@ -563,6 +563,7 @@ async def get_upload_raw_path(
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
         upload_files.close()
+        raise
 
 
 @router.post(
