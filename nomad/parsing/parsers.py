@@ -16,13 +16,11 @@
 # limitations under the License.
 #
 
-from nomad.metainfo.metainfo import Quantity
 import os.path
 
 from nomad import config, datamodel
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
-from .legacy import LegacyParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
 from eelsdbconverter import EELSApiJsonConverter
@@ -72,6 +70,7 @@ from charmmparser import CharmmParser
 from libatomsparser import LibAtomsParser
 from atkparser import ATKParser
 from qboxparser import QboxParser
+from openkimparser import OpenKIMParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -199,11 +198,7 @@ parsers = [
     FleurParser(),
     MolcasParser(),
     OnetepParser(),
-    LegacyParser(
-        name='parsers/openkim', code_name='OpenKIM', domain='dft',
-        parser_class_name='openkimparser.OpenKIMParser',
-        mainfile_contents_re=r'OPENKIM'
-    ),
+    OpenKIMParser(),
     TinkerParser(),
     LammpsParser(),
     AmberParser(),
