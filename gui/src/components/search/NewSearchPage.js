@@ -19,7 +19,6 @@ import React, { useContext } from 'react'
 import { apiContext } from '../api'
 import NewSearch from './NewSearch'
 import { domainData } from '../domainData'
-import { encyclopediaEnabled } from '../../config'
 
 const help = `
 This page allows you to **search** in NOMAD's data. The upper part of this page

@@ -39,7 +39,7 @@ import {
   toMateriaStructure,
   mergeObjects
 } from '../../utils'
-import { unitsState } from '../archive/ArchiveBrowser'
+import { unitsState } from '../UnitSelector'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
 

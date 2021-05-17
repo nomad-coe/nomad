@@ -30,9 +30,8 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
-import { UnitSelector } from './UnitSelector'
+import { unitsState } from '../UnitSelector'
 import { convertSI, getHighestOccupiedEnergy } from '../../utils'
-import { conversionMap } from '../../units'
 import { electronicRange } from '../../config'
 
 export const configState = atom({
@@ -43,24 +42,6 @@ export const configState = atom({
     'showAllDefined': false,
     'energyUnit': 'joule'
   }
-})
-
-// Set up a unit system: by default use SI units, unless explicitly overridden
-// with something else.
-let defaults = {}
-for (const dimension in conversionMap) {
-  const info = conversionMap[dimension]
-  defaults[dimension] = info.units[0]
-}
-const override = {
-  'length': 'angstrom',
-  'energy': 'electron_volt',
-  'system': 'custom'
-}
-defaults = {...defaults, ...override}
-export const unitsState = atom({
-  key: 'units',
-  default: defaults
 })
 
 // Contains details about the currently visualized system. Used to detect if a
@@ -148,7 +129,6 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
-        <UnitSelector unitsState={unitsState}></UnitSelector>
       </FormGroup>
     </Box>
   )

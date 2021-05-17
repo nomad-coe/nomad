@@ -15,47 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect } from 'react'
+import React, {useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import {
-  Paper,
-  Tabs,
-  Tab,
-  Tooltip,
-  IconButton
-} from '@material-ui/core'
-import ReloadIcon from '@material-ui/icons/Cached'
-import { useQueryParam, useQueryParams, StringParam, NumberParam } from 'use-query-params'
-import SearchBar from './SearchBar'
 import FiltersPanel from './FiltersPanel'
-import EntryList from './EntryList'
-import DatasetList from './DatasetList'
-import MaterialsList from './MaterialsList'
-import ApiDialogButton from '../ApiDialogButton'
-import SearchContext, { searchContext } from './SearchContext'
-import {objectFilter} from '../../utils'
-
-const resultTabs = {
-  'entries': {
-    label: 'Entries',
-    groups: {},
-    component: SearchEntryList
-  },
-  'materials': {
-    label: 'Materials',
-    groups: {'encyclopedia.material.materials_grouped': true},
-    component: SearchMaterialsList
-  },
-  'datasets': {
-    label: 'Datasets',
-    groups: {'datasets_grouped': true},
-    component: SearchDatasetList
-  }
-}
+import FiltersActive from './FiltersActive'
+import NewSearchBar from './NewSearchBar'
+import SearchResults from './SearchResults'
+import SearchContext from './SearchContext'
 
 const useNewSearchStyles = makeStyles(theme => {
-  const filterWidth = 25
+  const filterWidth = 26
   return {
     root: {
       display: 'flex',
@@ -71,18 +41,40 @@ const useNewSearchStyles = makeStyles(theme => {
     },
     center: {
       flex: `1 1 100%`,
-      padding: theme.spacing(3)
+      display: 'flex',
+      flexDirection: 'column',
+      paddingTop: theme.spacing(3),
+      paddingBottom: theme.spacing(3),
+      paddingLeft: theme.spacing(3),
+      paddingRight: theme.spacing(4)
+    },
+    resultList: {
+      overflowY: 'auto',
+      flexGrow: 1
     },
     rightColumn: {
-      flex: `0 0 ${0.5 * filterWidth}rem`
+      //flex: `0 0 ${0.5 * filterWidth}rem`
     },
     spacer: {
       flexGrow: 1
     },
+    bar: {
+      display: 'flex',
+      flexGrow: 0,
+      marginBottom: theme.spacing(3)
+    },
     searchBar: {
-      marginTop: theme.spacing(1),
-      marginBottom: theme.spacing(1)
-    }
+      flexGrow: 1,
+      // flexBasis: '50%',
+      //maxWidth: '35rem'
+    },
+    spacerBar: {
+      flex: `0 0 ${theme.spacing(3)}px`
+    },
+    // filtersBar: {
+    //   flexGrow: 1,
+    //   flexBasis: '50%'
+    // }
   }
 })
 
@@ -98,14 +90,29 @@ const NewSearch = React.memo(({
   ...rest
 }) => {
   const styles = useNewSearchStyles()
+  const [resultType, setResultType] = useState('entries')
+  const [searchType, setSearchType] = useState('nomad')
   return <SearchContext query={query} initialQuery={initialQuery}>
     <div className={styles.root} {...rest}>
       <div className={styles.leftColumn}>
-        <FiltersPanel/>
+        <FiltersPanel
+          resultType={resultType}
+          onResultTypeChange={value => setResultType(value)}
+        />
       </div>
       <div className={styles.center}>
-        <SearchBar classes={{autosuggestRoot: styles.searchBar}}/>
-        <SearchResults/>
+        <div className={styles.bar}>
+          <NewSearchBar
+            searchType={searchType}
+            className={styles.searchBar}
+            onSearchTypeChanged={(event) => setSearchType(event.target.value)}
+          />
+          {/* <div className={styles.spacerBar}></div>
+          <FiltersActive className={styles.filtersBar}/> */}
+        </div>
+        <div className={styles.resultList}>
+          <SearchResults/>
+        </div>
       </div>
       <div className={styles.rightColumn}>
       </div>
@@ -132,139 +139,4 @@ NewSearch.propTypes = {
   showDisclaimer: PropTypes.bool
 }
 
-const useSearchResultStyles = makeStyles(theme => ({
-  root: {}
-}))
-const SearchResults = React.memo(({
-  availableTabs = ['entries'],
-  initialTab = 'entries',
-  resultListProps = {}
-}) => {
-  const classes = useSearchResultStyles()
-  const {domain, setGroups} = useContext(searchContext)
-  let [openTab, setOpenTab] = useQueryParam('results', StringParam)
-  openTab = openTab || initialTab
-  const ResultList = resultTabs[openTab].component
-  const handleTabChange = tab => {
-    setOpenTab(tab)
-    setGroups(resultTabs[tab].groups)
-  }
-
-  useEffect(() => {
-    if (openTab !== 'entries') {
-      handleTabChange(openTab)
-    }
-    // eslint-disable-next-line
-  }, [])
-
-  return <div className={classes.root}>
-    <Paper>
-      <Tabs
-        value={openTab}
-        indicatorColor="primary"
-        textColor="primary"
-        onChange={(event, value) => handleTabChange(value)}
-      >
-        {availableTabs.filter(tab => domain.searchTabs.includes(tab)).map(key => {
-          const tab = resultTabs[key]
-          return <Tab key={key} label={tab.label} value={key} />
-        })}
-      </Tabs>
-
-      <ResultList domain={domain} {...resultListProps} />
-    </Paper>
-  </div>
-})
-SearchResults.propTypes = {
-  'availableTabs': PropTypes.arrayOf(PropTypes.string),
-  'initialTab': PropTypes.string,
-  'resultListProps': PropTypes.object
-}
-
 export default NewSearch
-
-function ReRunSearchButton() {
-  const {update} = useContext(searchContext)
-  return <Tooltip title="Re-execute the search">
-    <IconButton onClick={update}>
-      <ReloadIcon />
-    </IconButton>
-  </Tooltip>
-}
-
-const usePagination = () => {
-  const {setRequestParameters} = useContext(searchContext)
-  let [requestQueryParameters, setRequestQueryParameters] = useQueryParams({
-    order: NumberParam, order_by: StringParam, per_page: NumberParam, page: NumberParam
-  })
-  requestQueryParameters = objectFilter(requestQueryParameters, key => requestQueryParameters[key])
-  requestQueryParameters.page = requestQueryParameters.page || 1
-  useEffect(
-    () => setRequestParameters(requestQueryParameters),
-    [requestQueryParameters, setRequestParameters]
-  )
-  return setRequestQueryParameters
-}
-
-const useScroll = (apiGroupName, afterParameterName) => {
-  afterParameterName = afterParameterName || `${apiGroupName}_after`
-  const apiAfterParameterName = `${apiGroupName}_grouped_after`
-
-  const {response, setRequestParameters} = useContext(searchContext)
-  const [queryAfterParameter, setQueryAfterParameter] = useQueryParam(afterParameterName, StringParam)
-  useEffect(
-    () => {
-      const requestParameters = {}
-      requestParameters[apiAfterParameterName] = queryAfterParameter || null
-      setRequestParameters(requestParameters)
-    }, [queryAfterParameter, setRequestParameters, apiAfterParameterName]
-  )
-
-  const responseGroup = response[`${apiGroupName}_grouped`]
-  const after = responseGroup && responseGroup.after
-  const result = {
-    total: response.statistics.total.all[apiGroupName],
-    onChange: requestParameters => setQueryAfterParameter(requestParameters[apiAfterParameterName])
-  }
-  result[afterParameterName] = after
-  return result
-}
-
-function SearchEntryList(props) {
-  const {response, requestParameters, apiQuery, update} = useContext(searchContext)
-  const setRequestParameters = usePagination()
-  return <EntryList
-    query={apiQuery}
-    editable={apiQuery.owner === 'staging' || apiQuery.owner === 'user'}
-    data={response}
-    onChange={setRequestParameters}
-    onEdit={update}
-    actions={
-      <React.Fragment>
-        <ReRunSearchButton/>
-        <ApiDialogButton data={response} />
-      </React.Fragment>
-    }
-    {...requestParameters}
-    {...props}
-  />
-}
-
-function SearchDatasetList(props) {
-  const {response, update} = useContext(searchContext)
-  return <DatasetList
-    data={response}
-    onEdit={update}
-    actions={<ReRunSearchButton/>}
-    {...response} {...props} {...useScroll('datasets')}
-  />
-}
-
-function SearchMaterialsList(props) {
-  const {response} = useContext(searchContext)
-  return <MaterialsList
-    data={response}
-    actions={<ReRunSearchButton/>}
-    {...response} {...props} {...useScroll('encyclopedia.material.materials', 'materials_after')}
-  />
-}

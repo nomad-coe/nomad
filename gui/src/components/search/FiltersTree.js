@@ -18,9 +18,21 @@
 import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
-import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos'
-import { Typography } from '@material-ui/core'
+import { makeStyles, fade } from '@material-ui/core/styles'
+import {
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListSubheader,
+  Divider
+} from '@material-ui/core'
+import {
+  ToggleButton,
+  ToggleButtonGroup
+} from '@material-ui/lab'
+import Checkbox from '@material-ui/core/Checkbox'
+import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import FiltersElements from './FiltersElements'
 
 /**
@@ -28,38 +40,55 @@ import FiltersElements from './FiltersElements'
  */
 const useStyles = makeStyles(theme => ({
   root: {},
-  li: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(0.5),
-    borderBottom: `1px solid ${theme.palette.divider}`
+  list: {
+    paddingTop: 0,
+    paddingBottom: 0
   },
   section: {
-  },
-  link: {
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: theme.palette.secondary
-    }
-  },
-  label: {
-    color: theme.palette.text.secondary
   },
   hidden: {
     display: 'none'
   },
-  indented: {
-    marginLeft: theme.spacing(4)
+  listHeader: {
+    paddingLeft: 0,
+    height: '2.5rem',
+    lineHeight: '2.5rem',
+    color: theme.palette.text.primary
+  },
+  listIcon: {
+    minWidth: '1.5rem'
+  },
+  listItem: {
+    height: '2.5rem'
   },
   arrow: {
     marginLeft: theme.spacing(1),
-    fontSize: '0.8rem'
+    fontSize: '1.5rem'
+  },
+  toggles: {
+    marginBottom: theme.spacing(1),
+    height: '2rem'
+  },
+  toggle: {
+    color: fade(theme.palette.action.active, 0.87)
+  },
+  gutters: {
+    paddingLeft: '0.5rem',
+    paddingRight: '0.5rem'
+  },
+  selected: {
+    '&$selected': {
+      backgroundColor: theme.palette.secondary.main,
+      color: 'white'
+    }
   }
 }))
 
 const FiltersTree = React.memo(({
+  resultType,
   view,
   onViewChange,
+  onResultTypeChange,
   className
 }) => {
   const styles = useStyles()
@@ -70,75 +99,138 @@ const FiltersTree = React.memo(({
       {
         name: 'Structure',
         children: [
-          {name: 'Elements', leaf: true},
-          {name: 'Symmetry', leaf: true}
+          {name: 'Elements'},
+          {name: 'Classification'},
+          {name: 'Symmetry'}
         ]
       },
       {
         name: 'Method',
         children: [
-          {
-            name: 'Experiment',
-            children: [
-              {name: 'XPS', leaf: true}
-            ]
-          },
-          {
-            name: 'Simulation',
-            children: [
-              {name: 'DFT', leaf: true},
-              {name: 'GW', leaf: true}
-            ]
-          }
+          {name: 'DFT', onChecked: () => {}},
+          {name: 'GW', onChecked: () => {}},
+          {name: 'XPS', onChecked: () => {}}
         ]
       },
       {
         name: 'Properties',
         children: [
-          {name: 'Electronic', leaf: true},
-          {name: 'Vibrational', leaf: true},
-          {name: 'Optical', leaf: true}
+          {name: 'Electronic'},
+          {name: 'Vibrational'},
+          {name: 'Optical'}
         ]
       },
       {
         name: 'Metainfo',
         children: [
-          {name: 'Origin', leaf: true},
-          {name: 'Dataset', leaf: true}
+          {name: 'Origin'},
+          {name: 'Dataset'}
         ]
       }
     ]
-    function build(branch, index, level) {
+    function buildList(branch, i) {
       const name = branch.name
       const children = branch.children
-      const leaf = branch.leaf
-      const val = <div className={level !== 0 ? styles.indented : undefined} key={index}>
-        <div className={clsx(styles.li, leaf && styles.link)} onClick={ leaf ? () => onViewChange(1, name) : () => {} }>
-          <Typography className={styles.label} variant="button">{name}</Typography>
-          {leaf && <ArrowForwardIosIcon className={styles.arrow}/>}
-        </div>
-        {children &&
-          <div>
-            {children.map((child, j) => build(child, j, level + 1))}
-          </div>
+      return <List
+        key={i}
+        dense
+        className={styles.list}
+        subheader={
+          <ListSubheader
+            component="div"
+            id="nested-list-subheader"
+            className={styles.listHeader}
+          >
+            {name}
+          </ListSubheader>
         }
-      </div>
-      return val
+      >
+        <Divider/>
+        {children.map((child, j) => {
+          const childŃame = child.name
+          return <ListItem
+            divider
+            button
+            key={j}
+            className={styles.listItem}
+            classes={{gutters: styles.gutters}}
+          >
+            <ListItemIcon
+              className={styles.listIcon}
+            >
+              {child.onChecked &&
+                <Checkbox
+                  edge="start"
+                  size="small"
+                  checked={true}
+                  onChange={(event) => {
+                    console.log('Check')
+                  }}
+                  tabIndex={-1}
+                  disableRipple
+                />}
+            </ListItemIcon>
+            <ListItemText
+              primary={childŃame}
+              onClick={() => onViewChange(1, childŃame)}
+            />
+            <ListItemIcon
+              className={styles.listIcon}
+              onClick={() => onViewChange(1, childŃame)}
+            >
+              <NavigateNextIcon className={styles.arrow}/>
+            </ListItemIcon>
+          </ListItem>
+        })}
+      </List>
     }
-    return tree.map((branch, i) => build(branch, i, 0))
+    return tree.map((section, index) => buildList(section, index))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return <div className={clsx(className, styles.root)}>
-    <div className={clsx(view !== 'Filters' && styles.hidden)}>{tree}</div>
+    <div
+      className={clsx(view !== 'Filters' && styles.hidden)}
+    >
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={resultType}
+        onChange={onResultTypeChange}
+      >
+        <ToggleButton
+          value="entries"
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >Entries
+        </ToggleButton>
+        <ToggleButton
+          value="materials"
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >Materials
+        </ToggleButton>
+        <ToggleButton
+          value="datasets"
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >Datasets
+        </ToggleButton>
+        <ToggleButton
+          value="uploads"
+          classes={{root: styles.toggle, selected: styles.selected}}
+        >Uploads
+        </ToggleButton>
+      </ToggleButtonGroup>
+      {tree}
+    </div>
     <FiltersElements className={clsx(view !== 'Elements' && styles.hidden)}/>
   </div>
 })
 FiltersTree.propTypes = {
+  resultType: PropTypes.string.isRequired,
   view: PropTypes.string,
   level: PropTypes.number,
   className: PropTypes.string,
-  onViewChange: PropTypes.func
+  onViewChange: PropTypes.func,
+  onResultTypeChange: PropTypes.func
 }
 FiltersTree.defaultProps = {
   level: 0

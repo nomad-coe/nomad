@@ -20,19 +20,31 @@ import PropTypes from 'prop-types'
 import { Tooltip, IconButton, Button, Box, makeStyles } from '@material-ui/core'
 import clsx from 'clsx'
 
-export default function Actions({actions, color, variant, size, justifyContent, className, classes}) {
+const Actions = React.memo(({
+  header,
+  actions,
+  color,
+  variant,
+  size,
+  justifyContent,
+  className,
+  classes
+}) => {
   const actionsStyles = makeStyles((theme) => ({
     root: {
       display: 'flex',
       width: '100%',
       justifyContent: justifyContent
     },
+    spacer: {
+      flexGrow: 1
+    },
     iconButton: {
       marginRight: theme.spacing(1)
     }
   }))
   const styles = actionsStyles(classes)
-  const buttonList = actions.map((value, idx) => {
+  const buttonList = actions && actions.map((value, idx) => {
     return <Tooltip key={idx} title={value.tooltip}>
       {variant === 'icon'
         ? <IconButton
@@ -62,16 +74,27 @@ export default function Actions({actions, color, variant, size, justifyContent, 
     </Tooltip>
   })
   return <Box className={clsx(className, styles.root)}>
+    {header}
+    {header && <div className={styles.spacer}></div>}
     {buttonList}
   </Box>
-}
+})
 
 Actions.propTypes = {
-  actions: PropTypes.array,
-  color: PropTypes.string,
-  variant: PropTypes.string,
-  size: PropTypes.string,
-  justifyContent: PropTypes.string,
+  header: PropTypes.any, // A text message or component to display at the left side of the actions
+  actions: PropTypes.arrayOf(
+    PropTypes.shape({
+      content: PropTypes.any, // The content to show inside the button: text, component, icon, etc.
+      href: PropTypes.string,
+      tooltip: PropTypes.string,
+      disabled: PropTypes.number,
+      onClick: PropTypes.string
+    })
+  ),
+  color: PropTypes.string, // The color of the MUI buttons
+  variant: PropTypes.string, // The variant of the MUI buttons
+  size: PropTypes.string, // Size of the MUI buttons
+  justifyContent: PropTypes.string, // The flexbox justification of buttons
   className: PropTypes.string,
   classes: PropTypes.string
 }
@@ -81,3 +104,5 @@ Actions.defaultProps = {
   variant: 'icon',
   justifyContent: 'flex-end'
 }
+
+export default Actions

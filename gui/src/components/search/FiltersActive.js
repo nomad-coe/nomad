@@ -15,21 +15,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
+import {
+  Paper,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core'
+import ClearIcon from '@material-ui/icons/Clear'
+import { searchContext } from './SearchContext'
 
 /**
  * Displays the active filters.
  */
-const useFiltersActiveStyles = makeStyles(theme => ({root: {}}))
+const useStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '2px 4px'
+  },
+  filterIcon: {
+    paddingLeft: theme.spacing(0.5),
+    paddingRight: theme.spacing(0.5)
+  },
+  spacer: {
+    flexGrow: 1
+  },
+  divider: {
+    height: 'calc(100% - 6px)'
+  }
+}))
 const FiltersActive = React.memo(({
   className
 }) => {
-  const styles = useFiltersActiveStyles()
-  return <div className={clsx(className, styles.root)}>
-  </div>
+  const styles = useStyles()
+  const {query} = useContext(searchContext)
+
+  return <Paper className={clsx(className, styles.root)}>
+    <div className={styles.spacer}></div>
+    <Tooltip
+      title="Clear filters"
+    >
+      <IconButton className={styles.iconButton} aria-label="search">
+        <ClearIcon />
+      </IconButton>
+    </Tooltip>
+  </Paper>
 })
 FiltersActive.propTypes = {
   className: PropTypes.string

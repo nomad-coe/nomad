@@ -15,19 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
-import { Paper, Breadcrumbs, Typography } from '@material-ui/core'
-import ReloadIcon from '@material-ui/icons/Cached'
-import Actions from '../Actions'
+import {
+  Paper,
+  Breadcrumbs,
+  Typography
+} from '@material-ui/core'
+import ArrowBackIcon from '@material-ui/icons/ArrowBack'
+import ClearIcon from '@material-ui/icons/Clear'
+import CodeIcon from '@material-ui/icons/Code'
 import FiltersTree from './FiltersTree'
-import FiltersActive from './FiltersActive'
+import Actions from '../Actions'
 
 /**
  * Displays the filters panel.
  */
+
 const useStyles = makeStyles(theme => ({
   root: {
     padding: `${theme.spacing(1.5)}px ${theme.spacing(3)}px`,
@@ -43,27 +49,31 @@ const useStyles = makeStyles(theme => ({
   spacer: {
     flexGrow: 1
   },
+  header: {
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(2)
+  },
   breadCrumbs: {
-    marginBottom: theme.spacing(2)
+    marginBottom: theme.spacing(1.5)
+  },
+  back: {
+    display: 'flex',
+    alignItems: 'center'
   },
   crumb: {
-    minHeight: 100,
     cursor: 'pointer',
     color: theme.palette.primary.main
   }
 }))
 
 const FiltersPanel = React.memo(({
-  className
+  resultType,
+  className,
+  onResultTypeChange
 }) => {
   const styles = useStyles()
   const [breadCrumbs, setBreadCrumbs] = useState(['Filters'])
   const [view, setView] = useState('Filters')
-
-  // List of actionable buttons for the filters
-  const actions = [
-    {tooltip: 'Clear filters', onClick: () => {}, content: <ReloadIcon/>}
-  ]
 
   // Handling view changes in the tree
   const handleViewChange = useCallback((level, name) => {
@@ -79,27 +89,57 @@ const FiltersPanel = React.memo(({
     })
   }, [])
 
+  const actions = useMemo(() => (
+    // [{
+    //   tooltip: 'Go back to main menu',
+    //   onClick: () => { handleViewChange(0, 'Filters') },
+    //   content: <div className={styles.back}><ArrowBackIcon/>BACK</div>
+    // },
+    [{
+      tooltip: 'View the API call for the selected filters',
+      content: <CodeIcon/>,
+      onClick: () => { handleViewChange(0, 'Filters') }
+    },
+    {
+      tooltip: 'Clear filters',
+      content: <ClearIcon/>,
+      onClick: () => { handleViewChange(0, 'Filters') }
+    }]
+  ), [handleViewChange, styles, view])
+
+  console.log(resultType)
   return <Paper elevation={3} className={clsx(className, styles.root)}>
-    <Breadcrumbs className={styles.breadCrumbs}>
-      { breadCrumbs.map((name, index) => <Typography
-        className={styles.crumb}
-        variant="button"
-        key={index}
-        onClick={() => handleViewChange(index, name)}
-      >{name}</Typography>) }
-    </Breadcrumbs>
-    <FiltersTree view={view} onViewChange={handleViewChange}/>
-    <FiltersActive/>
-    <div className={styles.spacer}/>
     <Actions
-      color="primary"
-      variant="contained"
+      // header={<Breadcrumbs>
+      //   { breadCrumbs.map((name, index) => <Typography
+      //     className={styles.crumb}
+      //     variant="button"
+      //     key={index}
+      //     onClick={() => handleViewChange(index, name)}
+      //   >{name}</Typography>) }
+      // </Breadcrumbs>
+      // }
+      header={<Typography
+        variant="button"
+      >Filters
+      </Typography>}
+      variant="icon"
       actions={actions}
+      className={styles.header}
     />
+    <FiltersTree
+      view={view}
+      resultType={resultType}
+      onResultTypeChange={onResultTypeChange}
+      onViewChange={handleViewChange}
+    />
+    <div className={styles.spacer}/>
   </Paper>
 })
 FiltersPanel.propTypes = {
-  className: PropTypes.string
+  resultType: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  onResultTypeChange: PropTypes.func
 }
 
 export default FiltersPanel

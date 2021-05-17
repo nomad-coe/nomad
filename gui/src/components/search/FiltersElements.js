@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,7 +23,10 @@ import PeriodicTable from './PeriodicTable'
 import { searchContext } from './SearchContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
-  root: {}
+  root: {
+    width: '40rem',
+    marginTop: theme.spacing(0.5)
+  }
 }))
 
 /**
@@ -35,6 +38,11 @@ const FiltersElements = React.memo(({
   const styles = useFiltersElementStyles()
   const [exclusive, setExclusive] = useState(false)
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
+
+  useEffect(() => {
+    setStatistics(['atoms'])
+    // eslint-disable-next-line
+  }, [])
 
   const handleExclusiveChanged = () => {
     const newExclusive = !exclusive

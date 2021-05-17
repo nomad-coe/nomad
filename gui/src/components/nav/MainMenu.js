@@ -16,16 +16,18 @@
  * limitations under the License.
  */
 
+import React, { useEffect, useMemo, useState } from 'react'
+import { makeStyles } from '@material-ui/core/styles'
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
   FormGroup,
   Switch} from '@material-ui/core'
-import React, { useEffect, useMemo, useState } from 'react'
 import Markdown from '../Markdown'
 import { useRoute } from './Routes'
 import { matomo } from '../App'
 import { useCookies } from 'react-cookie'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
 import { guiBase, consent, appBase, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../../config'
+import UnitSelector from '../UnitSelector'
 
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -116,9 +118,15 @@ function Consent(moreProps) {
   )
 }
 
+const useStyles = makeStyles(theme => ({
+  spacer: {
+    flexGrow: 1
+  }
+}))
 export default function MainMenu() {
   const route = useRoute()
   const selected = (route?.navPath) || 'publish/uploads'
+  const styles = useStyles()
 
   return <MenuBar selected={selected}>
     <MenuBarMenu name="publish" label="Publish" route="/uploads" icon={<BackupIcon/>}>
@@ -194,5 +202,7 @@ export default function MainMenu() {
       />
       <Consent />
     </MenuBarMenu>
+    <div className={styles.spacer}></div>
+    <UnitSelector></UnitSelector>
   </MenuBar>
 }
