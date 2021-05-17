@@ -33,56 +33,60 @@ import {
 } from '@material-ui/lab'
 import Checkbox from '@material-ui/core/Checkbox'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
-import FiltersElements from './FiltersElements'
 
 /**
  * Displays the tree-like structure for selecting filters.
  */
-const useStyles = makeStyles(theme => ({
-  root: {},
-  list: {
-    paddingTop: 0,
-    paddingBottom: 0
-  },
-  section: {
-  },
-  hidden: {
-    display: 'none'
-  },
-  listHeader: {
-    paddingLeft: 0,
-    height: '2.5rem',
-    lineHeight: '2.5rem',
-    color: theme.palette.text.primary
-  },
-  listIcon: {
-    minWidth: '1.5rem'
-  },
-  listItem: {
-    height: '2.5rem'
-  },
-  arrow: {
-    marginLeft: theme.spacing(1),
-    fontSize: '1.5rem'
-  },
-  toggles: {
-    marginBottom: theme.spacing(1),
-    height: '2rem'
-  },
-  toggle: {
-    color: fade(theme.palette.action.active, 0.87)
-  },
-  gutters: {
-    paddingLeft: '0.5rem',
-    paddingRight: '0.5rem'
-  },
-  selected: {
-    '&$selected': {
-      backgroundColor: theme.palette.secondary.main,
-      color: 'white'
+const useStyles = makeStyles(theme => {
+  const padding = theme.spacing(2)
+  return {
+    root: {},
+    list: {
+      paddingTop: 0,
+      paddingBottom: 0
+    },
+    section: {
+    },
+    hidden: {
+      display: 'none'
+    },
+    listHeader: {
+      paddingLeft: padding,
+      height: '2.5rem',
+      lineHeight: '2.5rem',
+      color: theme.palette.text.primary
+    },
+    listIcon: {
+      minWidth: '1.5rem'
+    },
+    listItem: {
+      height: '2.5rem'
+    },
+    arrow: {
+      marginLeft: theme.spacing(1),
+      fontSize: '1.5rem'
+    },
+    toggles: {
+      paddingLeft: padding,
+      paddingRight: padding,
+      marginBottom: theme.spacing(1),
+      height: '2rem'
+    },
+    toggle: {
+      color: fade(theme.palette.action.active, 0.87)
+    },
+    gutters: {
+      paddingLeft: padding,
+      paddingRight: padding
+    },
+    selected: {
+      '&$selected': {
+        backgroundColor: theme.palette.secondary.main,
+        color: 'white'
+      }
     }
   }
-}))
+})
 
 const FiltersTree = React.memo(({
   resultType,
@@ -99,9 +103,9 @@ const FiltersTree = React.memo(({
       {
         name: 'Structure',
         children: [
-          {name: 'Elements'},
+          {name: 'Elements / Formula'},
           {name: 'Classification'},
-          {name: 'Symmetry'}
+          {name: 'Symmetry / Prototypes'}
         ]
       },
       {
@@ -147,17 +151,17 @@ const FiltersTree = React.memo(({
       >
         <Divider/>
         {children.map((child, j) => {
-          const childŃame = child.name
+          const childName = child.name
           return <ListItem
             divider
             button
             key={j}
+            onClick={() => onViewChange(1, childName)}
             className={styles.listItem}
+            selected={view === childName}
             classes={{gutters: styles.gutters}}
           >
-            <ListItemIcon
-              className={styles.listIcon}
-            >
+            <ListItemIcon className={styles.listIcon}>
               {child.onChecked &&
                 <Checkbox
                   edge="start"
@@ -170,14 +174,8 @@ const FiltersTree = React.memo(({
                   disableRipple
                 />}
             </ListItemIcon>
-            <ListItemText
-              primary={childŃame}
-              onClick={() => onViewChange(1, childŃame)}
-            />
-            <ListItemIcon
-              className={styles.listIcon}
-              onClick={() => onViewChange(1, childŃame)}
-            >
+            <ListItemText primary={childName}/>
+            <ListItemIcon className={styles.listIcon}>
               <NavigateNextIcon className={styles.arrow}/>
             </ListItemIcon>
           </ListItem>
@@ -189,39 +187,35 @@ const FiltersTree = React.memo(({
   }, [])
 
   return <div className={clsx(className, styles.root)}>
-    <div
-      className={clsx(view !== 'Filters' && styles.hidden)}
+    <ToggleButtonGroup
+      size="small"
+      exclusive
+      value={resultType}
+      onChange={onResultTypeChange}
+      className={styles.toggles}
     >
-      <ToggleButtonGroup
-        size="small"
-        exclusive
-        value={resultType}
-        onChange={onResultTypeChange}
-      >
-        <ToggleButton
-          value="entries"
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >Entries
-        </ToggleButton>
-        <ToggleButton
-          value="materials"
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >Materials
-        </ToggleButton>
-        <ToggleButton
-          value="datasets"
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >Datasets
-        </ToggleButton>
-        <ToggleButton
-          value="uploads"
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >Uploads
-        </ToggleButton>
-      </ToggleButtonGroup>
-      {tree}
-    </div>
-    <FiltersElements className={clsx(view !== 'Elements' && styles.hidden)}/>
+      <ToggleButton
+        value="entries"
+        classes={{root: styles.toggle, selected: styles.selected}}
+      >Entries
+      </ToggleButton>
+      <ToggleButton
+        value="materials"
+        classes={{root: styles.toggle, selected: styles.selected}}
+      >Materials
+      </ToggleButton>
+      <ToggleButton
+        value="datasets"
+        classes={{root: styles.toggle, selected: styles.selected}}
+      >Datasets
+      </ToggleButton>
+      <ToggleButton
+        value="uploads"
+        classes={{root: styles.toggle, selected: styles.selected}}
+      >Uploads
+      </ToggleButton>
+    </ToggleButtonGroup>
+    {tree}
   </div>
 })
 FiltersTree.propTypes = {

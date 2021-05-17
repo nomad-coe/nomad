@@ -34,7 +34,8 @@ const Actions = React.memo(({
     root: {
       display: 'flex',
       width: '100%',
-      justifyContent: justifyContent
+      justifyContent: justifyContent,
+      boxSizing: 'border-box'
     },
     spacer: {
       flexGrow: 1

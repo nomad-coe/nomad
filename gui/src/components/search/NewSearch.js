@@ -18,8 +18,7 @@
 import React, {useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import FiltersPanel from './FiltersPanel'
-import FiltersActive from './FiltersActive'
+import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
 import SearchContext from './SearchContext'
@@ -52,9 +51,6 @@ const useNewSearchStyles = makeStyles(theme => {
       overflowY: 'auto',
       flexGrow: 1
     },
-    rightColumn: {
-      //flex: `0 0 ${0.5 * filterWidth}rem`
-    },
     spacer: {
       flexGrow: 1
     },
@@ -64,17 +60,11 @@ const useNewSearchStyles = makeStyles(theme => {
       marginBottom: theme.spacing(3)
     },
     searchBar: {
-      flexGrow: 1,
-      // flexBasis: '50%',
-      //maxWidth: '35rem'
+      flexGrow: 1
     },
     spacerBar: {
       flex: `0 0 ${theme.spacing(3)}px`
-    },
-    // filtersBar: {
-    //   flexGrow: 1,
-    //   flexBasis: '50%'
-    // }
+    }
   }
 })
 
@@ -95,7 +85,7 @@ const NewSearch = React.memo(({
   return <SearchContext query={query} initialQuery={initialQuery}>
     <div className={styles.root} {...rest}>
       <div className={styles.leftColumn}>
-        <FiltersPanel
+        <FilterPanel
           resultType={resultType}
           onResultTypeChange={value => setResultType(value)}
         />
@@ -107,14 +97,10 @@ const NewSearch = React.memo(({
             className={styles.searchBar}
             onSearchTypeChanged={(event) => setSearchType(event.target.value)}
           />
-          {/* <div className={styles.spacerBar}></div>
-          <FiltersActive className={styles.filtersBar}/> */}
         </div>
         <div className={styles.resultList}>
           <SearchResults/>
         </div>
-      </div>
-      <div className={styles.rightColumn}>
       </div>
     </div>
   </SearchContext>

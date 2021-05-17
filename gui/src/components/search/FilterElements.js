@@ -20,6 +20,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import PeriodicTable from './PeriodicTable'
+import FilterText from './FilterText'
 import { searchContext } from './SearchContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
@@ -32,7 +33,7 @@ const useFiltersElementStyles = makeStyles(theme => ({
 /**
  * Displays the filter options for chemical elements.
  */
-const FiltersElements = React.memo(({
+const FilterElements = React.memo(({
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -68,10 +69,13 @@ const FiltersElements = React.memo(({
       onChanged={handleAtomsChanged}
       onExclusiveChanged={handleExclusiveChanged}
     />
+    <FilterText
+      quantity="results.material.chemical_formula_"
+    />
   </div>
 })
-FiltersElements.propTypes = {
+FilterElements.propTypes = {
   className: PropTypes.string
 }
 
-export default FiltersElements
+export default FilterElements
