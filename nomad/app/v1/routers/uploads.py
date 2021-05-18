@@ -487,10 +487,6 @@ async def get_upload_raw_path(
     When downloading a directory (i.e. with `compress = true`), it is also possible to
     specify `re_pattern` or `glob_pattern` to filter the files based on the file names.
     '''
-    # Normalize the path
-    path = os.path.normpath(path)
-    if path == '.':
-        path = ''
     # Get upload
     upload = _get_upload_with_read_access(upload_id, user)
     if upload.tasks_running:
@@ -533,7 +529,7 @@ async def get_upload_raw_path(
                 upload_files.close()
                 if request.headers.get('Accept') == 'application/json':
                     # json response
-                    response = DirectoryListResponse(path=path, content=[])
+                    response = DirectoryListResponse(path=path.rstrip('/'), content=[])
                     for path_info in directory_list:
                         response.content.append(DirectoryListLine(
                             name=os.path.basename(path_info.path),

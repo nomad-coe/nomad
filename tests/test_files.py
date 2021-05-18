@@ -336,12 +336,12 @@ class TestStagingUploadFiles(UploadFilesContract):
     def empty_test_upload(self, test_upload_id) -> UploadFiles:
         return StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
 
-    @pytest.mark.parametrize('prefix', [None, 'prefix'])
-    def test_add_rawfiles_zip(self, test_upload_id, prefix):
+    @pytest.mark.parametrize('target_dir', ['', 'subdir'])
+    def test_add_rawfiles_zip(self, test_upload_id, target_dir):
         test_upload = StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
-        test_upload.add_rawfiles(example_file, prefix=prefix)
+        test_upload.add_rawfiles(example_file, target_dir=target_dir)
         for filepath in example_file_contents:
-            filepath = os.path.join(prefix, filepath) if prefix else filepath
+            filepath = os.path.join(target_dir, filepath) if target_dir else filepath
             with test_upload.raw_file(filepath) as f:
                 content = f.read()
                 if filepath == example_file_mainfile:
