@@ -27,8 +27,7 @@ import re
 
 from nomad import config, datamodel, utils
 from nomad.files import DirectoryObject, PathObject
-from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
-    ArchiveBasedStagingUploadFiles
+from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted
 
 
 CalcWithFiles = Tuple[datamodel.EntryMetadata, str]
@@ -368,20 +367,12 @@ class TestStagingUploadFiles(UploadFilesContract):
         upload_files.delete()
         assert not upload_files.exists()
 
-
-class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
-    def test_create(self, test_upload_id):
-        test_upload = ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path=example_file)
-        test_upload.extract()
+    def test_add_rawfiles(self, test_upload_id):
+        test_upload = StagingUploadFiles(
+            test_upload_id, create=True)
+        assert test_upload.is_empty()
+        test_upload.add_rawfiles(example_file)
         assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
-        assert os.path.exists(test_upload.upload_path)
-
-    def test_invalid(self, test_upload_id):
-        assert ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path=example_file).is_valid
-        assert not ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path='does not exist').is_valid
 
 
 def create_public_upload(
@@ -534,10 +525,8 @@ def create_test_upload_files(
     if upload_id is None: upload_id = utils.create_uuid()
     if archives is None: archives = []
 
-    upload_files = ArchiveBasedStagingUploadFiles(
-        upload_id, upload_path=template_files, create=True)
-
-    upload_files.extract()
+    upload_files = StagingUploadFiles(upload_id, create=True)
+    upload_files.add_rawfiles(template_files)
 
     upload_raw_files = upload_files.join_dir('raw')
     source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path

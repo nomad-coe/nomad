@@ -47,8 +47,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
-    PublicUploadFiles, StagingUploadFiles)
+    PathObject, UploadFiles, ExtractError, PublicUploadFiles, StagingUploadFiles)
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -149,7 +148,7 @@ class Calc(Proc):
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
         self._upload: Upload = None
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
+        self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
         self._entry_metadata = None
@@ -251,10 +250,9 @@ class Calc(Proc):
         return entry_metadata
 
     @property
-    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
+    def upload_files(self) -> StagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(
-                self.upload_id, is_authorized=lambda: True, upload_path=self.upload.upload_path)
+            self._upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
         return self._upload_files
 
     def get_logger(self, **kwargs):
@@ -778,7 +776,7 @@ class Upload(Proc):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.publish_directly = self.publish_directly or self.from_oasis
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
+        self._upload_files: UploadFiles = None
 
     @lru_cache()
     def metadata_file_cached(self, path):
@@ -1168,12 +1166,11 @@ class Upload(Proc):
 
     @property
     def upload_files(self) -> UploadFiles:
-        upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
-        kwargs = dict(upload_path=self.upload_path) if not self.published else {}
+        upload_files_class = StagingUploadFiles if not self.published else PublicUploadFiles
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
             self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True, **kwargs)
+                self.upload_id, is_authorized=lambda: True)
 
         return self._upload_files
 
@@ -1188,18 +1185,18 @@ class Upload(Proc):
         the uploaded files.
         '''
         # extract the uploaded file
-        self._upload_files = ArchiveBasedStagingUploadFiles(
-            upload_id=self.upload_id, is_authorized=lambda: True, create=True,
-            upload_path=self.upload_path)
+        self._upload_files = StagingUploadFiles(
+            upload_id=self.upload_id, is_authorized=lambda: True, create=True)
 
         logger = self.get_logger()
         try:
-            with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
-                self.upload_files.extract()
+            if self.upload_path:
+                with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
+                    self.upload_files.add_rawfiles(self.upload_path)
 
-            if self.temporary:
-                os.remove(self.upload_path)
-                self.upload_path = None
+                if self.temporary:
+                    os.remove(self.upload_path)
+                    self.upload_path = None
 
         except KeyError:
             self.fail('processing requested for non existing upload', log_level=logging.ERROR)

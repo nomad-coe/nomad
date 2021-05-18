@@ -109,11 +109,12 @@ def create_tmp_dir(prefix: str) -> str:
     '''
     Creates a temporary directory in the directory specified by `config.fs.tmp`. The name
     of the directory will first be set to `prefix`, but if that name is already taken, a
-    suffix will be added to ensure a completely clean, new directory is created. The full
-    path to the created directory is returned.
+    suffix will be added to ensure a completely clean, new directory is created. If prefix
+    contains a '/', it will be replaced with '_', to ensure the validity of the path.
+    The full path to the created directory is returned.
     '''
-    assert os.path.exists(config.fs.tmp)
-    assert prefix and '/' not in prefix
+    assert prefix
+    prefix = prefix.replace(os.path.sep, '_')
     for index in range(1, 100):
         dir_name = prefix if index == 1 else f'{prefix}_{index}'
         path = os.path.join(config.fs.tmp, dir_name)
@@ -279,6 +280,10 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         else:
             return None
 
+    def is_empty(self) -> bool:
+        ''' If this upload has no content yet. '''
+        raise NotImplementedError()
+
     def raw_path_is_well_formed(self, path: str) -> bool:
         '''
         Checks if a path is a well formed "raw path". These paths are relative to the
@@ -391,6 +396,9 @@ class StagingUploadFiles(UploadFiles):
             raise KeyError(path_object.os_path)
         except IsADirectoryError:
             raise KeyError(path_object.os_path)
+
+    def is_empty(self) -> bool:
+        return not os.path.exists(self._raw_dir.os_path) or not os.listdir(self._raw_dir.os_path)
 
     def raw_path_exists(self, path: str) -> bool:
         if not self.raw_path_is_well_formed(path):
@@ -505,7 +513,7 @@ class StagingUploadFiles(UploadFiles):
                 is_zipfile = zipfile.is_zipfile(path)
                 is_tarfile = tarfile.is_tarfile(path)
                 if is_zipfile or is_tarfile:
-                    tmp_dir = create_tmp_dir(self.upload_id.replace(os.path.sep, '_'))
+                    tmp_dir = create_tmp_dir(self.upload_id + '_unzip')
                     if is_zipfile:
                         with zipfile.ZipFile(path) as zf:
                             zf.extractall(tmp_dir)
@@ -782,38 +790,6 @@ class StagingUploadFiles(UploadFiles):
             self._shared.delete()
 
 
-class ArchiveBasedStagingUploadFiles(StagingUploadFiles):
-    '''
-    :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
-
-    Arguments:
-        upload_path: The path to the uploaded file.
-    '''
-
-    def __init__(
-            self, upload_id: str, upload_path: str, *args, **kwargs) -> None:
-        super().__init__(upload_id, *args, **kwargs)
-        self.upload_path = upload_path
-
-    @property
-    def is_valid(self) -> bool:
-        if self.upload_path is None:
-            return False
-        if not os.path.exists(self.upload_path):
-            return False
-        elif not os.path.isfile(self.upload_path):
-            return False
-        else:
-            return True
-
-    def extract(self) -> None:
-        assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
-        super().add_rawfiles(self.upload_path)
-
-    def add_rawfiles(self, *args, **kwargs) -> None:
-        assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
-
-
 class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
     '''
     :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
@@ -968,6 +944,10 @@ class PublicUploadFiles(UploadFiles):
                                 access=access)
                 except FileNotFoundError:
                     pass
+
+    def is_empty(self) -> bool:
+        self._parse_content()
+        return not self._directories.get('')
 
     def raw_path_exists(self, path: str) -> bool:
         if not self.raw_path_is_well_formed(path):
