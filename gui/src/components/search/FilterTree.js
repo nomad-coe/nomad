@@ -156,7 +156,7 @@ const FiltersTree = React.memo(({
             divider
             button
             key={j}
-            onClick={() => onViewChange(1, childName)}
+            onClick={() => onViewChange(childName)}
             className={styles.listItem}
             selected={view === childName}
             classes={{gutters: styles.gutters}}

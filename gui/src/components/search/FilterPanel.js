@@ -26,6 +26,7 @@ import {
 } from '@material-ui/core'
 import ClearIcon from '@material-ui/icons/Clear'
 import CodeIcon from '@material-ui/icons/Code'
+import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import FiltersTree from './FilterTree'
 import FilterElements from './FilterElements'
 import FilterSymmetry from './FilterSymmetry'
@@ -36,6 +37,10 @@ import Actions from '../Actions'
  */
 
 const useStyles = makeStyles(theme => {
+  // The secondary menu widths are hardcoded. Another option would be to use
+  // useLayoutEffect to determine the sizes of the components dynamically, but
+  // this seems to be quite a bit less responsive compared to hardcoding the
+  // values.
   const padding = theme.spacing(2)
   const widthMedium = 30
   const widthLarge = 42
@@ -51,10 +56,13 @@ const useStyles = makeStyles(theme => {
       height: '100%'
     },
     header: {
-      paddingTop: theme.spacing(1),
+      paddingTop: theme.spacing(0.5),
       paddingBottom: theme.spacing(2),
       paddingLeft: padding,
-      paddingRight: padding
+      paddingRight: theme.spacing(1)
+    },
+    headerSecondary: {
+      paddingRight: theme.spacing(0)
     },
     menuPrimary: {
       zIndex: 1,
@@ -64,20 +72,36 @@ const useStyles = makeStyles(theme => {
       flexGrow: 1,
       borderRight: `1px solid ${theme.palette.divider}`
     },
-    // The secondary menu widths are hardcoded. Another option would be to use
-    // useLayoutEffect to determine the sizes of the components dynamically, but
-    // this seems to be quite a bit less responsive compared to hardcoding the
-    // values.
+    // The menu animation uses a transition on the 'transform' property. Notice
+    // that animating 'transform' instead of e.g. the 'left' property is much
+    // more performant. We also hint the browser that the transform property
+    // will be animated using the 'will-change' property: this will pre-optimize
+    // the element for animation when possible (the recommendation is to
+    // remove/add it when needed, but in this case we keep it on constantly).
     container: {
+      display: 'flex',
+      flexDirection: 'column',
       position: 'absolute',
-      zIndex: 0,
       right: 0,
-      left: 0,
       top: 0,
+      width: `${widthLarge}rem`,
+      backgroundColor: theme.palette.background.paper,
       bottom: 0,
-      transition: 'right 200ms',
+      zIndex: 0,
+      '-webkit-transform': 'none',
+      transform: 'none',
+      transition: 'transform 300ms',
       flexGrow: 1,
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      willChange: 'transform'
+    },
+    containerVisibleLarge: {
+      '-webkit-transform': `translateX(${widthLarge}rem)`,
+      transform: `translateX(${widthLarge}rem)`
+    },
+    containerVisibleMedium: {
+      '-webkit-transform': `translateX(${widthMedium}rem)`,
+      transform: `translateX(${widthMedium}rem)`
     },
     menuSecondary: {
       position: 'absolute',
@@ -86,12 +110,6 @@ const useStyles = makeStyles(theme => {
       bottom: 0,
       padding: `${theme.spacing(1.5)}px ${padding}px`,
       boxSizing: 'border-box'
-    },
-    containerLarge: {
-      right: `-${widthLarge}rem`
-    },
-    containerMedium: {
-      right: `-${widthMedium}rem`
     },
     menuLarge: {
       width: `${widthLarge}rem`
@@ -114,24 +132,35 @@ const FilterPanel = React.memo(({
   const [view, setView] = useState('Filters')
   const [isMenuVisible, setIsMenuVisible] = useState(false)
 
-  // Handling view changes in the tree
-  const handleViewChange = useCallback((level, name) => {
+  // Handling view changes in the filter tree
+  const handleViewChange = useCallback(name => {
     setView(name)
-    setIsMenuVisible(name !== 'filters')
+    setIsMenuVisible(name !== 'Filters')
   }, [])
 
-  const actions = useMemo(() => (
+  // Primary menu actions
+  const actionsPrimary = useMemo(() => (
     [{
       tooltip: 'View the API call for the selected filters',
       content: <CodeIcon/>,
-      onClick: () => { handleViewChange(0, 'Filters') }
+      onClick: () => {}
     },
     {
       tooltip: 'Clear filters',
       content: <ClearIcon/>,
-      onClick: () => { handleViewChange(0, 'Filters') }
+      onClick: () => {}
     }]
-  ), [handleViewChange])
+  ), [])
+
+  // Secondary menu actions
+  const actionsSecondary = useMemo(() => (
+    [{
+      tooltip: 'Hide filter panel',
+      content: <ArrowBackIcon/>,
+      onClick: () => { setIsMenuVisible(false) }
+    }]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [])
 
   return <ClickAwayListener onClickAway={() => setIsMenuVisible(false)}>
     <div className={clsx(className, styles.root)}>
@@ -142,7 +171,7 @@ const FilterPanel = React.memo(({
           >Filters
           </Typography>}
           variant="icon"
-          actions={actions}
+          actions={actionsPrimary}
           className={styles.header}
         />
         <FiltersTree
@@ -154,13 +183,16 @@ const FilterPanel = React.memo(({
       </div>
       <Paper
         elevation={4}
-        className={clsx(styles.container, isMenuVisible && (view !== 'Elements / Formula' ? styles.containerMedium : styles.containerLarge))}
+        className={clsx(styles.container, isMenuVisible && (view !== 'Elements / Formula' ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
       >
-        <div
-          className={clsx(styles.menuSecondary, isMenuVisible && (view !== 'Elements / Formula' ? styles.menuMedium : styles.menuLarge))}
-        >
-          <FilterElements className={clsx(styles.menu, view !== 'Elements / Formula' && styles.menuHidden)}/>
-          <FilterSymmetry className={clsx(styles.menu, view !== 'Symmetry / Prototypes' && styles.menuHidden)}/>
+        <div className={clsx(styles.menuSecondary, view !== 'Elements / Formula' ? styles.menuMedium : styles.menuLarge)}>
+          <Actions
+            variant="icon"
+            actions={actionsSecondary}
+            className={clsx(styles.header, styles.headerSecondary)}
+          />
+          <FilterElements className={clsx(view !== 'Elements / Formula' && styles.menuHidden)}/>
+          <FilterSymmetry className={clsx(view !== 'Symmetry / Prototypes' && styles.menuHidden)}/>
         </div>
       </Paper>
     </div>
