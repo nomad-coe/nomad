@@ -24,7 +24,7 @@ import clsx from 'clsx'
 import { convertSILabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 
-const useStaticStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     alignItems: 'center',
@@ -54,17 +54,18 @@ const FilterText = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const styles = useStaticStyles({classes: classes, theme: theme})
+  const styles = useStyles({classes: classes, theme: theme})
 
   // Determine the description and units
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
+  const name = label || def?.name
   let unit = def?.unit && convertSILabel(def.unit, units)
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <Tooltip title={desc}>
       <Typography className={styles.name} variant="body1">
-        {`${label}:`}
+        {`${name}:`}
       </Typography>
     </Tooltip>
     <TextField className={styles.rangeInput} margin='dense' size='small' variant='outlined' label="min"/>

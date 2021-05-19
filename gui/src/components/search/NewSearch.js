@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import React, {useState} from 'react'
+import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterPanel from './FilterPanel'
@@ -48,7 +49,7 @@ const useNewSearchStyles = makeStyles(theme => {
       paddingRight: theme.spacing(4)
     },
     resultList: {
-      overflowY: 'auto',
+      // overflowY: 'auto',
       flexGrow: 1
     },
     spacer: {
@@ -64,6 +65,21 @@ const useNewSearchStyles = makeStyles(theme => {
     },
     spacerBar: {
       flex: `0 0 ${theme.spacing(3)}px`
+    },
+    shadowHidden: {
+      pointerEvents: 'none',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 0,
+      opacity: 0,
+      backgroundColor: 'black',
+      transition: 'opacity 250ms',
+      willChange: 'opacity'
+    },
+    shadowVisible: {
+      opacity: 0.1
     }
   }
 })
@@ -82,12 +98,15 @@ const NewSearch = React.memo(({
   const styles = useNewSearchStyles()
   const [resultType, setResultType] = useState('entries')
   const [searchType, setSearchType] = useState('nomad')
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   return <SearchContext query={query} initialQuery={initialQuery}>
     <div className={styles.root} {...rest}>
       <div className={styles.leftColumn}>
         <FilterPanel
+          isMenuOpen={isMenuOpen}
           resultType={resultType}
           onResultTypeChange={value => setResultType(value)}
+          onIsMenuOpenChange={setIsMenuOpen}
         />
       </div>
       <div className={styles.center}>
@@ -101,6 +120,7 @@ const NewSearch = React.memo(({
         <div className={styles.resultList}>
           <SearchResults/>
         </div>
+        <div className={clsx(styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
       </div>
     </div>
   </SearchContext>

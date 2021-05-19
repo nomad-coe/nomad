@@ -17,7 +17,8 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Tooltip, IconButton, Button, Box, makeStyles } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
+import { Tooltip, IconButton, Button } from '@material-ui/core'
 import clsx from 'clsx'
 
 const Actions = React.memo(({
@@ -74,11 +75,11 @@ const Actions = React.memo(({
       }
     </Tooltip>
   })
-  return <Box className={clsx(className, styles.root)}>
+  return <div className={clsx(className, styles.root)}>
     {header}
     {header && <div className={styles.spacer}></div>}
     {buttonList}
-  </Box>
+  </div>
 })
 
 Actions.propTypes = {
@@ -89,7 +90,7 @@ Actions.propTypes = {
       href: PropTypes.string,
       tooltip: PropTypes.string,
       disabled: PropTypes.number,
-      onClick: PropTypes.string
+      onClick: PropTypes.func
     })
   ),
   color: PropTypes.string, // The color of the MUI buttons

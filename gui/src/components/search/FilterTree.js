@@ -15,24 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { makeStyles, fade } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import {
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
   ListSubheader,
-  Divider
+  Divider,
+  Chip
 } from '@material-ui/core'
-import {
-  ToggleButton,
-  ToggleButtonGroup
-} from '@material-ui/lab'
-import Checkbox from '@material-ui/core/Checkbox'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
+import { useFilters } from './FilterContext'
 
 /**
  * Displays the tree-like structure for selecting filters.
@@ -54,48 +51,80 @@ const useStyles = makeStyles(theme => {
       paddingLeft: padding,
       height: '2.5rem',
       lineHeight: '2.5rem',
-      color: theme.palette.text.primary
+      color: theme.palette.text.primary,
+      fontSize: '0.875rem'
     },
     listIcon: {
+      fontsize: '1rem',
       minWidth: '1.5rem'
-    },
-    listItem: {
-      height: '2.5rem'
     },
     arrow: {
       marginLeft: theme.spacing(1),
       fontSize: '1.5rem'
     },
-    toggles: {
-      paddingLeft: padding,
-      paddingRight: padding,
-      marginBottom: theme.spacing(1),
-      height: '2rem'
-    },
-    toggle: {
-      color: fade(theme.palette.action.active, 0.87)
-    },
     gutters: {
-      paddingLeft: padding,
+      paddingLeft: theme.spacing(3),
       paddingRight: padding
+    },
+    li: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%'
+    },
+    listItem: {
+      height: '2.5rem'
+    },
+    filterList: {
+      boxShadow: 'inset 0 0 8px 1px rgba(0,0,0, 0.075)',
+      backgroundColor: theme.palette.background.default,
+      width: '100%',
+      padding: padding,
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap'
+    },
+    divider: {
+      width: '100%'
+    },
+    chip: {
+      padding: theme.spacing(0.5)
     },
     selected: {
       '&$selected': {
-        backgroundColor: theme.palette.secondary.main,
-        color: 'white'
+        backgroundColor: theme.palette.primary.main,
+        color: 'black'
+      },
+      '&$selected:hover': {
+        backgroundColor: theme.palette.primary.main,
+        color: 'black'
       }
     }
   }
 })
 
 const FiltersTree = React.memo(({
-  resultType,
   view,
+  isMenuOpen,
   onViewChange,
-  onResultTypeChange,
+  onIsMenuOpenChange,
   className
 }) => {
   const styles = useStyles()
+  const {elements, setElements} = useFilters()
+
+  // Handle menu item click
+  const handleClick = useCallback(view => {
+    onViewChange(oldView => {
+      if (view !== oldView) {
+        onIsMenuOpenChange(true)
+      } else {
+        onIsMenuOpenChange(oldOpen => !oldOpen)
+      }
+      return view
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Determine the navigation tree layout
   const tree = useMemo(() => {
@@ -103,7 +132,7 @@ const FiltersTree = React.memo(({
       {
         name: 'Structure',
         children: [
-          {name: 'Elements / Formula'},
+          {name: 'Elements / Formula', filters: elements},
           {name: 'Classification'},
           {name: 'Symmetry / Prototypes'}
         ]
@@ -111,9 +140,9 @@ const FiltersTree = React.memo(({
       {
         name: 'Method',
         children: [
-          {name: 'DFT', onChecked: () => {}},
-          {name: 'GW', onChecked: () => {}},
-          {name: 'XPS', onChecked: () => {}}
+          {name: 'DFT'},
+          {name: 'GW'},
+          {name: 'XPS'}
         ]
       },
       {
@@ -152,79 +181,62 @@ const FiltersTree = React.memo(({
         <Divider/>
         {children.map((child, j) => {
           const childName = child.name
-          return <ListItem
-            divider
-            button
+          const filters = child.filters
+          const isOpen = isMenuOpen && view === childName
+          return <div
             key={j}
-            onClick={() => onViewChange(childName)}
-            className={styles.listItem}
-            selected={view === childName}
-            classes={{gutters: styles.gutters}}
+            className={styles.li}
           >
-            <ListItemIcon className={styles.listIcon}>
-              {child.onChecked &&
-                <Checkbox
-                  edge="start"
-                  size="small"
-                  checked={true}
-                  onChange={(event) => {
-                    console.log('Check')
-                  }}
-                  tabIndex={-1}
-                  disableRipple
-                />}
-            </ListItemIcon>
-            <ListItemText primary={childName}/>
-            <ListItemIcon className={styles.listIcon}>
-              <NavigateNextIcon className={styles.arrow}/>
-            </ListItemIcon>
-          </ListItem>
+            <ListItem
+              button
+              className={styles.listItem}
+              classes={{gutters: styles.gutters}}
+              onClick={() => handleClick(childName)}
+            >
+              <ListItemText
+                primaryTypographyProps={{color: isOpen ? 'primary' : 'textPrimary'}}
+                primary={childName}
+              />
+              <ListItemIcon className={styles.listIcon}>
+                <NavigateNextIcon color={isOpen ? 'primary' : 'action'} className={styles.arrow}/>
+              </ListItemIcon>
+            </ListItem>
+            {(filters && filters.size !== 0) &&
+              <div className={styles.filterList}>
+                {[...filters].map(filter => <div
+                  key={filter}
+                  className={styles.chip}
+                >
+                  <Chip
+                    label={filter}
+                    onDelete={() => {
+                      setElements(old => {
+                        old.delete(filter)
+                        return new Set(old)
+                      })
+                    }}
+                    color="primary"
+                  /></div>)}
+              </div>}
+            <Divider className={styles.divider}/>
+          </div>
         })}
       </List>
     }
     return tree.map((section, index) => buildList(section, index))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [view, isMenuOpen, elements])
 
   return <div className={clsx(className, styles.root)}>
-    <ToggleButtonGroup
-      size="small"
-      exclusive
-      value={resultType}
-      onChange={onResultTypeChange}
-      className={styles.toggles}
-    >
-      <ToggleButton
-        value="entries"
-        classes={{root: styles.toggle, selected: styles.selected}}
-      >Entries
-      </ToggleButton>
-      <ToggleButton
-        value="materials"
-        classes={{root: styles.toggle, selected: styles.selected}}
-      >Materials
-      </ToggleButton>
-      <ToggleButton
-        value="datasets"
-        classes={{root: styles.toggle, selected: styles.selected}}
-      >Datasets
-      </ToggleButton>
-      <ToggleButton
-        value="uploads"
-        classes={{root: styles.toggle, selected: styles.selected}}
-      >Uploads
-      </ToggleButton>
-    </ToggleButtonGroup>
     {tree}
   </div>
 })
 FiltersTree.propTypes = {
-  resultType: PropTypes.string.isRequired,
   view: PropTypes.string,
-  level: PropTypes.number,
+  isMenuOpen: PropTypes.bool,
   className: PropTypes.string,
   onViewChange: PropTypes.func,
-  onResultTypeChange: PropTypes.func
+  onIsMenuOpenChange: PropTypes.func
 }
 FiltersTree.defaultProps = {
   level: 0

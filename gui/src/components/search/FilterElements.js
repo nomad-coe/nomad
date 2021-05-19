@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useState, useContext, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
-import PeriodicTable from './PeriodicTable'
+import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import { searchContext } from './SearchContext'
+import { useFilters } from './FilterContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
@@ -39,6 +40,7 @@ const FilterElements = React.memo(({
   const styles = useFiltersElementStyles()
   const [exclusive, setExclusive] = useState(false)
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
+  const {elements, setElements} = useFilters()
 
   useEffect(() => {
     setStatistics(['atoms'])
@@ -46,31 +48,42 @@ const FilterElements = React.memo(({
   }, [])
 
   const handleExclusiveChanged = () => {
-    const newExclusive = !exclusive
-    if (newExclusive) {
-      setQuery({only_atoms: query.atoms, atoms: []})
-    } else {
-      setQuery({atoms: query.only_atoms, only_atoms: []})
-    }
-    setExclusive(newExclusive)
+    // const newExclusive = !exclusive
+    // if (newExclusive) {
+    //   setQuery({only_atoms: query.atoms, atoms: []})
+    // } else {
+    //   setQuery({atoms: query.only_atoms, only_atoms: []})
+    // }
+    // setExclusive(newExclusive)
   }
 
-  const handleAtomsChanged = atoms => {
-    exclusive && setExclusive(false)
-    setQuery({atoms: atoms, only_atoms: []})
-  }
+  const handleElementsChanged = useCallback(elements => {
+    setElements(new Set(elements))
+    // exclusive && setExclusive(false)
+    // setQuery({atoms: atoms, only_atoms: []})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <div className={clsx(className, styles.root)}>
-    <PeriodicTable
+    <NewPeriodicTable
       aggregations={statistics.atoms}
       metric={metric}
       exclusive={exclusive}
-      values={[...(query.atoms || []), ...(query.only_atoms || [])]}
-      onChanged={handleAtomsChanged}
+      values={elements}
+      onChanged={handleElementsChanged}
       onExclusiveChanged={handleExclusiveChanged}
     />
     <FilterText
-      quantity="results.material.chemical_formula_"
+      quantity="results.material.chemical_formula_hill"
+      label="formula"
+    />
+    <FilterText
+      quantity="results.material.chemical_formula_anonymous"
+      label="formula anonymous"
+    />
+    <FilterText
+      quantity="results.material.n_elements"
+      label="number of species"
     />
   </div>
 })
