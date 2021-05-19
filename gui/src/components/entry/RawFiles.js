@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useState, useCallback, useContext, useEffect} from 'react'
+import React, {useState, useCallback, useEffect} from 'react'
 import PropTypes from 'prop-types'
 import {
   makeStyles,
@@ -31,13 +31,13 @@ import {
 } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { withApi } from '../api'
-import { apiContextV1 } from '../apiV1'
 import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
 import ViewIcon from '@material-ui/icons/Search'
 import InfiniteScroll from 'react-infinite-scroller'
 import { ScrollContext } from '../nav/Navigation'
+import { useApi } from '../apiV1'
 
 const useStyles = makeStyles(theme => ({
   root: {},
@@ -101,8 +101,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
   const [files, setFiles] = useState(null)
   const [loading, setLoading] = useState(false)
   const [doesNotExist, setDoesNotExist] = useState(false)
-  const c = useContext(apiContextV1)
-  const apiv1 = c.api
+  const apiv1 = useApi()
 
   useEffect(() => {
     setSelectedFiles([])

@@ -21,7 +21,6 @@ import { RecoilRoot } from 'recoil'
 import { compose } from 'recompose'
 import { render } from '@testing-library/react'
 import { apiContext as apiContextV0 } from './components/api'
-import { apiContextV1 } from './components/apiV1'
 import { Router } from 'react-router-dom'
 import {
   archiveDftBulk,
@@ -30,9 +29,12 @@ import {
 import { createBrowserHistory } from 'history'
 
 // Map from entry_id/calc_id to an archive
-const archives = new Map()
+export const archives = new Map()
 archives.set(archiveDftBulk.section_metadata.entry_id, archiveDftBulk)
 archives.set(archiveDftBulkOld.section_metadata.entry_id, archiveDftBulkOld)
+
+// TODO is the keycloak mock realy necessary/used? Test should not require this because
+// its all in the API and can be mocked there.
 
 /**
  * Mock for useKeycloak in the package 'react-keycloak'. Notice that this is
@@ -110,22 +112,6 @@ export function withApiV0Mock(Component) {
 }
 
 /**
- * HOC for injecting a mocked API implementation.
- */
-export function withApiV1Mock(Component) {
-  const apiValue = {
-    apiV1: {
-      results: (entry_id) => {
-        return wait(archives.get(entry_id))
-      }
-    }
-  }
-  return <apiContextV1.Provider value={apiValue}>
-    {Component}
-  </apiContextV1.Provider>
-}
-
-/**
  * HOC for Router dependency injection
  */
 export function withRouterMock(Component) {
@@ -150,8 +136,7 @@ export function renderWithAPIRouter(component) {
   return render(compose(
     withRecoilRoot,
     withRouterMock,
-    withApiV0Mock,
-    withApiV1Mock
+    withApiV0Mock
   )(component))
 }
 

@@ -18,8 +18,7 @@
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { domainComponents } from '../domainComponents'
-import { compose } from 'recompose'
-import { withApiV1 } from '../apiV1'
+import { useApi } from '../apiV1'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 import { Typography, makeStyles } from '@material-ui/core'
@@ -47,16 +46,17 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-function OverviewView({uploadId, entryId, apiV1}) {
+export default function OverviewView({uploadId, entryId}) {
   const classes = useStyles()
   const {raiseError} = useContext(errorContext)
   const [entry, setEntry] = useState(null)
   const [exists, setExists] = useState(true)
+  const api = useApi()
 
   // When loaded for the first time, download calc data from the ElasticSearch
   // index. It is used to decide the subview to show.
   useEffect(() => {
-    apiV1.entry(entryId).then(data => {
+    api.entry(entryId).then(data => {
       setEntry(data)
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
@@ -65,7 +65,7 @@ function OverviewView({uploadId, entryId, apiV1}) {
         raiseError(error)
       }
     })
-  }, [apiV1, raiseError, entryId, setEntry, setExists])
+  }, [api, raiseError, entryId, setEntry, setExists])
 
   // The entry does not exist
   if (!exists) {
@@ -88,10 +88,5 @@ function OverviewView({uploadId, entryId, apiV1}) {
 
 OverviewView.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  entryId: PropTypes.string.isRequired,
-  apiV1: PropTypes.object.isRequired
+  entryId: PropTypes.string.isRequired
 }
-
-export default compose(
-  withApiV1(false, true)
-)(OverviewView)
