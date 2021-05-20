@@ -59,12 +59,12 @@ def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None
 def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path, **kwargs)
+        upload_id=uploaded_id, user=test_user, **kwargs)
     upload.upload_time = datetime.utcnow()
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
-
+    upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)
 
@@ -235,13 +235,14 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
         user_id=test_user.user_id).a_mongo.save()
 
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
+        upload_id=uploaded_id, user=test_user)
     upload.from_oasis = True
     upload.oasis_deployment_id = 'an_oasis_id'
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
 
+    upload.schedule_operation_add_files(uploaded_path, '', temporary=False)
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)
 

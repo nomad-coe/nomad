@@ -377,10 +377,7 @@ class TestUploads:
             assert False
 
         assert rv.status_code == 200
-        if mode == 'local_path':
-            upload = self.assert_upload(rv.data, upload_path=file, name=name)
-        else:
-            upload = self.assert_upload(rv.data, name=name)
+        upload = self.assert_upload(rv.data, name=name)
         assert upload['tasks_running']
 
         self.assert_processing(api, test_user_auth, upload['upload_id'])

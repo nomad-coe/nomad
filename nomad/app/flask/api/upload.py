@@ -309,7 +309,8 @@ class UploadListResource(Resource):
                 upload_path = local_path
             elif request.mimetype in ['multipart/form-data', 'application/multipart-formdata']:
                 logger.info('receive upload as multipart formdata')
-                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
+                tmp_dir = files.create_tmp_dir(upload_id)
+                upload_path = os.path.join(tmp_dir, 'tmp')
                 # multipart formdata, e.g. with curl -X put "url" -F file=@local_file
                 # might have performance issues for large files: https://github.com/pallets/flask/issues/2086
                 if 'file' not in request.files:
@@ -357,12 +358,10 @@ class UploadListResource(Resource):
             user=user,
             name=upload_name,
             upload_time=datetime.utcnow(),
-            upload_path=upload_path,
-            temporary=local_path != upload_path,
             publish_directly=publish_directly or from_oasis,
             from_oasis=from_oasis,
             oasis_deployment_id=oasis_deployment_id)
-
+        upload.schedule_operation_add_files(upload_path, '', temporary=not local_path)
         upload.process_upload()
         logger.info('initiated processing')
 

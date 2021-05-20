@@ -17,8 +17,9 @@
 #
 import os
 import io
+import shutil
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Tuple, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
@@ -26,7 +27,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 
 from nomad import utils, config, files, datamodel
-from nomad.files import UploadFiles
+from nomad.files import UploadFiles, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
@@ -71,8 +72,6 @@ class UploadProcData(ProcData):
     upload_time: datetime = Field(
         None,
         description='The time of upload.')
-    upload_path: Optional[str] = Field(
-        description='Path to the uploaded file on the server.')
     published: bool = Field(
         False,
         description='If this upload is already published.')
@@ -253,7 +252,7 @@ _upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
         The specified upload, or a resource with the specified path within the upload,
         could not be found.''')}
 
-_post_upload_response = 200, {
+_upload_response = 200, {
     'model': UploadProcDataResponse,
     'content': {
         'application/json': {},
@@ -276,6 +275,15 @@ _raw_path_response = 200, {
         If `path` denotes a directory, and `compress = false`, a list of the directory
         content, either encoded as json or html, depending on the request headers (json if
         `Accept = application/json`, html otherwise).''')}
+
+
+_no_name = 'NO NAME'
+
+_thank_you_message = f'''
+Thanks for uploading your data to nomad.
+Go back to {config.gui_url()} and press
+reload to see the progress on your upload
+and publish your data.'''
 
 
 @router.get(
@@ -562,17 +570,95 @@ async def get_upload_raw_path(
         raise
 
 
+@router.put(
+    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    summary='Put (add or replace) files to an upload at the specified path.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def put_upload_raw_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        file: UploadFile = File(None),
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        file_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            Specifies the name of the file, when using method 2.''')),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Upload files to an already existing upload (identified by upload_id). The files are
+    *merged* with the existing files, i.e. new files are added, if there is a collision
+    (an old file with the same path and name as one of the new files), the old file will
+    be overwritten, but the rest of the old files will remain untouched.
+
+    The `path` is interpreted as a directory. The empty string gives the "root" directory.
+
+    If the file is a zip or tar archive, it will first be extracted, then merged.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    _check_upload_not_processing(upload)
+
+    if not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+
+    upload_path, method = await _get_file_if_provided(
+        upload_id, request, file, local_path, file_name, user)
+
+    if not upload_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='No upload file provided.')
+
+    _check_upload_not_processing(upload)  # Uploading the file could take long time
+
+    upload.schedule_operation_add_files(upload_path, path, temporary=(method != 0))
+    upload.process_upload()
+
+    if request.headers.get('Accept') == 'application/json':
+        upload_proc_data_response = UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+        response_text = upload_proc_data_response.json()
+        media_type = 'application/json'
+    else:
+        response_text = _thank_you_message
+        media_type = 'text/plain'
+
+    return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
     response_class=StreamingResponse,
-    responses=create_responses(_post_upload_response, _not_authorized, _bad_request),
+    responses=create_responses(_upload_response, _not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload(
         request: Request,
         file: UploadFile = File(None),
-        local_path: str = None,  # Internal use/admins only
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        file_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            Specifies the name of the file, when using method 2.''')),
         name: str = FastApiQuery(
             None,
             description=strip('''
@@ -596,12 +682,19 @@ async def post_upload(
             For oasis uploads: the deployment id.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Upload a file to the repository. Can be used to upload files via browser or other
-    http clients like curl. This will also start the processing of the upload.
+    Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
+    provided, and it is a zip or tar file, it will first be extracted, then added.
+
+    It is recommended to give the upload itself a descriptive `name`. If not specified,
+    it will be set to the file name (if provided). The name can be edited afterwards (as
+    long as the upload is not published).
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
-    file data in the http body. Both are supported. The second method does not transfer a
-    filename, so it is recommended to supply the parameter `name` in this case.
+    file data in the http body. Both are supported. Note, however, that the second method
+    does not transfer a filename. If a transfer is made using method 2, you can specify
+    the query argument `file_name` to name it, otherwise the name will be defaulted.
+
+    Example curl commands for creating an upload and uploading a file:
 
     Method 1: multipart-formdata
 
@@ -611,42 +704,22 @@ async def post_upload(
 
         curl -X 'POST' "url" -T local_file
 
-    Authentication is required to perform an upload. This can either be done using the
-    regular bearer token, or using the simplified upload token. To use the simplified
+    Note that authentication is required to create an upload. This can either be done using
+    the regular bearer token, or using the simplified upload token. To use the simplified
     upload token, just specify it as a query parameter in the url, i.e.
 
-        curl -X 'POST' ".../uploads?token=ABC.XYZ" ...
+        curl -X 'POST' "baseurl?token=ABC.XYZ" ...
 
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.
     '''
-    # Determine the source data stream
-    src_stream = None
-    if local_path:
-        # Method 0: Local file - only for admins
-        if not user.is_admin:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                You need to be admin to use local_path as method of upload.'''))
-        if not os.path.exists(local_path) or not os.path.isfile(local_path):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                The specified local_path cannot be found or is not a file.'''))
-        if not name:
-            name = os.path.basename(local_path)
-        src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
-    elif file:
-        # Method 1: Data provided as formdata
-        if not name:
-            name = file.filename
-        src_stream = _asyncronous_file_reader(file)
-    else:
-        # Method 2: Data has to be sent streamed in the body
-        src_stream = request.stream()
-
     if not user.is_admin:
         # Check upload limit
         if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
+
+    upload_user = user
 
     # check if allowed to perform oasis upload
     from_oasis = oasis_upload_id is not None
@@ -668,8 +741,8 @@ async def post_upload(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Oasis uploads are always published directly.')
         # Switch user!
-        user = datamodel.User.get(user_id=oasis_uploader_id)
-        if user is None:
+        upload_user = datamodel.User.get(user_id=oasis_uploader_id)
+        if upload_user is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='The given original uploader does not exist.')
@@ -691,53 +764,36 @@ async def post_upload(
     else:
         upload_id = utils.create_uuid()
 
-    logger.info('upload created', upload_id=upload_id)
+    if name and not file_name and files.is_safe_basename(name):
+        # Try to default the file_name using name
+        file_name = name
 
-    # Read the stream and save to file
-    if local_path:
-        upload_path = local_path  # Use the provided path
-        uploaded_bytes = os.path.getsize(local_path)
-    else:
-        upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
-        try:
-            with open(upload_path, 'wb') as f:
-                uploaded_bytes = 0
-                log_interval = 1e9
-                log_unit = 'GB'
-                next_log_at = log_interval
-                async for chunk in src_stream:
-                    if not chunk:
-                        # End of data stream
-                        break
-                    uploaded_bytes += len(chunk)
-                    f.write(chunk)
-                    if uploaded_bytes > next_log_at:
-                        logger.info('Large upload in progress - uploaded: '
-                                    f'{uploaded_bytes // log_interval} {log_unit}')
-                        next_log_at += log_interval
-                logger.info(f'Uploaded {uploaded_bytes} bytes')
-        except Exception:
-            if os.path.isfile(upload_path):
-                os.remove(upload_path)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                    Some IO went wrong, download probably aborted/disrupted.'''))
+    upload_path, method = await _get_file_if_provided(
+        upload_id, request, file, local_path, file_name, user)
 
-    if not uploaded_bytes:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                Empty upload - not allowed.'''))
-
-    logger.info('received uploaded file')
+    if not name:
+        # Try to default name
+        if method == 2:
+            name = file_name or None
+        elif upload_path:
+            name = os.path.basename(upload_path)
 
     upload = Upload.create(
         upload_id=upload_id,
-        user=user,
+        user=upload_user,
         name=name,
         upload_time=datetime.utcnow(),
-        upload_path=upload_path,
-        temporary=local_path != upload_path,
         publish_directly=publish_directly or from_oasis,
         from_oasis=from_oasis,
         oasis_deployment_id=oasis_deployment_id)
+
+    # Create staging files
+    files.StagingUploadFiles(upload_id=upload_id, is_authorized=lambda: True, create=True)
+
+    logger.info('upload created', upload_id=upload_id)
+
+    if upload_path:
+        upload.schedule_operation_add_files(upload_path, '', temporary=(method != 0))
 
     upload.process_upload()
 
@@ -748,10 +804,7 @@ async def post_upload(
         response_text = upload_proc_data_response.json()
         media_type = 'application/json'
     else:
-        response_text = (
-            'Thanks for uploading your data to nomad.\n'
-            f'Go back to {config.gui_url()} and press reload to see the progress on your '
-            'upload and publish your data.')
+        response_text = _thank_you_message
         media_type = 'text/plain'
 
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
@@ -775,7 +828,8 @@ async def delete_upload(
     Only uploads that are sill in staging, not already deleted, not still uploaded, and
     not currently processed, can be deleted.
     '''
-    upload = _get_upload_with_write_access(upload_id, user)
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=True)
 
     if upload.tasks_running:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
@@ -826,12 +880,11 @@ async def post_upload_action_publish(
     Publishes an upload. The upload cannot be modified after this point, and after the
     embargo period (if any) is expired, the generated archive entries will be publicly visible.
     '''
-    upload = _get_upload_with_write_access(upload_id, user)
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=True)
 
-    if upload.tasks_running or upload.process_running:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is not finished processing yet.')
+    _check_upload_not_processing(upload)
+
     if upload.tasks_status == FAILURE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -895,12 +948,11 @@ async def post_upload_action_reprocess(
     Re-processes an upload. The upload must be published, have at least one outdated
     caclulation, and not be processing at the moment.
     '''
-    upload = _get_upload_with_write_access(upload_id, user, published_requires_admin=False)
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=False)
 
-    if upload.tasks_running or upload.process_running:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is currently being processed.')
+    _check_upload_not_processing(upload)
+
     if not upload.published:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -915,6 +967,90 @@ async def post_upload_action_reprocess(
     return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
+
+
+async def _get_file_if_provided(
+        upload_id: str, request: Request, file: UploadFile, local_path: str, file_name: str,
+        user: User) -> Tuple[str, int]:
+    '''
+    If the user provides a file with the api call, load it and save it to a temporary
+    folder (or, if method 0 is used, forward the file). The method thus needs to identify
+    which file transfer method was used (0 - 2), and save the data (if method is 1 or 2).
+
+    Returns the os path to the resulting file and method (0-2), or (None, None) if no file
+    data was provided with the api call.
+    '''
+    # Determine the source data stream
+    file_name_argument_not_given = not file_name
+    src_stream = None
+    if local_path:
+        # Method 0: Local file - only for admins
+        if not user.is_admin:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You need to be admin to use local_path as method of upload.'''))
+        if not os.path.exists(local_path) or not os.path.isfile(local_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                The specified local_path cannot be found or is not a file.'''))
+        method = 0
+        file_name = os.path.basename(local_path)
+        src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
+    elif file:
+        # Method 1: Data provided as formdata
+        method = 1
+        file_name = file.filename or _no_name
+        src_stream = _asyncronous_file_reader(file)
+    else:
+        # Method 2: Data has to be sent streamed in the body
+        method = 2
+        file_name = file_name or _no_name
+        src_stream = request.stream()
+
+    if not files.is_safe_basename(file_name):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Bad file name provided.'''))
+
+    # Read the stream and save to file
+    if method == 0:
+        upload_path = local_path  # Use the provided path
+        uploaded_bytes = os.path.getsize(local_path)
+    else:
+        tmp_dir = files.create_tmp_dir(upload_id)
+        upload_path = os.path.join(tmp_dir, file_name)
+        try:
+            with open(upload_path, 'wb') as f:
+                uploaded_bytes = 0
+                log_interval = 1e9
+                log_unit = 'GB'
+                next_log_at = log_interval
+                async for chunk in src_stream:
+                    if not chunk:
+                        # End of data stream
+                        break
+                    uploaded_bytes += len(chunk)
+                    f.write(chunk)
+                    if uploaded_bytes > next_log_at:
+                        logger.info('Large upload in progress - uploaded: '
+                                    f'{uploaded_bytes // log_interval} {log_unit}')
+                        next_log_at += log_interval
+                logger.info(f'Uploaded {uploaded_bytes} bytes')
+        except Exception:
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                    Some IO went wrong, download probably aborted/disrupted.'''))
+
+    if not uploaded_bytes and method == 2:
+        # No data was provided
+        shutil.rmtree(tmp_dir)
+        return None, None
+
+    logger.info('received uploaded file')
+    if method == 2 and file_name_argument_not_given:
+        if not files.zipfile.is_zipfile(upload_path) and not files.tarfile.is_tarfile(upload_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                Using method 2 and file does not look like a zip or tar file - must specify `file_name`.'''))
+
+    return upload_path, method
 
 
 async def _asyncronous_file_reader(f):
@@ -935,7 +1071,7 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def _get_upload_with_read_access(upload_id, user) -> Upload:
+def _get_upload_with_read_access(upload_id: str, user: User) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
@@ -957,7 +1093,14 @@ def _get_upload_with_read_access(upload_id, user) -> Upload:
             You do not have access to the specified upload.'''))
 
 
-def _get_upload_with_write_access(upload_id, user, published_requires_admin=True) -> Upload:
+def _get_upload_with_write_access(
+        upload_id: str, user: User, include_published: bool = False,
+        published_requires_admin: bool = True) -> Upload:
+    '''
+    Determines if the specified user has write access to the specified upload. If so, the
+    corresponding Upload object is returned. If the upload does not exist, or the user has
+    no write access to it, a HTTPException is raised.
+    '''
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             User authentication required to access uploads.'''))
@@ -969,9 +1112,13 @@ def _get_upload_with_write_access(upload_id, user, published_requires_admin=True
     if upload.user_id != str(user.user_id) and not user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             You do not have write access to the specified upload.'''))
-    if published_requires_admin and upload.published and not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            Only admins can change uploads that are published.'''))
+    if upload.published:
+        if not include_published:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                Upload is already published, operation not possible.'''))
+        if published_requires_admin and not user.is_admin:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                Upload is already published, only admins can perform this operation.'''))
     return upload
 
 
@@ -983,3 +1130,13 @@ def _upload_to_pydantic(upload: Upload) -> UploadProcData:
 def _entry_to_pydantic(entry: Calc) -> EntryProcData:
     ''' Converts the mongo db object to an EntryProcData object'''
     return EntryProcData.from_orm(entry)
+
+
+def _check_upload_not_processing(upload: Upload):
+    '''
+    Checks if the upload is processing, and raises a HTTPException (err code 400) if so.
+    '''
+    if upload.tasks_running or upload.process_running:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is not finished processing yet.')

@@ -115,6 +115,7 @@ def create_tmp_dir(prefix: str) -> str:
     '''
     assert prefix
     prefix = prefix.replace(os.path.sep, '_')
+    assert is_safe_basename(prefix)
     for index in range(1, 100):
         dir_name = prefix if index == 1 else f'{prefix}_{index}'
         path = os.path.join(config.fs.tmp, dir_name)
@@ -124,6 +125,35 @@ def create_tmp_dir(prefix: str) -> str:
         except FileExistsError:
             pass  # Try again with different suffix
     raise RuntimeError('Could not create temporary directory - too many directories with same prefix?')
+
+
+def is_safe_basename(basename: str) -> bool:
+    '''
+    Checks if `basename` is a *safe* base name (file/folder name). We consider it safe if
+    it is not empty, does not contain any '/', and is not equal to '.' or '..'
+    '''
+    if not basename or '/' in basename or basename == '.' or basename == '..':
+        return False
+    return True
+
+
+def is_safe_relative_path(path: str) -> bool:
+    '''
+    Checks if path is a *safe* relative path. We consider it safe if it does not start with
+    '/' or use '.' or '..' elements (which could be open for security leaks if allowed).
+    It may end with a single '/', indicating that a folder is referred. For referring to
+    the base folder, the empty string should be used (not '.' etc).
+    '''
+    if type(path) != str:
+        return False
+    if path == '':
+        return True
+    if path.startswith('/') or '//' in path or '\n' in path:
+        return False
+    for element in path.split('/'):
+        if element == '.' or element == '..':
+            return False
+    return True
 
 
 class PathObject:
@@ -284,28 +314,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         ''' If this upload has no content yet. '''
         raise NotImplementedError()
 
-    def raw_path_is_well_formed(self, path: str) -> bool:
-        '''
-        Checks if a path is a well formed "raw path". These paths are relative to the
-        raw file directory of an upload. All methods that expect raw path arguments should
-        use this method to validate the well-formedness of the path.
-
-        We only allow very simple paths to be used as raw paths. They may not start with
-        '/' or contain '//' or '.' or '..' elements, for security reasons. They may end
-        with a single '/', indicating that a folder is referred. For referring to the raw
-        "root folder" itself, the empty string should be used, not '.' etc.
-        '''
-        if type(path) != str:
-            return False
-        if path == '':
-            return True
-        if path.startswith('/') or '//' in path:
-            return False
-        for element in path.split('/'):
-            if element == '.' or element == '..':
-                return False
-        return True
-
     def raw_path_exists(self, path: str) -> bool:
         '''
         Returns True if the specified path is a valid raw path (either file or directory)
@@ -401,17 +409,17 @@ class StagingUploadFiles(UploadFiles):
         return not os.path.exists(self._raw_dir.os_path) or not os.listdir(self._raw_dir.os_path)
 
     def raw_path_exists(self, path: str) -> bool:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return False
         return os.path.exists(os.path.join(self._raw_dir.os_path, path))
 
     def raw_path_is_file(self, path: str) -> bool:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return False
         return os.path.isfile(os.path.join(self._raw_dir.os_path, path))
 
     def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
         if not os.path.isdir(os_path):
@@ -432,19 +440,19 @@ class StagingUploadFiles(UploadFiles):
                     yield sub_path_info
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
-        assert self.raw_path_is_well_formed(file_path)
+        assert is_safe_relative_path(file_path)
         if not self._is_authorized():
             raise Restricted
         return self._file(self.raw_file_object(file_path), *args, **kwargs)
 
     def raw_file_size(self, file_path: str) -> int:
-        assert self.raw_path_is_well_formed(file_path)
+        assert is_safe_relative_path(file_path)
         if not self._is_authorized():
             raise Restricted
         return self.raw_file_object(file_path).size
 
     def raw_file_object(self, file_path: str) -> PathObject:
-        assert self.raw_path_is_well_formed(file_path)
+        assert is_safe_relative_path(file_path)
         return self._raw_dir.join_file(file_path)
 
     def write_archive(self, calc_id: str, data: Any) -> int:
@@ -503,7 +511,7 @@ class StagingUploadFiles(UploadFiles):
         try:
             assert not self.is_frozen
             assert os.path.exists(path), f'{path} does not exist'
-            assert self.raw_path_is_well_formed(target_dir)
+            assert is_safe_relative_path(target_dir)
             self._size += os.stat(path).st_size
 
             is_dir = os.path.isdir(path)
@@ -950,7 +958,7 @@ class PublicUploadFiles(UploadFiles):
         return not self._directories.get('')
 
     def raw_path_exists(self, path: str) -> bool:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return False
         self._parse_content()
         explicit_directory_path = path.endswith(os.path.sep)
@@ -970,7 +978,7 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_path_is_file(self, path: str) -> bool:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return False
         self._parse_content()
         base_name = os.path.basename(path)
@@ -985,7 +993,7 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
-        if not self.raw_path_is_well_formed(path):
+        if not is_safe_relative_path(path):
             return
         self._parse_content()
         path = path.rstrip(os.path.sep)
@@ -1004,6 +1012,7 @@ class PublicUploadFiles(UploadFiles):
         return self.raw_file_object('public').os_path
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
+        assert is_safe_relative_path(file_path)
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
         if 'mode' in kwargs:
             del(kwargs['mode'])
@@ -1031,6 +1040,7 @@ class PublicUploadFiles(UploadFiles):
         raise KeyError(file_path)
 
     def raw_file_size(self, file_path: str) -> int:
+        assert is_safe_relative_path(file_path)
         for access in ['public', 'restricted']:
             try:
                 zf = self._open_raw_file(access)

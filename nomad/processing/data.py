@@ -748,8 +748,7 @@ class Upload(Proc):
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    upload_path = StringField(default=None)
-    temporary = BooleanField(default=False)
+    pending_operations = ListField(DictField(), default=[])
     embargo_length = IntField(default=36)
 
     name = StringField(default=None)
@@ -887,6 +886,27 @@ class Upload(Proc):
                 self.upload_files.delete()
 
             self.delete()
+
+    def schedule_operation_add_files(self, path: str, target_dir: str, temporary: bool):
+        assert type(path) == str and type(target_dir) == str and type(temporary) == bool
+        self._schedule_operation(dict(op='ADD', path=path, target_dir=target_dir, temporary=temporary))
+
+    def _schedule_operation(self, operation: Dict):
+        '''
+        Adds a dictionary, defining a pending operation, to the pending_operations queue and
+        saves the document.
+        '''
+        self.pending_operations.append(operation)
+        self.save()
+
+    def _take_next_pending_operation(self) -> Dict:
+        '''
+        Gets the next pending operation for the specified upload from the queue, and saves
+        the document (=an atomic operation). If unsuccessful, an exception will be raised.
+        '''
+        next_operation = self.pending_operations.pop(0)
+        self.save()
+        return next_operation
 
     @process
     def delete_upload(self):
@@ -1181,8 +1201,8 @@ class Upload(Proc):
     @task
     def extracting(self):
         '''
-        The *task* performed before the actual parsing/normalizing: extracting
-        the uploaded files.
+        The *task* performed before the actual parsing/normalizing: executes the pending
+        file operations.
         '''
         # extract the uploaded file
         self._upload_files = StagingUploadFiles(
@@ -1190,17 +1210,18 @@ class Upload(Proc):
 
         logger = self.get_logger()
         try:
-            if self.upload_path:
-                with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
-                    self.upload_files.add_rawfiles(self.upload_path)
-
-                if self.temporary:
-                    os.remove(self.upload_path)
-                    self.upload_path = None
-
-        except KeyError:
-            self.fail('processing requested for non existing upload', log_level=logging.ERROR)
-            return
+            while self.pending_operations:
+                operation = self._take_next_pending_operation()
+                op = operation['op']
+                if op == 'ADD':
+                    with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
+                        self.upload_files.add_rawfiles(
+                            operation['path'],
+                            operation['target_dir'],
+                            cleanup_source_file_and_dir=operation['temporary'])
+                else:
+                    self.fail(f'Unknown operation {op}', log_level=logging.ERROR)
+                    return
         except ExtractError:
             self.fail('bad .zip/.tar file', log_level=logging.INFO)
             return

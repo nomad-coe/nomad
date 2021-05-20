@@ -711,8 +711,6 @@ def test_post_upload(
             if not expected_name and mode in ('multipart', 'local_path'):
                 expected_name = os.path.basename(non_empty_example_upload)
             assert_upload(response_json, name=expected_name)
-            if mode == 'local_path':
-                assert response_json['data']['upload_path'] == non_empty_example_upload
 
             assert_processing(client, upload_id, user_auth, published=(publish_directly and not empty))
 
