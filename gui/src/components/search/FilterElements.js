@@ -19,6 +19,7 @@ import React, { useState, useContext, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
+import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import { searchContext } from './SearchContext'
@@ -28,7 +29,11 @@ const useFiltersElementStyles = makeStyles(theme => ({
   root: {
     width: '40rem',
     marginTop: theme.spacing(0.5)
+  },
+  grid: {
+    marginTop: theme.spacing(2)
   }
+
 }))
 
 /**
@@ -73,18 +78,26 @@ const FilterElements = React.memo(({
       onChanged={handleElementsChanged}
       onExclusiveChanged={handleExclusiveChanged}
     />
-    <FilterText
-      quantity="results.material.chemical_formula_hill"
-      label="formula"
-    />
-    <FilterText
-      quantity="results.material.chemical_formula_anonymous"
-      label="formula anonymous"
-    />
-    <FilterText
-      quantity="results.material.n_elements"
-      label="number of species"
-    />
+    <Grid container spacing={2} className={styles.grid}>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.chemical_formula_hill"
+          label="formula"
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.chemical_formula_anonymous"
+          label="formula anonymous"
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.n_elements"
+          label="number of species"
+        />
+      </Grid>
+    </Grid>
   </div>
 })
 FilterElements.propTypes = {

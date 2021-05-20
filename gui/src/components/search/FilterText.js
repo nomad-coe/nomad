@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Tooltip, Typography, TextField } from '@material-ui/core'
 import PropTypes from 'prop-types'
@@ -26,22 +26,19 @@ import searchQuantities from '../../searchQuantities'
 
 const useStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
     display: 'flex',
     alignItems: 'center',
-    margin: `${theme.spacing(1)}px 0`
+    justifyContent: 'center',
+    flexDirection: 'row',
+    boxSizing: 'border-box'
   },
-  rangeInput: {
-    flex: '0 0 5rem',
-    margin: '0 0.5rem',
-    minWidth: '4rem'
-  },
-  dash: {
-    flex: '0 0 1rem',
-    textAlign: 'center'
-  },
-  name: {
-    marginLeft: theme.spacing(1),
-    minWidth: '6rem'
+  labelRoot: {
+    fontSize: '1.1rem',
+    paddingRight: '0.5rem',
+    pointerEvents: 'auto',
+    backgroundColor: theme.palette.background.paper,
+    color: theme.palette.text.primary
   }
 }))
 const FilterText = React.memo(({
@@ -62,14 +59,25 @@ const FilterText = React.memo(({
   const name = label || def?.name
   let unit = def?.unit && convertSILabel(def.unit, units)
 
+  const labelProps = useMemo(() => ({
+    shrink: true,
+    classes: {
+      root: styles.labelRoot
+    }
+  }), [styles])
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <Tooltip title={desc}>
-      <Typography className={styles.name} variant="body1">
-        {`${name}:`}
-      </Typography>
-    </Tooltip>
-    <TextField className={styles.rangeInput} margin='dense' size='small' variant='outlined' label="min"/>
-    {unit && <Typography variant="body1">{unit}</Typography>}
+    <TextField
+      label={
+        <Tooltip title={desc}>
+          <div>{name}</div>
+        </Tooltip>
+      }
+      variant="outlined"
+      fullWidth
+      InputLabelProps={labelProps}
+    />
+    {/* {unit && <Typography variant="body1">{unit}</Typography>} */}
   </div>
 })
 
