@@ -44,10 +44,7 @@ class AllMetainfoResource(Resource):
         '''
         Returns all metainfo packages.
         '''
-        # Ensure all metainfo is loaded
-        for parser in parsers:
-            _ = parser.metainfo_env
-
+        _ = [parser for parser in parsers]
         return {
             key: value.m_to_dict()
             for key, value in Package.registry.items()}
