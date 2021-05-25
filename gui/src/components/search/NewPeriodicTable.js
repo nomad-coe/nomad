@@ -164,14 +164,19 @@ const NewPeriodicTable = React.memo(({
   const styles = useTableStyles()
 
   const onElementClicked = useCallback((element) => {
-    const isSelected = values.has(element)
-    isSelected ? values.delete(element) : values.add(element)
+    if (values) {
+      const isSelected = values?.has(element)
+      isSelected ? values.delete(element) : values.add(element)
+    } else {
+      values = new Set()
+      values.add(element)
+    }
     onChanged(values)
   }, [values, onChanged])
 
   const unSelectedAggregations = useCallback(() => {
     return Object.keys(aggregations)
-      .filter(key => !values.has(key))
+      .filter(key => !values?.has(key))
       .map(key => aggregations[key][metric])
   })
 
@@ -193,7 +198,7 @@ const NewPeriodicTable = React.memo(({
                       heatmapScale={heatmapScale}
                       relativeCount={aggregations ? ((aggregations[element.symbol] || {})[metric] || 0) / max : 0}
                       onClick={() => onElementClicked(element.symbol)}
-                      selected={values.has(element.symbol)}
+                      selected={values?.has(element.symbol)}
                     /> : ''}
                 </td>
               ))}
@@ -219,7 +224,7 @@ const NewPeriodicTable = React.memo(({
 NewPeriodicTable.propTypes = {
   aggregations: PropTypes.object,
   metric: PropTypes.string.isRequired,
-  values: PropTypes.object.isRequired,
+  values: PropTypes.object,
   onChanged: PropTypes.func.isRequired,
   exclusive: PropTypes.bool,
   onExclusiveChanged: PropTypes.func.isRequired

@@ -16,13 +16,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useRef, useMemo, useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Tooltip, Typography, TextField } from '@material-ui/core'
+import { Tooltip, TextField } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { convertSILabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
+import { useSetFilter } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -48,16 +49,32 @@ const FilterText = React.memo(({
   className,
   classes,
   units,
+  set,
   'data-testid': testID
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const inputRef = useRef()
 
   // Determine the description and units
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
   let unit = def?.unit && convertSILabel(def.unit, units)
+
+  // Attach the filter hook
+  const setFilter = useSetFilter(quantity, set)
+
+  // Handle input submission
+  const handleKeyUp = useCallback(event => {
+    if (event.key === 'Enter') {
+      const value = inputRef.current.value.trim()
+      if (value) {
+        setFilter(inputRef.current.value)
+        inputRef.current.value = ''
+      }
+    }
+  }, [setFilter])
 
   const labelProps = useMemo(() => ({
     shrink: true,
@@ -75,7 +92,9 @@ const FilterText = React.memo(({
       }
       variant="outlined"
       fullWidth
+      inputRef={inputRef}
       InputLabelProps={labelProps}
+      onKeyUp={handleKeyUp}
     />
     {/* {unit && <Typography variant="body1">{unit}</Typography>} */}
   </div>
@@ -88,7 +107,8 @@ FilterText.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
-  'data-testid': PropTypes.string
+  'data-testid': PropTypes.string,
+  set: PropTypes.object
 }
 
 export default FilterText

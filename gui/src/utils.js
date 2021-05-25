@@ -17,7 +17,7 @@
  */
 import { parse } from 'mathjs'
 import { conversionMap, unitMap, unitSystems } from './units'
-import { cloneDeep, merge } from 'lodash'
+import { cloneDeep, merge, isSet } from 'lodash'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -480,4 +480,20 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     }
   }
   return value.toFixed(decimals)
+}
+
+/**
+ * Converts a set into an array. The array will be in the insertion order of the
+ * set.
+ *
+ * @param {Set} target Set to be converted
+ * @return {array} Array created from the set
+ *
+ * @return {number} Array containing the total difference values.
+ */
+export function setToArray(target) {
+  if (target !== undefined && isSet(target)) {
+    return [...target]
+  }
+  return target
 }

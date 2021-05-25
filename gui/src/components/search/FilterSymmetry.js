@@ -19,7 +19,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
-import FilterText from './FilterText'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -37,9 +36,6 @@ const FilterSymmetry = React.memo(({
   const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
-    <FilterText
-      quantity="results.material.symmetry.spacegroup"
-    />
   </div>
 })
 FilterSymmetry.propTypes = {

@@ -19,10 +19,13 @@ import React, {useState} from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
+import { Skeleton } from '@material-ui/lab'
 import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
 import SearchContext from './SearchContext'
+import { useLoadingValue } from './FilterContext'
+import Placeholder from '../visualization/Placeholder'
 
 const useNewSearchStyles = makeStyles(theme => {
   const filterWidth = 26
@@ -40,6 +43,7 @@ const useNewSearchStyles = makeStyles(theme => {
       position: 'relative'
     },
     center: {
+      position: 'relative',
       flex: `1 1 100%`,
       display: 'flex',
       flexDirection: 'column',
@@ -66,20 +70,32 @@ const useNewSearchStyles = makeStyles(theme => {
     spacerBar: {
       flex: `0 0 ${theme.spacing(3)}px`
     },
-    shadowHidden: {
+    nonInteractive: {
       pointerEvents: 'none',
       position: 'absolute',
       left: 0,
       right: 0,
       bottom: 0,
       top: 0,
-      opacity: 0,
+      height: '100%',
+      width: '100%'
+    },
+    shadow: {
       backgroundColor: 'black',
-      transition: 'opacity 250ms',
+      transition: 'opacity 200ms',
       willChange: 'opacity'
+    },
+    hidden: {
+      display: 'none'
+    },
+    shadowHidden: {
+      opacity: 0
     },
     shadowVisible: {
       opacity: 0.1
+    },
+    placeholderVisible: {
+      display: 'block'
     }
   }
 })
@@ -99,6 +115,8 @@ const NewSearch = React.memo(({
   const [resultType, setResultType] = useState('entries')
   const [searchType, setSearchType] = useState('nomad')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  // const loading = useLoadingValue()
+  // console.log(loading)
   return <SearchContext query={query} initialQuery={initialQuery}>
     <div className={styles.root} {...rest}>
       <div className={styles.leftColumn}>
@@ -120,7 +138,8 @@ const NewSearch = React.memo(({
         <div className={styles.resultList}>
           <SearchResults/>
         </div>
-        <div className={clsx(styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
+        <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
+        {/* <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, loading && styles.shadowVisible)}></div> */}
       </div>
     </div>
   </SearchContext>

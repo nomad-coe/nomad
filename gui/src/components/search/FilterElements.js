@@ -23,7 +23,7 @@ import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import { searchContext } from './SearchContext'
-import { useFilters } from './FilterContext'
+import { useFilterState } from './FilterContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
@@ -33,8 +33,10 @@ const useFiltersElementStyles = makeStyles(theme => ({
   grid: {
     marginTop: theme.spacing(2)
   }
-
 }))
+
+export const filterElements = new Set()
+export const labelElements = 'Elements / Formula'
 
 /**
  * Displays the filter options for chemical elements.
@@ -45,7 +47,7 @@ const FilterElements = React.memo(({
   const styles = useFiltersElementStyles()
   const [exclusive, setExclusive] = useState(false)
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
-  const {elements, setElements} = useFilters()
+  const {filter, setFilter} = useFilterState('results.material.elements', filterElements)
 
   useEffect(() => {
     setStatistics(['atoms'])
@@ -63,9 +65,7 @@ const FilterElements = React.memo(({
   }
 
   const handleElementsChanged = useCallback(elements => {
-    setElements(new Set(elements))
-    // exclusive && setExclusive(false)
-    // setQuery({atoms: atoms, only_atoms: []})
+    setFilter(elements)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -74,7 +74,7 @@ const FilterElements = React.memo(({
       aggregations={statistics.atoms}
       metric={metric}
       exclusive={exclusive}
-      values={elements}
+      values={filter}
       onChanged={handleElementsChanged}
       onExclusiveChanged={handleExclusiveChanged}
     />
@@ -83,18 +83,21 @@ const FilterElements = React.memo(({
         <FilterText
           quantity="results.material.chemical_formula_hill"
           label="formula"
+          set={filterElements}
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.chemical_formula_anonymous"
           label="formula anonymous"
+          set={filterElements}
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.n_elements"
           label="number of species"
+          set={filterElements}
         />
       </Grid>
     </Grid>

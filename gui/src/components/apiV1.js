@@ -202,6 +202,31 @@ class Api {
       this.onFinishLoading()
     }
   }
+
+  /**
+   * Executes the given entry query
+   * @param {object} query contains the query
+   * @returns Object containing the raw file metadata.
+   */
+  async queryEntry(search) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const result = await this.axios.post(
+        '/entries/query',
+        {
+          exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
+          ...search
+        },
+        auth
+      )
+      return result.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
 }
 
 /**

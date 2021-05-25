@@ -25,11 +25,11 @@ import {
   ListItemText,
   ListItemIcon,
   ListSubheader,
-  Divider,
-  Chip
+  Divider
 } from '@material-ui/core'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
-import { useFilters } from './FilterContext'
+import { labelElements, filterElements } from './FilterElements'
+import FilterSummary from './FilterSummary'
 
 /**
  * Displays the tree-like structure for selecting filters.
@@ -74,21 +74,8 @@ const useStyles = makeStyles(theme => {
     listItem: {
       height: '2.5rem'
     },
-    filterList: {
-      boxShadow: 'inset 0 0 8px 1px rgba(0,0,0, 0.075)',
-      backgroundColor: theme.palette.background.default,
-      width: '100%',
-      padding: padding,
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap'
-    },
     divider: {
       width: '100%'
-    },
-    chip: {
-      padding: theme.spacing(0.5)
     },
     selected: {
       '&$selected': {
@@ -111,7 +98,6 @@ const FiltersTree = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const {elements, setElements} = useFilters()
 
   // Handle menu item click
   const handleClick = useCallback(view => {
@@ -132,7 +118,10 @@ const FiltersTree = React.memo(({
       {
         name: 'Structure',
         children: [
-          {name: 'Elements / Formula', filters: elements},
+          {
+            name: labelElements,
+            filters: <FilterSummary filters={filterElements}/>
+          },
           {name: 'Classification'},
           {name: 'Symmetry / Prototypes'}
         ]
@@ -183,6 +172,7 @@ const FiltersTree = React.memo(({
           const childName = child.name
           const filters = child.filters
           const isOpen = isMenuOpen && view === childName
+
           return <div
             key={j}
             className={styles.li}
@@ -201,23 +191,7 @@ const FiltersTree = React.memo(({
                 <NavigateNextIcon color={isOpen ? 'primary' : 'action'} className={styles.arrow}/>
               </ListItemIcon>
             </ListItem>
-            {(filters && filters.size !== 0) &&
-              <div className={styles.filterList}>
-                {[...filters].map(filter => <div
-                  key={filter}
-                  className={styles.chip}
-                >
-                  <Chip
-                    label={filter}
-                    onDelete={() => {
-                      setElements(old => {
-                        old.delete(filter)
-                        return new Set(old)
-                      })
-                    }}
-                    color="primary"
-                  /></div>)}
-              </div>}
+            {filters}
             <Divider className={styles.divider}/>
           </div>
         })}
@@ -225,7 +199,7 @@ const FiltersTree = React.memo(({
     }
     return tree.map((section, index) => buildList(section, index))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, isMenuOpen, elements])
+  }, [view, isMenuOpen])
 
   return <div className={clsx(className, styles.root)}>
     {tree}
