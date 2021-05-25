@@ -63,6 +63,7 @@ import hashlib
 import io
 import pickle
 import json
+import magic
 
 from nomad import config, utils, datamodel
 from nomad.archive import write_archive, read_archive, ArchiveReader
@@ -353,6 +354,16 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             The size of the given raw file.
         '''
         raise NotImplementedError()
+
+    def raw_file_mime_type(self, file_path: str) -> str:
+        assert self.raw_path_is_file(file_path), 'Provided path does not specify a file, or is invalid.'
+        raw_file = self.raw_file(file_path, 'br')
+        buffer = raw_file.read(2048)
+        mime_type = magic.from_buffer(buffer, mime=True)
+        raw_file.close()
+        if not mime_type:
+            mime_type = 'application/octet-stream'
+        return mime_type
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         '''

@@ -512,87 +512,127 @@ def test_get_upload_entry(
         assert_entry(response_data)
 
 
-@pytest.mark.parametrize('user, upload_id, path, accept, compress, re_pattern, expected_status_code, expected_mime_type, expected_content', [
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='unpublished-file'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json', None, None,
-        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-json'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', None, None,
-        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
-    pytest.param(
-        'test_user', 'id_unpublished', '', 'application/json', None, None,
+@pytest.mark.parametrize('args, expected_status_code, expected_mime_type, expected_content', [
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/',
+        accept='application/json'),
+        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='unpublished-dir-json'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/'),
+        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='unpublished-dir-html'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='', accept='application/json'),
         200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
-    pytest.param(
-        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
+    pytest.param(dict(
+        user='other_test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
-    pytest.param(
-        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='unpublished-file-admin-auth'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='published-file'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json', None, None,
+    pytest.param(dict(
+        user='admin_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='unpublished-file-admin-auth'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json'),
+        200, 'text/plain; charset=utf-8', 'content', id='published-file'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01',
+        accept='application/json'),
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', None, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01'),
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
-    pytest.param(
-        'test_user', 'id_published', '', 'application/json', None, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='', accept='application/json'),
         200, 'application/json', ['test_content'], id='published-dir-json-root'),
-    pytest.param(
-        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
+    pytest.param(dict(
+        user='other_test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         401, None, None, id='published-file-unauthorized'),
-    pytest.param(
-        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='published-file-admin-auth'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        compress=True),
         200, 'application/zip', 'content',
         id='unpublished-file-compressed'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', True, None,
-        200, 'application/zip',
-        ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/',
+        compress=True),
+        200, 'application/zip', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
         id='unpublished-dir-compressed'),
-    pytest.param(
-        'test_user', 'id_unpublished', '', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='', compress=True),
         200, 'application/zip',
         ['test_content', 'test_content/test_entry/1.aux', 'test_content/test_entry/mainfile.json'],
         id='unpublished-dir-compressed-root'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        compress=True),
         200, 'application/zip', 'content', id='published-file-compressed'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01',
+        compress=True),
         200, 'application/zip', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
         id='published-dir-compressed'),
-    pytest.param(
-        'test_user', 'id_published', '', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='', compress=True),
         200, 'application/zip', ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
         id='published-dir-compressed-root'),
-    pytest.param(
-        'test_user', 'silly_value', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='silly_value', path='test_content/subdir/test_entry_01/1.aux',
+        compress=True),
         404, None, None, id='bad-upload-id'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/silly_name', '*', True, None,
-        404, None, None, id='bad-path')])
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/silly_name', compress=True),
+        404, None, None, id='bad-path'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        offset=2),
+        200, 'text/plain; charset=utf-8', 'ntent\n', id='unpublished-file-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        offset=2, length=4),
+        200, 'text/plain; charset=utf-8', 'nten', id='unpublished-file-offset-and-length'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=2),
+        200, 'text/plain; charset=utf-8', 'ntent\n', id='published-file-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=2, length=4),
+        200, 'text/plain; charset=utf-8', 'nten', id='published-file-offset-and-length'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=-3),
+        400, None, None, id='invalid-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=3, length=-3),
+        400, None, None, id='invalid-length')])
 def test_get_upload_raw_path(
         client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
-        user, upload_id, path, accept, compress, re_pattern,
-        expected_status_code, expected_mime_type, expected_content):
+        args, expected_status_code, expected_mime_type, expected_content):
+    user = args['user']
+    upload_id = args['upload_id']
+    path = args['path']
+    accept = args.get('accept', None)
+    compress = args.get('compress', None)
+    re_pattern = args.get('re_pattern', None)
+    offset = args.get('offset', None)
+    length = args.get('length', None)
+
     user_auth = {
         'test_user': test_user_auth,
         'other_test_user': other_test_user_auth,
         'admin_user': admin_user_auth}[user]
-    query_args = {}
-    if compress is not None:
-        query_args['compress'] = compress
-    if re_pattern is not None:
-        query_args['re_pattern'] = re_pattern
+    query_args = dict(
+        compress=compress,
+        re_pattern=re_pattern,
+        offset=offset,
+        length=length)
 
     response = perform_get(
         client, f'uploads/{upload_id}/raw/{path}', user_auth=user_auth, accept=accept,
@@ -604,7 +644,10 @@ def test_get_upload_raw_path(
         assert mime_type == expected_mime_type
         if mime_type == 'application/octet-stream':
             if expected_content:
-                assert expected_content in response.text, 'Expected content not found'
+                if offset is not None:
+                    assert response.text == expected_content, 'Wrong content (offset and length)'
+                else:
+                    assert expected_content in response.text, 'Expected content not found'
         elif mime_type == 'application/json':
             data = response.json()
             assert data['path'] == (path.rstrip('/') or '')

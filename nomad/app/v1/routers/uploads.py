@@ -481,6 +481,21 @@ async def get_upload_raw_path(
             ...,
             description='The path within the upload raw files.'),
         files_params: Files = Depends(files_parameters),
+        offset: Optional[int] = FastApiQuery(
+            0,
+            description=strip('''
+                Integer offset that marks the start of the contents to retrieve. Default
+                is the start of the file.''')),
+        length: Optional[int] = FastApiQuery(
+            -1,
+            description=strip('''
+                The amounts of contents in bytes to stream. By default, the remainder of
+                the file is streamed.''')),
+        decompress: bool = FastApiQuery(
+            False,
+            description=str('''
+                Set if compressed files of supported types should be decompressed before
+                streaming the content.''')),
         user: User = Depends(create_user_dependency(required=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
@@ -510,15 +525,23 @@ async def get_upload_raw_path(
         if upload_files.raw_path_is_file(path):
             # File
             if files_params.compress:
+                media_type = 'application/zip'
                 download_item = DownloadItem(
                     upload_id=upload_id, is_authorized=True,
                     raw_path=path, zip_path=os.path.basename(path))
                 content = create_download_stream_zipped(
                     download_item, upload_files, compress=True)
-                media_type = 'application/zip'
             else:
-                content = create_download_stream_raw_file(upload_files, path)
-                media_type = 'application/octet-stream'
+                if offset < 0:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                        Invalid offset provided.'''))
+                if length <= 0 and length != -1:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                        Invalid length provided. Should be greater than 0, or -1 if the remainder
+                        of the file should be read.'''))
+                media_type = upload_files.raw_file_mime_type(path)
+                content = create_download_stream_raw_file(
+                    upload_files, path, offset, length, decompress)
             return StreamingResponse(content, media_type=media_type)
         else:
             # Directory
