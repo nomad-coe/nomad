@@ -16,30 +16,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef, useMemo, useCallback } from 'react'
+import React, { useRef, useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Tooltip, TextField } from '@material-ui/core'
+import { TextField } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { convertSILabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
+import FilterLabel from './FilterLabel'
 import { useSetFilter } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    flexDirection: 'row',
+    flexDirection: 'column',
     boxSizing: 'border-box'
   },
-  labelRoot: {
-    fontSize: '1.1rem',
-    paddingRight: '0.5rem',
-    pointerEvents: 'auto',
-    backgroundColor: theme.palette.background.paper,
-    color: theme.palette.text.primary
+  textField: {
+    marginTop: theme.spacing(1)
   }
 }))
 const FilterText = React.memo(({
@@ -76,25 +73,15 @@ const FilterText = React.memo(({
     }
   }, [setFilter])
 
-  const labelProps = useMemo(() => ({
-    shrink: true,
-    classes: {
-      root: styles.labelRoot
-    }
-  }), [styles])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <FilterLabel label={name} description={desc}/>
     <TextField
-      label={
-        <Tooltip title={desc}>
-          <div>{name}</div>
-        </Tooltip>
-      }
       variant="outlined"
       fullWidth
       inputRef={inputRef}
-      InputLabelProps={labelProps}
       onKeyUp={handleKeyUp}
+      className={styles.textField}
     />
     {/* {unit && <Typography variant="body1">{unit}</Typography>} */}
   </div>

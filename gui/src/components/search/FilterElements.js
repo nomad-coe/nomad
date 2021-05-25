@@ -22,6 +22,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
+import FilterSlider from './FilterSlider'
 import { searchContext } from './SearchContext'
 import { useFilterState } from './FilterContext'
 
@@ -93,8 +94,8 @@ const FilterElements = React.memo(({
           set={filterElements}
         />
       </Grid>
-      <Grid item xs={6}>
-        <FilterText
+      <Grid item xs={12}>
+        <FilterSlider
           quantity="results.material.n_elements"
           label="number of species"
           set={filterElements}
