@@ -205,3 +205,6 @@
 [submodule "dependencies/parsers/fhi-vibes"]
 	path = dependencies/parsers/fhi-vibes
 	url = https://github.com/nomad-coe/nomad-parser-fhi-vibes.git
+[submodule "dependencies/parsers/lobster"]
+	path = dependencies/parsers/lobster
+	url = https://github.com/ondracka/nomad_parser_lobster.git

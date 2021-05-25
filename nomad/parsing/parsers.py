@@ -47,6 +47,7 @@ from turbomoleparser import TurbomoleParser
 from castepparser import CastepParser
 from wien2kparser import Wien2kParser
 from nwchemparser import NWChemParser
+from lobsterparser import LobsterParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -342,6 +343,7 @@ parsers = [
         mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
         mainfile_mime_re=r'text/.*',
     ),
+    LobsterParser(),
     ArchiveParser()
 ]
 
