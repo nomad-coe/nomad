@@ -439,16 +439,22 @@ class StagingUploadFiles(UploadFiles):
             element_raw_path = os.path.join(path, element_name)
             element_os_path = os.path.join(os_path, element_name)
             is_file = os.path.isfile(element_os_path)
+            if not is_file:
+                # Crawl sub directory.
+                dir_size = 0
+                for sub_path_info in self.raw_directory_list(element_raw_path, True, files_only):
+                    if sub_path_info.is_file:
+                        dir_size += sub_path_info.size
+                    if recursive:
+                        yield sub_path_info
+
             if not files_only or is_file:
-                size = os.stat(element_os_path).st_size if is_file else -1
+                size = os.stat(element_os_path).st_size if is_file else dir_size
                 yield UploadPathInfo(
                     path=element_raw_path,
                     is_file=is_file,
                     size=size,
                     access='unpublished')
-            if recursive and not is_file:
-                for sub_path_info in self.raw_directory_list(element_raw_path, recursive, files_only):
-                    yield sub_path_info
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         assert is_safe_relative_path(file_path)
@@ -937,32 +943,42 @@ class PublicUploadFiles(UploadFiles):
         '''
         if self._directories is None:
             self._directories = dict()
+            self._directories[''] = {}  # Root folder
+            directory_sizes: Dict[str, int] = {}
+            # Add file UploadPathInfo objects and calculate directory sizes
             for access in ['public', 'restricted']:
                 try:
                     zf = self._open_raw_file(access)
                     for path in zf.namelist():
                         file_name = os.path.basename(path)
                         directory_path = os.path.dirname(path)
+                        size = zf.getinfo(path).file_size if file_name else 0
+
                         # Ensure that all parent directories are added
                         sub_path = ''
                         for directory in directory_path.split(os.path.sep):
-                            sub_path_content = self._directories.setdefault(sub_path, {})
-                            sub_path_ext = os.path.join(sub_path, directory)
-
-                            if directory not in sub_path_content:
-                                sub_path_content[directory] = UploadPathInfo(
-                                    path=sub_path_ext, is_file=False, size=-1, access=access)
-                            sub_path = sub_path_ext
+                            sub_path_next = os.path.join(sub_path, directory)
+                            if sub_path_next not in self._directories:
+                                self._directories[sub_path_next] = {}
+                            directory_sizes.setdefault(sub_path_next, 0)
+                            directory_sizes[sub_path_next] += size
+                            sub_path = sub_path_next
 
                         if file_name:
-                            directory_content = self._directories.setdefault(directory_path, {})
+                            directory_content = self._directories[directory_path]
                             directory_content[file_name] = UploadPathInfo(
                                 path=path,
                                 is_file=True,
-                                size=zf.getinfo(path).file_size,
+                                size=size,
                                 access=access)
                 except FileNotFoundError:
                     pass
+            # Add directories with the calculated sizes.
+            for path, size in directory_sizes.items():
+                basename = os.path.basename(path)
+                directory_path = os.path.dirname(path)
+                self._directories[directory_path][basename] = UploadPathInfo(
+                    path=path, is_file=False, size=size, access='Public')
 
     def is_empty(self) -> bool:
         self._parse_content()

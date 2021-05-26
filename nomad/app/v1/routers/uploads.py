@@ -196,7 +196,7 @@ class DirectoryListResponse(BaseModel):
     path: str = Field(example='The/requested/path')
     content: List[DirectoryListLine] = Field(
         example=[
-            {'name': 'a_directory', 'is_file': False, 'access': 'public'},
+            {'name': 'a_directory', 'is_file': False, 'size': 456, 'access': 'public'},
             {'name': 'a_file.json', 'is_file': True, 'size': 123, 'access': 'restricted'}])
 
 
@@ -484,18 +484,21 @@ async def get_upload_raw_path(
         offset: Optional[int] = FastApiQuery(
             0,
             description=strip('''
-                Integer offset that marks the start of the contents to retrieve. Default
-                is the start of the file.''')),
+                When dowloading individual files with `compress = false`, this can be
+                used to seek to a specified position within the file in question. Default
+                is 0, i.e. the start of the file.''')),
         length: Optional[int] = FastApiQuery(
             -1,
             description=strip('''
-                The amounts of contents in bytes to stream. By default, the remainder of
-                the file is streamed.''')),
+                When dowloading individual files with `compress = false`, this can be
+                used to specify the number of bytes to read. By default, the value is -1,
+                which means that the remainder of the file is streamed.''')),
         decompress: bool = FastApiQuery(
             False,
-            description=str('''
-                Set if compressed files of supported types should be decompressed before
-                streaming the content.''')),
+            description=strip('''
+                Set if compressed files should be decompressed before streaming the
+                content (that is: if there are compressed files *within* the raw files).
+                Note, only some compression formats are supported.''')),
         user: User = Depends(create_user_dependency(required=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
@@ -581,7 +584,9 @@ async def get_upload_raw_path(
                         name = os.path.basename(path_info.path)
                         if not path_info.is_file:
                             name += '/'
-                        info = f'{path_info.size} bytes' if path_info.is_file else 'directory'
+                        info = f'{path_info.size} bytes'
+                        if not path_info.is_file:
+                            info += ' (Directory)'
                         info += f' [{path_info.access}]'
                         response_text += f'<p><a href="{base_url + name}">{name}</a> {info}</p>\n'
                     media_type = 'text/html'
