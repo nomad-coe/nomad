@@ -160,7 +160,8 @@ install tests:
     - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
     - git clone https://github.com/nomad-coe/nomad-parser-example.git example-parser
-    - python example-parser/exampleparser/__main__.py example-parser/tests/data/example.out
+    - cd example-parser
+    - python exampleparser/__main__.py tests/data/example.out
   except:
     refs:
       - tags
