@@ -99,10 +99,10 @@ const FilterSummary = React.memo(({
             onDelete={() => {
               if (isSet) {
                 filterValue.delete(value)
-                setQuery([filterName, filterValue])
+                setQuery([filterName, new Set(filterValue)])
               } else if (isArray) {
                 filterValue.splice(index, 1)
-                setQuery([filterName, filterValue])
+                setQuery([filterName, [...filterValue]])
               }
             }}
             color="primary"

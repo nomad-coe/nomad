@@ -164,21 +164,23 @@ const NewPeriodicTable = React.memo(({
   const styles = useTableStyles()
 
   const onElementClicked = useCallback((element) => {
+    let newValues
     if (values) {
       const isSelected = values?.has(element)
       isSelected ? values.delete(element) : values.add(element)
+      newValues = new Set(values)
     } else {
-      values = new Set()
-      values.add(element)
+      newValues = new Set()
+      newValues.add(element)
     }
-    onChanged(values)
+    onChanged(newValues)
   }, [values, onChanged])
 
   const unSelectedAggregations = useCallback(() => {
     return Object.keys(aggregations)
       .filter(key => !values?.has(key))
       .map(key => aggregations[key][metric])
-  })
+  }, [aggregations, metric, values])
 
   const max = aggregations ? Math.max(...unSelectedAggregations()) || 1 : 1
   const heatmapScale = chroma.scale([nomadSecondaryColor.veryLight, nomadSecondaryColor.main]).domain([1, max], 10, 'log')

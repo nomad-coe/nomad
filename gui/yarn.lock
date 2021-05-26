@@ -7193,6 +7193,11 @@ gzip-size@5.1.1:
     duplexer "^0.1.1"
     pify "^4.0.1"
 
+hamt_plus@1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/hamt_plus/-/hamt_plus-1.0.2.tgz#e21c252968c7e33b20f6a1b094cd85787a265601"
+  integrity sha1-4hwlKWjH4zsg9qGwlM2FeHomVgE=
+
 handle-thing@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/handle-thing/-/handle-thing-2.0.1.tgz#857f79ce359580c340d43081cc648970d0bb234e"
@@ -10137,7 +10142,7 @@ node-releases@^1.1.52, node-releases@^1.1.71:
     material-ui-chip-input "^1.0.0-beta.14"
     material-ui-flat-pagination "^4.0.0"
     mathjs "^7.1.0"
-    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.4-17e35944-2e87-4b41-9964-8dc6ab1421de-1621429239128/node_modules/nomad-fair-gui"
+    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.4-420063c7-74c9-49f9-81bc-0d7294b1da0d-1622030335283/node_modules/nomad-fair-gui"
     object-hash "^2.0.3"
     pace "^0.0.4"
     pace-js "^1.0.2"
@@ -10158,6 +10163,7 @@ node-releases@^1.1.52, node-releases@^1.1.71:
     react-keycloak "^7.0.1-191016"
     react-markdown "^4.3.1"
     react-mathjax "^1.0.1"
+    react-resize-detector "^6.7.1"
     react-router-dom "^5.1.2"
     react-scripts "3.4.1"
     react-swipeable-views "^0.13.0"
@@ -12531,6 +12537,13 @@ rechoir@^0.6.2:
   integrity sha1-hSBLVNuoLVdC4oyWdW70OvUOM4Q=
   dependencies:
     resolve "^1.1.6"
+
+recoil@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/recoil/-/recoil-0.3.1.tgz#40ef544160d19d76e25de8929d7e512eace13b90"
+  integrity sha512-KNA3DRqgxX4rRC8E7fc6uIw7BACmMPuraIYy+ejhE8tsw7w32CetMm8w7AMZa34wzanKKkev3vl3H7Z4s0QSiA==
+  dependencies:
+    hamt_plus "1.0.2"
 
 recoil@^0.0.10:
   version "0.0.10"
