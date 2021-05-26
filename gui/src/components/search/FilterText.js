@@ -37,6 +37,9 @@ const useStyles = makeStyles(theme => ({
   },
   textField: {
     marginTop: theme.spacing(1)
+  },
+  input: {
+    padding: '16px 12px'
   }
 }))
 const FilterText = React.memo(({
@@ -73,7 +76,6 @@ const FilterText = React.memo(({
     }
   }, [setFilter])
 
-
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <FilterLabel label={name} description={desc}/>
     <TextField
@@ -82,6 +84,7 @@ const FilterText = React.memo(({
       inputRef={inputRef}
       onKeyUp={handleKeyUp}
       className={styles.textField}
+      InputProps={{classes: {input: styles.input}}}
     />
     {/* {unit && <Typography variant="body1">{unit}</Typography>} */}
   </div>

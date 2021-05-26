@@ -36,7 +36,12 @@ const useFiltersElementStyles = makeStyles(theme => ({
   }
 }))
 
-export const filterElements = new Set()
+export const filterElements = [
+  'results.material.elements',
+  'results.material.chemical_formula_hill',
+  'results.material.chemical_formula_anonymous',
+  'results.material.n_elements'
+]
 export const labelElements = 'Elements / Formula'
 
 /**
@@ -48,11 +53,11 @@ const FilterElements = React.memo(({
   const styles = useFiltersElementStyles()
   const [exclusive, setExclusive] = useState(false)
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
-  const {filter, setFilter} = useFilterState('results.material.elements', filterElements)
+  const [filter, setFilter] = useFilterState('results.material.elements', filterElements)
 
   useEffect(() => {
     setStatistics(['atoms'])
-    // eslint-disable-next-line
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleExclusiveChanged = () => {
@@ -84,21 +89,18 @@ const FilterElements = React.memo(({
         <FilterText
           quantity="results.material.chemical_formula_hill"
           label="formula"
-          set={filterElements}
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.chemical_formula_anonymous"
           label="formula anonymous"
-          set={filterElements}
         />
       </Grid>
       <Grid item xs={12}>
         <FilterSlider
           quantity="results.material.n_elements"
           label="number of species"
-          set={filterElements}
         />
       </Grid>
     </Grid>

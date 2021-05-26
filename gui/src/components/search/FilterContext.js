@@ -16,12 +16,66 @@
  * limitations under the License.
  */
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
-import { atom, useSetRecoilState, useRecoilValue } from 'recoil'
+import { atom, atomFamily, selector, useSetRecoilState, useRecoilValue, useRecoilState } from 'recoil'
 import _ from 'lodash'
 // import { useHistory } from 'react-router-dom'
 // import qs from 'qs'
 import { useApi } from '../apiV1'
 import { setToArray } from '../../utils'
+
+/**
+ * Each search quantity is here mapped into a separate Recoil.js Atom. This
+ * allows components to hook into individual search parameters (both for setting
+ * and reading their value). This performs much better than having one large
+ * Atom for the entire query, as this would cause all of the hooked components
+ * to render even if they are not affected by some other search quantity.
+ * Re-renders became problematic with large and complex components (e.g. the
+ * periodic table), for which the re-rendering takes significant time. Another
+ * approach would have been to try and Memoize each complex component, but this
+ * quickly becomes a hard manual task.
+ */
+const filterKeys = [
+  'results.material.elements',
+  'results.material.chemical_formula_hill',
+  'results.material.chemical_formula_anonymous',
+  'results.material.n_elements'
+]
+export const filterFamily = atomFamily({
+  key: 'filter',
+  default: undefined
+})
+
+export function useFilterValue(quantity) {
+  return useRecoilValue(filterFamily(quantity))
+}
+export function useSetFilter(quantity) {
+  return useSetRecoilState(filterFamily(quantity))
+}
+export function useFilterState(quantity) {
+  return useRecoilState(filterFamily(quantity))
+}
+export const loadingState = atom({
+  key: 'loading',
+  default: false
+})
+export function useLoadingValue() {
+  const loading = useRecoilValue(loadingState)
+  return loading
+}
+const queryState = selector({
+  key: 'query',
+  get: ({get}) => {
+    const query = {}
+    for (let key of filterKeys) {
+      const filter = get(filterFamily(key))
+      query[key] = filter
+    }
+    return query
+  }
+})
+export function useQueryValue() {
+  return useRecoilValue(queryState)
+}
 
 // This holds the shared query that is controlled by adding/modifying/removing
 // filters.
@@ -29,19 +83,6 @@ export const queryStringState = atom({
   key: 'queryString',
   default: {}
 })
-export const queryState = atom({
-  key: 'query',
-  default: {}
-})
-export const loadingState = atom({
-  key: 'loading',
-  default: false
-})
-
-export function useLoadingValue() {
-  const loading = useRecoilValue(loadingState)
-  return loading
-}
 
 // This holds the shared statistics that is controllled by
 // adding/modifying/removing filters.
@@ -57,102 +98,62 @@ export const aggregationsState = atom({
   default: []
 })
 
-export function useQueryState() {
-  const setQuery = useSetQuery()
-  const query = useQueryValue()
-
-  return [query, setQuery]
-}
-
-export function useSetQuery() {
-  const setQuery = useSetRecoilState(queryState)
-  // const setQueryString = useSetRecoilState(queryStringState)
-  // const history = useHistory()
-
-  // function setQuery(func) {
-  //   setQueryString(oldQuery => {
-  //     const newQuery = qs.parse(oldQuery)
-  //     const temp = func(newQuery)
-  //     const elements = temp['results.material.elements']
-  //     if (elements) {
-  //       temp['results.material.elements'] = [...elements]
-  //     }
-  //     console.log(temp)
-  //     const queryString = qs.stringify(temp, {indices: false})
-  //     // history.push(history.location.pathname + '?' + queryString)
-  //     return queryString
-  //   })
-  // }
-  return setQuery
-}
-
-export function useQueryValue() {
-  const query = useRecoilValue(queryState)
-  // const queryString = useRecoilValue(queryStringState)
-  // const temp = qs.parse(queryString)
-  // let elements = temp['results.material.elements']
-  // if (elements) {
-  //   if (!Array.isArray(elements)) {
-  //     elements = [elements]
-  //   }
-  //   temp['results.material.elements'] = new Set(elements)
-  // }
-  return query
-}
-
 /**
  * This hook will expose a function for setting filter values for a specific
  * quantity. Use this hook if you intend to only set the filter value and are
  * not interested in the query results.
  *
  * @param {*} quantity Name of the quantity to set. Should exist in searchQuantities.json.
+ * @param {Set} set An optional Set that keeps track of hooked filters.
  * @returns function for setting the value for the given quantity
  */
-export function useSetFilter(quantity, set) {
-  set.add(quantity)
-  const setQuery = useSetQuery()
+// export function useSetFilter(quantity, set) {
+//   if (set) {
+//     set.add(quantity)
+//   }
+//   const setQuery = useSetQuery()
 
-  function setFilter(value) {
-    setQuery(oldQuery => {
-      const newQuery = {...oldQuery}
-      newQuery[quantity] = value
-      return newQuery
-    })
-  }
+//   function setFilter(value) {
+//     setQuery(oldQuery => {
+//       const newQuery = {...oldQuery}
+//       newQuery[quantity] = value
+//       return newQuery
+//     })
+//   }
 
-  return setFilter
-}
+//   return setFilter
+// }
 
-/**
- * This hook will expose a function for reading filter values for a specific
- * quantity. Use this hook if you intend to only view the filter values and are
- * not interested in setting the filter.
- *
- * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
- * @returns currently set filter value.
- */
-export function useFilterValue(quantity) {
-  const query = useQueryValue()
-  return query[quantity]
-}
+// /**
+//  * This hook will expose a function for reading filter values for a specific
+//  * quantity. Use this hook if you intend to only view the filter values and are
+//  * not interested in setting the filter.
+//  *
+//  * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
+//  * @returns currently set filter value.
+//  */
+// export function useFilterValue(quantity) {
+//   const query = useQueryValue()
+//   return query[quantity]
+// }
 
-/**
- * This hook will expose a function for getting and setting filter values for a
- * specific quantity. Use this hook if you intend to both read and write the
- * filter value.
- *
- * @param {*} quantity Name of the quantity to set. Should exist in searchQuantities.json.
- * @returns array containing the filter value and setter function for it.
- */
-export function useFilterState(quantity, set) {
-  const setFilter = useSetFilter(quantity, set)
-  const filter = useFilterValue(quantity)
+// /**
+//  * This hook will expose a function for getting and setting filter values for a
+//  * specific quantity. Use this hook if you intend to both read and write the
+//  * filter value.
+//  *
+//  * @param {*} quantity Name of the quantity to set. Should exist in searchQuantities.json.
+//  * @returns array containing the filter value and setter function for it.
+//  */
+// export function useFilterState(quantity, set) {
+//   const setFilter = useSetFilter(quantity, set)
+//   const filter = useFilterValue(quantity)
 
-  return {
-    filter: filter,
-    setFilter: setFilter
-  }
-}
+//   return {
+//     filter: filter,
+//     setFilter: setFilter
+//   }
+// }
 
 /**
  * Hook for returning the current query results.
@@ -179,7 +180,7 @@ export function useResults(delay = 400) {
     api.queryEntry(finalSearch)
       .then(data => setResults(data))
       .finally(() => setLoading(false))
-  }, [api])
+  }, [api, setLoading])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(_.debounce(apiCall, delay), [])
@@ -194,7 +195,7 @@ export function useResults(delay = 400) {
       setLoading(true)
       debounced(search)
     }
-  }, [apiCall, debounced, search])
+  }, [apiCall, debounced, search, setLoading])
 
   return {
     results: results,
@@ -207,7 +208,7 @@ export function useResults(delay = 400) {
 export function useSearch() {
   const stats = useRecoilValue(statisticsState)
   const aggs = useRecoilValue(aggregationsState)
-  const query = useQueryValue()
+  const query = useRecoilValue(queryState)
   const result = useMemo(() => {
     return {
       owner: 'all',

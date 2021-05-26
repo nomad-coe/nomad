@@ -120,7 +120,7 @@ const FiltersTree = React.memo(({
         children: [
           {
             name: labelElements,
-            filters: <FilterSummary filters={filterElements}/>
+            filters: <FilterSummary id={labelElements} filters={filterElements}/>
           },
           {name: 'Classification'},
           {name: 'Symmetry / Prototypes'}

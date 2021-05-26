@@ -37,6 +37,9 @@ const useStaticStyles = makeStyles(theme => ({
   name: {
     marginLeft: theme.spacing(1),
     minWidth: '6rem'
+  },
+  textField: {
+    marginTop: theme.spacing(1)
   }
 }))
 const SelectQuery = React.memo(({
