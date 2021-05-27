@@ -40,7 +40,7 @@ pip install -e .
 
 The main code file `exampleparser/parser.py` should look like this:
 ```python
-class ExampleParser(FairdiParser):
+class ExampleParser(MatchingParser):
     def __init__(self):
         super().__init__(name='parsers/example', code_name='EXAMPLE')
 
@@ -52,7 +52,7 @@ class ExampleParser(FairdiParser):
         run.program_name = 'EXAMPLE'
 ```
 
-A parser is a simple program with a single class in it. The base class `FairdiParser`
+A parser is a simple program with a single class in it. The base class `MatchingParser`
 provides the necessary interface to NOMAD. We provide some basic information
 about our parser in the constructor. The *main* function `run` simply takes a filepath
 and empty archive as input. Now its up to you, to open the given file and populate the
@@ -62,7 +62,7 @@ populate the archive with a *root section* `Run` and set the program name to `EX
 You can run the parser with the included `__main__.py`. It takes a file as argument and
 you can run it like this:
 ```sh
-python -m exampleparser test/data/example.out
+python -m exampleparser tests/data/example.out
 ```
 
 The output should show the log entry and the minimal archive with one `section_run` and
@@ -196,7 +196,7 @@ for calculation in mainfile_parser.get('calculation'):
 
 You can still run the parse on the given example file:
 ```sh
-python -m exampleparser test/data/example.out
+python -m exampleparser tests/data/example.out
 ```
 
 Now you should get a more comprehensive archive with all the provided information from
@@ -242,7 +242,7 @@ the output.
 def test_example():
     parser = rExampleParser()
     archive = EntryArchive()
-    parser.run('test/data/example.out', archive, logging)
+    parser.run('tests/data/example.out', archive, logging)
 
     run = archive.section_run[0]
     assert len(run.section_system) == 2
@@ -261,7 +261,7 @@ features of the underlying code/format.
 ## Structured data files with numpy
 **TODO: examples**
 
-The `DataTextFileParser` uses the numpy.loadtxt function to load an structured data file.
+The `DataTextParser` uses the numpy.loadtxt function to load an structured data file.
 The loaded data can be accessed from property *data*.
 
 ## XML Parser
@@ -275,12 +275,13 @@ data type conversion is performed, which can be switched off by setting *convert
 ## Add the parser to NOMAD
 
 NOMAD has to manage multiple parsers and during processing needs to decide what parsers
-to run on what files. To manage parser, a few more information about parsers is necessary.
+to run on what files. To decide what parser is use, NOMAD processing relies on specific
+parser attributes.
 
-Consider the example, where we use the `FairdiParser` constructor to add additional
+Consider the example, where we use the `MatchingParser` constructor to add additional
 attributes that determine for what files the parser is indented:
 ```python
-class ExampleParser(FairdiParser):
+class ExampleParser(MatchingParser):
     def __init__(self):
         super().__init__(
             name='parsers/example', code_name='EXAMPLE', code_homepage='https://www.example.eu/',
@@ -292,6 +293,10 @@ class ExampleParser(FairdiParser):
 run on files with matching mime type. The mime-type is *guessed* with libmagic.
 - `mainfile_contents_re`: A regular expression that is applied to the first 4k of a file.
 The parser is only run on files where this matches.
+- `mainfile_name_re`: A regular expression that can be used to match against the name and path of the file.
+
+Not all of these attributes have to be used. Those that are given must all match in order
+to use the parser on a file.
 
 The nomad infrastructure keep a list of parser objects (in `nomad/parsing/parsers.py::parsers`).
 These parser are considered in the order they appear in the list. The first matching parser
@@ -303,7 +308,7 @@ added to the infrastructure parser tests (`tests/parsing/test_parsing.py`).
 Once the parser is added, it become also available through the command line interface and
 normalizers are applied as well:
 ```sh
-nomad parser test/data/example.out
+nomad parser tests/data/example.out
 ```
 
 ## Developing an existing parser
