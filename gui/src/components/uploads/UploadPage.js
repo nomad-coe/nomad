@@ -353,8 +353,8 @@ class UploadPage extends React.Component {
             \`\`\`
 
             ### Form data vs. streaming
-            NOMAD accepts stream data (\`-T <local_file>\`) (like in the
-            examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
+            NOMAD accepts stream data \`-T <local_file>\` (like in the
+            examples above) or multi-part form data \`-X PUT -F file=@<local_file>\`:
             \`\`\`
             ${uploadCommand.upload_command_form}
             \`\`\`
@@ -363,8 +363,8 @@ class UploadPage extends React.Component {
             more information (e.g. the file name) to our servers (see below).
 
             #### Upload names
-            With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
-            be named after the file by default. With stream data (\`-T <local_file>\`)
+            With multi-part form data \`-X PUT -F file=@<local_file>\`, your upload will
+            be named after the file by default. With stream data \`-T <local_file>\`
             there will be no default name. To set a custom name, you can use the URL
             parameter \`name\`:
             \`\`\`
