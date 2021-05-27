@@ -374,7 +374,7 @@ def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
     _, uploads = query_uploads(ctx, uploads)
     __run_processing(
         uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing',
-        reprocess_running=reprocess_running)
+        reprocess_running=reprocess_running, reset_first=True)
 
 
 @uploads.command(help='Repack selected uploads.')

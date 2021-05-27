@@ -27,6 +27,7 @@ from nomad import search, processing as proc, files
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
+from nomad.processing.base import SUCCESS
 
 from tests.app.flask.test_app import BlueprintClient
 from tests.app.flask.conftest import (  # pylint: disable=unused-import
@@ -252,6 +253,9 @@ class TestAdminUploads:
         for calc in Calc.objects(upload_id=upload_id):
             with upload_files.read_archive(calc.calc_id) as archive:
                 assert calc.calc_id in archive
+
+        published.reload()
+        assert published.tasks_status == SUCCESS
 
     def test_chown(self, published, test_user, other_test_user):
         upload_id = published.upload_id
