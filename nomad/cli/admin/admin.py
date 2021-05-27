@@ -86,7 +86,7 @@ def __run_parallel(
 
 def __run_processing(
         uploads, parallel: int, process, label: str, reprocess_running: bool = False,
-        wait_for_tasks: bool = True):
+        wait_for_tasks: bool = True, reset_first: bool = False):
 
     def run_process(upload, logger):
         logger.info(
@@ -99,19 +99,26 @@ def __run_processing(
                 current_process=upload.current_process,
                 current_task=upload.current_task, upload_id=upload.upload_id)
             return False
-        else:
+
+        if reset_first:
             upload.reset(force=True)
-            process(upload)
-            if wait_for_tasks:
-                upload.block_until_complete(interval=.5)
-            else:
-                upload.block_until_process_complete(interval=.5)
+        elif upload.process_running:
+            tasks_status = upload.tasks_status
+            if tasks_status == proc.RUNNING:
+                tasks_status = proc.FAILURE
+            upload.reset(force=True, tasks_status=tasks_status)
 
-            if upload.tasks_status == proc.FAILURE:
-                logger.info('%s with failure' % label, upload_id=upload.upload_id)
+        process(upload)
+        if wait_for_tasks:
+            upload.block_until_complete(interval=.5)
+        else:
+            upload.block_until_process_complete(interval=.5)
 
-            logger.info('%s complete' % label, upload_id=upload.upload_id)
-            return True
+        if upload.tasks_status == proc.FAILURE:
+            logger.info('%s with failure' % label, upload_id=upload.upload_id)
+
+        logger.info('%s complete' % label, upload_id=upload.upload_id)
+        return True
 
     __run_parallel(uploads, parallel=parallel, callable=run_process, label=label)
 

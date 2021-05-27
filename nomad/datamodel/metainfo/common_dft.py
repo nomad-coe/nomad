@@ -1118,8 +1118,8 @@ class BasisSet(MSection):
     dependent to the simulated cell as a whole).
 
     Basis sets used in this section_single_configuration_calculation, belonging to either
-    class, are defined in the dedicated section: [section_basis_set_cell_dependent
-    ](section_basis_set_cell_dependent) or section_basis_set_atom_centered. The
+    class, are defined in the dedicated section: section_basis_set_cell_dependent or
+    section_basis_set_atom_centered. The
     correspondence between the basis sets listed in this section and the definition given
     in the dedicated sessions is given by the two concrete metadata:
     mapping_section_basis_set_cell_dependent and mapping_section_basis_set_atom_centered.
@@ -1961,9 +1961,8 @@ class FrameSequenceUserQuantity(MSection):
 
         Dedicated metadata monitored along a sequence of frames are created for the
         conserved energy-like quantity (frame_sequence_conserved_quantity), the kinetic
-        and potential energies ([frame_sequence_kinetic_energy and
-        frame_sequence_potential_energy](frame_sequence_kinetic_energy and
-        frame_sequence_potential_energy)), the instantaneous temperature
+        and potential energies (frame_sequence_kinetic_energy and
+        frame_sequence_potential_energy), the instantaneous temperature
         (frame_sequence_temperature) and the pressure (frame_sequence_pressure).
         ''',
         categories=[Unused],
@@ -3821,8 +3820,7 @@ class Run(MSection):
     '''
     Every section_run represents a single call of a program. What exactly is contained in
     a run depends on the run type (see for example section_method and
-    section_single_configuration_calculation) and the program (see [program_info
-    ](program_info)).
+    section_single_configuration_calculation) and the program (see ProgramInfo).
     '''
 
     m_def = Section(
@@ -7859,7 +7857,7 @@ class Topology(MSection):
         description='''
         A unique string idenfiying the force field defined in this section. Strategies to
         define it are discussed in the
-        [topology\\_force\\_field\\_name](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
+        [topology_force_field_name](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-
         info/wikis/metainfo/topology-force-field-name).
         ''',
         a_legacy=LegacyDefinition(name='topology_force_field_name'))

@@ -519,6 +519,9 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
         with upload_files.read_archive(calc.calc_id) as archive:
             archive[calc.calc_id].to_dict()
 
+    published.reload()
+    assert published.tasks_status == SUCCESS
+
 
 def mock_failure(cls, task, monkeypatch):
     def mock(self):
