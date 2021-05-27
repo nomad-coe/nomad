@@ -51,7 +51,9 @@ const FilterElements = React.memo(({
   className
 }) => {
   const styles = useFiltersElementStyles()
+  // eslint-disable-next-line no-unused-vars
   const [exclusive, setExclusive] = useState(false)
+  // eslint-disable-next-line no-unused-vars
   const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
   const [filter, setFilter] = useFilterState('results.material.elements', filterElements)
 

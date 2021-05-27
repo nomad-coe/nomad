@@ -74,11 +74,9 @@ const routeSpecs = [
     title: 'Search and Download Data',
     help: {
       title: 'How to find and download data',
-      //content: searchHelp
       content: newSearchHelp
     },
     navPath: 'explore/search',
-    //component: SearchPage
     component: NewSearchPage
   },
   {
