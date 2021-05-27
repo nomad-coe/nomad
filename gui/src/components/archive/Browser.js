@@ -133,13 +133,12 @@ Browser.propTypes = ({
 export const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
   root: {
-    minWidth: 200,
-    maxWidth: 512,
+    width: 'min-content',
     borderRight: `solid 1px ${grey[500]}`,
-    display: 'block'
+    display: 'inline-block'
   },
   container: {
-    display: 'block',
+    display: 'inline-block',
     height: '100%',
     overflowY: 'scroll'
   },
