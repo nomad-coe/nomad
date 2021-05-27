@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useCallback, useState } from 'react'
-import { atom, useRecoilState } from 'recoil'
+import { useRecoilState } from 'recoil'
 import { makeStyles } from '@material-ui/core/styles'
 import {
   Box,
@@ -35,25 +35,8 @@ import {
 import SettingsIcon from '@material-ui/icons/Settings'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { conversionMap, unitMap, unitSystems } from '../units'
-
-// Set up a unit system: by default use SI units, unless explicitly overridden
-// with something else.
-let defaults = {}
-for (const dimension in conversionMap) {
-  const info = conversionMap[dimension]
-  defaults[dimension] = info.units[0]
-}
-const override = {
-  'length': 'angstrom',
-  'energy': 'electron_volt',
-  'system': 'custom'
-}
-defaults = {...defaults, ...override}
-export const unitsState = atom({
-  key: 'units',
-  default: defaults
-})
+import { unitsState } from '../units'
+import { conversionMap, unitMap, unitSystems } from '../unitsData'
 
 /**
  * Component that wraps it's children in a container that can be 'floated',
@@ -115,7 +98,6 @@ const UnitSelector = React.memo(({
     if (onUnitChange) {
       onUnitChange(event)
     }
-    console.log(changes)
     setUnits({...units, ...changes})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

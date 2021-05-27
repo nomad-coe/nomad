@@ -72,7 +72,7 @@ RUN pip install .[all]
 RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
 RUN python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
 RUN python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-RUN python -m nomad.cli dev units > gui/src/units.js
+RUN python -m nomad.cli dev units > gui/src/unitsData.js
 WORKDIR /install/docs
 RUN make html
 RUN \
@@ -94,7 +94,7 @@ COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
 COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
 COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
-COPY --from=build /install/gui/src/units.js /app/src/units.js
+COPY --from=build /install/gui/src/unitsData.js /app/src/unitsData.js
 RUN yarn run build
 
 # Copy all sources and assets to the GUI build image, build it there, and then

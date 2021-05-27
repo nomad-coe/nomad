@@ -28,7 +28,7 @@ import { useFilterState } from './FilterContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
-    width: '40rem',
+    width: '100%',
     marginTop: theme.spacing(0.5)
   },
   grid: {

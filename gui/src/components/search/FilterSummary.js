@@ -23,6 +23,8 @@ import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { filterFamily } from './FilterContext'
+import { formatNumber } from '../../utils'
+import { Quantity, useUnits } from '../../units'
 
 /**
  * Displays an interactable summary for a given subset of filters
@@ -75,6 +77,7 @@ const FilterSummary = React.memo(({
 
   const [query, setQuery] = useRecoilState(filterState)
   const theme = useTheme()
+  const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
   const chips = []
   for (let filterName of filters) {
@@ -112,8 +115,16 @@ const FilterSummary = React.memo(({
       })
     // Is query is an object, we display a customized view based on its contents.
     } else if (isObj) {
-      const lte = filterValue.lte
-      const gte = filterValue.gte
+      let lte = filterValue.lte
+      let gte = filterValue.gte
+      if (lte instanceof Quantity) {
+        lte = lte.toSystem(units)
+      }
+      if (gte instanceof Quantity) {
+        gte = gte.toSystem(units)
+      }
+      lte = formatNumber(lte)
+      gte = formatNumber(gte)
       let label = `${gte ? `${gte}<=` : ''}${filterAbbr}${lte ? `<=${lte}` : ''}`
       const item = <div
         key={chips.length}

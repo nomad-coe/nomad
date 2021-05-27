@@ -29,6 +29,7 @@ import {
 } from '@material-ui/core'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import { labelElements, filterElements } from './FilterElements'
+import { labelElectronic, filterElectronic } from './FilterElectronic'
 import FilterSummary from './FilterSummary'
 
 /**
@@ -137,7 +138,10 @@ const FiltersTree = React.memo(({
       {
         name: 'Properties',
         children: [
-          {name: 'Electronic'},
+          {
+            name: labelElectronic,
+            filters: <FilterSummary id={labelElectronic} filters={filterElectronic}/>
+          },
           {name: 'Vibrational'},
           {name: 'Optical'}
         ]

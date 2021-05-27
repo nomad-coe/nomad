@@ -31,7 +31,8 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import Placeholder from './Placeholder'
 import AspectRatio from './AspectRatio'
-import { convertSI, convertSILabel, formatNumber } from '../../utils'
+import { formatNumber } from '../../utils'
+import { convertSI, convertSILabel } from '../../units'
 import searchQuantities from '../../searchQuantities'
 
 /**

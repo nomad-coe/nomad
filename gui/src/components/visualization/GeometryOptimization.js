@@ -21,7 +21,8 @@ import { Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
-import { diffTotal, convertSI, convertSILabel } from '../../utils'
+import { diffTotal } from '../../utils'
+import { convertSI, convertSILabel } from '../../units'
 import PropertyContainer from './PropertyContainer'
 
 const useStyles = makeStyles((theme) => {

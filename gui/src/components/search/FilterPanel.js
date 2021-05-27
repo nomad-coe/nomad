@@ -32,8 +32,9 @@ import ClearIcon from '@material-ui/icons/Clear'
 import CodeIcon from '@material-ui/icons/Code'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import FilterTree from './FilterTree'
-import FilterElements from './FilterElements'
 import FilterSymmetry from './FilterSymmetry'
+import FilterElements, { labelElements } from './FilterElements'
+import FilterElectronic, { labelElectronic } from './FilterElectronic'
 import Scrollable from '../visualization/Scrollable'
 import Actions from '../Actions'
 
@@ -59,7 +60,7 @@ const useStyles = makeStyles(theme => {
     },
     header: {
       paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(2),
+      paddingBottom: theme.spacing(2.25),
       paddingLeft: padding,
       paddingRight: padding
     },
@@ -235,8 +236,9 @@ const FilterPanel = React.memo(({
             actions={actionsSecondary}
             className={clsx(styles.header, styles.headerSecondary)}
           />
-          <FilterElements className={clsx(view !== 'Elements / Formula' && styles.menuHidden)}/>
+          <FilterElements className={clsx(view !== labelElements && styles.menuHidden)}/>
           <FilterSymmetry className={clsx(view !== 'Symmetry / Prototypes' && styles.menuHidden)}/>
+          <FilterElectronic className={clsx(view !== labelElectronic && styles.menuHidden)}/>
         </div>
       </Paper>
     </div>

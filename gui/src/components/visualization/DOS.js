@@ -23,7 +23,8 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { add, convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { add, mergeObjects } from '../../utils'
+import { convertSI, convertSILabel } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 

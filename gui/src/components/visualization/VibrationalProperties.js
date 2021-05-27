@@ -24,7 +24,7 @@ import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
 import PropertyContainer from './PropertyContainer'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
-import { convertSI } from '../../utils'
+import { convertSI } from '../../units'
 import { makeStyles } from '@material-ui/core/styles'
 
 const VibrationalProperties = React.memo(({

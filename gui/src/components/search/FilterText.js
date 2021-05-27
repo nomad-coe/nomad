@@ -16,12 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef, useCallback } from 'react'
+import React, { useRef, useCallback, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { TextField } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { convertSILabel } from '../../utils'
+import { Unit } from '../../units'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
 import { useSetFilter } from './FilterContext'
@@ -60,7 +60,12 @@ const FilterText = React.memo(({
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
-  let unit = def?.unit && convertSILabel(def.unit, units)
+  const unitSI = def?.unit
+  const unit = useMemo(() => {
+    return unitSI && new Unit(unitSI, units)
+  }, [unitSI, units])
+  const unitLabel = unit && unit.label()
+  const title = unitLabel ? `${name} (${unitLabel})` : name
 
   // Attach the filter hook
   const setFilter = useSetFilter(quantity, set)
@@ -77,7 +82,7 @@ const FilterText = React.memo(({
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <FilterLabel label={name} description={desc}/>
+    <FilterLabel label={title} description={desc}/>
     <TextField
       variant="outlined"
       fullWidth
@@ -86,7 +91,6 @@ const FilterText = React.memo(({
       className={styles.textField}
       InputProps={{classes: {input: styles.input}}}
     />
-    {/* {unit && <Typography variant="body1">{unit}</Typography>} */}
   </div>
 })
 

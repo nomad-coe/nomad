@@ -21,7 +21,8 @@ import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Box } from '@material-ui/core'
 import clsx from 'clsx'
 import Plot from '../visualization/Plot'
-import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { mergeObjects } from '../../utils'
+import { convertSI, convertSILabel } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const useStyles = makeStyles({

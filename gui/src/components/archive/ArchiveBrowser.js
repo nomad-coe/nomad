@@ -30,8 +30,8 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
-import { unitsState } from '../UnitSelector'
-import { convertSI, getHighestOccupiedEnergy } from '../../utils'
+import { getHighestOccupiedEnergy } from '../../utils'
+import { convertSI, useUnits } from '../../units'
 import { electronicRange } from '../../config'
 
 export const configState = atom({
@@ -275,7 +275,7 @@ class QuantityAdaptor extends ArchiveAdaptor {
 }
 
 function QuantityItemPreview({value, def}) {
-  const units = useRecoilState(unitsState)[0]
+  const units = useUnits()
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -328,7 +328,7 @@ QuantityItemPreview.propTypes = ({
 
 function QuantityValue({value, def}) {
   // Figure out the units
-  const units = useRecoilState(unitsState)[0]
+  const units = useUnits()
   let finalValue = value
   let finalUnit = def.unit
   if (def.unit) {
@@ -361,7 +361,7 @@ QuantityValue.propTypes = ({
 function Overview({section, def, parent}) {
   // States
   const [mode, setMode] = useState('bs')
-  const units = useRecoilValue(unitsState)
+  const units = useUnits()
 
   // Styles
   const useStyles = makeStyles(

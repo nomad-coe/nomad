@@ -17,7 +17,6 @@
  */
 import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { useRecoilValue } from 'recoil'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import _ from 'lodash'
 import { apiContext as apiContextV0 } from '../api'
@@ -34,12 +33,11 @@ import { DOI } from '../search/DatasetList'
 import { errorContext } from '../errors'
 import {
   authorList,
-  convertSI,
   getHighestOccupiedEnergy,
   toMateriaStructure,
   mergeObjects
 } from '../../utils'
-import { unitsState } from '../UnitSelector'
+import { useUnits, convertSI } from '../../units'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
 
@@ -170,7 +168,7 @@ const DFTEntryOverview = ({data}) => {
   // Determine which information source will be used: section_results of
   // section_metadata
   const hasResults = !!data?.results
-  const units = useRecoilValue(unitsState)
+  const units = useUnits()
 
   // Determine the set of available properties.
   const availableProps = useMemo(() => {

@@ -25,7 +25,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import FilterLabel from './FilterLabel'
-import { convertSILabel } from '../../utils'
+import { Quantity, Unit } from '../../units'
 import searchQuantities from '../../searchQuantities'
 import { useSetFilter } from './FilterContext'
 
@@ -78,11 +78,11 @@ const FilterText = React.memo(({
   className,
   classes,
   units,
-  set,
   'data-testid': testID
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const setFilter = useSetFilter(quantity)
 
   // TODO: get the minimum and maximum from aggregations
   const {trueMin, trueMax} = useMemo(() => {
@@ -99,17 +99,24 @@ const FilterText = React.memo(({
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
-  const unit = def?.unit && convertSILabel(def.unit, units)
-  const title = unit ? `${name} (${unit})` : name
+  const unitSI = def?.unit
+  const unit = useMemo(() => {
+    return unitSI && new Unit(unitSI, units)
+  }, [unitSI, units])
+  const unitLabel = unit && unit.label()
+  const title = unitLabel ? `${name} (${unitLabel})` : name
 
-  // Attach the filter hook
-  const setFilter = useSetFilter(quantity, set)
-
-  // Whenever the range filter changes, notify the search context.
-  // useEffect(() => {
-  //   console.log("Sent")
-  //   setFilter(range)
-  // }, [setFilter, range])
+  // Function for converting search values and sending the to the search
+  // context.
+  const sendFilter = useCallback((range) => {
+    if (unit) {
+      range = {
+        lte: new Quantity(range.lte, unit),
+        gte: new Quantity(range.gte, unit)
+      }
+    }
+    setFilter(range)
+  }, [unit, setFilter])
 
   // Handle start change: whenever a valid number is set, the value is committed
   // to the hook.
@@ -120,11 +127,11 @@ const FilterText = React.memo(({
     if (!isNaN(number)) {
       setRange(old => {
         const newRange = {...old, gte: number}
-        setFilter(newRange)
+        sendFilter(newRange)
         return newRange
       })
     }
-  }, [setFilter])
+  }, [sendFilter])
 
   // Handle end change: whenever a valid number is set, the value is committed
   // to the hook.
@@ -135,16 +142,16 @@ const FilterText = React.memo(({
     if (!isNaN(number)) {
       setRange(old => {
         const newRange = {...old, lte: number}
-        setFilter(newRange)
+        sendFilter(newRange)
         return newRange
       })
     }
-  }, [setFilter])
+  }, [sendFilter])
 
   // Handle range commit: Set the filter when mouse is released on a slider
   const handleRangeCommit = useCallback((event, value) => {
-    setFilter({gte: value[0], lte: value[1]})
-  }, [setFilter])
+    sendFilter({gte: value[0], lte: value[1]})
+  }, [sendFilter])
 
   // Handle range change: only change the rendered values, send to the filter
   // hook only after mouseup
@@ -203,8 +210,7 @@ FilterText.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
-  'data-testid': PropTypes.string,
-  set: PropTypes.object
+  'data-testid': PropTypes.string
 }
 
 export default FilterText
