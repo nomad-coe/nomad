@@ -24,7 +24,7 @@ import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
 import PropertyContainer from './PropertyContainer'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
-import { convertSI } from '../../units'
+import { toUnitSystem } from '../../units'
 import { makeStyles } from '@material-ui/core/styles'
 
 const VibrationalProperties = React.memo(({
@@ -43,7 +43,7 @@ const VibrationalProperties = React.memo(({
     if (dos?.energies) {
       const min = Math.min(...dos.energies)
       const max = Math.max(...dos.energies)
-      range = convertSI([min, max], 'joule', units, false)
+      range = toUnitSystem([min, max], 'joule', units, false)
     }
     return range
   }, [dos, units])

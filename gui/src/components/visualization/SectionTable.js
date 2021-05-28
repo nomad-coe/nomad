@@ -32,7 +32,7 @@ import clsx from 'clsx'
 import Placeholder from './Placeholder'
 import AspectRatio from './AspectRatio'
 import { formatNumber } from '../../utils'
-import { convertSI, convertSILabel } from '../../units'
+import { Unit, toUnitSystem } from '../../units'
 import searchQuantities from '../../searchQuantities'
 
 /**
@@ -72,8 +72,9 @@ const SectionTable = React.memo(({
                 {Object.keys(quantities).map((key, index) => {
                   const defCustom = quantities[key]
                   const def = searchQuantities[`${section}.${key}`]
-                  const unit = defCustom.unit || def?.unit
-                  const unitLabel = unit && convertSILabel(unit, units)
+                  const unitName = defCustom.unit || def?.unit
+                  const unit = unitName && new Unit(unitName)
+                  const unitLabel = unit && unit.label(units)
                   const description = defCustom.description || def.description || ''
                   const content = unit ? `${defCustom.label} (${unitLabel})` : defCustom.label
                   return <TableCell key={index} align="left">
@@ -99,7 +100,7 @@ const SectionTable = React.memo(({
                     if (value !== undefined) {
                       if (!isNaN(value)) {
                         value = formatNumber(
-                          unit ? convertSI(value, unit, units, false) : value,
+                          unit ? toUnitSystem(value, unit, units, false) : value,
                           dtype
                         )
                       }

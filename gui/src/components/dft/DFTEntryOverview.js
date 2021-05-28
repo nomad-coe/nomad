@@ -37,7 +37,7 @@ import {
   toMateriaStructure,
   mergeObjects
 } from '../../utils'
-import { useUnits, convertSI } from '../../units'
+import { useUnits, toUnitSystem } from '../../units'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
 
@@ -443,7 +443,7 @@ const DFTEntryOverview = ({data}) => {
               const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
               const sampling_method = section_run?.section_sampling_method
               const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
-              const e_criteria = convertSI(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
+              const e_criteria = toUnitSystem(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
               setGeoOpt({energies: energies, energy_change_criteria: e_criteria})
             } else {
               setGeoOpt({})
@@ -534,8 +534,8 @@ const DFTEntryOverview = ({data}) => {
             if (!reprSys && sys.is_representative) {
               const reprSys = {
                 species: sys.atom_species,
-                cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-                positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+                cell: sys.lattice_vectors ? toUnitSystem(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+                positions: toUnitSystem(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
                 pbc: sys.configuration_periodic_dimensions,
                 m_path: `${url}/section_run/section_system:${i}`,
                 name: 'original'
@@ -551,7 +551,7 @@ const DFTEntryOverview = ({data}) => {
         if (idealSys && data?.dft?.system === 'bulk') {
           const ideal = {
             species: idealSys.atom_labels,
-            cell: idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+            cell: idealSys.lattice_vectors ? toUnitSystem(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
             positions: idealSys.atom_positions,
             fractional: true,
             pbc: idealSys.periodicity,

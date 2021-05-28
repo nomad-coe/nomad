@@ -22,7 +22,7 @@ import { Box } from '@material-ui/core'
 import clsx from 'clsx'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
-import { convertSI, convertSILabel } from '../../units'
+import { Unit, toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const useStyles = makeStyles({
@@ -40,24 +40,27 @@ const HeatCapacity = React.memo(({
   'data-testid': testID,
   ...other
 }) => {
+  const tempUnit = useMemo(() => new Unit('kelvin'), [])
+  const capacityUnit = useMemo(() => new Unit('joule/kelvin'), [])
+
   // Merge custom layout with default layout
   const finalLayout = useMemo(() => {
     let defaultLayout = {
       xaxis: {
         title: {
-          text: `Temperature (${convertSILabel('kelvin', units)})`
+          text: `Temperature (${tempUnit.label(units)})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Heat capacity (${convertSILabel('joule/kelvin', units)})`
+          text: `Heat capacity (${capacityUnit.label(units)})`
         },
         zeroline: false
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, units])
+  }, [layout, units, tempUnit, capacityUnit])
 
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const styles = useStyles(classes)
@@ -73,8 +76,8 @@ const HeatCapacity = React.memo(({
     }
 
     // Convert units and determine range
-    const temperatures = convertSI(data.temperatures, 'kelvin', units, false)
-    const heatCapacities = convertSI(data.heat_capacities, 'joule/kelvin', units, false)
+    const temperatures = toUnitSystem(data.temperatures, tempUnit, units)
+    const heatCapacities = toUnitSystem(data.heat_capacities, capacityUnit, units)
 
     // Create the final data that will be plotted.
     const plotData = [{
@@ -89,7 +92,7 @@ const HeatCapacity = React.memo(({
     }]
 
     setFinalData(plotData)
-  }, [data, units, theme])
+  }, [data, units, tempUnit, capacityUnit, theme])
 
   return (
     <Box className={clsx(styles.root, className)}>

@@ -19,7 +19,7 @@ import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
 import { Box } from '@material-ui/core'
-import { convertSI } from '../../units'
+import { toUnitSystem } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
@@ -76,8 +76,14 @@ const bandGapQuantities = {
   band_gap_type: {label: 'Type', placeholder: 'no gap'}
 }
 
-const ElectronicProperties = React.memo(({bs, dos, className, classes, units}) => {
-  const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
+const ElectronicProperties = React.memo(({
+  bs,
+  dos,
+  className,
+  classes,
+  units
+}) => {
+  const range = useMemo(() => toUnitSystem(electronicRange, 'electron_volt', units), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 

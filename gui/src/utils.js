@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { cloneDeep, merge, isSet } from 'lodash'
-import { convertSI } from './units'
+import { toUnitSystem } from './units'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -306,8 +306,8 @@ export function toMateriaStructure(structure, name, m_path) {
 
     const structMateria = {
       species: structure.species_at_sites.map(x => speciesMap.get(x)),
-      cell: structure.lattice_vectors ? convertSI(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      positions: convertSI(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
+      cell: structure.lattice_vectors ? toUnitSystem(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      positions: toUnitSystem(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
       fractional: false,
       pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined,
       name: name,

@@ -61,10 +61,10 @@ const FilterText = React.memo(({
   const desc = description || def?.description || ''
   const name = label || def?.name
   const unitSI = def?.unit
-  const unit = useMemo(() => {
-    return unitSI && new Unit(unitSI, units)
+  const unitLabel = useMemo(() => {
+    const unit = unitSI && new Unit(unitSI)
+    return unit && unit.label(units)
   }, [unitSI, units])
-  const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
 
   // Attach the filter hook

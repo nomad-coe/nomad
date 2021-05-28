@@ -31,7 +31,7 @@ import BandStructure from '../visualization/BandStructure'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
 import { getHighestOccupiedEnergy } from '../../utils'
-import { convertSI, useUnits } from '../../units'
+import { toUnitSystem, useUnits } from '../../units'
 import { electronicRange } from '../../config'
 
 export const configState = atom({
@@ -313,7 +313,7 @@ function QuantityItemPreview({value, def}) {
     let finalValue = value
     let finalUnit = def.unit
     if (def.unit) {
-      [finalValue, finalUnit] = convertSI(value, def.unit, units)
+      [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
     }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
@@ -332,7 +332,7 @@ function QuantityValue({value, def}) {
   let finalValue = value
   let finalUnit = def.unit
   if (def.unit) {
-    [finalValue, finalUnit] = convertSI(value, def.unit, units)
+    [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
   }
 
   return <Box
@@ -409,8 +409,8 @@ function Overview({section, def, parent}) {
     const nAtoms = section.atom_species.length
     let system = {
       'species': section.atom_species,
-      'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+      'cell': section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      'positions': toUnitSystem(section.atom_positions, 'meter', {length: 'angstrom'}, false),
       'pbc': section.configuration_periodic_dimensions
     }
     visualizedSystem.sectionPath = sectionPath
@@ -430,7 +430,7 @@ function Overview({section, def, parent}) {
     }
     const system = {
       species: section.atom_labels,
-      cell: section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      cell: section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
       positions: section.atom_positions,
       fractional: true,
       pbc: section.periodicity
@@ -453,7 +453,7 @@ function Overview({section, def, parent}) {
                 segments: section.section_k_band_segment,
                 reciprocal_cell: section.reciprocal_cell
               }}
-              layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+              layout={{yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}}
               aspectRatio={1}
               units={units}
             ></BandStructure>
@@ -498,7 +498,7 @@ function Overview({section, def, parent}) {
     const isVibrational = section.dos_kind === 'vibrational'
     const layout = isVibrational
       ? undefined
-      : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}
+      : {yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}
     return <DOS
       className={style.dos}
       layout={layout}
