@@ -267,8 +267,10 @@ def chown(ctx, username, uploads):
 @uploads.command(help='Reset the processing state.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
+@click.option('--success', is_flag=True, help='Set the tasks status to success instead of pending')
+@click.option('--failure', is_flag=True, help='Set the tasks status to failure instead of pending.')
 @click.pass_context
-def reset(ctx, uploads, with_calcs):
+def reset(ctx, uploads, with_calcs, success, failure):
     _, uploads = query_uploads(ctx, uploads)
     uploads_count = uploads.count()
 
@@ -276,12 +278,22 @@ def reset(ctx, uploads, with_calcs):
 
     i = 0
     for upload in uploads:
-        proc.Calc._get_collection().update_many(
-            dict(upload_id=upload.upload_id),
-            {'$set': proc.Calc.reset_pymongo_update()})
+        if with_calcs:
+            calc_update = proc.Calc.reset_pymongo_update()
+            if success:
+                calc_update['tasks_status'] = proc.SUCCESS
+            if failure:
+                calc_update['tasks_status'] = proc.FAILURE
+
+            proc.Calc._get_collection().update_many(
+                dict(upload_id=upload.upload_id), {'$set': calc_update})
 
         upload.process_status = None
         upload.reset()
+        if success:
+            upload.tasks_status = proc.SUCCESS
+        if failure:
+            upload.tasks_status = proc.FAILURE
         upload.save()
         i += 1
         print('resetted %d of %d uploads' % (i, uploads_count))
