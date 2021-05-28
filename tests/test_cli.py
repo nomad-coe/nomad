@@ -307,19 +307,39 @@ class TestAdminUploads:
         perform_test(True, False)
         perform_test(True, True)
 
-    def test_reset(self, non_empty_processed):
+    @pytest.mark.parametrize('with_calcs,success,failure', [
+        (True, False, False),
+        (False, False, False),
+        (True, True, False),
+        (False, False, True)])
+    def test_reset(self, non_empty_processed, with_calcs, success, failure):
         upload_id = non_empty_processed.upload_id
 
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'reset', '--with-calcs', upload_id], catch_exceptions=False)
+        upload = Upload.objects(upload_id=upload_id).first()
+        calc = Calc.objects(upload_id=upload_id).first()
+        assert upload.tasks_status == proc.SUCCESS
+        assert calc.tasks_status == proc.SUCCESS
+
+        args = ['admin', 'uploads', 'reset']
+        if with_calcs: args.append('--with-calcs')
+        if success: args.append('--success')
+        if failure: args.append('--failure')
+        args.append(upload_id)
+        result = click.testing.CliRunner().invoke(cli, args, catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'reset' in result.stdout
         upload = Upload.objects(upload_id=upload_id).first()
         calc = Calc.objects(upload_id=upload_id).first()
 
-        assert upload.tasks_status == proc.PENDING
-        assert calc.tasks_status == proc.PENDING
+        expected_state = proc.PENDING
+        if success: expected_state = proc.SUCCESS
+        if failure: expected_state = proc.FAILURE
+        assert upload.tasks_status == expected_state
+        if not with_calcs:
+            assert calc.tasks_status == proc.SUCCESS
+        else:
+            assert calc.tasks_status == expected_state
 
 
 @pytest.mark.usefixtures('reset_config')
