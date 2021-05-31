@@ -316,6 +316,13 @@ gitlab = NomadConfig(
     private_token='not set'
 )
 
+reprocess_published = NomadConfig(
+    reprocess_entry_if_parser_unchanged=True,
+    reprocess_entry_if_parser_changed=True,
+    add_new_entries_if_found=True,
+    delete_unmatched_entries=False
+)
+
 auxfile_cutoff = 100
 parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
@@ -323,9 +330,6 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
 use_empty_parsers = False
-reprocess_match = False
-reprocess_unmatched = True
-reprocess_rematch = True
 process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')

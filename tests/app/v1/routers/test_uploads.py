@@ -133,7 +133,7 @@ def assert_processing(client, upload_id, user_auth, check_search=True, check_fil
         expected_file_class = files.PublicUploadFiles if published else files.StagingUploadFiles
         assert_upload_files(upload_id, entries, expected_file_class)
     if check_search:
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'], upload_id=upload_id)
 
 
 def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **query_args):
@@ -848,8 +848,8 @@ def test_post_upload_oasis(
             expected_status_code=401),
         id='not-my-upload')])
 def test_post_upload_action_publish(
-        client, proc_infra, example_data_writeable, test_user_auth, other_test_user_auth, admin_user_auth,
-        kwargs):
+        client, proc_infra, example_data_writeable,
+        test_user_auth, other_test_user_auth, admin_user_auth, kwargs):
     ''' Tests the publish action with various arguments. '''
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query_args = kwargs.get('query_args', {})
@@ -871,22 +871,35 @@ def test_post_upload_action_publish(
         assert_gets_published(client, upload_id, user_auth, **query_args)
 
 
-@pytest.mark.parametrize('upload_id, user, expected_status_code', [
-    pytest.param('examples_template', 'test_user', 200, id='ok'),
-    pytest.param('examples_template', 'other_test_user', 401, id='no-access'),
-    pytest.param('id_unpublished_w', 'test_user', 400, id='not-published'),
-    pytest.param('id_processing_w', 'test_user', 400, id='already-processing'),
-    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
-def test_post_upload_action_reprocess(
-        client, monkeypatch, example_data_writeable, published, test_user_auth, other_test_user_auth,
-        upload_id, user, expected_status_code):
+@pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
+    pytest.param('examples_template', True, 'admin_user', 200, id='published-admin'),
+    pytest.param('examples_template', True, 'test_user', 401, id='published-not-admin'),
+    pytest.param('examples_template', False, 'test_user', 200, id='not-published'),
+    pytest.param('examples_template', False, 'other_test_user', 401, id='no-access'),
+    pytest.param('id_processing_w', False, 'test_user', 400, id='already-processing'),
+    pytest.param('silly_value', False, 'test_user', 404, id='invalid-upload_id')])
+def test_post_upload_action_process(
+        client, mongo, purged_app, proc_infra, monkeypatch, example_data_writeable,
+        non_empty_processed, internal_example_user_metadata,
+        test_user_auth, other_test_user_auth, admin_user_auth,
+        upload_id, publish, user, expected_status_code):
+
+    if publish:
+        non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
+        non_empty_processed.publish_upload()
+        try:
+            non_empty_processed.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
     user_auth = {
         'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth}[user]
+        'other_test_user': other_test_user_auth,
+        'admin_user': admin_user_auth}[user]
 
-    response = perform_post_upload_action(client, user_auth, upload_id, 're-process')
+    response = perform_post_upload_action(client, user_auth, upload_id, 'process')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)

@@ -327,7 +327,7 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
     _, uploads = query_uploads(ctx, uploads)
     __run_processing(
-        uploads, parallel, lambda upload: upload.re_process_upload(), 're-processing',
+        uploads, parallel, lambda upload: upload.process_upload(), 'processing',
         reprocess_running=reprocess_running)
 
 

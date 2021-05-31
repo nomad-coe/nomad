@@ -567,7 +567,7 @@ class UploadResource(Resource):
                 abort(400, message='You can only re-process uploads with at least one outdated calculation')
 
             upload.reset()
-            upload.re_process_upload()
+            upload.process_upload()
             return upload, 200
         elif operation == 'publish-to-central-nomad':
             if upload.tasks_running or upload.process_running or not upload.published:

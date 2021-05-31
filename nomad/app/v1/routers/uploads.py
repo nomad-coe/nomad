@@ -961,8 +961,8 @@ async def post_upload_action_publish(
 
 
 @router.post(
-    '/{upload_id}/action/re-process', tags=[default_tag],
-    summary='Re-process a published upload',
+    '/{upload_id}/action/process', tags=[default_tag],
+    summary='Manually triggers processing of an upload.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
@@ -973,25 +973,16 @@ async def post_upload_action_reprocess(
             description='The unique id of the upload to re-process.'),
         user: User = Depends(create_user_dependency(required=True))):
     '''
-    Re-processes an upload. The upload must be published, have at least one outdated
-    caclulation, and not be processing at the moment.
+    Processes an upload, i.e. parses the files and updates the NOMAD archive. Only admins
+    can process an already published upload.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=False)
+        upload_id, user, include_published=True, published_requires_admin=True)
 
     _check_upload_not_processing(upload)
 
-    if not upload.published:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Only published uploads can be re-processed.')
-    if len(upload.outdated_calcs) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='You can only re-process uploads with at least one outdated calculation')
-
     upload.reset()
-    upload.re_process_upload()
+    upload.process_upload()
     return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))

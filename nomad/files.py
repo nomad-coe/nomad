@@ -245,10 +245,6 @@ class DirectoryObject(PathObject):
         return os.path.isdir(self.os_path)
 
 
-class ExtractError(Exception):
-    pass
-
-
 class Restricted(Exception):
     pass
 
@@ -265,7 +261,7 @@ class UploadPathInfo(NamedTuple):
 
 
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
-
+    ''' Abstract base class for upload files. '''
     def __init__(
             self, bucket: str, upload_id: str,
             is_authorized: Callable[[], bool] = lambda: False,
@@ -279,6 +275,33 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
         self.upload_id = upload_id
         self._is_authorized = is_authorized
+
+    @classmethod
+    def file_area(cls):
+        '''
+        Full path to where the upload files of this class are stored (i.e. either
+        staging or public file area).
+        '''
+        raise NotImplementedError()
+
+    @classmethod
+    def base_folder_for(cls, upload_id: str) -> str:
+        '''
+        Full path to the base folder for the upload files (of this class) for the
+        specified upload_id.
+        '''
+        os_path = cls.file_area()
+        if config.fs.prefix_size:
+            os_path = os.path.join(os_path, upload_id[:config.fs.prefix_size])
+        os_path = os.path.join(os_path, upload_id)
+        return os_path
+
+    @classmethod
+    def exists_for(cls, upload_id: str) -> bool:
+        '''
+        If an UploadFiles object (of this class) has been created for this upload_id.
+        '''
+        return os.path.exists(cls.base_folder_for(upload_id))
 
     @property
     def _user_metadata_file(self):
@@ -399,7 +422,10 @@ class StagingUploadFiles(UploadFiles):
         self._frozen_file = self.join_file('.frozen')
 
         self._size = 0
-        self._shared = DirectoryObject(config.fs.public, upload_id, create=create)
+
+    @classmethod
+    def file_area(cls):
+        return config.fs.staging
 
     def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
         return self
@@ -809,11 +835,6 @@ class StagingUploadFiles(UploadFiles):
 
         return utils.make_websave(hash)
 
-    def delete(self, include_public=True) -> None:
-        super().delete()
-        if self._shared.exists() and include_public:
-            self._shared.delete()
-
 
 class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
     '''
@@ -858,6 +879,10 @@ class PublicUploadFiles(UploadFiles):
         self._directories: Dict[str, Dict[str, UploadPathInfo]] = None
         self._raw_zip_files: Dict[str, zipfile.ZipFile] = {}
         self._archive_msg_files: Dict[str, ArchiveReader] = {}
+
+    @classmethod
+    def file_area(cls):
+        return config.fs.public
 
     def close(self):
         for f in self._raw_zip_files.values():
