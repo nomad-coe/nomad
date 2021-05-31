@@ -16,18 +16,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
-  TextField
+  TextField,
+  FormHelperText
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import FilterLabel from './FilterLabel'
 import { Quantity, Unit } from '../../units'
 import searchQuantities from '../../searchQuantities'
-import { useSetFilter } from './FilterContext'
+import { useSetFilter, useStatistics } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -83,6 +84,15 @@ const FilterText = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const setFilter = useSetFilter(quantity)
+  // const {stats, subscribe, unsubscribe} = useStatistics(quantity)
+  // console.log(stats)
+
+  // // Subscribe to stats on mount, unsubscribe on unmounting
+  // useEffect(() => {
+  //   subscribe({quantity: quantity})
+  //   return () => unsubscribe()
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [quantity])
 
   // TODO: get the minimum and maximum from aggregations
   const {trueMin, trueMax} = useMemo(() => {
@@ -94,6 +104,7 @@ const FilterText = React.memo(({
   const [trueStart, setTrueStart] = useState(start || trueMin)
   const [trueEnd, setTrueEnd] = useState(end || trueMax)
   const [range, setRange] = useState({gte: trueStart, lte: trueEnd})
+  const [error, setError] = useState()
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -106,9 +117,9 @@ const FilterText = React.memo(({
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
 
-  // Function for converting search values and sending the to the search
+  // Function for converting search values and sending them to the search
   // context.
-  const sendFilter = useCallback((range) => {
+  const sendFilter = useCallback(range => {
     if (unit) {
       range = {
         lte: new Quantity(range.lte, unit),
@@ -125,13 +136,19 @@ const FilterText = React.memo(({
     setTrueStart(value)
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
+      const outOfRange = number < trueMin
+      if (outOfRange) {
+        setError(`Minimum value cannot be below ${trueMin}.`)
+        return
+      }
+      setError()
       setRange(old => {
         const newRange = {...old, gte: number}
         sendFilter(newRange)
         return newRange
       })
     }
-  }, [sendFilter])
+  }, [sendFilter, trueMin])
 
   // Handle end change: whenever a valid number is set, the value is committed
   // to the hook.
@@ -140,13 +157,19 @@ const FilterText = React.memo(({
     setTrueEnd(value)
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
+      const outOfRange = number > trueMax
+      if (outOfRange) {
+        setError(`Maximum value cannot be below ${trueMax}.`)
+        return
+      }
+      setError()
       setRange(old => {
         const newRange = {...old, lte: number}
         sendFilter(newRange)
         return newRange
       })
     }
-  }, [sendFilter])
+  }, [sendFilter, trueMax])
 
   // Handle range commit: Set the filter when mouse is released on a slider
   const handleRangeCommit = useCallback((event, value) => {
@@ -159,6 +182,7 @@ const FilterText = React.memo(({
     setTrueStart(value[0])
     setTrueEnd(value[1])
     setRange({gte: value[0], lte: value[1]})
+    setError()
   }, [])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -195,6 +219,9 @@ const FilterText = React.memo(({
         InputProps={{classes: {input: styles.input}}}
       />
     </div>
+    {error && <FormHelperText error>
+      {error}
+    </FormHelperText>}
   </div>
 })
 

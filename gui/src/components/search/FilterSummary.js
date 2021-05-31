@@ -22,7 +22,8 @@ import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { filterFamily } from './FilterContext'
+import { isNil } from 'lodash'
+import { queryFamily } from './FilterContext'
 import { formatNumber } from '../../utils'
 import { Quantity, useUnits } from '../../units'
 
@@ -63,13 +64,13 @@ const FilterSummary = React.memo(({
       get: ({get}) => {
         const query = {}
         for (let key of filters) {
-          const filter = get(filterFamily(key))
+          const filter = get(queryFamily(key))
           query[key] = filter
         }
         return query
       },
       set: ({set}, [key, value]) => {
-        set(filterFamily(key), value)
+        set(queryFamily(key), value)
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,7 +126,7 @@ const FilterSummary = React.memo(({
       }
       lte = formatNumber(lte)
       gte = formatNumber(gte)
-      let label = `${gte ? `${gte}<=` : ''}${filterAbbr}${lte ? `<=${lte}` : ''}`
+      let label = `${!isNil(gte) ? `${gte}<=` : ''}${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}`
       const item = <div
         key={chips.length}
         className={styles.chip}

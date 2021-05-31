@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useContext, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,8 +23,7 @@ import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import FilterSlider from './FilterSlider'
-import { searchContext } from './SearchContext'
-import { useFilterState } from './FilterContext'
+import { useFilterState, useStatistics, useMetric } from './FilterContext'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
@@ -53,13 +52,14 @@ const FilterElements = React.memo(({
   const styles = useFiltersElementStyles()
   // eslint-disable-next-line no-unused-vars
   const [exclusive, setExclusive] = useState(false)
-  // eslint-disable-next-line no-unused-vars
-  const {response: {statistics, metric}, query, setQuery, setStatistics} = useContext(searchContext)
-  const [filter, setFilter] = useFilterState('results.material.elements', filterElements)
+  const [filter, setFilter] = useFilterState('results.material.elements')
+  const {statistics, subscribe, unsubscribe} = useStatistics('results.material.elements')
+  const metric = useMetric()
 
+  // Subscribe to stats on mount, unsubscribe on unmounting
   useEffect(() => {
-    setStatistics(['atoms'])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    subscribe({quantity: 'results.material.elements'})
+    return () => unsubscribe()
   }, [])
 
   const handleExclusiveChanged = () => {
@@ -79,7 +79,7 @@ const FilterElements = React.memo(({
 
   return <div className={clsx(className, styles.root)}>
     <NewPeriodicTable
-      aggregations={statistics.atoms}
+      statistics={statistics?.data}
       metric={metric}
       exclusive={exclusive}
       values={filter}

@@ -40,9 +40,19 @@ const filterKeys = [
   'results.material.n_elements',
   'results.properties.electronic.band_structure_electronic.channel_info.band_gap'
 ]
-export const filterFamily = atomFamily({
-  key: 'filter',
+export const queryFamily = atomFamily({
+  key: 'queryFamily',
   default: undefined
+})
+
+export const statisticsFamily = atomFamily({
+  key: 'statisticsFamily',
+  default: undefined
+})
+
+export const statisticsRequestState = atom({
+  key: 'statistics',
+  default: {}
 })
 
 /**
@@ -53,8 +63,40 @@ export const filterFamily = atomFamily({
  * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
  * @returns currently set filter value.
  */
+export function useStatistics(name) {
+  const setStatsRequest = useSetRecoilState(statisticsRequestState)
+  const statistics = useRecoilValue(statisticsFamily(name))
+  const subscribe = useCallback(stat => {
+    setStatsRequest(old => {
+      const newStat = {...old}
+      newStat[name] = stat
+      return newStat
+    })
+  }, [name, setStatsRequest])
+  const unsubscribe = useCallback(() => {
+    setStatsRequest(old => {
+      const newStat = {...old}
+      delete newStat[name]
+      return newStat
+    })
+  }, [name, setStatsRequest])
+
+  return {
+    statistics: statistics,
+    subscribe: subscribe,
+    unsubscribe: unsubscribe
+  }
+}
+/**
+ * This hook will expose a function for reading filter values for a specific
+ * quantity. Use this hook if you intend to only view the filter values and are
+ * not interested in setting the filter.
+ *
+ * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
+ * @returns currently set filter value.
+ */
 export function useFilterValue(quantity) {
-  return useRecoilValue(filterFamily(quantity))
+  return useRecoilValue(queryFamily(quantity))
 }
 /**
  * This hook will expose a function for setting filter values for a specific
@@ -66,7 +108,7 @@ export function useFilterValue(quantity) {
  * @returns function for setting the value for the given quantity
  */
 export function useSetFilter(quantity) {
-  return useSetRecoilState(filterFamily(quantity))
+  return useSetRecoilState(queryFamily(quantity))
 }
 /**
  * This hook will expose a function for getting and setting filter values for a
@@ -77,7 +119,7 @@ export function useSetFilter(quantity) {
  * @returns array containing the filter value and setter function for it.
  */
 export function useFilterState(quantity) {
-  return useRecoilState(filterFamily(quantity))
+  return useRecoilState(queryFamily(quantity))
 }
 
 /**
@@ -91,8 +133,20 @@ export const loadingState = atom({
  * Convenience hook for reading the loading state.
  */
 export function useLoading() {
-  const loading = useRecoilValue(loadingState)
-  return loading
+  return useRecoilValue(loadingState)
+}
+/**
+ * Contains the currently chosen metric for e.g. building histograms.
+ */
+export const metricState = atom({
+  key: 'metric',
+  default: 'entries'
+})
+/**
+ * Convenience hook for reading the loading state.
+ */
+export function useMetric() {
+  return useRecoilValue(metricState)
 }
 /**
  * This selector aggregates all the currently set filters into a single query
@@ -103,7 +157,7 @@ const queryState = selector({
   get: ({get}) => {
     const query = {}
     for (let key of filterKeys) {
-      const filter = get(filterFamily(key))
+      const filter = get(queryFamily(key))
       query[key] = filter
     }
     return query
@@ -112,13 +166,6 @@ const queryState = selector({
 export function useQueryValue() {
   return useRecoilValue(queryState)
 }
-
-// This atom holds the shared statistics that is controlled by
-// adding/modifying/removing filters.
-export const statisticsState = atom({
-  key: 'statistics',
-  default: []
-})
 
 // This atom holds the shared statistics that is controllled by
 // adding/modifying/removing filters.
@@ -133,7 +180,7 @@ export const aggregationsState = atom({
  * @returns {object} Object containing the search object.
  */
 export function useSearch() {
-  const stats = useRecoilValue(statisticsState)
+  const stats = useRecoilValue(statisticsRequestState)
   const aggs = useRecoilValue(aggregationsState)
   const query = useRecoilValue(queryState)
   const result = useMemo(() => {
@@ -146,7 +193,7 @@ export function useSearch() {
         order: 'desc',
         order_by: 'upload_time'
       },
-      stats: stats,
+      statistics: stats,
       aggregations: aggs
     }
   }, [query, stats, aggs])
@@ -166,6 +213,20 @@ export function useResults(delay = 400) {
   const search = useSearch()
   const [results, setResults] = useState()
   const setLoading = useSetRecoilState(loadingState)
+
+  // We dynamically create a Recoil.js selector that is subscribed to the
+  // filters specified in the input. This way only the specified filters will
+  // cause a render.
+  const statisticsState = useMemo(() => {
+    return selector({
+      key: 'statisticsResult',
+      set: ({set}, [key, value]) => {
+        set(statisticsFamily(key), value)
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const setStats = useSetRecoilState(statisticsState)
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
@@ -194,9 +255,16 @@ export function useResults(delay = 400) {
     finalSearch.query = transform(finalSearch.query)
 
     api.queryEntry(finalSearch)
-      .then(data => setResults(data))
+      .then(data => {
+        setResults(data)
+        if (data.statistics) {
+          for (const [key, value] of Object.entries(data.statistics)) {
+            setStats([key, value])
+          }
+        }
+      })
       .finally(() => setLoading(false))
-  }, [api, setLoading])
+  }, [api, setLoading, setStats])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(_.debounce(apiCall, delay), [])

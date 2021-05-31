@@ -154,7 +154,7 @@ const useTableStyles = makeStyles(theme => ({
 }))
 
 const NewPeriodicTable = React.memo(({
-  aggregations,
+  statistics,
   metric,
   values,
   exclusive,
@@ -177,12 +177,12 @@ const NewPeriodicTable = React.memo(({
   }, [values, onChanged])
 
   const unSelectedAggregations = useCallback(() => {
-    return Object.keys(aggregations)
+    return Object.keys(statistics)
       .filter(key => !values?.has(key))
-      .map(key => aggregations[key][metric])
-  }, [aggregations, metric, values])
+      .map(key => statistics[key][metric])
+  }, [statistics, metric, values])
 
-  const max = aggregations ? Math.max(...unSelectedAggregations()) || 1 : 1
+  const max = statistics ? Math.max(...unSelectedAggregations()) || 1 : 1
   const heatmapScale = chroma.scale([nomadSecondaryColor.veryLight, nomadSecondaryColor.main]).domain([1, max], 10, 'log')
 
   return (
@@ -196,9 +196,9 @@ const NewPeriodicTable = React.memo(({
                   {element
                     ? <Element
                       element={element}
-                      count={aggregations ? (aggregations[element.symbol] || {})[metric] || 0 : 0}
+                      count={statistics ? (statistics[element.symbol] || {})[metric] || 0 : 0}
                       heatmapScale={heatmapScale}
-                      relativeCount={aggregations ? ((aggregations[element.symbol] || {})[metric] || 0) / max : 0}
+                      relativeCount={statistics ? ((statistics[element.symbol] || {})[metric] || 0) / max : 0}
                       onClick={() => onElementClicked(element.symbol)}
                       selected={values?.has(element.symbol)}
                     /> : ''}
@@ -224,7 +224,7 @@ const NewPeriodicTable = React.memo(({
 })
 
 NewPeriodicTable.propTypes = {
-  aggregations: PropTypes.object,
+  statistics: PropTypes.object,
   metric: PropTypes.string.isRequired,
   values: PropTypes.object,
   onChanged: PropTypes.func.isRequired,
