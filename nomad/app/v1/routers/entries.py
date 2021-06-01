@@ -926,10 +926,6 @@ class FileContentIterator:
         self.f.seek(self.offset)
         self.length = length
 
-    def __iter__(self):
-        self.f.seek(self.offset)
-        self.read_bytes = 0
-
     def __next__(self):
         remaining = self.length - self.read_bytes
         if remaining > 0:
