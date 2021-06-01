@@ -23,6 +23,7 @@ from devtools import debug
 from urllib.parse import urlencode
 
 from nomad.metainfo.elasticsearch_extension import DocumentType
+from nomad.datamodel import results
 
 from tests.utils import assert_at_least, assert_url_query_args
 
@@ -152,6 +153,40 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
     ]
 
 
+def aggregation_test_parameters(material_prefix: str, entry_prefix: str):
+    return [
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}}, 3, 3, 200, id='order-str'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}upload_time'}}, 3, 3, 200, id='order-date'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
+        pytest.param({'quantity': f'{material_prefix}symmetry.structure_name'}, 0, 0, 200, id='no-results'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}uploader.name', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10, 'required': {'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']}}}, 3, 3, 200, id='entries-include')
+    ]
+
+
+def statistic_test_parameters(entity_id: str, entry_prefix: str, total: int):
+    n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
+    program_name = f'{entry_prefix}results.method.simulation.program_name'
+
+    return [
+        pytest.param({'quantity': program_name}, n_code_names, 200, None, id='fixed-values'),
+        pytest.param({'quantity': program_name, 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
+        pytest.param({'quantity': program_name, 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
+        pytest.param({'quantity': entity_id, 'size': 1000}, total, 200, None, id='size-to-large'),
+        pytest.param({'quantity': entity_id, 'size': 5}, 5, 200, None, id='size'),
+        pytest.param({'quantity': entity_id, 'size': -1}, -1, 422, None, id='bad-size-1'),
+        pytest.param({'quantity': entity_id, 'size': 0}, -1, 422, None, id='bad-size-2'),
+        pytest.param({'quantity': entity_id}, 10 if total > 10 else total, 200, None, id='size-default'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'order': {'type': 'values'}}, 3, 200, 'test_user', id='order-type'),
+        pytest.param({'quantity': f'{entry_prefix}upload_id', 'order': {'direction': 'asc'}}, 3, 200, 'test_user', id='order-direction'),
+        pytest.param({'quantity': 'does not exist'}, -1, 422, None, id='bad-quantity')
+    ]
+
+
 def assert_response(response, status_code=None):
     ''' General assertions for status_code and error messages '''
     if status_code and response.status_code != status_code:
@@ -276,7 +311,7 @@ def assert_required(data, required, default_key: str):
                 if key == default_key or re.match(include_re, key):
                     found_include = True
 
-            assert found_include
+            assert found_include, key
     if 'exclude' in required:
         for exclude in required['exclude']:
             found_exclude = None

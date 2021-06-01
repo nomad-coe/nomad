@@ -222,7 +222,8 @@ def _api_to_es_statistic(
     Creates an ES aggregation based on the API's statistic model.
     '''
 
-    quantity = validate_quantity(statistic.quantity, loc=['statistic', 'quantity'])
+    quantity = validate_quantity(statistic.quantity, loc=['statistic', 'quantity'], doc_type=doc_type)
+
     if not quantity.aggregateable:
         raise QueryValidationError(
             'the statistic quantity cannot be aggregated',
@@ -238,8 +239,13 @@ def _api_to_es_statistic(
     if statistic.value_filter is not None:
         terms_kwargs['include'] = '.*%s.*' % statistic.value_filter
 
+    aggs = es_search.aggs
+    for nested_key in doc_type.nested_object_keys:
+        if statistic.quantity.startswith(nested_key):
+            aggs = es_search.aggs.bucket('nested_statistic:%s' % name, 'nested', path=nested_key)
+
     order_type = '_count' if statistic.order.type_ == AggregationOrderType.entries else '_key'
-    statistic_agg = es_search.aggs.bucket('statistic:%s' % name, A(
+    statistic_agg = aggs.bucket('statistic:%s' % name, A(
         'terms',
         field=quantity.search_field,
         size=statistic.size,
@@ -247,24 +253,33 @@ def _api_to_es_statistic(
         **terms_kwargs))
 
     for metric_name in statistic.metrics:
-        if metric_name not in doc_type.metrics:
+        metrics = doc_type.metrics
+        if nested_key == 'entries':
+            metrics = material_entry_type.metrics
+        if metric_name not in metrics:
             raise QueryValidationError(
                 'metric must be the qualified name of a suitable search quantity',
                 loc=['statistic', 'metrics'])
-        metric_aggregation, metric_quantity = doc_type.metrics[metric_name]
+        metric_aggregation, metric_quantity = metrics[metric_name]
         statistic_agg.metric('metric:%s' % metric_name, A(
             metric_aggregation,
             field=metric_quantity.qualified_field))
 
 
-def _es_to_api_statistics(es_response, name: str, statistic: Statistic) -> StatisticResponse:
+def _es_to_api_statistics(
+        es_response, name: str, statistic: Statistic, doc_type: DocumentType) -> StatisticResponse:
     '''
     Creates a StatisticResponse from elasticsearch response on a request executed with
     the given statistics.
     '''
-    quantity = entry_type.quantities[statistic.quantity]
+    quantity = validate_quantity(statistic.quantity, doc_type=doc_type)
 
-    es_statistic = es_response.aggs['statistic:' + name]
+    es_aggs = es_response.aggs
+    for nested_key in doc_type.nested_object_keys:
+        if statistic.quantity.startswith(nested_key):
+            es_aggs = es_response.aggs[f'nested_statistic:{name}']
+
+    es_statistic = es_aggs['statistic:' + name]
     statistic_data = {}
     for bucket in es_statistic.buckets:
         value_data = dict(entries=bucket.doc_count)
@@ -295,6 +310,7 @@ def _api_to_es_aggregation(
             'the aggregation quantity cannot be aggregated',
 
             loc=['aggregation', 'quantity'])
+
     terms = A('terms', field=quantity.search_field, order=agg.pagination.order.value)
 
     # We are using elastic searchs 'composite aggregations' here. We do not really
@@ -324,7 +340,12 @@ def _api_to_es_aggregation(
             order_value, quantity_value = page_after_value.split(':')
             composite['after'] = {quantity.search_field: quantity_value, order_quantity.search_field: order_value}
 
-    composite_agg = es_search.aggs.bucket('agg:%s' % name, 'composite', **composite)
+    aggs = es_search.aggs
+    for nested_key in doc_type.nested_object_keys:
+        if agg.quantity.startswith(nested_key):
+            aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
+
+    composite_agg = aggs.bucket('agg:%s' % name, 'composite', **composite)
 
     if agg.entries is not None and agg.entries.size > 0:
         kwargs: Dict[str, Any] = {}
@@ -337,7 +358,7 @@ def _api_to_es_aggregation(
         composite_agg.metric('entries', A('top_hits', size=agg.entries.size, **kwargs))
 
     # additional cardinality to get total
-    es_search.aggs.metric('agg:%s:total' % name, 'cardinality', field=quantity.search_field)
+    aggs.metric('agg:%s:total' % name, 'cardinality', field=quantity.search_field)
 
 
 def _es_to_api_aggregation(
@@ -347,12 +368,23 @@ def _es_to_api_aggregation(
     the given aggregation.
     '''
     order_by = agg.pagination.order_by
-    quantity = doc_type.quantities[agg.quantity]
-    es_agg = es_response.aggs['agg:' + name]
+    quantity = validate_quantity(agg.quantity, doc_type=doc_type)
+
+    nested = False
+    es_aggs = es_response.aggs
+    for nested_key in doc_type.nested_object_keys:
+        if agg.quantity.startswith(nested_key):
+            es_aggs = es_response.aggs[f'nested_agg:{name}']
+            nested = True
+
+    es_agg = es_aggs['agg:' + name]
 
     def get_entries(agg):
         if 'entries' in agg:
-            return [item['_source'] for item in agg.entries.hits.hits]
+            if nested:
+                return [{nested_key: item['_source']} for item in agg.entries.hits.hits]
+            else:
+                return [item['_source'] for item in agg.entries.hits.hits]
         else:
             return None
 
@@ -367,7 +399,7 @@ def _es_to_api_aggregation(
 
     aggregation_dict = agg.dict(by_alias=True)
     pagination = PaginationResponse(
-        total=es_response.aggs['agg:%s:total' % name]['value'],
+        total=es_aggs['agg:%s:total' % name]['value'],
         **aggregation_dict.pop('pagination'))
 
     if 'after_key' in es_agg:
@@ -492,7 +524,7 @@ def search(
     # statistics
     if len(statistics) > 0:
         more_response_data['statistics'] = cast(Dict[str, Any], {
-            name: _es_to_api_statistics(es_response, name, statistic)
+            name: _es_to_api_statistics(es_response, name, statistic, doc_type=doc_type)
             for name, statistic in statistics.items()})
 
     # aggregations
