@@ -72,7 +72,7 @@ class Author(metainfo.MSection):
         derived=lambda user: ('%s %s' % (user.first_name, user.last_name)).strip(),
         a_search=Search(mapping=Text(fields={'keyword': Keyword()})),
         a_elasticsearch=[
-            Elasticsearch(_es_field='keyword'),
+            Elasticsearch(material_entry_type, _es_field='keyword'),
             Elasticsearch(material_entry_type, mapping='text', field='text', _es_field='')
         ])
 
@@ -347,7 +347,7 @@ class EntryMetadata(metainfo.MSection):
         description='The persistent and globally unique identifier for the upload of the entry',
         a_search=Search(
             many_or='append', group='uploads_grouped', metric_name='uploads', metric='cardinality'),
-        a_elasticsearch=Elasticsearch(metrics=dict(uploads='cardinality')))
+        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(uploads='cardinality')))
 
     calc_id = metainfo.Quantity(
         type=str,

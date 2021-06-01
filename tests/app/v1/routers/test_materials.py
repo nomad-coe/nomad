@@ -19,15 +19,16 @@
 import pytest
 from urllib.parse import urlencode
 
-from nomad.datamodel import results
-from nomad.metainfo.elasticsearch_extension import material_entry_type
+from nomad.metainfo.elasticsearch_extension import material_entry_type, material_type
 
 from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import (
-    assert_pagination, assert_metadata_response, assert_required,
+    assert_pagination, assert_metadata_response, assert_required, assert_aggregations,
+    assert_statistic,
     perform_metadata_test, perform_owner_test, owner_test_parameters,
-    post_query_test_parameters, get_query_test_parameters, pagination_test_parameters)
+    post_query_test_parameters, get_query_test_parameters, pagination_test_parameters,
+    aggregation_test_parameters, statistic_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -46,38 +47,7 @@ def perform_materials_metadata_test(*args, **kwargs):
     return perform_metadata_test(*args, **kwargs)
 
 
-n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
 program_name = 'entries.results.method.simulation.program_name'
-
-
-# @pytest.mark.parametrize('statistic, size, status_code, user', [
-#     pytest.param({'quantity': program_name}, n_code_names, 200, None, id='fixed-values'),
-#     pytest.param({'quantity': program_name, 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
-#     pytest.param({'quantity': program_name, 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
-#     pytest.param({'quantity': 'entry_id', 'size': 1000}, 23, 200, None, id='size-to-large'),
-#     pytest.param({'quantity': 'entry_id', 'size': 10}, 10, 200, None, id='size'),
-#     pytest.param({'quantity': 'entry_id', 'size': -1}, -1, 422, None, id='bad-size-1'),
-#     pytest.param({'quantity': 'entry_id', 'size': 0}, -1, 422, None, id='bad-size-2'),
-#     pytest.param({'quantity': 'entry_id'}, 10, 200, None, id='size-default'),
-#     pytest.param({'quantity': 'entry_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
-#     pytest.param({'quantity': 'entry_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter'),
-#     pytest.param({'quantity': 'upload_id', 'order': {'type': 'values'}}, 3, 200, 'test_user', id='order-type'),
-#     pytest.param({'quantity': 'upload_id', 'order': {'direction': 'asc'}}, 3, 200, 'test_user', id='order-direction'),
-#     pytest.param({'quantity': 'does not exist'}, -1, 422, None, id='bad-quantity')])
-# def test_entries_statistics(client, data, test_user_auth, statistic, size, status_code, user):
-#     statistics = {'test_statistic': statistic}
-#     headers = {}
-#     if user == 'test_user':
-#         headers = test_user_auth
-
-#     response_json = perform_materials_metadata_test(
-#         client, headers=headers, owner='visible', statistics=statistics,
-#         status_code=status_code, http_method='post')
-
-#     if response_json is None:
-#         return
-
-#     assert_statistic(response_json, 'test_statistic', statistic, size=size)
 
 
 # # TODO is this really the desired behavior
@@ -100,31 +70,45 @@ program_name = 'entries.results.method.simulation.program_name'
 #         assert_statistic(response_json, name, statistic)
 
 
-# @pytest.mark.parametrize('aggregation, total, size, status_code', [
-#     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.user_id'}}, 3, 3, 200, id='order-str'),
-#     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
-#     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
-#     pytest.param({'quantity': 'results.material.symmetry.structure_name'}, 0, 0, 200, id='no-results'),
-#     pytest.param({'quantity': 'upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
-#     pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.name', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
-#     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
-#     pytest.param({'quantity': 'upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
-#     pytest.param({'quantity': 'upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
-#     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'include': ['entry_id', 'uploader.*']}}}, 3, 3, 200, id='entries-include'),
-#     pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile']}}}, 3, 3, 200, id='entries-exclude')
-# ])
-# def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
-#     headers = test_user_auth
-#     aggregations = {'test_agg_name': aggregation}
-#     response_json = perform_materials_metadata_test(
-#         client, headers=headers, owner='visible', aggregations=aggregations,
-#         pagination=dict(page_size=0),
-#         status_code=status_code, http_method='post')
+@pytest.mark.parametrize(
+    'aggregation, total, size, status_code',
+    aggregation_test_parameters(material_prefix='', entry_prefix='entries.'))
+def test_materials_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
+    headers = test_user_auth
+    aggregations = {'test_agg_name': aggregation}
+    response_json = perform_materials_metadata_test(
+        client, headers=headers, owner='visible', aggregations=aggregations,
+        pagination=dict(page_size=0),
+        status_code=status_code, http_method='post')
 
-#     if response_json is None:
-#         return
+    if response_json is None:
+        return
 
-#     assert_aggregations(response_json, 'test_agg_name', aggregation, total=total, size=size)
+    assert_aggregations(
+        response_json, 'test_agg_name', aggregation, total=total, size=size, default_key='material_id')
+
+
+@pytest.mark.parametrize(
+    'statistic, size, status_code, user',
+    statistic_test_parameters(entity_id='material_id', entry_prefix='entries.', total=6))
+def test_materials_statistics(client, data, test_user_auth, statistic, size, status_code, user):
+    statistics = {'test_statistic': statistic}
+    headers = {}
+    if user == 'test_user':
+        headers = test_user_auth
+
+    response_json = perform_materials_metadata_test(
+        client, headers=headers, owner='visible', statistics=statistics,
+        pagination=dict(page_size=0), status_code=status_code, http_method='post')
+
+    if response_json is None:
+        return
+
+    if statistic['quantity'].startswith('entries.'):
+        doc_type = material_entry_type
+    else:
+        doc_type = material_type
+    assert_statistic(response_json, 'test_statistic', statistic, size=size, doc_type=doc_type)
 
 
 @pytest.mark.parametrize('required, status_code', [
@@ -138,7 +122,7 @@ program_name = 'entries.results.method.simulation.program_name'
     pytest.param({'include': [program_name]}, 200, id='include-id')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_required(client, data, required, status_code, http_method):
+def test_materials_required(client, data, required, status_code, http_method):
     response_json = perform_materials_metadata_test(
         client, required=required, pagination={'page_size': 1}, status_code=status_code, http_method=http_method)
 
@@ -155,7 +139,7 @@ def test_entries_required(client, data, required, status_code, http_method):
     pytest.param('id_01', {'exclude': ['n_elements']}, 200, id='exclude'),
     pytest.param('id_01', {'exclude': ['material_id', 'n_elements']}, 200, id='exclude-id')
 ])
-def test_entry_metadata(client, data, material_id, required, status_code):
+def test_material_metadata(client, data, material_id, required, status_code):
     response = client.get('materials/%s?%s' % (material_id, urlencode(required, doseq=True)))
     response_json = assert_metadata_response(response, status_code=status_code)
 

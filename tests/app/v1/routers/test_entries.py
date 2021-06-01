@@ -32,7 +32,8 @@ from .common import (
     assert_response, assert_base_metadata_response, assert_metadata_response,
     assert_statistic, assert_required, assert_aggregations, assert_pagination,
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
-    perform_owner_test, owner_test_parameters, pagination_test_parameters)
+    perform_owner_test, owner_test_parameters, pagination_test_parameters,
+    aggregation_test_parameters, statistic_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -311,20 +312,11 @@ n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
 program_name = 'results.method.simulation.program_name'
 
 
-@pytest.mark.parametrize('statistic, size, status_code, user', [
-    pytest.param({'quantity': program_name}, n_code_names, 200, None, id='fixed-values'),
-    pytest.param({'quantity': program_name, 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
-    pytest.param({'quantity': program_name, 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
-    pytest.param({'quantity': 'entry_id', 'size': 1000}, 23, 200, None, id='size-to-large'),
-    pytest.param({'quantity': 'entry_id', 'size': 10}, 10, 200, None, id='size'),
-    pytest.param({'quantity': 'entry_id', 'size': -1}, -1, 422, None, id='bad-size-1'),
-    pytest.param({'quantity': 'entry_id', 'size': 0}, -1, 422, None, id='bad-size-2'),
-    pytest.param({'quantity': 'entry_id'}, 10, 200, None, id='size-default'),
-    pytest.param({'quantity': 'entry_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
-    pytest.param({'quantity': 'entry_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter'),
-    pytest.param({'quantity': 'upload_id', 'order': {'type': 'values'}}, 3, 200, 'test_user', id='order-type'),
-    pytest.param({'quantity': 'upload_id', 'order': {'direction': 'asc'}}, 3, 200, 'test_user', id='order-direction'),
-    pytest.param({'quantity': 'does not exist'}, -1, 422, None, id='bad-quantity')])
+@pytest.mark.parametrize(
+    'statistic, size, status_code, user',
+    statistic_test_parameters(entity_id='entry_id', entry_prefix='', total=23) + [
+        pytest.param({'quantity': 'entry_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
+        pytest.param({'quantity': 'entry_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter')])
 def test_entries_statistics(client, data, test_user_auth, statistic, size, status_code, user):
     statistics = {'test_statistic': statistic}
     headers = {}
@@ -361,19 +353,11 @@ def test_entries_all_statistics(client, data):
         assert_statistic(response_json, name, statistic, doc_type=entry_type)
 
 
-@pytest.mark.parametrize('aggregation, total, size, status_code', [
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.user_id'}}, 3, 3, 200, id='order-str'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'upload_time'}}, 3, 3, 200, id='order-date'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
-    pytest.param({'quantity': 'results.material.symmetry.structure_name'}, 0, 0, 200, id='no-results'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
-    pytest.param({'quantity': 'upload_id', 'pagination': {'order_by': 'uploader.name', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'include': ['entry_id', 'uploader.*']}}}, 3, 3, 200, id='entries-include'),
-    pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile']}}}, 3, 3, 200, id='entries-exclude')
-])
+@pytest.mark.parametrize(
+    'aggregation, total, size, status_code',
+    aggregation_test_parameters(material_prefix='results.material.', entry_prefix='') + [
+        pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile']}}}, 3, 3, 200, id='entries-exclude')
+    ])
 def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
     headers = test_user_auth
     aggregations = {'test_agg_name': aggregation}
