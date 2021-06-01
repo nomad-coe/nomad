@@ -302,7 +302,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_status_code=422
         ), id='pag-invalid-order_by')])
 def test_get_uploads(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data, kwargs):
+        client, mongo_module, test_auth_dict, example_data, kwargs):
     ''' Makes a get request to uploads in various different ways. '''
     # Extract kwargs
     user = kwargs.get('user', 'test_user')
@@ -310,10 +310,7 @@ def test_get_uploads(
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
     # Api call
     response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
     # Verify result
@@ -338,13 +335,10 @@ def test_get_uploads(
     pytest.param('other_test_user', 'id_unpublished', 401, id='no-access'),
     pytest.param('admin_user', 'id_unpublished', 200, id='admin-access')])
 def test_get_upload(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         user, upload_id, expected_status_code):
     ''' Tests the endpoint for getting an upload by upload_id. '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -450,7 +444,7 @@ def test_get_upload(
             expected_status_code=422),
         id='pag-overspecified')])
 def test_get_upload_entries(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         kwargs):
     '''
     Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
@@ -463,10 +457,7 @@ def test_get_upload_entries(
     expected_data_len = kwargs.get('expected_data_len', 2)
     expected_response = kwargs.get('expected_response', {})
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
 
     response = perform_get(client, f'uploads/{upload_id}/entries', user_auth, **query_args)
     assert_response(response, expected_status_code)
@@ -494,15 +485,12 @@ def test_get_upload_entries(
     pytest.param('silly_value', 'id_embargo', 'test_user', 404, id='invalid-upload_id'),
     pytest.param('id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id')])
 def test_get_upload_entry(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         upload_id, entry_id, user, expected_status_code):
     '''
     Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.
     '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -613,7 +601,7 @@ def test_get_upload_entry(
         offset=3, length=-3),
         400, None, None, id='invalid-length')])
 def test_get_upload_raw_path(
-        client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
+        client, example_data, test_auth_dict,
         args, expected_status_code, expected_mime_type, expected_content):
     user = args['user']
     upload_id = args['upload_id']
@@ -623,11 +611,7 @@ def test_get_upload_raw_path(
     re_pattern = args.get('re_pattern', None)
     offset = args.get('offset', None)
     length = args.get('length', None)
-
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
     query_args = dict(
         compress=compress,
         re_pattern=re_pattern,
@@ -706,24 +690,21 @@ def test_get_upload_raw_path(
     pytest.param('stream', 'test_name', 'test_user', False, True, True, False, True, 200, id='publish_directly-empty'),
     pytest.param('stream', 'test_name', 'test_user', False, False, None, True, True, 400, id='upload-limit-exceeded')])
 def test_post_upload(
-        client, mongo, proc_infra, monkeypatch, test_user, admin_user, test_user_auth, admin_user_auth,
+        client, mongo, proc_infra, monkeypatch, test_users_dict, test_auth_dict,
         empty_upload, non_empty_example_upload,
         mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code):
     '''
     Posts an upload, with different arguments.
     '''
-    if user == 'test_user':
-        user_auth = test_user_auth
-        token = generate_upload_token(test_user)
-    elif user == 'admin_user':
-        user_auth = admin_user_auth
-        token = generate_upload_token(admin_user)
+    if user is None:
+        user_auth = None
+        token = None
     elif user == 'invalid':
         user_auth = {'Authorization': 'Bearer JUST-MADE-IT-UP'}
         token = 'invalid.token'
     else:
-        user_auth = None
-        token = None
+        user_auth = test_auth_dict[user]
+        token = generate_upload_token(test_users_dict[user])
     # Use either token or bearer token for the post operation
     user_auth_post = user_auth
     if use_upload_token:
@@ -762,7 +743,7 @@ def test_post_upload(
                 if empty:
                     assert not upload_proc.published
                 else:
-                    assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
+                    assert_gets_published(client, upload_id, test_auth_dict['test_user'], with_embargo=False)
         else:
             assert 'Thanks for uploading' in response.text
 
@@ -776,15 +757,11 @@ def test_post_upload(
     pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin')])
 def test_post_upload_oasis(
         client, mongo, proc_infra, oasis_example_upload, example_data_writeable,
-        test_user, other_test_user, test_user_auth, other_test_user_auth,
+        test_users_dict, test_auth_dict,
         user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code):
 
-    auth_dict = {
-        'test_user': (test_user.user_id, test_user_auth),
-        'other_test_user': (other_test_user.user_id, other_test_user_auth),
-        None: (None, None)}
-    __, user_auth = auth_dict[user]
-    oasis_uploader_id, __ = auth_dict[oasis_uploader]
+    user_auth = test_auth_dict[user]
+    oasis_uploader_id = test_users_dict[oasis_uploader].user_id if oasis_uploader else None
 
     response = perform_post_upload(
         client, 'stream', oasis_example_upload, user_auth,
@@ -849,16 +826,13 @@ def test_post_upload_oasis(
         id='not-my-upload')])
 def test_post_upload_action_publish(
         client, proc_infra, example_data_writeable,
-        test_user_auth, other_test_user_auth, admin_user_auth, kwargs):
+        test_auth_dict, kwargs):
     ''' Tests the publish action with various arguments. '''
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'test_user')
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
 
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
 
@@ -879,9 +853,8 @@ def test_post_upload_action_publish(
     pytest.param('id_processing_w', False, 'test_user', 400, id='already-processing'),
     pytest.param('silly_value', False, 'test_user', 404, id='invalid-upload_id')])
 def test_post_upload_action_process(
-        client, mongo, purged_app, proc_infra, monkeypatch, example_data_writeable,
-        non_empty_processed, internal_example_user_metadata,
-        test_user_auth, other_test_user_auth, admin_user_auth,
+        client, mongo, proc_infra, monkeypatch, example_data_writeable,
+        non_empty_processed, internal_example_user_metadata, test_auth_dict,
         upload_id, publish, user, expected_status_code):
 
     if publish:
@@ -894,15 +867,12 @@ def test_post_upload_action_process(
 
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth = test_auth_dict[user]
 
     response = perform_post_upload_action(client, user_auth, upload_id, 'process')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
+        assert_processing(client, upload_id, test_auth_dict['test_user'], check_files=False, published=True)
 
 
 @pytest.mark.parametrize('upload_id, user, expected_status_code', [
@@ -913,20 +883,15 @@ def test_post_upload_action_process(
     pytest.param('id_published_w', 'admin_user', 200, id='delete-others-published-admin'),
     pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
 def test_delete_upload(
-        client, proc_infra, example_data_writeable,
-        test_user_auth, other_test_user_auth, admin_user_auth,
+        client, proc_infra, example_data_writeable, test_auth_dict,
         upload_id, user, expected_status_code):
     ''' Uploads a file, and then tries to delete it, with different parameters and users. '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth
-    }[user]
+    user_auth = test_auth_dict[user]
 
     response = client.delete(f'uploads/{upload_id}', headers=user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_upload_does_not_exist(client, upload_id, test_user_auth)
+        assert_upload_does_not_exist(client, upload_id, test_auth_dict['test_user'])
 
 
 @pytest.mark.parametrize('authorized, expected_status_code', [
