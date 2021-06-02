@@ -80,19 +80,12 @@ def metainfo_undecorated():
     import nomad.datamodel.ems
     import nomad.datamodel.optimade
     import nomad.datamodel.encyclopedia
-    from nomad.parsing import LegacyParser
     nomad.metainfo.metainfo.m_package.__init_metainfo__()
     nomad.datamodel.datamodel.m_package.__init_metainfo__()
     nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
-
-    # Ensure all parser metainfo is loaded
-    from nomad.parsing.parsers import parsers
-    for parser in parsers:
-        if isinstance(parser, LegacyParser):
-            _ = parser.metainfo_env
 
     export = Environment()
     for package in Package.registry.values():

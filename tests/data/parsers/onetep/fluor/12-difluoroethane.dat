@@ -1,0 +1,69 @@
+ !============================================================!
+ ! ~~~~~~~ Quality control test for the ONETEP program ~~~~~~~!
+ !------------------------------------------------------------!
+ ! Molecule: 1,2-difluoroethane                               !
+ ! no. of C   :            2                                  !
+ ! no. of H   :            4                                  ! 
+ ! no. of F   :            2                                  !
+ ! total atoms:            8                                  !
+ !------------------------------------------------------------!
+ ! Aim: test for Hamiltonian diagonalisation and kernel DIIS. !
+ !------------------------------------------------------------!
+ ! Created by Alvaro Ruiz Serrano on 19/11/2010.              !
+ !============================================================!
+
+ print_qc             : TRUE
+ output_detail        : NORMAL
+ timings_level        : 0
+
+ task                 : SINGLEPOINT
+
+ cutoff_energy        : 800 eV
+ kernel_cutoff        : 1000
+ k_zero               : 3.5
+
+ xc_functional        : PBE
+ dispersion           : 1
+
+ kernel_diis_scheme   : dkn_pulay
+ kernel_diis_threshold: 2.0e-6
+
+ maxit_pen            : 0
+ ngwf_threshold_orig  : 2.0e-4
+
+ write_denskern       : FALSE
+ write_tightbox_ngwfs : FALSE
+ write_xyz            : FALSE
+
+
+ %block lattice_cart
+      24.5       0.0       0.0
+       0.0      24.5       0.0
+       0.0       0.0      24.5
+ %endblock lattice_cart
+
+
+ %block positions_abs
+ C      11.03265426     9.90071429     8.78389204
+ C       8.44374314     8.72153141     8.78389204
+ F       8.17540344     7.00000000    10.78510145
+ F      12.50852257     8.97286366    10.78510145
+ H      10.90604328    11.96995347     8.99365054
+ H      12.00963751     9.43773383     7.00000000
+ H       8.09792508     7.68974639     7.00755886
+ H       7.00000000    10.20873802     9.02199628
+ %endblock positions_abs
+
+
+ %block species
+ C   C   6 4 7.0
+ F   F   9 9 7.0
+ H   H   1 1 7.0
+ %endblock species
+
+
+ %block species_pot
+ H     "../../pseudo/hydrogen.recpot"
+ C     "../../pseudo/carbon.recpot"
+ F     "../../pseudo/fluorine.recpot"
+ %endblock species_pot
