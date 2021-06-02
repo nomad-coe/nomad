@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
@@ -28,7 +28,7 @@ import clsx from 'clsx'
 import FilterLabel from './FilterLabel'
 import { Quantity, Unit } from '../../units'
 import searchQuantities from '../../searchQuantities'
-import { useSetFilter, useStatistics } from './FilterContext'
+import { useSetFilter } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {

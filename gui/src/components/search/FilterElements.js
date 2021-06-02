@@ -60,6 +60,7 @@ const FilterElements = React.memo(({
   useEffect(() => {
     subscribe({quantity: 'results.material.elements'})
     return () => unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleExclusiveChanged = () => {

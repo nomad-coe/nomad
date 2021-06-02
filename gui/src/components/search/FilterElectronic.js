@@ -46,11 +46,11 @@ const FilterElectronic = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        {/* <FilterSlider
+        <FilterSlider
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
           label="band gap"
           units={units}
-        /> */}
+        />
       </Grid>
     </Grid>
   </div>
