@@ -45,8 +45,10 @@ example_file_contents = [
     'examples_template/2.aux',
     'examples_template/3.aux',
     'examples_template/4.aux']
+example_file_aux = 'tests/data/proc/examples_template/1.aux'
 example_file_mainfile = 'examples_template/template.json'
 example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
+example_file_corrupt_zip = 'tests/data/proc/examples_corrupt_zip.zip'
 empty_file = 'tests/data/proc/empty.zip'
 example_archive_contents = {
     "section_run": [],

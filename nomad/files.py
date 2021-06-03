@@ -76,6 +76,9 @@ if sys.version_info >= (3, 7):
 else:
     import zipfile37 as zipfile
 
+zip_file_extensions = ('.zip',)
+tar_file_extensions = ('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
+
 user_metadata_filename = 'user_metadata.pickle'
 
 
@@ -327,9 +330,9 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @staticmethod
     def get(upload_id: str, *args, **kwargs) -> 'UploadFiles':
-        if DirectoryObject(config.fs.staging, upload_id, prefix=True).exists():
+        if StagingUploadFiles.exists_for(upload_id):
             return StagingUploadFiles(upload_id, *args, **kwargs)
-        elif DirectoryObject(config.fs.public, upload_id, prefix=True).exists():
+        elif PublicUploadFiles.exists_for(upload_id):
             return PublicUploadFiles(upload_id, *args, **kwargs)
         else:
             return None
@@ -555,14 +558,15 @@ class StagingUploadFiles(UploadFiles):
             assert not self.is_frozen
             assert os.path.exists(path), f'{path} does not exist'
             assert is_safe_relative_path(target_dir)
+            ext = os.path.splitext(path)[1]
             self._size += os.stat(path).st_size
 
             is_dir = os.path.isdir(path)
             if is_dir:
                 is_zipfile = is_tarfile = False
             else:
-                is_zipfile = zipfile.is_zipfile(path)
-                is_tarfile = tarfile.is_tarfile(path)
+                is_zipfile = zipfile.is_zipfile(path) or ext in zip_file_extensions
+                is_tarfile = tarfile.is_tarfile(path) or ext in tar_file_extensions
                 if is_zipfile or is_tarfile:
                     tmp_dir = create_tmp_dir(self.upload_id + '_unzip')
                     if is_zipfile:

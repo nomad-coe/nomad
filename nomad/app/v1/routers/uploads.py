@@ -653,6 +653,7 @@ async def put_upload_raw_path(
 
     _check_upload_not_processing(upload)  # Uploading the file could take long time
 
+    upload.reset()
     upload.schedule_operation_add_files(upload_path, path, temporary=(method != 0))
     upload.process_upload()
 
