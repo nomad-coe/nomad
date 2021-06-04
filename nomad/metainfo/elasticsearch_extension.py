@@ -520,6 +520,10 @@ class Elasticsearch(DefinitionAnnotation):
         nested:
             If true the section is mapped to elasticsearch nested object and all queries
             become nested queries. Only applicable to sub sections.
+        suggest:
+            If true, a sub-field called 'suggest' is automatically created for
+            this metainfo. This stores autocompletion suggestions for this
+            value.
 
     Attributes:
         name:
@@ -530,7 +534,8 @@ class Elasticsearch(DefinitionAnnotation):
             self,
             doc_type: DocumentType = entry_type,
             mapping: Union[str, Dict[str, Any]] = None,
-            field: str = None, es_field: str = None,
+            field: str = None,
+            es_field: str = None,
             value: Callable[[MSection], Any] = None,
             index: bool = True,
             values: List[str] = None, default_aggregation_size: int = None,
@@ -538,12 +543,18 @@ class Elasticsearch(DefinitionAnnotation):
             many_all: bool = False,
             auto_include_subsections: bool = False,
             nested: bool = False,
+            suggest: bool = False,
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
 
         self._custom_mapping = mapping
+        if suggest:
+            if field is None:
+                field = "suggest"
+            else:
+                raise ValueError("Cannot override suggestion field name.")
         self.field = field
         self._es_field = field if _es_field is None else _es_field
         self.doc_type = doc_type
@@ -558,6 +569,7 @@ class Elasticsearch(DefinitionAnnotation):
 
         self.auto_include_subsections = auto_include_subsections
         self.nested = nested
+        self.suggest = suggest
 
         if self.values is not None:
             self.default_aggregation_size = len(self.values)
@@ -565,6 +577,11 @@ class Elasticsearch(DefinitionAnnotation):
     @property
     def mapping(self) -> Dict[str, Any]:
         if self._mapping is not None:
+            return self._mapping
+
+        if self.suggest:
+            from elasticsearch_dsl import Completion
+            self._mapping = Completion().to_dict()
             return self._mapping
 
         if self._custom_mapping is not None:

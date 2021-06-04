@@ -24,7 +24,7 @@ import traceback
 from nomad import config, utils
 
 from .common import root_path
-from .routers import users, entries, materials, auth, datasets, uploads
+from .routers import users, entries, materials, auth, datasets, uploads, suggestions
 
 
 logger = utils.get_logger(__name__)
@@ -163,3 +163,4 @@ app.include_router(entries.router, prefix='/entries')
 app.include_router(datasets.router, prefix='/datasets')
 app.include_router(uploads.router, prefix='/uploads')
 app.include_router(users.router, prefix='/users')
+app.include_router(suggestions.router, prefix='/suggestions')

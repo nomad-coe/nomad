@@ -186,6 +186,33 @@ class Api {
   }
 
   /**
+   * Returns a list of suggestions for the given metainfo quantity.
+   *
+   * @param {string} quantity
+   * @returns List of suggested values as dictionaries containing both the
+   * suggestion and its weight. The items are ordered by weight.
+   */
+  async suggestions(quantities, input) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const suggestions = await this.axios.post(
+        `/suggestions`,
+        {
+          input: input,
+          quantities: quantities
+        },
+        auth
+      )
+      return suggestions.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
+
+  /**
    * Return the raw file metadata for a given entry.
    * @param {string} entryId
    * @returns Object containing the raw file metadata.

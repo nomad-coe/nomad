@@ -17,7 +17,7 @@
 #
 
 import numpy as np
-from elasticsearch_dsl import Text
+from elasticsearch_dsl import Text, Completion
 
 from ase.data import chemical_symbols
 
@@ -579,7 +579,10 @@ class Material(MSection):
             The chemical formula for a structure in Hill form with element symbols followed by
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggest=True)
+        ],
     )
     chemical_formula_anonymous = Quantity(
         type=str,

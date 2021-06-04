@@ -10142,7 +10142,7 @@ node-releases@^1.1.52, node-releases@^1.1.71:
     material-ui-chip-input "^1.0.0-beta.14"
     material-ui-flat-pagination "^4.0.0"
     mathjs "^7.1.0"
-    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.4-420063c7-74c9-49f9-81bc-0d7294b1da0d-1622030335283/node_modules/nomad-fair-gui"
+    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-0.10.4-0a45821c-9928-41a9-92ed-c399253932bc-1622787637186/node_modules/nomad-fair-gui"
     object-hash "^2.0.3"
     pace "^0.0.4"
     pace-js "^1.0.2"
@@ -10169,7 +10169,7 @@ node-releases@^1.1.52, node-releases@^1.1.71:
     react-swipeable-views "^0.13.0"
     react-virtualized-auto-sizer "^1.0.2"
     react-window "^1.8.5"
-    recoil "^0.0.10"
+    recoil "0.3.1"
     recompose "^0.28.2"
     remark "^12.0.1"
     remark-math "^2.0.1"
@@ -12544,11 +12544,6 @@ recoil@0.3.1:
   integrity sha512-KNA3DRqgxX4rRC8E7fc6uIw7BACmMPuraIYy+ejhE8tsw7w32CetMm8w7AMZa34wzanKKkev3vl3H7Z4s0QSiA==
   dependencies:
     hamt_plus "1.0.2"
-
-recoil@^0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/recoil/-/recoil-0.0.10.tgz#679ab22306f559f8a63c46fd5ff5241539f9248f"
-  integrity sha512-+9gRqehw3yKETmoZbhSnWu4GO10HDb5xYf1CjLF1oXGK2uT6GX5Lu9mfTXwjxV/jXxEKx8MIRUUbgPxvbJ8SEw==
 
 recompose@^0.28.2:
   version "0.28.2"

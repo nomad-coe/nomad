@@ -16,15 +16,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { TextField } from '@material-ui/core'
+import { TextField, CircularProgress } from '@material-ui/core'
+import Autocomplete, { createFilterOptions } from '@material-ui/lab/Autocomplete'
+import parse from 'autosuggest-highlight/parse'
+import match from 'autosuggest-highlight/match'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { Unit } from '../../units'
+import { useApi } from '../apiV1'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-import { useSetFilter } from './FilterContext'
+import { useFilterState } from './FilterContext'
+
+const filterOptions = createFilterOptions({
+  stringify: option => option,
+  trim: true
+})
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -54,7 +63,11 @@ const FilterText = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const inputRef = useRef()
+  // const inputRef = useRef()
+  const hasSuggestions = true
+  const [suggestions, setSuggestions] = useState([])
+  const [loading, setLoading] = useState(false)
+  const api = useApi()
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -68,28 +81,85 @@ const FilterText = React.memo(({
   const title = unitLabel ? `${name} (${unitLabel})` : name
 
   // Attach the filter hook
-  const setFilter = useSetFilter(quantity, set)
+  const [filter, setFilter] = useFilterState(quantity, set)
 
-  // Handle input submission
-  const handleKeyUp = useCallback(event => {
-    if (event.key === 'Enter') {
-      const value = inputRef.current.value.trim()
-      if (value) {
-        setFilter(inputRef.current.value)
-        inputRef.current.value = ''
-      }
-    }
+  // Triggered when a value is picked by the user either by clicking a value or
+  // pressing enter.
+  const handleChange = useCallback((event, value, reason) => {
+    value = value?.trim()
+    setFilter(value)
   }, [setFilter])
+
+  // When focus is lost on the element, the current input value is set as the
+  // filter value. Notice that the 'autoSelect' property is not working to
+  // achieve this: it will select the most recently highlighted value even if it
+  // was not clicked.
+  const handleClose = useCallback((event, reason) => {
+    const value = event.target.value?.trim()
+    setFilter(value)
+  }, [setFilter])
+
+  // Handle typing events. After a debounce time has expired, a list of
+  // suggestion will be retrieved if they are available for this metainfo and
+  // the input is deemed meaningful.
+  const handleInputChange = useCallback((event, value, reason) => {
+    if (!hasSuggestions) {
+      return
+    }
+    value = value?.trim()
+    if (!value || value.length < 2 || reason !== 'input') {
+      setSuggestions([])
+      return
+    }
+    setLoading(true)
+    api.suggestions([quantity], value).then(data => {
+      setSuggestions(data)
+      setLoading(false)
+    })
+  }, [quantity, api, hasSuggestions])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <FilterLabel label={title} description={desc}/>
-    <TextField
-      variant="outlined"
+    <Autocomplete
+      freeSolo
       fullWidth
-      inputRef={inputRef}
-      onKeyUp={handleKeyUp}
-      className={styles.textField}
-      InputProps={{classes: {input: styles.input}}}
+      value={filter === undefined ? null : filter}
+      filterOptions={filterOptions}
+      options={suggestions.map(option => option.value)}
+      onInputChange={handleInputChange}
+      onClose={handleClose}
+      onChange={handleChange}
+      getOptionSelected={(option, value) => false}
+      renderOption={(option, { inputValue }) => {
+        const matches = match(option, inputValue)
+        const parts = parse(option, matches)
+        return (
+          <div>
+            {parts.map((part, index) => (
+              <span key={index} style={{ fontWeight: part.highlight ? 700 : 400 }}>
+                {part.text}
+              </span>
+            ))}
+          </div>
+        )
+      }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          className={styles.textField}
+          variant="outlined"
+          InputProps={{
+            ...params.InputProps,
+            classes: {input: styles.input},
+            endAdornment: (
+              <React.Fragment>
+                {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                {params.InputProps.endAdornment}
+              </React.Fragment>
+            )
+          }}
+        />
+      )}
     />
   </div>
 })

@@ -87,7 +87,7 @@ const FilterText = React.memo(({
   // const {stats, subscribe, unsubscribe} = useStatistics(quantity)
   // console.log(stats)
 
-  // // Subscribe to stats on mount, unsubscribe on unmounting
+  // Subscribe to stats on mount, unsubscribe on unmounting
   // useEffect(() => {
   //   subscribe({quantity: quantity})
   //   return () => unsubscribe()
