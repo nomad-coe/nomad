@@ -30,7 +30,7 @@ from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, SUCCESS, FAILURE
-from nomad.files import UploadFiles, PublicUploadFiles
+from nomad.files import StagingUploadFiles, UploadFiles, PublicUploadFiles
 from nomad.app.v1.routers.auth import generate_upload_token
 from nomad.datamodel import EntryMetadata
 
@@ -163,16 +163,19 @@ def assert_file_upload_and_processing(
                     assert upload_files.raw_path_is_file(target_path_full)
                     assert upload_files.raw_file_size(target_path_full) == os.stat(source_path).st_size
 
-        # Check entries
-        if expected_mainfiles is not None:
-            entries = [e.mainfile for e in Calc.objects(upload_id=upload_id)]
-            assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
-            for entry in Calc.objects(upload_id=upload_id):
-                if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
-                    assert entry.tasks_status == SUCCESS
-                else:
-                    assert entry.tasks_status == FAILURE
+        assert_expected_mainfiles(upload_id, expected_mainfiles)
     return response_data
+
+
+def assert_expected_mainfiles(upload_id, expected_mainfiles):
+    if expected_mainfiles is not None:
+        entries = [e.mainfile for e in Calc.objects(upload_id=upload_id)]
+        assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
+        for entry in Calc.objects(upload_id=upload_id):
+            if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
+                assert entry.tasks_status == SUCCESS
+            else:
+                assert entry.tasks_status == FAILURE
 
 
 def assert_upload(response_json, **kwargs):
@@ -840,7 +843,7 @@ def test_get_upload_raw_path(
         'stream', 'test_user', 'examples_template', example_file_corrupt_zip, '', {'file_name': 'tmp.zip'},
         True, False, 200, ['examples_template/template.json'], id='bad-zip')])
 def test_put_upload_raw_path(
-        client, proc_infra, purged_app, non_empty_processed, example_data_writeable, test_auth_dict, test_users_dict,
+        client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict, test_users_dict,
         mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_mainfiles):
     action = 'PUT'
@@ -852,6 +855,78 @@ def test_put_upload_raw_path(
         client, action, url, mode, user, test_users_dict, test_auth_dict, upload_id,
         source_path, target_path, query_args, accept_json, use_upload_token,
         expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
+
+
+@pytest.mark.parametrize('user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles', [
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/1.aux', False,
+        200, ['examples_template/template.json'], id='delete-aux-file'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/template.json', False,
+        200, [], id='delete-main-file'),
+    pytest.param(
+        'test_user', 'examples_template', '', False,
+        200, [], id='delete-root'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template', False,
+        200, [], id='delete-subfolder'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/1.aux', True,
+        200, ['examples_template/template.json'], id='delete-token-access'),
+    pytest.param(
+        'admin_user', 'examples_template', 'examples_template/1.aux', False,
+        200, ['examples_template/template.json'], id='delete-admin-access'),
+    pytest.param(
+        'other_test_user', 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='fail-no-access'),
+    pytest.param(
+        None, 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='fail-no-credentials'),
+    pytest.param(
+        'invalid', 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='fail-invalid-credentials'),
+    pytest.param(
+        'invalid', 'examples_template', 'examples_template/1.aux', True,
+        401, None, id='fail-invalid-credentials-token'),
+    pytest.param(
+        'test_user', 'id_published_w', 'examples_template/1.aux', False,
+        401, None, id='fail-published'),
+    pytest.param(
+        'test_user', 'id_processing_w', 'examples_template/1.aux', False,
+        400, None, id='fail-processing')])
+def test_delete_upload_raw_path(
+        client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict, test_users_dict,
+        user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles):
+    if user is None:
+        user_auth = None
+        token = None
+    elif user == 'invalid':
+        user_auth = {'Authorization': 'Bearer JUST-MADE-IT-UP'}
+        token = 'invalid.token'
+    else:
+        user_auth = test_auth_dict[user]
+        token = generate_upload_token(test_users_dict[user])
+    # Use either token or bearer token for the post operation (never both)
+    user_auth_action = user_auth
+    if use_upload_token:
+        user_auth_action = None
+    else:
+        token = None
+    query_args = dict(token=token)
+    response = client.delete(build_url(f'uploads/{upload_id}/raw/{path}', query_args), headers=user_auth_action)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_processing(client, upload_id, user_auth)
+        # Check that path to remove has disappeared
+        upload_files = StagingUploadFiles(upload_id, is_authorized=lambda: True)
+        if path == '':
+            # Deleting the root folder = the folder itself should be emptied, but not deleted.
+            assert not list(upload_files.raw_directory_list(''))
+        else:
+            # Deleting a file or folder within the raw folder - it should disappear.
+            assert not upload_files.raw_path_exists(path)
+
+        assert_expected_mainfiles(upload_id, expected_mainfiles)
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [

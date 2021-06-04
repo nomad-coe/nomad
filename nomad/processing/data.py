@@ -876,6 +876,10 @@ class Upload(Proc):
         assert type(path) == str and type(target_dir) == str and type(temporary) == bool
         self._schedule_operation(dict(op='ADD', path=path, target_dir=target_dir, temporary=temporary))
 
+    def schedule_operation_delete_path(self, path):
+        assert type(path) == str
+        self._schedule_operation(dict(op='DELETE', path=path))
+
     def _schedule_operation(self, operation: Dict):
         '''
         Adds a dictionary, defining a pending operation, to the pending_operations queue and
@@ -1131,11 +1135,14 @@ class Upload(Proc):
             operation = self._take_next_pending_operation()
             op = operation['op']
             if op == 'ADD':
-                with utils.timer(logger, 'upload extracted', upload_size=staging_upload_files.size):
+                with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
                     staging_upload_files.add_rawfiles(
                         operation['path'],
                         operation['target_dir'],
                         cleanup_source_file_and_dir=operation['temporary'])
+            elif op == 'DELETE':
+                with utils.timer(logger, 'Deleting files or folders from upload'):
+                    staging_upload_files.delete_rawfiles(operation['path'])
             else:
                 self.fail(f'Unknown operation {op}', log_level=logging.ERROR)
                 return
@@ -1257,6 +1264,10 @@ class Upload(Proc):
                         'Some entries are disappearing',
                         count=len(entries_to_delete))
                     delete_partial_archives_from_mongo(entries_to_delete)
+                    for calc_id in entries_to_delete:
+                        search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
+                        entry = Calc.get(calc_id)
+                        entry.delete()
 
                 if has_old_entries:
                     # Reset all entries on upload

@@ -27,7 +27,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 
 from nomad import utils, config, files, datamodel
-from nomad.files import UploadFiles, is_safe_relative_path
+from nomad.files import StagingUploadFiles, UploadFiles, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
 from nomad.processing.base import PROCESS_COMPLETED
 from nomad.utils import strip
@@ -515,10 +515,7 @@ async def get_upload_raw_path(
     '''
     # Get upload
     upload = _get_upload_with_read_access(upload_id, user)
-    if upload.tasks_running:
-        # TODO: maybe we should allow browsing even if processing?
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-            The upload is being processed.'''))
+    _check_upload_not_processing(upload)
     # Get upload files
     upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
     try:
@@ -668,6 +665,49 @@ async def put_upload_raw_path(
         media_type = 'text/plain'
 
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
+@router.delete(
+    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    summary='Delete file or folder located at the specified path in the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def delete_upload_raw_path(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Delete file or folder located at the specified path in the specified upload. The upload
+    must not be published. This also automatically triggers a reprocessing of the upload.
+    Choosing the empty string as `path` deletes all files.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    _check_upload_not_processing(upload)
+
+    if not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+
+    upload_files = StagingUploadFiles(upload_id, is_authorized=lambda: True)
+
+    if not upload_files.raw_path_exists(path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='No file or folder with that path found.')
+
+    upload.reset()
+    upload.schedule_operation_delete_path(path)
+    upload.process_upload()
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
 
 @router.post(
@@ -860,9 +900,7 @@ async def delete_upload(
     upload = _get_upload_with_write_access(
         upload_id, user, include_published=True, published_requires_admin=True)
 
-    if upload.tasks_running:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-            The upload is not processed yet.'''))
+    _check_upload_not_processing(upload)
 
     try:
         upload.delete_upload()
@@ -1159,4 +1197,4 @@ def _check_upload_not_processing(upload: Upload):
     if upload.tasks_running or upload.process_running:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is not finished processing yet.')
+            detail='The upload is currently being processed, operation not allowed.')

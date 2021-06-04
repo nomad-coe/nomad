@@ -642,6 +642,18 @@ class StagingUploadFiles(UploadFiles):
                 if os.path.exists(parent_dir):
                     shutil.rmtree(parent_dir)
 
+    def delete_rawfiles(self, path):
+        assert is_safe_relative_path(path)
+        os_path = os.path.join(self.os_path, 'raw', path)
+        assert os.path.exists(os_path)
+        if os.path.isfile(os_path):
+            os.remove(os_path)
+        else:
+            shutil.rmtree(os_path)
+        if path == '':
+            # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
+            os.makedirs(os_path)
+
     @property
     def is_frozen(self) -> bool:
         ''' Returns True if this upload is already *bagged*. '''
