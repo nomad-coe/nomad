@@ -112,10 +112,11 @@ const FilterText = React.memo(({
       return
     }
     setLoading(true)
-    api.suggestions([quantity], value).then(data => {
-      setSuggestions(data)
-      setLoading(false)
-    })
+    api.suggestions([quantity], value)
+      .then(data => {
+        setSuggestions(data)
+      })
+      .finally(() => setLoading(false))
   }, [quantity, api, hasSuggestions])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>

@@ -17,17 +17,25 @@
 #
 
 from typing import List
+from pydantic import BaseModel, Field
 from fastapi import (
     APIRouter, Depends, status, Request
 )
-from pydantic import BaseModel, Field
+from elasticsearch_dsl import Search
+from elasticsearch.exceptions import RequestError
+
 from nomad.utils import strip
+from nomad.metainfo.elasticsearch_extension import entry_index
+
 from .auth import create_user_dependency
 from ..utils import create_responses
 from ..models import User, HTTPExceptionModel
 
 
 router = APIRouter()
+
+
+class SuggestionError(Exception): pass
 
 
 class Suggestion(BaseModel):
@@ -65,8 +73,22 @@ async def get_suggestions(
         data: SuggestionRequest,
         user: User = Depends(create_user_dependency())):
 
-    return [
-        Suggestion(value="Moi"),
-        Suggestion(value="Hei"),
-        Suggestion(value="Terve"),
-    ]
+    search = Search(index=entry_index.index_name)
+    search = search.suggest('quantity', data.input, completion={
+        'field': '{}.suggest'.format(data.quantities[0]),
+        'size': 5,
+        'skip_duplicates': True,
+        # 'fuzziness': {},
+    })
+    search = search.extra(_source='suggest')
+
+    try:
+        es_response = search.execute()
+    except RequestError as e:
+        raise SuggestionError(e)
+
+    response: List[Suggestion] = []
+    for option in es_response.suggest.quantity[0].options:
+        response.append(Suggestion(value=option.text, weight=option._score))
+
+    return response
