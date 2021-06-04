@@ -87,6 +87,11 @@ def metainfo_undecorated():
     nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
     nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
 
+    # TODO similar to before, due to lazyloading, we need to explicily access parsers
+    # to actually import all parsers and indirectly all metainfo packages
+    from nomad.parsing import parsers
+    parsers.parsers
+
     export = Environment()
     for package in Package.registry.values():
         export.m_add_sub_section(Environment.packages, package)
@@ -130,14 +135,12 @@ def parser_metadata():
     import json
     import yaml
 
-    from nomad.parsing import LegacyParser, FairdiParser
+    from nomad.parsing import Parser
     from nomad.parsing.parsers import parser_dict
 
     parsers_metadata = {}
     for parser in parser_dict.values():
-        if isinstance(parser, LegacyParser):
-            parser_class = parser.parser_class
-        elif isinstance(parser, FairdiParser):
+        if isinstance(parser, Parser):
             parser_class = parser.__class__
         else:
             continue

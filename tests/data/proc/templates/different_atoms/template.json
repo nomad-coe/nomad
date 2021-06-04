@@ -9,6 +9,8 @@
             "electronic_structure_method": "DFT",
             "section_XC_functionals": [
               {
+                "_name": "section_XC_functionals",
+                "_gIndex": 0,
                 "XC_functional_name": "GGA_X_PBE"
               }
             ]
@@ -16,6 +18,23 @@
         ],
         "section_system": [
           {
+            "simulation_cell": [
+              [
+                5.76372622e-10,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                5.76372622e-10,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                4.0755698899999997e-10
+              ]
+            ],
             "configuration_periodic_dimensions": [
               true,
               true,
@@ -23,15 +42,32 @@
             ],
             "atom_positions": [
               [
-                0,
-                0,
-                0
-              ]],
-            "atom_labels": [
-              "Na"
+                2.88186311e-10,
+                0.0,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                2.88186311e-10,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                2.88186311e-10,
+                2.88186311e-10,
+                0.0
+              ]
             ],
-            "lattice_vectors": [
-              [0, 0.5e-10, 0.5e-10],[0.5e-10, 0 , 0.5e-10],[0.5e-10, 0.5e-10, 0]]
+            "atom_labels": [
+              "H",
+              "K",
+              "Si",
+              "Si"
+            ]
           }
         ],
         "section_single_configuration_calculation": [
@@ -52,7 +88,7 @@
           {
             "frame_sequence_to_sampling_ref": "/section_run/0/section_sampling_method/0",
             "frame_sequence_local_frames_ref": [
-              "/section_run/0/section_single_configuration_calculation/0"
+              0
             ]
           }
         ]

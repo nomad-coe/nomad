@@ -18,10 +18,13 @@
 
 ''' Methods to help with testing of nomad@FAIRDI.'''
 
+from typing import List, Union
 import urllib.parse
 import json
 from logging import LogRecord
 from typing import Dict, Any
+import zipfile
+import os.path
 
 
 def assert_log(caplog, level: str, event_part: str) -> LogRecord:
@@ -95,3 +98,39 @@ def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
     if not query_args_clean:
         return base_url
     return base_url + '?' + urllib.parse.urlencode(query_args_clean, doseq=True)
+
+
+def create_template_upload_file(
+        tmp, mainfiles: Union[str, List[str]] = None, auxfiles: int = 4,
+        directory: str = 'examples_template', name: str = 'examples_template.zip',
+        more_files: Union[str, List[str]] = None):
+
+    '''
+    Creates a temporary upload.zip file based on template.json (for the artificial test
+    parser) that can be used for test processings.
+    '''
+
+    if mainfiles is None:
+        mainfiles = 'tests/data/proc/templates/template.json'
+
+    if isinstance(mainfiles, str):
+        mainfiles = [mainfiles]
+
+    if more_files is None:
+        more_files = []
+
+    if isinstance(more_files, str):
+        more_files = [more_files]
+
+    upload_path = os.path.join(tmp, name)
+    with zipfile.ZipFile(upload_path, 'w') as zf:
+        for i in range(0, auxfiles):
+            with zf.open(f'{directory}/{i}.aux', 'w') as f:
+                f.write(b'content')
+            for mainfile in mainfiles:
+                zf.write(mainfile, f'{directory}/{os.path.basename(mainfile)}')
+
+        for additional_file in more_files:
+            zf.write(additional_file, f'{directory}/{os.path.basename(additional_file)}')
+
+    return upload_path

@@ -72,6 +72,5 @@ based on nomad@fairdi's metainfo:
     :members:
 '''
 
-from nomad.parsing.legacy import Backend, BackendError, LegacyParser
 from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser, FairdiParser
 from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser

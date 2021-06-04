@@ -96,14 +96,16 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         # Try to find workflow information and select the representative system
         # based on it
         workflow = self.entry_archive.section_workflow
+
         if workflow:
             try:
                 iscc = workflow.calculation_result_ref
-                system = scc.single_configuration_calculation_to_system_ref
+                system = iscc.single_configuration_calculation_to_system_ref
                 if system is not None:
                     scc = iscc
             except Exception:
                 pass
+
         # Try to find a frame sequence, only first found is considered
         else:
             try:
@@ -164,7 +166,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if system is not None:
             self.section_run.m_cache["representative_system_idx"] = system.m_parent_index
 
-        return system
+        return system.m_resolved() if system is not None else None
 
     def __normalize_system(self, system, representative, logger=None) -> bool:
         try:

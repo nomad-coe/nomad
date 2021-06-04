@@ -9,7 +9,7 @@ from nomad.metainfo.search_extension import Search
 
 
 m_package = Package(
-    name='nomad.datamodel.metainfo.public_old',
+    name='nomad.datamodel.metainfo.public',
     description='None',
     a_legacy=LegacyDefinition(name='public.nomadmetainfo.json'))
 
