@@ -46,6 +46,15 @@ default_tag = 'uploads'
 logger = utils.get_logger(__name__)
 
 
+class UploadMetadata(BaseModel):
+    name: Optional[str] = Field(None, description=strip('''
+        A user-firendly name of the upload. Does not need to be unique'''))
+
+
+upload_metadata_parameters = parameter_dependency_from_model(
+    'upload_metadata_parameters', UploadMetadata)
+
+
 class ProcData(BaseModel):
     tasks: List[str] = Field()
     tasks_running: bool = Field()
@@ -728,10 +737,7 @@ async def post_upload(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
-        name: str = FastApiQuery(
-            None,
-            description=strip('''
-            Specifies the name of the upload.''')),
+        metadata: UploadMetadata = Depends(upload_metadata_parameters),
         publish_directly: bool = FastApiQuery(
             None,
             description=strip('''
@@ -833,24 +839,24 @@ async def post_upload(
     else:
         upload_id = utils.create_uuid()
 
-    if name and not file_name and files.is_safe_basename(name):
+    if metadata.name and not file_name and files.is_safe_basename(metadata.name):
         # Try to default the file_name using name
-        file_name = name
+        file_name = metadata.name
 
     upload_path, method = await _get_file_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not name:
+    if not metadata.name:
         # Try to default name
         if method == 2:
-            name = file_name or None
+            metadata.name = file_name or None
         elif upload_path:
-            name = os.path.basename(upload_path)
+            metadata.name = os.path.basename(upload_path)
 
     upload = Upload.create(
         upload_id=upload_id,
         user=upload_user,
-        name=name,
+        name=metadata.name,
         upload_time=datetime.utcnow(),
         publish_directly=publish_directly or from_oasis,
         from_oasis=from_oasis,
@@ -877,6 +883,42 @@ async def post_upload(
         media_type = 'text/plain'
 
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
+@router.put(
+    '/{upload_id}/metadata', tags=[default_tag],
+    summary='Updates the metadata of the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def put_upload_metadata(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        metadata: UploadMetadata = Depends(upload_metadata_parameters),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Updates the metadata of the specified upload. Only admins can update the metadata of
+    published uploads.
+    '''
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=True)
+    _check_upload_not_processing(upload)
+
+    has_changed = False
+    if metadata.name is not None:
+        upload.name = metadata.name or None
+        has_changed = True
+
+    if has_changed:
+        upload.save()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='No metadata values provided.')
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
 
 @router.delete(
@@ -1006,7 +1048,7 @@ async def post_upload_action_publish(
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_upload_action_reprocess(
+async def post_upload_action_process(
         upload_id: str = Path(
             ...,
             description='The unique id of the upload to re-process.'),
