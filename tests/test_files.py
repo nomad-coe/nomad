@@ -424,7 +424,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             with open(f, 'wt') as fh:
                 fh.write('')
 
-        staging_upload_files.pack(entries)
+        staging_upload_files.pack(entries, create=False, include_raw=False)
         staging_upload_files.delete()
 
         # We do a very simple check. We made all files empty, those that are rezipped

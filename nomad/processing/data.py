@@ -1374,7 +1374,7 @@ class Upload(Proc):
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                self.staging_upload_files.pack(self.user_metadata(), skip_raw=True)
+                self.staging_upload_files.pack(self.user_metadata(), create=False, include_raw=False)
 
             self._cleanup_staging_files()
             self.last_update = datetime.utcnow()

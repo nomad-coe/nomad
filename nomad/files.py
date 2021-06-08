@@ -324,7 +324,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         with open(self._user_metadata_file.os_path, 'wb') as f:
             pickle.dump(data, f)
 
-    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
         ''' Casts to or creates corresponding staging upload files or returns None. '''
         raise NotImplementedError()
 
@@ -424,7 +424,7 @@ class StagingUploadFiles(UploadFiles):
     def file_area(cls):
         return config.fs.staging
 
-    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
         return self
 
     @property
@@ -657,8 +657,8 @@ class StagingUploadFiles(UploadFiles):
         return self._frozen_file.exists()
 
     def pack(
-            self, entries: Iterable[datamodel.EntryMetadata], target_dir: DirectoryObject = None,
-            skip_raw: bool = False, skip_archive: bool = False) -> None:
+            self, entries: Iterable[datamodel.EntryMetadata], create: bool = True,
+            include_raw: bool = True, include_archive: bool = True) -> None:
         '''
         Replaces the staging upload data with a public upload record by packing all
         data into files. It is only available if upload *is_bag*.
@@ -667,10 +667,9 @@ class StagingUploadFiles(UploadFiles):
         Arguments:
             upload: The upload with all calcs and  calculation metadata of the upload
                 used to determine what files to pack and what the embargo situation is.
-            target_dir: optional DirectoryObject to override where to put the files. Default
-                is the corresponding public upload files directory.
-            skip_raw: determine to not pack the raw data, only archive and user metadata
-            skip_raw: determine to not pack the archive data, only raw and user metadata
+            create: if the public upload files directory should be created.
+            include_raw: determines if the raw data should be packed. True by default.
+            include_archive: determines of the archive data should be packed. True by default.
         '''
         self.logger.info('started to pack upload')
 
@@ -679,12 +678,10 @@ class StagingUploadFiles(UploadFiles):
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
 
-        # create a target dir in the public bucket
-        if target_dir is None:
-            target_dir = DirectoryObject(
-                config.fs.public, self.upload_id, create=True, prefix=True,
-                create_prefix=True)
-        assert target_dir.exists()
+        # Get or create a target dir in the public bucket
+        target_dir = DirectoryObject(
+            config.fs.public, self.upload_id, create=create, prefix=True,
+            create_prefix=True)
 
         def create_zipfile(access: str):
             return zipfile.ZipFile(
@@ -696,13 +693,13 @@ class StagingUploadFiles(UploadFiles):
             write_archive(file_object.os_path, size, data)
 
         # zip archives
-        if not skip_archive:
+        if include_archive:
             with utils.timer(self.logger, 'packed msgpack archive') as log_data:
                 restricted, public = self._pack_archive_files(entries, write_msgfile)
                 log_data.update(restricted=restricted, public=public)
 
         # zip raw files
-        if not skip_raw:
+        if include_raw:
             with utils.timer(self.logger, 'packed raw files'):
                 self._pack_raw_files(entries, create_zipfile)
 
@@ -842,42 +839,6 @@ class StagingUploadFiles(UploadFiles):
         return utils.make_websave(hash)
 
 
-class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
-    '''
-    :class:`StagingUploadFiles` based on a single uploaded archive file (.zip)
-
-    Arguments:
-        upload_path: The path to the uploaded file.
-    '''
-
-    def __init__(
-            self, public_upload_files: 'PublicUploadFiles', *args, **kwargs) -> None:
-        super().__init__(public_upload_files.upload_id, *args, **kwargs)
-        self.public_upload_files = public_upload_files
-
-    def extract(self, include_archive: bool = False) -> None:
-        assert self.is_empty(), 'can only extract once'
-        for access in ['public', 'restricted']:
-            raw_file_zip = self.public_upload_files.raw_file_object(access)
-            if raw_file_zip.exists():
-                super().add_rawfiles(raw_file_zip.os_path)
-
-            if include_archive:
-                with self.public_upload_files._open_msg_file(access) as archive:
-                    for calc_id, data in archive.items():
-                        calc_id = calc_id.strip()
-                        self.write_archive(calc_id, data.to_dict())
-
-    def add_rawfiles(self, *args, **kwargs) -> None:
-        assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
-
-    def pack(self, entries: Iterable[datamodel.EntryMetadata], *args, **kwargs) -> None:
-        '''
-        Packs only the archive contents and stores it in the existing public upload files.
-        '''
-        super().pack(entries, target_dir=self.public_upload_files, skip_raw=True)
-
-
 class PublicUploadFiles(UploadFiles):
 
     def __init__(self, *args, **kwargs) -> None:
@@ -942,19 +903,27 @@ class PublicUploadFiles(UploadFiles):
 
         return archive
 
-    def to_staging_upload_files(self, create: bool = False, **kwargs) -> 'StagingUploadFiles':
+    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
         exists = False
         try:
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(
-                self, is_authorized=lambda: True)
+            staging_upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
             exists = True
         except KeyError:
             if not create:
                 return None
 
-            staging_upload_files = PublicUploadFilesBasedStagingUploadFiles(
-                self, create=True, is_authorized=lambda: True)
-            staging_upload_files.extract(**kwargs)
+            staging_upload_files = StagingUploadFiles(self.upload_id, create=True, is_authorized=lambda: True)
+            # Extract files
+            for access in ['public', 'restricted']:
+                raw_file_zip = self.raw_file_object(access)
+                if raw_file_zip.exists():
+                    staging_upload_files.add_rawfiles(raw_file_zip.os_path)
+
+                if include_archive:
+                    with self._open_msg_file(access) as archive:
+                        for calc_id, data in archive.items():
+                            calc_id = calc_id.strip()
+                            staging_upload_files.write_archive(calc_id, data.to_dict())
 
         if exists and create:
             raise FileExistsError('Staging upload does already exist')
@@ -1136,8 +1105,8 @@ class PublicUploadFiles(UploadFiles):
         raise KeyError(calc_id)
 
     def re_pack(
-            self, entries: Iterable[datamodel.EntryMetadata], skip_raw: bool = False,
-            skip_archive: bool = False) -> None:
+            self, entries: Iterable[datamodel.EntryMetadata], include_raw: bool = True,
+            include_archive: bool = True) -> None:
         '''
         Replaces the existing public/restricted data file pairs with new ones, based
         on current restricted information in the metadata. Should be used after updating
@@ -1147,11 +1116,11 @@ class PublicUploadFiles(UploadFiles):
         files = []
 
         for access in ['public', 'restricted']:
-            if not skip_archive:
+            if include_archive:
                 files.append((
                     self.msg_file_object(access, suffix='repacked'),
                     self.msg_file_object(access)))
-            if not skip_raw:
+            if include_raw:
                 files.append((
                     self.raw_file_object(access, suffix='repacked'),
                     self.raw_file_object(access)))
@@ -1174,10 +1143,10 @@ class PublicUploadFiles(UploadFiles):
 
         # perform the repacking
         try:
-            if not skip_archive:
+            if include_archive:
                 # staging_upload._pack_archive_files(entries, create_zipfile)
                 staging_upload._pack_archive_files(entries, write_msgfile)
-            if not skip_raw:
+            if include_raw:
                 staging_upload._pack_raw_files(entries, create_zipfile)
         finally:
             staging_upload.delete()
