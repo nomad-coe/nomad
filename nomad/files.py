@@ -54,7 +54,7 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Generator, Dict, Iterable, Callable, List, Tuple, Any, NamedTuple
+from typing import IO, Dict, Iterable, Callable, List, Tuple, Any, NamedTuple
 import os.path
 import os
 import shutil
@@ -353,12 +353,16 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         '''
         raise NotImplementedError()
 
-    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
+    def raw_directory_list(
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
         '''
-        Returns an iterator of UploadPathInfo objects for each element (file or folder) in
+        Returns an iterable of UploadPathInfo objects for each element (file or folder) in
         the directory specified by `path`. If `recursive` is set to True, subdirectories are
         also crawled. If `files_only` is set, only the file objects found are returned.
-        If path is not a valid directory, the result will be empty.
+        If path is not a valid directory, the result will be empty. Selecting empty string
+        as path (which is the default value) gives the content of the whole raw directory.
+        The `path_prefix` argument can be used to filter out elements where the path starts
+        with a specific prefix.
         '''
         raise NotImplementedError()
 
@@ -390,16 +394,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         if not mime_type:
             mime_type = 'application/octet-stream'
         return mime_type
-
-    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
-        '''
-        Returns the path for all raw files in the archive (with a given prefix).
-        Arguments:
-            path_prefix: An optional prefix; only returns those files that have the prefix.
-        Returns:
-            An iterable over all (matching) raw files.
-        '''
-        raise NotImplementedError()
 
     def read_archive(self, calc_id: str, access: str = None) -> ArchiveReader:
         '''
@@ -458,7 +452,8 @@ class StagingUploadFiles(UploadFiles):
             return False
         return os.path.isfile(os.path.join(self._raw_dir.os_path, path))
 
-    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
+    def raw_directory_list(
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
         if not is_safe_relative_path(path):
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
@@ -475,15 +470,17 @@ class StagingUploadFiles(UploadFiles):
                     if sub_path_info.is_file:
                         dir_size += sub_path_info.size
                     if recursive:
-                        yield sub_path_info
+                        if not path_prefix or sub_path_info.path.startswith(path_prefix):
+                            yield sub_path_info
 
             if not files_only or is_file:
                 size = os.stat(element_os_path).st_size if is_file else dir_size
-                yield UploadPathInfo(
-                    path=element_raw_path,
-                    is_file=is_file,
-                    size=size,
-                    access='unpublished')
+                if not path_prefix or element_raw_path.startswith(path_prefix):
+                    yield UploadPathInfo(
+                        path=element_raw_path,
+                        is_file=is_file,
+                        size=size,
+                        access='unpublished')
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         assert is_safe_relative_path(file_path)
@@ -765,7 +762,8 @@ class StagingUploadFiles(UploadFiles):
                 raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
             # 2. everything else becomes restricted
-            for filepath in self.raw_file_manifest():
+            for path_info in self.raw_directory_list(recursive=True, files_only=True):
+                filepath = path_info.path
                 if filepath not in public_files:
                     raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
@@ -775,14 +773,6 @@ class StagingUploadFiles(UploadFiles):
         finally:
             raw_restricted_zip.close()
             raw_public_zip.close()
-
-    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
-        upload_prefix_len = len(self._raw_dir.os_path) + 1
-        for root, _, files in os.walk(self._raw_dir.os_path):
-            for file in files:
-                path = os.path.join(root, file)[upload_prefix_len:]
-                if path_prefix is None or path.startswith(path_prefix):
-                    yield path
 
     def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         '''
@@ -866,7 +856,7 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
         self.public_upload_files = public_upload_files
 
     def extract(self, include_archive: bool = False) -> None:
-        assert next(self.raw_file_manifest(), None) is None, 'can only extract once'
+        assert self.is_empty(), 'can only extract once'
         for access in ['public', 'restricted']:
             raw_file_zip = self.public_upload_files.raw_file_object(access)
             if raw_file_zip.exists():
@@ -1060,7 +1050,8 @@ class PublicUploadFiles(UploadFiles):
                 return path_info.is_file
         return False
 
-    def raw_directory_list(self, path: str, recursive=False, files_only=False) -> Iterable[UploadPathInfo]:
+    def raw_directory_list(
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
         if not is_safe_relative_path(path):
             return
         self._parse_content()
@@ -1068,12 +1059,13 @@ class PublicUploadFiles(UploadFiles):
         directory_content = self._directories.get(path)
         if directory_content is not None:
             for __, path_info in sorted(directory_content.items()):
-                if path_info.access == 'public' or self._is_authorized():
-                    if not files_only or path_info.is_file:
+                if not files_only or path_info.is_file:
+                    if not path_prefix or path_info.path.startswith(path_prefix):
                         yield path_info
                 if recursive and not path_info.is_file:
                     for sub_path_info in self.raw_directory_list(path_info.path, recursive, files_only):
-                        yield sub_path_info
+                        if not path_prefix or sub_path_info.path.startswith(path_prefix):
+                            yield sub_path_info
 
     @property
     def public_raw_data_file(self):
@@ -1123,16 +1115,6 @@ class PublicUploadFiles(UploadFiles):
                 pass
 
         raise KeyError(file_path)
-
-    def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
-        for access in ['public', 'restricted']:
-            try:
-                zf = self._open_raw_file(access)
-                for path in zf.namelist():
-                    if path_prefix is None or path.startswith(path_prefix):
-                        yield path
-            except FileNotFoundError:
-                pass
 
     def read_archive(self, calc_id: str, access: str = None) -> Any:
         if access is not None:

@@ -510,8 +510,8 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
         pass
 
     upload_files = PublicUploadFiles(upload_id)
-    for raw_file in upload_files.raw_file_manifest():
-        with upload_files.raw_file(raw_file) as f:
+    for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+        with upload_files.raw_file(path_info.path) as f:
             f.read()
 
     for calc in Calc.objects(upload_id=upload_id):

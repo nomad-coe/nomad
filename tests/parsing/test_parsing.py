@@ -336,7 +336,8 @@ def test_match(raw_files, with_latin_1_file, no_warn):
     upload_files.add_rawfiles('tests/data/parsers')
 
     matched_mainfiles = {}
-    for mainfile in upload_files.raw_file_manifest():
+    for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+        mainfile = path_info.path
         parser = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser

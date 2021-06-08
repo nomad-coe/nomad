@@ -247,9 +247,10 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert calc.with_embargo
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
-    def test_raw_file_manifest(self, test_upload: UploadWithFiles, prefix: str):
+    def test_raw_directory_list_prefix(self, test_upload: UploadWithFiles, prefix: str):
         _, _, upload_files = test_upload
-        raw_files = list(upload_files.raw_file_manifest(path_prefix=prefix))
+        path_infos = upload_files.raw_directory_list(recursive=True, files_only=True, path_prefix=prefix)
+        raw_files = list(path_info.path for path_info in path_infos)
         assert_example_files(raw_files)
 
     @pytest.mark.parametrize('path', [None, 'examples_template'])
@@ -374,7 +375,8 @@ class TestStagingUploadFiles(UploadFilesContract):
             test_upload_id, create=True)
         assert test_upload.is_empty()
         test_upload.add_rawfiles(example_file)
-        assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
+        path_infos = test_upload.raw_directory_list(recursive=True, files_only=True)
+        assert sorted(list(path_info.path for path_info in path_infos)) == sorted(example_file_contents)
 
 
 def create_public_upload(

@@ -122,7 +122,9 @@ def get_raw_file_from_upload_path(
 
     if upload_filepath[-1:] == '*':
         upload_filepath = upload_filepath[0:-1]
-        wildcarded_files = list(upload_files.raw_file_manifest(path_prefix=upload_filepath))
+        path_infos = upload_files.raw_directory_list(
+            recursive=True, files_only=True, path_prefix=upload_filepath)
+        wildcarded_files = list(path_info.path for path_info in path_infos)
         if len(wildcarded_files) == 0:
             abort(404, message='There are no files for %s.' % upload_filepath)
         else:
