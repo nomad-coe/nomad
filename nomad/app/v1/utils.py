@@ -24,9 +24,11 @@ import json
 import os
 import sys
 import inspect
-from fastapi import Request, Query, HTTPException  # pylint: disable=unused-import
+from fastapi import Request, Query, HTTPException, status  # pylint: disable=unused-import
 from pydantic import ValidationError, BaseModel  # pylint: disable=unused-import
 import zipstream
+import gzip
+import lzma
 from nomad.files import UploadFiles
 
 if sys.version_info >= (3, 7):
@@ -207,17 +209,51 @@ def create_download_stream_zipped(
     return create_streamed_zipfile(file_generator(upload_files), compress=compress)
 
 
-def create_download_stream_raw_file(upload_files: UploadFiles, path: str) -> Iterator[bytes]:
+def create_download_stream_raw_file(
+        upload_files: UploadFiles, path: str,
+        offset: int = 0, length: int = -1, decompress=False) -> Iterator[bytes]:
     '''
     Creates a file stream for downloading raw data with ``StreamingResponse``.
 
     Arguments:
         upload_files: the UploadFiles object, containing the file. Will be closed when done.
         path: the raw path within the upload to the desired file.
+        offset: offset within the file (0 by default)
+        length: number of bytes to read. -1 by default, which means the remainder of the
+            file will be read.
+        decompress: decompresses if the file is compressed (and of a supported type).
     '''
-    raw_file = upload_files.raw_file(path, 'rb')
-    for chunk in raw_file:
-        yield chunk
+    raw_file: Any = upload_files.raw_file(path, 'rb')
+    if decompress:
+        if path.endswith('.gz'):
+            raw_file = gzip.GzipFile(filename=path[:3], mode='rb', fileobj=raw_file)
+
+        if path.endswith('.xz'):
+            raw_file = lzma.open(filename=raw_file, mode='rb')
+
+    assert offset >= 0, 'Invalid offset provided'
+    assert length > 0 or length == -1, 'Invalid length provided. Should be > 0 or equal to -1.'
+    if offset > 0:
+        raw_file.seek(offset)
+
+    if length > 0:
+        # Read up to a certain number of bytes
+        remaining = length
+        while remaining:
+            content = raw_file.read(remaining)
+            content_length = len(content)
+            remaining -= content_length
+            if content_length == 0:
+                break  # No more bytes
+            yield content
+    else:
+        # Read until the end of the file.
+        while True:
+            content = raw_file.read(1024 * 64)
+            if not content:
+                break  # No more bytes
+            yield content
+
     raw_file.close()
     upload_files.close()
 

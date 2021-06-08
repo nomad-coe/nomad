@@ -23,13 +23,14 @@ import time
 import zipfile
 from typing import List, Dict, Any, Iterable
 from tests.utils import build_url
-from tests.test_files import assert_upload_files
+from tests.test_files import (
+    example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
+    assert_upload_files)
 from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
-from nomad.processing import Upload, Calc, SUCCESS
-from nomad.files import UploadFiles, PublicUploadFiles
-from nomad.app.v1.routers.auth import generate_upload_token
+from nomad.processing import Upload, Calc, SUCCESS, FAILURE
+from nomad.files import StagingUploadFiles, UploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 
 '''
@@ -51,9 +52,10 @@ def perform_get(client, base_url, user_auth=None, accept='application/json', **q
     return response
 
 
-def perform_post_upload(
-        client, mode, file, user_auth=None, token=None, accept='application/json', **query_args):
-    ''' Posts a new upload. '''
+def perform_post_put_file(
+        client, action, url, mode, file, user_auth=None, token=None, accept='application/json',
+        **query_args):
+    ''' Posts or puts a file. '''
     headers = {'Accept': accept}
     if user_auth:
         headers.update(user_auth)
@@ -61,18 +63,29 @@ def perform_post_upload(
         query_args.update(local_path=file)
     if token:
         query_args.update(token=token)
-    url = build_url('uploads', query_args)
-    if mode == 'multipart':
-        with open(file, 'rb') as f:
-            response = client.post(
-                url, files={'file': f}, headers=headers)
-    elif mode == 'stream':
-        with open(file, 'rb') as f:
-            response = client.post(url, data=f.read(), headers=headers)
-    elif mode == 'local_path':
-        response = client.post(url, headers=headers)
+    url = build_url(url, query_args)
+
+    if action == 'POST':
+        func = client.post
+    elif action == 'PUT':
+        func = client.put
     else:
-        assert False, 'Invalid value for mode provided'
+        assert False, f'Invalid action provided: {action}'
+
+    if not file:
+        response = func(url, data='', headers=headers)
+    else:
+        if mode == 'multipart':
+            with open(file, 'rb') as f:
+                response = func(
+                    url, files={'file': f}, headers=headers)
+        elif mode == 'stream':
+            with open(file, 'rb') as f:
+                response = func(url, data=f.read(), headers=headers)
+        elif mode == 'local_path':
+            response = func(url, headers=headers)
+        else:
+            assert False, f'Invalid value for mode provided {mode}'
 
     return response
 
@@ -80,6 +93,80 @@ def perform_post_upload(
 def perform_post_upload_action(client, user_auth, upload_id, action, **query_args):
     return client.post(
         build_url(f'uploads/{upload_id}/action/{action}', query_args), headers=user_auth)
+
+
+def assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        source_path, target_path, query_args, accept_json, use_upload_token,
+        expected_status_code, expected_mainfiles, published, all_entries_should_succeed):
+    '''
+    Uploads a file, using the given action (POST or PUT), url, query arguments, and checks
+    the results.
+    '''
+    user_auth, token = test_auth_dict[user]
+    # Use either token or bearer token for the post operation (never both)
+    user_auth_action = user_auth
+    if use_upload_token:
+        user_auth_action = None
+    else:
+        token = None
+    accept = 'application/json' if accept_json else '*'
+    response_data = None
+    response = perform_post_put_file(
+        client, action, url, mode, source_path, user_auth_action, token, accept, **query_args)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        if accept_json:
+            response_json = response.json()
+            upload_id = response_json['upload_id']
+            assert_upload(response_json)
+        else:
+            assert 'Thanks for uploading' in response.text
+            if not upload_id:
+                return None
+
+        if source_path == example_file_corrupt_zip:
+            response_data = assert_processing_fails(client, upload_id, user_auth)
+        else:
+            response_data = assert_processing(
+                client, upload_id, user_auth, published=published,
+                all_entries_should_succeed=all_entries_should_succeed)
+
+            # Check that files got copied as expected
+            if source_path:
+                upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+                file_name = os.path.basename(source_path)
+                if zipfile.is_zipfile(source_path):
+                    with open(source_path, 'rb') as f:
+                        zf = zipfile.ZipFile(f)
+                        for path in zf.namelist():
+                            if not path.endswith('/'):
+                                target_path_full = os.path.join(target_path, path)
+                                assert upload_files.raw_path_exists(target_path_full)
+                                assert upload_files.raw_path_is_file(target_path_full)
+                else:
+                    if mode == 'stream':
+                        # Must specify file_name
+                        file_name = query_args['file_name']
+                    target_path_full = os.path.join(target_path, file_name)
+                    assert upload_files.raw_path_exists(target_path_full)
+                    assert upload_files.raw_path_is_file(target_path_full)
+                    assert upload_files.raw_file_size(target_path_full) == os.stat(source_path).st_size
+
+        assert_expected_mainfiles(upload_id, expected_mainfiles)
+    return response_data
+
+
+def assert_expected_mainfiles(upload_id, expected_mainfiles):
+    if expected_mainfiles is not None:
+        entries = [e.mainfile for e in Calc.objects(upload_id=upload_id)]
+        assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
+        for entry in Calc.objects(upload_id=upload_id):
+            if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
+                assert entry.tasks_status == SUCCESS
+            else:
+                assert entry.tasks_status == FAILURE
 
 
 def assert_upload(response_json, **kwargs):
@@ -110,7 +197,9 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert upload_files is None or isinstance(upload_files, PublicUploadFiles)
 
 
-def assert_processing(client, upload_id, user_auth, check_search=True, check_files=True, published=False):
+def assert_processing(
+        client, upload_id, user_auth, check_search=True, check_files=True, published=False,
+        all_entries_should_succeed=True):
     response_data = block_until_completed(client, upload_id, user_auth)
 
     assert len(response_data['tasks']) == 4
@@ -118,22 +207,36 @@ def assert_processing(client, upload_id, user_auth, check_search=True, check_fil
     assert response_data['current_task'] == 'cleanup'
     assert not response_data['process_running']
 
-    response = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
-    assert_response(response, 200)
-    response_json = response.json()
-    response_data = response_json['data']
-    for entry in response_json['data']:
-        assert entry['tasks_status'] == SUCCESS
-        assert entry['current_task'] == 'archiving'
+    response_entries = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
+    assert_response(response_entries, 200)
+    response_entries_json = response_entries.json()
+    response_entries_data = response_entries_json['data']
+    all_entries_succesful = True
+    for entry in response_entries_data:
+        entry_succeeded = entry['tasks_status'] == SUCCESS and entry['current_task'] == 'archiving'
+        if not entry_succeeded:
+            all_entries_succesful = False
+            if all_entries_should_succeed:
+                assert False, 'One or more entries failed to process'
         assert len(entry['tasks']) == 3
-        assert response_json['pagination']['total'] < response_json['pagination']['page_size']
+        pagination = response_entries_json['pagination']
+        assert pagination['total'] < pagination['page_size']
 
-    entries = get_upload_entries_metadata(response_data)
+    entries = get_upload_entries_metadata(response_entries_data)
     if check_files:
         expected_file_class = files.PublicUploadFiles if published else files.StagingUploadFiles
         assert_upload_files(upload_id, entries, expected_file_class)
-    if check_search:
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
+    if check_search and all_entries_succesful:
+        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'], upload_id=upload_id)
+    return response_data
+
+
+def assert_processing_fails(client, upload_id, user_auth):
+    response_data = block_until_completed(client, upload_id, user_auth)
+
+    assert len(response_data['tasks']) == 4
+    assert response_data['tasks_status'] == FAILURE
+    return response_data
 
 
 def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **query_args):
@@ -221,6 +324,16 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
         ), id='other_test_user'),
     pytest.param(
         dict(
+            user=None,
+            expected_status_code=401
+        ), id='no-credentials'),
+    pytest.param(
+        dict(
+            user='invalid',
+            expected_status_code=401
+        ), id='invalid-credentials'),
+    pytest.param(
+        dict(
             query_params={'is_processing': True},
             expected_upload_ids=['id_processing'],
         ), id='filter-is_processing-True'),
@@ -302,7 +415,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_status_code=422
         ), id='pag-invalid-order_by')])
 def test_get_uploads(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data, kwargs):
+        client, mongo_module, test_auth_dict, example_data, kwargs):
     ''' Makes a get request to uploads in various different ways. '''
     # Extract kwargs
     user = kwargs.get('user', 'test_user')
@@ -310,10 +423,7 @@ def test_get_uploads(
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
     # Api call
     response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
     # Verify result
@@ -335,16 +445,15 @@ def test_get_uploads(
 @pytest.mark.parametrize('user, upload_id, expected_status_code', [
     pytest.param('test_user', 'id_unpublished', 200, id='valid-upload_id'),
     pytest.param('test_user', 'silly_value', 404, id='invalid-upload_id'),
+    pytest.param(None, 'id_unpublished', 401, id='no-credentials'),
+    pytest.param('invalid', 'id_unpublished', 401, id='invalid-credentials'),
     pytest.param('other_test_user', 'id_unpublished', 401, id='no-access'),
     pytest.param('admin_user', 'id_unpublished', 200, id='admin-access')])
 def test_get_upload(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         user, upload_id, expected_status_code):
     ''' Tests the endpoint for getting an upload by upload_id. '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -360,6 +469,16 @@ def test_get_upload(
                 'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}),
         id='no-args'),
+    pytest.param(
+        dict(
+            user=None,
+            expected_status_code=401),
+        id='no-credentials'),
+    pytest.param(
+        dict(
+            user='invalid',
+            expected_status_code=401),
+        id='invalid-credentials'),
     pytest.param(
         dict(
             user='other_test_user',
@@ -450,7 +569,7 @@ def test_get_upload(
             expected_status_code=422),
         id='pag-overspecified')])
 def test_get_upload_entries(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         kwargs):
     '''
     Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
@@ -463,10 +582,7 @@ def test_get_upload_entries(
     expected_data_len = kwargs.get('expected_data_len', 2)
     expected_response = kwargs.get('expected_response', {})
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
 
     response = perform_get(client, f'uploads/{upload_id}/entries', user_auth, **query_args)
     assert_response(response, expected_status_code)
@@ -489,20 +605,19 @@ def test_get_upload_entries(
 
 @pytest.mark.parametrize('upload_id, entry_id, user, expected_status_code', [
     pytest.param('id_embargo', 'id_embargo', 'test_user', 200, id='ok'),
+    pytest.param('id_embargo', 'id_embargo', None, 401, id='no-credentials'),
+    pytest.param('id_embargo', 'id_embargo', 'invalid', 401, id='invalid-credentials'),
     pytest.param('id_embargo', 'id_embargo', 'other_test_user', 401, id='no-access'),
     pytest.param('id_embargo', 'id_embargo', 'admin_user', 200, id='admin-access'),
     pytest.param('silly_value', 'id_embargo', 'test_user', 404, id='invalid-upload_id'),
     pytest.param('id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id')])
 def test_get_upload_entry(
-        client, mongo_module, test_user_auth, other_test_user_auth, admin_user_auth, example_data,
+        client, mongo_module, test_auth_dict, example_data,
         upload_id, entry_id, user, expected_status_code):
     '''
     Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.
     '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -512,87 +627,135 @@ def test_get_upload_entry(
         assert_entry(response_data)
 
 
-@pytest.mark.parametrize('user, upload_id, path, accept, compress, re_pattern, expected_status_code, expected_mime_type, expected_content', [
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='unpublished-file'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', 'application/json', None, None,
-        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-json'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', None, None,
-        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='unpublished-dir-html'),
-    pytest.param(
-        'test_user', 'id_unpublished', '', 'application/json', None, None,
+@pytest.mark.parametrize('args, expected_status_code, expected_mime_type, expected_content', [
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/',
+        accept='application/json'),
+        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='unpublished-dir-json'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/'),
+        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+        id='unpublished-dir-html'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='', accept='application/json'),
         200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
-    pytest.param(
-        'other_test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
+    pytest.param(dict(
+        user='other_test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
-    pytest.param(
-        'admin_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='unpublished-file-admin-auth'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='published-file'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', 'application/json', None, None,
+    pytest.param(dict(
+        user='admin_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='unpublished-file-admin-auth'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json'),
+        200, 'text/plain; charset=utf-8', 'content', id='published-file'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01',
+        accept='application/json'),
         200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', None, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01'),
         200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
-    pytest.param(
-        'test_user', 'id_published', '', 'application/json', None, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='', accept='application/json'),
         200, 'application/json', ['test_content'], id='published-dir-json-root'),
-    pytest.param(
-        'other_test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
+    pytest.param(dict(
+        user='other_test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         401, None, None, id='published-file-unauthorized'),
-    pytest.param(
-        'admin_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', None, None,
-        200, 'application/octet-stream', 'content', id='published-file-admin-auth'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        compress=True),
         200, 'application/zip', 'content',
         id='unpublished-file-compressed'),
-    pytest.param(
-        'test_user', 'id_unpublished', 'test_content/test_entry/', '*', True, None,
-        200, 'application/zip',
-        ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/',
+        compress=True),
+        200, 'application/zip', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
         id='unpublished-dir-compressed'),
-    pytest.param(
-        'test_user', 'id_unpublished', '', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='', compress=True),
         200, 'application/zip',
         ['test_content', 'test_content/test_entry/1.aux', 'test_content/test_entry/mainfile.json'],
         id='unpublished-dir-compressed-root'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        compress=True),
         200, 'application/zip', 'content', id='published-file-compressed'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/subdir/test_entry_01', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01',
+        compress=True),
         200, 'application/zip', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
         id='published-dir-compressed'),
-    pytest.param(
-        'test_user', 'id_published', '', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='', compress=True),
         200, 'application/zip', ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
         id='published-dir-compressed-root'),
-    pytest.param(
-        'test_user', 'silly_value', 'test_content/subdir/test_entry_01/1.aux', '*', True, None,
+    pytest.param(dict(
+        user='test_user', upload_id='silly_value', path='test_content/subdir/test_entry_01/1.aux',
+        compress=True),
         404, None, None, id='bad-upload-id'),
-    pytest.param(
-        'test_user', 'id_published', 'test_content/silly_name', '*', True, None,
-        404, None, None, id='bad-path')])
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/silly_name', compress=True),
+        404, None, None, id='bad-path'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        offset=2),
+        200, 'text/plain; charset=utf-8', 'ntent\n', id='unpublished-file-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux',
+        offset=2, length=4),
+        200, 'text/plain; charset=utf-8', 'nten', id='unpublished-file-offset-and-length'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=2),
+        200, 'text/plain; charset=utf-8', 'ntent\n', id='published-file-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=2, length=4),
+        200, 'text/plain; charset=utf-8', 'nten', id='published-file-offset-and-length'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=-3),
+        400, None, None, id='invalid-offset'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
+        offset=3, length=-3),
+        400, None, None, id='invalid-length'),
+    pytest.param(dict(
+        user=None, upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        401, None, None, id='no-credentials'),
+    pytest.param(dict(
+        user='invalid', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        401, None, None, id='invalid-credentials'),
+    pytest.param(dict(
+        user='other_test_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        401, None, None, id='no-access'),
+    pytest.param(dict(
+        user='admin_user', upload_id='id_unpublished', path='test_content/test_entry/1.aux'),
+        200, 'text/plain; charset=utf-8', 'content', id='admin-access')])
 def test_get_upload_raw_path(
-        client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
-        user, upload_id, path, accept, compress, re_pattern,
-        expected_status_code, expected_mime_type, expected_content):
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
-    query_args = {}
-    if compress is not None:
-        query_args['compress'] = compress
-    if re_pattern is not None:
-        query_args['re_pattern'] = re_pattern
+        client, example_data, test_auth_dict,
+        args, expected_status_code, expected_mime_type, expected_content):
+    user = args['user']
+    upload_id = args['upload_id']
+    path = args['path']
+    accept = args.get('accept', None)
+    compress = args.get('compress', None)
+    re_pattern = args.get('re_pattern', None)
+    offset = args.get('offset', None)
+    length = args.get('length', None)
+    user_auth, __token = test_auth_dict[user]
+    query_args = dict(
+        compress=compress,
+        re_pattern=re_pattern,
+        offset=offset,
+        length=length)
 
     response = perform_get(
         client, f'uploads/{upload_id}/raw/{path}', user_auth=user_auth, accept=accept,
@@ -604,7 +767,10 @@ def test_get_upload_raw_path(
         assert mime_type == expected_mime_type
         if mime_type == 'application/octet-stream':
             if expected_content:
-                assert expected_content in response.text, 'Expected content not found'
+                if offset is not None:
+                    assert response.text == expected_content, 'Wrong content (offset and length)'
+                else:
+                    assert expected_content in response.text, 'Expected content not found'
         elif mime_type == 'application/json':
             data = response.json()
             assert data['path'] == (path.rstrip('/') or '')
@@ -642,88 +808,252 @@ def test_get_upload_raw_path(
                             assert found, f'Missing expected path in zip file: {expected_path}'
 
 
-@pytest.mark.parametrize('mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code', [
-    pytest.param('multipart', 'test_name', 'test_user', False, False, None, False, True, 200, id='multipart'),
-    pytest.param('multipart', None, 'test_user', False, False, None, False, True, 200, id='multipart-no-name'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, None, False, True, 200, id='stream'),
-    pytest.param('stream', None, 'test_user', False, False, None, False, True, 200, id='stream-no-name'),
-    pytest.param('stream', None, 'test_user', False, False, None, False, False, 200, id='stream-no-accept-json'),
-    pytest.param('multipart', None, 'invalid', False, False, None, False, True, 401, id='multipart-no-name-invalid-cred'),
-    pytest.param('stream', None, 'invalid', False, False, None, False, True, 401, id='stream-no-name-invalid-cred'),
-    pytest.param('multipart', 'test_name', 'test_user', True, False, None, False, True, 200, id='multipart-token'),
-    pytest.param('stream', 'test_name', 'test_user', True, False, None, False, True, 200, id='stream-token'),
-    pytest.param('multipart', 'test_name', 'invalid', True, False, None, False, True, 401, id='multipart-token-invalid-cred'),
-    pytest.param('stream', 'test_name', 'invalid', True, False, None, False, True, 401, id='stream-token-invalid-cred'),
-    pytest.param('local_path', None, 'admin_user', False, False, None, False, True, 200, id='local_path'),
-    pytest.param('multipart', None, None, False, False, None, False, True, 401, id='not-logged-in-multipart'),
-    pytest.param('stream', None, None, False, False, None, False, True, 401, id='not-logged-in-stream'),
-    pytest.param('local_path', None, None, False, False, None, False, True, 401, id='not-logged-in-local_path'),
-    pytest.param('local_path', None, 'test_user', False, False, None, False, True, 401, id='not-admin-local_path'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, True, False, True, 200, id='publish_directly'),
-    pytest.param('stream', 'test_name', 'test_user', False, True, True, False, True, 200, id='publish_directly-empty'),
-    pytest.param('stream', 'test_name', 'test_user', False, False, None, True, True, 400, id='upload-limit-exceeded')])
+@pytest.mark.parametrize('mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token, expected_status_code, expected_mainfiles', [
+    pytest.param(
+        'stream', None, 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
+        True, False, 401, None, id='no-credentials'),
+    pytest.param(
+        'stream', 'invalid', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
+        True, False, 401, None, id='invalid-credentials'),
+    pytest.param(
+        'stream', 'invalid', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
+        True, True, 401, None, id='invalid-credentials-token'),
+    pytest.param(
+        'multipart', 'admin_user', 'id_published_w', example_file_aux, '', {},
+        True, False, 401, None, id='published'),
+    pytest.param(
+        'multipart', 'admin_user', 'id_processing_w', example_file_aux, '', {},
+        True, False, 400, None, id='processing'),
+    pytest.param(
+        'multipart', 'other_test_user', 'silly_value', example_file_aux, '', {},
+        True, False, 404, None, id='bad-upload_id'),
+    pytest.param(
+        'multipart', 'other_test_user', 'examples_template', example_file_aux, '', {},
+        True, False, 401, None, id='no-access-to-upload'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', None, '', {},
+        True, False, 400, None, id='no-file'),
+    pytest.param(
+        'local_path', 'test_user', 'examples_template', example_file_aux, '', {},
+        True, False, 401, None, id='local_path-not-admin'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, '', {},
+        True, False, 400, None, id='stream-no-file_name'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_aux, '', {},
+        True, False, 200, ['examples_template/template.json'], id='multipart'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
+        True, False, 200, ['examples_template/template.json'], id='stream'),
+    pytest.param(
+        'local_path', 'admin_user', 'examples_template', example_file_aux, '', {},
+        True, False, 200, ['examples_template/template.json'], id='local_path'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
+        True, True, 200, ['examples_template/template.json'], id='token-auth'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, 'dir1/dir2/dir3', {'file_name': 'blah.aux'},
+        True, False, 200, ['examples_template/template.json'], id='file-to-subfolder'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_vasp_with_binary, 'dir1/dir2', {'file_name': 'tmp.zip'},
+        True, False, 200, [
+            'examples_template/template.json',
+            'dir1/dir2/examples_vasp/xml/Si.xml',
+            'dir1/dir2/examples_vasp/xml/perovskite.xml.gz'], id='zip-to-subfolder'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_aux, 'examples_template', {'file_name': 'template.json'},
+        True, False, 200, {'examples_template/template.json': False}, id='overwrite-and-destroy-old-mainfile'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_vasp_with_binary, '', {'file_name': 'tmp.zip'},
+        True, False, 200, [
+            'examples_template/template.json',
+            'examples_vasp/xml/Si.xml',
+            'examples_vasp/xml/perovskite.xml.gz'], id='unzip-and-add-new-mainfiles'),
+    pytest.param(
+        'stream', 'test_user', 'examples_template', example_file_corrupt_zip, '', {'file_name': 'tmp.zip'},
+        True, False, 200, ['examples_template/template.json'], id='bad-zip')])
+def test_put_upload_raw_path(
+        client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
+        mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token,
+        expected_status_code, expected_mainfiles):
+    action = 'PUT'
+    url = f'uploads/{upload_id}/raw/{target_path}'
+    published = False
+    all_entries_should_succeed = not (type(expected_mainfiles) == dict and False in expected_mainfiles.values())
+
+    assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        source_path, target_path, query_args, accept_json, use_upload_token,
+        expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
+
+
+@pytest.mark.parametrize('user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles', [
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/1.aux', False,
+        200, ['examples_template/template.json'], id='delete-aux-file'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/template.json', False,
+        200, [], id='delete-main-file'),
+    pytest.param(
+        'test_user', 'examples_template', '', False,
+        200, [], id='delete-root'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template', False,
+        200, [], id='delete-subfolder'),
+    pytest.param(
+        'test_user', 'examples_template', 'examples_template/1.aux', True,
+        200, ['examples_template/template.json'], id='delete-token-access'),
+    pytest.param(
+        'admin_user', 'examples_template', 'examples_template/1.aux', False,
+        200, ['examples_template/template.json'], id='delete-admin-access'),
+    pytest.param(
+        'other_test_user', 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='no-access'),
+    pytest.param(
+        None, 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='no-credentials'),
+    pytest.param(
+        'invalid', 'examples_template', 'examples_template/1.aux', False,
+        401, None, id='invalid-credentials'),
+    pytest.param(
+        'invalid', 'examples_template', 'examples_template/1.aux', True,
+        401, None, id='invalid-credentials-token'),
+    pytest.param(
+        'test_user', 'id_published_w', 'examples_template/1.aux', False,
+        401, None, id='published'),
+    pytest.param(
+        'test_user', 'id_processing_w', 'examples_template/1.aux', False,
+        400, None, id='processing')])
+def test_delete_upload_raw_path(
+        client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
+        user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles):
+    user_auth, token = test_auth_dict[user]
+    # Use either token or bearer token for the post operation (never both)
+    user_auth_action = user_auth
+    if use_upload_token:
+        user_auth_action = None
+    else:
+        token = None
+    query_args = dict(token=token)
+    response = client.delete(build_url(f'uploads/{upload_id}/raw/{path}', query_args), headers=user_auth_action)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_processing(client, upload_id, user_auth)
+        # Check that path to remove has disappeared
+        upload_files = StagingUploadFiles(upload_id, is_authorized=lambda: True)
+        if path == '':
+            # Deleting the root folder = the folder itself should be emptied, but not deleted.
+            assert not list(upload_files.raw_directory_list(''))
+        else:
+            # Deleting a file or folder within the raw folder - it should disappear.
+            assert not upload_files.raw_path_exists(path)
+
+        assert_expected_mainfiles(upload_id, expected_mainfiles)
+
+
+@pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
+    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), False, 200, id='ok'),
+    pytest.param('test_user', 'id_unpublished_w', dict(name=''), False, 200, id='clear-name'),
+    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), True, 200, id='use-token'),
+    pytest.param('test_user', 'silly_value', dict(name='test_name'), True, 404, id='bad-upload_id'),
+    pytest.param('admin_user', 'id_published_w', dict(name='test_name'), False, 200, id='published-admin'),
+    pytest.param('test_user', 'id_published_w', dict(name='test_name'), False, 401, id='published-not-admin'),
+    pytest.param(None, 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-credentials'),
+    pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), False, 401, id='invalid-credentials'),
+    pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), True, 401, id='invalid-credentials-token'),
+    pytest.param('other_test_user', 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-access'),
+    pytest.param('test_user', 'id_processing_w', dict(name='test_name'), False, 400, id='processing')])
+def test_put_upload_metadata(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        user, upload_id, query_args, use_upload_token, expected_status_code):
+
+    user_auth, token = test_auth_dict[user]
+    if use_upload_token:
+        user_auth = None
+    else:
+        token = None
+
+    if token:
+        query_args['token'] = token
+
+    try:
+        upload = Upload.get(upload_id)
+        upload.name = 'old_value'
+        upload.save()
+    except KeyError:
+        pass
+
+    url = build_url(f'uploads/{upload_id}/metadata', query_args)
+    response = client.put(url, headers=user_auth)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = Upload.get(upload_id)
+        expected_name = query_args.get('name')
+        if expected_name is not None:
+            assert upload.name == (expected_name or None)
+
+
+@pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
+    pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, False, True, 200, id='multipart'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='multipart-no-name'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='multipart-token'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, False, True, 200, id='stream'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='stream-no-name'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='stream-token'),
+    pytest.param('local_path', example_file_vasp_with_binary, dict(), 'admin_user', False, False, True, 200, id='local_path'),
+    pytest.param('local_path', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 401, id='local_path-not-admin'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(), 'test_user', False, False, False, 200, id='no-accept-json'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(), None, False, False, True, 401, id='no-credentials'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', False, False, True, 401, id='invalid-credentials'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', True, False, True, 401, id='invalid-credentials-token'),
+    pytest.param('stream', None, dict(name='test_name'), 'test_user', False, False, True, 200, id='no-file'),
+    pytest.param('stream', example_file_aux, dict(file_name='1.aux'), 'test_user', False, False, True, 200, id='stream-non-zip-file'),
+    pytest.param('stream', example_file_aux, dict(), 'test_user', False, False, True, 400, id='stream-non-zip-file-no-file_name'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly'),
+    pytest.param('stream', empty_file, dict(name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly-empty'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, True, True, 400, id='upload-limit-exceeded'),
+    pytest.param('multipart', example_file_corrupt_zip, dict(), 'test_user', False, False, True, 200, id='bad-zip')])
 def test_post_upload(
-        client, mongo, proc_infra, monkeypatch, test_user, admin_user, test_user_auth, admin_user_auth,
+        client, mongo, proc_infra, monkeypatch, test_auth_dict,
         empty_upload, non_empty_example_upload,
-        mode, name, user, use_upload_token, empty, publish_directly, test_limit, accept_json, expected_status_code):
+        mode, source_path, query_args, user, use_upload_token, test_limit, accept_json,
+        expected_status_code):
     '''
     Posts an upload, with different arguments.
     '''
-    if user == 'test_user':
-        user_auth = test_user_auth
-        token = generate_upload_token(test_user)
-    elif user == 'admin_user':
-        user_auth = admin_user_auth
-        token = generate_upload_token(admin_user)
-    elif user == 'invalid':
-        user_auth = {'Authorization': 'Bearer JUST-MADE-IT-UP'}
-        token = 'invalid.token'
-    else:
-        user_auth = None
-        token = None
-    # Use either token or bearer token for the post operation
-    user_auth_post = user_auth
-    if use_upload_token:
-        user_auth_post = None
-    else:
-        token = None
-
-    if empty:
-        upload_file = empty_upload
-    else:
-        upload_file = non_empty_example_upload
-
     if test_limit:
         monkeypatch.setattr('nomad.config.services.upload_limit', 0)
 
-    accept = 'application/json' if accept_json else '*'
+    action = 'POST'
+    url = 'uploads'
+    published = (query_args.get('publish_directly') and not source_path == empty_file)
+    all_entries_should_succeed = True
+    target_path = ''
+    expected_mainfiles = None
+    upload_id = None  # Not determined yet
 
-    response = perform_post_upload(
-        client, mode, upload_file, user_auth_post, token, accept=accept,
-        name=name, publish_directly=publish_directly)
+    response_data = assert_file_upload_and_processing(
+        client, action, url, mode, user, test_auth_dict, upload_id,
+        source_path, target_path, query_args, accept_json, use_upload_token,
+        expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
 
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
-        if accept_json:
-            response_json = response.json()
-            upload_id = response_json['upload_id']
-            expected_name = name
-            if not expected_name and mode in ('multipart', 'local_path'):
-                expected_name = os.path.basename(non_empty_example_upload)
-            assert_upload(response_json, name=expected_name)
-            if mode == 'local_path':
-                assert response_json['data']['upload_path'] == non_empty_example_upload
+    if expected_status_code == 200 and response_data:
+        expected_name = query_args.get('name')
+        if not expected_name:
+            if mode in ('multipart', 'local_path'):
+                expected_name = os.path.basename(source_path)
+            elif mode == 'stream':
+                expected_name = query_args.get('file_name')
 
-            assert_processing(client, upload_id, user_auth, published=(publish_directly and not empty))
+        assert response_data.get('name') == expected_name
 
-            if publish_directly:
-                upload_proc = Upload.objects(upload_id=upload_id).first()
-                if empty:
-                    assert not upload_proc.published
-                else:
-                    assert_gets_published(client, upload_id, test_user_auth, with_embargo=False)
+    if query_args.get('publish_directly'):
+        upload_id = response_data['upload_id']
+        upload_proc = Upload.objects(upload_id=upload_id).first()
+        if source_path == empty_file:
+            assert not upload_proc.published
         else:
-            assert 'Thanks for uploading' in response.text
+            assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], with_embargo=False)
 
 
 @pytest.mark.parametrize('user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code', [
@@ -732,21 +1062,19 @@ def test_post_upload(
     pytest.param('test_user', None, 'oasis_upload_id', 'an_id', 400, id='missing-oasis_uploader_id'),
     pytest.param('test_user', 'test_user', None, 'an_id', 400, id='missing-oasis_upload_id'),
     pytest.param('test_user', 'test_user', 'oasis_upload_id', None, 400, id='missing-oasis_deployment_id'),
-    pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin')])
+    pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin'),
+    pytest.param(None, 'test_user', 'oasis_upload_id', 'an_id', 401, id='no-credentials'),
+    pytest.param('invalid', 'test_user', 'oasis_upload_id', 'an_id', 401, id='invalid-credentials')])
 def test_post_upload_oasis(
         client, mongo, proc_infra, oasis_example_upload, example_data_writeable,
-        test_user, other_test_user, test_user_auth, other_test_user_auth,
+        test_users_dict, test_auth_dict,
         user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code):
 
-    auth_dict = {
-        'test_user': (test_user.user_id, test_user_auth),
-        'other_test_user': (other_test_user.user_id, other_test_user_auth),
-        None: (None, None)}
-    __, user_auth = auth_dict[user]
-    oasis_uploader_id, __ = auth_dict[oasis_uploader]
-
-    response = perform_post_upload(
-        client, 'stream', oasis_example_upload, user_auth,
+    user_auth, __token = test_auth_dict[user]
+    oasis_uploader_id = test_users_dict[oasis_uploader].user_id if oasis_uploader else None
+    url = 'uploads'
+    response = perform_post_put_file(
+        client, 'POST', url, 'stream', oasis_example_upload, user_auth,
         oasis_upload_id=oasis_upload_id,
         oasis_uploader_id=oasis_uploader_id,
         oasis_deployment_id=oasis_deployment_id)
@@ -803,21 +1131,28 @@ def test_post_upload_oasis(
         id='already-published'),
     pytest.param(
         dict(
+            user=None,
+            expected_status_code=401),
+        id='no-credentials'),
+    pytest.param(
+        dict(
+            user='invalid',
+            expected_status_code=401),
+        id='invalid-credentials'),
+    pytest.param(
+        dict(
             user='other_test_user',
             expected_status_code=401),
-        id='not-my-upload')])
+        id='no-access')])
 def test_post_upload_action_publish(
-        client, proc_infra, example_data_writeable, test_user_auth, other_test_user_auth, admin_user_auth,
-        kwargs):
+        client, proc_infra, example_data_writeable,
+        test_auth_dict, kwargs):
     ''' Tests the publish action with various arguments. '''
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'test_user')
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
 
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
 
@@ -830,25 +1165,36 @@ def test_post_upload_action_publish(
         assert_gets_published(client, upload_id, user_auth, **query_args)
 
 
-@pytest.mark.parametrize('upload_id, user, expected_status_code', [
-    pytest.param('examples_template', 'test_user', 200, id='ok'),
-    pytest.param('examples_template', 'other_test_user', 401, id='no-access'),
-    pytest.param('id_unpublished_w', 'test_user', 400, id='not-published'),
-    pytest.param('id_processing_w', 'test_user', 400, id='already-processing'),
-    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
-def test_post_upload_action_reprocess(
-        client, monkeypatch, example_data_writeable, published, test_user_auth, other_test_user_auth,
-        upload_id, user, expected_status_code):
+@pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
+    pytest.param('examples_template', True, 'admin_user', 200, id='published-admin'),
+    pytest.param('examples_template', True, 'test_user', 401, id='published-not-admin'),
+    pytest.param('examples_template', False, 'test_user', 200, id='not-published'),
+    pytest.param('examples_template', False, None, 401, id='no-credentials'),
+    pytest.param('examples_template', False, 'invalid', 401, id='invalid-credentials'),
+    pytest.param('examples_template', False, 'other_test_user', 401, id='no-access'),
+    pytest.param('id_processing_w', False, 'test_user', 400, id='already-processing'),
+    pytest.param('silly_value', False, 'test_user', 404, id='invalid-upload_id')])
+def test_post_upload_action_process(
+        client, mongo, proc_infra, monkeypatch, example_data_writeable,
+        non_empty_processed, internal_example_user_metadata, test_auth_dict,
+        upload_id, publish, user, expected_status_code):
+
+    if publish:
+        non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
+        non_empty_processed.publish_upload()
+        try:
+            non_empty_processed.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth}[user]
+    user_auth, __token = test_auth_dict[user]
 
-    response = perform_post_upload_action(client, user_auth, upload_id, 're-process')
+    response = perform_post_upload_action(client, user_auth, upload_id, 'process')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_processing(client, upload_id, test_user_auth, check_files=False, published=True)
+        assert_processing(client, upload_id, test_auth_dict['test_user'][0], check_files=False, published=True)
 
 
 @pytest.mark.parametrize('upload_id, user, expected_status_code', [
@@ -857,22 +1203,19 @@ def test_post_upload_action_reprocess(
     pytest.param('id_unpublished_w', 'admin_user', 200, id='delete-others-admin'),
     pytest.param('id_published_w', 'test_user', 401, id='delete-own-published'),
     pytest.param('id_published_w', 'admin_user', 200, id='delete-others-published-admin'),
-    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id')])
+    pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id'),
+    pytest.param('id_unpublished_w', None, 401, id='no-credentials'),
+    pytest.param('id_unpublished_w', 'invalid', 401, id='invalid-credentials')])
 def test_delete_upload(
-        client, proc_infra, example_data_writeable,
-        test_user_auth, other_test_user_auth, admin_user_auth,
+        client, proc_infra, example_data_writeable, test_auth_dict,
         upload_id, user, expected_status_code):
     ''' Uploads a file, and then tries to delete it, with different parameters and users. '''
-    user_auth = {
-        'test_user': test_user_auth,
-        'other_test_user': other_test_user_auth,
-        'admin_user': admin_user_auth
-    }[user]
+    user_auth, __token = test_auth_dict[user]
 
     response = client.delete(f'uploads/{upload_id}', headers=user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_upload_does_not_exist(client, upload_id, test_user_auth)
+        assert_upload_does_not_exist(client, upload_id, test_auth_dict['test_user'][0])
 
 
 @pytest.mark.parametrize('authorized, expected_status_code', [

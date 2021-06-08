@@ -59,12 +59,12 @@ def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None
 def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path, **kwargs)
+        upload_id=uploaded_id, user=test_user, **kwargs)
     upload.upload_time = datetime.utcnow()
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
-
+    upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)
 
@@ -235,13 +235,14 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
         user_id=test_user.user_id).a_mongo.save()
 
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, upload_path=uploaded_path)
+        upload_id=uploaded_id, user=test_user)
     upload.from_oasis = True
     upload.oasis_deployment_id = 'an_oasis_id'
 
     assert upload.tasks_status == 'RUNNING'
     assert upload.current_task == 'uploading'
 
+    upload.schedule_operation_add_files(uploaded_path, '', temporary=False)
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)
 
@@ -343,7 +344,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, with_failure):
     if with_failure == 'not-matched':
-        monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
+        monkeypatch.setattr('nomad.config.reprocess_published.delete_unmatched_entries', False)
 
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()
@@ -389,7 +390,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
     published.reset()
-    published.re_process_upload()
+    published.process_upload()
     try:
         published.block_until_complete(interval=.01)
     except Exception:
@@ -449,7 +450,7 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
             StagingUploadFiles(upload.upload_id, create=True)
 
     upload.reset()
-    upload.re_process_upload()
+    upload.process_upload()
     try:
         upload.block_until_complete(interval=.01)
     except Exception:
@@ -477,12 +478,11 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
     upload.reset()
     assert upload.total_calcs == 1, upload.total_calcs
 
-    monkeypatch.setattr('nomad.config.reprocess_match', True)
     if not published:
         upload_files = UploadFiles.get(upload.upload_id).to_staging_upload_files()
         upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
 
-    upload.re_process_upload()
+    upload.process_upload()
     try:
         upload.block_until_complete(interval=.01)
     except Exception:

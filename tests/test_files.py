@@ -27,8 +27,7 @@ import re
 
 from nomad import config, datamodel, utils
 from nomad.files import DirectoryObject, PathObject
-from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted, \
-    ArchiveBasedStagingUploadFiles
+from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted
 
 
 CalcWithFiles = Tuple[datamodel.EntryMetadata, str]
@@ -46,8 +45,10 @@ example_file_contents = [
     'examples_template/2.aux',
     'examples_template/3.aux',
     'examples_template/4.aux']
+example_file_aux = 'tests/data/proc/examples_template/1.aux'
 example_file_mainfile = 'examples_template/template.json'
 example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
+example_file_corrupt_zip = 'tests/data/proc/examples_corrupt_zip.zip'
 empty_file = 'tests/data/proc/empty.zip'
 example_archive_contents = {
     "section_run": [],
@@ -336,12 +337,12 @@ class TestStagingUploadFiles(UploadFilesContract):
     def empty_test_upload(self, test_upload_id) -> UploadFiles:
         return StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
 
-    @pytest.mark.parametrize('prefix', [None, 'prefix'])
-    def test_add_rawfiles_zip(self, test_upload_id, prefix):
+    @pytest.mark.parametrize('target_dir', ['', 'subdir'])
+    def test_add_rawfiles_zip(self, test_upload_id, target_dir):
         test_upload = StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
-        test_upload.add_rawfiles(example_file, prefix=prefix)
+        test_upload.add_rawfiles(example_file, target_dir=target_dir)
         for filepath in example_file_contents:
-            filepath = os.path.join(prefix, filepath) if prefix else filepath
+            filepath = os.path.join(target_dir, filepath) if target_dir else filepath
             with test_upload.raw_file(filepath) as f:
                 content = f.read()
                 if filepath == example_file_mainfile:
@@ -368,20 +369,12 @@ class TestStagingUploadFiles(UploadFilesContract):
         upload_files.delete()
         assert not upload_files.exists()
 
-
-class TestArchiveBasedStagingUploadFiles(UploadFilesFixtures):
-    def test_create(self, test_upload_id):
-        test_upload = ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path=example_file)
-        test_upload.extract()
+    def test_add_rawfiles(self, test_upload_id):
+        test_upload = StagingUploadFiles(
+            test_upload_id, create=True)
+        assert test_upload.is_empty()
+        test_upload.add_rawfiles(example_file)
         assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
-        assert os.path.exists(test_upload.upload_path)
-
-    def test_invalid(self, test_upload_id):
-        assert ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path=example_file).is_valid
-        assert not ArchiveBasedStagingUploadFiles(
-            test_upload_id, create=True, upload_path='does not exist').is_valid
 
 
 def create_public_upload(
@@ -534,10 +527,8 @@ def create_test_upload_files(
     if upload_id is None: upload_id = utils.create_uuid()
     if archives is None: archives = []
 
-    upload_files = ArchiveBasedStagingUploadFiles(
-        upload_id, upload_path=template_files, create=True)
-
-    upload_files.extract()
+    upload_files = StagingUploadFiles(upload_id, create=True)
+    upload_files.add_rawfiles(template_files)
 
     upload_raw_files = upload_files.join_dir('raw')
     source = upload_raw_files.join_dir(os.path.dirname(template_mainfile)).os_path
@@ -566,7 +557,7 @@ def create_test_upload_files(
 
     if published:
         upload_files.pack([archive.section_metadata for archive in archives])
-        upload_files.delete(include_public=False)
+        upload_files.delete()
         return UploadFiles.get(upload_id)
 
     return upload_files

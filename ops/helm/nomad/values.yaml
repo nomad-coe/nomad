@@ -168,9 +168,11 @@ volumes:
 
 springerDbPath: /nomad/fairdi/db/data/springer.msg
 
-# Will reprocess calculations with their old matched parser, even if they do not
-# match this parser anymore
-reprocess_unmatched: true
+reprocess_published:
+    reprocess_entry_if_parser_unchanged: true
+    reprocess_entry_if_parser_changed: true
+    add_new_entries_if_found: true
+    delete_unmatched_entries: false
 
 datacite:
   enabled: false

@@ -73,7 +73,7 @@ def migrate(mongo_db: str):
 
         # reprocess
         upload.reset()
-        upload.re_process_upload()
+        upload.process_upload()
         upload.block_until_complete(interval=.5)
 
         if upload.tasks_status == proc.FAILURE:

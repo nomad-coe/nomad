@@ -237,7 +237,7 @@ class TestAdminUploads:
             cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
-        assert 're-processing' in result.stdout
+        assert 'processing' in result.stdout
         calc.reload()
         assert calc.metadata['nomad_version'] == 'test_version'
 

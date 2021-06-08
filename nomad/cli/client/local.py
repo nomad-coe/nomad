@@ -76,11 +76,11 @@ class CalcProcReproduction:
             self.logger = self.logger.bind(mainfile=self.mainfile)
             self.logger.info('Using provided mainfile', mainfile=self.mainfile)
 
-        local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
-        if not os.path.exists(os.path.dirname(local_path)):
-            os.makedirs(os.path.dirname(local_path))
+        self.local_path = os.path.join(config.fs.tmp, 'repro_%s.zip' % archive_id)
+        if not os.path.exists(os.path.dirname(self.local_path)):
+            os.makedirs(os.path.dirname(self.local_path))
 
-        if not os.path.exists(local_path) or override:
+        if not os.path.exists(self.local_path) or override:
             # download raw if not already downloaded or if override is set
             # download with request, since bravado does not support streaming
             self.logger.info('Downloading calc.', mainfile=self.mainfile)
@@ -90,7 +90,7 @@ class CalcProcReproduction:
                 req = requests.get(
                     '%s/raw/%s/%s/*?signature_token=%s' % (config.client.url, self.upload_id, dir_name, token),
                     stream=True, headers={})
-                with open(local_path, 'wb') as f:
+                with open(self.local_path, 'wb') as f:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                         f.write(chunk)
             except bravado.exception.HTTPNotFound:
@@ -103,18 +103,14 @@ class CalcProcReproduction:
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_files = files.ArchiveBasedStagingUploadFiles(
-            upload_id='tmp_%s' % archive_id, upload_path=local_path, create=True,
-            is_authorized=lambda: True)
+        self.upload_files = files.StagingUploadFiles(
+            upload_id='tmp_%s' % archive_id, create=True, is_authorized=lambda: True)
 
     def __enter__(self):
         # open/extract upload file
         self.logger.info('Extracting calc data.')
-        try:
-            self.upload_files.extract()
-        except AssertionError:
-            # already extracted
-            pass
+        if self.upload_files.is_empty():  # Only add the files once
+            self.upload_files.add_rawfiles(self.local_path)
 
         assert self.mainfile is not None
         self.logger = self.logger.bind(mainfile=self.mainfile)

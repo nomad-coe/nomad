@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List, IO
+from typing import Optional, Union, Dict, Iterator, Any, List
 from fastapi import (
     APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter,
     Body)
@@ -27,9 +27,6 @@ import os.path
 import io
 import json
 import orjson
-import magic
-import gzip
-import lzma
 
 from nomad import files, config, utils
 from nomad.utils import strip
@@ -40,7 +37,9 @@ from nomad.search.v1 import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
-from ..utils import create_streamed_zipfile, create_download_stream_zipped, DownloadItem, File, create_responses
+from ..utils import (
+    create_streamed_zipfile, create_download_stream_zipped, create_download_stream_raw_file,
+    DownloadItem, File, create_responses)
 from ..models import (
     PaginationResponse, MetadataPagination, WithQuery, WithQueryAndPagination, MetadataRequired,
     MetadataResponse, Metadata, Files, Query, User, Owner,
@@ -909,36 +908,6 @@ async def get_entry_raw_download(
     return _answer_entries_raw_download_request(owner=Owner.public, query=query, files=files, user=user)
 
 
-class FileContentIterator:
-    '''
-    An iterator implementation that provides the contents of an underlying file, based on
-    offset and length.
-
-    Arguments:
-        f: the file-like
-        offset: the offset
-        length: the amount of bytes
-    '''
-    def __init__(self, f, offset, length):
-        self.f = f
-        self.offset = offset
-        self.read_bytes = 0
-        self.f.seek(self.offset)
-        self.length = length
-
-    def __next__(self):
-        remaining = self.length - self.read_bytes
-        if remaining > 0:
-            content = self.f.read(remaining)
-            content_length = len(content)
-            self.read_bytes += content_length
-            if content_length == 0:
-                self.length = self.read_bytes
-            return content
-        else:
-            raise StopIteration
-
-
 @router.get(
     '/{entry_id}/raw/download/{path}',
     tags=[raw_tag],
@@ -982,38 +951,19 @@ async def get_entry_raw_download_file(
     entry_path = os.path.dirname(mainfile)
     path = os.path.join(entry_path, path)
 
-    raw_file: Any = None
-    try:
-        raw_file = upload_files.raw_file(path, 'br')
-
-        if decompress:
-            if path.endswith('.gz'):
-                raw_file = gzip.GzipFile(filename=path[:3], mode='rb', fileobj=raw_file)
-
-            if path.endswith('.xz'):
-                raw_file = lzma.open(filename=raw_file, mode='rb')
-
-        # We only provide a specific mime-type, if the whole file is requested. Otherwise,
-        # it is unlikely that the provided contents will match the overall file mime-type.
-        mime_type = 'application/octet-stream'
-        if offset == 0 and length < 0:
-            buffer = raw_file.read(2048)
-            raw_file.seek(0)
-            mime_type = magic.from_buffer(buffer, mime=True)
-
-        raw_file_content: Union[FileContentIterator, IO] = None
-        if length > 0:
-            raw_file_content = FileContentIterator(raw_file, offset, length)
-        else:
-            raw_file.seek(offset)
-            raw_file_content = raw_file
-
-        return StreamingResponse(raw_file_content, media_type=mime_type)
-
-    except KeyError:
+    if not upload_files.raw_path_exists(path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The requested file does not exist.')
+    # We only provide a specific mime-type, if the whole file is requested. Otherwise,
+    # it is unlikely that the provided contents will match the overall file mime-type.
+    mime_type = 'application/octet-stream'
+    if offset == 0 and length < 0:
+        mime_type = upload_files.raw_file_mime_type(path)
+
+    raw_file_content = create_download_stream_raw_file(
+        upload_files, path, offset, length, decompress)
+    return StreamingResponse(raw_file_content, media_type=mime_type)
 
 
 def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):

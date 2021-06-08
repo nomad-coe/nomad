@@ -28,7 +28,7 @@ calculations, and files
 
 '''
 
-from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable
 from mongoengine import (
     StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
 import logging
@@ -47,8 +47,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
-    PublicUploadFiles, StagingUploadFiles)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles)
 from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -149,7 +148,7 @@ class Calc(Proc):
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
         self._upload: Upload = None
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
+        self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
         self._entry_metadata = None
@@ -251,10 +250,9 @@ class Calc(Proc):
         return entry_metadata
 
     @property
-    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
+    def upload_files(self) -> StagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(
-                self.upload_id, is_authorized=lambda: True, upload_path=self.upload.upload_path)
+            self._upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
         return self._upload_files
 
     def get_logger(self, **kwargs):
@@ -290,78 +288,97 @@ class Calc(Proc):
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
     @process
-    def re_process_calc(self):
+    def process_calc(self):
         '''
-        Processes a calculation again. This means there is already metadata and
-        instead of creating it initially, we are just updating the existing
-        records.
+        Processes (or reprocesses) a calculation.
         '''
         logger = self.get_logger()
+        if self.upload is None:
+            logger.error('calculation upload does not exist')
 
-        if config.reprocess_rematch:
-            with utils.timer(logger, 'parser matching executed'):
-                parser = match_parser(
-                    self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
+        has_previous_metadata = bool(self.metadata)
 
-            if parser is None and not config.reprocess_unmatched:
-                self.errors = ['no parser matches during re-process, will not re-process this calc']
-
-                try:
-                    upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                    with upload_files.read_archive(self.calc_id) as archive:
-                        self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
-
-                except Exception as e:
-                    logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
-                    raise e
-
-                # mock the steps of actual processing
-                self._continue_with('parsing')
-                self._continue_with('normalizing')
-                self._continue_with('archiving')
-                self._complete()
-                return
-
+        if not self.upload.published or not has_previous_metadata:
+            should_parse = True
         else:
-            parser = parser_dict.get(self.parser)
+            # This entry has already been published and has metadata.
+            # Determine if we should reparse or keep it.
+            should_parse = False
+            reprocess_if_parser_unchanged = config.reprocess_published.reprocess_entry_if_parser_unchanged
+            reprocess_if_parser_changed = config.reprocess_published.reprocess_entry_if_parser_changed
+            if reprocess_if_parser_unchanged or reprocess_if_parser_changed:
+                with utils.timer(logger, 'parser matching executed'):
+                    parser = match_parser(
+                        self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
+                if parser is None:
+                    # Should only be possible if the upload is published and we have
+                    # config.reprocess_published.delete_unmatched_entries == False
+                    logger.warn('no parser matches during re-process, not updating the entry')
+                    self.warnings = ['no matching parser found during processing']
+                else:
+                    parser_changed = self.parser != parser.name and parser_dict[self.parser].name != parser.name
+                    if reprocess_if_parser_unchanged and not parser_changed:
+                        should_parse = True
+                    elif reprocess_if_parser_changed and parser_changed:
+                        should_parse = True
+                    if should_parse and self.parser != parser.name:
+                        if parser_dict[self.parser].name == parser.name:
+                            logger.info(
+                                'parser renamed, using new parser name',
+                                parser=parser.name)
+                        else:
+                            logger.info(
+                                'different parser matches during re-process, use new parser',
+                                parser=parser.name)
+                        self.parser = parser.name  # Parser changed or renamed
 
-        if parser is None:
-            self.get_logger().warn('no parser matches during re-process, use the old parser')
-            self.warnings = ['no matching parser found during re-processing']
-
-        elif self.parser != parser.name:
-            if parser_dict[self.parser].name == parser.name:
-                # parser was just renamed
-                self.parser = parser.name
-
-            else:
-                self.parser = parser.name
-                logger.info(
-                    'different parser matches during re-process, use new parser',
-                    parser=parser.name)
-
-        try:
-            self._entry_metadata = self.user_metadata()
-            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.nomad_version = config.meta.version
-            self._entry_metadata.nomad_commit = config.meta.commit
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.processing_errors = []
-            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-
-            self._setup_fallback_metadata()
-
-            self.parsing()
-            self.normalizing()
-            self.archiving()
-        finally:
-            # close loghandler that was not closed due to failures
+        if not should_parse:
+            # Keep published entry as it is
             try:
-                if self._parser_results and self._parser_results.m_resource:
-                    self._parser_results.section_metadata = None
-                    self._parser_results.m_resource.unload()
+                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                with upload_files.read_archive(self.calc_id) as archive:
+                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
+
             except Exception as e:
-                logger.error('could not unload processing results', exc_info=e)
+                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
+                raise
+
+            # mock the steps of actual processing
+            self._continue_with('parsing')
+            self._continue_with('normalizing')
+            self._continue_with('archiving')
+            self._complete()
+            return
+        else:
+            # Parse (or reparse) it
+            try:
+                if has_previous_metadata:
+                    self._entry_metadata = self.user_metadata()
+                    self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+                    self._entry_metadata.nomad_version = config.meta.version
+                    self._entry_metadata.nomad_commit = config.meta.commit
+                    self._entry_metadata.last_processing = datetime.utcnow()
+                    self._entry_metadata.processing_errors = []
+                    self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+
+                self._setup_fallback_metadata(overwrite=not has_previous_metadata)
+
+                if len(self._entry_metadata.files) >= config.auxfile_cutoff:
+                    self.warning(
+                        'This calc has many aux files in its directory. '
+                        'Have you placed many calculations in the same directory?')
+
+                self.parsing()
+                self.normalizing()
+                self.archiving()
+            finally:
+                # close loghandler that was not closed due to failures
+                try:
+                    if self._parser_results and self._parser_results.m_resource:
+                        self._parser_results.section_metadata = None
+                        self._parser_results.m_resource.unload()
+                except Exception as e:
+                    logger.error('could not unload processing results', exc_info=e)
 
     def _setup_fallback_metadata(self, overwrite: bool = False):
         if self._entry_metadata is None or overwrite:
@@ -376,38 +393,6 @@ class Calc(Proc):
             self._parser_results = EntryArchive()
         if self._parser_results.section_metadata != self._entry_metadata:
             self._parser_results.section_metadata = self._entry_metadata
-
-    @process
-    def process_calc(self):
-        '''
-        Processes a new calculation that has no prior records in the mongo, elastic,
-        or filesystem storage. It will create an initial set of (user) metadata.
-        '''
-        logger = self.get_logger()
-        if self.upload is None:
-            logger.error('calculation upload does not exist')
-
-        try:
-            # save preliminary minimum calc metadata in case processing fails
-            # successful processing will replace it with the actual metadata
-            self._setup_fallback_metadata(overwrite=True)
-
-            if len(self._entry_metadata.files) >= config.auxfile_cutoff:
-                self.warning(
-                    'This calc has many aux files in its directory. '
-                    'Have you placed many calculations in the same directory?')
-
-            self.parsing()
-            self.normalizing()
-            self.archiving()
-        finally:
-            # close loghandler that was not closed due to failures
-            try:
-                if self._parser_results and self._parser_results.m_resource:
-                    self._parser_results.section_metadata = None
-                    self._parser_results.m_resource.unload()
-            except Exception as e:
-                logger.error('could unload processing results', exc_info=e)
 
     def on_fail(self):
         # in case of failure, index a minimum set of metadata and mark
@@ -444,7 +429,7 @@ class Calc(Proc):
         # the save might be necessary to correctly read the join condition from the db
         self.save()
         # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
+        if process_name == 'process_calc' or process_name is None:
             self.upload.reload()
             self.upload.check_join()
 
@@ -738,7 +723,7 @@ class Upload(Proc):
         user_id: The id of the user that created this upload.
         published: Boolean that indicates that the upload is published on this NOMAD deployment.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
-        last_update: Datetime of the last modifying process run (publish, re-processing, upload).
+        last_update: Datetime of the last modifying process run (publish, processing, upload).
 
         publish_directly: Boolean indicating that this upload should be published after initial processing.
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
@@ -750,8 +735,7 @@ class Upload(Proc):
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    upload_path = StringField(default=None)
-    temporary = BooleanField(default=False)
+    pending_operations = ListField(DictField(), default=[])
     embargo_length = IntField(default=36)
 
     name = StringField(default=None)
@@ -778,7 +762,7 @@ class Upload(Proc):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.publish_directly = self.publish_directly or self.from_oasis
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
+        self._upload_files: UploadFiles = None
 
     @lru_cache()
     def metadata_file_cached(self, path):
@@ -808,11 +792,9 @@ class Upload(Proc):
         the publish process. This will change, when we introduce editing functionality
         and metadata will be provided through different means.
         '''
-        try:
-            upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-        except KeyError:
-            return None
-        return upload_files.user_metadata
+        if PublicUploadFiles.exists_for(self.upload_id):
+            return PublicUploadFiles(self.upload_id, is_authorized=lambda: True).user_metadata
+        return None
 
     @metadata.setter
     def metadata(self, data: dict) -> None:
@@ -890,6 +872,31 @@ class Upload(Proc):
 
             self.delete()
 
+    def schedule_operation_add_files(self, path: str, target_dir: str, temporary: bool):
+        assert type(path) == str and type(target_dir) == str and type(temporary) == bool
+        self._schedule_operation(dict(op='ADD', path=path, target_dir=target_dir, temporary=temporary))
+
+    def schedule_operation_delete_path(self, path):
+        assert type(path) == str
+        self._schedule_operation(dict(op='DELETE', path=path))
+
+    def _schedule_operation(self, operation: Dict):
+        '''
+        Adds a dictionary, defining a pending operation, to the pending_operations queue and
+        saves the document.
+        '''
+        self.pending_operations.append(operation)
+        self.save()
+
+    def _take_next_pending_operation(self) -> Dict:
+        '''
+        Gets the next pending operation for the specified upload from the queue, and saves
+        the document (=an atomic operation). If unsuccessful, an exception will be raised.
+        '''
+        next_operation = self.pending_operations.pop(0)
+        self.save()
+        return next_operation
+
     @process
     def delete_upload(self):
         '''
@@ -927,7 +934,7 @@ class Upload(Proc):
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.upload_files.pack(calcs)
+                        self.staging_upload_files.pack(calcs)
 
                 with utils.timer(logger, 'index updated'):
                     search.publish(calcs)
@@ -1026,97 +1033,6 @@ class Upload(Proc):
         self.last_status_message = 'Successfully uploaded to central NOMAD.'
 
     @process
-    def re_process_upload(self):
-        '''
-        A *process* that performs the re-processing of a earlier processed
-        upload.
-
-        Runs the distributed process of fully reparsing/re-normalizing an existing and
-        already published upload. Will renew the archive part of the upload and update
-        mongo and elastic search entries.
-
-        TODO this implementation does not do any re-matching. This will be more complex
-        due to handling of new or missing matches.
-        '''
-        logger = self.get_logger()
-        logger.info('started to re-process')
-
-        # mock the steps of actual processing
-        self._continue_with('uploading')
-
-        # extract the published raw files into a staging upload files instance
-        self._continue_with('extracting')
-
-        if self.published:
-            try:
-                staging_upload_files = StagingUploadFiles(self.upload_id)
-                # public files exist and there is a staging directory, it is probably old
-                # and we delete it first
-                with utils.timer(logger, 'upload staging files deleted'):
-                    staging_upload_files.delete()
-                    logger.warn('deleted old staging files')
-
-            except KeyError as e:
-                logger.info('reprocessing published files')
-        else:
-            logger.info('reprocessing staging files')
-
-        with utils.timer(logger, 'upload extracted'):
-            staging_upload_files = self.upload_files.to_staging_upload_files(create=True)
-
-        self._continue_with('parse_all')
-        try:
-            if config.reprocess_match:
-                with utils.timer(logger, 'calcs match on reprocess'):
-                    for filename, parser in self.match_mainfiles():
-                        calc_id = staging_upload_files.calc_id(filename)
-                        try:
-                            Calc.get(calc_id)
-                        except KeyError:
-                            calc = Calc.create(
-                                calc_id=calc_id,
-                                mainfile=filename, parser=parser.name,
-                                worker_hostname=self.worker_hostname,
-                                upload_id=self.upload_id)
-
-                            calc.save()
-
-            with utils.timer(logger, 'calcs resetted'):
-                # check if a calc is already/still processing
-                processing = Calc.objects(
-                    upload_id=self.upload_id,
-                    **Calc.process_running_mongoengine_query()).count()
-
-                if processing > 0:
-                    logger.warn(
-                        'processes are still/already running on calc, they will be resetted',
-                        count=processing)
-
-                # reset all calcs
-                Calc._get_collection().update_many(
-                    dict(upload_id=self.upload_id),
-                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
-            with utils.timer(logger, 'calcs re-processing called'):
-                # process call calcs
-                Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
-
-                logger.info('completed to trigger re-process of all calcs')
-
-        except Exception as e:
-            # try to remove the staging copy in failure case
-            logger.error('failed to trigger re-process of all calcs', exc_info=e)
-
-            if self.published:
-                if staging_upload_files is not None and staging_upload_files.exists():
-                    staging_upload_files.delete()
-
-            raise e
-
-        # the packing and removing of the staging upload files, will be trigged by
-        # the 'cleanup' task after processing all calcs
-
-    @process
     def re_pack(self):
         ''' A *process* that repacks the raw and archive data based on the current embargo data. '''
         assert self.published
@@ -1124,13 +1040,28 @@ class Upload(Proc):
 
     @process
     def process_upload(self):
-        ''' A *process* that performs the initial upload processing. '''
+        '''
+        A *process* that executes pending operations (if any), matches, parses and normalizes
+        the upload. Can be used for initial parsing or to re-parse, and can also be used
+        after an upload has been published (published uploads are extracted back to the
+        staging area first, and re-packed to the public area when done). Reprocessing may
+        also cause existing entries to disappear (if main files have been removed from an
+        upload in the staging area, or no longer match because of modified parsers, etc).
+        '''
+        logger = self.get_logger()
+        logger.info('starting to (re)process')
+
+        # mock the initial task of needed
+        if self.current_task is None:
+            self._continue_with('uploading')
+
         self.extracting()
 
         if self.from_oasis:
             # we might need to add datasets from the oasis before processing and
             # adding the entries
-            oasis_metadata_file = os.path.join(self.upload_files._raw_dir.os_path, config.metadata_file_name + '.json')
+            oasis_metadata_file = os.path.join(
+                self.staging_upload_files._raw_dir.os_path, config.metadata_file_name + '.json')
             with open(oasis_metadata_file, 'rt') as f:
                 oasis_metadata = json.load(f)
             oasis_datasets = oasis_metadata.get('oasis_datasets', {})
@@ -1168,12 +1099,11 @@ class Upload(Proc):
 
     @property
     def upload_files(self) -> UploadFiles:
-        upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
-        kwargs = dict(upload_path=self.upload_path) if not self.published else {}
+        upload_files_class = StagingUploadFiles if not self.published else PublicUploadFiles
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
             self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True, **kwargs)
+                self.upload_id, is_authorized=lambda: True)
 
         return self._upload_files
 
@@ -1184,29 +1114,38 @@ class Upload(Proc):
     @task
     def extracting(self):
         '''
-        The *task* performed before the actual parsing/normalizing: extracting
-        the uploaded files.
+        The *task* performed before the actual parsing/normalizing: executes the pending
+        file operations.
         '''
-        # extract the uploaded file
-        self._upload_files = ArchiveBasedStagingUploadFiles(
-            upload_id=self.upload_id, is_authorized=lambda: True, create=True,
-            upload_path=self.upload_path)
-
         logger = self.get_logger()
-        try:
-            with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
-                self.upload_files.extract()
 
-            if self.temporary:
-                os.remove(self.upload_path)
-                self.upload_path = None
+        if self.published and PublicUploadFiles.exists_for(self.upload_id):
+            # Clean up staging files, if they exist, and unpack the public files to the
+            # staging area.
+            self._cleanup_staging_files()
+            with utils.timer(logger, 'upload extracted'):
+                self.upload_files.to_staging_upload_files(create=True)
+        elif not StagingUploadFiles.exists_for(self.upload_id):
+            # Create staging files
+            StagingUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
 
-        except KeyError:
-            self.fail('processing requested for non existing upload', log_level=logging.ERROR)
-            return
-        except ExtractError:
-            self.fail('bad .zip/.tar file', log_level=logging.INFO)
-            return
+        staging_upload_files = self.staging_upload_files
+        # Execute any pending operations
+        while self.pending_operations:
+            operation = self._take_next_pending_operation()
+            op = operation['op']
+            if op == 'ADD':
+                with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
+                    staging_upload_files.add_rawfiles(
+                        operation['path'],
+                        operation['target_dir'],
+                        cleanup_source_file_and_dir=operation['temporary'])
+            elif op == 'DELETE':
+                with utils.timer(logger, 'Deleting files or folders from upload'):
+                    staging_upload_files.delete_rawfiles(operation['path'])
+            else:
+                self.fail(f'Unknown operation {op}', log_level=logging.ERROR)
+                return
 
     def _preprocess_files(self, path):
         '''
@@ -1245,21 +1184,12 @@ class Upload(Proc):
         Returns:
             Tuples of mainfile, filename, and parsers
         '''
-        directories_with_match: Dict[str, str] = dict()
-        upload_files = self.upload_files.to_staging_upload_files()
-        for filename in upload_files.raw_file_manifest():
+        staging_upload_files = self.staging_upload_files
+        for filename in staging_upload_files.raw_file_manifest():
             self._preprocess_files(filename)
             try:
-                parser = match_parser(upload_files.raw_file_object(filename).os_path)
+                parser = match_parser(staging_upload_files.raw_file_object(filename).os_path)
                 if parser is not None:
-                    directory = os.path.dirname(filename)
-                    if directory in directories_with_match:
-                        # TODO this might give us the chance to store directory based relationship
-                        # between calcs for the future?
-                        pass
-                    else:
-                        directories_with_match[directory] = filename
-
                     yield filename, parser
             except Exception as e:
                 self.get_logger().error(
@@ -1274,32 +1204,98 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
 
-        oasis_metadata = {}
-        if self.from_oasis:
-            oasis_metadata = self.metadata_file_cached(
-                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name)).get('entries', {})
-
         with utils.timer(logger, 'calcs processing called'):
-            for filename, parser in self.match_mainfiles():
-                oasis_entry_metadata = oasis_metadata.get(filename)
-                if oasis_entry_metadata is not None:
-                    calc_id = oasis_entry_metadata.get('calc_id')
-                    if calc_id is None:
-                        logger.warn('Oasis entry without id', mainfile=filename)
-                        calc_id = self.upload_files.calc_id(filename)
-                else:
-                    calc_id = self.upload_files.calc_id(filename)
+            try:
+                staging_upload_files = self.staging_upload_files
+                oasis_metadata = {}
+                if self.from_oasis:
+                    oasis_metadata_file_path = os.path.join(
+                        staging_upload_files.os_path, 'raw', config.metadata_file_name)
+                    oasis_metadata = self.metadata_file_cached(oasis_metadata_file_path).get('entries', {})
 
-                calc = Calc.create(
-                    calc_id=calc_id,
-                    mainfile=filename, parser=parser.name,
-                    worker_hostname=self.worker_hostname,
-                    upload_id=self.upload_id)
+                old_entries = Calc.objects(upload_id=self.upload_id)
+                has_old_entries = old_entries.count() > 0
+                matched_entries: Set[str] = set()
+                entries_to_delete: List[str] = []
+                count_already_processing = 0
+                for filename, parser in self.match_mainfiles():
+                    # Get metadata and calc_id
+                    oasis_entry_metadata = oasis_metadata.get(filename)
+                    if oasis_entry_metadata is not None:
+                        calc_id = oasis_entry_metadata.get('calc_id')
+                        if calc_id is None:
+                            logger.warn('Oasis entry without id', mainfile=filename)
+                            calc_id = staging_upload_files.calc_id(filename)
+                    else:
+                        calc_id = staging_upload_files.calc_id(filename)
 
-                calc.process_calc()
+                    try:
+                        entry = Calc.get(calc_id)
+                        # Matching entry already exists.
+                        if entry.process_running:
+                            count_already_processing += 1
+                        # Ensure that we update the parser if in staging
+                        if not self.published and parser.name != entry.parser:
+                            entry.parser = parser.name
+                            entry.save()
+                        matched_entries.add(calc_id)
+                    except KeyError:
+                        # No existing entry found
+                        if not self.published or config.reprocess_published.add_new_entries_if_found:
+                            entry = Calc.create(
+                                calc_id=calc_id,
+                                mainfile=filename,
+                                parser=parser.name,
+                                worker_hostname=self.worker_hostname,
+                                upload_id=self.upload_id)
+                            entry.save()
+                            matched_entries.add(calc_id)
+                # Done matching. Examine old unmatched entries.
+                for entry in old_entries:
+                    if entry.calc_id not in matched_entries:
+                        if entry.process_running:
+                            count_already_processing += 1
+                        if not self.published or config.reprocess_published.delete_unmatched_entries:
+                            entries_to_delete.append(entry.calc_id)
+
+                # Delete entries
+                if entries_to_delete:
+                    logger.warn(
+                        'Some entries are disappearing',
+                        count=len(entries_to_delete))
+                    delete_partial_archives_from_mongo(entries_to_delete)
+                    for calc_id in entries_to_delete:
+                        search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
+                        entry = Calc.get(calc_id)
+                        entry.delete()
+
+                if has_old_entries:
+                    # Reset all entries on upload
+                    with utils.timer(logger, 'calcs resetted'):
+                        if count_already_processing > 0:
+                            logger.warn(
+                                'processes are still/already running some entries, they have been resetted',
+                                count=count_already_processing)
+
+                        # reset all calcs
+                        Calc._get_collection().update_many(
+                            dict(upload_id=self.upload_id),
+                            {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
+
+                with utils.timer(logger, 'calcs processing called'):
+                    # process call calcs
+                    Calc.process_all(Calc.process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+                    logger.info('completed to trigger process of all calcs')
+
+            except Exception as e:
+                # try to remove the staging copy in failure case
+                logger.error('failed to trigger processing of all entries', exc_info=e)
+                if self.published:
+                    self._cleanup_staging_files()
+                raise
 
     def on_process_complete(self, process_name):
-        if process_name == 'process_upload' or process_name == 're_process_upload':
+        if process_name == 'process_upload':
             self.check_join()
 
     def check_join(self):
@@ -1308,7 +1304,7 @@ class Upload(Proc):
         task if necessary. The join condition allows to run the ``cleanup`` after
         all calculations have been processed. The upload processing stops after all
         calculation processing have been triggered (:func:`parse_all` or
-        :func:`re_process_upload`). The cleanup task is then run within the last
+        :func:`process_upload`). The cleanup task is then run within the last
         calculation process (the one that triggered the join by calling this method).
         '''
         total_calcs = self.total_calcs
@@ -1349,6 +1345,7 @@ class Upload(Proc):
         return update
 
     def _cleanup_after_processing(self):
+        logger = self.get_logger()
         # send email about process finish
         if not self.publish_directly:
             user = self.uploader
@@ -1372,52 +1369,51 @@ class Upload(Proc):
                 # don't fail or present this error to clients
                 self.logger.error('could not send after processing email', exc_info=e)
 
-        if not self.publish_directly or self.processed_calcs == 0:
-            return
-
-        logger = self.get_logger(upload_size=self.upload_files.size)
-        logger.info('started to publish upload directly')
-
-        with utils.lnr(logger, 'publish failed'):
-            metadata = self.metadata_file_cached(
-                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
-
-            with self.entries_metadata(self.metadata) as calcs:
-                with utils.timer(logger, 'upload staging files packed'):
-                    self.upload_files.pack(calcs)
-
-            with utils.timer(logger, 'upload staging files deleted'):
-                self.upload_files.delete()
-
-            if self.from_oasis:
-                if metadata is not None:
-                    self.upload_time = metadata.get('upload_time')
-
-                if self.upload_time is None:
-                    self.upload_time = datetime.utcnow()
-                    logger.warn('oasis upload without upload time')
-
-            self.publish_time = datetime.utcnow()
-            self.published = True
-            self.last_update = datetime.utcnow()
-            self.save()
-
-    def _cleanup_after_re_processing(self):
-        logger = self.get_logger(upload_size=self.upload_files.size)
         if self.published:
-            staging_upload_files = self.staging_upload_files
+            # We have reprocessed an already published upload
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                staging_upload_files.pack(self.user_metadata(), skip_raw=True)
+                self.staging_upload_files.pack(self.user_metadata(), skip_raw=True)
 
-            with utils.timer(logger, 'staged upload files deleted'):
-                staging_upload_files.delete()
+            self._cleanup_staging_files()
+            self.last_update = datetime.utcnow()
+            self.save()
+
+        if self.publish_directly and not self.published and self.processed_calcs > 0:
+            logger = self.get_logger(upload_size=self.upload_files.size)
+            logger.info('started to publish upload directly')
+
+            with utils.lnr(logger, 'publish failed'):
+                metadata = self.metadata_file_cached(
+                    os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
+
+                with self.entries_metadata(self.metadata) as calcs:
+                    with utils.timer(logger, 'upload staging files packed'):
+                        self.staging_upload_files.pack(calcs)
+
+                with utils.timer(logger, 'upload staging files deleted'):
+                    self.staging_upload_files.delete()
+
+                if self.from_oasis:
+                    if metadata is not None:
+                        self.upload_time = metadata.get('upload_time')
+
+                    if self.upload_time is None:
+                        self.upload_time = datetime.utcnow()
+                        logger.warn('oasis upload without upload time')
+
+                self.publish_time = datetime.utcnow()
+                self.published = True
                 self.last_update = datetime.utcnow()
                 self.save()
 
-        else:
-            logger.info('no cleanup after re-processing unpublished upload')
+    def _cleanup_staging_files(self):
+        if self.published and PublicUploadFiles.exists_for(self.upload_id):
+            if StagingUploadFiles.exists_for(self.upload_id):
+                staging_upload_files = StagingUploadFiles(self.upload_id)
+                with utils.timer(self.get_logger(), 'upload staging files deleted'):
+                    staging_upload_files.delete()
 
     @task
     def cleanup(self):
@@ -1426,11 +1422,7 @@ class Upload(Proc):
         pending archival operations. Depends on the type of processing.
         '''
         search.refresh()
-
-        if self.current_process == 're_process_upload':
-            self._cleanup_after_re_processing()
-        else:
-            self._cleanup_after_processing()
+        self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         ''' Returns the upload calc with the given id or ``None``. '''

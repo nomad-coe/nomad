@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 from nomad.app.main import app
 from nomad.datamodel import User
+from nomad.app.v1.routers.auth import generate_upload_token
 
 
 def create_auth_headers(user: User):
@@ -42,6 +43,30 @@ def other_test_user_auth(other_test_user: User):
 @pytest.fixture(scope='module')
 def admin_user_auth(admin_user: User):
     return create_auth_headers(admin_user)
+
+
+@pytest.fixture(scope='module')
+def test_users_dict(test_user, other_test_user, admin_user):
+    return {
+        'test_user': test_user,
+        'other_test_user': other_test_user,
+        'admin_user': admin_user}
+
+
+@pytest.fixture(scope='module')
+def test_auth_dict(
+        test_user, other_test_user, admin_user,
+        test_user_auth, other_test_user_auth, admin_user_auth):
+    '''
+    Returns a dictionary of the form {user_name: (auth_headers, token)}. The key 'invalid'
+    contains an example of invalid credentials, and the key None contains (None, None).
+    '''
+    return {
+        'test_user': (test_user_auth, generate_upload_token(test_user)),
+        'other_test_user': (other_test_user_auth, generate_upload_token(other_test_user)),
+        'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
+        'invalid': ({'Authorization': 'Bearer JUST-MADE-IT-UP'}, 'invalid.token'),
+        None: (None, None)}
 
 
 @pytest.fixture(scope='session')
