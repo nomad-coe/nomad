@@ -24,8 +24,6 @@ import sys
 
 from nomad import utils, parsing, normalizing, datamodel
 
-import nomadcore
-
 from .cli import cli
 
 
@@ -113,11 +111,7 @@ def normalize_all(entry_archive, logger=None):
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
-@click.option('--annotate', is_flag=True, help='Sub-matcher based parsers will create a .annotate file.')
-def _parse(
-        mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser,
-        annotate):
-    nomadcore.simple_parser.annotate = annotate
+def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser):
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
     entry_archive = parse(mainfile, **kwargs)
