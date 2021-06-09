@@ -216,10 +216,9 @@ class Restricted(Exception):
     pass
 
 
-class UploadPathInfo(NamedTuple):
+class RawPathInfo(NamedTuple):
     '''
-    Stores basic info about the object (file or folder) at some path relative to the
-    upload root folder.
+    Stores basic info about a file or folder located at a specific raw path.
     '''
     path: str
     is_file: bool
@@ -317,9 +316,9 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         raise NotImplementedError()
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
         '''
-        Returns an iterable of UploadPathInfo objects for each element (file or folder) in
+        Returns an iterable of RawPathInfo, one for each element (file or folder) in
         the directory specified by `path`. If `recursive` is set to True, subdirectories are
         also crawled. If `files_only` is set, only the file objects found are returned.
         If path is not a valid directory, the result will be empty. Selecting empty string
@@ -428,7 +427,7 @@ class StagingUploadFiles(UploadFiles):
         return os.path.isfile(os.path.join(self._raw_dir.os_path, path))
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
@@ -451,7 +450,7 @@ class StagingUploadFiles(UploadFiles):
             if not files_only or is_file:
                 size = os.stat(element_os_path).st_size if is_file else dir_size
                 if not path_prefix or element_raw_path.startswith(path_prefix):
-                    yield UploadPathInfo(
+                    yield RawPathInfo(
                         path=element_raw_path,
                         is_file=is_file,
                         size=size,
@@ -818,7 +817,7 @@ class PublicUploadFiles(UploadFiles):
             self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
             create: bool = False):
         super().__init__(upload_id, is_authorized, create)
-        self._directories: Dict[str, Dict[str, UploadPathInfo]] = None
+        self._directories: Dict[str, Dict[str, RawPathInfo]] = None
         self._raw_zip_files: Dict[str, zipfile.ZipFile] = {}
         self._archive_msg_files: Dict[str, ArchiveReader] = {}
 
@@ -920,7 +919,7 @@ class PublicUploadFiles(UploadFiles):
             self._directories = dict()
             self._directories[''] = {}  # Root folder
             directory_sizes: Dict[str, int] = {}
-            # Add file UploadPathInfo objects and calculate directory sizes
+            # Add file RawPathInfo objects and calculate directory sizes
             for access in ['public', 'restricted']:
                 try:
                     zf = self._open_raw_file(access)
@@ -941,7 +940,7 @@ class PublicUploadFiles(UploadFiles):
 
                         if file_name:
                             directory_content = self._directories[directory_path]
-                            directory_content[file_name] = UploadPathInfo(
+                            directory_content[file_name] = RawPathInfo(
                                 path=path,
                                 is_file=True,
                                 size=size,
@@ -952,7 +951,7 @@ class PublicUploadFiles(UploadFiles):
             for path, size in directory_sizes.items():
                 basename = os.path.basename(path)
                 directory_path = os.path.dirname(path)
-                self._directories[directory_path][basename] = UploadPathInfo(
+                self._directories[directory_path][basename] = RawPathInfo(
                     path=path, is_file=False, size=size, access='Public')
 
     def is_empty(self) -> bool:
@@ -995,7 +994,7 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[UploadPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):
             return
         self._parse_content()
