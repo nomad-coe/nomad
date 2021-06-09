@@ -29,6 +29,7 @@ from werkzeug.datastructures import FileStorage
 import os.path
 import os
 import io
+import shutil
 from functools import wraps
 
 from nomad import config, utils, files, datamodel
@@ -303,6 +304,7 @@ class UploadListResource(Resource):
         logger = common.logger.bind(upload_id=upload_id, upload_name=upload_name)
         logger.info('upload created', )
 
+        upload_path = tmp_dir = None
         try:
             if local_path:
                 # file is already there and does not to be received
@@ -323,7 +325,8 @@ class UploadListResource(Resource):
             else:
                 # simple streaming data in HTTP body, e.g. with curl "url" -T local_file
                 logger.info('started to receive upload streaming data')
-                upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
+                tmp_dir = files.create_tmp_dir(upload_id)
+                upload_path = os.path.join(tmp_dir, 'tmp')
 
                 try:
                     with open(upload_path, 'wb') as f:
@@ -346,8 +349,11 @@ class UploadListResource(Resource):
                     logger.warning('Error on streaming upload', exc_info=e)
                     abort(400, message='Some IO went wrong, download probably aborted/disrupted.')
         except Exception as e:
-            if not local_path and os.path.isfile(upload_path):
-                os.remove(upload_path)
+            if not local_path:
+                if os.path.isfile(upload_path):
+                    os.remove(upload_path)
+                if os.path.isdir(tmp_dir):
+                    shutil.rmtree(tmp_dir)
             logger.info('Invalid or aborted upload')
             raise e
 

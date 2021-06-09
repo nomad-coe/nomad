@@ -163,48 +163,17 @@ def is_safe_relative_path(path: str) -> bool:
 class PathObject:
     '''
     Object storage-like abstraction for paths in general.
-    Arguments:
-        bucket: The bucket to store this object in
-        object_id: The object id (i.e. directory path)
-        os_path: Override the "object storage" path with the given path.
-        prefix: Add a x-digit prefix directory, e.g. foo/test/ -> foo/tes/test
-        create_prefix: Create the prefix right away
+    Attributes:
+        os_path: The full os path of the object.
     '''
-    def __init__(
-            self, bucket: str, object_id: str, os_path: str = None,
-            prefix: bool = False, create_prefix: bool = False) -> None:
-        if os_path:
-            self.os_path = os_path
-        else:
-            self.os_path = os.path.join(bucket, object_id)
-
-        if prefix and config.fs.prefix_size > 0:
-            segments = list(os.path.split(self.os_path))
-            last = segments[-1]
-            segments[-1] = last[:config.fs.prefix_size]
-            segments.append(last)
-            self.os_path = os.path.join(*segments)
-
-            if create_prefix:
-                os.makedirs(os.path.dirname(self.os_path), exist_ok=True)
+    def __init__(self, os_path: str):
+        self.os_path = os_path
 
     def delete(self) -> None:
-        basename = os.path.basename(self.os_path)
-        parent_directory = os.path.dirname(self.os_path)
-        parent_name = os.path.basename(parent_directory)
-
         if os.path.isfile(self.os_path):
             os.remove(self.os_path)
         else:
             shutil.rmtree(self.os_path)
-
-        if len(parent_name) == config.fs.prefix_size and basename.startswith(parent_name):
-            try:
-                if not os.listdir(parent_directory):
-                    os.rmdir(parent_directory)
-            except Exception as e:
-                utils.get_logger(__name__).error(
-                    'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
 
     def exists(self) -> bool:
         return os.path.exists(self.os_path)
@@ -221,28 +190,23 @@ class PathObject:
 class DirectoryObject(PathObject):
     '''
     Object storage-like abstraction for directories.
-    Arguments:
-        bucket: The bucket to store this object in
-        object_id: The object id (i.e. directory path)
-        create: True if the directory structure should be created. Default is False.
     '''
-    def __init__(self, bucket: str, object_id: str, create: bool = False, **kwargs) -> None:
-        super().__init__(bucket, object_id, **kwargs)
-        self._create = create
+    def __init__(self, os_path: str, create: bool = False):
+        self.os_path = os_path
         if create and not os.path.isdir(self.os_path):
             os.makedirs(self.os_path)
 
-    def join_dir(self, path, create: bool = None) -> 'DirectoryObject':
-        if create is None:
-            create = self._create
-        return DirectoryObject(None, None, create=create, os_path=os.path.join(self.os_path, path))
+    def join_dir(self, path, create: bool = False) -> 'DirectoryObject':
+        return DirectoryObject(os.path.join(self.os_path, path), create)
 
-    def join_file(self, path) -> PathObject:
-        dirname = os.path.dirname(path)
-        if dirname != '':
-            return self.join_dir(dirname).join_file(os.path.basename(path))
-        else:
-            return PathObject(None, None, os_path=os.path.join(self.os_path, path))
+    def join_file(self, path, create_dir: bool = False) -> PathObject:
+        if create_dir:
+            dirname = os.path.dirname(path)
+            if dirname:
+                dir_os_path = os.path.join(self.os_path, dirname)
+                if not os.path.exists(dir_os_path):
+                    os.makedirs(dir_os_path)
+        return PathObject(os.path.join(self.os_path, path))
 
     def exists(self) -> bool:
         return os.path.isdir(self.os_path)
@@ -266,12 +230,11 @@ class UploadPathInfo(NamedTuple):
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
     ''' Abstract base class for upload files. '''
     def __init__(
-            self, bucket: str, upload_id: str,
-            is_authorized: Callable[[], bool] = lambda: False,
+            self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
             create: bool = False) -> None:
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
 
-        super().__init__(bucket, upload_id, create=create, prefix=True)
+        super().__init__(os_path=self.base_folder_for(upload_id), create=create)
 
         if not create and not self.exists():
             raise KeyError(upload_id)
@@ -407,15 +370,27 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         ''' Release possibly held system resources (e.g. file handles). '''
         pass
 
+    def delete(self) -> None:
+        shutil.rmtree(self.os_path)
+        if config.fs.prefix_size > 0:
+            # If using prefix, also remove the parent directory if empty
+            parent_directory = os.path.dirname(self.os_path)
+            if not os.listdir(parent_directory):
+                try:
+                    os.rmdir(parent_directory)
+                except Exception as e:
+                    utils.get_logger(__name__).error(
+                        'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
+
 
 class StagingUploadFiles(UploadFiles):
     def __init__(
             self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
             create: bool = False) -> None:
-        super().__init__(config.fs.staging, upload_id, is_authorized, create)
+        super().__init__(upload_id, is_authorized, create)
 
-        self._raw_dir = self.join_dir('raw')
-        self._archive_dir = self.join_dir('archive')
+        self._raw_dir = self.join_dir('raw', create)
+        self._archive_dir = self.join_dir('archive', create)
         self._frozen_file = self.join_file('.frozen')
 
         self._size = 0
@@ -679,9 +654,7 @@ class StagingUploadFiles(UploadFiles):
             f.write('frozen')
 
         # Get or create a target dir in the public bucket
-        target_dir = DirectoryObject(
-            config.fs.public, self.upload_id, create=create, prefix=True,
-            create_prefix=True)
+        target_dir = DirectoryObject(PublicUploadFiles.base_folder_for(self.upload_id), create=create)
 
         def create_zipfile(access: str):
             return zipfile.ZipFile(
@@ -841,8 +814,10 @@ class StagingUploadFiles(UploadFiles):
 
 class PublicUploadFiles(UploadFiles):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(config.fs.public, *args, **kwargs)
+    def __init__(
+            self, upload_id: str, is_authorized: Callable[[], bool] = lambda: False,
+            create: bool = False):
+        super().__init__(upload_id, is_authorized, create)
         self._directories: Dict[str, Dict[str, UploadPathInfo]] = None
         self._raw_zip_files: Dict[str, zipfile.ZipFile] = {}
         self._archive_msg_files: Dict[str, ArchiveReader] = {}
