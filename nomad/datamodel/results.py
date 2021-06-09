@@ -17,7 +17,7 @@
 #
 
 import numpy as np
-from elasticsearch_dsl import Text, Completion
+from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
 
@@ -409,7 +409,10 @@ class Symmetry(MSection):
         (primitive), S (face centred), I (body centred), R (rhombohedral centring) or F
         (all faces centred).
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     crystal_system = Quantity(
         type=str,
@@ -418,7 +421,10 @@ class Symmetry(MSection):
         Name of the crystal system. Can be one of the following: triclinic, monoclinic,
         orthorhombic, tetragonal, trigonal, hexagonal or cubic.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     hall_number = Quantity(
         type=np.dtype(np.int32),
@@ -434,7 +440,10 @@ class Symmetry(MSection):
         description="""
         The Hall symbol for this system.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     point_group = Quantity(
         type=str,
@@ -442,7 +451,10 @@ class Symmetry(MSection):
         description="""
         Symbol of the crystallographic point group in the Hermann-Mauguin notation.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     space_group_number = Quantity(
         type=np.dtype(np.int32),
@@ -460,7 +472,10 @@ class Symmetry(MSection):
         The International Union of Crystallography (IUC) short symbol of the 3D
         space group of this system.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     prototype_formula = Quantity(
         type=str,
@@ -476,14 +491,20 @@ class Symmetry(MSection):
         crystallographic prototypes:
         http://www.aflowlib.org/prototype-encyclopedia/index.html
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     structure_name = Quantity(
         type=str,
         description="""
         A common name for this structure, e.g. fcc, bcc.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     strukturbericht_designation = Quantity(
         type=str,
@@ -491,7 +512,10 @@ class Symmetry(MSection):
         Classification of the material according to the historically grown
         "strukturbericht".
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
 
 
@@ -508,37 +532,52 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     material_name = Quantity(
         type=str,
         description="""
         Meaningful names for this a material if any can be assigned.
         """,
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
-    type_structural = Quantity(
+    structural_type = Quantity(
         type=MEnum(structure_classes), default="not processed",
         description="""
         Classification based on structural features.
         """,
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
-    type_functional = Quantity(
+    functional_type = Quantity(
         type=str,
         shape=['0..*'],
         description="""
         Classification based on the functional properties.
         """,
-        a_elasticsearch=Elasticsearch(material_type, default_aggregation_size=20)
+        a_elasticsearch=[
+            Elasticsearch(material_type, default_aggregation_size=20),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
-    type_compound = Quantity(
+    compound_type = Quantity(
         type=str,
         shape=['0..*'],
         description="""
         Classification based on the chemical formula.
         """,
-        a_elasticsearch=Elasticsearch(material_type, default_aggregation_size=20)
+        a_elasticsearch=[
+            Elasticsearch(material_type, default_aggregation_size=20),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     elements = Quantity(
         type=MEnum(chemical_symbols),
@@ -581,7 +620,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(material_type, suggest=True)
+            Elasticsearch(material_type, suggestion=True)
         ],
     )
     chemical_formula_anonymous = Quantity(
@@ -592,7 +631,10 @@ class Material(MSection):
             right, replaced by anonymous symbols A, B, C, ..., Z, Aa, Ba, ..., Za, Ab, Bb, ... and
             so on.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     chemical_formula_reduced_fragments = Quantity(
         type=str,
@@ -617,17 +659,26 @@ class DFT(MSection):
         type=MEnum(basis_set_types),
         default=unavailable,
         description="The used basis set functions.",
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_entry_type, suggestion=True)
+        ],
     )
     basis_set_name = section_method.basis_set.m_copy()
-    basis_set_name.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    basis_set_name.m_annotations["elasticsearch"] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(material_entry_type, suggestion=True)
+    ]
     core_electron_treatment = Quantity(
         type=MEnum(core_electron_treatments),
         default=unavailable,
         description="""
         How the core electrons are described.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_entry_type, suggestion=True)
+        ],
     )
     spin_polarized = Quantity(
         type=bool,
@@ -639,11 +690,23 @@ class DFT(MSection):
     scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
     scf_threshold_energy_change.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
-    van_der_Waals_method.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    van_der_Waals_method.m_annotations["elasticsearch"] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(material_entry_type, suggestion=True)
+    ]
+
     relativity_method = section_method.relativity_method.m_copy()
-    relativity_method.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    relativity_method.m_annotations["elasticsearch"] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(material_entry_type, suggestion=True)
+    ]
+
     smearing_type = section_method.smearing_kind.m_copy()
-    smearing_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    smearing_type.m_annotations["elasticsearch"] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(material_entry_type, suggestion=True)
+    ]
+
     smearing_width = section_method.smearing_width.m_copy()
     smearing_width.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     xc_functional_type = Quantity(
@@ -669,7 +732,10 @@ class GW(MSection):
         """
     )
     gw_type = section_method.gw_type.m_copy()
-    gw_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    gw_type.m_annotations["elasticsearch"] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(material_entry_type, suggestion=True)
+    ]
     starting_point = Quantity(
         type=str,
         default=[],
@@ -742,13 +808,19 @@ class Simulation(MSection):
         type=str,
         default="not processed",
         description="The name of the used program.",
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_entry_type, suggestion=True)
+        ],
     )
     program_version = Quantity(
         type=str,
         default="not processed",
         description="The version of the used program.",
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_entry_type, suggestion=True)
+        ],
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
@@ -782,7 +854,10 @@ class Method(MSection):
         description="""
         Common name for the used method.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_entry_type, suggestion=True)
+        ],
     )
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
 
@@ -833,11 +908,6 @@ class DOSElectronic(DOS):
         spin values.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-    channel_info = SubSection(
-        sub_section=ChannelInfo.m_def,
-        repeats=True,
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
 
 

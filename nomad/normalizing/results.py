@@ -170,7 +170,7 @@ class ResultsNormalizer(Normalizer):
         material = Material()
 
         if repr_sys:
-            material.type_structural = repr_sys.system_type
+            material.structural_type = repr_sys.system_type
             names, counts = atomutils.get_hill_decomposition(repr_sys.atom_labels, reduced=True)
             material.chemical_formula_reduced_fragments = [
                 "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(names, counts)
@@ -180,8 +180,8 @@ class ResultsNormalizer(Normalizer):
             classes = encyclopedia.material.material_classification
             if classes:
                 classifications = json.loads(classes)
-                material.type_functional = classifications.get("material_class_springer")
-                material.type_compound = classifications.get("compound_class_springer")
+                material.functional_type = classifications.get("material_class_springer")
+                material.compound_type = classifications.get("compound_class_springer")
             material.material_name = encyclopedia.material.material_name
         if optimade:
             material.elements = optimade.elements
@@ -444,14 +444,6 @@ class ResultsNormalizer(Normalizer):
                 dos_new.densities = dos
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
-                for info in dos.channel_info:
-                    info_new = dos_new.m_create(ChannelInfo)
-                    info_new.index = info.index
-                    info_new.band_gap = info.band_gap
-                    info_new.band_gap_type = info.band_gap_type
-                    info_new.energy_highest_occupied = info.energy_highest_occupied
-                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None

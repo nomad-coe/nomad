@@ -16,14 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
-import { selector, useRecoilState } from 'recoil'
+import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import { queryFamily } from './FilterContext'
+import { useFiltersState } from './FilterContext'
 import { formatNumber } from '../../utils'
 import { Quantity, useUnits } from '../../units'
 
@@ -50,40 +49,29 @@ const useStyles = makeStyles(theme => {
   }
 })
 const FilterSummary = React.memo(({
-  filters,
-  id,
+  quantities,
   className,
   classes
 }) => {
-  // We dynamically create a Recoil.js selector that is subscribed to the
-  // filters specified in the input. This way only the specified filters will
-  // cause a render.
-  const filterState = useMemo(() => {
-    return selector({
-      key: id,
-      get: ({get}) => {
-        const query = {}
-        for (let key of filters) {
-          const filter = get(queryFamily(key))
-          query[key] = filter
-        }
-        return query
-      },
-      set: ({set}, [key, value]) => {
-        set(queryFamily(key), value)
-      }
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const [query, setQuery] = useRecoilState(filterState)
+  const [filters, setFilter] = useFiltersState(quantities)
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
   const chips = []
-  for (let filterName of filters) {
-    const filterValue = query[filterName]
-    const filterAbbr = filterName.split('.').pop()
+
+  const format = useCallback((value) => {
+    if (!isNil(value)) {
+      if (value instanceof Quantity) {
+        value = value.toSystem(units)
+      }
+      value = formatNumber(value)
+    }
+    return value
+  }, [units])
+
+  for (let quantity of quantities) {
+    const filterValue = filters[quantity]
+    const filterAbbr = quantity.split('.').pop()
     if (!filterValue) {
       continue
     }
@@ -103,10 +91,10 @@ const FilterSummary = React.memo(({
             onDelete={() => {
               if (isSet) {
                 filterValue.delete(value)
-                setQuery([filterName, new Set(filterValue)])
+                setFilter([quantity, new Set(filterValue)])
               } else if (isArray) {
                 filterValue.splice(index, 1)
-                setQuery([filterName, [...filterValue]])
+                setFilter([quantity, [...filterValue]])
               }
             }}
             color="primary"
@@ -116,17 +104,18 @@ const FilterSummary = React.memo(({
       })
     // Is query is an object, we display a customized view based on its contents.
     } else if (isObj) {
-      let lte = filterValue.lte
-      let gte = filterValue.gte
-      if (lte instanceof Quantity) {
-        lte = lte.toSystem(units)
+      let lte = format(filterValue.lte)
+      let gte = format(filterValue.gte)
+      let lt = format(filterValue.lt)
+      let gt = format(filterValue.gt)
+      let label
+      if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
+        label = `${filterAbbr}${!isNil(gte) ? `>=${gte}` : ''}${!isNil(gt) ? `>${gt}` : ''}`
+      } else if ((!isNil(lte) || !isNil(lt)) && (isNil(gte) && isNil(gt))) {
+        label = `${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}${!isNil(lt) ? `<${lt}` : ''}`
+      } else {
+        label = `${!isNil(gte) ? `${gte}<=` : ''}${!isNil(gt) ? `${gt}<` : ''}${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}${!isNil(lt) ? `<${lt}` : ''}`
       }
-      if (gte instanceof Quantity) {
-        gte = gte.toSystem(units)
-      }
-      lte = formatNumber(lte)
-      gte = formatNumber(gte)
-      let label = `${!isNil(gte) ? `${gte}<=` : ''}${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}`
       const item = <div
         key={chips.length}
         className={styles.chip}
@@ -134,7 +123,7 @@ const FilterSummary = React.memo(({
         <Chip
           label={label}
           onDelete={() => {
-            setQuery([filterName, undefined])
+            setFilter([quantity, undefined])
           }}
           color="primary"
         />
@@ -150,7 +139,7 @@ const FilterSummary = React.memo(({
         <Chip
           label={`${filterAbbr}=${filterValue}`}
           onDelete={() => {
-            setQuery([filterName, undefined])
+            setFilter([quantity, undefined])
           }}
           color="primary"
         />
@@ -164,8 +153,7 @@ const FilterSummary = React.memo(({
 })
 
 FilterSummary.propTypes = {
-  filters: PropTypes.arrayOf(PropTypes.string).isRequired, // Set of searchQuantities for which the filters are displayed
-  id: PropTypes.string.isRequired, // Unique id for this summary. Needed in order to dynamically construct a Recoil.js Selector
+  quantities: PropTypes.arrayOf(PropTypes.string).isRequired, // Set of searchQuantities for which the filters are displayed
   className: PropTypes.string,
   classes: PropTypes.object
 }

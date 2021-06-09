@@ -29,7 +29,9 @@ import {
 } from '@material-ui/core'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import { labelElements, filterElements } from './FilterElements'
+import { labelClassification, filterClassification } from './FilterClassification'
 import { labelElectronic, filterElectronic } from './FilterElectronic'
+import { labelSymmetry, filterSymmetry } from './FilterSymmetry'
 import FilterSummary from './FilterSummary'
 
 /**
@@ -121,10 +123,16 @@ const FiltersTree = React.memo(({
         children: [
           {
             name: labelElements,
-            filters: <FilterSummary id={labelElements} filters={filterElements}/>
+            filters: <FilterSummary quantities={filterElements}/>
           },
-          {name: 'Classification'},
-          {name: 'Symmetry / Prototypes'}
+          {
+            name: labelClassification,
+            filters: <FilterSummary quantities={filterClassification}/>
+          },
+          {
+            name: labelSymmetry,
+            filters: <FilterSummary quantities={filterSymmetry}/>
+          }
         ]
       },
       {
@@ -140,7 +148,7 @@ const FiltersTree = React.memo(({
         children: [
           {
             name: labelElectronic,
-            filters: <FilterSummary id={labelElectronic} filters={filterElectronic}/>
+            filters: <FilterSummary quantities={filterElectronic}/>
           },
           {name: 'Vibrational'},
           {name: 'Optical'}

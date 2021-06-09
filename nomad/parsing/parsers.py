@@ -270,7 +270,5 @@ for parser in parsers:
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
 datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
-results.Simulation.program_name.a_elasticsearch.values = code_names + [
+results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
-results.Simulation.program_name.a_elasticsearch.default_aggregation_size = len(
-    results.Simulation.program_name.a_elasticsearch.values)

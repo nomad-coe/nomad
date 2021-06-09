@@ -33,13 +33,41 @@ import { Quantity } from '../../units'
  * approach would have been to try and Memoize each sufficiently complex
  * component, but this quickly becomes a hard manual task.
  */
-const filterKeys = [
-  'results.material.elements',
+export const searchBarQuantities = [
   'results.material.chemical_formula_hill',
   'results.material.chemical_formula_anonymous',
-  'results.material.n_elements',
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap'
+  'results.material.structural_type',
+  'results.material.functional_type',
+  'results.material.compound_type',
+  'results.material.material_id',
+  'results.material.material_name',
+  'results.material.symmetry.bravais_lattice',
+  'results.material.symmetry.crystal_system',
+  'results.material.symmetry.hall_symbol',
+  'results.material.symmetry.point_group',
+  'results.material.symmetry.space_group_symbol',
+  'results.material.symmetry.prototype_aflow_id',
+  'results.material.symmetry.structure_name',
+  'results.material.symmetry.strukturbericht_designation',
+  'results.method.simulation.dft.basis_set_type',
+  'results.method.simulation.dft.basis_set_name',
+  'results.method.simulation.dft.core_electron_treatment',
+  'results.method.simulation.dft.van_der_Waals_method',
+  'results.method.simulation.dft.relativity_method',
+  'results.method.simulation.dft.smearing_type',
+  'results.method.simulation.gw.gw_type',
+  'results.method.simulation.program_name',
+  'results.method.simulation.program_version',
+  'results.method.method_name',
+  'results.properties.electronic.band_structure_electronic.channel_info.band_gap',
+  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type',
+  'results.material.n_elements'
 ]
+let allQuantities = [
+  'results.material.elements'
+]
+allQuantities = allQuantities.concat(searchBarQuantities)
+
 export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
@@ -54,6 +82,8 @@ export const statisticsRequestState = atom({
   key: 'statistics',
   default: {}
 })
+
+let index = 0
 
 /**
  * This hook will expose a function for reading filter values for a specific
@@ -121,6 +151,52 @@ export function useSetFilter(quantity) {
 export function useFilterState(quantity) {
   return useRecoilState(queryFamily(quantity))
 }
+// export function useSetFilters(quantities) {
+//   return useRecoilState(queryFamily(quantity))
+// }
+
+/**
+ * This hook will expose a function for getting and setting filter values for
+ * the specified list of quantities. Use this hook if you intend to both read
+ * and write the filter values.
+ *
+ * @param {*} quantities Names of the quantities. Should exist in searchQuantities.json.
+ * @param {string} id Unique ID for this set of Filters (needed by Recoil.js)
+ * @returns array containing the filter value and setter function for it.
+ */
+export function useFiltersState(quantities) {
+  // We dynamically create a Recoil.js selector that is subscribed to the
+  // filters specified in the input. This way only the specified filters will
+  // cause a render.
+
+  // Recoil.js requires that each selector/atom has an unique id. Because this
+  // hook can be called dynamically, we simply generate the ID randomly.
+  const id = `dynamic_selector${index}`
+  index += 1
+  const filterState = useMemo(() => {
+    return selector({
+      key: id,
+      get: ({get}) => {
+        const query = {}
+        for (let key of quantities) {
+          const filter = get(queryFamily(key))
+          query[key] = filter
+        }
+        return query
+      },
+      set: ({set}, [key, value]) => {
+        set(queryFamily(key), value)
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return useRecoilState(filterState)
+}
+
+// export function useFiltersValue(quantities) {
+//   return useRecoilState(queryFamily(quantity))
+// }
 
 /**
  * This atom holds a boolean indicating whether results are being loaded.
@@ -156,7 +232,7 @@ const queryState = selector({
   key: 'query',
   get: ({get}) => {
     const query = {}
-    for (let key of filterKeys) {
+    for (let key of allQuantities) {
       const filter = get(queryFamily(key))
       query[key] = filter
     }

@@ -18,45 +18,65 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import { useUnits } from '../../units'
+import { Grid } from '@material-ui/core'
 import FilterText from './FilterText'
+import { useUnits } from '../../units'
 
-export const filterSymmetry = [
-  'results.material.symmetry.bravais_lattice'
-]
-export const labelSymmetry = 'Symmetry / Prototypes'
-
-const useStyles = makeStyles(theme => ({
+const useFiltersElementStyles = makeStyles(theme => ({
   root: {
-    width: '40rem',
-    marginTop: theme.spacing(0.5)
+    width: '100%'
   }
 }))
 
+export const filterClassification = [
+  'results.material.type_structural',
+  'results.material.type_functional',
+  'results.material.type_compound',
+  'results.material.material_id'
+]
+export const labelClassification = 'Classification'
+
 /**
- * Displays the filter options for symmetry properties.
+ * Displays the filter options for classifications.
  */
-const FilterSymmetry = React.memo(({
+const FilterClassification = React.memo(({
   className
 }) => {
-  const styles = useStyles()
+  const styles = useFiltersElementStyles()
   const units = useUnits()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={6}>
         <FilterText
-          quantity="results.material.symmetry.bravais_lattice"
+          quantity="results.material.structural_type"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.functional_type"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.compound_type"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.material_id"
           units={units}
         />
       </Grid>
     </Grid>
   </div>
 })
-FilterSymmetry.propTypes = {
+FilterClassification.propTypes = {
   className: PropTypes.string
 }
 
-export default FilterSymmetry
+export default FilterClassification

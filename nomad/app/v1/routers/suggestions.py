@@ -16,7 +16,8 @@
 # limitations under the License.
 #
 
-from typing import List
+from typing import List, Dict
+from collections import defaultdict
 from pydantic import BaseModel, Field
 from fastapi import (
     APIRouter, Depends, status, Request
@@ -43,10 +44,6 @@ class Suggestion(BaseModel):
     weight: float = Field(None, description='The suggestion weight.')
 
 
-class SuggestionList(BaseModel):
-    __root__: List[Suggestion]
-
-
 class SuggestionRequest(BaseModel):
     quantities: List[str] = Field(None, description='List of quantities from which the suggestions are retrieved.')
     input: str = Field(None, description='The input that is used as a basis for returning a suggestion.')
@@ -64,7 +61,7 @@ _bad_quantity_response = status.HTTP_404_NOT_FOUND, {
     '',
     tags=['suggestions'],
     summary='Get a list of suggestions for the given quantity names and input.',
-    response_model=SuggestionList,
+    response_model=Dict[str, List[Suggestion]],
     responses=create_responses(_bad_quantity_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
@@ -74,12 +71,14 @@ async def get_suggestions(
         user: User = Depends(create_user_dependency())):
 
     search = Search(index=entry_index.index_name)
-    search = search.suggest('quantity', data.input, completion={
-        'field': '{}.suggest'.format(data.quantities[0]),
-        'size': 5,
-        'skip_duplicates': True,
-        # 'fuzziness': {},
-    })
+    quantities_es = [x.replace(".", "-") for x in data.quantities]
+    for quantity, quantity_es in zip(data.quantities, quantities_es):
+        search = search.suggest(quantity_es, data.input, completion={
+            'field': '{}.suggestion'.format(quantity),
+            'size': 5,
+            'skip_duplicates': True,
+            # 'fuzziness': {},
+        })
     search = search.extra(_source='suggest')
 
     try:
@@ -87,8 +86,9 @@ async def get_suggestions(
     except RequestError as e:
         raise SuggestionError(e)
 
-    response: List[Suggestion] = []
-    for option in es_response.suggest.quantity[0].options:
-        response.append(Suggestion(value=option.text, weight=option._score))
+    response: Dict[str, List[Suggestion]] = defaultdict(list)
+    for quantity, quantity_es in zip(data.quantities, quantities_es):
+        for option in es_response.suggest[quantity_es][0].options:
+            response[quantity].append(Suggestion(value=option.text, weight=option._score))
 
     return response

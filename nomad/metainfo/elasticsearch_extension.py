@@ -520,8 +520,8 @@ class Elasticsearch(DefinitionAnnotation):
         nested:
             If true the section is mapped to elasticsearch nested object and all queries
             become nested queries. Only applicable to sub sections.
-        suggest:
-            If true, a sub-field called 'suggest' is automatically created for
+        suggestion:
+            If true, a sub-field called 'suggestion' is automatically created for
             this metainfo. This stores autocompletion suggestions for this
             value.
 
@@ -538,21 +538,22 @@ class Elasticsearch(DefinitionAnnotation):
             es_field: str = None,
             value: Callable[[MSection], Any] = None,
             index: bool = True,
-            values: List[str] = None, default_aggregation_size: int = None,
+            values: List[str] = None,
+            default_aggregation_size: int = None,
             metrics: Dict[str, str] = None,
             many_all: bool = False,
             auto_include_subsections: bool = False,
             nested: bool = False,
-            suggest: bool = False,
+            suggestion: bool = False,
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
 
         self._custom_mapping = mapping
-        if suggest:
+        if suggestion:
             if field is None:
-                field = "suggest"
+                field = "suggestion"
             else:
                 raise ValueError("Cannot override suggestion field name.")
         self.field = field
@@ -562,24 +563,31 @@ class Elasticsearch(DefinitionAnnotation):
         self.index = index
         self._mapping: Dict[str, Any] = None
 
-        self.values = values
         self.default_aggregation_size = default_aggregation_size
+        self.values = values
         self.metrics = metrics
         self.many_all = many_all
 
         self.auto_include_subsections = auto_include_subsections
         self.nested = nested
-        self.suggest = suggest
+        self.suggestion = suggestion
 
-        if self.values is not None:
-            self.default_aggregation_size = len(self.values)
+    @property
+    def values(self):
+        return self._values
+
+    @values.setter
+    def values(self, value):
+        self._values = value
+        if self.default_aggregation_size is None and self._values is not None:
+            self.default_aggregation_size = len(self._values)
 
     @property
     def mapping(self) -> Dict[str, Any]:
         if self._mapping is not None:
             return self._mapping
 
-        if self.suggest:
+        if self.suggestion:
             from elasticsearch_dsl import Completion
             self._mapping = Completion().to_dict()
             return self._mapping

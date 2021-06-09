@@ -95,8 +95,10 @@ const FilterText = React.memo(({
   // achieve this: it will select the most recently highlighted value even if it
   // was not clicked.
   const handleClose = useCallback((event, reason) => {
-    const value = event.target.value?.trim()
-    setFilter(value)
+    const value = event.target.value
+    if (value) {
+      setFilter(value.trim())
+    }
   }, [setFilter])
 
   // Handle typing events. After a debounce time has expired, a list of

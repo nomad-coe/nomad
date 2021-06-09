@@ -34,6 +34,7 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import FilterTree from './FilterTree'
 import FilterSymmetry from './FilterSymmetry'
 import FilterElements, { labelElements } from './FilterElements'
+import FilterClassification, { labelClassification } from './FilterClassification'
 import FilterElectronic, { labelElectronic } from './FilterElectronic'
 import Scrollable from '../visualization/Scrollable'
 import Actions from '../Actions'
@@ -237,6 +238,7 @@ const FilterPanel = React.memo(({
             className={clsx(styles.header, styles.headerSecondary)}
           />
           <FilterElements className={clsx(view !== labelElements && styles.menuHidden)}/>
+          <FilterClassification className={clsx(view !== labelClassification && styles.menuHidden)}/>
           <FilterSymmetry className={clsx(view !== 'Symmetry / Prototypes' && styles.menuHidden)}/>
           <FilterElectronic className={clsx(view !== labelElectronic && styles.menuHidden)}/>
         </div>
