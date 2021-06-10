@@ -275,9 +275,10 @@ def mirror(
 
             upload_files_path = source_mapping_obj.apply(upload_files_path)
 
-            target_upload_files_path = files.PathObject(
-                config.fs.public if not staging else config.fs.staging,
-                upload_id, create_prefix=False, prefix=True).os_path
+            if staging:
+                target_upload_files_path = files.StagingUploadFiles.base_folder_for(upload_id)
+            else:
+                target_upload_files_path = files.PublicUploadFiles.base_folder_for(upload_id)
             target_upload_files_path = target_mapping_obj.apply(target_upload_files_path)
 
             if not os.path.exists(target_upload_files_path):

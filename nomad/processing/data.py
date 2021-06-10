@@ -1182,19 +1182,19 @@ class Upload(Proc):
         determine the upload's mainfiles.
 
         Returns:
-            Tuples of mainfile, filename, and parsers
+            Tuples of (mainfile raw path, parser)
         '''
         staging_upload_files = self.staging_upload_files
-        for filename in staging_upload_files.raw_file_manifest():
-            self._preprocess_files(filename)
+        for path_info in staging_upload_files.raw_directory_list(recursive=True, files_only=True):
+            self._preprocess_files(path_info.path)
             try:
-                parser = match_parser(staging_upload_files.raw_file_object(filename).os_path)
+                parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
                 if parser is not None:
-                    yield filename, parser
+                    yield path_info.path, parser
             except Exception as e:
                 self.get_logger().error(
                     'exception while matching pot. mainfile',
-                    mainfile=filename, exc_info=e)
+                    mainfile=path_info.path, exc_info=e)
 
     @task
     def parse_all(self):
@@ -1374,7 +1374,7 @@ class Upload(Proc):
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                self.staging_upload_files.pack(self.user_metadata(), skip_raw=True)
+                self.staging_upload_files.pack(self.user_metadata(), create=False, include_raw=False)
 
             self._cleanup_staging_files()
             self.last_update = datetime.utcnow()

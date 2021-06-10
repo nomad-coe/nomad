@@ -56,9 +56,6 @@ example_archive_contents = {
     "processing_logs": [{"entry": "test"}]
 }
 
-example_bucket = 'test_bucket'
-example_data = dict(test_key='test_value')
-
 
 @pytest.fixture(scope='function', autouse=True)
 def raw_files_on_all_tests(raw_files):
@@ -76,55 +73,40 @@ def example_mainfile_contents():
 class TestObjects:
 
     @pytest.fixture(scope='function')
-    def test_bucket(self):
+    def test_area(self):
         yield config.fs.staging
 
-        bucket = os.path.join(config.fs.staging)
-        if os.path.exists(bucket):
-            shutil.rmtree(os.path.join(config.fs.staging))
+        if os.path.exists(config.fs.staging):
+            shutil.rmtree(config.fs.staging)
 
-    def test_file_dir_existing(self, test_bucket):
-        file = PathObject(test_bucket, 'sub/test_id')
+    def test_file_dir_existing(self, test_area):
+        file = PathObject(os.path.join(test_area, 'sub/test_id'))
         assert not os.path.exists(os.path.dirname(file.os_path))
 
     @pytest.mark.parametrize('dirpath', ['test', os.path.join('sub', 'test')])
     @pytest.mark.parametrize('create', [True, False])
-    @pytest.mark.parametrize('prefix', [True, False])
-    def test_directory(self, test_bucket: str, dirpath: str, create: bool, prefix: bool) -> None:
-        directory = DirectoryObject(test_bucket, dirpath, create=create, prefix=prefix)
+    def test_directory(self, test_area: str, dirpath: str, create: bool) -> None:
+        directory = DirectoryObject(os.path.join(test_area, dirpath), create=create)
         assert directory.exists() == create
         assert os.path.isdir(directory.os_path) == create
-        assert directory.os_path.endswith(os.path.join('te' if prefix else '', 'test'))
 
     @pytest.mark.parametrize('dirpath', ['test', os.path.join('sub', 'test')])
     @pytest.mark.parametrize('create', [True, False])
     @pytest.mark.parametrize('join_create', [True, False])
-    @pytest.mark.parametrize('prefix', [True, False])
-    def test_directory_join(self, test_bucket: str, dirpath: str, create: bool, prefix: bool, join_create: bool) -> None:
-        directory = DirectoryObject(test_bucket, 'parent', create=create, prefix=prefix)
+    def test_directory_join(self, test_area: str, dirpath: str, create: bool, join_create: bool) -> None:
+        directory = DirectoryObject(os.path.join(test_area, 'parent'), create=create)
         directory = directory.join_dir(dirpath, create=join_create)
 
         assert directory.exists() == join_create
         assert os.path.isdir(directory.os_path) == join_create
-        assert dirpath.endswith(os.path.join('', 'test'))
 
     @pytest.mark.parametrize('filepath', ['test', 'sub/test'])
     @pytest.mark.parametrize('create', [True, False])
-    def test_directory_join_file_dir_create(self, test_bucket: str, filepath: str, create: bool):
-        directory = DirectoryObject(test_bucket, 'parent', create=create)
-        file = directory.join_file(filepath)
+    def test_directory_join_file_dir_create(self, test_area: str, filepath: str, create: bool):
+        directory = DirectoryObject(os.path.join(test_area, 'parent'), create=create)
+        file = directory.join_file(filepath, create_dir=create)
         assert os.path.exists(directory.os_path) == create
         assert os.path.exists(os.path.dirname(file.os_path)) == create
-
-    def test_delete_prefix(self, test_bucket: str):
-        dir_1 = DirectoryObject(test_bucket, 'test_directory1', create=True, prefix=True)
-        dir_2 = DirectoryObject(test_bucket, 'test_directory2', create=True, prefix=True)
-        dir_1.delete()
-        dir_2.delete()
-
-        prefix = os.path.dirname(dir_2.os_path)
-        assert len(os.path.basename(prefix)) == 2
-        assert not os.path.exists(prefix)
 
 
 example_calc: Dict[str, Any] = {
@@ -197,13 +179,13 @@ class UploadFilesFixtures:
 
     @pytest.fixture(scope='function')
     def test_upload_id(self) -> Generator[str, None, None]:
-        for bucket in [config.fs.staging, config.fs.public]:
-            directory = DirectoryObject(bucket, 'test_upload', prefix=True)
+        for cls in [StagingUploadFiles, PublicUploadFiles]:
+            directory = DirectoryObject(cls.base_folder_for('test_upload'))
             if directory.exists():
                 directory.delete()
         yield 'test_upload'
-        for bucket in [config.fs.staging, config.fs.public]:
-            directory = DirectoryObject(bucket, 'test_upload', prefix=True)
+        for cls in [StagingUploadFiles, PublicUploadFiles]:
+            directory = DirectoryObject(cls.base_folder_for('test_upload'))
             if directory.exists():
                 directory.delete()
 
@@ -247,9 +229,10 @@ class UploadFilesContract(UploadFilesFixtures):
                 assert calc.with_embargo
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
-    def test_raw_file_manifest(self, test_upload: UploadWithFiles, prefix: str):
+    def test_raw_directory_list_prefix(self, test_upload: UploadWithFiles, prefix: str):
         _, _, upload_files = test_upload
-        raw_files = list(upload_files.raw_file_manifest(path_prefix=prefix))
+        path_infos = upload_files.raw_directory_list(recursive=True, files_only=True, path_prefix=prefix)
+        raw_files = list(path_info.path for path_info in path_infos)
         assert_example_files(raw_files)
 
     @pytest.mark.parametrize('path', [None, 'examples_template'])
@@ -374,7 +357,31 @@ class TestStagingUploadFiles(UploadFilesContract):
             test_upload_id, create=True)
         assert test_upload.is_empty()
         test_upload.add_rawfiles(example_file)
-        assert sorted(list(test_upload.raw_file_manifest())) == sorted(example_file_contents)
+        path_infos = test_upload.raw_directory_list(recursive=True, files_only=True)
+        assert sorted(list(path_info.path for path_info in path_infos)) == sorted(example_file_contents)
+
+    @pytest.mark.parametrize('prefix_size', [0, 2])
+    def test_prefix_size(self, monkeypatch, prefix_size):
+        monkeypatch.setattr('nomad.config.fs.prefix_size', prefix_size)
+        upload_id = 'test_upload'
+        upload_files = StagingUploadFiles(upload_id, create=True)
+        if not prefix_size:
+            assert upload_files.os_path == os.path.join(config.fs.staging, upload_id)
+        else:
+            prefix = upload_id[:prefix_size]
+            assert upload_files.os_path == os.path.join(config.fs.staging, prefix, upload_id)
+        upload_files.delete()
+
+    def test_delete_prefix(self, monkeypatch):
+        monkeypatch.setattr('nomad.config.fs.prefix_size', 2)
+        upload_1 = StagingUploadFiles('test_upload_1', create=True)
+        upload_2 = StagingUploadFiles('test_upload_2', create=True)
+        upload_1.delete()
+        upload_2.delete()
+
+        prefix = os.path.dirname(upload_1.os_path)
+        assert len(os.path.basename(prefix)) == 2
+        assert not os.path.exists(prefix)
 
 
 def create_public_upload(
@@ -422,7 +429,7 @@ class TestPublicUploadFiles(UploadFilesContract):
             with open(f, 'wt') as fh:
                 fh.write('')
 
-        staging_upload_files.pack(entries)
+        staging_upload_files.pack(entries, create=False, include_raw=False)
         staging_upload_files.delete()
 
         # We do a very simple check. We made all files empty, those that are rezipped
