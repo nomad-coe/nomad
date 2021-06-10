@@ -29,18 +29,12 @@ const useFiltersElementStyles = makeStyles(theme => ({
   }
 }))
 
-export const filterClassification = [
-  'results.material.type_structural',
-  'results.material.type_functional',
-  'results.material.type_compound',
-  'results.material.material_id'
-]
-export const labelClassification = 'Classification'
+export const labelMethod = 'Method'
 
 /**
- * Displays the filter options for classifications.
+ * Displays the filter options for electronic properties.
  */
-const FilterClassification = React.memo(({
+const FilterMethod = React.memo(({
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -50,33 +44,27 @@ const FilterClassification = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={6}>
         <FilterText
-          quantity="results.material.structural_type"
+          quantity="results.method.method_name"
           units={units}
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
-          quantity="results.material.functional_type"
+          quantity="results.method.simulation.program_name"
           units={units}
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
-          quantity="results.material.compound_type"
-          units={units}
-        />
-      </Grid>
-      <Grid item xs={6}>
-        <FilterText
-          quantity="results.material.material_id"
+          quantity="results.method.simulation.program_version"
           units={units}
         />
       </Grid>
     </Grid>
   </div>
 })
-FilterClassification.propTypes = {
+FilterMethod.propTypes = {
   className: PropTypes.string
 }
 
-export default FilterClassification
+export default FilterMethod

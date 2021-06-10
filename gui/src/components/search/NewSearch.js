@@ -23,7 +23,7 @@ import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
 import SearchContext from './SearchContext'
-import { searchBarQuantities } from './FilterContext'
+import { filtersAll } from './FilterContext'
 
 const useNewSearchStyles = makeStyles(theme => {
   const filterWidth = 26
@@ -125,7 +125,7 @@ const NewSearch = React.memo(({
       <div className={styles.center}>
         <div className={styles.bar}>
           <NewSearchBar
-            quantities={searchBarQuantities}
+            quantities={filtersAll}
             className={styles.searchBar}
           />
         </div>

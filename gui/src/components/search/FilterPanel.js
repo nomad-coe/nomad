@@ -24,24 +24,88 @@ import {
   Typography,
   ClickAwayListener
 } from '@material-ui/core'
-import {
-  ToggleButton,
-  ToggleButtonGroup
-} from '@material-ui/lab'
 import ClearIcon from '@material-ui/icons/Clear'
 import CodeIcon from '@material-ui/icons/Code'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import FilterTree from './FilterTree'
-import FilterSymmetry from './FilterSymmetry'
-import FilterElements, { labelElements } from './FilterElements'
-import FilterClassification, { labelClassification } from './FilterClassification'
-import FilterElectronic, { labelElectronic } from './FilterElectronic'
 import Scrollable from '../visualization/Scrollable'
 import Actions from '../Actions'
+
+import FilterElements, { labelElements } from './FilterElements'
+import FilterElectronic, { labelElectronic } from './FilterElectronic'
+import FilterSymmetry, { labelSymmetry } from './FilterSymmetry'
+import FilterDFT, { labelDFT } from './FilterDFT'
+import FilterGW, { labelGW } from './FilterGW'
+import FilterMethod, { labelMethod } from './FilterMethod'
+import FilterMaterial, { labelMaterial } from './FilterMaterial'
+import FilterSummary from './FilterSummary'
+import {
+  useResetFilters,
+  filtersElements,
+  filtersMaterial,
+  filtersElectronic,
+  filtersDFT,
+  filtersGW,
+  filtersSymmetry,
+  filtersMethod
+} from './FilterContext'
 
 /**
  * Displays the filters panel.
  */
+
+const filterTree = [
+  {
+    name: labelMaterial,
+    component: FilterMaterial,
+    filters: <FilterSummary quantities={filtersMaterial}/>,
+    children: [
+      {
+        name: labelElements,
+        filters: <FilterSummary quantities={filtersElements}/>,
+        component: FilterElements
+      },
+      {
+        name: labelSymmetry,
+        filters: <FilterSummary quantities={filtersSymmetry}/>,
+        component: FilterSymmetry
+      }
+    ]
+  },
+  {
+    name: labelMethod,
+    component: FilterMethod,
+    filters: <FilterSummary quantities={filtersMethod}/>,
+    children: [
+      {
+        name: labelDFT,
+        filters: <FilterSummary quantities={filtersDFT}/>,
+        component: FilterDFT
+      },
+      {
+        name: labelGW,
+        filters: <FilterSummary quantities={filtersGW}/>,
+        component: FilterGW
+      }
+    ]
+  },
+  {
+    name: 'Properties',
+    children: [
+      {
+        name: labelElectronic,
+        filters: <FilterSummary quantities={filtersElectronic}/>,
+        component: FilterElectronic
+      },
+      {name: 'Vibrational'},
+      {name: 'Optical'}
+    ]
+  },
+  {
+    name: 'Metainfo',
+    filters: <FilterSummary quantities={filtersDFT}/>
+  }
+]
 
 const useStyles = makeStyles(theme => {
   // The secondary menu widths are hardcoded. Another option would be to use
@@ -61,7 +125,7 @@ const useStyles = makeStyles(theme => {
     },
     header: {
       paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(2.25),
+      paddingBottom: theme.spacing(1),
       paddingLeft: padding,
       paddingRight: padding
     },
@@ -155,6 +219,29 @@ const FilterPanel = React.memo(({
 }) => {
   const styles = useStyles()
   const [view, setView] = useState('Filters')
+  const resetFilters = useResetFilters()
+
+  const views = useMemo(() => {
+    const viewList = []
+    function addView(item) {
+      if (item.component) {
+        viewList.push(<item.component
+          key={viewList.length}
+          className={clsx(view !== item.name && styles.menuHidden)}
+        ></item.component>)
+      }
+      let children = item.children
+      if (children) {
+        for (let child of children) {
+          addView(child)
+        }
+      }
+    }
+    for (let item of filterTree) {
+      addView(item)
+    }
+    return viewList
+  }, [styles, view])
 
   // Primary menu actions
   const actionsPrimary = useMemo(() => (
@@ -166,8 +253,9 @@ const FilterPanel = React.memo(({
     {
       tooltip: 'Clear filters',
       content: <ClearIcon/>,
-      onClick: () => {}
+      onClick: () => resetFilters()
     }]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [])
 
   // Secondary menu actions
@@ -189,35 +277,8 @@ const FilterPanel = React.memo(({
           actions={actionsPrimary}
           className={styles.header}
         />
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={resultType}
-          onChange={onResultTypeChange}
-          className={styles.toggles}
-        >
-          <ToggleButton
-            value="entries"
-            classes={{root: styles.toggle, selected: styles.selected}}
-          >Entries
-          </ToggleButton>
-          <ToggleButton
-            value="materials"
-            classes={{root: styles.toggle, selected: styles.selected}}
-          >Materials
-          </ToggleButton>
-          <ToggleButton
-            value="datasets"
-            classes={{root: styles.toggle, selected: styles.selected}}
-          >Datasets
-          </ToggleButton>
-          <ToggleButton
-            value="uploads"
-            classes={{root: styles.toggle, selected: styles.selected}}
-          >Uploads
-          </ToggleButton>
-        </ToggleButtonGroup>
         <FilterTree
+          filterTree={filterTree}
           view={view}
           isMenuOpen={isMenuOpen}
           resultType={resultType}
@@ -228,19 +289,16 @@ const FilterPanel = React.memo(({
       </Scrollable>
       <Paper
         elevation={4}
-        className={clsx(styles.container, isMenuOpen && (view !== 'Elements / Formula' ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
+        className={clsx(styles.container, isMenuOpen && (view !== labelElements ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
       >
-        <div className={clsx(styles.menuSecondary, view !== 'Elements / Formula' ? styles.menuMedium : styles.menuLarge)}>
+        <div className={clsx(styles.menuSecondary, view !== labelElements ? styles.menuMedium : styles.menuLarge)}>
           <Actions
             header={<Typography className={styles.headerText} variant="button">{view}</Typography>}
             variant="icon"
             actions={actionsSecondary}
             className={clsx(styles.header, styles.headerSecondary)}
           />
-          <FilterElements className={clsx(view !== labelElements && styles.menuHidden)}/>
-          <FilterClassification className={clsx(view !== labelClassification && styles.menuHidden)}/>
-          <FilterSymmetry className={clsx(view !== 'Symmetry / Prototypes' && styles.menuHidden)}/>
-          <FilterElectronic className={clsx(view !== labelElectronic && styles.menuHidden)}/>
+          {views}
         </div>
       </Paper>
     </div>

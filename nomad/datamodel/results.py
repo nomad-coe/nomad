@@ -116,7 +116,10 @@ class ChannelInfo(MSection):
         description='''
         Type of band gap.
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(material_type, suggestion=True)
+        ],
     )
     energy_fermi = Quantity(
         type=np.dtype(np.float64),

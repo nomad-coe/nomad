@@ -63,7 +63,6 @@ const FilterText = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  // const inputRef = useRef()
   const hasSuggestions = true
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)

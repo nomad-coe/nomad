@@ -20,7 +20,6 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterSlider from './FilterSlider'
 import FilterText from './FilterText'
 import { useUnits } from '../../units'
 
@@ -30,12 +29,12 @@ const useFiltersElementStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelElectronic = 'Electronic'
+export const labelGW = 'GW'
 
 /**
  * Displays the filter options for electronic properties.
  */
-const FilterElectronic = React.memo(({
+const FilterGW = React.memo(({
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -43,23 +42,17 @@ const FilterElectronic = React.memo(({
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <FilterSlider
-          quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
-          units={units}
-        />
-      </Grid>
       <Grid item xs={6}>
         <FilterText
-          quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap_type"
+          quantity="results.method.simulation.gw.gw_type"
           units={units}
         />
       </Grid>
     </Grid>
   </div>
 })
-FilterElectronic.propTypes = {
+FilterGW.propTypes = {
   className: PropTypes.string
 }
 
-export default FilterElectronic
+export default FilterGW

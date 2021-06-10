@@ -24,15 +24,9 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  ListSubheader,
   Divider
 } from '@material-ui/core'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
-import { labelElements, filterElements } from './FilterElements'
-import { labelClassification, filterClassification } from './FilterClassification'
-import { labelElectronic, filterElectronic } from './FilterElectronic'
-import { labelSymmetry, filterSymmetry } from './FilterSymmetry'
-import FilterSummary from './FilterSummary'
 
 /**
  * Displays the tree-like structure for selecting filters.
@@ -50,12 +44,10 @@ const useStyles = makeStyles(theme => {
     hidden: {
       display: 'none'
     },
-    listHeader: {
-      paddingLeft: padding,
-      height: '2.5rem',
-      lineHeight: '2.5rem',
-      color: theme.palette.text.primary,
-      fontSize: '0.875rem'
+    listChild: {
+      marginLeft: theme.spacing(1)
+    },
+    listParent: {
     },
     listIcon: {
       fontsize: '1rem',
@@ -94,6 +86,7 @@ const useStyles = makeStyles(theme => {
 })
 
 const FiltersTree = React.memo(({
+  filterTree,
   view,
   isMenuOpen,
   onViewChange,
@@ -117,99 +110,51 @@ const FiltersTree = React.memo(({
 
   // Determine the navigation tree layout
   const tree = useMemo(() => {
-    const tree = [
-      {
-        name: 'Structure',
-        children: [
-          {
-            name: labelElements,
-            filters: <FilterSummary quantities={filterElements}/>
-          },
-          {
-            name: labelClassification,
-            filters: <FilterSummary quantities={filterClassification}/>
-          },
-          {
-            name: labelSymmetry,
-            filters: <FilterSummary quantities={filterSymmetry}/>
-          }
-        ]
-      },
-      {
-        name: 'Method',
-        children: [
-          {name: 'DFT'},
-          {name: 'GW'},
-          {name: 'XPS'}
-        ]
-      },
-      {
-        name: 'Properties',
-        children: [
-          {
-            name: labelElectronic,
-            filters: <FilterSummary quantities={filterElectronic}/>
-          },
-          {name: 'Vibrational'},
-          {name: 'Optical'}
-        ]
-      },
-      {
-        name: 'Metainfo',
-        children: [
-          {name: 'Origin'},
-          {name: 'Dataset'}
-        ]
-      }
-    ]
-    function buildList(branch, i) {
-      const name = branch.name
-      const children = branch.children
-      return <List
-        key={i}
-        dense
-        className={styles.list}
-        subheader={
-          <ListSubheader
-            component="div"
-            id="nested-list-subheader"
-            className={styles.listHeader}
-          >
-            {name}
-          </ListSubheader>
-        }
-      >
-        <Divider/>
-        {children.map((child, j) => {
-          const childName = child.name
-          const filters = child.filters
-          const isOpen = isMenuOpen && view === childName
+    function buildList(list, item, level) {
+      const childName = item.name
+      const filters = item.filters
+      const isOpen = isMenuOpen && view === childName
 
-          return <div
-            key={j}
-            className={styles.li}
-          >
-            <ListItem
-              button
-              className={styles.listItem}
-              classes={{gutters: styles.gutters}}
-              onClick={() => handleClick(childName)}
-            >
-              <ListItemText
-                primaryTypographyProps={{color: isOpen ? 'primary' : 'textPrimary'}}
-                primary={childName}
-              />
-              <ListItemIcon className={styles.listIcon}>
-                <NavigateNextIcon color={isOpen ? 'primary' : 'action'} className={styles.arrow}/>
-              </ListItemIcon>
-            </ListItem>
-            {filters}
-            <Divider className={styles.divider}/>
-          </div>
-        })}
-      </List>
+      // Add this item
+      list.push(<div
+        key={list.length}
+        className={styles.li}
+      >
+        <ListItem
+          button
+          className={styles.listItem}
+          classes={{gutters: styles.gutters}}
+          onClick={() => handleClick(childName)}
+        >
+          <ListItemText
+            className={level === 0 ? styles.listParent : styles.listChild}
+            primaryTypographyProps={{color: isOpen ? 'primary' : 'textPrimary'}}
+            primary={childName}
+          />
+          <ListItemIcon className={styles.listIcon}>
+            <NavigateNextIcon color={isOpen ? 'primary' : 'action'} className={styles.arrow}/>
+          </ListItemIcon>
+        </ListItem>
+        {filters}
+        <Divider className={styles.divider}/>
+      </div>)
+
+      // Add children recursively
+      const children = item.children
+      if (children) {
+        for (let child of children) {
+          buildList(list, child, level + 1)
+        }
+      }
     }
-    return tree.map((section, index) => buildList(section, index))
+    const itemList = []
+    for (let item of filterTree) {
+      buildList(itemList, item, 0)
+    }
+    return <List dense className={styles.list}>
+      <Divider/>
+      {itemList}
+    </List>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isMenuOpen])
 
@@ -218,6 +163,7 @@ const FiltersTree = React.memo(({
   </div>
 })
 FiltersTree.propTypes = {
+  filterTree: PropTypes.array,
   view: PropTypes.string,
   isMenuOpen: PropTypes.bool,
   className: PropTypes.string,

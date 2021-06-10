@@ -23,15 +23,11 @@ import { makeStyles } from '@material-ui/core/styles'
 import { useUnits } from '../../units'
 import FilterText from './FilterText'
 
-export const filterSymmetry = [
-  'results.material.symmetry.bravais_lattice'
-]
 export const labelSymmetry = 'Symmetry / Prototypes'
 
 const useStyles = makeStyles(theme => ({
   root: {
-    width: '40rem',
-    marginTop: theme.spacing(0.5)
+    width: '100%'
   }
 }))
 
@@ -49,6 +45,48 @@ const FilterSymmetry = React.memo(({
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.bravais_lattice"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.crystal_system"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.hall_symbol"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.point_group"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.space_group_symbol"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.prototype_aflow_id"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.structure_name"
+          units={units}
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <FilterText
+          quantity="results.material.symmetry.strukturbericht_designation"
           units={units}
         />
       </Grid>

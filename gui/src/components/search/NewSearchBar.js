@@ -136,13 +136,16 @@ const NewSearchBar = React.memo(({
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
   const handleSubmit = useCallback(() => {
-    const chars = '[^=><\\s]+'
+    if (inputValue.trim().length === 0) {
+      return
+    }
+    const reString = '\\S(?:.*\\S)?'
     let valid = false
     let quantityFullname
     let queryValue
 
     // Equality query
-    const equals = inputValue.match(new RegExp(`^\\s*(${chars})\\s*=\\s*(${chars})\\s*$`))
+    const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
     if (equals) {
       const quantityName = equals[1]
       queryValue = equals[2]
@@ -156,7 +159,7 @@ const NewSearchBar = React.memo(({
 
     // Simple LTE/GTE query
     if (!valid) {
-      const ltegte = inputValue.match(new RegExp(`^\\s*(${chars})\\s*(<|>=?)\\s*(${chars})\\s*$`))
+      const ltegte = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*$`))
       if (ltegte) {
         const a = ltegte[1]
         const op = ltegte[2]
@@ -188,7 +191,7 @@ const NewSearchBar = React.memo(({
 
     // Sandwiched LTE/GTE query
     if (!valid) {
-      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${chars})\\s*(<|>=?)\\s*(${chars})\\s*(<|>=?)\\s*(${chars})\\s*$`))
+      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*$`))
       if (ltegteSandwich) {
         const a = ltegteSandwich[1]
         const op1 = ltegteSandwich[2]
@@ -224,6 +227,8 @@ const NewSearchBar = React.memo(({
       setFilter([quantityFullname, queryValue])
       setInputValue('')
       setOpen(false)
+    } else {
+      setError(`Invalid query`)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue, quantitySet])

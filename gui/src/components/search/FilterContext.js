@@ -16,7 +16,15 @@
  * limitations under the License.
  */
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
-import { atom, atomFamily, selector, useSetRecoilState, useRecoilValue, useRecoilState } from 'recoil'
+import {
+  atom,
+  atomFamily,
+  selector,
+  useSetRecoilState,
+  useRecoilValue,
+  useRecoilState,
+  useRecoilCallback
+} from 'recoil'
 import _ from 'lodash'
 import { useApi } from '../apiV1'
 import { setToArray } from '../../utils'
@@ -33,14 +41,28 @@ import { Quantity } from '../../units'
  * approach would have been to try and Memoize each sufficiently complex
  * component, but this quickly becomes a hard manual task.
  */
-export const searchBarQuantities = [
+
+export const filtersElements = [
+  'results.material.elements',
   'results.material.chemical_formula_hill',
   'results.material.chemical_formula_anonymous',
+  'results.material.n_elements'
+]
+
+export const filtersMaterial = [
   'results.material.structural_type',
   'results.material.functional_type',
   'results.material.compound_type',
   'results.material.material_id',
-  'results.material.material_name',
+  'results.material.material_name'
+]
+
+export const filtersElectronic = [
+  'results.properties.electronic.band_structure_electronic.channel_info.band_gap',
+  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type'
+]
+
+export const filtersSymmetry = [
   'results.material.symmetry.bravais_lattice',
   'results.material.symmetry.crystal_system',
   'results.material.symmetry.hall_symbol',
@@ -48,25 +70,40 @@ export const searchBarQuantities = [
   'results.material.symmetry.space_group_symbol',
   'results.material.symmetry.prototype_aflow_id',
   'results.material.symmetry.structure_name',
-  'results.material.symmetry.strukturbericht_designation',
+  'results.material.symmetry.strukturbericht_designation'
+]
+
+export const filtersMethod = [
+  'results.method.method_name',
+  'results.method.simulation.program_name',
+  'results.method.simulation.program_version'
+]
+
+export const filtersDFT = [
   'results.method.simulation.dft.basis_set_type',
   'results.method.simulation.dft.basis_set_name',
   'results.method.simulation.dft.core_electron_treatment',
   'results.method.simulation.dft.van_der_Waals_method',
   'results.method.simulation.dft.relativity_method',
-  'results.method.simulation.dft.smearing_type',
-  'results.method.simulation.gw.gw_type',
-  'results.method.simulation.program_name',
-  'results.method.simulation.program_version',
-  'results.method.method_name',
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap',
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type',
-  'results.material.n_elements'
+  'results.method.simulation.dft.smearing_type'
 ]
-let allQuantities = [
-  'results.material.elements'
+
+export const filtersGW = [
+  'results.method.simulation.gw.gw_type'
 ]
-allQuantities = allQuantities.concat(searchBarQuantities)
+
+export let filtersAll = []
+filtersAll = filtersAll.concat(filtersElements)
+filtersAll = filtersAll.concat(filtersMaterial)
+filtersAll = filtersAll.concat(filtersElectronic)
+filtersAll = filtersAll.concat(filtersSymmetry)
+filtersAll = filtersAll.concat(filtersDFT)
+filtersAll = filtersAll.concat(filtersGW)
+
+export const registeredFilters = atom({
+  key: 'registeredFilters',
+  default: new Set()
+})
 
 export const queryFamily = atomFamily({
   key: 'queryFamily',
@@ -84,6 +121,18 @@ export const statisticsRequestState = atom({
 })
 
 let index = 0
+
+/**
+ * Returns a function that can be caleld to reset all current filters.
+ */
+export function useResetFilters() {
+  const reset = useRecoilCallback(({reset}) => () => {
+    for (let filter of filtersAll) {
+      reset(queryFamily(filter))
+    }
+  }, [])
+  return reset
+}
 
 /**
  * This hook will expose a function for reading filter values for a specific
@@ -126,6 +175,15 @@ export function useStatistics(name) {
  * @returns currently set filter value.
  */
 export function useFilterValue(quantity) {
+  // const setRegisteredFilters = useSetRecoilState(registeredFilters)
+  // setRegisteredFilters(old => {
+  //   if (old.has(quantity)) {
+  //     return old
+  //   }
+  //   const newValue = new Set(old)
+  //   newValue.add(quantity)
+  //   return newValue
+  // })
   return useRecoilValue(queryFamily(quantity))
 }
 /**
@@ -149,11 +207,17 @@ export function useSetFilter(quantity) {
  * @returns array containing the filter value and setter function for it.
  */
 export function useFilterState(quantity) {
+  // const setRegisteredFilters = useSetRecoilState(registeredFilters)
+  // setRegisteredFilters(old => {
+  //   if (old.has(quantity)) {
+  //     return old
+  //   }
+  //   const newValue = new Set(old)
+  //   newValue.add(quantity)
+  //   return newValue
+  // })
   return useRecoilState(queryFamily(quantity))
 }
-// export function useSetFilters(quantities) {
-//   return useRecoilState(queryFamily(quantity))
-// }
 
 /**
  * This hook will expose a function for getting and setting filter values for
@@ -194,10 +258,6 @@ export function useFiltersState(quantities) {
   return useRecoilState(filterState)
 }
 
-// export function useFiltersValue(quantities) {
-//   return useRecoilState(queryFamily(quantity))
-// }
-
 /**
  * This atom holds a boolean indicating whether results are being loaded.
  */
@@ -232,7 +292,8 @@ const queryState = selector({
   key: 'query',
   get: ({get}) => {
     const query = {}
-    for (let key of allQuantities) {
+    // const filters = get(registeredFilters)
+    for (let key of filtersAll) {
       const filter = get(queryFamily(key))
       query[key] = filter
     }

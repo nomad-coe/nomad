@@ -25,6 +25,8 @@ import FilterText from './FilterText'
 import FilterSlider from './FilterSlider'
 import { useFilterState, useStatistics, useMetric } from './FilterContext'
 
+export const labelElements = 'Elements / Formula'
+
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -34,14 +36,6 @@ const useFiltersElementStyles = makeStyles(theme => ({
     marginTop: theme.spacing(2)
   }
 }))
-
-export const filterElements = [
-  'results.material.elements',
-  'results.material.chemical_formula_hill',
-  'results.material.chemical_formula_anonymous',
-  'results.material.n_elements'
-]
-export const labelElements = 'Elements / Formula'
 
 /**
  * Displays the filter options for chemical elements.
@@ -91,19 +85,16 @@ const FilterElements = React.memo(({
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.chemical_formula_hill"
-          label="formula"
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.chemical_formula_anonymous"
-          label="formula anonymous"
         />
       </Grid>
       <Grid item xs={12}>
         <FilterSlider
           quantity="results.material.n_elements"
-          label="number of species"
         />
       </Grid>
     </Grid>
