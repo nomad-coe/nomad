@@ -1021,16 +1021,12 @@ async def post_upload_action_publish(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload is already published.')
-        metadata_dict: Dict[str, Any] = {'with_embargo': with_embargo}
-        if with_embargo:
-            if not embargo_length or not 0 < embargo_length <= 36:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='embargo_length needs to be between 1 and 36 months.')
-            metadata_dict.update(embargo_length=embargo_length)
+        if not 1 <= embargo_length <= 36 and not (embargo_length == 0 and not with_embargo):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid embargo_length. Must be between 1 and 36 months.')
         try:
-            upload.compress_and_set_metadata(metadata_dict)
-            upload.publish_upload()
+            upload.publish_upload(with_embargo=with_embargo, embargo_length=embargo_length)
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
