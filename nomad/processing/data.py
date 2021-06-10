@@ -908,7 +908,7 @@ class Upload(Proc):
         return True  # do not save the process status on the delete upload
 
     @process
-    def publish_upload(self):
+    def publish_upload(self, with_embargo: bool = None, embargo_length: int = None):
         '''
         Moves the upload out of staging to the public area. It will
         pack the staging upload files in to public upload files.
@@ -924,7 +924,10 @@ class Upload(Proc):
                 with utils.timer(logger, 'upload metadata updated'):
                     def create_update(calc):
                         calc.published = True
-                        calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
+                        if with_embargo is not None:
+                            calc.with_embargo = with_embargo
+                        elif calc.with_embargo is None:
+                            calc.with_embargo = False
                         return UpdateOne(
                             {'_id': calc.calc_id},
                             {'$set': {'metadata': calc.m_to_dict(
@@ -941,6 +944,8 @@ class Upload(Proc):
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
+                        if embargo_length is not None:
+                            self.embargo_length = embargo_length
                         self.upload_files.delete()
                         self.published = True
                         self.publish_time = datetime.utcnow()

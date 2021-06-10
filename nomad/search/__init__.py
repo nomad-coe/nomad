@@ -169,7 +169,7 @@ def index(
 
 
 # TODO this depends on how we merge section_metadata
-def publish(entries: List[EntryMetadata], index: str = None) -> int:
+def publish(entries: Iterable[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
     and updates most user provided metadata with a partial update. Returns the number
@@ -180,7 +180,7 @@ def publish(entries: List[EntryMetadata], index: str = None) -> int:
 
 
 def update_metadata(
-        entries: List[EntryMetadata], index: str = None,
+        entries: Iterable[EntryMetadata], index: str = None,
         update_materials: bool = False, refresh: bool = False,
         **kwargs) -> int:
     '''

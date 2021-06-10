@@ -379,7 +379,9 @@ class Proc(Document, metaclass=ProcMetaclass):
             self.reload()
 
     @classmethod
-    def process_all(cls, func, query: Dict[str, Any], exclude: List[str] = []):
+    def process_all(
+            cls, func, query: Dict[str, Any], exclude: List[str] = [],
+            process_args: List[Any] = [], process_kwargs: Dict[str, Any] = {}):
         '''
         Allows to run process functions for all objects on the given query. Calling
         process functions though the func:`process` wrapper might be slow, because
@@ -397,9 +399,9 @@ class Proc(Document, metaclass=ProcMetaclass):
             process_status=PROCESS_CALLED)})
 
         for obj in cls.objects(**query).exclude(*exclude):
-            obj._run_process(func)
+            obj._run_process(func, process_args, process_kwargs)
 
-    def _run_process(self, func):
+    def _run_process(self, func, process_args, process_kwargs):
         if hasattr(func, '__process_unwrapped'):
             func = getattr(func, '__process_unwrapped')
 
@@ -416,7 +418,7 @@ class Proc(Document, metaclass=ProcMetaclass):
         logger.debug('calling process function', queue=queue, priority=priority)
 
         return proc_task.apply_async(
-            args=[cls_name, self_id, func.__name__],
+            args=[cls_name, self_id, func.__name__, process_args, process_kwargs],
             queue=queue, priority=priority)
 
     def __str__(self):
@@ -556,7 +558,7 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
     acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
     time_limit=config.celery.timeout * 2)
-def proc_task(task, cls_name, self_id, func_attr):
+def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
     '''
     The celery task that is used to execute async process functions.
     It ignores results, since all results are handled via the self document.
@@ -597,7 +599,7 @@ def proc_task(task, cls_name, self_id, func_attr):
         self.process_status = PROCESS_RUNNING
         os.chdir(config.fs.working_directory)
         with utils.timer(logger, 'process executed on worker'):
-            deleted = func(self)
+            deleted = func(self, *process_args, **process_kwargs)
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
         self.fail(e)
@@ -623,7 +625,6 @@ def process(func):
     '''
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        assert len(args) == 0 and len(kwargs) == 0, 'process functions must not have arguments'
         if self.process_running:
             raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
 
@@ -631,7 +632,7 @@ def process(func):
         self.process_status = PROCESS_CALLED
         self.save()
 
-        self._run_process(func)
+        self._run_process(func, args, kwargs)
 
     task = getattr(func, '__task_name', None)
     if task is not None:
